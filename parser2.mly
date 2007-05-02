@@ -14,10 +14,10 @@ main:
 | e = expr SEPERATOR { e }
 expr:
 | id = IDENTIFIER params = param*
-        { Ast2.Expr (id, params) }
+    { { Ast2.id = id; Ast2.args = params; } }
 param:
 | id = IDENTIFIER
-        { Ast2.Expr (id, []) }
+    { { Ast2.id = id; Ast2.args = []; } }
 | BLOCK_BEGIN expressions = main* BLOCK_END
-        { Ast2.Expr ("std:seq", expressions) }
+    { { Ast2.id = "std:seq"; Ast2.args = expressions; } }
     

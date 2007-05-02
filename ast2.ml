@@ -11,21 +11,27 @@ type identifier = string
 (*   | Float of float *)
 (*   | String of string *)
 
-type expression =
-  | Expr of identifier * expression list
+(* type expression = *)
+(*   | Expr of identifier * expression list *)
+    
+type expression = {
+  id :identifier;
+  args :expression list;
+}
 
 (* let value2string = function *)
 (*   | Int i -> string_of_int i *)
 (*   | Float f -> string_of_float f *)
 (*   | String s -> "'" ^ s ^ "'" *)
 
-let rec expression2string = function
-(*   | Constant v -> value2string v *)
-  | Expr (id, args) ->
+let rec expression2string { id = id; args = args; } =
       let argStrings = List.map expression2string args in
       let inOneLine = combine " " (id::argStrings) in
       if String.length inOneLine <= 60 then
-        inOneLine
+        if String.contains inOneLine ' ' then
+          "(" ^ inOneLine ^ ")"
+        else
+          inOneLine
       else
         combine "\n  " (id::argStrings)
     

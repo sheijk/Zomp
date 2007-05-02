@@ -63,11 +63,11 @@ and funcCall = {
 and expr =
   | Sequence of expr list
   | DefineVariable of variable
-  | Variable of string
+  | FuncCall of funcCall
   | IfThenElse of ifthenelse
   | Loop of loop
-  | FuncCall of funcCall
-    
+  | Variable of string
+
 type func = {
   name :string;
   rettype :integralType;
