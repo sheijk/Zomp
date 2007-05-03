@@ -119,6 +119,35 @@ let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = func
               | None -> None
     end
   | _ -> None
+
+let translateLoop (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = "std_loop"; args = [preCode; abortTest; postCode] } -> begin
+      let eval expr =
+        let _, sf = translateF bindings expr in
+        match sf with
+            [e] -> e
+          | _ as es -> Sequence es
+      in
+      Some (bindings, [Loop { preCode = eval preCode;
+                                    abortTest = eval abortTest;
+                                    postCode = eval postCode; } ])
+    end
+  | _ -> None
+
+let translateIfThenElse (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = "std_ifthenelse"; args = [condExpr; trueExpr; falseExpr] } -> begin
+      let eval expr =
+        let _, sf = translateF bindings expr in
+        match sf with
+            [e] -> e
+          | _ as es -> Sequence es
+      in
+      Some (bindings, [IfThenElse { cond = eval condExpr;
+                                    trueCode = eval trueExpr;
+                                    falseCode = eval falseExpr; }])
+    end
+  | _ -> None      
+
       
 let translateNested = translate
   [
@@ -126,6 +155,8 @@ let translateNested = translate
     translateDefineVar;
     translateSimpleExpr;
     translateFuncCall;
+    translateLoop;
+    translateIfThenElse;
   ]
   
 (* let rec translateNested = function *)
@@ -249,6 +280,28 @@ let _ =
                    (Sequence [FuncCall {
                                 fcname = "five";
                                 fcargs = [Constant (IntVal 3)] }]) ) ];
+
+    "std_func int testif {} {" ^
+      "  std_ifthenelse { true; } { 1; } { 2; };" ^
+      "};",
+    [DefineFunc (func "testif" Int []
+                   (Sequence [
+                      IfThenElse ({ cond = Constant (BoolVal true);
+                                    trueCode = Constant (IntVal 1);
+                                    falseCode = Constant (IntVal 2) })]) )];
+
+    "std_func float testloop {} {" ^
+      "  std_loop {} { false; } { \"while\"; };" ^
+      "  std_loop { \"do\"; } { true; } {};" ^
+      "};",
+    [DefineFunc (func "testloop" Float []
+                   (Sequence [
+                      Loop { preCode = Sequence [];
+                             abortTest = Constant (BoolVal false);
+                             postCode = Constant (StringVal "while"); };
+                      Loop { preCode = Constant (StringVal "do");
+                             abortTest = Constant (BoolVal true);
+                             postCode = Sequence []; } ]))];
   ]
   in
   let source2res source =
