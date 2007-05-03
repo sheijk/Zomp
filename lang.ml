@@ -20,6 +20,12 @@ type integralValue =
   | StringVal of string
   | BoolVal of bool
 
+let defaultValue = function
+  | Int -> IntVal 0
+  | Float -> FloatVal 0.0
+  | String -> StringVal ""
+  | Bool -> BoolVal false
+  
 let parseValue typ str =
   match typ with
     | Int -> IntVal (int_of_string str)
@@ -35,13 +41,13 @@ let parseValue typ str =
 (*     end *)
       
 type variable = {
-  name :string;
+  vname :string;
   typ :integralType;
   default :integralValue;
 }
 
 let variable ~name ~typ ~default = {
-  name = name;
+  vname = name;
   typ = typ;
   default = default;
 }  
@@ -57,19 +63,20 @@ and loop = {
   postCode :expr;
 }
 and funcCall = {
-  name :string;
-  args :expr list;
+  fcname :string;
+  fcargs :expr list;
 }
 and expr =
   | Sequence of expr list
   | DefineVariable of variable
+  | Variable of string
+  | Constant of integralValue
   | FuncCall of funcCall
   | IfThenElse of ifthenelse
   | Loop of loop
-  | Variable of string
 
 type func = {
-  name :string;
+  fname :string;
   rettype :integralType;
   args :(string * integralType) list;
   impl :expr
@@ -79,15 +86,15 @@ and toplevelExpr =
   | DefineFunc of func
 
 let func name rettype args impl = {
-  name = name;
+  fname = name;
   rettype = rettype;
   args = args;
   impl = impl;
 }
   
-type package = {
-  name :string;
-  vars :variable list;
-  funcs :func list;
-}
+(* type package = { *)
+(*   pname :string; *)
+(*   vars :variable list; *)
+(*   funcs :func list; *)
+(* } *)
     

@@ -18,22 +18,51 @@ type symbol =
 type bindings = (string * symbol) list
 
 let defaultBindings : bindings = []
+
+let addVar bindings var : bindings = (var.vname, VarSymbol var) :: bindings
+
+let addFunc bindings func : bindings = (func.fname, FuncSymbol func) :: bindings
   
-let rec lookup bindings name =
+let rec lookup (bindings :bindings) name =
   match bindings with
     | [] -> UndefinedSymbol
     | (symName, sym) :: tail when symName = name -> sym
     | _ :: tail -> lookup tail name
 
-type exprTranslateF = expression -> expr list
+let isFunction bindings name =
+  match lookup bindings name with
+    | FuncSymbol _ -> true
+    | _ -> false
         
-let translateSeq (translateF : exprTranslateF) = function
+        
+type exprTranslateF = bindings -> expression -> bindings * expr list
+
+let rec translatelst translateF (bindings :bindings) = function
+  | [] -> bindings, []
+  | expr :: tail ->
+      let newBindings, sf = translateF bindings expr in
+      let resultingBindings, sfuncs = translatelst translateF newBindings tail in
+      resultingBindings, (sf @ sfuncs)
+        
+let rec translate translators (bindings :bindings) expr =
+  let rec t = function
+    | [] -> raiseIllegalExpression ~expr ~msg:"Expression can not be translated"
+    | f :: remf -> begin
+        match f (translate translators) bindings expr with
+          | Some (newBindings, result) -> (newBindings, result)
+          | None -> t remf
+      end
+  in
+  t translators
+
+
+let translateSeq (translateF : exprTranslateF) bindings = function
   | { id = "std:seq"; args = sequence } ->
-      Some (List.fold_left (@) [] (List.map translateF sequence))
+      Some (translatelst translateF bindings sequence)
   | _ ->
       None
 
-let translateVar (translateF : exprTranslateF) = function
+let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = "std_var"; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
@@ -41,28 +70,68 @@ let translateVar (translateF : exprTranslateF) = function
       ] } -> begin
       let typ = string2integralType typeName in
       let value = parseValue typ valueString in
-      Some [ DefineVariable (variable name typ value) ]
+      let var = variable name typ value in
+      Some( addVar bindings var, [ DefineVariable var ] )
     end
   | _ ->
       None
-    
-let rec translate translators  expr =
-  let rec t = function
-    | [] -> raiseIllegalExpression ~expr ~msg:"Expression can not be translated"
-    | f :: remf -> begin
-        match f (translate translators) expr with
-          | Some result -> result
-          | None -> t remf
-      end
-  in
-  t translators
 
-let translateNested = translate [translateSeq; translateVar]
+let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = name; args = args; } when isFunction bindings name ->
+      let evalArg arg =
+        match translateF bindings arg with
+          | _, [expr] -> expr
+          | _, exprList -> Sequence exprList
+      in
+      let argExprs = List.map evalArg args in
+      Some( bindings, [ FuncCall { fcname = name; fcargs = argExprs } ] )
+  | { id = name; args = _; } ->
+      Printf.printf "%s is not a function\n" name;
+      None
+(*   | _ -> None *)
+      
+  
+let string2integralValue str =
+  let dequoteString str =
+    let length = String.length str in
+    if length > 2 && str.[0] = '"' && str.[length-1] = '"' then
+      String.sub str 1 (length-2)
+    else
+      raise (Failure "dequoteString")
+  in
+  try Some ( IntVal (int_of_string str) )
+  with _ ->
+    try Some ( FloatVal (float_of_string str) )
+    with _ ->
+      try Some ( BoolVal (bool_of_string str) )
+      with _ ->
+        try Some ( StringVal (dequoteString str) )
+        with _ ->
+          None
+        
+let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = name; args = [] } -> begin
+      match lookup bindings name with
+        | VarSymbol v -> Some (bindings, [Variable v.vname])
+        | _ ->
+            match string2integralValue name with
+              | Some c -> Some( bindings, [Constant c] )
+              | None -> None
+    end
+  | _ -> None
+      
+let translateNested = translate
+  [
+    translateSeq;
+    translateDefineVar;
+    translateSimpleExpr;
+    translateFuncCall;
+  ]
   
 (* let rec translateNested = function *)
 (*   | Expr ("std:seq", sequence) -> *)
 (*       List.fold_left (@) [] (List.map translateNested sequence) *)
-        
+  
 (*   | Expr ( "std_var", [Expr(typeName, []); Expr(name, []); Expr(valueString, [])] ) -> *)
 (*       let typ = string2integralType typeName in *)
 (*       let value = parseValue typ valueString in *)
@@ -70,9 +139,9 @@ let translateNested = translate [translateSeq; translateVar]
 
 (*   | _ as expr -> raiseIllegalExpression ~expr ~msg:"Not handled, yet" *)
 
-type toplevelExprTranslateF = expression -> toplevelExpr list
+type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list
 
-let translateGlobalVar (translateF : toplevelExprTranslateF) = function
+let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
   | { id = "std_var"; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
@@ -80,32 +149,44 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) = function
       ] } -> begin
       let typ = string2integralType typeName in
       let value = parseValue typ valueString in
-      Some [ GlobalVar (variable name typ value) ]
+      let var = variable name typ value in
+      let newBindings = addVar bindings var in
+      Some( newBindings, [ GlobalVar var ] )
     end
   | _ ->
       None
 
-let translateFunc (translateF : toplevelExprTranslateF) = function
+let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = function
   | { id = "std_func"; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
         { id = "std:seq"; args = paramExprs };
-        { id = "std:seq"; args = implExprs };
+        { id = "std:seq"; args = _ } as implExpr;
       ] } -> begin
       let typ = string2integralType typeName in
       let expr2param = function
         | { id = typeName; args = [{ id = varName; args = [] }] } ->
             (varName, string2integralType typeName)
-        | _ as expr -> raiseIllegalExpression ~expr
-            ~msg:"Expected 'typeName varName' for param"
+        | _ as expr ->
+            raiseIllegalExpression
+              ~expr ~msg:"Expected 'typeName varName' for param"
       in
       let params = List.map expr2param paramExprs in
-      let impl = List.fold_left (@) [] (List.map translateNested implExprs) in
-      Some [ DefineFunc (func name typ params (Sequence impl)) ]
+      let rec localBinding bindings = function
+        | [] -> bindings
+        | (name, typ) :: tail ->
+            let var = variable name typ (defaultValue typ) in
+            localBinding (addVar bindings var) tail
+      in
+      let innerBindings = localBinding bindings params in
+      let _, impl = translateNested innerBindings implExpr in
+      let f = func name typ params (Sequence impl) in
+      let newBindings = addFunc bindings f in
+      Some( newBindings, [ DefineFunc f ] )
     end
   | _ ->
       None
-    
+        
 let translateTL = translate [translateGlobalVar; translateFunc]
   
 let parseSources sources =
@@ -122,33 +203,68 @@ let parseSources sources =
 
 let source2tl source =
   let exprs = parseSources source in
-  let tls = List.fold_left (@) [] (List.map translateTL exprs) in
-  tls
-  
+  translatelst translateTL defaultBindings exprs
+    
 let _ =
   let testcases = [
+    (** test global variables *)
     "std_var int foo 10;",
     [GlobalVar (variable "foo" Int (IntVal 10))];
 
+    (** test functions *)
     "std_func float five {} {};",
     [DefineFunc (func "five" Float [] (Sequence []))];
 
+    (** test parameters and local variables *)
     "std_func int plus {int l; int r;} { std_var int t 0; };",
     [DefineFunc (func "plus" Int
                    ["l", Int; "r", Int]
                    (Sequence [
                       DefineVariable (variable "t" Int (IntVal 0));
-                     ]))];
+                    ]))];
+
+    (** test global bindings *)
+    "std_var int bar 10;" ^
+      "std_func int getbar {} { bar; };",
+    [GlobalVar (variable "bar" Int (IntVal 10));
+     DefineFunc (func "getbar" Int [] (Sequence [Variable "bar"]))];
+
+    (** test constant expressions *)
+    "std_func int one {} { 1; };",
+    [DefineFunc (func "one" Int [] (Sequence [Constant (IntVal 1)]))];
+    
+    "std_func string hello {} { \"hello\"; };",
+    [DefineFunc (func "hello" String [] (Sequence [Constant (StringVal "hello")]))];
+    (*TODO: bool, float *)
+
+    (** test whether parameters can be accessed *)
+    "std_func int id {int n;} { n; };",
+    [DefineFunc (func "id" Int ["n", Int] (Sequence [Variable "n"]))];
+
+    (** test function calls *)
+    "std_func int five {int x;} { 5; };"
+    ^ "std_func int five2 {} { five 3; };",
+    [DefineFunc (func "five" Int ["x", Int] (Sequence [Constant (IntVal 5)]));
+     DefineFunc (func "five2" Int []
+                   (Sequence [FuncCall {
+                                fcname = "five";
+                                fcargs = [Constant (IntVal 3)] }]) ) ];
   ]
+  in
+  let source2res source =
+    try
+      let _, tl = (source2tl source) in
+      `Result tl
+    with _ as e ->
+      `Exception e
   in
   let rec test = function
     | [] -> []
     | (source, expected) :: tail -> begin
-        let result = source2tl source in
-        if result = expected then
-          test tail
-        else
-          (source, expected, result) :: test tail
+        let result = source2res source in
+        match result with
+          | `Result r when r = expected -> test tail
+          | _ -> (`Source source, `Expected expected, result) :: test tail
       end
   in
   match test testcases with
