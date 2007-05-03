@@ -6,21 +6,27 @@ OCAMLC=$(OCAMLPATH)ocamlc
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 UPDATE=cp
 
-all:
-	$(OCAMLC) -c ast2.ml
-	$(OCAMLC) -c lang.ml
-	$(OCAMLC) -c genllvm.ml
-	$(OCAMLLEX) lexer2.mll
-	$(MENHIR) parser2.mly
-	$(OCAMLC) -c parser2.mli
-	$(OCAMLC) -c lexer2.ml
-	$(OCAMLC) -c parser2.ml
-	$(OCAMLC) -c toplevel2.ml
+all: ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo toplevel2.cmo
 	$(OCAMLC) -o toplevel2 str.cma ast2.cmo lexer2.cmo parser2.cmo lang.cmo genllvm.cmo toplevel2.cmo
+
+.SUFFIXES: .ml .cmo .mly .mll
+
+.ml.cmo:
+	$(OCAMLC) -c $<
+
+.mly.cmo:
+	$(MENHIR) $<
+	$(OCAMLC) -c $(<:.mly=.mli)
+	$(OCAMLC) -c $(<:.mly=.ml)
+
+.mll.cmo:
+	$(OCAMLLEX) $<
+	$(OCAMLC) -c $(<:.mll=.ml)
 
 clean:
 	@rm -f ast2.cm?
 	@rm -f lang.cm?
+	@rm -f expander.cm?
 	@rm -f genllvm.cm?
 	@rm -f lexer2.ml lexer2.cm?
 	@rm -f parser2.ml parser2.mli parser2.cm?
