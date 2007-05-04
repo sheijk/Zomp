@@ -1,27 +1,26 @@
 
 open Ast2
 open Printf
+open Expander
 open Genllvm
 
 let _ =
   let lexbuf = Lexing.from_channel stdin in
   try
-    let rec step env =
+    let rec step bindings =
       printf "> ";
       flush stdout;
       let expr = Parser2.main Lexer2.token lexbuf in
       let asString = Ast2.expression2string expr in
-      let llvmCode = translateTL expr in
-      printf "=== Parsed ===\n%s\n=== LLVM ===\n%s\n\n" asString llvmCode;
-(*       printf "Evaluate expression:\n%s\n" (node2string expr); *)
-(*       let result, newEnv = interprete env expr in *)
-(*       printf "=>\n%s\n" (constant2string result); *)
+      printf "=== Parsed ===\n%s\n" asString;
+      let newBindings, simpleforms = Expander.translateTL bindings expr in
+      let llvmCodes = List.map gencodeTL simpleforms in
+      let llvmCode = combine "\n" llvmCodes in
+      printf "=== LLVM ===\n%s\n\n" llvmCode;
       flush stdout;
-      let newEnv = env in
-      step newEnv
+      step newBindings
     in
-    let defaultEnvironment () = () in
-    step (defaultEnvironment())
+    step Expander.defaultBindings
   with
       Lexer2.Eof ->
         printf "EOF. Exiting\n"

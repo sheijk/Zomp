@@ -4,10 +4,11 @@ OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
 OCAMLC=$(OCAMLPATH)ocamlc
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
+OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
 
 all: ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo toplevel2.cmo
-	$(OCAMLC) -o toplevel2 str.cma ast2.cmo lexer2.cmo parser2.cmo lang.cmo genllvm.cmo toplevel2.cmo
+	$(OCAMLC) -o toplevel2 str.cma ast2.cmo lexer2.cmo parser2.cmo lang.cmo genllvm.cmo expander.cmo toplevel2.cmo
 
 .SUFFIXES: .ml .cmo .mly .mll
 
@@ -23,6 +24,9 @@ all: ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo toplevel2
 	$(OCAMLLEX) $<
 	$(OCAMLC) -c $(<:.mll=.ml)
 
+deps:
+	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
+
 clean:
 	@rm -f ast2.cm?
 	@rm -f lang.cm?
@@ -36,4 +40,6 @@ clean:
 check-syntax:
 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
 	@ocamlc -c $(CHK_SOURCES) > build/flymake-output && mv *_flymake.cm? build/
+
+include makefile.depends
 

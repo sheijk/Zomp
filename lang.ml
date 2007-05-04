@@ -13,6 +13,12 @@ let string2integralType = function
   | "string" -> String
   | "bool" -> Bool
   | _ as name -> raise (UnknownType name)
+
+let integralType2String = function
+  | Int -> "int"
+  | Float -> "float"
+  | String -> "string"
+  | Bool -> "bool"
       
 type integralValue =
   | IntVal of int
@@ -32,13 +38,30 @@ let parseValue typ str =
     | Float -> FloatVal (float_of_string str)
     | String -> StringVal str
     | Bool -> BoolVal (bool_of_string str)
-        
-(* let string2integralValue str = *)
-(*   try Int (int_of_string str) *)
-(*   with _ -> begin *)
-(*     try Float (float_of_string str) *)
-(*     with _ -> begin *)
-(*     end *)
+
+let string2integralValue str =
+  let dequoteString str =
+    let length = String.length str in
+    if length > 2 && str.[0] = '"' && str.[length-1] = '"' then
+      String.sub str 1 (length-2)
+    else
+      raise (Failure "dequoteString")
+  in
+  try Some ( IntVal (int_of_string str) )
+  with _ ->
+    try Some ( FloatVal (float_of_string str) )
+    with _ ->
+      try Some ( BoolVal (bool_of_string str) )
+      with _ ->
+        try Some ( StringVal (dequoteString str) )
+        with _ ->
+          None
+
+let integralValue2String = function
+  | IntVal i -> string_of_int i
+  | FloatVal f -> string_of_float f
+  | StringVal s -> "\"" ^ s ^ "\""
+  | BoolVal b -> string_of_bool b
       
 type variable = {
   vname :string;

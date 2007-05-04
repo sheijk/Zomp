@@ -85,30 +85,9 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
       in
       let argExprs = List.map evalArg args in
       Some( bindings, [ FuncCall { fcname = name; fcargs = argExprs } ] )
-  | { id = name; args = _; } ->
-      Printf.printf "%s is not a function\n" name;
-      None
-(*   | _ -> None *)
+  | _ -> None
       
   
-let string2integralValue str =
-  let dequoteString str =
-    let length = String.length str in
-    if length > 2 && str.[0] = '"' && str.[length-1] = '"' then
-      String.sub str 1 (length-2)
-    else
-      raise (Failure "dequoteString")
-  in
-  try Some ( IntVal (int_of_string str) )
-  with _ ->
-    try Some ( FloatVal (float_of_string str) )
-    with _ ->
-      try Some ( BoolVal (bool_of_string str) )
-      with _ ->
-        try Some ( StringVal (dequoteString str) )
-        with _ ->
-          None
-        
 let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = [] } -> begin
       match lookup bindings name with

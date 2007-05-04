@@ -1,0 +1,16 @@
+
+std_var int i 4;
+std_var int j 5;
+
+std_func int id {int x;} { x; };
+std_func int fakeadd {int l; int r;} { 0; };
+
+std_func int four {} {
+  i;
+  std_var float local 30;
+  id 3;
+  fakeadd 9 10;
+  std_ifthenelse true 1 2;
+  std_loop 0 false 3;
+};
+
