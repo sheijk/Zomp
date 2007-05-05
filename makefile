@@ -18,6 +18,9 @@ toplevel2: $(LANG_CMOs) toplevel2.cmo
 zompc: $(LANG_CMOS) zompc.cmo
 	$(OCAMLC) -o $@ str.cma $(LANG_CMOS) zompc.cmo
 
+runtests:
+	./runtests.sh
+
 .SUFFIXES: .ml .cmo .mly .mll
 
 .ml.cmo:
