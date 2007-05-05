@@ -6,9 +6,10 @@
 
 open Lang
 open Ast2
+open Common
 
 exception IllegalExpression of expression * string
-let raiseIllegalExpression ~expr ~msg = raise (IllegalExpression (expr, msg))
+let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
 type symbol =
   | VarSymbol of variable
@@ -36,24 +37,6 @@ let isFunction bindings name =
         
         
 type exprTranslateF = bindings -> expression -> bindings * expr list
-
-let rec translatelst translateF (bindings :bindings) = function
-  | [] -> bindings, []
-  | expr :: tail ->
-      let newBindings, sf = translateF bindings expr in
-      let resultingBindings, sfuncs = translatelst translateF newBindings tail in
-      resultingBindings, (sf @ sfuncs)
-        
-let rec translate translators (bindings :bindings) expr =
-  let rec t = function
-    | [] -> raiseIllegalExpression ~expr ~msg:"Expression can not be translated"
-    | f :: remf -> begin
-        match f (translate translators) bindings expr with
-          | Some (newBindings, result) -> (newBindings, result)
-          | None -> t remf
-      end
-  in
-  t translators
 
 
 let translateSeq (translateF : exprTranslateF) bindings = function
@@ -127,8 +110,7 @@ let translateIfThenElse (translateF :exprTranslateF) (bindings :bindings) = func
     end
   | _ -> None      
 
-      
-let translateNested = translate
+let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
     translateDefineVar;
@@ -178,8 +160,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = f
         | { id = typeName; args = [{ id = varName; args = [] }] } ->
             (varName, string2integralType typeName)
         | _ as expr ->
-            raiseIllegalExpression
-              ~expr ~msg:"Expected 'typeName varName' for param"
+            raiseIllegalExpression expr "Expected 'typeName varName' for param"
       in
       let params = List.map expr2param paramExprs in
       let rec localBinding bindings = function
@@ -197,7 +178,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = f
   | _ ->
       None
         
-let translateTL = translate [translateGlobalVar; translateFunc]
+let translateTL = translate raiseIllegalExpression [translateGlobalVar; translateFunc]
   
 let parseSources sources =
   let lexbuf = Lexing.from_string sources in

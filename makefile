@@ -7,8 +7,16 @@ OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
 
-all: ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo toplevel2.cmo
-	$(OCAMLC) -o toplevel2 str.cma ast2.cmo lexer2.cmo parser2.cmo lang.cmo genllvm.cmo expander.cmo toplevel2.cmo
+CAML_LIBS = str.cma
+LANG_CMOS = common.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
+
+all: toplevel2 zompc
+
+toplevel2: $(LANG_CMOs) toplevel2.cmo
+	$(OCAMLC) -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
+
+zompc: $(LANG_CMOS) zompc.cmo
+	$(OCAMLC) -o $@ str.cma $(LANG_CMOS) zompc.cmo
 
 .SUFFIXES: .ml .cmo .mly .mll
 
@@ -28,14 +36,11 @@ deps:
 	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
 
 clean:
-	@rm -f ast2.cm?
-	@rm -f lang.cm?
-	@rm -f expander.cm?
-	@rm -f genllvm.cm?
-	@rm -f lexer2.ml lexer2.cm?
-	@rm -f parser2.ml parser2.mli parser2.cm?
-	@rm -f toplevel2.cm?
-	@rm -f toplevel2
+	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
+	rm -f lexer2.ml
+	rm -f parser2.ml parser2.mli
+	rm -f toplevel2.cm? toplevel2
+	rm -f zompc.cm? zompc
 
 check-syntax:
 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
