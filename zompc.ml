@@ -6,18 +6,22 @@ open Genllvm
 let _ =
   let lexbuf = Lexing.from_channel stdin in
   try
-    let rec step bindings =
-      let expr = Parser2.main Lexer2.token lexbuf in
-      let newBindings, simpleforms = Expander.translateTL bindings expr in
-      let llvmCodes = List.map gencodeTL simpleforms in
-      let llvmCode = combine "\n" llvmCodes in
-      printf "%s\n" llvmCode;
-      flush stdout;
-      step newBindings
+    let rec parse bindings code =
+      try
+        let expr = Parser2.main Lexer2.token lexbuf in
+        let newBindings, simpleforms = Expander.translateTL bindings expr in
+        (*       let llvmCodes = List.map gencodeTL simpleforms in *)
+        (*       let llvmCode = combine "\n" llvmCodes in *)
+        (*       printf "%s\n" llvmCode; *)
+        (*       flush stdout; *)
+        parse newBindings (code @ simpleforms)
+      with
+          Lexer2.Eof -> code
     in
-    step Expander.defaultBindings
+    let toplevelExprs :Lang.toplevelExpr list = parse Expander.defaultBindings [] in
+    let llvmSource :string = genmodule toplevelExprs in
+    printf "%s\n" llvmSource
   with
-    | Lexer2.Eof -> printf "\n"
     | Parser2.Error ->
         let {
           Lexing.pos_fname = fileName;

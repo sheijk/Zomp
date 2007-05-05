@@ -26,6 +26,12 @@ type integralValue =
   | StringVal of string
   | BoolVal of bool
 
+let integralValue2Type = function
+  | IntVal _ -> Int
+  | FloatVal _ -> Float
+  | StringVal _ -> String
+  | BoolVal _ -> Bool
+      
 let defaultValue = function
   | Int -> IntVal 0
   | Float -> FloatVal 0.0

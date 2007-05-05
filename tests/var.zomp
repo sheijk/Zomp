@@ -1,0 +1,8 @@
+
+std_var int x 10;
+
+std_func int foo {} {
+  std_var int x 20;
+  x;
+};
+

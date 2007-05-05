@@ -1,0 +1,8 @@
+
+std_func int printx {} { 0; };
+std_func int printy {} { 1; };
+
+std_func int loopTest {} {
+  std_loop { printx; } { false; } { printy; };
+};
+

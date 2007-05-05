@@ -15,6 +15,12 @@ int %five() {
     ret int %tmp
 }
 
+int %retconst() {
+    %ret = alloca int
+    %ret = int 5
+    ret int %ret
+}
+
 int %main() {
 	%tmp = alloca int, align 4
 ; 	"alloca point" = cast int 0 to int
