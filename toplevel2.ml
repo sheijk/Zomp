@@ -20,7 +20,7 @@ let _ =
       flush stdout;
       step newBindings
     in
-    step Expander.defaultBindings
+    step Bindings.defaultBindings
   with
       Lexer2.Eof ->
         printf "EOF. Exiting\n"

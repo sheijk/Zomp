@@ -2,23 +2,37 @@
 open Ast2
 open Lang
 open Printf
-
+open Bindings
+  
 let llvmName name = "%" ^ name
-
+let llvmLocalName name = "%$" ^ name
+let isLocalVar name = String.length name > 2 && name.[1] = '$'
+  
 type resultvar = {
   rvname :string;
   rvtypename :string;
 }
 
 let var name typ = { rvname = llvmName name; rvtypename = typ }
+let localVar name typ = { rvname = llvmLocalName name; rvtypename = typ }
   
 let noVar = { rvname = ""; rvtypename = "" }
 
 let lastTempVarNum = ref 0
 let newTempVar typ =
   incr lastTempVarNum;
-  var (sprintf "temp%d" !lastTempVarNum) typ
-  
+  localVar (sprintf "temp%d" !lastTempVarNum) typ
+
+
+let defaultBindings =
+  let functions = [
+    Int, "std_plusi", ["l", Int; "r", Int];
+  ] in
+  let toFunc (typ, name, args) =
+    name, FuncSymbol (func name typ args (Sequence []))
+  in
+  List.map toFunc functions
+    
 let indent string =
   let lines = Str.split (Str.regexp "\n") string in
   let indentedLines = List.map (fun s -> "  " ^ s) lines in
@@ -35,7 +49,7 @@ let gencodeSequence gencode exprs =
   resultVar, indent (combine "\n" code)
 
 let gencodeDefineVariable var =
-  let name = llvmName var.vname
+  let name = llvmLocalName var.vname
   and typ = integralType2String var.typ
   and value = integralValue2String var.default
   in
@@ -45,13 +59,16 @@ let gencodeDefineVariable var =
   in
   (noVar, code)
 
-let gencodeVariable name =
-  var name "unknownType", ""
-(*   { *)
-(*     rvname = llvmName name; *)
-(*     rvtypename = "unknown" *)
-(*   }, *)
-(*   llvmName name *)
+let gencodeVariable v =
+  let typeName = integralType2String v.typ in
+  if isLocalVar v.vname then 
+    var v.vname typeName, ""
+  else
+    let localName = llvmLocalName v.vname in
+    let code =
+      sprintf "%s = load %s* %s\n" localName typeName (llvmName v.vname)
+    in
+    localVar v.vname typeName, code
 
 let gencodeConstant c =
   {
@@ -60,11 +77,58 @@ let gencodeConstant c =
   },
   ""
 
+let findIntrinsinc name =
+  let callAdd typ argVarNames =
+    sprintf "add %s %s" (integralType2String typ) (combine ", " argVarNames)
+  in
+  let intrinsincFuncs = [
+    "std_plusi", callAdd Int;
+  ]
+  in
+  let rec find = function
+    | [] -> None
+    | (intrName, gencodeF) :: _ when name = intrName -> Some gencodeF
+    | _ :: tail -> find tail
+  in
+  find intrinsincFuncs
+  
 let gencodeFuncCall gencode call =
-  noVar, "funcall!"
-(*   let argStrings = List.map gencode call.fcargs in *)
-(*   let paramString = combine " " argStrings in *)
-(*   noVar, call.fcname ^ " " ^ paramString *)
+  let rec varsAndCode vars code = function
+    | [] -> vars, code
+    | expr :: tail ->
+        let resultVar, exprCode = gencode expr in
+        varsAndCode (vars @ [resultVar.rvname]) (code ^ exprCode) tail
+  in
+  let vars, argevalCode = varsAndCode [] "" call.fcargs in
+  let resultVar = newTempVar (integralType2String call.fcrettype) in
+  match findIntrinsinc call.fcname with
+    | None ->
+        let funccallCode =
+          let signatureString =
+            let argTypeNames = List.map integralType2String call.fcparams in
+            combine ", " argTypeNames
+          in
+          let argsWithTypes =
+            List.map2
+              (fun name typ -> (integralType2String typ) ^ " " ^ name)
+              vars call.fcparams
+          in
+          let argString = combine ", " argsWithTypes in
+          sprintf "%s = call %s (%s)* %%%s(%s)"
+            resultVar.rvname
+            (integralType2String call.fcrettype)
+            signatureString
+            call.fcname
+            argString
+        in
+        (resultVar, argevalCode ^ funccallCode)
+    | Some gencallCodeF ->
+        let intrinsincCallCode =
+          sprintf "%s = %s"
+            resultVar.rvname
+            (gencallCodeF vars)
+        in
+        (resultVar, argevalCode ^ intrinsincCallCode)
 
 let gencodeIfThenElse gencode ite =
   let condVar, condCode = gencode ite.cond
@@ -75,11 +139,6 @@ let gencodeIfThenElse gencode ite =
   sprintf "%s\n%s\n%s\n if %s then %s else %s\n"
     condCode trueCode falseCode
     condVar.rvname trueVar.rvname falseVar.rvname
-(*   let condCode = gencode ite.cond *)
-(*   and trueCode = gencode ite.trueCode *)
-(*   and falseCode = gencode ite.falseCode *)
-(*   in *)
-(*   noVar, sprintf "if %s then %s else %s" condCode trueCode falseCode *)
     
 let gencodeLoop gencode l =
   let _, preCode = gencode l.preCode
@@ -89,16 +148,11 @@ let gencodeLoop gencode l =
   resultVar,
   sprintf "start:\n%s\n%s\nbreak if %s\n%s"
     preCode abortCode abortVar.rvname postCode
-(*   let preCode = indent (gencode l.preCode) *)
-(*   and abortTest = gencode l.abortTest *)
-(*   and postCode = indent (gencode l.postCode) *)
-(*   in *)
-(*   noVar, sprintf "loop {\n%s;\n  break if %s;\n%s;\n}" preCode abortTest postCode *)
   
 let rec gencode : Lang.expr -> resultvar * string = function
   | Sequence exprs -> gencodeSequence gencode exprs
   | DefineVariable var -> gencodeDefineVariable var
-  | Variable name -> gencodeVariable name
+  | Variable var -> gencodeVariable var
   | Constant c -> gencodeConstant c
   | FuncCall call -> gencodeFuncCall gencode call
   | IfThenElse ite -> gencodeIfThenElse gencode ite
@@ -114,21 +168,26 @@ let gencodeGlobaleVar var =
 let gencodeDefineFunc func =
   let resultVar, implCode = gencode func.impl in
   let param2string (name, typ) = (integralType2String typ) ^ " " ^ (llvmName name) in
-  let paramString = combine ", " (List.map param2string func.args) in
+  let paramString = combine ", " (List.map param2string func.fargs) in
   let decl = sprintf "%s %%%s(%s) "
     (integralType2String func.rettype) func.fname paramString
   in
-  let impl = sprintf "{\n%s\n  ret %s %s;\n}"
-    implCode
-    resultVar.rvtypename
-    resultVar.rvname
+(*   let isVarName name = String.length name > 0 && name.[0] = '%' in *)
+  let isTypeName name = try ignore(string2integralType name); true with _ -> false in
+  let impl =
+    (sprintf "{\n%s\n" implCode)
+(*     ^ (if isVarName resultVar.rvname then  *)
+(*          (sprintf "  %s = load %s* %s\n" *)
+(*             resultVar.rvname resultVar.rvtypename resultVar.rvname) *)
+(*        else *)
+(*          "") *)
+    ^ (if isTypeName resultVar.rvtypename then
+         (sprintf "  ret %s %s\n}"
+            resultVar.rvtypename
+            resultVar.rvname)
+       else "ret void\n}")
   in
   decl ^ impl
-(*   sprintf "%s %%%s (%s) {\n%s;\n};\n" *)
-(*     (integralType2String func.rettype) *)
-(*     func.fname *)
-(*     paramString *)
-(*     implCode *)
 
 let gencodeTL = function
   | GlobalVar var -> gencodeGlobaleVar var

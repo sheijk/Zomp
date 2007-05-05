@@ -7,37 +7,12 @@
 open Lang
 open Ast2
 open Common
+open Bindings
 
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
-type symbol =
-  | VarSymbol of variable
-  | FuncSymbol of func
-  | UndefinedSymbol
-
-type bindings = (string * symbol) list
-
-let defaultBindings : bindings = []
-
-let addVar bindings var : bindings = (var.vname, VarSymbol var) :: bindings
-
-let addFunc bindings func : bindings = (func.fname, FuncSymbol func) :: bindings
-  
-let rec lookup (bindings :bindings) name =
-  match bindings with
-    | [] -> UndefinedSymbol
-    | (symName, sym) :: tail when symName = name -> sym
-    | _ :: tail -> lookup tail name
-
-let isFunction bindings name =
-  match lookup bindings name with
-    | FuncSymbol _ -> true
-    | _ -> false
-        
-        
 type exprTranslateF = bindings -> expression -> bindings * expr list
-
 
 let translateSeq (translateF : exprTranslateF) bindings = function
   | { id = "std:seq"; args = sequence } ->
@@ -60,21 +35,27 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
       None
 
 let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = name; args = args; } when isFunction bindings name ->
-      let evalArg arg =
-        match translateF bindings arg with
-          | _, [expr] -> expr
-          | _, exprList -> Sequence exprList
-      in
-      let argExprs = List.map evalArg args in
-      Some( bindings, [ FuncCall { fcname = name; fcargs = argExprs } ] )
-  | _ -> None
-      
+  | { id = name; args = args; } ->
+      match lookup bindings name with
+        | FuncSymbol func ->
+            let evalArg arg =
+              match translateF bindings arg with
+                | _, [expr] -> expr
+                | _, exprList -> Sequence exprList
+            in
+            let argExprs = List.map evalArg args in
+            Some( bindings, [ FuncCall {
+                                fcname = name;
+                                fcrettype = func.rettype;
+                                fcparams = List.map snd func.fargs;
+                                fcargs = argExprs;
+                              } ] )
+        | _ -> None
   
 let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = [] } -> begin
       match lookup bindings name with
-        | VarSymbol v -> Some (bindings, [Variable v.vname])
+        | VarSymbol v -> Some (bindings, [Variable v])
         | _ ->
             match string2integralValue name with
               | Some c -> Some( bindings, [Constant c] )
@@ -217,8 +198,9 @@ let _ =
     (** test global bindings *)
     "std_var int bar 10;" ^
       "std_func int getbar {} { bar; };",
-    [GlobalVar (variable "bar" Int (IntVal 10));
-     DefineFunc (func "getbar" Int [] (Sequence [Variable "bar"]))];
+    (let v = (variable "bar" Int (IntVal 10)) in
+    [GlobalVar v;
+     DefineFunc (func "getbar" Int [] (Sequence [Variable v]))]);
 
     (** test constant expressions *)
     "std_func int one {} { 1; };",
@@ -230,7 +212,8 @@ let _ =
 
     (** test whether parameters can be accessed *)
     "std_func int id {int n;} { n; };",
-    [DefineFunc (func "id" Int ["n", Int] (Sequence [Variable "n"]))];
+    [DefineFunc (func "id" Int ["n", Int]
+                   (Sequence [Variable (variable "n" Int (defaultValue Int)) ]))];
 
     (** test function calls *)
     "std_func int five {int x;} { 5; };"
@@ -239,6 +222,8 @@ let _ =
      DefineFunc (func "five2" Int []
                    (Sequence [FuncCall {
                                 fcname = "five";
+                                fcrettype = Int;
+                                fcparams = [Int];
                                 fcargs = [Constant (IntVal 3)] }]) ) ];
 
     "std_func int testif {} {" ^

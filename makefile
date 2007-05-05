@@ -8,7 +8,7 @@ OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
 
 CAML_LIBS = str.cma
-LANG_CMOS = common.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
+LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
 
 all: toplevel2 zompc
 

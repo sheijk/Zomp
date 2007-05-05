@@ -11,5 +11,5 @@ test: simpletest.bc
 
 .c.bc:
 	llvm-gcc -c --emit-llvm $< -o $@
-	llvm-dis $@
+	llvm-dis -f $@
 

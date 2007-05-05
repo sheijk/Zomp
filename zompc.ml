@@ -10,15 +10,11 @@ let _ =
       try
         let expr = Parser2.main Lexer2.token lexbuf in
         let newBindings, simpleforms = Expander.translateTL bindings expr in
-        (*       let llvmCodes = List.map gencodeTL simpleforms in *)
-        (*       let llvmCode = combine "\n" llvmCodes in *)
-        (*       printf "%s\n" llvmCode; *)
-        (*       flush stdout; *)
         parse newBindings (code @ simpleforms)
       with
           Lexer2.Eof -> code
     in
-    let toplevelExprs :Lang.toplevelExpr list = parse Expander.defaultBindings [] in
+    let toplevelExprs :Lang.toplevelExpr list = parse Genllvm.defaultBindings [] in
     let llvmSource :string = genmodule toplevelExprs in
     printf "%s\n" llvmSource
   with

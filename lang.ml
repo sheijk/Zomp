@@ -93,12 +93,14 @@ and loop = {
 }
 and funcCall = {
   fcname :string;
+  fcrettype :integralType;
+  fcparams :integralType list;
   fcargs :expr list;
 }
 and expr =
   | Sequence of expr list
   | DefineVariable of variable
-  | Variable of string
+  | Variable of variable
   | Constant of integralValue
   | FuncCall of funcCall
   | IfThenElse of ifthenelse
@@ -107,7 +109,7 @@ and expr =
 type func = {
   fname :string;
   rettype :integralType;
-  args :(string * integralType) list;
+  fargs :(string * integralType) list;
   impl :expr
 }
 and toplevelExpr =
@@ -117,7 +119,7 @@ and toplevelExpr =
 let func name rettype args impl = {
   fname = name;
   rettype = rettype;
-  args = args;
+  fargs = args;
   impl = impl;
 }
   
