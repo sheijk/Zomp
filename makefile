@@ -12,16 +12,17 @@ LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo exp
 
 all: toplevel2 zompc
 
-toplevel2: $(LANG_CMOs) toplevel2.cmo
+toplevel2: $(LANG_CMOS) toplevel2.cmo
 	$(OCAMLC) -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
 
 zompc: $(LANG_CMOS) zompc.cmo
 	$(OCAMLC) -o $@ str.cma $(LANG_CMOS) zompc.cmo
 
-runtests:
-	./runtests.sh
+runtests: $(LANG_CMOS) expander_tests.cmo
+# 	ocamlrun $(CAML_LIBS) $(LANG_CMOS) expander_tests.cmo
+	cd tests && make check
 
-.SUFFIXES: .ml .cmo .mly .mll
+.SUFFIXES: .ml .cmo .mly .mll .cmi
 
 .mly.ml:
 	$(MENHIR) $<
@@ -31,6 +32,9 @@ runtests:
 .mll.ml:
 	$(OCAMLLEX) $<
 # 	$(OCAMLC) -c $(<:.mll=.ml)
+
+.ml.cmi:
+	$(OCAMLC) -c $<
 
 .ml.cmo:
 	$(OCAMLC) -c $<
@@ -42,6 +46,7 @@ clean:
 	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
 	rm -f lexer2.ml
 	rm -f parser2.ml parser2.mli
+	rm -f expander_tests.cm?
 	rm -f toplevel2.cm? toplevel2
 	rm -f zompc.cm? zompc
 

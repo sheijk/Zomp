@@ -4,10 +4,17 @@ open Lang
 open Printf
 open Bindings
   
-let llvmName name = "%" ^ name
+let llvmName name =
+  if name.[0] = '%' then name
+  else "%" ^ name
+    
 let llvmLocalName name = "%$" ^ name
 let isLocalVar name = String.length name > 2 && name.[1] = '$'
   
+let llvmTypeName = function
+  | String -> "sbyte*"
+  | _ as t -> integralType2String t
+      
 type resultvar = {
   rvname :string;
   rvtypename :string;
@@ -19,20 +26,73 @@ let localVar name typ = { rvname = llvmLocalName name; rvtypename = typ }
 let noVar = { rvname = ""; rvtypename = "" }
 
 let lastTempVarNum = ref 0
-let newTempVar typ =
-  incr lastTempVarNum;
-  localVar (sprintf "temp%d" !lastTempVarNum) typ
-
-
-let defaultBindings =
-  let functions = [
-    Int, "std_plusi", ["l", Int; "r", Int];
-  ] in
-  let toFunc (typ, name, args) =
-    name, FuncSymbol (func name typ args (Sequence []))
+let newGlobalTempVar, newLocalTempVar =
+  let newVar constructor typ = 
+    incr lastTempVarNum;
+    constructor (sprintf "temp%d" !lastTempVarNum) typ
   in
-  List.map toFunc functions
+  newVar localVar, newVar var
+
+let paramString signature =
+  let argsWithTypes =
+    List.map
+      (fun (name, typ) -> (llvmTypeName typ) ^ " " ^ llvmName name)
+      signature
+  in
+  combine ", " argsWithTypes
+
+let stringMap f str =
+  let newString = ref "" in
+  let length = String.length str in
+  for i = 0 to length - 1 do
+    newString := !newString ^ f str.[i]
+  done;
+  !newString
+  
+let llvmEscapedString str = 
+  Str.global_replace (Str.regexp "\\\\n") "\\\\0A" str
     
+
+let defaultBindings, externalFuncDecls, findIntrinsinc =
+  let callAdd typ argVarNames =
+    sprintf "add %s %s" (integralType2String typ) (combine ", " argVarNames)
+  in
+  let intrinsincFuncs = [
+    "std_plusi", `Intrinsinc (callAdd Int), Int, ["l", Int; "r", Int];
+    "printf", `ExternalFunc, Int, ["test", String];
+  ]
+  in
+  let defaultBindings =
+    let toFunc (name, _, typ, args) =
+      name, FuncSymbol (func name typ args (Sequence []))
+    in
+    List.map toFunc intrinsincFuncs
+  in
+  let externalFuncDecls =
+    let rec defs = function
+      | [] -> []
+      | (name, `ExternalFunc, rettype, args) :: tail ->
+          let decl = 
+            sprintf "declare %s %%%s(%s)"
+              (llvmTypeName rettype)
+              name
+              (paramString args)
+          in
+          decl :: defs tail
+      | _ :: tail -> defs tail
+    in
+    combine "\n" (defs intrinsincFuncs)
+  in
+  let findIntrinsinc name =
+    let rec find = function
+      | [] -> None
+      | (intrName, `Intrinsinc gencodeF, _, _) :: _ when name = intrName -> Some gencodeF
+      | _ :: tail -> find tail
+    in
+    find intrinsincFuncs
+  in
+  defaultBindings, externalFuncDecls, findIntrinsinc
+  
 let indent string =
   let lines = Str.split (Str.regexp "\n") string in
   let indentedLines = List.map (fun s -> "  " ^ s) lines in
@@ -58,9 +118,9 @@ let gencodeDefineVariable var =
       (sprintf "store %s %s, %s* %s" typ value typ name)
   in
   (noVar, code)
-
+    
 let gencodeVariable v =
-  let typeName = integralType2String v.typ in
+  let typeName = llvmTypeName v.typ in
   if isLocalVar v.vname then 
     var v.vname typeName, ""
   else
@@ -77,21 +137,6 @@ let gencodeConstant c =
   },
   ""
 
-let findIntrinsinc name =
-  let callAdd typ argVarNames =
-    sprintf "add %s %s" (integralType2String typ) (combine ", " argVarNames)
-  in
-  let intrinsincFuncs = [
-    "std_plusi", callAdd Int;
-  ]
-  in
-  let rec find = function
-    | [] -> None
-    | (intrName, gencodeF) :: _ when name = intrName -> Some gencodeF
-    | _ :: tail -> find tail
-  in
-  find intrinsincFuncs
-  
 let gencodeFuncCall gencode call =
   let rec varsAndCode vars code = function
     | [] -> vars, code
@@ -100,23 +145,18 @@ let gencodeFuncCall gencode call =
         varsAndCode (vars @ [resultVar.rvname]) (code ^ exprCode) tail
   in
   let vars, argevalCode = varsAndCode [] "" call.fcargs in
-  let resultVar = newTempVar (integralType2String call.fcrettype) in
+  let resultVar = newLocalTempVar (integralType2String call.fcrettype) in
   match findIntrinsinc call.fcname with
     | None ->
         let funccallCode =
           let signatureString =
-            let argTypeNames = List.map integralType2String call.fcparams in
+            let argTypeNames = List.map llvmTypeName call.fcparams in
             combine ", " argTypeNames
           in
-          let argsWithTypes =
-            List.map2
-              (fun name typ -> (integralType2String typ) ^ " " ^ name)
-              vars call.fcparams
-          in
-          let argString = combine ", " argsWithTypes in
+          let argString = paramString (List.combine vars call.fcparams) in
           sprintf "%s = call %s (%s)* %%%s(%s)"
             resultVar.rvname
-            (integralType2String call.fcrettype)
+            (llvmTypeName call.fcrettype)
             signatureString
             call.fcname
             argString
@@ -158,29 +198,49 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | IfThenElse ite -> gencodeIfThenElse gencode ite
   | Loop l -> gencodeLoop gencode l
       
-      
-let gencodeGlobaleVar var =
-  sprintf "%%%s = constant %s %s"
-    var.vname
-    (integralType2String var.typ)
-    (integralValue2String var.default)
+let countChar str c =
+  let count = ref 0 in
+  for i = 0 to String.length str - 1 do
+    if str.[i] = c then incr count
+  done;
+  !count
+  
+let llvmStringLength str =
+  let length = String.length str in
+  length - 2 * countChar str '\\'
+  
+let gencodeGlobalVar var =
+  match var.default with
+    | StringVal value ->
+        let contentVar = newGlobalTempVar "string"
+        and escapedValue = llvmEscapedString value
+        in
+        let length = llvmStringLength escapedValue + 1 in
+        (sprintf "%s = internal constant [%d x sbyte] c\"%s\\00\"\n"
+           contentVar.rvname
+           length
+           escapedValue
+        ) ^ (sprintf "%%%s = global sbyte* getelementptr ([%d x sbyte]* %s, int 0, int 0)\n"
+               var.vname
+               length
+               contentVar.rvname)
+    | IntVal _ | BoolVal _ | FloatVal _ ->
+        sprintf "%%%s = constant %s %s"
+          var.vname
+          (integralType2String var.typ)
+          (integralValue2String var.default)
 
 let gencodeDefineFunc func =
   let resultVar, implCode = gencode func.impl in
   let param2string (name, typ) = (integralType2String typ) ^ " " ^ (llvmName name) in
   let paramString = combine ", " (List.map param2string func.fargs) in
   let decl = sprintf "%s %%%s(%s) "
-    (integralType2String func.rettype) func.fname paramString
+    (llvmTypeName func.rettype) func.fname paramString
   in
-(*   let isVarName name = String.length name > 0 && name.[0] = '%' in *)
-  let isTypeName name = try ignore(string2integralType name); true with _ -> false in
+  (* let isTypeName name = try ignore(string2integralType name); true with _ -> false in *)
+  let isTypeName name = String.length name > 0 in
   let impl =
     (sprintf "{\n%s\n" implCode)
-(*     ^ (if isVarName resultVar.rvname then  *)
-(*          (sprintf "  %s = load %s* %s\n" *)
-(*             resultVar.rvname resultVar.rvtypename resultVar.rvname) *)
-(*        else *)
-(*          "") *)
     ^ (if isTypeName resultVar.rvtypename then
          (sprintf "  ret %s %s\n}"
             resultVar.rvtypename
@@ -190,7 +250,7 @@ let gencodeDefineFunc func =
   decl ^ impl
 
 let gencodeTL = function
-  | GlobalVar var -> gencodeGlobaleVar var
+  | GlobalVar var -> gencodeGlobalVar var
   | DefineFunc func -> gencodeDefineFunc func
 
 let genmodule toplevelExprs =
@@ -203,11 +263,13 @@ let genmodule toplevelExprs =
           | DefineFunc func -> (vars, DefineFunc func :: funcs)
   in
   let globalVars, globalFuncs = sort toplevelExprs in
-  let headerCode = "" 
+  let headerCode = ""
   and varCode = List.map gencodeTL globalVars
   and funcCode = List.map gencodeTL globalFuncs
   in
-  headerCode ^ "\n" ^
-    (combine "\n" varCode) ^ "\n\nimplementation\n\n" ^
-    (combine "\n" funcCode)
+  headerCode ^ "\n"
+  ^ (combine "\n" varCode)
+  ^ "\n\nimplementation\n\n"
+  ^ (combine "\n" funcCode)
+  ^ "\n" ^ externalFuncDecls
     

@@ -42,7 +42,10 @@ let parseValue typ str =
   match typ with
     | Int -> IntVal (int_of_string str)
     | Float -> FloatVal (float_of_string str)
-    | String -> StringVal str
+    | String ->
+        let length = String.length str in
+        let value = String.sub str 1 (length-2) in
+        StringVal value
     | Bool -> BoolVal (bool_of_string str)
 
 let string2integralValue str =

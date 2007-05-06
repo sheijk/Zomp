@@ -1,0 +1,12 @@
+
+std_var string text "this be text\n";
+
+std_func string gettext {} {
+  text;
+};
+
+std_func int main {} {
+  printf text;
+  1;
+};
+

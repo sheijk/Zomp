@@ -1,5 +1,7 @@
 
-std_func int return {int v;} { 1; };
+std_func int return {int v;} {
+  1;
+};
 
 std_func int main {} {
 /// this be documentation
