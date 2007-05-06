@@ -3,6 +3,8 @@
 (* #load "parser2.cmo";; *)
 (* #load "lang.cmo";; *)
 (* #load "ast2.cmo";; *)
+(* #load "common.cmo";; *)
+(* #load "bindings.cmo";; *)
 
 open Lang
 open Ast2

@@ -1,0 +1,22 @@
+
+std_func int return {int v;} { 1; };
+
+std_func int main {} {
+/// this be documentation
+// this be a comment
+/** i has a documentation */
+  print "hello, zomp";
+//  return 2;
+  3;
+  /*
+//  i
+  has
+  multiline
+  comments
+  */
+
+  /** multiline
+  doc */
+};
+
+

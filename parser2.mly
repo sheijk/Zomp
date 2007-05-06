@@ -9,7 +9,7 @@
 %start <Ast2.expression> main
 
 %%
-
+  
 main:
 | e = expr SEPERATOR { e }
 expr:

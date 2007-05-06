@@ -7,7 +7,7 @@
 let whitespace = ['\n' ' ' '\t']*
 
 rule token = parse
-    whitespace ';'
+  | whitespace ';'
       { SEPERATOR }
   | whitespace '{' | whitespace '('
       { BLOCK_BEGIN }
@@ -15,10 +15,17 @@ rule token = parse
       { BLOCK_END }
   | whitespace (('"' [^'\"']* '"') as str)
       { IDENTIFIER(str) }
-  | whitespace (['a'-'z' '0'-'9' 'A'-'Z' '=' '+' '-' '*' '/' '_']+ as id) 
+  | whitespace (['a'-'z' '0'-'9' 'A'-'Z' '_']+ as id) 
       { IDENTIFIER(id) }
+  | whitespace "//" [^'\n']* '\n'
+      { token lexbuf }
+  | whitespace  "/*"
+      { mlcomment "" lexbuf }
   | whitespace '!'
       { raise Eof }
   | whitespace eof
       { raise Eof }
+and mlcomment str = shortest 
+  | (_)* "*/"
+      { token lexbuf }
 

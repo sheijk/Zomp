@@ -1,0 +1,17 @@
+
+// comment
+/* this be a comment */
+
+/**
+ This is the beautiful documentation
+ */
+std_func int main {} {
+/* comment */
+  4;
+/* more comments */
+
+  /// here is a short doc line
+  6;
+};
+
+

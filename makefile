@@ -23,17 +23,17 @@ runtests:
 
 .SUFFIXES: .ml .cmo .mly .mll
 
-.ml.cmo:
-	$(OCAMLC) -c $<
-
-.mly.cmo:
+.mly.ml:
 	$(MENHIR) $<
 	$(OCAMLC) -c $(<:.mly=.mli)
-	$(OCAMLC) -c $(<:.mly=.ml)
+# 	$(OCAMLC) -c $(<:.mly=.ml)
 
-.mll.cmo:
+.mll.ml:
 	$(OCAMLLEX) $<
-	$(OCAMLC) -c $(<:.mll=.ml)
+# 	$(OCAMLC) -c $(<:.mll=.ml)
+
+.ml.cmo:
+	$(OCAMLC) -c $<
 
 deps:
 	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
