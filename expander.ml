@@ -15,10 +15,58 @@ let macroVar = "var"
 and macroFunc = "func"
 and macroIfThenElse = "ifthenelse"
 and macroLoop = "loop"
-  
+
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
+type typecheckResult =
+  | TypeOf of integralType
+      (** error message, found type expected type *)
+  | TypeError of string * integralType * integralType
+      
+let rec typeOfTL = function
+  | GlobalVar var -> TypeOf var.typ
+  | DefineFunc f ->
+      match typeOf f.impl with
+        | TypeOf implType when implType = f.rettype -> TypeOf f.rettype
+        | TypeOf wrongType -> TypeError (
+            "Function's return type is not equal to it's implementation",
+            f.rettype,
+            wrongType)
+        | TypeError _ as e -> e
+and typeOf = function
+  | Sequence [] -> TypeOf Void
+  | Sequence [expr] -> typeOf expr
+  | Sequence (_ :: tail) -> typeOf (Sequence tail)
+  | DefineVariable var -> TypeOf var.typ
+  | Variable var -> TypeOf var.typ
+  | Constant value -> TypeOf (integralValue2Type value)
+  | FuncCall call -> TypeOf call.fcrettype
+  | IfThenElse { cond = cond; trueCode = trueCode; falseCode = falseCode } -> begin
+      match typeOf cond with
+        | TypeOf Bool -> begin
+            match typeOf trueCode, typeOf falseCode with
+              | (TypeError _) as e, _ -> e
+              | _, ((TypeError _) as e) -> e
+              | trueType, falseType when trueType = falseType -> trueType
+              | TypeOf trueType, TypeOf falseType -> TypeError ("Types don't match in if/then/else", trueType, falseType)
+          end
+        | TypeOf condType -> TypeError (
+            "Expected cond of type Bool in 'if cond then ... else ..'",
+            condType, Bool)
+        | TypeError _ as e -> e
+    end
+  | Loop l ->
+      match typeOf l.abortTest with
+        | TypeOf Bool -> begin
+            match typeOf l.preCode with
+              | TypeOf Void -> typeOf l.postCode
+              | TypeOf wrongType -> TypeError ("PreCode in loop must have type void", wrongType, Void)
+              | _ as e -> e
+          end
+        | TypeOf wrongType -> TypeError ("Abort condition in loop must have type Bool", wrongType, Bool)
+        | _ as e -> e
+  
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
 let translateSeq (translateF : exprTranslateF) bindings = function
@@ -132,7 +180,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = f
         { id = name; args = [] };
         { id = "std:seq"; args = paramExprs };
         { id = "std:seq"; args = _ } as implExpr;
-      ] } when id = macroFunc -> begin
+      ] } as expr when id = macroFunc -> begin
       let typ = string2integralType typeName in
       let expr2param = function
         | { id = typeName; args = [{ id = varName; args = [] }] } ->
@@ -151,7 +199,15 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = f
       let _, impl = translateNested innerBindings implExpr in
       let f = func name typ params (Sequence impl) in
       let newBindings = addFunc bindings f in
-      Some( newBindings, [ DefineFunc f ] )
+      let funcDef = DefineFunc f in
+      match typeOfTL funcDef with
+        | TypeOf _ -> Some( newBindings, [ funcDef ] )
+        | TypeError (msg, declaredType, returnedType) ->
+            raiseIllegalExpression
+              expr
+              (Printf.sprintf "Function has return type %s but returns %s"
+                      (integralType2String declaredType)
+                      (integralType2String returnedType))
     end
   | _ ->
       None

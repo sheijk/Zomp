@@ -1,0 +1,12 @@
+
+var string msg "stuff\n";
+
+func void dostuff {int ignored;} {
+  printf msg;
+};
+
+func int main {} {
+  dostuff 1;
+  10;
+};
+

@@ -1,5 +1,6 @@
 
 type integralType =
+  | Void
   | Int
   | Float
   | String
@@ -12,27 +13,32 @@ let string2integralType = function
   | "float" -> Float
   | "string" -> String
   | "bool" -> Bool
+  | "void" -> Void
   | _ as name -> raise (UnknownType name)
 
 let integralType2String = function
+  | Void -> "void"
   | Int -> "int"
   | Float -> "float"
   | String -> "string"
   | Bool -> "bool"
       
 type integralValue =
+  | VoidVal
   | IntVal of int
   | FloatVal of float
   | StringVal of string
   | BoolVal of bool
 
 let integralValue2Type = function
+  | VoidVal -> Void
   | IntVal _ -> Int
   | FloatVal _ -> Float
   | StringVal _ -> String
   | BoolVal _ -> Bool
       
 let defaultValue = function
+  | Void -> VoidVal
   | Int -> IntVal 0
   | Float -> FloatVal 0.0
   | String -> StringVal ""
@@ -40,6 +46,7 @@ let defaultValue = function
   
 let parseValue typ str =
   match typ with
+    | Void -> raise (Failure "no values of void allowed")
     | Int -> IntVal (int_of_string str)
     | Float -> FloatVal (float_of_string str)
     | String ->
@@ -67,6 +74,7 @@ let string2integralValue str =
           None
 
 let integralValue2String = function
+  | VoidVal -> raise (Failure "no values of void allowed")
   | IntVal i -> string_of_int i
   | FloatVal f -> string_of_float f
   | StringVal s -> "\"" ^ s ^ "\""

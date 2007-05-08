@@ -3,6 +3,9 @@ open Ast2
 open Lang
 open Printf
 open Bindings
+
+exception CodeGenError of string
+let raiseCodeGenError ~msg = raise (CodeGenError msg) 
   
 let llvmName name =
   if name.[0] = '%' then name
@@ -69,7 +72,7 @@ let defaultBindings, externalFuncDecls, findIntrinsinc =
   in
   let intrinsincFuncs = [
     "plusi", `Intrinsinc (callAdd Int), Int, ["l", Int; "r", Int];
-    "printf", `ExternalFunc, Int, ["test", String];
+    "printf", `ExternalFunc, Void, ["test", String];
   ]
   in
   let defaultBindings =
@@ -164,12 +167,13 @@ let gencodeFuncCall gencode call =
             combine ", " argTypeNames
           in
           let argString = paramString (List.combine vars call.fcparams) in
-          sprintf "%s = call %s (%s)* %%%s(%s)"
-            resultVar.rvname
-            (llvmTypeName call.fcrettype)
-            signatureString
-            call.fcname
-            argString
+          (if resultVar.rvtypename = "void" then ""
+           else sprintf "%s = " resultVar.rvname)
+          ^ (sprintf "call %s (%s)* %%%s(%s)"
+               (llvmTypeName call.fcrettype)
+               signatureString
+               call.fcname
+               argString)
         in
         (resultVar, argevalCode ^ funccallCode)
     | Some gencallCodeF ->
@@ -239,6 +243,8 @@ let gencodeGlobalVar var =
           var.vname
           (integralType2String var.typ)
           (integralValue2String var.default)
+    | VoidVal ->
+        raiseCodeGenError ~msg:"global constant of type void not allowed"
 
 let gencodeDefineFunc func =
   let resultVar, implCode = gencode func.impl in
@@ -247,8 +253,7 @@ let gencodeDefineFunc func =
   let decl = sprintf "%s %%%s(%s) "
     (llvmTypeName func.rettype) func.fname paramString
   in
-  (* let isTypeName name = try ignore(string2integralType name); true with _ -> false in *)
-  let isTypeName name = String.length name > 0 in
+  let isTypeName name = String.length name > 0 && name <> "void" in
   let impl =
     (sprintf "{\n%s\n" implCode)
     ^ (if isTypeName resultVar.rvtypename then
