@@ -1,7 +1,18 @@
 
+func void printInt {int i;};
+func void printString {string s;};
+func void printFloat {float f;};
+func void printNewline {};
+
 var int four 4;
+var string x "x";
 
 func int main {} {
-  plusi 3 four;
+  printInt 1;
+  printString x;
+  printFloat 2.0;
+  printNewline;
+
+  four;
 };
 

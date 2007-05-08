@@ -121,7 +121,7 @@ type func = {
   fname :string;
   rettype :integralType;
   fargs :(string * integralType) list;
-  impl :expr
+  impl :expr option;
 }
 and toplevelExpr =
   | GlobalVar of variable
@@ -132,6 +132,20 @@ let func name rettype args impl = {
   rettype = rettype;
   fargs = args;
   impl = impl;
+}
+
+let funcDecl name rettype args = {
+  fname = name;
+  rettype = rettype;
+  fargs = args;
+  impl = None;
+}
+  
+let funcDef name rettype args impl = {
+  fname = name;
+  rettype = rettype;
+  fargs = args;
+  impl = Some impl;
 }
   
 (* type package = { *)

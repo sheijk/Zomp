@@ -15,7 +15,7 @@ rule token = parse
       { BLOCK_END }
   | whitespace (('"' [^'\"']* '"') as str)
       { IDENTIFIER(str) }
-  | whitespace (['a'-'z' '0'-'9' 'A'-'Z' '_']+ as id) 
+  | whitespace (['a'-'z' '0'-'9' 'A'-'Z' '_' '.']+ as id)
       { IDENTIFIER(id) }
   | whitespace "//" [^'\n']* '\n'
       { token lexbuf }

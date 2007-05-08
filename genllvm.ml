@@ -77,7 +77,7 @@ let defaultBindings, externalFuncDecls, findIntrinsinc =
   in
   let defaultBindings =
     let toFunc (name, _, typ, args) =
-      name, FuncSymbol (func name typ args (Sequence []))
+      name, FuncSymbol (funcDecl name typ args)
     in
     List.map toFunc intrinsincFuncs
   in
@@ -247,22 +247,25 @@ let gencodeGlobalVar var =
         raiseCodeGenError ~msg:"global constant of type void not allowed"
 
 let gencodeDefineFunc func =
-  let resultVar, implCode = gencode func.impl in
-  let param2string (name, typ) = (integralType2String typ) ^ " " ^ (llvmName name) in
+  let param2string (name, typ) = (llvmTypeName typ) ^ " " ^ (llvmName name) in
   let paramString = combine ", " (List.map param2string func.fargs) in
   let decl = sprintf "%s %%%s(%s) "
     (llvmTypeName func.rettype) func.fname paramString
   in
-  let isTypeName name = String.length name > 0 && name <> "void" in
-  let impl =
-    (sprintf "{\n%s\n" implCode)
-    ^ (if isTypeName resultVar.rvtypename then
-         (sprintf "  ret %s %s\n}"
-            resultVar.rvtypename
-            resultVar.rvname)
-       else "ret void\n}")
-  in
-  decl ^ impl
+  match func.impl with
+    | None -> "declare " ^ decl
+    | Some impl ->
+        let resultVar, implCode = gencode impl in
+        let isTypeName name = String.length name > 0 && name <> "void" in
+        let impl =
+          (sprintf "{\n%s\n" implCode)
+          ^ (if isTypeName resultVar.rvtypename then
+               (sprintf "  ret %s %s\n}"
+                  resultVar.rvtypename
+                  resultVar.rvname)
+             else "ret void\n}")
+        in
+        decl ^ impl
 
 let gencodeTL = function
   | GlobalVar var -> gencodeGlobalVar var

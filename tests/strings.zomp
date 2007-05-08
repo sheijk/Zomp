@@ -1,7 +1,7 @@
 
 var string text "this be text\n";
 
-func string gettext {} {
+func string gettext {string x;} {
   text;
 };
 

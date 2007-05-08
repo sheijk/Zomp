@@ -27,13 +27,16 @@ type typecheckResult =
 let rec typeOfTL = function
   | GlobalVar var -> TypeOf var.typ
   | DefineFunc f ->
-      match typeOf f.impl with
-        | TypeOf implType when implType = f.rettype -> TypeOf f.rettype
-        | TypeOf wrongType -> TypeError (
-            "Function's return type is not equal to it's implementation",
-            f.rettype,
-            wrongType)
-        | TypeError _ as e -> e
+      match f.impl with
+        | None -> TypeOf f.rettype
+        | Some impl ->
+            match typeOf impl with
+              | TypeOf implType when implType = f.rettype -> TypeOf f.rettype
+              | TypeOf wrongType -> TypeError (
+                  "Function's return type is not equal to it's implementation",
+                  f.rettype,
+                  wrongType)
+              | TypeError _ as e -> e
 and typeOf = function
   | Sequence [] -> TypeOf Void
   | Sequence [expr] -> typeOf expr
@@ -174,43 +177,59 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
-let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [
-        { id = typeName; args = [] };
-        { id = name; args = [] };
-        { id = "std:seq"; args = paramExprs };
-        { id = "std:seq"; args = _ } as implExpr;
-      ] } as expr when id = macroFunc -> begin
-      let typ = string2integralType typeName in
-      let expr2param = function
-        | { id = typeName; args = [{ id = varName; args = [] }] } ->
-            (varName, string2integralType typeName)
-        | _ as expr ->
-            raiseIllegalExpression expr "Expected 'typeName varName' for param"
-      in
-      let params = List.map expr2param paramExprs in
-      let rec localBinding bindings = function
-        | [] -> bindings
-        | (name, typ) :: tail ->
-            let var = variable name typ (defaultValue typ) in
-            localBinding (addVar bindings var) tail
-      in
-      let innerBindings = localBinding bindings params in
-      let _, impl = translateNested innerBindings implExpr in
-      let f = func name typ params (Sequence impl) in
-      let newBindings = addFunc bindings f in
-      let funcDef = DefineFunc f in
-      match typeOfTL funcDef with
-        | TypeOf _ -> Some( newBindings, [ funcDef ] )
-        | TypeError (msg, declaredType, returnedType) ->
-            raiseIllegalExpression
-              expr
-              (Printf.sprintf "Function has return type %s but returns %s"
-                      (integralType2String declaredType)
-                      (integralType2String returnedType))
-    end
-  | _ ->
-      None
+let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
+  let buildFunction typeName name paramExprs implExprOption =
+    let typ = string2integralType typeName in
+    let expr2param = function
+      | { id = typeName; args = [{ id = varName; args = [] }] } ->
+          (varName, string2integralType typeName)
+      | _ as expr ->
+          raiseIllegalExpression expr "Expected 'typeName varName' for param"
+    in
+    let params = List.map expr2param paramExprs in
+    let rec localBinding bindings = function
+      | [] -> bindings
+      | (name, typ) :: tail ->
+          let var = variable name typ (defaultValue typ) in
+          localBinding (addVar bindings var) tail
+    in
+    let innerBindings = localBinding bindings params in
+    let impl = match implExprOption with
+      | Some implExpr -> Some (Sequence (snd (translateNested innerBindings implExpr)))
+      | None -> None
+    in
+    let f = func name typ params impl in
+    let newBindings = addFunc bindings f in
+    let funcDef = DefineFunc f in
+    newBindings, funcDef
+  in
+  match expr with
+    | { id = id; args = [
+          { id = typeName; args = [] };
+          { id = name; args = [] };
+          { id = "std:seq"; args = paramExprs };
+          { id = "std:seq"; args = _ } as implExpr;
+        ] } when id = macroFunc ->
+        begin
+          let newBindings, funcDef = buildFunction typeName name paramExprs (Some implExpr) in
+          match typeOfTL funcDef with
+            | TypeOf _ -> Some( newBindings, [ funcDef ] )
+            | TypeError (msg, declaredType, returnedType) ->
+                raiseIllegalExpression
+                  expr
+                  (Printf.sprintf "Function has return type %s but returns %s"
+                     (integralType2String declaredType)
+                     (integralType2String returnedType))
+        end
+    | { id = id; args = [
+          { id = typeName; args = [] };
+          { id = name; args = [] };
+          { id = "std:seq"; args = paramExprs };
+        ] } when id = macroFunc ->
+        let newBindings, funcDecl = buildFunction typeName name paramExprs None in
+        Some (newBindings, [funcDecl])
+    | _ ->
+        None
         
 let translateTL = translate raiseIllegalExpression [translateGlobalVar; translateFunc]
   

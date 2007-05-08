@@ -12,6 +12,9 @@ checkall: $(TESTPROGS:.zomp=.check)
 
 build: $(WORKING:.zomp=.bc)
 
+stdlibfuncs_exe.bc: stdlibfuncs.bc
+	@llvm-ld ../stdlib.bc $< -o ${@:.bc=}
+
 clean:
 	rm -f *.ll *.bc
 

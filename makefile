@@ -10,7 +10,7 @@ UPDATE=cp
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
 
-all: toplevel2 zompc
+all: toplevel2 zompc stdlib.bc
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	$(OCAMLC) -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
@@ -22,16 +22,18 @@ runtests: $(LANG_CMOS) expander_tests.cmo
 # 	ocamlrun $(CAML_LIBS) $(LANG_CMOS) expander_tests.cmo
 	cd tests && make check
 
+stdlib.bc: stdlib.c
+	llvm-gcc --emit-llvm -c $< -o $@
+
 .SUFFIXES: .ml .cmo .mly .mll .cmi
+
 
 .mly.ml:
 	$(MENHIR) $<
 	$(OCAMLC) -c $(<:.mly=.mli)
-# 	$(OCAMLC) -c $(<:.mly=.ml)
 
 .mll.ml:
 	$(OCAMLLEX) $<
-# 	$(OCAMLC) -c $(<:.mll=.ml)
 
 .ml.cmi:
 	$(OCAMLC) -c $<
