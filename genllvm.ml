@@ -33,10 +33,20 @@ let newGlobalTempVar, newLocalTempVar =
   in
   newVar localVar, newVar var
 
+let isConstant name =
+  match string2integralValue name with
+    | Some _ -> true
+    | None -> false
+  
 let paramString signature =
   let argsWithTypes =
     List.map
-      (fun (name, typ) -> (llvmTypeName typ) ^ " " ^ llvmName name)
+      (fun (name, typ) ->
+         if isConstant name then
+           (llvmTypeName typ) ^ " " ^ name
+         else
+           (llvmTypeName typ) ^ " " ^ llvmName name
+      )
       signature
   in
   combine ", " argsWithTypes
@@ -58,7 +68,7 @@ let defaultBindings, externalFuncDecls, findIntrinsinc =
     sprintf "add %s %s" (integralType2String typ) (combine ", " argVarNames)
   in
   let intrinsincFuncs = [
-    "std_plusi", `Intrinsinc (callAdd Int), Int, ["l", Int; "r", Int];
+    "plusi", `Intrinsinc (callAdd Int), Int, ["l", Int; "r", Int];
     "printf", `ExternalFunc, Int, ["test", String];
   ]
   in

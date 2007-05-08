@@ -1,7 +1,7 @@
 
-std_var int four 4;
+var int four 4;
 
-std_func int main {} {
-  std_plusi 3 four;
+func int main {} {
+  plusi 3 four;
 };
 

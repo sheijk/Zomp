@@ -1,8 +1,8 @@
 
-std_var int foo 10;
+var int foo 10;
 
-std_func int foo {} {
-  std_var int x 20;
+func int foo {} {
+  var int x 20;
   foo;
 };
 

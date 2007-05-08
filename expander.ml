@@ -11,6 +11,11 @@ open Ast2
 open Common
 open Bindings
 
+let macroVar = "var"
+and macroFunc = "func"
+and macroIfThenElse = "ifthenelse"
+and macroLoop = "loop"
+  
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
@@ -23,11 +28,11 @@ let translateSeq (translateF : exprTranslateF) bindings = function
       None
 
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = "std_var"; args = [
+  | { id = id; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
         { id = valueString; args = [] };
-      ] } -> begin
+      ] } when id = macroVar -> begin
       let typ = string2integralType typeName in
       let value = parseValue typ valueString in
       let var = variable name typ value in
@@ -66,7 +71,7 @@ let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = func
   | _ -> None
 
 let translateLoop (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = "std_loop"; args = [preCode; abortTest; postCode] } -> begin
+  | { id = id; args = [preCode; abortTest; postCode] } when id = macroLoop -> begin
       let eval expr =
         let _, sf = translateF bindings expr in
         match sf with
@@ -80,7 +85,7 @@ let translateLoop (translateF :exprTranslateF) (bindings :bindings) = function
   | _ -> None
 
 let translateIfThenElse (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = "std_ifthenelse"; args = [condExpr; trueExpr; falseExpr] } -> begin
+  | { id = id; args = [condExpr; trueExpr; falseExpr] } when id = macroIfThenElse -> begin
       let eval expr =
         let _, sf = translateF bindings expr in
         match sf with
@@ -103,25 +108,15 @@ let translateNested = translate raiseIllegalExpression
     translateIfThenElse;
   ]
   
-(* let rec translateNested = function *)
-(*   | Expr ("std:seq", sequence) -> *)
-(*       List.fold_left (@) [] (List.map translateNested sequence) *)
-  
-(*   | Expr ( "std_var", [Expr(typeName, []); Expr(name, []); Expr(valueString, [])] ) -> *)
-(*       let typ = string2integralType typeName in *)
-(*       let value = parseValue typ valueString in *)
-(*       [ DefineVariable (variable name typ value) ] *)
-
-(*   | _ as expr -> raiseIllegalExpression ~expr ~msg:"Not handled, yet" *)
 
 type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list
 
 let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
-  | { id = "std_var"; args = [
+  | { id = id; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
         { id = valueString; args = [] }
-      ] } -> begin
+      ] } when id = macroVar -> begin
       let typ = string2integralType typeName in
       let value = parseValue typ valueString in
       let var = variable name typ value in
@@ -132,12 +127,12 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
       None
 
 let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) = function
-  | { id = "std_func"; args = [
+  | { id = id; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
         { id = "std:seq"; args = paramExprs };
         { id = "std:seq"; args = _ } as implExpr;
-      ] } -> begin
+      ] } when id = macroFunc -> begin
       let typ = string2integralType typeName in
       let expr2param = function
         | { id = typeName; args = [{ id = varName; args = [] }] } ->

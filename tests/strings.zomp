@@ -1,11 +1,11 @@
 
-std_var string text "this be text\n";
+var string text "this be text\n";
 
-std_func string gettext {} {
+func string gettext {} {
   text;
 };
 
-std_func int main {} {
+func int main {} {
   printf text;
   1;
 };

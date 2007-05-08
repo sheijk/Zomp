@@ -5,7 +5,7 @@
 /**
  This is the beautiful documentation
  */
-std_func int main {} {
+func int main {} {
 /* comment */
   4;
 /* more comments */

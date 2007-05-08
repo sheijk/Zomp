@@ -1,11 +1,11 @@
 
-std_var int x 3;
+var int x 3;
 
-std_func int foo {int ignored; int ignored2;} {
+func int foo {int ignored; int ignored2;} {
   3;
 };
 
-std_func int main {} {
+func int main {} {
   foo 1 x;
 };
 

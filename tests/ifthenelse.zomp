@@ -1,7 +1,7 @@
 
-std_var int two 2;
+var int two 2;
 
-std_func int ite {} {
-  std_ifthenelse {true;} {1;} {two;};
+func int ite {} {
+  ifthenelse {true;} {1;} {two;};
 };
 
