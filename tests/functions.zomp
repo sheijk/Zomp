@@ -6,7 +6,11 @@ func int foo {int ignored; int ignored2;} {
 };
 
 func int main {} {
+  var int r { foo 1 2; };
+  var int y 0;
+  
   foo 1 x;
+  r;
 };
 
 

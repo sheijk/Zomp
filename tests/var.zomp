@@ -1,8 +1,14 @@
 
 var int foo 10;
 
-func int foo {} {
+func int add {int l; int r;} {
+  int.add l r;
+};
+
+func int getFoo {} {
   var int x 20;
-  foo;
+  var int z { int.add x 3; };
+  
+  int.add foo x;
 };
 

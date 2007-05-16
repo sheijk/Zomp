@@ -15,15 +15,63 @@ let macroVar = "var"
 and macroFunc = "func"
 and macroIfThenElse = "ifthenelse"
 and macroLoop = "loop"
+and macroAssign = "assign"
 
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
 type typecheckResult =
-  | TypeOf of integralType
-      (** error message, found type expected type *)
-  | TypeError of string * integralType * integralType
+  | TypeOf of composedType
+      (** error message, found type, expected type *)
+  | TypeError of string * composedType * composedType
       
+let rec typeOf = function
+  | Sequence [] -> TypeOf `Void
+  | Sequence [expr] -> typeOf expr
+  | Sequence (_ :: tail) -> typeOf (Sequence tail)
+  | DefineVariable (var, expr) -> begin
+      match typeOf expr with
+        | TypeOf exprType when exprType = var.typ -> TypeOf var.typ
+        | TypeOf wrongType -> TypeError (
+            "Types need to be the same in assignment", wrongType, var.typ)
+        | _ as e -> e
+    end      
+  | Variable var -> TypeOf var.typ
+  | Constant value -> TypeOf (integralValue2Type value)
+  | FuncCall call -> TypeOf (call.fcrettype :> composedType)
+(*   | AssignVar (v, expr) -> begin *)
+(*       match typeOf expr with *)
+(*         | TypeOf exprType when exprType = v.typ -> TypeOf `Void *)
+(*         | TypeOf exprType -> TypeError ( *)
+(*             "Cannot assign result of expression to var because types differ", *)
+(*             exprType, v.typ) *)
+(*         | _ as typeError -> typeError *)
+(*     end *)
+  | IfThenElse { cond = cond; trueCode = trueCode; falseCode = falseCode } -> begin
+      match typeOf cond with
+        | TypeOf `Bool -> begin
+            match typeOf trueCode, typeOf falseCode with
+              | (TypeError _) as e, _ -> e
+              | _, ((TypeError _) as e) -> e
+              | trueType, falseType when trueType = falseType -> trueType
+              | TypeOf trueType, TypeOf falseType -> TypeError ("Types don't match in if/then/else", trueType, falseType)
+          end
+        | TypeOf condType -> TypeError (
+            "Expected cond of type Bool in 'if cond then ... else ..'",
+            condType, `Bool)
+        | TypeError _ as e -> e
+    end
+  | Loop l ->
+      match typeOf l.abortTest with
+        | TypeOf `Bool -> begin
+            match typeOf l.preCode with
+              | TypeOf `Void -> typeOf l.postCode
+              | TypeOf wrongType -> TypeError ("PreCode in loop must have type void", wrongType, `Void)
+              | _ as e -> e
+          end
+        | TypeOf wrongType -> TypeError ("Abort condition in loop must have type Bool", wrongType, `Bool)
+        | _ as e -> e
+  
 let rec typeOfTL = function
   | GlobalVar var -> TypeOf var.typ
   | DefineFunc f ->
@@ -37,39 +85,6 @@ let rec typeOfTL = function
                   f.rettype,
                   wrongType)
               | TypeError _ as e -> e
-and typeOf = function
-  | Sequence [] -> TypeOf Void
-  | Sequence [expr] -> typeOf expr
-  | Sequence (_ :: tail) -> typeOf (Sequence tail)
-  | DefineVariable var -> TypeOf var.typ
-  | Variable var -> TypeOf var.typ
-  | Constant value -> TypeOf (integralValue2Type value)
-  | FuncCall call -> TypeOf call.fcrettype
-  | IfThenElse { cond = cond; trueCode = trueCode; falseCode = falseCode } -> begin
-      match typeOf cond with
-        | TypeOf Bool -> begin
-            match typeOf trueCode, typeOf falseCode with
-              | (TypeError _) as e, _ -> e
-              | _, ((TypeError _) as e) -> e
-              | trueType, falseType when trueType = falseType -> trueType
-              | TypeOf trueType, TypeOf falseType -> TypeError ("Types don't match in if/then/else", trueType, falseType)
-          end
-        | TypeOf condType -> TypeError (
-            "Expected cond of type Bool in 'if cond then ... else ..'",
-            condType, Bool)
-        | TypeError _ as e -> e
-    end
-  | Loop l ->
-      match typeOf l.abortTest with
-        | TypeOf Bool -> begin
-            match typeOf l.preCode with
-              | TypeOf Void -> typeOf l.postCode
-              | TypeOf wrongType -> TypeError ("PreCode in loop must have type void", wrongType, Void)
-              | _ as e -> e
-          end
-        | TypeOf wrongType -> TypeError ("Abort condition in loop must have type Bool", wrongType, Bool)
-        | _ as e -> e
-  
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
 let translateSeq (translateF : exprTranslateF) bindings = function
@@ -82,12 +97,14 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
   | { id = id; args = [
         { id = typeName; args = [] };
         { id = name; args = [] };
-        { id = valueString; args = [] };
+        valueExpr
       ] } when id = macroVar -> begin
+      let _, simpleform = translateF bindings valueExpr in
       let typ = string2integralType typeName in
-      let value = parseValue typ valueString in
-      let var = variable name typ value in
-      Some( addVar bindings var, [ DefineVariable var ] )
+(*       let value = parseValue typ valueString in *)
+      let value = defaultValue typ in
+      let var = localVar name typ value in
+      Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
     end
   | _ ->
       None
@@ -113,7 +130,8 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
 let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = [] } -> begin
       match lookup bindings name with
-        | VarSymbol v -> Some (bindings, [Variable v])
+        | VarSymbol v ->
+            Some (bindings, [Variable v])
         | _ ->
             match string2integralValue name with
               | Some c -> Some( bindings, [Constant c] )
@@ -149,6 +167,19 @@ let translateIfThenElse (translateF :exprTranslateF) (bindings :bindings) = func
     end
   | _ -> None      
 
+(* let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function *)
+(*   | { id = id; args = [ *)
+(*         { id = varName; args = [] }; *)
+(*         rightHandExpr; *)
+(*       ] } when id = macroAssign -> begin *)
+(*       let _, rightHandSimpleform = translateF bindings rightHandExpr in *)
+(*       match lookup bindings varName with *)
+(*         | VarSymbol v -> *)
+(*             Some (bindings, [AssignVar (v, Sequence rightHandSimpleform)]) *)
+(*         | _ -> None *)
+(*     end *)
+(*   | _ -> None *)
+  
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -157,6 +188,7 @@ let translateNested = translate raiseIllegalExpression
     translateFuncCall;
     translateLoop;
     translateIfThenElse;
+(*     translateAssignVar; *)
   ]
   
 
@@ -170,7 +202,7 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
       ] } when id = macroVar -> begin
       let typ = string2integralType typeName in
       let value = parseValue typ valueString in
-      let var = variable name typ value in
+      let var = globalVar name typ value in
       let newBindings = addVar bindings var in
       Some( newBindings, [ GlobalVar var ] )
     end
@@ -190,7 +222,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     let rec localBinding bindings = function
       | [] -> bindings
       | (name, typ) :: tail ->
-          let var = variable name typ (defaultValue typ) in
+          let var = localVar name typ (defaultValue typ) in
           localBinding (addVar bindings var) tail
     in
     let innerBindings = localBinding bindings params in
@@ -218,8 +250,8 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
                 raiseIllegalExpression
                   expr
                   (Printf.sprintf "Function has return type %s but returns %s"
-                     (integralType2String declaredType)
-                     (integralType2String returnedType))
+                     (composedType2String declaredType)
+                     (composedType2String returnedType))
         end
     | { id = id; args = [
           { id = typeName; args = [] };

@@ -2,16 +2,16 @@ open Ast2
 open Printf
 open Expander
 open Genllvm
+open Common
 
 let _ =
-  let newlineRE = Str.regexp "\n" in
   let lexbuf = Lexing.from_channel stdin in
   try
     let rec parse bindings code =
       try
         let expr = Parser2.main Lexer2.token lexbuf in
         let exprString = Ast2.expression2string expr in
-        let exprComment = ";  " ^ Str.global_replace newlineRE "\n;  " exprString in
+        let exprComment = commentOut "; " exprString in
         printf "%s\n" exprComment;
         let newBindings, simpleforms = Expander.translateTL bindings expr in
         parse newBindings (code @ simpleforms)

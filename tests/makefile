@@ -1,6 +1,7 @@
 
-WORKING = comments.zomp constant.zomp functions.zomp globalvar.zomp stdlibfuncs.zomp var.zomp void.zomp
-FAILING = extfuncs.zomp ifthenelse.zomp loop.zomp simple.zomp
+WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp 
+# WORKING = var.zomp 
+FAILING = ifthenelse.zomp loop.zomp simple.zomp
 
 TESTPROGS = $(WORKING) $(FAILING)
 
@@ -15,7 +16,7 @@ build: $(WORKING:.zomp=.bc)
 stdlibfuncs_exe.bc: stdlibfuncs.bc
 	@llvm-ld ../stdlib.bc $< -o ${@:.bc=}
 
-clean:
+clean_tests:
 	rm -f *.ll *.bc
 
 .SUFFIXES: .zomp .ll .check .bc

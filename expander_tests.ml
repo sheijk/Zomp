@@ -24,55 +24,55 @@ let _ =
   let testcases = [
     (** test global variables *)
     "std_var int foo 10;",
-    [GlobalVar (variable "foo" Int (IntVal 10))];
+    [GlobalVar (variable "foo" `Int (IntVal 10))];
 
     (** test functions *)
     "std_func float five {} {};",
-    [DefineFunc (func "five" Float [] (Sequence []))];
+    [DefineFunc (func "five" `Float [] (Some (Sequence [])))];
 
     (** test parameters and local variables *)
     "std_func int plus {int l; int r;} { std_var int t 0; };",
-    [DefineFunc (func "plus" Int
-                   ["l", Int; "r", Int]
-                   (Sequence [
-                      DefineVariable (variable "t" Int (IntVal 0));
-                    ]))];
+    [DefineFunc (func "plus" `Int
+                   ["l", `Int; "r", `Int]
+                   (Some (Sequence [
+                      DefineVariable (variable "t" `Int (IntVal 0));
+                    ])))];
 
     (** test global bindings *)
     "std_var int bar 10;" ^
       "std_func int getbar {} { bar; };",
-    (let v = (variable "bar" Int (IntVal 10)) in
+    (let v = (variable "bar" `Int (IntVal 10)) in
     [GlobalVar v;
-     DefineFunc (func "getbar" Int [] (Sequence [Variable v]))]);
+     DefineFunc (func "getbar" `Int [] (Some (Sequence [Variable v])))]);
 
     (** test constant expressions *)
     "std_func int one {} { 1; };",
-    [DefineFunc (func "one" Int [] (Sequence [Constant (IntVal 1)]))];
+    [DefineFunc (func "one" `Int [] (Some (Sequence [Constant (IntVal 1)])))];
     
     "std_func string hello {} { \"hello\"; };",
-    [DefineFunc (func "hello" String [] (Sequence [Constant (StringVal "hello")]))];
+    [DefineFunc (func "hello" `String [] (Some (Sequence [Constant (StringVal "hello")])))];
     (*TODO: bool, float *)
 
     (** test whether parameters can be accessed *)
     "std_func int id {int n;} { n; };",
-    [DefineFunc (func "id" Int ["n", Int]
-                   (Sequence [Variable (variable "n" Int (defaultValue Int)) ]))];
+    [DefineFunc (funcDef "id" `Int ["n", `Int]
+                   (Sequence [Variable (variable "n" `Int (defaultValue `Int)) ]))];
 
     (** test function calls *)
     "std_func int five {int x;} { 5; };"
     ^ "std_func int five2 {} { five 3; };",
-    [DefineFunc (func "five" Int ["x", Int] (Sequence [Constant (IntVal 5)]));
-     DefineFunc (func "five2" Int []
+    [DefineFunc (funcDef "five" `Int ["x", `Int] (Sequence [Constant (IntVal 5)]));
+     DefineFunc (funcDef "five2" `Int []
                    (Sequence [FuncCall {
                                 fcname = "five";
-                                fcrettype = Int;
-                                fcparams = [Int];
+                                fcrettype = `Int;
+                                fcparams = [`Int];
                                 fcargs = [Constant (IntVal 3)] }]) ) ];
 
     "std_func int testif {} {" ^
       "  std_ifthenelse { true; } { 1; } { 2; };" ^
       "};",
-    [DefineFunc (func "testif" Int []
+    [DefineFunc (funcDef "testif" `Int []
                    (Sequence [
                       IfThenElse ({ cond = Constant (BoolVal true);
                                     trueCode = Constant (IntVal 1);
@@ -82,7 +82,7 @@ let _ =
       "  std_loop {} { false; } { \"while\"; };" ^
       "  std_loop { \"do\"; } { true; } {};" ^
       "};",
-    [DefineFunc (func "testloop" Float []
+    [DefineFunc (funcDef "testloop" `Float []
                    (Sequence [
                       Loop { preCode = Sequence [];
                              abortTest = Constant (BoolVal false);

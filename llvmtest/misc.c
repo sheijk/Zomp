@@ -13,3 +13,14 @@ int constant() {
     return 10;
 }
 
+int assign() {
+    int a = 3;
+    int b = 4;
+    a = b;
+    return 0;
+}
+
+int shift(int l, int r) {
+    return l << r;
+}
+

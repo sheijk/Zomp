@@ -44,7 +44,7 @@ stdlib.bc: stdlib.c
 deps:
 	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
 
-clean:
+clean: tests/clean_tests
 	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
 	rm -f lexer2.ml
 	rm -f parser2.ml parser2.mli

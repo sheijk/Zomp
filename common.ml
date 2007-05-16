@@ -17,3 +17,14 @@ let rec translate errorF translators bindings expr =
   in
   t translators
 
+let commentOut startDelim ?(stopDelim = "") multiLineSource =
+  let rec combine seperator = function
+      [] -> ""
+    | [str] -> str
+    | hd :: tl -> hd ^ seperator ^ (combine seperator tl)
+  in
+  let newlineRE = Str.regexp "\n" in
+  let lines = Str.split newlineRE multiLineSource in
+  let commentedLines = List.map (fun line -> startDelim ^ line ^ stopDelim) lines in
+  combine "\n" commentedLines
+  
