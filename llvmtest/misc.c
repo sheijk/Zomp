@@ -24,3 +24,12 @@ int shift(int l, int r) {
     return l << r;
 }
 
+int ifthenelse(int t) {
+    if( t ) {
+        return 1;
+    }
+    else {
+        return 2;
+    }
+}
+

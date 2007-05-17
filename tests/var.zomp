@@ -1,5 +1,8 @@
 
 var int foo 10;
+var string msg "message";
+var float f 1.1;
+var bool b true;
 
 func int add {int l; int r;} {
   int.add l r;
@@ -8,7 +11,9 @@ func int add {int l; int r;} {
 func int getFoo {} {
   var int x 20;
   var int z { int.add x 3; };
-  
+
+  var bool b false;
+
   int.add foo x;
 };
 

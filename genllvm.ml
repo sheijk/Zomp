@@ -31,10 +31,11 @@ let localVar name typ = { rvname = llvmLocalName name; rvtypename = typ }
 let noVar = { rvname = ""; rvtypename = "" }
 
 let lastTempVarNum = ref 0
+let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
   let newVar constructor typ = 
-    incr lastTempVarNum;
-    constructor (sprintf "temp%d" !lastTempVarNum) typ
+    let id = nextUID () in
+    constructor (sprintf "temp%d" id) typ
   in
   newVar localVar, newVar var
 
@@ -135,8 +136,13 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   defaultBindings, externalFuncDecls, findIntrinsic
   
 let indent string =
+  let indentLine line =
+    let len = String.length line in
+    if len >= 1 && line.[len-1] = ':' then line
+    else "  " ^ line
+  in
   let lines = Str.split (Str.regexp "\n") string in
-  let indentedLines = List.map (fun s -> "  " ^ s) lines in
+  let indentedLines = List.map indentLine lines in
   combine "\n" indentedLines
 
 let gencodeSequence gencode exprs =
@@ -154,22 +160,25 @@ let gencodeDefineVariable gencode var expr =
     | `Pointer _ -> "nullptr"
     | #integralType as t -> integralValue2String (defaultValue t)
   in
+  let initInstr = function
+    | `Int | `Float -> "add"
+    | `Bool -> "or"
+    | _ -> "notImplemented"
+  in
   let initVar, initVarCode = gencode expr in
   let name = llvmName var.vname
   and typ = composedType2String var.typ
   in
   let comment = sprintf "; defining var %s : %s\n" var.vname typ in
-  let code = sprintf "%s = add %s %s, %s"
-    name typ
+  let code = sprintf "%s = %s %s %s, %s"
+    name
+    (initInstr var.typ)
+    typ
     (zeroElement var.typ)
     initVar.rvname
   in
   (noVar, comment ^ initVarCode ^ "\n" ^ code)
 
-let isPointerTypeName typName =
-  let len = String.length typName in
-  len >= 1 && typName.[len-1] = '*'
-  
 let gencodeVariable v =
   let typeName = llvmTypeName v.typ in
   if v.vglobal = false then 
@@ -237,11 +246,31 @@ let gencodeIfThenElse gencode ite =
   and trueVar, trueCode = gencode ite.trueCode
   and falseVar, falseCode = gencode ite.falseCode
   in
-  noVar,
-  (sprintf "; if/then/else not supported, yet\n")
-  ^ (sprintf "%s\n%s\n%s\n if %s then %s else %s\n"
-       condCode trueCode falseCode
-       condVar.rvname trueVar.rvname falseVar.rvname)
+  let comment = "; if/then/else" in
+  let resultTypeName = trueVar.rvtypename in
+  let id = nextUID () in
+  let trueLabel = sprintf "true_cond%d" id
+  and falseLabel = sprintf "false_cond%d" id
+  and continueLabel = sprintf "continue%d" id
+  and resultVarName = sprintf "%%iteResult%d" id
+  in
+  ( {rvname = llvmName resultVarName; rvtypename = resultTypeName} ,
+   comment ^ "\n" ^
+     condCode ^ "\n" ^
+     resultVarName ^ "_ptr = alloca " ^ resultTypeName ^ "\n" ^
+     "br bool " ^ condVar.rvname ^ ", label %" ^ trueLabel ^ ", label %" ^ falseLabel ^ "\n" ^
+     trueLabel ^ ":\n" ^ 
+     trueCode ^ "\n" ^ 
+     "store " ^ resultTypeName ^ " " ^ trueVar.rvname ^ ", " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr\n" ^
+     "br label %" ^ continueLabel ^ "\n" ^
+     falseLabel ^ ":\n" ^
+     falseCode ^ "\n" ^ 
+     "store " ^ resultTypeName ^ " " ^ falseVar.rvname ^ ", " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr\n" ^
+     "br label %" ^ continueLabel ^ "\n" ^
+     continueLabel ^ ":\n" ^
+     resultVarName ^ " = load " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr"
+  )
+
     
 let gencodeLoop gencode l =
   let _, preCode = gencode l.preCode
