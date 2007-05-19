@@ -1,7 +1,6 @@
 
-WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ifthenelse.zomp
-# WORKING = var.zomp 
-FAILING = loop.zomp simple.zomp
+WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ifthenelse.zomp loop.zomp ops.zomp
+FAILING = simple.zomp 
 
 TESTPROGS = $(WORKING) $(FAILING)
 

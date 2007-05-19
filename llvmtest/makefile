@@ -15,7 +15,7 @@ clean:
 
 # C File nach Bytecode
 .c.bc:
-	llvm-gcc -c --emit-llvm $< -o $@
+	llvm-gcc -c --emit-llvm -O0 $< -o $@
 	llvm-dis -f $@
 
 # Faketarget, "make foo.run" fuehrt Bytecodedatei foo.bc aus

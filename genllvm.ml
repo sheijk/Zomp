@@ -68,15 +68,22 @@ let stringMap f str =
 let llvmEscapedString str = 
   Str.global_replace (Str.regexp "\\\\n") "\\\\0A" str
 
-    
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s" intrName (composedType2String typ) (combine ", " argVarNames)
   in
   let void argVarNames = "" in
+  let compIntrI name cond =
+    let f argVarNames = 
+      sprintf "set%s int %s" cond (combine ", " argVarNames)
+    in
+    (name, `Intrinsic f, `Int, ["l", `Int; "r", `Int])
+      (*     sprintf "icmp %s int %s" cond (combine ", " argVarNames) *)
+  in
   let twoArgIntr name instruction (typ :composedType) =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ]
   in
+
   let intrinsicFuncs = [
     twoArgIntr "int.add" "add" `Int;
     twoArgIntr "int.sub" "sub" `Int;
@@ -102,6 +109,13 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     
     "printf", `ExternalFunc, `Void, ["test", `String];
     "void", `Intrinsic void, `Void, [];
+
+    compIntrI "int.less" "lt";
+    compIntrI "int.greater" "gt";
+    compIntrI "int.equal" "eq";
+    compIntrI "int.notEqual" "ne";
+    compIntrI "int.lessEqual" "le";
+    compIntrI "int.greaterEqual" "ge";
   ]
   in
   let defaultBindings =
@@ -254,7 +268,7 @@ let gencodeIfThenElse gencode ite =
   and continueLabel = sprintf "continue%d" id
   and resultVarName = sprintf "%%iteResult%d" id
   in
-  ( {rvname = llvmName resultVarName; rvtypename = resultTypeName} ,
+  ( {rvname = llvmName resultVarName; rvtypename = resultTypeName},
    comment ^ "\n" ^
      condCode ^ "\n" ^
      resultVarName ^ "_ptr = alloca " ^ resultTypeName ^ "\n" ^
@@ -273,30 +287,32 @@ let gencodeIfThenElse gencode ite =
 
     
 let gencodeLoop gencode l =
-  let _, preCode = gencode l.preCode
+  let preVar, preCode = gencode l.preCode
   and abortVar, abortCode = gencode l.abortTest
-  and resultVar, postCode = gencode l.postCode
+  and _, postCode = gencode l.postCode
   in
-  resultVar,
-  ("; loop not supported, yet\n")
-  ^ (sprintf "start:\n%s\n%s\nbreak if %s\n%s"
-       preCode abortCode abortVar.rvname postCode)
-
-(* let gencodeAssignVar gencode var expr = *)
-(*   let exprResultVar, exprCode = gencode expr in *)
-(*   let comment = sprintf "; assigning %s : %s\n" var.vname (composedType2String var.typ) in *)
-(*   let assignCode = sprintf "%s = add %s %s, 0" *)
-(*     (llvmName var.vname) *)
-(*     (composedType2String var.typ) *)
-(*     exprResultVar.rvname *)
-(*   in *)
-(*   (noVar, comment ^ exprCode ^ "\n" ^ assignCode) *)
+  let id = nextUID() in
+  let beginLabel = sprintf "loop_begin%d" id
+  and endLabel = sprintf "loop_end%d" id
+  and centerLabel = sprintf "loop_center%d" id
+  in
+  let comment = sprintf "; loop %d\n" id in
+  (preVar,
+   comment
+   ^ "br label %" ^ beginLabel ^ "\n"
+   ^ beginLabel ^ ":\n"
+   ^ preCode ^ "\n"
+   ^ "br bool " ^ abortVar.rvname ^ ", label %" ^ endLabel ^ ", label %" ^ centerLabel ^ "\n"
+   ^ centerLabel ^ ":\n"
+   ^ postCode ^ "\n"
+   ^ "br label %" ^ beginLabel ^ "\n"
+   ^ endLabel ^ ":\n"
+  )
   
 let rec gencode : Lang.expr -> resultvar * string = function
   | Sequence exprs -> gencodeSequence gencode exprs
   | DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr
   | Variable var -> gencodeVariable var
-(*   | AssignVar (var, expr) -> gencodeAssignVar gencode var expr *)
   | Constant c -> gencodeConstant c
   | FuncCall call -> gencodeFuncCall gencode call
   | IfThenElse ite -> gencodeIfThenElse gencode ite

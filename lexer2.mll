@@ -5,27 +5,35 @@
 }
 
 let whitespace = ['\n' ' ' '\t']*
+let operator = ['+' '-' '*' '/']
+let opsuffix = (['a'-'z']+)?
 
 rule token = parse
-  | whitespace ';'
-      { SEPERATOR }
-  | whitespace '{' | whitespace '('
-      { BLOCK_BEGIN }
-  | whitespace '}' | whitespace ')'
-      { BLOCK_END }
-  | whitespace (('"' [^'\"']* '"') as str)
-      { IDENTIFIER(str) }
-  | whitespace (['a'-'z' '0'-'9' 'A'-'Z' '_' '.']+ as id)
-      { IDENTIFIER(id) }
-  | whitespace "//" [^'\n']* '\n'
+  | whitespace
       { token lexbuf }
-  | whitespace  "/*"
-      { mlcomment "" lexbuf }
-  | whitespace '!'
+  | ';'
+      { SEPERATOR }
+  | '{' | '('
+      { BLOCK_BEGIN }
+  | '}' | ')'
+      { BLOCK_END }
+  | '+' opsuffix as name
+      { OP_PLUS(name) }
+  | ("op" operator) as name
+      { IDENTIFIER(name) }
+  | (('"' [^'\"']* '"') as str)
+      { IDENTIFIER(str) }
+  | (['a'-'z' '0'-'9' 'A'-'Z' '_' '.']+ as id)
+      { IDENTIFIER(id) }
+  | "//" [^'\n']* '\n'
+      { token lexbuf }
+  |  "/*"
+      { mlcomment lexbuf }
+  | '!'
       { raise Eof }
-  | whitespace eof
+  | eof
       { raise Eof }
-and mlcomment str = shortest 
+and mlcomment = shortest 
   | (_)* "*/"
       { token lexbuf }
 

@@ -1,8 +1,14 @@
 
-func int printx {} { 0; };
-func int printy {} { 1; };
+var string blah "blah\n";
+var string fasel "fasel\n";
 
-func int loopTest {} {
-  loop { printx; } { false; } { printy; };
+func int main {} {
+  loop {
+    printf blah;
+  } { true; } {
+    printf fasel;
+  };
+
+  1;
 };
 

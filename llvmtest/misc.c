@@ -33,3 +33,17 @@ int ifthenelse(int t) {
     }
 }
 
+int loop() {
+    int sum = 0;
+
+    while( sum < 100 ) {
+        sum += sum;
+    }
+
+    return sum;
+}
+
+int compare(int x) {
+    return 3 < x;
+}
+

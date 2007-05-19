@@ -1,0 +1,12 @@
+
+
+func int main {} {
+  var int l 10;
+  var int r 20;
+  var int x { l + r; };
+
+  var float f { 1.0 +_f 2.0; };
+
+  op+ 1 r;
+};
+

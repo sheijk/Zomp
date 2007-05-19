@@ -31,6 +31,13 @@ func void main {} {
   float.fdiv f1 f2;
   float.frem f1 f2;
 
+  var bool t1 { int.less i1 i2; };
+  var bool t2 { int.greater i1 i2; };
+  var bool t3 { int.equal i1 i2; };
+  var bool t4 { int.notEqual i1 i2; };
+  var bool t5 { int.lessEqual i1 i2; };
+  var bool t6 { int.greaterEqual i1 i2; };
+
   void;
 };
 
