@@ -24,7 +24,7 @@ let _ =
   let testcases = [
     (** test global variables *)
     "std_var int foo 10;",
-    [GlobalVar (variable "foo" `Int (IntVal 10))];
+    [GlobalVar (Lang.localVar "foo" `Int (IntVal 10))];
 
     (** test functions *)
     "std_func float five {} {};",
@@ -35,13 +35,13 @@ let _ =
     [DefineFunc (func "plus" `Int
                    ["l", `Int; "r", `Int]
                    (Some (Sequence [
-                      DefineVariable (variable "t" `Int (IntVal 0));
+                      DefineVariable (Lang.localVar "t" `Int (IntVal 0));
                     ])))];
 
     (** test global bindings *)
     "std_var int bar 10;" ^
       "std_func int getbar {} { bar; };",
-    (let v = (variable "bar" `Int (IntVal 10)) in
+    (let v = (Lang.localVar "bar" `Int (IntVal 10)) in
     [GlobalVar v;
      DefineFunc (func "getbar" `Int [] (Some (Sequence [Variable v])))]);
 
@@ -56,7 +56,7 @@ let _ =
     (** test whether parameters can be accessed *)
     "std_func int id {int n;} { n; };",
     [DefineFunc (funcDef "id" `Int ["n", `Int]
-                   (Sequence [Variable (variable "n" `Int (defaultValue `Int)) ]))];
+                   (Sequence [Variable (Lang.localVar "n" `Int (defaultValue `Int)) ]))];
 
     (** test function calls *)
     "std_func int five {int x;} { 5; };"

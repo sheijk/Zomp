@@ -32,7 +32,6 @@ int ifthenelse(int t) {
         return 2;
     }
 }
-
 int loop() {
     int sum = 0;
 
