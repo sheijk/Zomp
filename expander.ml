@@ -126,7 +126,15 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
                                 fcargs = argExprs;
                               } ] )
         | _ -> None
-  
+
+let translateMacro (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = macroName; args = args; } ->
+      match lookup bindings macroName with
+        | MacroSymbol macro ->
+            let transformedExpr = macro.mtransformFunc args in
+            Some (translateF bindings transformedExpr)
+        | _ -> None
+            
 let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = [] } -> begin
       match lookup bindings name with
@@ -188,6 +196,7 @@ let translateNested = translate raiseIllegalExpression
     translateFuncCall;
     translateLoop;
     translateIfThenElse;
+    translateMacro;
 (*     translateAssignVar; *)
   ]
   

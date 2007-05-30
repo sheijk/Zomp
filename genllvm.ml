@@ -73,56 +73,67 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     sprintf "%s %s %s" intrName (composedType2String typ) (combine ", " argVarNames)
   in
   let void argVarNames = "" in
-  let compIntrI name cond =
+  let compareIntrinsicI name cond =
     let f argVarNames = 
       sprintf "set%s int %s" cond (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Int, ["l", `Int; "r", `Int])
       (*     sprintf "icmp %s int %s" cond (combine ", " argVarNames) *)
   in
-  let twoArgIntr name instruction (typ :composedType) =
+  let twoArgIntrinsic name instruction (typ :composedType) =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ]
   in
 
   let intrinsicFuncs = [
-    twoArgIntr "int.add" "add" `Int;
-    twoArgIntr "int.sub" "sub" `Int;
-    twoArgIntr "int.mul" "mul" `Int;
-    twoArgIntr "int.sdiv" "sdiv" `Int;
-    twoArgIntr "int.udiv" "udiv" `Int;
-    twoArgIntr "int.urem" "urem" `Int;
-    twoArgIntr "int.srem" "srem" `Int;
+    twoArgIntrinsic "int.add" "add" `Int;
+    twoArgIntrinsic "int.sub" "sub" `Int;
+    twoArgIntrinsic "int.mul" "mul" `Int;
+    twoArgIntrinsic "int.sdiv" "sdiv" `Int;
+    twoArgIntrinsic "int.udiv" "udiv" `Int;
+    twoArgIntrinsic "int.urem" "urem" `Int;
+    twoArgIntrinsic "int.srem" "srem" `Int;
     
-(*     twoArgIntr "int.shl" "shl" `Int; *)
-(*     twoArgIntr "int.lshr" "lshr" `Int; *)
-(*     twoArgIntr "int.ashr" "ashr" `Int; *)
+(*     twoArgIntrinsic "int.shl" "shl" `Int; *)
+(*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
+(*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
     
-    twoArgIntr "int.and" "and" `Int;
-    twoArgIntr "int.or" "or" `Int;
-    twoArgIntr "int.xor" "xor" `Int;
+    twoArgIntrinsic "int.and" "and" `Int;
+    twoArgIntrinsic "int.or" "or" `Int;
+    twoArgIntrinsic "int.xor" "xor" `Int;
 
-    twoArgIntr "float.add" "add" `Float;
-    twoArgIntr "float.sub" "sub" `Float;
-    twoArgIntr "float.mul" "mul" `Float;
-    twoArgIntr "float.fdiv" "fdiv" `Float;
-    twoArgIntr "float.frem" "frem" `Float;
+    twoArgIntrinsic "float.add" "add" `Float;
+    twoArgIntrinsic "float.sub" "sub" `Float;
+    twoArgIntrinsic "float.mul" "mul" `Float;
+    twoArgIntrinsic "float.fdiv" "fdiv" `Float;
+    twoArgIntrinsic "float.frem" "frem" `Float;
     
     "printf", `ExternalFunc, `Void, ["test", `String];
     "void", `Intrinsic void, `Void, [];
 
-    compIntrI "int.less" "lt";
-    compIntrI "int.greater" "gt";
-    compIntrI "int.equal" "eq";
-    compIntrI "int.notEqual" "ne";
-    compIntrI "int.lessEqual" "le";
-    compIntrI "int.greaterEqual" "ge";
+    compareIntrinsicI "int.less" "lt";
+    compareIntrinsicI "int.greater" "gt";
+    compareIntrinsicI "int.equal" "eq";
+    compareIntrinsicI "int.notEqual" "ne";
+    compareIntrinsicI "int.lessEqual" "le";
+    compareIntrinsicI "int.greaterEqual" "ge";
   ]
+  in
+  let builtinMacros =
+    let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
+    let delegateMacro macroName funcName =
+      macro macroName (fun args -> { id = funcName; args = args; })
+    in
+    [
+      delegateMacro "op+" "int.add";
+      delegateMacro "op+_f" "float.add";
+    ]
   in
   let defaultBindings =
     let toFunc (name, _, typ, args) =
       name, FuncSymbol (funcDecl name typ args)
     in
-    List.map toFunc intrinsicFuncs
+    (List.map toFunc intrinsicFuncs)
+    @ builtinMacros
   in
   let externalFuncDecls =
     let rec defs = function

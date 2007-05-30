@@ -5,8 +5,8 @@
 }
 
 let whitespace = ['\n' ' ' '\t']*
-let operator = ['+' '-' '*' '/']
-let opsuffix = (['a'-'z']+)?
+let operatorSymbol = ['+' '-' '*' '/']
+let operatorSuffix = ('_' ['a'-'z']+)?
 
 rule token = parse
   | whitespace
@@ -17,9 +17,9 @@ rule token = parse
       { BLOCK_BEGIN }
   | '}' | ')'
       { BLOCK_END }
-  | '+' opsuffix as name
+  | '+' operatorSuffix as name
       { OP_PLUS(name) }
-  | ("op" operator) as name
+  | ("op" operatorSymbol) as name
       { IDENTIFIER(name) }
   | (('"' [^'\"']* '"') as str)
       { IDENTIFIER(str) }

@@ -173,7 +173,12 @@ let funcDef name rettype args impl = {
   fargs = args;
   impl = Some impl;
 }
-  
+
+type macro = {
+  mname :string;
+  mtransformFunc :Ast2.expression list -> Ast2.expression;
+}
+    
 (* type package = { *)
 (*   pname :string; *)
 (*   vars :variable list; *)

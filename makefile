@@ -10,7 +10,7 @@ UPDATE=cp
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
 
-all: toplevel2 zompc stdlib.bc
+all: toplevel2 zompc stdlib.bc tags
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...
@@ -51,6 +51,10 @@ stdlib.bc: stdlib.c
 deps:
 	echo Calculating dependencies ...
 	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
+
+tags:
+	echo Generating tags ...
+	otags *.ml
 
 clean:
 	cd tests && make clean_tests

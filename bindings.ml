@@ -1,8 +1,9 @@
 open Lang
-  
+
 type symbol =
   | VarSymbol of variable
   | FuncSymbol of func
+  | MacroSymbol of macro
   | UndefinedSymbol
 
 type bindings = (string * symbol) list
