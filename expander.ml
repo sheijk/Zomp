@@ -12,6 +12,7 @@ open Common
 open Bindings
 
 let macroVar = "var"
+and macroMutableVar = "mvar"
 and macroFunc = "func"
 and macroIfThenElse = "ifthenelse"
 and macroLoop = "loop"
@@ -39,14 +40,14 @@ let rec typeOf = function
   | Variable var -> TypeOf var.typ
   | Constant value -> TypeOf (integralValue2Type value)
   | FuncCall call -> TypeOf (call.fcrettype :> composedType)
-(*   | AssignVar (v, expr) -> begin *)
-(*       match typeOf expr with *)
-(*         | TypeOf exprType when exprType = v.typ -> TypeOf `Void *)
-(*         | TypeOf exprType -> TypeError ( *)
-(*             "Cannot assign result of expression to var because types differ", *)
-(*             exprType, v.typ) *)
-(*         | _ as typeError -> typeError *)
-(*     end *)
+  | AssignVar (v, expr) -> begin
+      match typeOf expr with
+        | TypeOf exprType when exprType = v.typ -> TypeOf `Void
+        | TypeOf exprType -> TypeError (
+            "Cannot assign result of expression to var because types differ",
+            exprType, v.typ)
+        | _ as typeError -> typeError
+    end
   | IfThenElse { cond = cond; trueCode = trueCode; falseCode = falseCode } -> begin
       match typeOf cond with
         | TypeOf `Bool -> begin
@@ -98,12 +99,12 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
         { id = typeName; args = [] };
         { id = name; args = [] };
         valueExpr
-      ] } when id = macroVar -> begin
+      ] } when (id = macroVar) || (id = macroMutableVar) -> begin
       let _, simpleform = translateF bindings valueExpr in
       let typ = string2integralType typeName in
-(*       let value = parseValue typ valueString in *)
       let value = defaultValue typ in
-      let var = localVar name typ value in
+      let storage = if id = macroVar then RegisterStorage else MemoryStorage in
+      let var = variable name typ value storage in
       Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
     end
   | _ ->
@@ -175,18 +176,18 @@ let translateIfThenElse (translateF :exprTranslateF) (bindings :bindings) = func
     end
   | _ -> None      
 
-(* let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function *)
-(*   | { id = id; args = [ *)
-(*         { id = varName; args = [] }; *)
-(*         rightHandExpr; *)
-(*       ] } when id = macroAssign -> begin *)
-(*       let _, rightHandSimpleform = translateF bindings rightHandExpr in *)
-(*       match lookup bindings varName with *)
-(*         | VarSymbol v -> *)
-(*             Some (bindings, [AssignVar (v, Sequence rightHandSimpleform)]) *)
-(*         | _ -> None *)
-(*     end *)
-(*   | _ -> None *)
+let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args = [
+        { id = varName; args = [] };
+        rightHandExpr;
+      ] } when id = macroAssign -> begin
+      let _, rightHandSimpleform = translateF bindings rightHandExpr in
+      match lookup bindings varName with
+        | VarSymbol v ->
+            Some (bindings, [AssignVar (v, Sequence rightHandSimpleform)])
+        | _ -> None
+    end
+  | _ -> None
   
 let translateNested = translate raiseIllegalExpression
   [
@@ -197,7 +198,7 @@ let translateNested = translate raiseIllegalExpression
     translateLoop;
     translateIfThenElse;
     translateMacro;
-(*     translateAssignVar; *)
+    translateAssignVar;
   ]
   
 
@@ -208,13 +209,15 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
         { id = typeName; args = [] };
         { id = name; args = [] };
         { id = valueString; args = [] }
-      ] } when id = macroVar -> begin
-      let typ = string2integralType typeName in
-      let value = parseValue typ valueString in
-      let var = globalVar name typ value in
-      let newBindings = addVar bindings var in
-      Some( newBindings, [ GlobalVar var ] )
-    end
+      ] }
+      when id = macroVar || id = macroMutableVar ->
+      begin
+        let typ = string2integralType typeName in
+        let value = parseValue typ valueString in
+        let var = globalVar name typ value in
+        let newBindings = addVar bindings var in
+        Some( newBindings, [ GlobalVar var ] )
+      end
   | _ ->
       None
 

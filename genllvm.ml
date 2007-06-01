@@ -181,43 +181,59 @@ let gencodeSequence gencode exprs =
   resultVar, indent (combine "\n" code)
 
 let gencodeDefineVariable gencode var expr =
-  let zeroElement = function
-    | `Pointer _ -> "nullptr"
-    | #integralType as t -> integralValue2String (defaultValue t)
-  in
-  let initInstr = function
-    | `Int | `Float -> "add"
-    | `Bool -> "or"
-    | _ -> "notImplemented"
-  in
-  let initVar, initVarCode = gencode expr in
-  let name = llvmName var.vname
-  and typ = composedType2String var.typ
-  in
-  let comment = sprintf "; defining var %s : %s\n" var.vname typ in
-  let code = sprintf "%s = %s %s %s, %s"
-    name
-    (initInstr var.typ)
-    typ
-    (zeroElement var.typ)
-    initVar.rvname
-  in
-  (noVar, comment ^ initVarCode ^ "\n" ^ code)
+  match var.vstorage with
+    | RegisterStorage -> begin
+        let zeroElement = function
+          | `Pointer _ -> "nullptr"
+          | #integralType as t -> integralValue2String (defaultValue t)
+        in
+        let initInstr = function
+          | `Int | `Float -> "add"
+          | `Bool -> "or"
+          | _ -> "notImplemented"
+        in
+        let initVar, initVarCode = gencode expr in
+        let name = llvmName var.vname
+        and typ = composedType2String var.typ
+        in
+        let comment = sprintf "; defining var %s : %s\n" var.vname typ in
+        let code = sprintf "%s = %s %s %s, %s"
+          name
+          (initInstr var.typ)
+          typ
+          (zeroElement var.typ)
+          initVar.rvname
+        in
+        (noVar, comment ^ initVarCode ^ "\n" ^ code)
+      end
+    | MemoryStorage -> begin
+        let comment = sprintf "; allocating var %s on stack" var.vname in
+        let typename = composedType2String var.typ
+        and ptrname = (llvmName var.vname)
+        and initVar, initVarCode = gencode expr
+        in
+        let allocCode =
+          (sprintf "%s = alloca %s\n" ptrname typename)
+          ^ (sprintf "store %s %s, %s* %s" typename initVar.rvname typename ptrname)
+        in
+        (noVar, comment ^ initVarCode ^ "\n" ^ allocCode)
+      end
 
 let gencodeVariable v =
   let typeName = llvmTypeName v.typ in
-  if v.vglobal = false then 
-    (var v.vname typeName, "")
-  else
-    let comment = sprintf "; accessing %s : %s\n" v.vname typeName in
-    let localName =
-      let v = newLocalTempVar typeName in
-      v.rvname
-    in
-    let code =
-      sprintf "%s = load %s* %s\n" localName typeName (llvmName v.vname)
-    in
-    (localVar localName typeName, comment ^ code)
+  match v.vstorage with
+    | RegisterStorage ->
+        (var v.vname typeName, "")
+    | MemoryStorage ->
+        let comment = sprintf "; accessing %s : %s\n" v.vname typeName in
+        let localName =
+          let v = newLocalTempVar typeName in
+          v.rvname
+        in
+        let code =
+          sprintf "%s = load %s* %s\n" localName typeName (llvmName v.vname)
+        in
+        (localVar localName typeName, comment ^ code)
 
 let gencodeConstant c =
   {
@@ -319,6 +335,14 @@ let gencodeLoop gencode l =
    ^ "br label %" ^ beginLabel ^ "\n"
    ^ endLabel ^ ":\n"
   )
+
+let gencodeAssignVar gencode var expr =
+  let rvalVar, rvalCode = gencode expr in
+  let name = llvmName var.vname in
+  let typename = composedType2String var.typ in
+  let comment = sprintf "; assigning new value to %s" name in
+  let assignCode = sprintf "store %s %s, %s* %s" typename rvalVar.rvname typename name in
+  (noVar, comment ^ rvalCode ^ "\n" ^ assignCode)
   
 let rec gencode : Lang.expr -> resultvar * string = function
   | Sequence exprs -> gencodeSequence gencode exprs
@@ -328,6 +352,7 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | FuncCall call -> gencodeFuncCall gencode call
   | IfThenElse ite -> gencodeIfThenElse gencode ite
   | Loop l -> gencodeLoop gencode l
+  | AssignVar (var, expr) -> gencodeAssignVar gencode var expr
       
 let countChar str c =
   let count = ref 0 in

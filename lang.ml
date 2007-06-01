@@ -99,23 +99,29 @@ let integralValue2String = function
   | FloatVal f -> string_of_float f
   | StringVal s -> "\"" ^ s ^ "\""
   | BoolVal b -> string_of_bool b
-      
+
+type varStorage =
+  | RegisterStorage
+  | MemoryStorage
+
 type variable = {
   vname :string;
   typ :composedType;
   default :integralValue;
-  vglobal :bool;
+  vstorage :varStorage;
+  vmutable :bool;
 }
 
-let variable ~name ~typ ~default ~global = {
+let variable ~name ~typ ~default ~storage = {
   vname = name;
   typ = typ;
   default = default;
-  vglobal = global
+  vstorage = storage;
+  vmutable = false;
 }
 
-let localVar = variable ~global:false
-and globalVar = variable ~global:true
+let localVar = variable ~storage:RegisterStorage
+and globalVar = variable ~storage:MemoryStorage
 
 type ifthenelse = {
   cond :expr;
@@ -139,7 +145,7 @@ and expr =
   | Variable of variable
   | Constant of integralValue
   | FuncCall of funcCall
-(*   | AssignVar of variable * expr *)
+  | AssignVar of variable * expr
   | IfThenElse of ifthenelse
   | Loop of loop
 

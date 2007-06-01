@@ -1,19 +1,41 @@
 
-var int foo 10;
-var string msg "message";
-var float f 1.1;
-var bool b true;
+// std lib functions
+func void printInt {int i;};
+func void printString {string s;};
+func void printFloat {float f;};
+func void printNewline {};
 
-func int add {int l; int r;} {
-  int.add l r;
-};
+func void nl {} { printNewline; };
 
-func int getFoo {} {
-  var int x 20;
-  var int z { int.add x 3; };
+var int gInt 10;
+var string gString "message";
+var float gFloat 1.1;
+var bool gBool true;
+mvar float gmFloat 0.3;
 
-  var bool b false;
+func int main {} {
+  printInt gInt; nl;
+  printString gString; nl;
+  printFloat gFloat; nl;
 
-  int.add foo x;
+  var int lInt 11;
+  printInt lInt; nl;
+  
+  var float lFloat 2.2;
+  printFloat lFloat; nl;
+
+  mvar int mInt 9;
+  assign mInt 11;
+  printInt mInt; nl;
+
+  assign gmFloat 3.3;
+  printFloat gmFloat; nl;
+  
+// TODO
+//   var string lString \"local\";
+//   printString lString; nl;
+  
+  printNewline;
+  0;
 };
 
