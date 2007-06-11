@@ -17,6 +17,7 @@ and macroFunc = "func"
 and macroIfThenElse = "ifthenelse"
 and macroLoop = "loop"
 and macroAssign = "assign"
+and macroSequence = "std:seq"
 
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
@@ -58,7 +59,7 @@ let rec typeOf = function
               | TypeOf trueType, TypeOf falseType -> TypeError ("Types don't match in if/then/else", trueType, falseType)
           end
         | TypeOf condType -> TypeError (
-            "Expected cond of type Bool in 'if cond then ... else ..'",
+            "Expected cond of type Bool in 'if/then/else'",
             condType, `Bool)
         | TypeError _ as e -> e
     end
@@ -86,10 +87,11 @@ let rec typeOfTL = function
                   f.rettype,
                   wrongType)
               | TypeError _ as e -> e
+
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
 let translateSeq (translateF : exprTranslateF) bindings = function
-  | { id = "std:seq"; args = sequence } ->
+  | { id = id; args = sequence } when id = macroSequence ->
       Some (translatelst translateF bindings sequence)
   | _ ->
       None
@@ -99,14 +101,15 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
         { id = typeName; args = [] };
         { id = name; args = [] };
         valueExpr
-      ] } when (id = macroVar) || (id = macroMutableVar) -> begin
-      let _, simpleform = translateF bindings valueExpr in
-      let typ = string2integralType typeName in
-      let value = defaultValue typ in
-      let storage = if id = macroVar then RegisterStorage else MemoryStorage in
-      let var = variable name typ value storage in
-      Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
-    end
+      ] }
+      when (id = macroVar) || (id = macroMutableVar) -> begin
+        let _, simpleform = translateF bindings valueExpr in
+        let typ = string2integralType typeName in
+        let value = defaultValue typ in
+        let storage = if id = macroVar then RegisterStorage else MemoryStorage in
+        let var = variable name typ value storage false in
+        Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
+      end
   | _ ->
       None
 

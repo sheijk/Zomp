@@ -11,13 +11,15 @@ let llvmName name =
   if name.[0] = '%' then name
   else "%" ^ name
 
-let llvmGlobalVar = llvmName
+let llvmGlobalName name = name
 let llvmLocalName = llvmName
   
 let isLocalVar name = String.length name <= 2 || name.[1] <> '$'
   
 let llvmTypeName = function
-  | `String -> "sbyte*"
+  | `String -> "i8*"
+  | `Int -> "i32"
+  | `Bool -> "i1"
   | _ as t -> composedType2String t
       
 type resultvar = {
@@ -25,19 +27,26 @@ type resultvar = {
   rvtypename :string;
 }
 
-let var name typ = { rvname = llvmName name; rvtypename = typ }
-let localVar name typ = { rvname = llvmLocalName name; rvtypename = typ }
+(* let var name typ = { rvname = llvmName name; rvtypename = typ } *)
+(* let localVar name typ = { rvname = llvmLocalName name; rvtypename = typ } *)
+(* let globalVar name typ = { rvname = llvmGlobalName name; rvtypename = typ } *)
+
+let resultVar var = {
+  rvname = if var.vglobal then "@" ^ var.vname else "%" ^ var.vname;
+  rvtypename = llvmTypeName var.typ;
+}
   
 let noVar = { rvname = ""; rvtypename = "" }
 
 let lastTempVarNum = ref 0
 let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
-  let newVar constructor typ = 
+  let newVar isGlobal typ =
     let id = nextUID () in
-    constructor (sprintf "temp%d" id) typ
+    let name = (sprintf "temp%d" id) in
+    resultVar (variable name typ (defaultValue typ) RegisterStorage isGlobal)
   in
-  newVar localVar, newVar var
+  newVar true, newVar false
 
 let isConstant name =
   match string2integralValue name with
@@ -70,15 +79,15 @@ let llvmEscapedString str =
 
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
-    sprintf "%s %s %s" intrName (composedType2String typ) (combine ", " argVarNames)
+    sprintf "%s %s %s" intrName (llvmTypeName typ) (combine ", " argVarNames)
   in
   let void argVarNames = "" in
   let compareIntrinsicI name cond =
     let f argVarNames = 
-      sprintf "set%s int %s" cond (combine ", " argVarNames)
+(*       sprintf "set%s i32 %s" cond (combine ", " argVarNames) *)
+      sprintf "icmp %s i32 %s" cond (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Int, ["l", `Int; "r", `Int])
-      (*     sprintf "icmp %s int %s" cond (combine ", " argVarNames) *)
   in
   let twoArgIntrinsic name instruction (typ :composedType) =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ]
@@ -110,12 +119,16 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     "printf", `ExternalFunc, `Void, ["test", `String];
     "void", `Intrinsic void, `Void, [];
 
-    compareIntrinsicI "int.less" "lt";
-    compareIntrinsicI "int.greater" "gt";
     compareIntrinsicI "int.equal" "eq";
     compareIntrinsicI "int.notEqual" "ne";
-    compareIntrinsicI "int.lessEqual" "le";
-    compareIntrinsicI "int.greaterEqual" "ge";
+    compareIntrinsicI "int.ugreater" "ugt";
+    compareIntrinsicI "int.ugreaterEqual" "uge";
+    compareIntrinsicI "int.uless" "ult";
+    compareIntrinsicI "int.ulessEqual" "ule";
+    compareIntrinsicI "int.sgreater" "sgt";
+    compareIntrinsicI "int.sgreaterEqual" "sge";
+    compareIntrinsicI "int.sless" "slt";
+    compareIntrinsicI "int.slessEqual" "sle";
   ]
   in
   let builtinMacros =
@@ -140,7 +153,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       | [] -> []
       | (name, `ExternalFunc, rettype, args) :: tail ->
           let decl = 
-            sprintf "declare %s %%%s(%s)"
+            sprintf "declare %s @%s(%s)"
               (llvmTypeName rettype)
               name
               (paramString args)
@@ -185,6 +198,7 @@ let gencodeDefineVariable gencode var expr =
     | RegisterStorage -> begin
         let zeroElement = function
           | `Pointer _ -> "nullptr"
+          | `Record _ -> raiseCodeGenError ~msg:"no vars of record type supported, yet"
           | #integralType as t -> integralValue2String (defaultValue t)
         in
         let initInstr = function
@@ -194,7 +208,7 @@ let gencodeDefineVariable gencode var expr =
         in
         let initVar, initVarCode = gencode expr in
         let name = llvmName var.vname
-        and typ = composedType2String var.typ
+        and typ = llvmTypeName var.typ
         in
         let comment = sprintf "; defining var %s : %s\n" var.vname typ in
         let code = sprintf "%s = %s %s %s, %s"
@@ -208,7 +222,7 @@ let gencodeDefineVariable gencode var expr =
       end
     | MemoryStorage -> begin
         let comment = sprintf "; allocating var %s on stack" var.vname in
-        let typename = composedType2String var.typ
+        let typename = llvmTypeName var.typ
         and ptrname = (llvmName var.vname)
         and initVar, initVarCode = gencode expr
         in
@@ -223,22 +237,22 @@ let gencodeVariable v =
   let typeName = llvmTypeName v.typ in
   match v.vstorage with
     | RegisterStorage ->
-        (var v.vname typeName, "")
+        (resultVar v, "")
     | MemoryStorage ->
         let comment = sprintf "; accessing %s : %s\n" v.vname typeName in
-        let localName =
-          let v = newLocalTempVar typeName in
-          v.rvname
+        let localVar, localName =
+          let v = newLocalTempVar v.typ in
+          v, v.rvname
         in
         let code =
-          sprintf "%s = load %s* %s\n" localName typeName (llvmName v.vname)
+          sprintf "%s = load %s* %s\n" localName typeName (resultVar v).rvname
         in
-        (localVar localName typeName, comment ^ code)
+        (localVar, comment ^ code)
 
 let gencodeConstant c =
   {
     rvname = integralValue2String c;
-    rvtypename = integralType2String (integralValue2Type c);
+    rvtypename = llvmTypeName (integralValue2Type c);
   },
   ""
 
@@ -250,7 +264,7 @@ let gencodeFuncCall gencode call =
         varsAndCode (vars @ [resultVar.rvname]) (code ^ exprCode) tail
   in
   let vars, argevalCode = varsAndCode [] "" call.fcargs in
-  let resultVar = newLocalTempVar (composedType2String call.fcrettype) in
+  let resultVar = newLocalTempVar call.fcrettype in
   let assignResultCode =
     if resultVar.rvtypename = "void" then ""
     else sprintf "%s = " resultVar.rvname
@@ -262,13 +276,20 @@ let gencodeFuncCall gencode call =
             let argTypeNames = List.map llvmTypeName call.fcparams in
             combine ", " argTypeNames
           in
-          let argString = paramString (List.combine vars call.fcparams) in
+(*           let argString = paramString (List.combine vars call.fcparams) in *)
+          let argString =
+            let toTypeAndArg name typ =
+              llvmTypeName typ ^ " " ^ name
+            in
+            let typeAndArgs = List.map2 toTypeAndArg vars call.fcparams in
+            combine ", " typeAndArgs
+          in
           let comment =
             sprintf "; calling function %s(%s)\n" call.fcname argString
           in
           comment,
           (assignResultCode
-           ^ (sprintf "call %s (%s)* %%%s(%s)"
+           ^ (sprintf "call %s (%s)* @%s(%s)"
                 (llvmTypeName call.fcrettype)
                 signatureString
                 call.fcname
@@ -299,7 +320,7 @@ let gencodeIfThenElse gencode ite =
    comment ^ "\n" ^
      condCode ^ "\n" ^
      resultVarName ^ "_ptr = alloca " ^ resultTypeName ^ "\n" ^
-     "br bool " ^ condVar.rvname ^ ", label %" ^ trueLabel ^ ", label %" ^ falseLabel ^ "\n" ^
+     "br i1 " ^ condVar.rvname ^ ", label %" ^ trueLabel ^ ", label %" ^ falseLabel ^ "\n" ^
      trueLabel ^ ":\n" ^ 
      trueCode ^ "\n" ^ 
      "store " ^ resultTypeName ^ " " ^ trueVar.rvname ^ ", " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr\n" ^
@@ -329,7 +350,7 @@ let gencodeLoop gencode l =
    ^ "br label %" ^ beginLabel ^ "\n"
    ^ beginLabel ^ ":\n"
    ^ preCode ^ "\n"
-   ^ "br bool " ^ abortVar.rvname ^ ", label %" ^ endLabel ^ ", label %" ^ centerLabel ^ "\n"
+   ^ "br i1 " ^ abortVar.rvname ^ ", label %" ^ endLabel ^ ", label %" ^ centerLabel ^ "\n"
    ^ centerLabel ^ ":\n"
    ^ postCode ^ "\n"
    ^ "br label %" ^ beginLabel ^ "\n"
@@ -338,8 +359,8 @@ let gencodeLoop gencode l =
 
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
-  let name = llvmName var.vname in
-  let typename = composedType2String var.typ in
+  let name = (resultVar var).rvname in
+  let typename = llvmTypeName var.typ in
   let comment = sprintf "; assigning new value to %s" name in
   let assignCode = sprintf "store %s %s, %s* %s" typename rvalVar.rvname typename name in
   (noVar, comment ^ rvalCode ^ "\n" ^ assignCode)
@@ -366,38 +387,40 @@ let llvmStringLength str =
   length - 2 * countChar str '\\'
 
 let gencodeGlobalVar var =
-  let varname = llvmGlobalVar var.vname in
+  let varname = var.vname in
   match var.default with
     | StringVal value ->
-        let contentVar = newGlobalTempVar "string"
+        let contentVar = newGlobalTempVar `String
         and escapedValue = llvmEscapedString value
         in
         let length = llvmStringLength escapedValue + 1 in
         let stringStorageSrc =
-          sprintf "%s = internal constant [%d x sbyte] c\"%s\\00\"\n"
+          sprintf "%s = internal constant [%d x i8] c\"%s\\00\"\n"
             contentVar.rvname
             length
             escapedValue
         in
         let stringPointerSrc =
-          sprintf "%s = global sbyte* getelementptr ([%d x sbyte]* %s, int 0, int 0)\n"
+          sprintf "@%s = global i8* getelementptr ([%d x i8]* %s, i32 0, i32 0)\n"
             varname
             length
             contentVar.rvname
         in
         stringStorageSrc ^ stringPointerSrc
     | IntVal _ | BoolVal _ | FloatVal _ ->
-        sprintf "%s = constant %s %s"
+        sprintf "@%s = constant %s %s"
           varname
-          (composedType2String var.typ)
+          (llvmTypeName var.typ)
           (integralValue2String var.default)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
+    | RecordVal _ ->
+        raiseCodeGenError ~msg:"global constant of record type not supported, yet"
 
 let gencodeDefineFunc func =
   let param2string (name, typ) = (llvmTypeName typ) ^ " " ^ (llvmName name) in
   let paramString = combine ", " (List.map param2string func.fargs) in
-  let decl = sprintf "%s %%%s(%s) "
+  let decl = sprintf "%s @%s(%s) "
     (llvmTypeName func.rettype) func.fname paramString
   in
   match func.impl with
@@ -413,7 +436,7 @@ let gencodeDefineFunc func =
                   resultVar.rvname)
              else "  ret void\n}")
         in
-        decl ^ impl
+        "define " ^ decl ^ impl
 
 let gencodeTL = function
   | GlobalVar var -> gencodeGlobalVar var
@@ -435,7 +458,7 @@ let genmodule toplevelExprs =
   in
   headerCode ^ "\n"
   ^ (combine "\n" varCode)
-  ^ "\n\nimplementation\n\n"
+  ^ "\n\n;;; implementation ;;;\n\n"
   ^ (combine "\n" funcCode)
   ^ "\n" ^ externalFuncDecls
     

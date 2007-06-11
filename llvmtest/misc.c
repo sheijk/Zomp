@@ -1,8 +1,10 @@
+#include <stdio.h>
 
 void foo(int x) {}
 
 int f = 1;
-
+char* blub = "blubblubh";
+  
 int add(int l, int r) {
     return l + r;
 }
@@ -44,5 +46,9 @@ int loop() {
 
 int compare(int x) {
     return 3 < x;
+}
+
+void printftest() {
+  printf("blah\n");
 }
 

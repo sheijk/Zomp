@@ -24,14 +24,24 @@ let integralType2String = function
   | `String -> "string"
   | `Bool -> "bool"
 
-
-type composedType = [
+type recordType = (string * composedType) list
+and composedType = [
   `Pointer of composedType
+| `Record of recordType
 | integralType
 ]
 
 let rec composedType2String = function
   | `Pointer t -> (composedType2String t) ^ "*"
+  | `Record components ->
+      let rec convert components str =
+        match components with
+          | [] -> ""
+          | (name, typ) :: tail ->
+              let s = Printf.sprintf "(%s : %s)" name (composedType2String typ) in
+              convert tail (str ^ s)
+      in
+      "(" ^ convert components "" ^ ")"
   | #integralType as t -> integralType2String t
 
 let rec string2composedType str =
@@ -48,22 +58,29 @@ type integralValue =
   | FloatVal of float
   | StringVal of string
   | BoolVal of bool
+  | RecordVal of (string * integralValue) list
       
-let integralValue2Type = function
+let rec integralValue2Type : integralValue -> composedType = function
   | VoidVal -> `Void
   | IntVal _ -> `Int
   | FloatVal _ -> `Float
   | StringVal _ -> `String
   | BoolVal _ -> `Bool
+  | RecordVal components ->
+      let convert (name, value) = name, integralValue2Type value in
+      `Record (List.map convert components)
       
-let defaultValue = function
+let rec defaultValue : composedType -> integralValue = function
   | `Void -> VoidVal
   | `Int -> IntVal 0
   | `Float -> FloatVal 0.0
   | `String -> StringVal ""
   | `Bool -> BoolVal false
   | `Pointer _ -> VoidVal
-  
+  | `Record components ->
+      let convert (name, typ) = name, defaultValue typ in
+      RecordVal (List.map convert components)
+
 let parseValue typ str =
   match typ with
     | `Void -> raise (Failure "no values of void allowed")
@@ -93,12 +110,19 @@ let string2integralValue str =
         with _ ->
           None
 
-let integralValue2String = function
+let rec integralValue2String = function
   | VoidVal -> raise (Failure "no values of void allowed")
   | IntVal i -> string_of_int i
   | FloatVal f -> string_of_float f
   | StringVal s -> "\"" ^ s ^ "\""
   | BoolVal b -> string_of_bool b
+  | RecordVal components ->
+      let rec convert = function
+        | [] -> ""
+        | (name, value) :: tail ->
+            (Printf.sprintf "(%s = %s)" name (integralValue2String value)) ^ (convert tail)
+      in
+      "(" ^ convert components ^ ")"
 
 type varStorage =
   | RegisterStorage
@@ -110,18 +134,20 @@ type variable = {
   default :integralValue;
   vstorage :varStorage;
   vmutable :bool;
+  vglobal :bool;
 }
 
-let variable ~name ~typ ~default ~storage = {
+let variable ~name ~typ ~default ~storage ~global = {
   vname = name;
   typ = typ;
   default = default;
   vstorage = storage;
   vmutable = false;
+  vglobal = global;
 }
 
-let localVar = variable ~storage:RegisterStorage
-and globalVar = variable ~storage:MemoryStorage
+let localVar = variable ~storage:RegisterStorage ~global:false
+and globalVar = variable ~storage:MemoryStorage ~global:true
 
 type ifthenelse = {
   cond :expr;
