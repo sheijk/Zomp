@@ -4,6 +4,7 @@ type symbol =
   | VarSymbol of variable
   | FuncSymbol of func
   | MacroSymbol of macro
+  | TypedefSymbol of composedType
   | UndefinedSymbol
 
 type bindings = (string * symbol) list
@@ -13,6 +14,8 @@ let defaultBindings : bindings = []
 let addVar bindings var : bindings = (var.vname, VarSymbol var) :: bindings
 
 let addFunc bindings func : bindings = (func.fname, FuncSymbol func) :: bindings
+
+let addTypedef bindings name typ = (name, TypedefSymbol typ) :: bindings
   
 let rec lookup (bindings :bindings) name =
   match bindings with

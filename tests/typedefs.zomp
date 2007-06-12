@@ -1,0 +1,12 @@
+
+type number int;
+
+var number blah 3;
+
+func int main {} {
+  var number local 20;
+  
+  int.add blah local;
+};
+
+

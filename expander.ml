@@ -18,6 +18,7 @@ and macroIfThenElse = "ifthenelse"
 and macroLoop = "loop"
 and macroAssign = "assign"
 and macroSequence = "std:seq"
+and macroTypedef = "type"
 
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
@@ -88,6 +89,15 @@ let rec typeOfTL = function
                   wrongType)
               | TypeError _ as e -> e
 
+let lookupType bindings name =
+  try
+    Some (string2composedType name)
+  with
+    | UnknownType _ ->
+        match lookup bindings name with
+          | TypedefSymbol t -> Some t
+          | _ -> None
+
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
 let translateSeq (translateF : exprTranslateF) bindings = function
@@ -101,14 +111,20 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
         { id = typeName; args = [] };
         { id = name; args = [] };
         valueExpr
-      ] }
+      ] } as expr
       when (id = macroVar) || (id = macroMutableVar) -> begin
         let _, simpleform = translateF bindings valueExpr in
-        let typ = string2integralType typeName in
-        let value = defaultValue typ in
-        let storage = if id = macroVar then RegisterStorage else MemoryStorage in
-        let var = variable name typ value storage false in
-        Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
+        match lookupType bindings typeName with
+          | Some ctyp -> begin
+              match ctyp with
+                | #integralType as typ ->
+                    let value = defaultValue typ in
+                    let storage = if id = macroVar then RegisterStorage else MemoryStorage in
+                    let var = variable name typ value storage false in
+                    Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
+                | _ -> raiseIllegalExpression expr "only integral types legal for vars"
+            end
+          | _ -> raise (UnknownType typeName)
       end
   | _ ->
       None
@@ -191,7 +207,18 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
         | _ -> None
     end
   | _ -> None
-  
+
+let translateTypedef translateF (bindings :bindings) = function
+  | { id = id; args = [
+        { id = newTypeName; args = [] };
+        { id = targetTypeName; args = [] }
+      ] } when id = macroTypedef -> begin
+      match lookupType bindings targetTypeName with
+        | None -> raise (UnknownType targetTypeName)
+        | Some t -> Some (addTypedef bindings newTypeName t, [])
+    end
+  | _ -> None
+      
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -202,6 +229,7 @@ let translateNested = translate raiseIllegalExpression
     translateIfThenElse;
     translateMacro;
     translateAssignVar;
+    translateTypedef;
   ]
   
 
@@ -212,14 +240,21 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
         { id = typeName; args = [] };
         { id = name; args = [] };
         { id = valueString; args = [] }
-      ] }
+      ] } as expr
       when id = macroVar || id = macroMutableVar ->
       begin
-        let typ = string2integralType typeName in
-        let value = parseValue typ valueString in
-        let var = globalVar name typ value in
-        let newBindings = addVar bindings var in
-        Some( newBindings, [ GlobalVar var ] )
+        match lookupType bindings typeName with
+          | Some ctyp -> begin
+              match ctyp with
+                | #integralType as typ ->
+                    let value = parseValue typ valueString in
+                    let var = globalVar name typ value in
+                    let newBindings = addVar bindings var in
+                    Some( newBindings, [ GlobalVar var ] )
+                | _ -> raiseIllegalExpression expr
+                    "only integral types legal for variables at this time"
+            end
+          | None -> raise (UnknownType typeName)
       end
   | _ ->
       None
@@ -278,6 +313,10 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     | _ ->
         None
         
-let translateTL = translate raiseIllegalExpression [translateGlobalVar; translateFunc]
+let translateTL = translate raiseIllegalExpression [
+  translateGlobalVar;
+  translateFunc;
+  translateTypedef;
+]
   
   
