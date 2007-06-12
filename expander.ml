@@ -19,6 +19,8 @@ and macroLoop = "loop"
 and macroAssign = "assign"
 and macroSequence = "std:seq"
 and macroTypedef = "type"
+and macroRecord = "record"
+and macroField = "field"
 
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
@@ -217,6 +219,28 @@ let translateTypedef translateF (bindings :bindings) = function
         | None -> raise (UnknownType targetTypeName)
         | Some t -> Some (addTypedef bindings newTypeName t, [])
     end
+  | { id = id; args = [
+        { id = typeName; args = []; };
+        { id = seq; args = compExprs };
+      ] } as expr
+      when id = macroTypedef && seq = macroSequence -> begin
+        let expr2comp = function
+          | { id = typeName; args = [{ id = compName; args = []; }]; } -> begin
+              match lookupType bindings typeName with
+                | Some typ -> compName, typ
+                | None -> raise (UnknownType typeName)
+            end
+          | _ -> raiseIllegalExpression expr "type foo { typename compname;* } expected"
+        in
+        let comps = List.map expr2comp compExprs in
+        Some (addTypedef bindings typeName (`Record comps), [])
+      end
+  | _ -> None
+
+let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args = fields; } when id = macroRecord -> begin
+      Some (bindings, [])
+    end
   | _ -> None
       
 let translateNested = translate raiseIllegalExpression
@@ -230,6 +254,7 @@ let translateNested = translate raiseIllegalExpression
     translateMacro;
     translateAssignVar;
     translateTypedef;
+    translateRecord;
   ]
   
 

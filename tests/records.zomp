@@ -1,0 +1,12 @@
+
+type simple {
+  int count;
+  float foo;
+};
+
+func int main {} {
+  var simple foo { record { count 10; foo 1.0; }; };
+
+  field foo count;
+};
+
