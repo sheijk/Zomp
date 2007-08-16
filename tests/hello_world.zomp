@@ -1,0 +1,17 @@
+
+func void printInt {int i;};
+func void printString {string s;};
+func void printFloat {float f;};
+func void printNewline {};
+
+var int result 0;
+var string x "Hello, world";
+
+func int main {} {
+  printString x;
+  printNewline;
+
+  result;
+};
+
+

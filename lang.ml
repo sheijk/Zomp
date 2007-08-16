@@ -59,7 +59,7 @@ type integralValue =
   | StringVal of string
   | BoolVal of bool
   | RecordVal of (string * integralValue) list
-      
+
 let rec integralValue2Type : integralValue -> composedType = function
   | VoidVal -> `Void
   | IntVal _ -> `Int
@@ -69,6 +69,10 @@ let rec integralValue2Type : integralValue -> composedType = function
   | RecordVal components ->
       let convert (name, value) = name, integralValue2Type value in
       `Record (List.map convert components)
+
+let hasType recordValue recordType =
+  let typeOfValue = integralValue2Type recordValue in
+  typeOfValue = recordType
       
 let rec defaultValue : composedType -> integralValue = function
   | `Void -> VoidVal

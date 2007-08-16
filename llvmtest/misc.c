@@ -52,3 +52,13 @@ void printftest() {
   printf("blah\n");
 }
 
+typedef struct {
+  int a;
+  float b;
+} foo_t;
+
+foo_t createfoo() {
+  foo_t foo;
+  return foo;
+}
+

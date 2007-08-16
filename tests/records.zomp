@@ -1,12 +1,19 @@
 
+/** define a type */
 type simple {
   int count;
   float foo;
 };
 
-func int main {} {
-  var simple foo { record { count 10; foo 1.0; }; };
+/** create a simple function which returns a record instance */
+// func simple createsimple {} {
+//   record simple { count 1; foo 1.0; };
+// };
 
-  field foo count;
+func int main {} {
+  var simple foo { record simple { count 2; foo 1.0; }; };
+
+  1;
+//   field foo count;
 };
 

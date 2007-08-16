@@ -108,6 +108,24 @@ let translateSeq (translateF : exprTranslateF) bindings = function
   | _ ->
       None
 
+let rec expr2value typ expr =
+  match typ with
+    | #integralType -> begin
+        match expr with
+          | { id = value; args = [] } -> string2integralValue value
+          | _ -> raiseIllegalExpression expr
+              (Printf.sprintf "expected value of type %s" (composedType2String typ))
+      end
+    | `Record components -> begin
+(*         let translateField (name, fieldValueExpr) = *)
+(*           name, expr2value `Int fieldValueExpr *)
+(*         in *)
+(*         let componentValues = List.map translateField components in *)
+(*         `RecordVal componentValues *)
+        raiseIllegalExpression expr "records not supported"
+      end
+    | _ -> raiseIllegalExpression expr "unsupported value expression"
+        
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
         { id = typeName; args = [] };
@@ -124,6 +142,45 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
                     let storage = if id = macroVar then RegisterStorage else MemoryStorage in
                     let var = variable name typ value storage false in
                     Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
+(*                 | `Record components -> begin *)
+(*                     match valueExpr with *)
+(*                       | { id = id; args = values; } when id = macroSequence -> begin *)
+(*                           None *)
+(*                         end *)
+(*                       | _ -> raiseIllegalExpression expr "expecting { field0 = val0; ... }" *)
+(*                   end *)
+                | _ -> raiseIllegalExpression expr "only integral types legal for vars"
+            end
+          | _ -> raise (UnknownType typeName)
+      end
+  | _ ->
+      None
+        
+
+        
+let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args = [
+        { id = typeName; args = [] };
+        { id = name; args = [] };
+        valueExpr
+      ] } as expr
+      when (id = macroVar) || (id = macroMutableVar) -> begin
+        let _, simpleform = translateF bindings valueExpr in
+        match lookupType bindings typeName with
+          | Some ctyp -> begin
+              match ctyp with
+                | #integralType as typ ->
+                    let value = defaultValue typ in
+                    let storage = if id = macroVar then RegisterStorage else MemoryStorage in
+                    let var = variable name typ value storage false in
+                    Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
+(*                 | `Record components -> begin *)
+(*                     match valueExpr with *)
+(*                       | { id = id; args = values; } when id = macroSequence -> begin *)
+(*                           None *)
+(*                         end *)
+(*                       | _ -> raiseIllegalExpression expr "expecting { field0 = val0; ... }" *)
+(*                   end *)
                 | _ -> raiseIllegalExpression expr "only integral types legal for vars"
             end
           | _ -> raise (UnknownType typeName)
@@ -238,9 +295,13 @@ let translateTypedef translateF (bindings :bindings) = function
   | _ -> None
 
 let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = fields; } when id = macroRecord -> begin
-      Some (bindings, [])
-    end
+  | { id = id; args = [
+        { id = name; args = []; };
+        { id = seq; args = fields; };
+      ] } when id = macroRecord && seq = macroSequence ->
+      begin
+        Some (bindings, [])
+      end
   | _ -> None
       
 let translateNested = translate raiseIllegalExpression
@@ -286,7 +347,10 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
 
 let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction typeName name paramExprs implExprOption =
-    let typ = string2integralType typeName in
+    let typ = match lookupType bindings typeName with
+      | Some t -> t
+      | None -> raise (UnknownType typeName)
+    in
     let expr2param = function
       | { id = typeName; args = [{ id = varName; args = [] }] } ->
           (varName, string2integralType typeName)

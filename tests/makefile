@@ -1,5 +1,6 @@
 
-WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ifthenelse.zomp loop.zomp ops.zomp typedefs.zomp records.zomp
+# WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ifthenelse.zomp loop.zomp ops.zomp typedefs.zomp records.zomp
+WORKING = records.zomp 
 FAILING = simple.zomp 
 
 TESTPROGS = $(WORKING) $(FAILING)
@@ -22,7 +23,7 @@ clean_tests:
 
 .zomp.check:
 	@echo Checking $<
-	@zomp-check-syntax.sh $< || cat ${<:.zomp=.ll}
+	@../zomp-check-syntax.sh $< || cat ${<:.zomp=.ll}
 
 .bc.run:
 	@echo Running $(<:.bc=)
@@ -31,7 +32,7 @@ clean_tests:
 
 .zomp.ll:
 	@echo Compiling $< to LLVM IR
-	@zomp-check-syntax.sh $<
+	@../zomp-check-syntax.sh $<
 
 .ll.bc:
 	@echo Compiling $< to $@
