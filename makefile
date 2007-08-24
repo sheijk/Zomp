@@ -10,7 +10,8 @@ UPDATE=cp
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
 
-all: toplevel2 zompc stdlib.bc tags
+all_notags: toplevel2 zompc stdlib.bc
+all: all_notags tags
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...
@@ -64,6 +65,13 @@ clean:
 	rm -f expander_tests.cm?
 	rm -f toplevel2.cm? toplevel2
 	rm -f zompc.cm? zompc
+	rm -f stdlib.bc
+
+clean_tags:
+	rm -f *.annot
+	rm -f TAGS
+
+clean_all: clean clean_tags
 
 check-syntax:
 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log

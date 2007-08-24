@@ -1,7 +1,7 @@
 
-# WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ifthenelse.zomp loop.zomp ops.zomp typedefs.zomp records.zomp
-WORKING = records.zomp 
-FAILING = simple.zomp 
+WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ifthenelse.zomp loop.zomp ops.zomp typedefs.zomp
+
+FAILING = simple.zomp records.zomp pointers.zomp
 
 TESTPROGS = $(WORKING) $(FAILING)
 

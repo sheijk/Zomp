@@ -1,0 +1,8 @@
+
+
+func int main {} {
+  var (ptr int) pint 0;
+  assign pint (new int 3);
+  deref pint;
+};
+
