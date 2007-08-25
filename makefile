@@ -8,10 +8,16 @@ OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
 
 CAML_LIBS = str.cma
-LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo expander.cmo genllvm.cmo
+LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo expander.cmo genllvm.cmo
 
-all_notags: toplevel2 zompc stdlib.bc
+all_notags: toplevel2 zompc stdlib.bc sexprtoplevel
 all: all_notags tags
+
+SEXPR_TL_INPUT = ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo sexprtoplevel.cmo
+
+sexprtoplevel: $(SEXPR_TL_INPUT)
+	echo Building $@ ...
+	$(OCAMLC) -o $@ $(SEXPR_TL_INPUT)
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...
@@ -66,6 +72,9 @@ clean:
 	rm -f toplevel2.cm? toplevel2
 	rm -f zompc.cm? zompc
 	rm -f stdlib.bc
+	rm -f sexprlexer.cmi sexprlexer.cmo sexprlexer.ml
+	rm -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
+	rm -f sexprtoplevel sexprtoplevel.cmi sexprtoplevel.cmo
 
 clean_tags:
 	rm -f *.annot

@@ -1,0 +1,5 @@
+
+(var int retval 99)
+
+(func int main () (std:seq retval))
+
