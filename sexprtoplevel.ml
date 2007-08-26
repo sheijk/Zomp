@@ -115,7 +115,7 @@ let () =
         step newBindings ()
       with
         | Sexprparser.Error -> printf "parsing error (sexpr).\n"; goon()
-        | Sexprlexer.UnknowChar c -> printf "lexer error: encountered unknown character %c.\n" c; goon()
+        | Sexprlexer.UnknowChar c -> printf "lexer error: encountered unknown character %s.\n" c; goon()
         | Parser2.Error -> printf "parsing error (cexpr).\n"; goon()
         | AbortExpr -> printf "aborted expression, restarting with next line.\n"; goon()
         | Expander.IllegalExpression (_, msg) -> printf "could not translate expression: %s\n" msg; goon()

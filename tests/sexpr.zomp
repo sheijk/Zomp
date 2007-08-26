@@ -3,9 +3,14 @@
 
 (var int retval 99)
 
+(var string message "hello, s-expression!\n")
+
+// this works here
+/* this, too */
+
 (func int main () (std:seq
   (var int rv 0)
-  (printString "hello")
+  (printString message)
   rv
   ))
 

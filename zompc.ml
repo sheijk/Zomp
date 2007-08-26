@@ -47,8 +47,8 @@ let parseChannel lexbuf parseF () : compiltionResult =
           "Error expanding to canonical simpleform in expression:\n%s\n\nMessage: %s\n"
           (Ast2.expression2string expr)
           msg)
-    | _ ->
-        CouldNotParse ("Unknow error occured.\n")
+(*     | _ as e -> *)
+(*         CouldNotParse ("Unknow error occured.\n") *)
           
 let rec readInput str =
   try readInput (str ^ read_line() ^ "\n")
@@ -58,12 +58,18 @@ let ( |> ) l r =
   match l () with
     | CompilationSucceeded llvmCode ->
         printf "%s" llvmCode
-    | CouldNotCompile error | CouldNotParse error ->
+    | CouldNotCompile error ->
+        eprintf "%s" error
+    | CouldNotParse error ->
         begin
           match r() with
             | CompilationSucceeded llvmCode ->
                 printf "%s" llvmCode
-            | CouldNotCompile error | CouldNotParse error ->
+            | CouldNotParse serror ->
+                eprintf "Could not parse source\n";
+                eprintf "cexpr: %s" error;
+                eprintf "sexpr: %s" serror
+            | CouldNotCompile error ->
                 eprintf "%s" error
         end
 

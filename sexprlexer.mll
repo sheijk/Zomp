@@ -1,7 +1,7 @@
 {
   open Sexprparser
   exception Eof
-  exception UnknowChar of char
+  exception UnknowChar of string
 }
 
 let whitespace = [' ' '\t' '\n']*
@@ -19,8 +19,15 @@ rule token = parse
       { IDENTIFIER(id) }
   | eof
       { raise Eof }
+  | (('"' [^'\"']* '"') as str)
+      { IDENTIFIER(str) }
+  | "//" [^'\n']* '\n'
+      { token lexbuf }
+  |  "/*"
+      { mlcomment lexbuf }
   | _ as c
-      { raise (UnknowChar c) }
-(*   | ';' *)
-(*       { END_SYMBOL } *)
+      { raise (UnknowChar (Printf.sprintf "%c" c)) }
+and mlcomment = shortest 
+  | (_)* "*/"
+      { token lexbuf }
     
