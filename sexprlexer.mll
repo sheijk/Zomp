@@ -6,6 +6,8 @@
 
 let whitespace = [' ' '\t' '\n']*
 
+let identifierChar = [':' 'a'-'z' '0'-'9' 'A'-'Z' '_' '.']
+
 rule token = parse
   | whitespace
       { token lexbuf }
@@ -13,7 +15,7 @@ rule token = parse
       { PAREN_OPEN }
   | ')'
       { PAREN_CLOSE }
-  | ([':' 'a'-'z' '0'-'9' 'A'-'Z' '_' '.']+ as id)
+  | (identifierChar+ as id) | (('-' identifierChar+) as id)
       { IDENTIFIER(id) }
   | eof
       { raise Eof }

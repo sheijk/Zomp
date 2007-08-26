@@ -13,11 +13,11 @@ LANG_CMOS = common.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo sex
 all_notags: toplevel2 zompc stdlib.bc sexprtoplevel
 all: all_notags tags
 
-SEXPR_TL_INPUT = ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo sexprtoplevel.cmo
+SEXPR_TL_INPUT = ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo lang.cmo genllvm.cmo common.cmo expander.cmo sexprtoplevel.cmo
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
-	$(OCAMLC) -o $@ $(SEXPR_TL_INPUT)
+	$(OCAMLC) -o $@ str.cma $(SEXPR_TL_INPUT)
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...

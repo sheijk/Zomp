@@ -1,5 +1,11 @@
 
+(func void printString (std:seq (string s)))
+
 (var int retval 99)
 
-(func int main () (std:seq retval))
+(func int main () (std:seq
+  (var int rv 0)
+  (printString "hello")
+  rv
+  ))
 
