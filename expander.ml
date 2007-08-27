@@ -21,9 +21,12 @@ and macroSequence = "std:seq"
 and macroTypedef = "type"
 and macroRecord = "record"
 and macroField = "field"
+and macroPtr = "ptr"
 
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
+
+let raiseInvalidType typeExpr = raise (UnknownType (Ast2.expression2string typeExpr))
 
 type typecheckResult =
   | TypeOf of composedType
@@ -91,14 +94,29 @@ let rec typeOfTL = function
                   wrongType)
               | TypeError _ as e -> e
 
-let lookupType bindings name =
-  try
-    Some (string2composedType name)
-  with
-    | UnknownType _ ->
-        match lookup bindings name with
-          | TypedefSymbol t -> Some t
-          | _ -> None
+
+let rec translateType bindings typeExpr =
+  let lookupType bindings name =
+    try
+      Some (string2composedType name)
+    with
+      | UnknownType _ ->
+          match lookup bindings name with
+            | TypedefSymbol t -> Some t
+            | _ -> None
+  in
+  match typeExpr with  
+    | { id = id; args = [targetTypeExpr]; } when id = macroPtr ->
+        begin
+          match translateType bindings targetTypeExpr with
+            | Some t -> Some (`Pointer t)
+            | None -> None
+        end
+    | { id = name; args = [] } ->
+        begin
+          lookupType bindings name
+        end
+    | _ -> None
 
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
@@ -128,16 +146,16 @@ let rec expr2value typ expr =
         
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
-        { id = typeName; args = [] };
+        typeExpr;
         { id = name; args = [] };
         valueExpr
       ] } as expr
       when (id = macroVar) || (id = macroMutableVar) -> begin
         let _, simpleform = translateF bindings valueExpr in
-        match lookupType bindings typeName with
+        match translateType bindings typeExpr with
           | Some ctyp -> begin
               match ctyp with
-                | #integralType as typ ->
+                | #integralType | (`Pointer _) as typ ->
                     let value = defaultValue typ in
                     let storage = if id = macroVar then RegisterStorage else MemoryStorage in
                     let var = variable name typ value storage false in
@@ -149,45 +167,15 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
 (*                         end *)
 (*                       | _ -> raiseIllegalExpression expr "expecting { field0 = val0; ... }" *)
 (*                   end *)
-                | _ -> raiseIllegalExpression expr "only integral types legal for vars"
+                | _ -> raiseIllegalExpression expr
+                    (Printf.sprintf "Only integral and pointer types legal for vars. %s is not valid"
+                       (composedType2String ctyp))
             end
-          | _ -> raise (UnknownType typeName)
+          | _ -> raise (UnknownType (Ast2.expression2string typeExpr))
       end
   | _ ->
       None
         
-
-        
-let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [
-        { id = typeName; args = [] };
-        { id = name; args = [] };
-        valueExpr
-      ] } as expr
-      when (id = macroVar) || (id = macroMutableVar) -> begin
-        let _, simpleform = translateF bindings valueExpr in
-        match lookupType bindings typeName with
-          | Some ctyp -> begin
-              match ctyp with
-                | #integralType as typ ->
-                    let value = defaultValue typ in
-                    let storage = if id = macroVar then RegisterStorage else MemoryStorage in
-                    let var = variable name typ value storage false in
-                    Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
-(*                 | `Record components -> begin *)
-(*                     match valueExpr with *)
-(*                       | { id = id; args = values; } when id = macroSequence -> begin *)
-(*                           None *)
-(*                         end *)
-(*                       | _ -> raiseIllegalExpression expr "expecting { field0 = val0; ... }" *)
-(*                   end *)
-                | _ -> raiseIllegalExpression expr "only integral types legal for vars"
-            end
-          | _ -> raise (UnknownType typeName)
-      end
-  | _ ->
-      None
-
 let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = args; } ->
       match lookup bindings name with
@@ -270,10 +258,12 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
 let translateTypedef translateF (bindings :bindings) = function
   | { id = id; args = [
         { id = newTypeName; args = [] };
-        { id = targetTypeName; args = [] }
+(*         { id = targetTypeName; args = [] } *)
+        targetTypeExpr;
       ] } when id = macroTypedef -> begin
-      match lookupType bindings targetTypeName with
-        | None -> raise (UnknownType targetTypeName)
+(*       match lookupType bindings targetTypeName with *)
+      match translateType bindings targetTypeExpr with
+        | None -> raiseInvalidType targetTypeExpr
         | Some t -> Some (addTypedef bindings newTypeName t, [])
     end
 (*   | { id = id; args = [ *)
@@ -317,19 +307,18 @@ let translateNested = translate raiseIllegalExpression
     translateTypedef;
 (*     translateRecord; *)
   ]
-  
 
 type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list
 
 let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
-        { id = typeName; args = [] };
+        typeExpr;
         { id = name; args = [] };
         { id = valueString; args = [] }
       ] } as expr
       when id = macroVar || id = macroMutableVar ->
       begin
-        match lookupType bindings typeName with
+        match translateType bindings typeExpr with
           | Some ctyp -> begin
               match ctyp with
                 | #integralType as typ ->
@@ -337,23 +326,35 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
                     let var = globalVar name typ value in
                     let newBindings = addVar bindings var in
                     Some( newBindings, [ GlobalVar var ] )
+                | `Pointer targetType ->
+                    if valueString = "null" then
+                      let var = globalVar name (`Pointer targetType) (PointerVal (targetType, None)) in
+                      let newBindings = addVar bindings var in
+                      Some( newBindings, [GlobalVar var] )
+                    else
+                      raiseIllegalExpression expr "only null values supported for pointers currently"
                 | _ -> raiseIllegalExpression expr
                     "only integral types legal for variables at this time"
             end
-          | None -> raise (UnknownType typeName)
+          | None -> raiseInvalidType typeExpr
       end
   | _ ->
       None
 
 let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
-  let buildFunction typeName name paramExprs implExprOption =
-    let typ = match lookupType bindings typeName with
-      | Some t -> t
-      | None -> raise (UnknownType typeName)
-    in
+  let buildFunction typ name paramExprs implExprOption =
+    (*     let typ = match lookupType bindings typeName with *)
+    (*       | Some t -> t *)
+    (*       | None -> raise (UnknownType typeName) *)
+    (*     in *)
     let expr2param = function
       | { id = typeName; args = [{ id = varName; args = [] }] } ->
-          (varName, string2integralType typeName)
+          begin
+            let typeExpr = { id = typeName; args = [] } in
+            match translateType bindings typeExpr with
+              | Some typ -> (typeName, typ)
+              | None -> raiseInvalidType typeExpr
+          end
       | _ as expr ->
           raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
@@ -376,29 +377,41 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
   in
   match expr with
     | { id = id; args = [
-          { id = typeName; args = [] };
+          typeExpr;
           { id = name; args = [] };
           { id = "std:seq"; args = paramExprs };
           { id = "std:seq"; args = _ } as implExpr;
         ] } when id = macroFunc ->
         begin
-          let newBindings, funcDef = buildFunction typeName name paramExprs (Some implExpr) in
-          match typeOfTL funcDef with
-            | TypeOf _ -> Some( newBindings, [ funcDef ] )
-            | TypeError (msg, declaredType, returnedType) ->
-                raiseIllegalExpression
-                  expr
-                  (Printf.sprintf "Function has return type %s but returns %s"
-                     (composedType2String declaredType)
-                     (composedType2String returnedType))
+          match translateType bindings typeExpr with
+            | Some typ -> begin
+                let newBindings, funcDef = buildFunction typ name paramExprs (Some implExpr) in
+                match typeOfTL funcDef with
+                  | TypeOf _ -> Some( newBindings, [ funcDef ] )
+                  | TypeError (msg, declaredType, returnedType) ->
+                      raiseIllegalExpression
+                        expr
+                        (Printf.sprintf "Function has return type %s but returns %s"
+                           (composedType2String declaredType)
+                           (composedType2String returnedType))
+              end
+            | None -> raiseInvalidType typeExpr
         end
     | { id = id; args = [
-          { id = typeName; args = [] };
+          typeExpr;
           { id = name; args = [] };
           { id = "std:seq"; args = paramExprs };
         ] } when id = macroFunc ->
-        let newBindings, funcDecl = buildFunction typeName name paramExprs None in
-        Some (newBindings, [funcDecl])
+        begin
+          match translateType bindings typeExpr with
+            | Some typ ->
+                begin
+                  let newBindings, funcDecl = buildFunction typ name paramExprs None in
+                  Some (newBindings, [funcDecl])
+                end
+            | None ->
+                raiseInvalidType typeExpr
+        end
     | _ ->
         None
         

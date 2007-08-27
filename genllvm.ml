@@ -16,11 +16,15 @@ let llvmLocalName = llvmName
   
 let isLocalVar name = String.length name <= 2 || name.[1] <> '$'
   
-let llvmTypeName = function
+let rec llvmTypeName = function
+  | `Void -> "void"
   | `String -> "i8*"
   | `Int -> "i32"
   | `Bool -> "i1"
-  | _ as t -> composedType2String t
+  | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
+  | _ as t -> raiseCodeGenError
+      ~msg:(sprintf "Do not know how to generate llvm typename for %s"
+              (composedType2String t))
       
 type resultvar = {
   rvname :string;
@@ -197,26 +201,34 @@ let gencodeDefineVariable gencode var expr =
   match var.vstorage with
     | RegisterStorage -> begin
         let zeroElement = function
-          | `Pointer _ -> "nullptr"
+          | `Pointer _ -> "null"
           | `Record _ -> raiseCodeGenError ~msg:"no vars of record type supported, yet"
           | #integralType as t -> integralValue2String (defaultValue t)
         in
         let initInstr = function
-          | `Int | `Float -> "add"
+          | `Int | `Float | `Pointer _ -> "add"
           | `Bool -> "or"
-          | _ -> "notImplemented"
+          | _ as t -> raiseCodeGenError
+              ~msg:(sprintf "no init instruction implemented for %s" (composedType2String t))
         in
         let initVar, initVarCode = gencode expr in
         let name = llvmName var.vname
         and typ = llvmTypeName var.typ
         in
         let comment = sprintf "; defining var %s : %s\n" var.vname typ in
-        let code = sprintf "%s = %s %s %s, %s"
-          name
-          (initInstr var.typ)
-          typ
-          (zeroElement var.typ)
-          initVar.rvname
+        let code =
+          match var.typ with
+            | `Pointer _ -> begin
+                raiseCodeGenError ~msg:"code gen for pointers not supported, yet"
+              end
+            | _ -> begin
+                sprintf "%s = %s %s %s, %s"
+                  name
+                  (initInstr var.typ)
+                  typ
+                  (zeroElement var.typ)
+                  initVar.rvname
+              end
         in
         (noVar, comment ^ initVarCode ^ "\n" ^ code)
       end
@@ -414,6 +426,8 @@ let gencodeGlobalVar var =
           (integralValue2String var.default)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
+    | PointerVal _ ->
+        raiseCodeGenError ~msg:"global pointers not supported, yet"
     | RecordVal _ ->
         raiseCodeGenError ~msg:"global constant of record type not supported, yet"
 

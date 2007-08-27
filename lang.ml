@@ -58,6 +58,7 @@ type integralValue =
   | FloatVal of float
   | StringVal of string
   | BoolVal of bool
+  | PointerVal of composedType * int option
   | RecordVal of (string * integralValue) list
 
 let rec integralValue2Type : integralValue -> composedType = function
@@ -66,6 +67,7 @@ let rec integralValue2Type : integralValue -> composedType = function
   | FloatVal _ -> `Float
   | StringVal _ -> `String
   | BoolVal _ -> `Bool
+  | PointerVal (t, _) -> t
   | RecordVal components ->
       let convert (name, value) = name, integralValue2Type value in
       `Record (List.map convert components)
@@ -80,7 +82,7 @@ let rec defaultValue : composedType -> integralValue = function
   | `Float -> FloatVal 0.0
   | `String -> StringVal ""
   | `Bool -> BoolVal false
-  | `Pointer _ -> VoidVal
+  | `Pointer t -> PointerVal (t, None)
   | `Record components ->
       let convert (name, typ) = name, defaultValue typ in
       RecordVal (List.map convert components)
@@ -95,7 +97,13 @@ let parseValue typ str =
         let value = String.sub str 1 (length-2) in
         StringVal value
     | `Bool -> BoolVal (bool_of_string str)
-
+(*     | `Pointer t -> *)
+(*         let target = *)
+(*           if str = "null" then None *)
+(*           else Some (int_of_string str) *)
+(*         in *)
+(*         PointerVal (t, target) *)
+        
 let string2integralValue str =
   let dequoteString str =
     let length = String.length str in
@@ -120,6 +128,12 @@ let rec integralValue2String = function
   | FloatVal f -> string_of_float f
   | StringVal s -> "\"" ^ s ^ "\""
   | BoolVal b -> string_of_bool b
+  | PointerVal (typ, target) ->
+      begin
+        match target with
+          | Some addr -> "0x" ^ string_of_int addr
+          | None -> "null"
+      end
   | RecordVal components ->
       let rec convert = function
         | [] -> ""

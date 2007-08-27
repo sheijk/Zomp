@@ -1,9 +1,14 @@
 
+(type iptr (ptr int))
 
-func int main {} {
-//   var (ptr int) pint 0;
-//   assign pint (new int 3);
-//   deref pint;
-  k;
-};
+// (func (ptr float) newFloat () (std:seq (new float 1.0)))
+
+(func (ptr int) new (std:seq (int val)))
+(func int deref (std:seq (iptr p)))
+
+(func int main () (std:seq
+  (var (ptr int) pi 0)
+  (assign pi (new 3))
+  (deref pi)
+  ))
 

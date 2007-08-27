@@ -26,7 +26,7 @@ let printBindings (bindings :Bindings.bindings) =
           let arg2string (name, typ) = name ^ " :" ^ composedType2String typ in
           let args = List.map arg2string f.fargs in
           let argString = combine ", " args in
-          printf "func %s : %s -> %s" f.fname argString (composedType2String f.rettype)
+          printf "func %s : %s -> %s\n" f.fname argString (composedType2String f.rettype)
       | Bindings.MacroSymbol m ->
           printf "macro %s\n" m.mname
       | Bindings.TypedefSymbol t ->
@@ -43,6 +43,7 @@ let commands =
     "x", exitCommand, "exit";
     "llvm", toggleLLVMCommand, "toggle printing of llvm code";
     "bindings", printBindings, "print a list of defined symbols";
+    "b", printBindings, "-> bindings";
   ] in
   List.fold_left (fun map (name, func, doc) -> StringMap.add name (func, doc) map) StringMap.empty commands
 
@@ -56,7 +57,7 @@ let handleCommand commandLine bindings =
         printf "Error: Could not find command %s.\n" commandName
 
 let listCommands() =
-  printf "! to reset (ignore malious input from previous line.\n";
+  printf "! to abort multi-line (continued input)\n";
   let printCommand name (_, doc) = printf "!%s - %s\n" name doc in
   StringMap.iter printCommand commands
 
@@ -115,10 +116,20 @@ let () =
         step newBindings ()
       with
         | Sexprparser.Error -> printf "parsing error (sexpr).\n"; goon()
-        | Sexprlexer.UnknowChar c -> printf "lexer error: encountered unknown character %s.\n" c; goon()
-        | Parser2.Error -> printf "parsing error (cexpr).\n"; goon()
-        | AbortExpr -> printf "aborted expression, restarting with next line.\n"; goon()
-        | Expander.IllegalExpression (_, msg) -> printf "could not translate expression: %s\n" msg; goon()
+        | Sexprlexer.UnknowChar c ->
+            printf "Lexer error: encountered unknown character %s.\n" c;
+            goon()
+        | Parser2.Error ->
+            printf "Parsing error (cexpr).\n"; goon()
+        | AbortExpr ->
+            printf "Aborted expression, restarting with next line.\n";
+            goon()
+        | Expander.IllegalExpression (expr, msg) ->
+            printf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr);
+            goon()
+        | Lang.UnknownType descr ->
+            printf "Unknown type: %s\n" descr;
+            goon()
     end
   in
   step Bindings.defaultBindings ()
