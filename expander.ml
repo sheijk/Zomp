@@ -157,7 +157,14 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = funct
               match ctyp with
                 | #integralType | (`Pointer _) as typ ->
                     let value = defaultValue typ in
-                    let storage = if id = macroVar then RegisterStorage else MemoryStorage in
+                    let storage =
+                      match typ with
+                        | `Pointer _ -> MemoryStorage
+                        | _ ->
+                            if id = macroVar
+                            then RegisterStorage
+                            else MemoryStorage
+                    in
                     let var = variable name typ value storage false in
                     Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
 (*                 | `Record components -> begin *)
@@ -352,7 +359,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
           begin
             let typeExpr = { id = typeName; args = [] } in
             match translateType bindings typeExpr with
-              | Some typ -> (typeName, typ)
+              | Some typ -> (varName, typ)
               | None -> raiseInvalidType typeExpr
           end
       | _ as expr ->

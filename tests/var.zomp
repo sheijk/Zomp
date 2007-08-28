@@ -13,7 +13,13 @@ var float gFloat 1.1;
 var bool gBool true;
 mvar float gmFloat 0.3;
 
+func int plus2 {int i;} { i; };
+
 func int main {} {
+  var int f { plus2 3; };
+
+  printInt f; nl;
+  
   printInt gInt; nl;
   printString gString; nl;
   printFloat gFloat; nl;

@@ -6,9 +6,12 @@
 (func (ptr int) new (std:seq (int val)))
 (func int deref (std:seq (iptr p)))
 
+(func int twice (std:seq (int v)) (std:seq
+  (int.add v v)
+  ))
+  
 (func int main () (std:seq
-  (var (ptr int) pi 0)
-  (assign pi (new 3))
+  (var (ptr int) pi (new 3))
   (deref pi)
   ))
 

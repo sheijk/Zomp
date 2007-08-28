@@ -21,6 +21,7 @@ let rec llvmTypeName = function
   | `String -> "i8*"
   | `Int -> "i32"
   | `Bool -> "i1"
+  | `Float -> "float"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | _ as t -> raiseCodeGenError
       ~msg:(sprintf "Do not know how to generate llvm typename for %s"
@@ -219,7 +220,7 @@ let gencodeDefineVariable gencode var expr =
         let code =
           match var.typ with
             | `Pointer _ -> begin
-                raiseCodeGenError ~msg:"code gen for pointers not supported, yet"
+                raiseCodeGenError ~msg:"code gen for pointers with register storage not supported, yet"
               end
             | _ -> begin
                 sprintf "%s = %s %s %s, %s"
@@ -457,15 +458,15 @@ let gencodeTL = function
   | DefineFunc func -> gencodeDefineFunc func
 
 let genmodule toplevelExprs =
-  let rec sort = function
+  let rec seperateVarsAndFuncs = function
     | [] -> ([], [])
     | expr :: tail ->
-        let vars, funcs = sort tail in
+        let vars, funcs = seperateVarsAndFuncs tail in
         match expr with
           | GlobalVar var -> (GlobalVar var :: vars, funcs)
           | DefineFunc func -> (vars, DefineFunc func :: funcs)
   in
-  let globalVars, globalFuncs = sort toplevelExprs in
+  let globalVars, globalFuncs = seperateVarsAndFuncs toplevelExprs in
   let headerCode = ""
   and varCode = List.map gencodeTL globalVars
   and funcCode = List.map gencodeTL globalFuncs
