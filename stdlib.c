@@ -17,4 +17,8 @@ void printNewline() {
     printf( "\n" );
 }
 
+int* nullptr() {
+  return NULL;
+}
+
 

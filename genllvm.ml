@@ -16,7 +16,7 @@ let llvmLocalName = llvmName
   
 let isLocalVar name = String.length name <= 2 || name.[1] <> '$'
   
-let rec llvmTypeName = function
+let rec llvmTypeName : Lang.composedType -> string = function
   | `Void -> "void"
   | `String -> "i8*"
   | `Int -> "i32"
@@ -98,7 +98,37 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ]
   in
 
+  let nullptrIntr typ =
+    let typeName = llvmTypeName typ in
+    let name = sprintf "%s.null" (composedType2String typ) in
+    let gencode = function
+      | [] -> sprintf "bitcast i8* null to %s*" typeName
+      | _ -> raiseCodeGenError ~msg:(sprintf "%s may not be called with arguments" name)
+    in
+    name, `Intrinsic gencode, typ, []
+  in
+
+  let derefIntr = function
+    | [ptrname] -> sprintf "load i32* %s" ptrname
+    | _ -> raiseCodeGenError ~msg:"deref may only be called with one parameter"
+  in
+
+  let storeIntr = function
+    | [valueVarName; ptrname] -> sprintf "store i32 %s, i32* %s" valueVarName ptrname
+    | _ -> raiseCodeGenError ~msg:"'store valueVar ptrVar' expected"
+  in
+      
+  let mallocIntr = function
+    | [countVarName] -> sprintf "malloc i32, i32 %s" countVarName
+    | _ -> raiseCodeGenError ~msg:"malloc may only be called with one int parameter"
+  in
+
   let intrinsicFuncs = [
+    nullptrIntr `Int;
+    "int.deref", `Intrinsic derefIntr, `Int, ["ptr", `Pointer `Int];
+    "int.malloc", `Intrinsic mallocIntr, `Pointer `Int, ["count", `Int];
+    "int.store", `Intrinsic storeIntr, `Void, ["value", `Int; "address", `Pointer `Int];
+    
     twoArgIntrinsic "int.add" "add" `Int;
     twoArgIntrinsic "int.sub" "sub" `Int;
     twoArgIntrinsic "int.mul" "mul" `Int;

@@ -1,17 +1,18 @@
 
 (type iptr (ptr int))
 
-// (func (ptr float) newFloat () (std:seq (new float 1.0)))
-
-(func (ptr int) new (std:seq (int val)))
-(func int deref (std:seq (iptr p)))
-
 (func int twice (std:seq (int v)) (std:seq
   (int.add v v)
   ))
-  
-(func int main () (std:seq
-  (var (ptr int) pi (new 3))
-  (deref pi)
+
+(func (ptr int) int.new (std:seq (int v)) (std:seq
+  (var (ptr int) pointer (int.malloc 1))
+  (int.store v pointer)
+  pointer
   ))
+
+(func int main () (std:seq
+  (int.deref (int.new (twice 10)))
+  ))
+  
 
