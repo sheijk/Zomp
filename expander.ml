@@ -105,7 +105,7 @@ let rec translateType bindings typeExpr =
             | TypedefSymbol t -> Some t
             | _ -> None
   in
-  match typeExpr with  
+  match typeExpr with
     | { id = id; args = [targetTypeExpr]; } when id = macroPtr ->
         begin
           match translateType bindings targetTypeExpr with
@@ -265,14 +265,14 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
 let translateTypedef translateF (bindings :bindings) = function
   | { id = id; args = [
         { id = newTypeName; args = [] };
-(*         { id = targetTypeName; args = [] } *)
         targetTypeExpr;
-      ] } when id = macroTypedef -> begin
-(*       match lookupType bindings targetTypeName with *)
-      match translateType bindings targetTypeExpr with
-        | None -> raiseInvalidType targetTypeExpr
-        | Some t -> Some (addTypedef bindings newTypeName t, [])
-    end
+      ] }
+      when id = macroTypedef ->
+      begin
+        match translateType bindings targetTypeExpr with
+          | None -> raiseInvalidType targetTypeExpr
+          | Some t -> Some (addTypedef bindings newTypeName t, [])
+      end
 (*   | { id = id; args = [ *)
 (*         { id = typeName; args = []; }; *)
 (*         { id = seq; args = compExprs }; *)

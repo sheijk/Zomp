@@ -17,15 +17,15 @@ SEXPR_TL_INPUT = ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo 
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
-	$(OCAMLC) -o $@ str.cma $(SEXPR_TL_INPUT)
+	$(OCAMLC) -g -o $@ str.cma $(SEXPR_TL_INPUT)
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...
-	$(OCAMLC) -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
+	$(OCAMLC) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
 
 zompc: $(LANG_CMOS) zompc.cmo
 	echo Building $@ ...
-	$(OCAMLC) -o $@ str.cma $(LANG_CMOS) zompc.cmo
+	$(OCAMLC) -g -o $@ str.cma $(LANG_CMOS) zompc.cmo
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
@@ -49,11 +49,11 @@ stdlib.bc: stdlib.c
 
 .ml.cmi:
 	echo Compiling $< triggered by .cmi ...
-	$(OCAMLC) -c $<
+	$(OCAMLC) -g -c $<
 
 .ml.cmo:
 	echo Compiling $< ...
-	$(OCAMLC) -c $<
+	$(OCAMLC) -g -c $<
 
 deps:
 	echo Calculating dependencies ...

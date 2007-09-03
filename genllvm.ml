@@ -89,7 +89,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let void argVarNames = "" in
   let compareIntrinsicI name cond =
     let f argVarNames = 
-(*       sprintf "set%s i32 %s" cond (combine ", " argVarNames) *)
+      (*       sprintf "set%s i32 %s" cond (combine ", " argVarNames) *)
       sprintf "icmp %s i32 %s" cond (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Int, ["l", `Int; "r", `Int])
@@ -108,63 +108,106 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic gencode, typ, []
   in
 
-  let derefIntr = function
-    | [ptrname] -> sprintf "load i32* %s" ptrname
-    | _ -> raiseCodeGenError ~msg:"deref may only be called with one parameter"
+  let storeIntrinsic typ =
+    let llvmType = llvmTypeName typ in
+    let storeIntr = function
+      | [valueVarName; ptrname] ->
+          sprintf "store %s %s, %s* %s" llvmType valueVarName llvmType ptrname
+      | _ -> raiseCodeGenError ~msg:"'store valueVar ptrVar' expected"
+    in
+    let name = sprintf "%s.store" (composedType2String typ)
+    and args = ["value", typ; "address", `Pointer typ]
+    in
+    name, `Intrinsic storeIntr, `Void, args
   in
 
-  let storeIntr = function
-    | [valueVarName; ptrname] -> sprintf "store i32 %s, i32* %s" valueVarName ptrname
-    | _ -> raiseCodeGenError ~msg:"'store valueVar ptrVar' expected"
+  let mallocIntrinsic typ = 
+    let mallocIntr = function
+      | [countVarName] -> sprintf "malloc %s, i32 %s" (llvmTypeName typ) countVarName
+      | _ -> raiseCodeGenError ~msg:"malloc may only be called with one int parameter"
+    in
+    let name = sprintf "%s.malloc" (composedType2String typ)
+    and args = ["count", `Int]
+    in
+    name, `Intrinsic mallocIntr, typ, args
   in
+
+  let derefIntrinsinc typ =
+    let derefIntr args =
+      match args with
+        | [ptrname] -> sprintf "load %s* %s" (llvmTypeName typ) ptrname
+        | _ -> raiseCodeGenError ~msg:"deref may only be called with one parameter"
+    in
+    let name = sprintf "%s.deref" (composedType2String typ)
+    and args = ["ptr", `Pointer typ]
+    in
+    name, `Intrinsic derefIntr, typ, args
+  in
+
+  let genericNullIntrinsic =
+    let func = function
+      | [typeName] ->
+          begin
+            let composedType = string2composedType typeName in
+            let llvmType = llvmTypeName composedType in
+            sprintf "bitcast i8* null to %s*" llvmType
+          end
+      | _ -> raiseCodeGenError ~msg:"'nullptr type' expected"
+    in
+    "nullptr", `Intrinsic func, `Void, ["typ", `TypeInfo]
+  in
+  
+  let memoryOps typ =
+    [nullptrIntr typ;
+     derefIntrinsinc typ;
+     mallocIntrinsic typ;
+     storeIntrinsic typ]
+  in
+
+  let intrinsicFuncs =
+    memoryOps `Int
+    @ memoryOps `Float
+    @ memoryOps `Bool
+    @ [
+      nullptrIntr `Void;
+(*       genericNullIntrinsic; *)
       
-  let mallocIntr = function
-    | [countVarName] -> sprintf "malloc i32, i32 %s" countVarName
-    | _ -> raiseCodeGenError ~msg:"malloc may only be called with one int parameter"
-  in
+      twoArgIntrinsic "int.add" "add" `Int;
+      twoArgIntrinsic "int.sub" "sub" `Int;
+      twoArgIntrinsic "int.mul" "mul" `Int;
+      twoArgIntrinsic "int.sdiv" "sdiv" `Int;
+      twoArgIntrinsic "int.udiv" "udiv" `Int;
+      twoArgIntrinsic "int.urem" "urem" `Int;
+      twoArgIntrinsic "int.srem" "srem" `Int;
+      
+      (*     twoArgIntrinsic "int.shl" "shl" `Int; *)
+      (*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
+      (*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
+      
+      twoArgIntrinsic "int.and" "and" `Int;
+      twoArgIntrinsic "int.or" "or" `Int;
+      twoArgIntrinsic "int.xor" "xor" `Int;
 
-  let intrinsicFuncs = [
-    nullptrIntr `Int;
-    "int.deref", `Intrinsic derefIntr, `Int, ["ptr", `Pointer `Int];
-    "int.malloc", `Intrinsic mallocIntr, `Pointer `Int, ["count", `Int];
-    "int.store", `Intrinsic storeIntr, `Void, ["value", `Int; "address", `Pointer `Int];
-    
-    twoArgIntrinsic "int.add" "add" `Int;
-    twoArgIntrinsic "int.sub" "sub" `Int;
-    twoArgIntrinsic "int.mul" "mul" `Int;
-    twoArgIntrinsic "int.sdiv" "sdiv" `Int;
-    twoArgIntrinsic "int.udiv" "udiv" `Int;
-    twoArgIntrinsic "int.urem" "urem" `Int;
-    twoArgIntrinsic "int.srem" "srem" `Int;
-    
-(*     twoArgIntrinsic "int.shl" "shl" `Int; *)
-(*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
-(*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
-    
-    twoArgIntrinsic "int.and" "and" `Int;
-    twoArgIntrinsic "int.or" "or" `Int;
-    twoArgIntrinsic "int.xor" "xor" `Int;
+      twoArgIntrinsic "float.add" "add" `Float;
+      twoArgIntrinsic "float.sub" "sub" `Float;
+      twoArgIntrinsic "float.mul" "mul" `Float;
+      twoArgIntrinsic "float.fdiv" "fdiv" `Float;
+      twoArgIntrinsic "float.frem" "frem" `Float;
+      
+      "printf", `ExternalFunc, `Void, ["test", `String];
+      "void", `Intrinsic void, `Void, [];
 
-    twoArgIntrinsic "float.add" "add" `Float;
-    twoArgIntrinsic "float.sub" "sub" `Float;
-    twoArgIntrinsic "float.mul" "mul" `Float;
-    twoArgIntrinsic "float.fdiv" "fdiv" `Float;
-    twoArgIntrinsic "float.frem" "frem" `Float;
-    
-    "printf", `ExternalFunc, `Void, ["test", `String];
-    "void", `Intrinsic void, `Void, [];
-
-    compareIntrinsicI "int.equal" "eq";
-    compareIntrinsicI "int.notEqual" "ne";
-    compareIntrinsicI "int.ugreater" "ugt";
-    compareIntrinsicI "int.ugreaterEqual" "uge";
-    compareIntrinsicI "int.uless" "ult";
-    compareIntrinsicI "int.ulessEqual" "ule";
-    compareIntrinsicI "int.sgreater" "sgt";
-    compareIntrinsicI "int.sgreaterEqual" "sge";
-    compareIntrinsicI "int.sless" "slt";
-    compareIntrinsicI "int.slessEqual" "sle";
-  ]
+      compareIntrinsicI "int.equal" "eq";
+      compareIntrinsicI "int.notEqual" "ne";
+      compareIntrinsicI "int.ugreater" "ugt";
+      compareIntrinsicI "int.ugreaterEqual" "uge";
+      compareIntrinsicI "int.uless" "ult";
+      compareIntrinsicI "int.ulessEqual" "ule";
+      compareIntrinsicI "int.sgreater" "sgt";
+      compareIntrinsicI "int.sgreaterEqual" "sge";
+      compareIntrinsicI "int.sless" "slt";
+      compareIntrinsicI "int.slessEqual" "sle";
+    ]
   in
   let builtinMacros =
     let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
