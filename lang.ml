@@ -183,6 +183,11 @@ and funcCall = {
   fcparams :composedType list;
   fcargs :expr list;
 }
+and genericIntrinsic = {
+  giname :string;
+  gitype :composedType;
+  giargs :string list;
+}
 and expr =
   | Sequence of expr list
   | DefineVariable of variable * expr
@@ -192,6 +197,7 @@ and expr =
   | AssignVar of variable * expr
   | IfThenElse of ifthenelse
   | Loop of loop
+  | GenericIntrinsic of genericIntrinsic
 
 type func = {
   fname :string;

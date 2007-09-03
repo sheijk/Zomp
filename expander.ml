@@ -70,7 +70,7 @@ let rec typeOf = function
         | TypeError _ as e -> e
     end
   | Loop l ->
-      match typeOf l.abortTest with
+      begin match typeOf l.abortTest with
         | TypeOf `Bool -> begin
             match typeOf l.preCode with
               | TypeOf `Void -> typeOf l.postCode
@@ -79,6 +79,8 @@ let rec typeOf = function
           end
         | TypeOf wrongType -> TypeError ("Abort condition in loop must have type Bool", wrongType, `Bool)
         | _ as e -> e
+      end
+  | GenericIntrinsic i -> TypeOf i.gitype
   
 let rec typeOfTL = function
   | GlobalVar var -> TypeOf var.typ
@@ -300,7 +302,25 @@ let translateTypedef translateF (bindings :bindings) = function
 (*         Some (bindings, []) *)
 (*       end *)
 (*   | _ -> None *)
-      
+
+let translateGenericIntrinsic translateF (bindings :bindings) = function
+  | { id = "nullptr"; args = [typeExpr] } ->
+      begin
+        match translateType bindings typeExpr with
+          | Some typ ->
+              begin
+                let newExpr = {
+                  giname = "nullptr";
+                  gitype = typ;
+                  giargs = [];
+                } in
+                Some (bindings, [GenericIntrinsic newExpr])
+              end
+          | None ->
+              raiseInvalidType typeExpr
+      end
+  | _ -> None
+  
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -312,6 +332,7 @@ let translateNested = translate raiseIllegalExpression
     translateMacro;
     translateAssignVar;
     translateTypedef;
+    translateGenericIntrinsic;
 (*     translateRecord; *)
   ]
 

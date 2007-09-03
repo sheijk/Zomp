@@ -22,7 +22,12 @@ let rec llvmTypeName : Lang.composedType -> string = function
   | `Int -> "i32"
   | `Bool -> "i1"
   | `Float -> "float"
-  | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
+  | `Pointer targetType ->
+      begin
+        match targetType with
+          | `Void -> "i8*"
+          | _ -> (llvmTypeName targetType) ^ "*"
+      end
   | _ as t -> raiseCodeGenError
       ~msg:(sprintf "Do not know how to generate llvm typename for %s"
               (composedType2String t))
@@ -307,7 +312,7 @@ let gencodeDefineVariable gencode var expr =
         (noVar, comment ^ initVarCode ^ "\n" ^ code)
       end
     | MemoryStorage -> begin
-        let comment = sprintf "; allocating var %s on stack" var.vname in
+        let comment = sprintf "; allocating var %s on stack\n" var.vname in
         let typename = llvmTypeName var.typ
         and ptrname = (llvmName var.vname)
         and initVar, initVarCode = gencode expr
@@ -418,7 +423,18 @@ let gencodeIfThenElse gencode ite =
      continueLabel ^ ":\n" ^
      resultVarName ^ " = load " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr"
   )
-
+    
+let gencodeGenericIntr gencode intrinsic =
+  match intrinsic.giname with
+    | "nullptr" ->
+        begin
+          let ptrType = llvmTypeName (`Pointer intrinsic.gitype) in
+          let var = newLocalTempVar (`Pointer intrinsic.gitype) in
+          let code = sprintf "%s = bitcast i8* null to %s\n" var.rvname ptrType in
+          (var, code)
+        end
+    | _ as invalidIntrinsinc ->
+        raiseCodeGenError ~msg:(sprintf "intrinsic %s not found" invalidIntrinsinc)
     
 let gencodeLoop gencode l =
   let preVar, preCode = gencode l.preCode
@@ -460,6 +476,7 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | IfThenElse ite -> gencodeIfThenElse gencode ite
   | Loop l -> gencodeLoop gencode l
   | AssignVar (var, expr) -> gencodeAssignVar gencode var expr
+  | GenericIntrinsic intr -> gencodeGenericIntr gencode intr
       
 let countChar str c =
   let count = ref 0 in

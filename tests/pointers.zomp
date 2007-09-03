@@ -9,7 +9,9 @@
 
   
 (func (ptr int) int.new (std:seq (int v)) (std:seq
-  (var (ptr int) pointer (int.malloc 1))
+//   (var (ptr int) pointer (int.malloc 1))
+  (var (ptr int) pointer (nullptr int))
+  (assign pointer (int.malloc 1))
   (int.store v pointer)
   pointer
   ))
@@ -26,19 +28,19 @@
   pointer
   ))
 
-(func (ptr void) test () (std:seq
+(func void test () (std:seq
   (var (ptr void) null (nullptr void))
-  null
+  void
   ))
 
-// (type iptr2 (ptr (ptr int)))
-// (func (ptr (ptr int)) newPtrTo (std:seq (int v)) (std:seq
-//   (var (ptr int) ptr2int (int.malloc 1))
-//   (int.store v ptr2int)
-//   (var (ptr (ptr int)) ptr2ptr2int (malloc 1 iptr))
-//   (store ptr2int ptr2ptr2int)
-//   ptr2ptr2int
-//   ))
+(type iptr2 (ptr (ptr int)))
+(func (ptr (ptr int)) newPtrTo (std:seq (int v)) (std:seq
+  (var (ptr int) ptr2int (int.malloc 1))
+  (int.store v ptr2int)
+  (var (ptr (ptr int)) ptr2ptr2int (malloc 1 iptr))
+  (store ptr2int ptr2ptr2int)
+  ptr2ptr2int
+  ))
 
 (func int main () (std:seq
   (int.deref (int.new (twice 10)))
