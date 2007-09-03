@@ -7,24 +7,30 @@
   (int.add v v)
   ))
 
+(func void tests () (std:seq
+  (var (ptr int) pi (nullptr int))
+  (var int v 3)
+  (store v pi)
+  void
+  ))
   
 (func (ptr int) int.new (std:seq (int v)) (std:seq
 //   (var (ptr int) pointer (int.malloc 1))
   (var (ptr int) pointer (nullptr int))
-  (assign pointer (int.malloc 1))
-  (int.store v pointer)
+  (assign pointer (malloc int))
+  (store v pointer)
   pointer
   ))
 
 (func (ptr float) float.new (std:seq (float v)) (std:seq
-  (var (ptr float) pointer (float.malloc 1))
-  (float.store v pointer)
+  (var (ptr float) pointer (malloc float))
+  (store v pointer)
   pointer
   ))
 
 (func (ptr bool) bool.new (std:seq (bool v)) (std:seq
-  (var (ptr bool) pointer (bool.malloc 1))
-  (bool.store v pointer)
+  (var (ptr bool) pointer (malloc bool))
+  (store v pointer)
   pointer
   ))
 
@@ -35,15 +41,19 @@
 
 (type iptr2 (ptr (ptr int)))
 (func (ptr (ptr int)) newPtrTo (std:seq (int v)) (std:seq
-  (var (ptr int) ptr2int (int.malloc 1))
-  (int.store v ptr2int)
-  (var (ptr (ptr int)) ptr2ptr2int (malloc 1 iptr))
+  (var (ptr int) ptr2int (malloc int))
+  (store v ptr2int)
+  (var (ptr (ptr int)) ptr2ptr2int (malloc iptr))
   (store ptr2int ptr2ptr2int)
   ptr2ptr2int
   ))
 
+(func int derefint (std:seq (iptr p)) (std:seq
+  (deref p)
+  ))
+
 (func int main () (std:seq
-  (int.deref (int.new (twice 10)))
+  (deref (int.new (twice 10)))
   ))
   
 

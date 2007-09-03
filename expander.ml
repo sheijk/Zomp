@@ -303,23 +303,81 @@ let translateTypedef translateF (bindings :bindings) = function
 (*       end *)
 (*   | _ -> None *)
 
-let translateGenericIntrinsic translateF (bindings :bindings) = function
-  | { id = "nullptr"; args = [typeExpr] } ->
-      begin
-        match translateType bindings typeExpr with
-          | Some typ ->
-              begin
-                let newExpr = {
-                  giname = "nullptr";
-                  gitype = typ;
-                  giargs = [];
-                } in
-                Some (bindings, [GenericIntrinsic newExpr])
-              end
-          | None ->
-              raiseInvalidType typeExpr
-      end
-  | _ -> None
+(* TODO: combine this somehow with gencodeGenericIntr *)
+let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr =
+  let convertSimple name typeExpr =
+    match translateType bindings typeExpr with
+      | Some typ ->
+          begin
+            let newExpr = {
+              giname = name;
+              gitype = typ;
+              giargs = [];
+            } in
+            Some (bindings, [GenericIntrinsic newExpr])
+          end
+      | None ->
+          raiseInvalidType typeExpr
+  in
+  match expr with
+    | { id = "nullptr"; args = [typeExpr] } -> convertSimple "nullptr" typeExpr
+    | { id = "malloc"; args = [typeExpr]; } -> convertSimple "malloc" typeExpr
+    | { id = "store"; args = [
+          { id = valueName; args = [] };
+          { id = ptrName; args = [] }
+        ] } ->
+        begin
+          match lookup bindings valueName, lookup bindings ptrName with
+            | VarSymbol valueVar, VarSymbol ptrVar when ptrVar.typ = `Pointer valueVar.typ ->
+                begin
+                  let valueTypeName = composedType2String valueVar.typ in
+                  let newExpr = {
+                    giname = "store";
+                    gitype = `Void;
+                    giargs = [valueTypeName; valueVar.vname; ptrVar.vname]
+                  } in
+                  Some (bindings, [GenericIntrinsic newExpr])
+                end
+            | _, _ ->
+                raiseIllegalExpression expr
+                  ("'store var ptr' required two existing variables" ^
+                     " where typeof(ptr) = ptr to typeof(var)")
+        end
+    | { id = "deref"; args = [rightHandExpr]; } ->
+        begin
+          let newVarName =
+            let rec tryTempVar num =
+              let name = (Printf.sprintf "tempvar_%d" num) in
+              match lookup bindings name with
+                | UndefinedSymbol -> name
+                | _ -> tryTempVar (num + 1)
+            in
+            tryTempVar 0
+          in
+          let _, rightHandSimpleforms = translateF bindings rightHandExpr in
+          match typeOf (Sequence rightHandSimpleforms) with
+            | TypeOf (`Pointer resultType) ->
+                begin
+                  let varExpr =
+                    { id = macroVar; args = [
+                        { id = composedType2String (`Pointer resultType); args = [] };
+                        { id = newVarName; args = [] };
+                        rightHandExpr
+                      ]
+                    }
+                  in
+                  let newBindings, simpleforms = translateF bindings varExpr
+                  in
+                  let newExpr = {
+                    giname = "deref";
+                    gitype = resultType;
+                    giargs = [composedType2String resultType; newVarName]
+                  } in
+                  Some (newBindings, simpleforms @ [GenericIntrinsic newExpr])
+                end
+            | _ -> None
+        end
+    | _ -> None
   
 let translateNested = translate raiseIllegalExpression
   [

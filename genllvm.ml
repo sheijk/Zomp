@@ -22,12 +22,8 @@ let rec llvmTypeName : Lang.composedType -> string = function
   | `Int -> "i32"
   | `Bool -> "i1"
   | `Float -> "float"
-  | `Pointer targetType ->
-      begin
-        match targetType with
-          | `Void -> "i8*"
-          | _ -> (llvmTypeName targetType) ^ "*"
-      end
+  | `Pointer `Void -> "i8*"
+  | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | _ as t -> raiseCodeGenError
       ~msg:(sprintf "Do not know how to generate llvm typename for %s"
               (composedType2String t))
@@ -103,78 +99,78 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ]
   in
 
-  let nullptrIntr typ =
-    let typeName = llvmTypeName typ in
-    let name = sprintf "%s.null" (composedType2String typ) in
-    let gencode = function
-      | [] -> sprintf "bitcast i8* null to %s*" typeName
-      | _ -> raiseCodeGenError ~msg:(sprintf "%s may not be called with arguments" name)
-    in
-    name, `Intrinsic gencode, typ, []
-  in
+(*   let nullptrIntr typ = *)
+(*     let typeName = llvmTypeName typ in *)
+(*     let name = sprintf "%s.null" (composedType2String typ) in *)
+(*     let gencode = function *)
+(*       | [] -> sprintf "bitcast i8* null to %s*" typeName *)
+(*       | _ -> raiseCodeGenError ~msg:(sprintf "%s may not be called with arguments" name) *)
+(*     in *)
+(*     name, `Intrinsic gencode, typ, [] *)
+(*   in *)
 
-  let storeIntrinsic typ =
-    let llvmType = llvmTypeName typ in
-    let storeIntr = function
-      | [valueVarName; ptrname] ->
-          sprintf "store %s %s, %s* %s" llvmType valueVarName llvmType ptrname
-      | _ -> raiseCodeGenError ~msg:"'store valueVar ptrVar' expected"
-    in
-    let name = sprintf "%s.store" (composedType2String typ)
-    and args = ["value", typ; "address", `Pointer typ]
-    in
-    name, `Intrinsic storeIntr, `Void, args
-  in
+(*   let storeIntrinsic typ = *)
+(*     let llvmType = llvmTypeName typ in *)
+(*     let storeIntr = function *)
+(*       | [valueVarName; ptrname] -> *)
+(*           sprintf "store %s %s, %s* %s" llvmType valueVarName llvmType ptrname *)
+(*       | _ -> raiseCodeGenError ~msg:"'store valueVar ptrVar' expected" *)
+(*     in *)
+(*     let name = sprintf "%s.store" (composedType2String typ) *)
+(*     and args = ["value", typ; "address", `Pointer typ] *)
+(*     in *)
+(*     name, `Intrinsic storeIntr, `Void, args *)
+(*   in *)
 
-  let mallocIntrinsic typ = 
-    let mallocIntr = function
-      | [countVarName] -> sprintf "malloc %s, i32 %s" (llvmTypeName typ) countVarName
-      | _ -> raiseCodeGenError ~msg:"malloc may only be called with one int parameter"
-    in
-    let name = sprintf "%s.malloc" (composedType2String typ)
-    and args = ["count", `Int]
-    in
-    name, `Intrinsic mallocIntr, typ, args
-  in
+(*   let mallocIntrinsic typ =  *)
+(*     let mallocIntr = function *)
+(*       | [countVarName] -> sprintf "malloc %s, i32 %s" (llvmTypeName typ) countVarName *)
+(*       | _ -> raiseCodeGenError ~msg:"malloc may only be called with one int parameter" *)
+(*     in *)
+(*     let name = sprintf "%s.malloc" (composedType2String typ) *)
+(*     and args = ["count", `Int] *)
+(*     in *)
+(*     name, `Intrinsic mallocIntr, typ, args *)
+(*   in *)
 
-  let derefIntrinsinc typ =
-    let derefIntr args =
-      match args with
-        | [ptrname] -> sprintf "load %s* %s" (llvmTypeName typ) ptrname
-        | _ -> raiseCodeGenError ~msg:"deref may only be called with one parameter"
-    in
-    let name = sprintf "%s.deref" (composedType2String typ)
-    and args = ["ptr", `Pointer typ]
-    in
-    name, `Intrinsic derefIntr, typ, args
-  in
+(*   let derefIntrinsinc typ = *)
+(*     let derefIntr args = *)
+(*       match args with *)
+(*         | [ptrname] -> sprintf "load %s* %s" (llvmTypeName typ) ptrname *)
+(*         | _ -> raiseCodeGenError ~msg:"deref may only be called with one parameter" *)
+(*     in *)
+(*     let name = sprintf "%s.deref" (composedType2String typ) *)
+(*     and args = ["ptr", `Pointer typ] *)
+(*     in *)
+(*     name, `Intrinsic derefIntr, typ, args *)
+(*   in *)
 
-  let genericNullIntrinsic =
-    let func = function
-      | [typeName] ->
-          begin
-            let composedType = string2composedType typeName in
-            let llvmType = llvmTypeName composedType in
-            sprintf "bitcast i8* null to %s*" llvmType
-          end
-      | _ -> raiseCodeGenError ~msg:"'nullptr type' expected"
-    in
-    "nullptr", `Intrinsic func, `Void, ["typ", `TypeInfo]
-  in
+(*   let genericNullIntrinsic = *)
+(*     let func = function *)
+(*       | [typeName] -> *)
+(*           begin *)
+(*             let composedType = string2composedType typeName in *)
+(*             let llvmType = llvmTypeName composedType in *)
+(*             sprintf "bitcast i8* null to %s*" llvmType *)
+(*           end *)
+(*       | _ -> raiseCodeGenError ~msg:"'nullptr type' expected" *)
+(*     in *)
+(*     "nullptr", `Intrinsic func, `Void, ["typ", `TypeInfo] *)
+(*   in *)
   
-  let memoryOps typ =
-    [nullptrIntr typ;
-     derefIntrinsinc typ;
-     mallocIntrinsic typ;
-     storeIntrinsic typ]
-  in
+(*   let memoryOps typ = *)
+(*     [nullptrIntr typ; *)
+(*      derefIntrinsinc typ; *)
+(*      mallocIntrinsic typ; *)
+(*      storeIntrinsic typ] *)
+(*   in *)
 
   let intrinsicFuncs =
-    memoryOps `Int
-    @ memoryOps `Float
-    @ memoryOps `Bool
-    @ [
-      nullptrIntr `Void;
+(*     memoryOps `Int *)
+(*     @ memoryOps `Float *)
+(*     @ memoryOps `Bool *)
+    [
+(*       nullptrIntr `Void; *)
 (*       genericNullIntrinsic; *)
       
       twoArgIntrinsic "int.add" "add" `Int;
@@ -399,7 +395,7 @@ let gencodeIfThenElse gencode ite =
   and trueVar, trueCode = gencode ite.trueCode
   and falseVar, falseCode = gencode ite.falseCode
   in
-  let comment = "; if/then/else" in
+  let comment = "; if/then/else\n" in
   let resultTypeName = trueVar.rvtypename in
   let id = nextUID () in
   let trueLabel = sprintf "true_cond%d" id
@@ -425,16 +421,48 @@ let gencodeIfThenElse gencode ite =
   )
     
 let gencodeGenericIntr gencode intrinsic =
-  match intrinsic.giname with
-    | "nullptr" ->
+  match intrinsic.giname, intrinsic.gitype, intrinsic.giargs with
+    | "nullptr", typ, [] ->
         begin
-          let ptrType = llvmTypeName (`Pointer intrinsic.gitype) in
-          let var = newLocalTempVar (`Pointer intrinsic.gitype) in
+          let ptrType = llvmTypeName (`Pointer typ) in
+          let var = newLocalTempVar (`Pointer typ) in
           let code = sprintf "%s = bitcast i8* null to %s\n" var.rvname ptrType in
           (var, code)
         end
-    | _ as invalidIntrinsinc ->
-        raiseCodeGenError ~msg:(sprintf "intrinsic %s not found" invalidIntrinsinc)
+    | "malloc", typ, [] ->
+        begin
+          let varType = llvmTypeName typ in
+          let var = newLocalTempVar (`Pointer typ) in
+          let code = sprintf "%s = malloc %s" var.rvname varType in
+          (var, code)
+        end
+    | "store", typ, [valueTypeName; valueVarName; ptrVarName] ->
+        begin
+          let valueType = string2composedType valueTypeName in
+          let valueTypeLLVM = llvmTypeName valueType in
+          let ptrTypeName = llvmTypeName (`Pointer valueType) in
+          let ptrVar = newLocalTempVar (`Pointer valueType) in
+          let code =
+            (sprintf "%s = load %s* %%%s\n" ptrVar.rvname ptrVar.rvtypename ptrVarName) ^
+            (sprintf "store %s %%%s, %s %s" valueTypeLLVM valueVarName ptrTypeName ptrVar.rvname) in
+          (noVar, code)
+        end
+    | "deref", typ, [typeName; varName] ->
+        begin
+          let comment = sprintf "; deref %s %s\n" typeName varName in
+          let resultType = string2composedType typeName in
+          let resultTypeLLVM = llvmTypeName resultType in
+          let llvmPtrTypeName = llvmTypeName (`Pointer resultType) in
+          let var = newLocalTempVar (`Pointer resultType) in
+          let var2 = newLocalTempVar resultType in
+          let code =
+            (sprintf "%s = load %s* %%%s\n" var.rvname llvmPtrTypeName varName) ^
+              (sprintf "%s = load %s* %s" var2.rvname resultTypeLLVM var.rvname)
+          in
+          (var2, comment ^ code)
+        end
+    | invalidIntrinsinc, _, _ ->
+        raiseCodeGenError ~msg:(sprintf "intrinsic %s could not be translated" invalidIntrinsinc)
     
 let gencodeLoop gencode l =
   let preVar, preCode = gencode l.preCode
@@ -463,7 +491,7 @@ let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
   let name = (resultVar var).rvname in
   let typename = llvmTypeName var.typ in
-  let comment = sprintf "; assigning new value to %s" name in
+  let comment = sprintf "; assigning new value to %s\n" name in
   let assignCode = sprintf "store %s %s, %s* %s" typename rvalVar.rvname typename name in
   (noVar, comment ^ rvalCode ^ "\n" ^ assignCode)
   
