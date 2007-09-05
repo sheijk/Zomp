@@ -30,7 +30,7 @@ zompc: $(LANG_CMOS) zompc.cmo
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
 # 	ocamlrun $(CAML_LIBS) $(LANG_CMOS) expander_tests.cmo
-	cd tests && make check
+	cd tests && make clean_tests check
 
 stdlib.bc: stdlib.c
 	echo Building bytecode standard library $@ ...

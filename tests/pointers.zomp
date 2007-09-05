@@ -1,50 +1,100 @@
 
 (type iptr (ptr int))
 (type iptr2 (ptr (ptr int)))
-(type itpr2 (ptr iptr2))
+(type itpr3 (ptr iptr2))
 
 (func int twice (std:seq (int v)) (std:seq
   (int.add v v)
   ))
 
-(func void tests () (std:seq
-  (var (ptr int) pi (nullptr int))
-  (var int v 3)
-  (store v pi)
+
+  
+(func void test_nullptr () (std:seq
+  (var (ptr int) p (nullptr int))
+  void
+  ))
+
+(func void test_nullptr_ptr2ptr () (std:seq
+  (var (ptr (ptr int)) p (nullptr (ptr int)))
+  void
+  ))
+
+  
+  
+(func void test_deref () (std:seq
+  (var (ptr int) p (nullptr int))
+  (var int v (deref p))
+  void
+  ))
+
+(func int test_deref_ptr (std:seq (iptr pi)) (std:seq
+  (deref pi)
+  ))
+
+(func void test_mutableptr () (std:seq
+  (mvar int i 1)
+  (mvar (ptr int) pi (nullptr int))
   void
   ))
   
+(func void test_deref_memstorage () (std:seq
+  (mvar (ptr int) pi (nullptr int))
+  (var int i (deref pi))
+  void
+  ))
+  
+  
+(func void test_malloc () (std:seq
+  (var (ptr int) p (malloc int))
+  void
+  ))
+
+(func void test_malloc_ptr () (std:seq
+  (var iptr p (malloc int))
+  (var iptr2 p2 (malloc iptr))
+  void
+  ))
+
+  
+
+(func void test_store () (std:seq
+  (var (ptr int) p (malloc int))
+  (store p 3)
+  void
+  ))
+  
+(func void test_store_regvar (std:seq (iptr p) (int i)) (std:seq
+  (store p i)
+  void
+  ))
+
+
+  
 (func (ptr int) int.new (std:seq (int v)) (std:seq
-//   (var (ptr int) pointer (int.malloc 1))
   (var (ptr int) pointer (nullptr int))
   (assign pointer (malloc int))
-  (store v pointer)
+  (store pointer v)
   pointer
   ))
 
 (func (ptr float) float.new (std:seq (float v)) (std:seq
   (var (ptr float) pointer (malloc float))
-  (store v pointer)
+  (store pointer v)
   pointer
   ))
 
 (func (ptr bool) bool.new (std:seq (bool v)) (std:seq
   (var (ptr bool) pointer (malloc bool))
-  (store v pointer)
+  (store pointer v)
   pointer
-  ))
-
-(func void test () (std:seq
-  (var (ptr void) null (nullptr void))
-  void
   ))
 
 (type iptr2 (ptr (ptr int)))
 (func (ptr (ptr int)) newPtrTo (std:seq (int v)) (std:seq
   (var (ptr int) ptr2int (malloc int))
-  (store v ptr2int)
+  (store ptr2int v)
   (var (ptr (ptr int)) ptr2ptr2int (malloc iptr))
-  (store ptr2int ptr2ptr2int)
+  (store ptr2ptr2int ptr2int)
   ptr2ptr2int
   ))
 

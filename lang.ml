@@ -164,6 +164,7 @@ let variable ~name ~typ ~default ~storage ~global = {
   vglobal = global;
 }
 
+(* TODO: fix this! *)
 let localVar = variable ~storage:RegisterStorage ~global:false
 and globalVar = variable ~storage:MemoryStorage ~global:true
 
@@ -183,11 +184,11 @@ and funcCall = {
   fcparams :composedType list;
   fcargs :expr list;
 }
-and genericIntrinsic = {
-  giname :string;
-  gitype :composedType;
-  giargs :string list;
-}
+and genericIntrinsic =
+  | NullptrIntrinsic of composedType
+  | MallocIntrinsic of composedType
+  | DerefIntrinsic of variable
+  | StoreIntrinsic of variable * variable (* value, ptr *)
 and expr =
   | Sequence of expr list
   | DefineVariable of variable * expr

@@ -18,6 +18,7 @@ stdlibfuncs_exe.bc: stdlibfuncs.bc
 	@llvm-ld ../stdlib.bc $< -o ${@:.bc=}
 
 clean_tests:
+	@echo Cleaning tests...
 	rm -f *.ll *.bc
 
 .SUFFIXES: .zomp .ll .check .bc .run

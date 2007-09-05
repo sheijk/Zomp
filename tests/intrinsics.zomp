@@ -1,5 +1,5 @@
 
-func void main {} {
+func int main {} {
   var int i1 0;
   var int i2 1;
   
@@ -38,6 +38,6 @@ func void main {} {
   var bool t5 { int.ulessEqual i1 i2; };
   var bool t6 { int.ugreaterEqual i1 i2; };
 
-  void;
+  0;
 };
 
