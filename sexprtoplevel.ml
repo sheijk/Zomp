@@ -2,6 +2,7 @@
 open Ast2
 open Printf
 open Lang
+let combine = Common.combine
   
 let printLLVMCode = ref false
   

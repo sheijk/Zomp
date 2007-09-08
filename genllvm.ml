@@ -3,10 +3,11 @@ open Ast2
 open Lang
 open Printf
 open Bindings
-
+let combine = Common.combine
+  
 exception CodeGenError of string
 let raiseCodeGenError ~msg = raise (CodeGenError msg)
-  
+
 let llvmName name =
   if name.[0] = '%' then name
   else "%" ^ name
@@ -24,9 +25,13 @@ let rec llvmTypeName : Lang.composedType -> string = function
   | `Float -> "float"
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
-  | _ as t -> raiseCodeGenError
-      ~msg:(sprintf "Do not know how to generate llvm typename for %s"
-              (composedType2String t))
+  | `Record components ->
+      let componentNames = List.map (fun (_, t) -> llvmTypeName t) components in
+      "{ " ^ combine ", " componentNames ^ "}"
+      
+(*   | _ as t -> raiseCodeGenError *)
+(*       ~msg:(sprintf "Do not know how to generate llvm typename for %s" *)
+(*               (composedType2String t)) *)
       
 type resultvar = {
   rvname :string;
@@ -90,7 +95,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let void argVarNames = "" in
   let compareIntrinsicI name cond =
     let f argVarNames = 
-      (*       sprintf "set%s i32 %s" cond (combine ", " argVarNames) *)
       sprintf "icmp %s i32 %s" cond (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Bool, ["l", `Int; "r", `Int])
@@ -200,13 +204,13 @@ let gencodeSequence gencode exprs =
   let resultVar, code = lastVarAndCode noVar [] exprs in
   resultVar, indent (combine "\n" code)
 
-let gencodeDefineVariable gencode var expr =
+let gencodeDefineVariable gencode var default =
   match var.vstorage with
     | RegisterStorage -> begin
         let zeroElement = function
-          | `Pointer _ -> "null"
-          | `Record _ -> raiseCodeGenError ~msg:"no vars of record type supported, yet"
-          | #integralType as t -> integralValue2String (defaultValue t)
+          | `Pointer _ -> Some "null"
+          | `Record _ -> None
+          | #integralType as t -> Some (integralValue2String (defaultValue t))
         in
         let initInstr = function
           | `Int | `Float | `Pointer _ -> "add"
@@ -214,26 +218,36 @@ let gencodeDefineVariable gencode var expr =
           | _ as t -> raiseCodeGenError
               ~msg:(sprintf "no init instruction implemented for %s" (composedType2String t))
         in
-        let initVar, initVarCode = gencode expr in
+        (*         let initVar, initVarCode = *)
+        (*           match default with *)
+        (*             | Some expr -> gencode expr *)
+        (*             | None -> "", "" *)
+        (*         in *)
         let name = llvmName var.vname
         and typ = llvmTypeName var.typ
         in
         let comment = sprintf "; defining var %s : %s\n" var.vname typ in
         let code =
           match var.typ with
-            | `Pointer _ -> begin
-                raiseCodeGenError ~msg:"code gen for pointers with register storage not supported, yet"
+            | `Pointer _ | `Record _ -> begin
+                raiseCodeGenError ~msg:"code gen for pointers and records with register storage not supported, yet"
               end
             | _ -> begin
-                sprintf "%s = %s %s %s, %s"
-                  name
-                  (initInstr var.typ)
-                  typ
-                  (zeroElement var.typ)
-                  initVar.rvname
+                match zeroElement var.typ, default with
+                  | Some zeroElementStr, Some expr ->
+                      let initVar, initCode = gencode expr in
+                      sprintf "%s\n%s = %s %s %s, %s"
+                        initCode
+                        name
+                        (initInstr var.typ)
+                        typ
+                        zeroElementStr
+                        initVar.rvname
+                  | _, _ ->
+                      sprintf "%s = alloca %s" name typ
               end
         in
-        (noVar, comment ^ initVarCode ^ "\n" ^ code)
+        (noVar, comment ^ code)
       end
     | MemoryStorage -> begin
         let typename = llvmTypeName var.typ
@@ -244,13 +258,20 @@ let gencodeDefineVariable gencode var expr =
           (composedType2String var.typ)
           typename
         in
-        let initVar, initVarCode = gencode expr
-        in
         let allocCode =
-          (sprintf "%s = alloca %s\n" ptrname typename)
-          ^ (sprintf "store %s %s, %s* %s" typename initVar.rvname typename ptrname)
+          match default with
+            | Some expr ->
+                begin
+                  let initVar, initVarCode = gencode expr
+                  in
+                  initVarCode ^ "\n"
+                  ^ sprintf "%s = alloca %s\n" ptrname typename
+                  ^ sprintf "store %s %s, %s* %s" typename initVar.rvname typename ptrname
+                end
+            | None ->
+                sprintf "%s = alloca %s\n" ptrname typename
         in
-        (noVar, comment ^ initVarCode ^ "\n" ^ allocCode)
+        (noVar, comment ^ allocCode)
       end
 
 let gencodeVariable v =
@@ -414,6 +435,52 @@ let gencodeGenericIntr gencode = function
                 in
                 (noVar, code)
               end
+      end
+  | SetFieldIntrinsic (typ, recordVar, componentName, valueSimpleform) ->
+      begin
+        match recordVar.vstorage with
+          | RegisterStorage -> raiseCodeGenError ~msg:"register storage for setField not implemented, yet"
+          | MemoryStorage ->
+              begin
+                let ptrToField = newLocalTempVar (`Pointer typ) in
+                let components = match recordVar.typ with
+                  | `Record components -> components
+                  | _ -> raiseCodeGenError ~msg:"used setField with non record var"
+                in
+                let llvmComponentTypeName = llvmTypeName typ in
+                let llvmRecordTypeName = llvmTypeName recordVar.typ in
+                let componentNum = string_of_int (componentNum components componentName) in
+                let valueVar, valueCode = gencode valueSimpleform in
+                let code =
+                  valueCode ^ "\n"
+                  ^ sprintf "%s = getelementptr %s* %%%s, i32 0, i32 %s\n"
+                    ptrToField.rvname llvmRecordTypeName recordVar.vname componentNum
+                  ^ sprintf "store %s %s, %s* %s\n"
+                    llvmComponentTypeName valueVar.rvname llvmComponentTypeName ptrToField.rvname
+                in
+                (noVar, code)
+              end
+      end
+  | GetFieldIntrinsic (typ, recordVar, componentName) ->
+      begin
+        if recordVar.vstorage = RegisterStorage then 
+          raiseCodeGenError ~msg:"register storage for field not supported, yet"
+        else
+          let llvmRecordTypeName = llvmTypeName recordVar.typ in
+          let llvmTypeName = llvmTypeName typ in
+          let ptrToField = newLocalTempVar (`Pointer typ) in
+          let resultVar = newLocalTempVar typ in
+          let components = match recordVar.typ with
+            | `Record components -> components
+            | _ -> raiseCodeGenError ~msg:"used setField with non record var"
+          in
+          let componentNum = string_of_int (componentNum components componentName) in
+          let code =
+            sprintf "%s = getelementptr %s* %%%s, i32 0, i32 %s\n"
+              ptrToField.rvname llvmRecordTypeName recordVar.vname componentNum
+            ^ sprintf "%s = load %s* %s\n" resultVar.rvname llvmTypeName ptrToField.rvname
+          in
+          (resultVar, code)
       end
 
 (* let gencodeGenericIntr gencode intrinsic = *)

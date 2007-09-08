@@ -39,12 +39,17 @@ let rec typeOf = function
   | Sequence [expr] -> typeOf expr
   | Sequence (_ :: tail) -> typeOf (Sequence tail)
   | DefineVariable (var, expr) -> begin
-      match typeOf expr with
-        | TypeOf exprType when exprType = var.typ -> TypeOf var.typ
-        | TypeOf wrongType -> TypeError (
-            "Types need to be the same in assignment", wrongType, var.typ)
-        | _ as e -> e
-    end      
+      match expr with
+        | Some expr ->
+            begin
+              match typeOf expr with
+                | TypeOf exprType when exprType = var.typ -> TypeOf var.typ
+                | TypeOf wrongType -> TypeError (
+                    "variable definition requires same type for var and default value", wrongType, var.typ)
+                | _ as e -> e
+            end
+        | None -> TypeOf var.typ
+    end
   | Variable var -> TypeOf var.typ
   | Constant value -> TypeOf (integralValue2Type value)
   | FuncCall call -> TypeOf (call.fcrettype :> composedType)
@@ -102,7 +107,38 @@ let rec typeOf = function
                          invalidPointerType,
                          `Pointer valueType)
       end
-  
+  | GenericIntrinsic SetFieldIntrinsic (typ, recordVar, componentName, valueExpr) ->
+      begin
+        match recordVar.typ with
+          | `Record components ->
+              begin
+                match componentType components componentName, typeOf valueExpr with
+                  | None, _ ->
+                      TypeError (sprintf "component %s does not exists" componentName, `Void, `Void)
+                  | Some targetType, TypeOf valueType when targetType = valueType ->
+                      TypeOf `Void
+                  | Some targetType, TypeOf wrongType ->
+                      TypeError ("mismatching types in setField", wrongType, targetType)
+                  | _, (TypeError _ as error) ->
+                      error
+              end
+          | _ as wrongType ->
+              TypeError ("setField requires record variable", wrongType, `Record [])
+      end
+  | GenericIntrinsic GetFieldIntrinsic (typ, recordVar, componentName) ->
+      begin
+        match recordVar.typ with
+          | `Record components ->
+              begin
+                match componentType components componentName with
+                  | Some t when t = typ -> TypeOf t
+                  | Some t -> TypeError (sprintf "internal error, get field claims wrong type", typ, t)
+                  | None -> TypeError (sprintf "component %s does not exist" componentName, `Void, `Void)
+              end
+          | _ as invalidType ->
+              TypeError ("expected record type", invalidType, `Record [])
+      end
+
 let rec typeOfTL = function
   | GlobalVar var -> TypeOf var.typ
   | DefineFunc f ->
@@ -173,54 +209,59 @@ let determineStorage typ =
     | `Pointer _ -> MemoryStorage
     | _ -> RegisterStorage
         
-let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [
-        typeExpr;
-        { id = name; args = [] };
-        valueExpr
-      ] } as expr
-      when (id = macroVar) || (id = macroMutableVar) -> begin
-        let _, simpleform = translateF bindings valueExpr in
-        match translateType bindings typeExpr with
-          | Some (#integralType as typ)
-          | Some (`Pointer _ as typ) ->
-              begin
-                match typ, typeOf (Sequence simpleform) with
-                  | leftHandType, TypeOf rightHandType when leftHandType = rightHandType ->
-                      begin
-                        let value = defaultValue typ in
-                        let storage =
-                          match typ with
-                            | `Pointer _ ->
-                                MemoryStorage
-                            | _ ->
-                                if id = macroVar
-                                then RegisterStorage
-                                else MemoryStorage
-                        in
-                        let var = variable name typ value storage false in
-                        Some( addVar bindings var, [ DefineVariable (var, Sequence simpleform) ] )
-                      end
-                  | leftHandType, TypeOf rightHandType ->
-                      raiseIllegalExpression expr
-                        (sprintf "types %s and %s do not match"
-                           (composedType2String leftHandType) (composedType2String rightHandType))
-                  | _, TypeError (msg, _, _) -> raiseIllegalExpression valueExpr msg
-              end
-                (* | Some `Record components -> begin *)
-                (* match valueExpr with *)
-                (* | { id = id; args = values; } when id = macroSequence -> begin *)
-                (* None *)
-                (* end *)
-                (* | _ -> raiseIllegalExpression expr "expecting { field0 = val0; ... }" *)
-                (* end *)
-          | _ -> raiseIllegalExpression expr
-              (sprintf "Only integral and pointer types legal for vars. %s is not valid"
-                 (Ast2.expression2string typeExpr))
-                (*           | _ -> raise (UnknownType (Ast2.expression2string typeExpr)) *)
-      end
-  | _ ->
-      None
+let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
+  let transform id name typeExpr valueExpr =
+    match translateType bindings typeExpr with
+      | Some (#integralType as typ)
+      | Some (`Pointer _ as typ) ->
+          begin
+            let _, simpleform = translateF bindings valueExpr in
+            match typ, typeOf (Sequence simpleform) with
+              | leftHandType, TypeOf rightHandType when leftHandType = rightHandType ->
+                  begin
+                    let value = defaultValue typ in
+                    let storage =
+                      match typ with
+                        | `Pointer _ ->
+                            MemoryStorage
+                        | _ ->
+                            if id = macroVar
+                            then RegisterStorage
+                            else MemoryStorage
+                    in
+                    let var = variable name typ value storage false in
+                    Some( addVar bindings var, [ DefineVariable (var, Some (Sequence simpleform)) ] )
+                  end
+              | leftHandType, TypeOf rightHandType ->
+                  raiseIllegalExpression expr
+                    (sprintf "types %s and %s do not match"
+                       (composedType2String leftHandType) (composedType2String rightHandType))
+              | _, TypeError (msg, _, _) -> raiseIllegalExpression valueExpr msg
+          end
+      | Some (`Record _ as typ) ->
+          begin
+            let var = variable name typ (defaultValue typ) MemoryStorage false in
+            Some( addVar bindings var, [ DefineVariable (var, None) ] )
+          end
+      | _ ->
+          raise (UnknownType (Ast2.expression2string typeExpr))
+  in
+  match expr with
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          valueExpr
+        ] }
+        when (id = macroVar) || (id = macroMutableVar) ->
+        transform id name typeExpr valueExpr
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+        ] }
+        when (id = macroVar) || (id = macroMutableVar) ->
+        transform id name typeExpr { id = ""; args = []}
+    | _ ->
+        None
         
 let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = args; } ->
@@ -312,33 +353,67 @@ let translateTypedef translateF (bindings :bindings) = function
           | None -> raiseInvalidType targetTypeExpr
           | Some t -> Some (addTypedef bindings newTypeName t, [])
       end
-(*   | { id = id; args = [ *)
-(*         { id = typeName; args = []; }; *)
-(*         { id = seq; args = compExprs }; *)
-(*       ] } as expr *)
-(*       when id = macroTypedef && seq = macroSequence -> begin *)
-(*         let expr2comp = function *)
-(*           | { id = typeName; args = [{ id = compName; args = []; }]; } -> begin *)
-(*               match lookupType bindings typeName with *)
-(*                 | Some typ -> compName, typ *)
-(*                 | None -> raise (UnknownType typeName) *)
-(*             end *)
-(*           | _ -> raiseIllegalExpression expr "type foo { typename compname;* } expected" *)
-(*         in *)
-(*         let comps = List.map expr2comp compExprs in *)
-(*         Some (addTypedef bindings typeName (`Record comps), []) *)
-(*       end *)
+  | { id = id; args =
+        { id = typeName; args = [] }
+        :: componentExprs
+    } as expr
+      when id = macroTypedef ->
+      begin
+        let expr2comp = function
+          | { id = componentName; args = [typeExpr] } ->
+              begin
+                match translateType bindings typeExpr with
+                  | Some typ -> componentName, typ
+                  | None -> raise (UnknownType typeName)
+              end
+          | _ -> raiseIllegalExpression expr "(type typeName (componentName typeExpression)* ) expected"
+        in
+        let components = List.map expr2comp componentExprs in
+        Some (addTypedef bindings typeName (`Record components), [])
+      end
   | _ -> None
 
-(* let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function *)
-(*   | { id = id; args = [ *)
-(*         { id = name; args = []; }; *)
-(*         { id = seq; args = fields; }; *)
-(*       ] } when id = macroRecord && seq = macroSequence -> *)
-(*       begin *)
-(*         Some (bindings, []) *)
-(*       end *)
-(*   | _ -> None *)
+let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args =
+        { id = name; args = []; }
+        :: componentExprs
+      } as expr
+      when id = macroRecord ->
+      begin
+        match lookup bindings name with
+          | TypedefSymbol `Record components ->
+              begin
+                let recordInitFunc name components =
+                  { fname = name ^ "_init";
+                    rettype = `Void;
+                    fargs = components;
+                    impl = None;
+                  }
+                in
+                let initFunc = recordInitFunc name components in
+                let translate param compExpr = match (param, compExpr) with
+                  | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
+                      begin
+                        if argName = compName then begin
+                          Sequence (snd (translateF bindings argExpr))
+                        end else
+                          raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
+                      end
+                  | _, invalidCompExpr ->
+                      raiseIllegalExpression invalidCompExpr "expected (componentName expr)"
+                in
+                let call = {
+                  fcname = initFunc.fname;
+                  fcrettype = initFunc.rettype;
+                  fcparams = List.map snd initFunc.fargs;
+                  fcargs = List.map2 translate initFunc.fargs componentExprs;
+                } in
+                Some (bindings, [FuncCall call])
+              end
+          | UndefinedSymbol -> raiseIllegalExpression expr (sprintf "%s is undefined" name)
+          | _ -> raiseIllegalExpression expr (sprintf "%s is not a record" name)
+      end
+  | _ -> None
 
 let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr =
   let getNewVar bindings typ =
@@ -360,7 +435,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | TypeOf newVarType ->
           let newBindings, newVar = getNewVar bindings newVarType in
           let _, simpleforms = translateF bindings expr in
-          let rightHandExpr = DefineVariable (newVar, Sequence simpleforms) in
+          let rightHandExpr = DefineVariable (newVar, Some (Sequence simpleforms)) in
           (newBindings, newVar, rightHandExpr)
       | _ -> raiseIllegalExpression expr "expression is ill typed"
   in
@@ -410,89 +485,63 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                 end
             | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr"
         end
+    | { id = "setField"; args = [
+          { id = recordName; args = [] };
+          { id = componentName; args = [] };
+          { id = _; args = [] } as valueExpr;
+        ] } ->
+        begin
+          match lookup bindings recordName with
+            | VarSymbol recordVar ->
+                begin
+                  match recordVar.typ with
+                    | `Record components ->
+                        begin match componentType components componentName with
+                          | Some componentType ->
+                              begin
+                                let _, valueSimpleform = translateF bindings valueExpr in
+                                Some( bindings, [GenericIntrinsic (SetFieldIntrinsic
+                                                                     (componentType,
+                                                                      recordVar,
+                                                                      componentName,
+                                                                      Sequence valueSimpleform))] )
+                              end
+                          | None ->
+                              raiseIllegalExpression expr
+                                (sprintf "component with name %s not found" componentName)
+                        end
+                    | _ ->
+                        raiseIllegalExpression expr
+                          ("'setField recordName componentName valueExpr' expects a record variable")
+                end
+            | _ -> raiseIllegalExpression expr (sprintf "could not find variable %s" recordName)
+        end
+    | { id = "field"; args = [
+          { id = recordName; args = [] };
+          { id = componentName; args = [] };
+        ] } ->
+        begin
+          match lookup bindings recordName with
+            | VarSymbol var ->
+                begin match var.typ with
+                  | `Record components ->
+                      begin match componentType components componentName with
+                        | Some typ ->
+                            Some( bindings, [GenericIntrinsic (GetFieldIntrinsic(typ, var, componentName))] )
+                        | None -> raiseIllegalExpression expr
+                            (sprintf "could not find component %s" componentName)
+                      end
+                  | illegalType ->
+                      raiseIllegalExpression expr
+                        (sprintf "%s should be a record but is a %s"
+                           componentName (composedType2String illegalType))
+                end
+            | _ ->
+                raiseIllegalExpression expr (sprintf "could not find variable %s" recordName)
+        end
     | _ ->
         None
         
-(* (\* TODO: combine this somehow with gencodeGenericIntr *\) *)
-(* let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr = *)
-(*   let convertSimple name typeExpr = *)
-(*     match translateType bindings typeExpr with *)
-(*       | Some typ -> *)
-(*           begin *)
-(*             let newExpr = { *)
-(*               giname = name; *)
-(*               gitype = typ; *)
-(*               giargs = []; *)
-(*             } in *)
-(*             Some (bindings, [GenericIntrinsic newExpr]) *)
-(*           end *)
-(*       | None -> *)
-(*           raiseInvalidType typeExpr *)
-(*   in *)
-(*   match expr with *)
-(*     | { id = "nullptr"; args = [typeExpr] } -> convertSimple "nullptr" typeExpr *)
-(*     | { id = "malloc"; args = [typeExpr]; } -> convertSimple "malloc" typeExpr *)
-(*     | { id = "store"; args = [ *)
-(*           { id = valueName; args = [] }; *)
-(*           { id = ptrName; args = [] } *)
-(*         ] } -> *)
-(*         begin *)
-(*           match lookup bindings valueName, lookup bindings ptrName with *)
-(*             | VarSymbol valueVar, VarSymbol ptrVar when ptrVar.typ = `Pointer valueVar.typ -> *)
-(*                 begin *)
-(*                   let valueTypeName = composedType2String valueVar.typ in *)
-(*                   let storageKind = match valueVar.vstorage with *)
-(*                     | MemoryStorage -> "m" *)
-(*                     | RegisterStorage -> "r" *)
-(*                   in *)
-(*                   let newExpr = { *)
-(*                     giname = "store"; *)
-(*                     gitype = `Void; *)
-(*                     giargs = [valueTypeName; valueVar.vname; ptrVar.vname; storageKind] *)
-(*                   } in *)
-(*                   Some (bindings, [GenericIntrinsic newExpr]) *)
-(*                 end *)
-(*             | _, _ -> *)
-(*                 raiseIllegalExpression expr *)
-(*                   ("'store var ptr' required two existing variables" ^ *)
-(*                      " where typeof(ptr) = ptr to typeof(var)") *)
-(*         end *)
-(*     | { id = "deref"; args = [rightHandExpr]; } -> *)
-(*         begin *)
-(*           let newVarName = *)
-(*             let rec tryTempVar num = *)
-(*               let name = (Printf.sprintf "tempvar_%d" num) in *)
-(*               match lookup bindings name with *)
-(*                 | UndefinedSymbol -> name *)
-(*                 | _ -> tryTempVar (num + 1) *)
-(*             in *)
-(*             tryTempVar 0 *)
-(*           in *)
-(*           let _, rightHandSimpleforms = translateF bindings rightHandExpr in *)
-(*           match typeOf (Sequence rightHandSimpleforms) with *)
-(*             | TypeOf (`Pointer resultType) -> *)
-(*                 begin *)
-(*                   let varExpr = *)
-(*                     { id = macroVar; args = [ *)
-(*                         { id = composedType2String (`Pointer resultType); args = [] }; *)
-(*                         { id = newVarName; args = [] }; *)
-(*                         rightHandExpr *)
-(*                       ] *)
-(*                     } *)
-(*                   in *)
-(*                   let newBindings, simpleforms = translateF bindings varExpr *)
-(*                   in *)
-(*                   let newExpr = { *)
-(*                     giname = "deref"; *)
-(*                     gitype = resultType; *)
-(*                     giargs = [composedType2String resultType; newVarName] *)
-(*                   } in *)
-(*                   Some (newBindings, simpleforms @ [GenericIntrinsic newExpr]) *)
-(*                 end *)
-(*             | _ -> None *)
-(*         end *)
-(*     | _ -> None *)
-  
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -505,7 +554,7 @@ let translateNested = translate raiseIllegalExpression
     translateAssignVar;
     translateTypedef;
     translateGenericIntrinsic;
-(*     translateRecord; *)
+    translateRecord;
   ]
 
 type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list

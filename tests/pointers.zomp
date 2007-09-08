@@ -97,7 +97,7 @@
   (store ptr2ptr2int ptr2int)
   ptr2ptr2int
   ))
-
+ 
 (func int derefint (std:seq (iptr p)) (std:seq
   (deref p)
   ))

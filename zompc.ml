@@ -71,7 +71,7 @@ let ( |> ) l r =
                 eprintf "cexpr: %s" error;
                 eprintf "sexpr: %s" serror
             | CouldNotCompile error ->
-                eprintf "%s" error
+                eprintf "%s" error;
         end
 
 let () =

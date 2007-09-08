@@ -1,19 +1,27 @@
 
 /** define a type */
-type simple {
-  int count;
-  float foo;
-};
+(type simple
+  (count int)
+  (foo float)
+  )
 
-/** create a simple function which returns a record instance */
-// func simple createsimple {} {
-//   record simple { count 1; foo 1.0; };
-// };
+(func int testStack () (std:seq
+  (var simple r)
+  (setField r count 3)
+  (setField r foo 1.3)
+  (field r count)
+  ))
 
-func int main {} {
-  var simple foo { record simple { count 2; foo 1.0; }; };
+(func (ptr simple) testMalloc () (std:seq
+  (var (ptr simple) p (malloc simple))
+//   (setField p count 3)
+//   (setField p foo 1.2)
+  p
+  ))
 
-  1;
-//   field foo count;
-};
+(func int main () (std:seq
+  (var simple r)
+  (setField r count 10)
+  (field r count)
+  ))
 

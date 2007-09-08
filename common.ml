@@ -1,4 +1,10 @@
 
+
+let rec combine seperator = function
+    [] -> ""
+  | [str] -> str
+  | hd :: tl -> hd ^ seperator ^ (combine seperator tl)
+
 let rec translatelst translateF bindings = function
   | [] -> bindings, []
   | expr :: tail ->

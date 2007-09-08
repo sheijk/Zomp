@@ -31,17 +31,25 @@ and composedType = [
 | integralType
 ]
 
+let componentType components componentName =
+  try Some( snd (List.find (fun (name, _) -> name = componentName) components) )
+  with Not_found -> None
+
+let componentNum components componentName =
+  let rec find n = function
+    | [] -> raise Not_found
+    | (name, _) :: tail when name = componentName -> n
+    | _ :: tail -> find (n+1) tail
+  in
+  find 0 components
+
 let rec composedType2String = function
   | `Pointer t -> (composedType2String t) ^ "*"
   | `Record components ->
-      let rec convert components str =
-        match components with
-          | [] -> ""
-          | (name, typ) :: tail ->
-              let s = Printf.sprintf "(%s : %s)" name (composedType2String typ) in
-              convert tail (str ^ s)
+      let rec convert (name, typ) =
+        Printf.sprintf "(%s : %s)" name (composedType2String typ)
       in
-      "(" ^ convert components "" ^ ")"
+      "(" ^ Common.combine " " (List.map convert components) ^ ")"
   | #integralType as t -> integralType2String t
 
 let rec string2composedType str =
@@ -189,9 +197,11 @@ and genericIntrinsic =
   | MallocIntrinsic of composedType
   | DerefIntrinsic of variable
   | StoreIntrinsic of variable * variable (* value, ptr *)
+  | SetFieldIntrinsic of composedType * variable * string * expr
+  | GetFieldIntrinsic of composedType * variable * string
 and expr =
   | Sequence of expr list
-  | DefineVariable of variable * expr
+  | DefineVariable of variable * expr option
   | Variable of variable
   | Constant of integralValue
   | FuncCall of funcCall
