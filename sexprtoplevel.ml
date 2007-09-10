@@ -22,12 +22,12 @@ let printBindings (bindings :Bindings.bindings) =
   let printSymbol (name, symbol)  =
     match symbol with
       | Bindings.VarSymbol var ->
-          printf "var %s : %s\n" var.vname (composedType2String var.typ)
+          printf "var %s : %s\n" var.vname (Lang.typeName var.typ)
       | Bindings.FuncSymbol f ->
-          let arg2string (name, typ) = name ^ " :" ^ composedType2String typ in
+          let arg2string (name, typ) = name ^ " :" ^ Lang.typeName typ in
           let args = List.map arg2string f.fargs in
           let argString = combine ", " args in
-          printf "func %s : %s -> %s\n" f.fname argString (composedType2String f.rettype)
+          printf "func %s : %s -> %s\n" f.fname argString (Lang.typeName f.rettype)
       | Bindings.MacroSymbol m ->
           printf "macro %s\n" m.mname
       | Bindings.TypedefSymbol t ->
@@ -128,7 +128,7 @@ let () =
         | Expander.IllegalExpression (expr, msg) ->
             printf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr);
             goon()
-        | Lang.UnknownType descr ->
+        | Lang.CouldNotParseType descr ->
             printf "Unknown type: %s\n" descr;
             goon()
     end

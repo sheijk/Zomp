@@ -210,13 +210,13 @@ let gencodeDefineVariable gencode var default =
         let zeroElement = function
           | `Pointer _ -> Some "null"
           | `Record _ -> None
-          | #integralType as t -> Some (integralValue2String (defaultValue t))
+          | #integralType as t -> Some (Lang.valueString (defaultValue t))
         in
         let initInstr = function
           | `Int | `Float | `Pointer _ -> "add"
           | `Bool -> "or"
           | _ as t -> raiseCodeGenError
-              ~msg:(sprintf "no init instruction implemented for %s" (composedType2String t))
+              ~msg:(sprintf "no init instruction implemented for %s" (Lang.typeName t))
         in
         (*         let initVar, initVarCode = *)
         (*           match default with *)
@@ -255,7 +255,7 @@ let gencodeDefineVariable gencode var default =
         in
         let comment = sprintf "; allocating var %s : %s/%s on stack\n"
           var.vname
-          (composedType2String var.typ)
+          (Lang.typeName var.typ)
           typename
         in
         let allocCode =
@@ -292,8 +292,8 @@ let gencodeVariable v =
 
 let gencodeConstant c =
   {
-    rvname = integralValue2String c;
-    rvtypename = llvmTypeName (integralValue2Type c);
+    rvname = Lang.valueString c;
+    rvtypename = llvmTypeName (Lang.typeOf c);
   },
   ""
 
@@ -395,7 +395,7 @@ let gencodeGenericIntr gencode = function
         let resultType = match ptrVar.typ with
           | `Pointer resultType -> resultType
           | _ -> raiseCodeGenError ~msg:(sprintf "deref: %s is not a pointer type"
-                                           (composedType2String ptrVar.typ))
+                                           (Lang.typeName ptrVar.typ))
         in
         let resultTypeLLVM = llvmTypeName resultType in
         let llvmPtrTypeName = llvmTypeName (`Pointer resultType) in
@@ -605,7 +605,7 @@ let gencodeGlobalVar var =
         sprintf "@%s = constant %s %s"
           varname
           (llvmTypeName var.typ)
-          (integralValue2String var.default)
+          (Lang.valueString var.default)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
     | PointerVal _ ->

@@ -27,7 +27,7 @@ and macroPtr = "ptr"
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
-let raiseInvalidType typeExpr = raise (UnknownType (Ast2.expression2string typeExpr))
+let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
 
 type typecheckResult =
   | TypeOf of composedType
@@ -51,7 +51,7 @@ let rec typeOf = function
         | None -> TypeOf var.typ
     end
   | Variable var -> TypeOf var.typ
-  | Constant value -> TypeOf (integralValue2Type value)
+  | Constant value -> TypeOf (Lang.typeOf value)
   | FuncCall call -> TypeOf (call.fcrettype :> composedType)
   | AssignVar (v, expr) -> begin
       match typeOf expr with
@@ -157,9 +157,9 @@ let rec typeOfTL = function
 let rec translateType bindings typeExpr =
   let lookupType bindings name =
     try
-      Some (string2composedType name)
+      Some (Lang.parseType name)
     with
-      | UnknownType _ ->
+      | CouldNotParseType _ ->
           match lookup bindings name with
             | TypedefSymbol t -> Some t
             | _ -> None
@@ -191,7 +191,7 @@ let rec expr2value typ expr =
         match expr with
           | { id = value; args = [] } -> string2integralValue value
           | _ -> raiseIllegalExpression expr
-              (Printf.sprintf "expected value of type %s" (composedType2String typ))
+              (Printf.sprintf "expected value of type %s" (Lang.typeName typ))
       end
     | `Record components -> begin
 (*         let translateField (name, fieldValueExpr) = *)
@@ -235,7 +235,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
               | leftHandType, TypeOf rightHandType ->
                   raiseIllegalExpression expr
                     (sprintf "types %s and %s do not match"
-                       (composedType2String leftHandType) (composedType2String rightHandType))
+                       (Lang.typeName leftHandType) (Lang.typeName rightHandType))
               | _, TypeError (msg, _, _) -> raiseIllegalExpression valueExpr msg
           end
       | Some (`Record _ as typ) ->
@@ -244,7 +244,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
             Some( addVar bindings var, [ DefineVariable (var, None) ] )
           end
       | _ ->
-          raise (UnknownType (Ast2.expression2string typeExpr))
+          raise (CouldNotParseType (Ast2.expression2string typeExpr))
   in
   match expr with
     | { id = id; args = [
@@ -364,7 +364,7 @@ let translateTypedef translateF (bindings :bindings) = function
               begin
                 match translateType bindings typeExpr with
                   | Some typ -> componentName, typ
-                  | None -> raise (UnknownType typeName)
+                  | None -> raise (CouldNotParseType typeName)
               end
           | _ -> raiseIllegalExpression expr "(type typeName (componentName typeExpression)* ) expected"
         in
@@ -477,8 +477,8 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                           raiseIllegalExpression expr
                             (sprintf "first parameter (%s) should have type %s* instead of %s"
                                ptrVar.vname
-                               (composedType2String ptrType)
-                               (composedType2String rightHandType))
+                               (Lang.typeName ptrType)
+                               (Lang.typeName rightHandType))
                         end
                     | _, TypeError (msg, _, _) ->
                         raiseIllegalExpression rightHandExpr msg
@@ -534,7 +534,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                   | illegalType ->
                       raiseIllegalExpression expr
                         (sprintf "%s should be a record but is a %s"
-                           componentName (composedType2String illegalType))
+                           componentName (Lang.typeName illegalType))
                 end
             | _ ->
                 raiseIllegalExpression expr (sprintf "could not find variable %s" recordName)
@@ -641,8 +641,8 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
                       raiseIllegalExpression
                         expr
                         (Printf.sprintf "Function has return type %s but returns %s"
-                           (composedType2String declaredType)
-                           (composedType2String returnedType))
+                           (Lang.typeName declaredType)
+                           (Lang.typeName returnedType))
               end
             | None -> raiseInvalidType typeExpr
         end
