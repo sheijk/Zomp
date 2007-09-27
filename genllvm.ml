@@ -342,14 +342,14 @@ let gencodeFuncCall gencode call =
         let intrinsicCallCode =
           assignResultCode ^ (gencallCodeF vars)
         in
-        (resultVar, comment ^ argevalCode ^ intrinsicCallCode)
+        (resultVar, comment ^ argevalCode ^ "\n" ^ intrinsicCallCode)
 
 let gencodeIfThenElse gencode ite =
   let condVar, condCode = gencode ite.cond
   and trueVar, trueCode = gencode ite.trueCode
   and falseVar, falseCode = gencode ite.falseCode
   in
-  let comment = "; if/then/else\n" in
+  let comment = "; if/then/else" in
   let resultTypeName = trueVar.rvtypename in
   let id = nextUID () in
   let trueLabel = sprintf "true_cond%d" id
@@ -357,21 +357,30 @@ let gencodeIfThenElse gencode ite =
   and continueLabel = sprintf "continue%d" id
   and resultVarName = sprintf "%%iteResult%d" id
   in
+  let isVoid = resultTypeName = "void" or resultTypeName = "" in
   ( {rvname = llvmName resultVarName; rvtypename = resultTypeName},
-   comment ^ "\n" ^
-     condCode ^ "\n" ^
-     resultVarName ^ "_ptr = alloca " ^ resultTypeName ^ "\n" ^
-     "br i1 " ^ condVar.rvname ^ ", label %" ^ trueLabel ^ ", label %" ^ falseLabel ^ "\n" ^
-     trueLabel ^ ":\n" ^ 
-     trueCode ^ "\n" ^ 
-     "store " ^ resultTypeName ^ " " ^ trueVar.rvname ^ ", " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr\n" ^
-     "br label %" ^ continueLabel ^ "\n" ^
-     falseLabel ^ ":\n" ^
-     falseCode ^ "\n" ^ 
-     "store " ^ resultTypeName ^ " " ^ falseVar.rvname ^ ", " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr\n" ^
-     "br label %" ^ continueLabel ^ "\n" ^
-     continueLabel ^ ":\n" ^
-     resultVarName ^ " = load " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr"
+    comment ^ "\n" ^
+      condCode ^ "\n" ^
+      (if isVoid then "; void\n" else (resultVarName ^ "_ptr = alloca " ^ resultTypeName ^ "\n")) ^
+      "br i1 " ^ condVar.rvname ^ ", label %" ^ trueLabel ^ ", label %" ^ falseLabel ^ "\n" ^
+      trueLabel ^ ":\n" ^ 
+      trueCode ^ "\n" ^
+      (if isVoid then ""
+       else
+         "store " ^ resultTypeName ^ " " ^ trueVar.rvname ^ ", " ^ resultTypeName ^ "* " ^
+           resultVarName ^ "_ptr\n") ^
+      "br label %" ^ continueLabel ^ "\n" ^
+      falseLabel ^ ":\n" ^
+      falseCode ^ "\n" ^
+      (if isVoid then ""
+       else
+         "store " ^ resultTypeName ^ " " ^ falseVar.rvname ^ ", " ^ resultTypeName ^ "* " ^
+           resultVarName ^ "_ptr\n") ^
+      "br label %" ^ continueLabel ^ "\n" ^
+      continueLabel ^ ":\n" ^
+      (if isVoid then ""
+       else
+         resultVarName ^ " = load " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr")
   )
 
 let gencodeGenericIntr gencode = function
@@ -555,8 +564,14 @@ let gencodeAssignVar gencode var expr =
   let name = (resultVar var).rvname in
   let typename = llvmTypeName var.typ in
   let comment = sprintf "; assigning new value to %s\n" name in
-  let assignCode = sprintf "store %s %s, %s* %s" typename rvalVar.rvname typename name in
+  let assignCode = sprintf "store %s %s, %s* %s\n" typename rvalVar.rvname typename name in
   (noVar, comment ^ rvalCode ^ "\n" ^ assignCode)
+
+let gencodeReturn gencode expr =
+  let exprVar, exprCode = gencode expr in
+  let comment = "; return\n" in
+  let retCode = sprintf "ret %s %s\n" exprVar.rvtypename exprVar.rvname in
+  (noVar, comment ^ exprCode ^ "\n" ^ retCode)
   
 let rec gencode : Lang.expr -> resultvar * string = function
   | Sequence exprs -> gencodeSequence gencode exprs
@@ -566,6 +581,7 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | FuncCall call -> gencodeFuncCall gencode call
   | IfThenElse ite -> gencodeIfThenElse gencode ite
   | Loop l -> gencodeLoop gencode l
+  | Return e -> gencodeReturn gencode e
   | AssignVar (var, expr) -> gencodeAssignVar gencode var expr
   | GenericIntrinsic intr -> gencodeGenericIntr gencode intr
       
@@ -622,16 +638,33 @@ let gencodeDefineFunc func =
   match func.impl with
     | None -> "declare " ^ decl
     | Some impl ->
-        let resultVar, implCode = gencode impl in
-        let isTypeName name = String.length name > 0 && name <> "void" in
-        let impl =
-          (sprintf "{\n%s\n" implCode)
-          ^ (if isTypeName resultVar.rvtypename then
-               (sprintf "  ret %s %s\n}"
-                  resultVar.rvtypename
-                  resultVar.rvname)
-             else "  ret void\n}")
+        let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
+        let lastExpr = function
+          | Sequence exprs as seq -> lastOrDefault exprs seq
+          | _ as expr -> expr
         in
+        let resultVar, implCode = gencode impl in
+        let impl = match lastExpr impl with
+          | Return _ ->
+              sprintf "{\n%s\n}" implCode
+          | _ ->
+              let isTypeName name = String.length name > 0 && name <> "void" in
+              (sprintf "{\n%s\n" implCode)
+              ^ (if isTypeName resultVar.rvtypename then
+                   (sprintf "  ret %s %s\n}"
+                      resultVar.rvtypename
+                      resultVar.rvname)
+                 else "  ret void\n}")
+        in
+        (*         let isTypeName name = String.length name > 0 && name <> "void" in *)
+        (*         let impl = *)
+        (*           (sprintf "{\n%s\n}" implCode) *)
+        (*           ^ (if isTypeName resultVar.rvtypename then *)
+        (*                (sprintf "  ret %s %s\n}" *)
+        (*                   resultVar.rvtypename *)
+        (*                   resultVar.rvname) *)
+        (*              else "  ret void\n}") *)
+        (* in *)
         "define " ^ decl ^ impl
 
 let gencodeTL = function

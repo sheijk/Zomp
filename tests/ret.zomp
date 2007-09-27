@@ -1,0 +1,23 @@
+
+
+(func int oneortwo (seq (bool cond)) (seq
+  (ifthenelse cond
+    (ret 1)
+    (ret 2))
+  (ret 666)
+  ))
+
+// (func int oneortwo (seq (bool cond)) (seq
+//   (ifthenelse cond
+//     (ret 1)
+//     (ret 2))
+//   (ret 666)
+//   ))
+
+(func int main () (seq
+  (var int one (oneortwo true))
+  (var int two (oneortwo false))
+  (var int four (int.add two two))
+  (ret (int.add one four))
+  ))
+

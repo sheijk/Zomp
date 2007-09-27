@@ -92,6 +92,7 @@ and expr =
   | AssignVar of variable * expr
   | IfThenElse of ifthenelse
   | Loop of loop
+  | Return of expr
   | GenericIntrinsic of genericIntrinsic
 
 type func = {

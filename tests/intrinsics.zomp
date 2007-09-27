@@ -38,6 +38,6 @@ func int main {} {
   var bool t5 { int.ulessEqual i1 i2; };
   var bool t6 { int.ugreaterEqual i1 i2; };
 
-  0;
+  ret 0;
 };
 

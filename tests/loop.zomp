@@ -9,6 +9,6 @@ func int main {} {
     printf fasel;
   };
 
-  1;
+  ret 1;
 };
 

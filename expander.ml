@@ -23,7 +23,8 @@ and macroTypedef = "type"
 and macroRecord = "record"
 and macroField = "field"
 and macroPtr = "ptr"
-
+and macroReturn = "ret"
+  
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
@@ -86,6 +87,7 @@ let rec typeOf = function
         | TypeOf wrongType -> TypeError ("Abort condition in loop must have type Bool", wrongType, `Bool)
         | _ as e -> e
       end
+  | Return expr -> typeOf expr
   | GenericIntrinsic NullptrIntrinsic typ -> TypeOf (`Pointer typ)
   | GenericIntrinsic MallocIntrinsic typ -> TypeOf (`Pointer typ)
   | GenericIntrinsic DerefIntrinsic var ->
@@ -301,6 +303,15 @@ let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = func
     end
   | _ -> None
 
+let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args = [expr] } when id = macroReturn ->
+      begin
+        match translateF bindings expr with
+          | _, [form] -> Some( bindings, [Return form] )
+          | _, _ -> None
+      end
+  | _ -> None
+  
 let translateLoop (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [preCode; abortTest; postCode] } when id = macroLoop -> begin
       let eval expr =
@@ -555,6 +566,7 @@ let translateNested = translate raiseIllegalExpression
     translateTypedef;
     translateGenericIntrinsic;
     translateRecord;
+    translateReturn;
   ]
 
 type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list

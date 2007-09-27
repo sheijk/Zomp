@@ -5,12 +5,14 @@ var string truemsg "true!\n";
 var string falsemsg "false!\n";
 
 func int main {} {
-  ifthenelse {true;} {
-    printf truemsg;
-    1;
-  } {
-    printf falsemsg;
-    two;
+  ret {
+    ifthenelse {true;} {
+      printf truemsg;
+      1;
+    } {
+      printf falsemsg;
+      two;
+    };
   };
 };
 

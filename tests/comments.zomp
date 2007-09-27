@@ -11,7 +11,7 @@ func int main {} {
 /* more comments */
 
   /// here is a short doc line
-  6;
+  ret 6;
 };
 
 
