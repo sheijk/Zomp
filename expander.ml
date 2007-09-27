@@ -18,7 +18,7 @@ and macroFunc = "func"
 and macroIfThenElse = "ifthenelse"
 and macroLoop = "loop"
 and macroAssign = "assign"
-and macroSequence = "std:seq"
+and macroSequence = "seq"
 and macroTypedef = "type"
 and macroRecord = "record"
 and macroField = "field"
@@ -628,9 +628,9 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
-          { id = "std:seq"; args = paramExprs };
-          { id = "std:seq"; args = _ } as implExpr;
-        ] } when id = macroFunc ->
+          { id = seq1; args = paramExprs };
+          { id = seq2; args = _ } as implExpr;
+        ] } when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
         begin
           match translateType bindings typeExpr with
             | Some typ -> begin
@@ -649,8 +649,8 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
-          { id = "std:seq"; args = paramExprs };
-        ] } when id = macroFunc ->
+          { id = seq; args = paramExprs };
+        ] } when id = macroFunc && seq = macroSequence ->
         begin
           match translateType bindings typeExpr with
             | Some typ ->

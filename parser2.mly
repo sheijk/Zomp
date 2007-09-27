@@ -24,5 +24,5 @@ param:
 | id = IDENTIFIER
     { { Ast2.id = id; Ast2.args = []; } }
 | BLOCK_BEGIN expressions = main* BLOCK_END
-    { { Ast2.id = "std:seq"; Ast2.args = expressions; } }
+    { { Ast2.id = "seq"; Ast2.args = expressions; } }
     

@@ -5,21 +5,21 @@
   (foo float)
   )
 
-(func int testStack () (std:seq
+(func int testStack () (seq
   (var simple r)
   (setField r count 3)
   (setField r foo 1.3)
   (field r count)
   ))
 
-(func (ptr simple) testMalloc () (std:seq
+(func (ptr simple) testMalloc () (seq
   (var (ptr simple) p (malloc simple))
 //   (setField p count 3)
 //   (setField p foo 1.2)
   p
   ))
 
-(func int main () (std:seq
+(func int main () (seq
   (var simple r)
   (setField r count 10)
   (field r count)

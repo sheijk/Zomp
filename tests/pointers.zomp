@@ -3,53 +3,53 @@
 (type iptr2 (ptr (ptr int)))
 (type itpr3 (ptr iptr2))
 
-(func int twice (std:seq (int v)) (std:seq
+(func int twice (seq (int v)) (seq
   (int.add v v)
   ))
 
 
   
-(func void test_nullptr () (std:seq
+(func void test_nullptr () (seq
   (var (ptr int) p (nullptr int))
   void
   ))
 
-(func void test_nullptr_ptr2ptr () (std:seq
+(func void test_nullptr_ptr2ptr () (seq
   (var (ptr (ptr int)) p (nullptr (ptr int)))
   void
   ))
 
   
   
-(func void test_deref () (std:seq
+(func void test_deref () (seq
   (var (ptr int) p (nullptr int))
   (var int v (deref p))
   void
   ))
 
-(func int test_deref_ptr (std:seq (iptr pi)) (std:seq
+(func int test_deref_ptr (seq (iptr pi)) (seq
   (deref pi)
   ))
 
-(func void test_mutableptr () (std:seq
+(func void test_mutableptr () (seq
   (mvar int i 1)
   (mvar (ptr int) pi (nullptr int))
   void
   ))
   
-(func void test_deref_memstorage () (std:seq
+(func void test_deref_memstorage () (seq
   (mvar (ptr int) pi (nullptr int))
   (var int i (deref pi))
   void
   ))
   
   
-(func void test_malloc () (std:seq
+(func void test_malloc () (seq
   (var (ptr int) p (malloc int))
   void
   ))
 
-(func void test_malloc_ptr () (std:seq
+(func void test_malloc_ptr () (seq
   (var iptr p (malloc int))
   (var iptr2 p2 (malloc iptr))
   void
@@ -57,40 +57,40 @@
 
   
 
-(func void test_store () (std:seq
+(func void test_store () (seq
   (var (ptr int) p (malloc int))
   (store p 3)
   void
   ))
   
-(func void test_store_regvar (std:seq (iptr p) (int i)) (std:seq
+(func void test_store_regvar (seq (iptr p) (int i)) (seq
   (store p i)
   void
   ))
 
 
   
-(func (ptr int) int.new (std:seq (int v)) (std:seq
+(func (ptr int) int.new (seq (int v)) (seq
   (var (ptr int) pointer (nullptr int))
   (assign pointer (malloc int))
   (store pointer v)
   pointer
   ))
 
-(func (ptr float) float.new (std:seq (float v)) (std:seq
+(func (ptr float) float.new (seq (float v)) (seq
   (var (ptr float) pointer (malloc float))
   (store pointer v)
   pointer
   ))
 
-(func (ptr bool) bool.new (std:seq (bool v)) (std:seq
+(func (ptr bool) bool.new (seq (bool v)) (seq
   (var (ptr bool) pointer (malloc bool))
   (store pointer v)
   pointer
   ))
 
 (type iptr2 (ptr (ptr int)))
-(func (ptr (ptr int)) newPtrTo (std:seq (int v)) (std:seq
+(func (ptr (ptr int)) newPtrTo (seq (int v)) (seq
   (var (ptr int) ptr2int (malloc int))
   (store ptr2int v)
   (var (ptr (ptr int)) ptr2ptr2int (malloc iptr))
@@ -98,11 +98,11 @@
   ptr2ptr2int
   ))
  
-(func int derefint (std:seq (iptr p)) (std:seq
+(func int derefint (seq (iptr p)) (seq
   (deref p)
   ))
 
-(func int main () (std:seq
+(func int main () (seq
   (deref (int.new (twice 10)))
   ))
   

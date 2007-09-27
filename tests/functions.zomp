@@ -1,4 +1,7 @@
 
+
+
+
 func int twice {int arg;} {
   int.add arg arg;
 };

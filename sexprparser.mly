@@ -15,7 +15,7 @@ main:
 | e = expr { e }
 expr:
 | PAREN_OPEN PAREN_CLOSE
-    { { Ast2.id = "std:seq"; args = []; } }
+    { { Ast2.id = "seq"; args = []; } }
 | PAREN_OPEN id = IDENTIFIER args = arg* PAREN_CLOSE
     { { Ast2.id = id; Ast2.args = args; } }
 arg:
