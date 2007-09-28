@@ -24,6 +24,8 @@ and macroRecord = "record"
 and macroField = "field"
 and macroPtr = "ptr"
 and macroReturn = "ret"
+and macroLabel = "label"
+and macroBranch = "branch"
   
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
@@ -88,6 +90,9 @@ let rec typeOf = function
         | _ as e -> e
       end
   | Return expr -> typeOf expr
+  | Label _ -> TypeOf `Void
+  | Jump _ -> TypeOf `Void
+  | Branch _ -> TypeOf `Void
   | GenericIntrinsic NullptrIntrinsic typ -> TypeOf (`Pointer typ)
   | GenericIntrinsic MallocIntrinsic typ -> TypeOf (`Pointer typ)
   | GenericIntrinsic DerefIntrinsic var ->
@@ -552,7 +557,39 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         end
     | _ ->
         None
-        
+
+let translateLabel (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args = [{ id = name; args = [] }] } when id = macroLabel ->
+      begin
+        Some( addLabel bindings name, [Label { lname = name; }] )
+      end
+  | _ -> None
+
+let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
+  | { id = id; args = [{ id = labelName; args = [] }] } when id = macroBranch ->
+      begin
+        Some( bindings, [Jump { lname = labelName; }] )
+      end
+  | { id = id; args = [
+        { id = condVarName; args = [] };
+        { id = trueLabelName; args = [] };
+        { id = falseLabelName; args = [] };
+      ] } as expr when id = macroBranch ->
+      begin
+        match lookup bindings condVarName with
+          | VarSymbol var when var.typ = `Bool ->
+              begin
+                Some( bindings, [Branch {
+                                   bcondition = var;
+                                   trueLabel = { lname = trueLabelName};
+                                   falseLabel = { lname = falseLabelName}; }] )
+              end
+          | _ ->
+              raiseIllegalExpression expr "Branch requires a bool variable as condition"
+      end
+  | _ -> None
+
+  
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -567,6 +604,8 @@ let translateNested = translate raiseIllegalExpression
     translateGenericIntrinsic;
     translateRecord;
     translateReturn;
+    translateLabel;
+    translateBranch;
   ]
 
 type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list

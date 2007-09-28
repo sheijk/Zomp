@@ -76,6 +76,14 @@ and funcCall = {
   fcparams :composedType list;
   fcargs :expr list;
 }
+and label = {
+  lname :string;
+}
+and branch = {
+  bcondition :variable;
+  trueLabel :label;
+  falseLabel :label;
+}
 and genericIntrinsic =
   | NullptrIntrinsic of composedType
   | MallocIntrinsic of composedType
@@ -90,9 +98,12 @@ and expr =
   | Constant of integralValue
   | FuncCall of funcCall
   | AssignVar of variable * expr
-  | IfThenElse of ifthenelse
-  | Loop of loop
+  | IfThenElse of ifthenelse (*remove*)
+  | Loop of loop (*remove*)
   | Return of expr
+  | Jump of label
+  | Branch of branch
+  | Label of label
   | GenericIntrinsic of genericIntrinsic
 
 type func = {

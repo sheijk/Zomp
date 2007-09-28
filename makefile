@@ -2,7 +2,7 @@ OCAMLPATH=
 OCAMLLEX=$(OCAMLPATH)ocamllex
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
-OCAMLC=$(OCAMLPATH)ocamlc -dtypes
+OCAMLC=$(OCAMLPATH)ocamlc -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
@@ -82,9 +82,12 @@ clean_tags:
 
 clean_all: clean clean_tags
 
-check-syntax:
-	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
-	@ocamlc -c $(CHK_SOURCES) > build/flymake-output && mv *_flymake.cm? build/
+check-syntax: $(CHK_SOURCES:_flymake.ml=.cmo) all
+	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> ./flymake-log.temp
+	@ocamlc -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > ./flymake-output.temp
+# check-syntax:
+# 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
+# 	@ocamlc -c $(CHK_SOURCES) > build/flymake-output && mv *_flymake.cm? build/
 
 include makefile.depends
 

@@ -1,0 +1,24 @@
+
+
+(func int oneortwo (seq (bool cond)) (seq
+  (branch foo)
+  (ret 20)
+  
+(label foo)
+  (branch cond one two)
+  
+(label one)
+  (ret 1)
+  
+(label two)
+  (ret 2)
+  ))
+
+(func int main () (seq
+  (var int one (oneortwo true))
+  (var int two (oneortwo false))
+  (var int four (int.add two two))
+  (ret (int.add one four))
+  ))
+
+

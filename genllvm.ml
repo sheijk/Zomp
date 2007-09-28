@@ -572,6 +572,23 @@ let gencodeReturn gencode expr =
   let comment = "; return\n" in
   let retCode = sprintf "ret %s %s\n" exprVar.rvtypename exprVar.rvname in
   (noVar, comment ^ exprCode ^ "\n" ^ retCode)
+
+let gencodeLabel label =
+  let code = sprintf "%s:\n" label.lname in
+  (noVar, code)
+
+let gencodeJump label =
+  let code = sprintf "br label %%%s\n" label.lname in
+  (noVar, code)
+
+let gencodeBranch branch =
+  let code =
+    sprintf "br i1 %%%s, label %%%s, label %%%s"
+      branch.bcondition.vname
+      branch.trueLabel.lname
+      branch.falseLabel.lname
+  in
+  (noVar, code)
   
 let rec gencode : Lang.expr -> resultvar * string = function
   | Sequence exprs -> gencodeSequence gencode exprs
@@ -582,6 +599,9 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | IfThenElse ite -> gencodeIfThenElse gencode ite
   | Loop l -> gencodeLoop gencode l
   | Return e -> gencodeReturn gencode e
+  | Label l -> gencodeLabel l
+  | Jump l -> gencodeJump l
+  | Branch b -> gencodeBranch b
   | AssignVar (var, expr) -> gencodeAssignVar gencode var expr
   | GenericIntrinsic intr -> gencodeGenericIntr gencode intr
       

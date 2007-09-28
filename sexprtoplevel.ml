@@ -32,6 +32,8 @@ let printBindings (bindings :Bindings.bindings) =
           printf "macro %s\n" m.mname
       | Bindings.TypedefSymbol t ->
           printf "type %s\n" name
+      | Bindings.LabelSymbol { lname = name; } ->
+          printf "label %s\n" name
       | Bindings.UndefinedSymbol ->
           printf "undefined %s\n" name
   in
