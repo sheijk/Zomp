@@ -60,17 +60,7 @@ let variable ~name ~typ ~default ~storage ~global = {
 let localVar = variable ~storage:RegisterStorage ~global:false
 and globalVar = variable ~storage:MemoryStorage ~global:true
 
-type ifthenelse = {
-  cond :expr;
-  trueCode :expr;
-  falseCode :expr;
-}
-and loop = {
-  preCode :expr;
-  abortTest :expr;
-  postCode :expr;
-}
-and funcCall = {
+type funcCall = {
   fcname :string;
   fcrettype :composedType;
   fcparams :composedType list;
@@ -98,8 +88,6 @@ and expr =
   | Constant of integralValue
   | FuncCall of funcCall
   | AssignVar of variable * expr
-  | IfThenElse of ifthenelse (*remove*)
-  | Loop of loop (*remove*)
   | Return of expr
   | Jump of label
   | Branch of branch

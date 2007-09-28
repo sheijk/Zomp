@@ -1,18 +1,14 @@
 
 
 (func int oneortwo (seq (bool cond)) (seq
-  (ifthenelse cond
-    (ret 1)
-    (ret 2))
-  (ret 666)
+  (branch cond bone btwo)
+  
+  (label bone)
+  (ret 1)
+  
+  (label btwo)
+  (ret 2)
   ))
-
-// (func int oneortwo (seq (bool cond)) (seq
-//   (ifthenelse cond
-//     (ret 1)
-//     (ret 2))
-//   (ret 666)
-//   ))
 
 (func int main () (seq
   (var int one (oneortwo true))

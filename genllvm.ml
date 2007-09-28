@@ -344,45 +344,6 @@ let gencodeFuncCall gencode call =
         in
         (resultVar, comment ^ argevalCode ^ "\n" ^ intrinsicCallCode)
 
-let gencodeIfThenElse gencode ite =
-  let condVar, condCode = gencode ite.cond
-  and trueVar, trueCode = gencode ite.trueCode
-  and falseVar, falseCode = gencode ite.falseCode
-  in
-  let comment = "; if/then/else" in
-  let resultTypeName = trueVar.rvtypename in
-  let id = nextUID () in
-  let trueLabel = sprintf "true_cond%d" id
-  and falseLabel = sprintf "false_cond%d" id
-  and continueLabel = sprintf "continue%d" id
-  and resultVarName = sprintf "%%iteResult%d" id
-  in
-  let isVoid = resultTypeName = "void" or resultTypeName = "" in
-  ( {rvname = llvmName resultVarName; rvtypename = resultTypeName},
-    comment ^ "\n" ^
-      condCode ^ "\n" ^
-      (if isVoid then "; void\n" else (resultVarName ^ "_ptr = alloca " ^ resultTypeName ^ "\n")) ^
-      "br i1 " ^ condVar.rvname ^ ", label %" ^ trueLabel ^ ", label %" ^ falseLabel ^ "\n" ^
-      trueLabel ^ ":\n" ^ 
-      trueCode ^ "\n" ^
-      (if isVoid then ""
-       else
-         "store " ^ resultTypeName ^ " " ^ trueVar.rvname ^ ", " ^ resultTypeName ^ "* " ^
-           resultVarName ^ "_ptr\n") ^
-      "br label %" ^ continueLabel ^ "\n" ^
-      falseLabel ^ ":\n" ^
-      falseCode ^ "\n" ^
-      (if isVoid then ""
-       else
-         "store " ^ resultTypeName ^ " " ^ falseVar.rvname ^ ", " ^ resultTypeName ^ "* " ^
-           resultVarName ^ "_ptr\n") ^
-      "br label %" ^ continueLabel ^ "\n" ^
-      continueLabel ^ ":\n" ^
-      (if isVoid then ""
-       else
-         resultVarName ^ " = load " ^ resultTypeName ^ "* " ^ resultVarName ^ "_ptr")
-  )
-
 let gencodeGenericIntr gencode = function
   | NullptrIntrinsic targetTyp ->
       begin
@@ -491,74 +452,7 @@ let gencodeGenericIntr gencode = function
           in
           (resultVar, code)
       end
-
-(* let gencodeGenericIntr gencode intrinsic = *)
-(*   match intrinsic.giname, intrinsic.gitype, intrinsic.giargs with *)
-(*     | "nullptr", typ, [] -> *)
-(*         begin *)
-(*           let ptrType = llvmTypeName (`Pointer typ) in *)
-(*           let var = newLocalTempVar (`Pointer typ) in *)
-(*           let code = sprintf "%s = bitcast i8* null to %s\n" var.rvname ptrType in *)
-(*           (var, code) *)
-(*         end *)
-(*     | "malloc", typ, [] -> *)
-(*         begin *)
-(*           let varType = llvmTypeName typ in *)
-(*           let var = newLocalTempVar (`Pointer typ) in *)
-(*           let code = sprintf "%s = malloc %s" var.rvname varType in *)
-(*           (var, code) *)
-(*         end *)
-(*     | "store", typ, [valueTypeName; valueVarName; ptrVarName; storageKind] -> *)
-(*         begin *)
-(*           let valueType = string2composedType valueTypeName in *)
-(*           let valueTypeLLVM = llvmTypeName valueType in *)
-(*           let ptrTypeName = llvmTypeName (`Pointer valueType) in *)
-(*           let ptrVar = newLocalTempVar (`Pointer valueType) in *)
-(*           let code = *)
-(*             (sprintf "%s = load %s* %%%s\n" ptrVar.rvname ptrVar.rvtypename ptrVarName) ^ *)
-(*             (sprintf "store %s %%%s, %s %s" valueTypeLLVM valueVarName ptrTypeName ptrVar.rvname) in *)
-(*           (noVar, code) *)
-(*         end *)
-(*     | "deref", typ, [typeName; varName] -> *)
-(*         begin *)
-(*           let comment = sprintf "; deref %s %s\n" typeName varName in *)
-(*           let resultType = string2composedType typeName in *)
-(*           let resultTypeLLVM = llvmTypeName resultType in *)
-(*           let llvmPtrTypeName = llvmTypeName (`Pointer resultType) in *)
-(*           let var = newLocalTempVar (`Pointer resultType) in *)
-(*           let var2 = newLocalTempVar resultType in *)
-(*           let code = *)
-(*             (sprintf "%s = load %s* %%%s\n" var.rvname llvmPtrTypeName varName) ^ *)
-(*               (sprintf "%s = load %s* %s" var2.rvname resultTypeLLVM var.rvname) *)
-(*           in *)
-(*           (var2, comment ^ code) *)
-(*         end *)
-(*     | invalidIntrinsinc, _, _ -> *)
-(*         raiseCodeGenError ~msg:(sprintf "intrinsic %s could not be translated" invalidIntrinsinc) *)
     
-let gencodeLoop gencode l =
-  let preVar, preCode = gencode l.preCode
-  and abortVar, abortCode = gencode l.abortTest
-  and _, postCode = gencode l.postCode
-  in
-  let id = nextUID() in
-  let beginLabel = sprintf "loop_begin%d" id
-  and endLabel = sprintf "loop_end%d" id
-  and centerLabel = sprintf "loop_center%d" id
-  in
-  let comment = sprintf "; loop %d\n" id in
-  (preVar,
-   comment
-   ^ "br label %" ^ beginLabel ^ "\n"
-   ^ beginLabel ^ ":\n"
-   ^ preCode ^ "\n"
-   ^ "br i1 " ^ abortVar.rvname ^ ", label %" ^ endLabel ^ ", label %" ^ centerLabel ^ "\n"
-   ^ centerLabel ^ ":\n"
-   ^ postCode ^ "\n"
-   ^ "br label %" ^ beginLabel ^ "\n"
-   ^ endLabel ^ ":\n"
-  )
-
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
   let name = (resultVar var).rvname in
@@ -596,8 +490,6 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | Variable var -> gencodeVariable var
   | Constant c -> gencodeConstant c
   | FuncCall call -> gencodeFuncCall gencode call
-  | IfThenElse ite -> gencodeIfThenElse gencode ite
-  | Loop l -> gencodeLoop gencode l
   | Return e -> gencodeReturn gencode e
   | Label l -> gencodeLabel l
   | Jump l -> gencodeJump l

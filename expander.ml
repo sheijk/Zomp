@@ -64,31 +64,6 @@ let rec typeOf = function
             exprType, v.typ)
         | _ as typeError -> typeError
     end
-  | IfThenElse { cond = cond; trueCode = trueCode; falseCode = falseCode } -> begin
-      match typeOf cond with
-        | TypeOf `Bool -> begin
-            match typeOf trueCode, typeOf falseCode with
-              | (TypeError _) as e, _ -> e
-              | _, ((TypeError _) as e) -> e
-              | trueType, falseType when trueType = falseType -> trueType
-              | TypeOf trueType, TypeOf falseType -> TypeError ("Types don't match in if/then/else", trueType, falseType)
-          end
-        | TypeOf condType -> TypeError (
-            "Expected cond of type Bool in 'if/then/else'",
-            condType, `Bool)
-        | TypeError _ as e -> e
-    end
-  | Loop l ->
-      begin match typeOf l.abortTest with
-        | TypeOf `Bool -> begin
-            match typeOf l.preCode with
-              | TypeOf `Void -> typeOf l.postCode
-              | TypeOf wrongType -> TypeError ("PreCode in loop must have type void", wrongType, `Void)
-              | _ as e -> e
-          end
-        | TypeOf wrongType -> TypeError ("Abort condition in loop must have type Bool", wrongType, `Bool)
-        | _ as e -> e
-      end
   | Return expr -> typeOf expr
   | Label _ -> TypeOf `Void
   | Jump _ -> TypeOf `Void
@@ -317,34 +292,6 @@ let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
       end
   | _ -> None
   
-let translateLoop (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [preCode; abortTest; postCode] } when id = macroLoop -> begin
-      let eval expr =
-        let _, sf = translateF bindings expr in
-        match sf with
-            [e] -> e
-          | _ as es -> Sequence es
-      in
-      Some (bindings, [Loop { preCode = eval preCode;
-                                    abortTest = eval abortTest;
-                                    postCode = eval postCode; } ])
-    end
-  | _ -> None
-
-let translateIfThenElse (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [condExpr; trueExpr; falseExpr] } when id = macroIfThenElse -> begin
-      let eval expr =
-        let _, sf = translateF bindings expr in
-        match sf with
-            [e] -> e
-          | _ as es -> Sequence es
-      in
-      Some (bindings, [IfThenElse { cond = eval condExpr;
-                                    trueCode = eval trueExpr;
-                                    falseCode = eval falseExpr; }])
-    end
-  | _ -> None      
-
 let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
         { id = varName; args = [] };
@@ -596,8 +543,6 @@ let translateNested = translate raiseIllegalExpression
     translateDefineVar;
     translateSimpleExpr;
     translateFuncCall;
-    translateLoop;
-    translateIfThenElse;
     translateMacro;
     translateAssignVar;
     translateTypedef;
