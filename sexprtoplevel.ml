@@ -102,8 +102,8 @@ let printWelcomeMessage() =
   printf "\n"
   
 let () =
-(*   Machine.zompInit(); *)
-(*   at_exit Machine.zompShutdown; *)
+  Machine.zompInit();
+  at_exit Machine.zompShutdown;
   printWelcomeMessage();
   let rec step bindings () =
     let goon() = step bindings () in

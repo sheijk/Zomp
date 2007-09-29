@@ -13,7 +13,15 @@ LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo parser2.cm
 all_notags: deps toplevel2 zompc stdlib.bc sexprtoplevel gencode
 all: all_notags tags
 
-SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo machine.cmo sexprtoplevel.cmo
+# ocamlbuild:
+# 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
+
+SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo dllzompvm.so machine.cmo sexprtoplevel.cmo
+
+zompvm.cmo:
+	g++ -I /usr/local/lib/ocaml/ -c zompvm.cpp -o zompvm.o
+	gcc -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
+	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
@@ -27,11 +35,11 @@ zompc: $(LANG_CMOS) zompc.cmo
 	echo Building $@ ...
 	$(OCAMLC) -g -o $@ str.cma $(LANG_CMOS) zompc.cmo
 
-gencode: gencode.ml
+gencode: gencode.cmo gencode.ml
 	echo Building $@ ...
 	$(OCAMLC) -g -o $@ str.cma gencode.cmo
 
-machine.c machine.ml: gencode machine.skel
+machine.c machine.ml: machine.skel
 	echo Making OCaml bindings for zomp-machine ...
 	./gencode machine
 
@@ -83,6 +91,8 @@ clean:
 	rm -f sexprlexer.cmi sexprlexer.cmo sexprlexer.ml
 	rm -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
 	rm -f sexprtoplevel sexprtoplevel.cmi sexprtoplevel.cmo
+	rm -f gencode.cmi gencode.cmo gencode
+	rm -f machine.c machine.ml machine.cmi machine.cmo
 
 clean_tags:
 	rm -f *.annot
