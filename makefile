@@ -10,18 +10,18 @@ UPDATE=cp
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo expander.cmo genllvm.cmo
 
-all_notags: deps toplevel2 zompc stdlib.bc sexprtoplevel gencode
-all: all_notags tags
+all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags
 
 # ocamlbuild:
 # 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
 
 SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo dllzompvm.so machine.cmo sexprtoplevel.cmo
 
-zompvm.cmo:
-	g++ -I /usr/local/lib/ocaml/ -c zompvm.cpp -o zompvm.o
+dllzompvm.so: zompvm.h zompvm.cpp machine.c
+	echo Building $@ ...
+	g++ `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++
+	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser`
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
@@ -39,7 +39,9 @@ gencode: gencode.cmo gencode.ml
 	echo Building $@ ...
 	$(OCAMLC) -g -o $@ str.cma gencode.cmo
 
-machine.c machine.ml: machine.skel
+machine.cmo: machine.skel
+
+machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
 	./gencode machine
 
@@ -48,9 +50,11 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 # 	ocamlrun $(CAML_LIBS) $(LANG_CMOS) expander_tests.cmo
 	cd tests && make clean_tests check
 
-stdlib.bc: stdlib.c
+stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
 	llvm-gcc --emit-llvm -c $< -o $@
+	llvm-dis < stdlib.bc > stdlib.ll
+
 
 .SUFFIXES: .ml .cmo .mly .mll .cmi
 
@@ -77,7 +81,7 @@ deps:
 
 tags:
 	echo Generating tags ...
-	otags *.ml
+	otags 2> /dev/null || echo "otags not found, no tags generated"
 
 clean:
 	cd tests && make clean_tests
@@ -100,7 +104,7 @@ clean_tags:
 
 clean_all: clean clean_tags
 
-check-syntax: $(CHK_SOURCES:_flymake.ml=.cmo) all_notags
+check-syntax: $(CHK_SOURCES:_flymake.ml=.cmo) all
 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> ./flymake-log.temp
 	@ocamlc -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > ./flymake-output.temp
 

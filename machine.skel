@@ -1,6 +1,14 @@
 Machine
 http://sheijk.dword.org/zomp
 	include "zompvm.h"
-	void zompInit ()
+	include <caml/mlvalues.h>
+	include <caml/alloc.h>
+	include <caml/memory.h>
+    
+	bool zompInit ()
 	void zompShutdown ()
+    bool zompSendCode (const char* code)
+    bool zompLoadFile (const char* filename)
+    void zompRunFunction (const char* name)
+    void zompPrintModuleCode ()
 

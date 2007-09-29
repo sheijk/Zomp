@@ -216,6 +216,7 @@ let _ =
   addType ~name:"GLint" ~mltype:"int" ();
   addType ~name:"GLuint" ~mltype:"int" ();
   addType ~name:"GLboolean" ~mltype:"int" ();
+  addType ~name:"bool" ~mltype:"bool" ();
   addType ~name:"GLsizei" ~mltype:"int" ()
     
 
@@ -246,8 +247,7 @@ let extractParams str =
 let parseLine line =
   let constantRE = Str.regexp "[\t ]*\\([A-Za-z0-9_]+\\) +\\([A-Za-z0-9_]+\\) *$"
   and functionRE = Str.regexp "[\t ]*\\([a-zA-Z0-9_ ]+\\*?\\) \\([a-zA-Z0-9_]+\\) (\\([^)]*\\))"
-(*   and includeRE = Str.regexp "[\t ]*include \\([\"<][a-zA-Z0-9_\\.][\">]\\)" *)
-  and includeRE = Str.regexp "[\t ]*include \\([\"<][a-zA-Z0-9_\\.]*[\">]\\)"
+  and includeRE = Str.regexp "[\t ]*include \\([\"<][a-zA-Z0-9_\\./]*[\">]\\)"
   in
   if Str.string_match includeRE line 0 then
     let filename = Str.matched_group 1 line in
