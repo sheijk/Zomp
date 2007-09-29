@@ -10,10 +10,10 @@ UPDATE=cp
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo expander.cmo genllvm.cmo
 
-all_notags: deps toplevel2 zompc stdlib.bc sexprtoplevel
+all_notags: deps toplevel2 zompc stdlib.bc sexprtoplevel gencode
 all: all_notags tags
 
-SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo sexprtoplevel.cmo
+SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo machine.cmo sexprtoplevel.cmo
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
@@ -26,6 +26,14 @@ toplevel2: $(LANG_CMOS) toplevel2.cmo
 zompc: $(LANG_CMOS) zompc.cmo
 	echo Building $@ ...
 	$(OCAMLC) -g -o $@ str.cma $(LANG_CMOS) zompc.cmo
+
+gencode: gencode.ml
+	echo Building $@ ...
+	$(OCAMLC) -g -o $@ str.cma gencode.cmo
+
+machine.c machine.ml: gencode machine.skel
+	echo Making OCaml bindings for zomp-machine ...
+	./gencode machine
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
@@ -82,9 +90,10 @@ clean_tags:
 
 clean_all: clean clean_tags
 
-check-syntax: $(CHK_SOURCES:_flymake.ml=.cmo) all
+check-syntax: $(CHK_SOURCES:_flymake.ml=.cmo) all_notags
 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> ./flymake-log.temp
 	@ocamlc -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > ./flymake-output.temp
+
 # check-syntax:
 # 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
 # 	@ocamlc -c $(CHK_SOURCES) > build/flymake-output && mv *_flymake.cm? build/

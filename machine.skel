@@ -1,0 +1,6 @@
+Machine
+http://sheijk.dword.org/zomp
+	include "zompvm.h"
+	void zompInit ()
+	void zompShutdown ()
+
