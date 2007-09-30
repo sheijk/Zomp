@@ -39,7 +39,7 @@ let printBindings args (bindings :Bindings.bindings) =
         | Bindings.VarSymbol var ->
             printf "var %s : %s\n" var.vname (Lang.typeName var.typ)
         | Bindings.FuncSymbol f ->
-            let arg2string (name, typ) = name ^ " :" ^ Lang.typeName typ in
+            let arg2string (name, typ) = Lang.typeName typ ^ " " ^ name in
             let args = List.map arg2string f.fargs in
             let argString = combine ", " args in
             printf "func %s : %s -> %s\n" f.fname argString (Lang.typeName f.rettype)
@@ -55,12 +55,9 @@ let printBindings args (bindings :Bindings.bindings) =
   List.iter printSymbol bindings
 
 let runMain args _ =
-  let funcname = 
-    match args with
-      | [funcname] -> funcname
-      | _ -> "main"
-  in
-  Machine.zompRunFunction funcname
+  match args with
+    | [funcname] -> Machine.zompRunFunction funcname
+    | _ -> eprintf "Only one argument allowed\n"; flush stderr
 
 let readFile filename =
   let file = open_in filename in

@@ -87,6 +87,9 @@ extern "C" {
 
     std::vector<GenericValue> args;
     executionEngine->runFunction( func, args );
+
+    fflush( stdout );
+    fflush( stderr );
   }
 
   void zompPrintModuleCode() {
