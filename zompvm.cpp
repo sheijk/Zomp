@@ -37,7 +37,12 @@ namespace {
 
 extern "C" {
   void zompHello() {
-    printf("hello, testmessage\n");
+    printf( "hello, testmessage\n" );
+  }
+
+  int blah(int a, int b, int c) {
+    printf( "blah( %d, %d, %d )\n", a, b, c );
+    return 99;
   }
 }
 
