@@ -7,6 +7,8 @@ let combine = Common.combine
 let printLLVMCode = ref true
 and evalLLVMCode = ref true
   
+module StringMap = Map.Make(String)
+  
 exception AbortExpr
 
 type commandFunc = string list -> Bindings.bindings -> unit
@@ -84,11 +86,19 @@ let loadLLVMFile args _ =
   in
   List.iter loadFile args
                
-    
-module StringMap = Map.Make(String)
+let listCommands commands _ _ =
+  printf "# to abort multi-line (continued input)\n";
+  let maxCommandLength =
+    List.fold_left (fun oldMax (name, _, _, _) -> max oldMax (String.length name)) 5 commands
+  in
+  let printCommand (name, aliases, _, doc) =
+    let aliasString = if List.length aliases > 0 then " (also " ^ combine ", " aliases ^ ")" else "" in
+    printf "#%-*s - %s%s\n" (maxCommandLength+1) name doc aliasString
+  in
+  List.iter printCommand commands
 
 let commands =
-  let commands = [
+  let rec internalCommands = [
     "x", [], exitCommand, "Exit";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
@@ -96,16 +106,19 @@ let commands =
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
     "load", [], loadLLVMFile, "Load file containing LLVM code (*.ll)";
-  ] in
+    "help", ["h"], printHelp, "List all toplevel commands";
+  ]
+  and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
+  in
   let addCommands map (mainName, aliases, func, doc) =
     let newMap = StringMap.add mainName (func, doc) map in
     let docRef = sprintf "see %s" mainName in
     List.fold_left (fun map name -> StringMap.add name (func, docRef) map) newMap aliases
   in
-  List.fold_left addCommands StringMap.empty commands
+  List.fold_left addCommands StringMap.empty internalCommands
 
 let handleCommand commandLine bindings =
-  let commandRE = Str.regexp "!\\([a-zA-Z0-9]+\\)\\(.*\\)" in
+  let commandRE = Str.regexp "#\\([a-zA-Z0-9]+\\)\\(.*\\)" in
   if Str.string_match commandRE commandLine 0 then
     let commandName = Str.matched_group 1 commandLine
     and argString = Str.matched_group 2 commandLine
@@ -113,7 +126,6 @@ let handleCommand commandLine bindings =
     let argList = Str.split (Str.regexp "[\t ]+") argString in
     try
       let (func, _) = StringMap.find commandName commands in
-(*       printf "Running %s(%s)\n" commandName (combine ", " argList); *)
       func argList bindings
     with
       | Not_found ->
@@ -130,12 +142,6 @@ let handleCommand commandLine bindings =
 (*     | Not_found -> *)
 (*         printf "Error: Could not find command %s.\n" commandName *)
 
-let listCommands() =
-  printf "! to abort multi-line (continued input)\n";
-  let maxCommandLength = StringMap.fold (fun name _ oldMax -> max oldMax (String.length name)) commands 5 in
-  let printCommand name (_, doc) = printf "!%-*s - %s\n" (maxCommandLength+1) name doc in
-  StringMap.iter printCommand commands
-
 let rec readExpr previousLines bindings prompt =
   printf "%s" prompt;
   flush stdout;
@@ -143,12 +149,9 @@ let rec readExpr previousLines bindings prompt =
   let input = previousLines ^ line in
   if String.length line = 0 then begin
     readExpr previousLines bindings prompt
-  end else if line = "?" then begin
-    listCommands();
-    readExpr previousLines bindings prompt
-  end else if line = "!" then begin
+  end else if line = "#" then begin
     raise AbortExpr
-  end else if line.[0] = '!' then begin
+  end else if line.[0] = '#' then begin
     handleCommand line bindings;
     readExpr previousLines bindings prompt
   end else begin
@@ -170,7 +173,7 @@ let rec readExpr previousLines bindings prompt =
     
 let printWelcomeMessage() = 
   printf "Welcome to the Zomp toplevel.\n";
-  printf "!x - exit, ? - help.\n";
+  printf "#x - exit, #help - help.\n";
   printf "\n"
 
 let () =
