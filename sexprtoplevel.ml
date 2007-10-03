@@ -93,7 +93,7 @@ let commands =
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
-    "run", [], runMain, "Run function 'void main()'";
+    "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
     "load", [], loadLLVMFile, "Load file containing LLVM code (*.ll)";
   ] in
@@ -235,5 +235,7 @@ let () =
       simpleforms
   in
   let initialBindings = loadPrelude() in
+(*   let _ = loadPrelude in *)
+(*   let initialBindings = Bindings.defaultBindings in *)
   step initialBindings ()
   

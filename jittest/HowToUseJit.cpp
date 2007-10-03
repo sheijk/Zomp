@@ -64,7 +64,12 @@ Function* createFoo(const std::string& name, Module* M, Function* Add1F) {
   // Create the return instruction and add it to the basic block.
   new ReturnInst(Add1CallRes, BB);
 
-  return FooF;
+//   std::vector<const Type*> noargs;
+//   FunctionType* funcType = FunctionType::get( Type::Int32Ty, noargs, false, NULL );
+//   Function *otherF = new Function( funcType, GlobalVariable::InternalLinkage, name, M );
+  Function* otherF = M->getFunction(name);
+  
+  return otherF;
 }
 
 Function* createAdd(Module* M) {
@@ -115,9 +120,10 @@ void call(ExecutionEngine* EE, Function* func) {
   std::cout << "Calling " << func->getName() << ", returned " << gv.IntVal.toStringUnsigned(10) << "\n";
 }
 
-extern "C"
-int plus5(int x) {
-  return x + 5;
+extern "C" {
+  int plus5(int x) {
+    return x + 5;
+  }
 }
 
 int main() {
@@ -128,17 +134,18 @@ int main() {
   ExistingModuleProvider* MP = new ExistingModuleProvider(M);
   ExecutionEngine* EE = ExecutionEngine::create(MP, false);
 
+  Function* nativePlus5 = getNative("plus5");
+  Function* callNative = createFoo("foo", M, nativePlus5);
+  
+  Function* jittedAdd1 = createAdd(M);
+  Function* callJitted = createFoo("fooJit", M, jittedAdd1);
+
   std::cout
     << "--- We just constructed this LLVM module ---\n\n"
     << *M << "\n"
     << "--------------------------------------------\n\n";
 
-  Function* nativePlus5 = getNative("plus5");
-  Function* callNative = createFoo("foo", M, nativePlus5);
   call(EE, callNative);
-  
-  Function* jittedAdd1 = createAdd(M);
-  Function* callJitted = createFoo("fooJit", M, jittedAdd1);
   call(EE, callJitted);
 
   return 0;

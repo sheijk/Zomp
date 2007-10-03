@@ -1,0 +1,9 @@
+
+(func void printInt (seq (int i)))
+(func void printString (seq (string s)))
+(func void printFloat (seq (float f)))
+(func void printNewline ())
+
+(func void stdlibHello ())
+(func void zompHello ())
+

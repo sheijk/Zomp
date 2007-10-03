@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iostream>
 
 #include "llvm/Module.h"
 #include "llvm/Constants.h"
@@ -31,6 +32,12 @@ namespace {
       debugMessage("Creating new llvm module\n");
       llvmModule = new Module("llvm_module.bc");
     }
+  }
+}
+
+extern "C" {
+  void zompHello() {
+    printf("hello, testmessage\n");
   }
 }
 
@@ -76,13 +83,13 @@ extern "C" {
     std::vector<const Type*> noargs;
     FunctionType* voidType = FunctionType::get( Type::VoidTy, noargs, false, NULL );
 
-    Function* func = llvmModule->getFunction( "main" );
+    Function* func = llvmModule->getFunction( name );
 
     if( func == NULL ) {
       printf( "Function %s not found in module\n", name );
       fflush( stdout );
       
-      func = new Function( voidType, GlobalVariable::InternalLinkage, name, llvmModule );
+      func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
     }
 
     std::vector<GenericValue> args;
@@ -93,6 +100,12 @@ extern "C" {
   }
 
   void zompPrintModuleCode() {
+  std::cout
+    << "--- We just constructed this LLVM module ---\n\n"
+    << *llvmModule << "\n"
+    << "--------------------------------------------\n\n";
+  
+    /*
     std::string llvmCode = llvmModule->getModuleInlineAsm();
     
     const char* header = "--- Inline ASM of module ---";
@@ -117,6 +130,7 @@ extern "C" {
     }
 
     printf( "%s\n", hline );
+    */
   }
   
 } // extern "C"

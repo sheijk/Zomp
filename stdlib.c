@@ -21,4 +21,7 @@ int* nullptr() {
   return NULL;
 }
 
+void stdlibHello() {
+  printf( "hello, stdlib\n" );
+}
 
