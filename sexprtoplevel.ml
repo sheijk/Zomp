@@ -131,7 +131,7 @@ let handleCommand commandLine bindings =
       | Not_found ->
           printf "Error: Could not find command %s.\n" commandName
   else
-    printf "Not a command string: '%s'" commandLine
+    printf "Not a command string: '%s'\n" commandLine
   
 (* let handleCommand commandLine bindings = *)
 (*   let commandName = String.sub commandLine 1 (-1 + String.length commandLine) in *)
