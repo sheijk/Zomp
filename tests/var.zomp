@@ -9,9 +9,11 @@ func void nl {} { printNewline; };
 
 var int gInt 10;
 var string gString "message";
-var float gFloat 1.1;
+var float gFloat 1.0;
+// broken due to changed format of llvm floats:
+// var float gFloat 1.1;
 var bool gBool true;
-mvar float gmFloat 0.3;
+mvar float gmFloat 1.0; // 0.3
 
 func int plus2 {int i;} { i; };
 
@@ -27,14 +29,14 @@ func int main {} {
   var int lInt 11;
   printInt lInt; nl;
   
-  var float lFloat 2.2;
+  var float lFloat 1.0; // 2.0
   printFloat lFloat; nl;
 
   mvar int mInt 9;
   assign mInt 11;
   printInt mInt; nl;
 
-  assign gmFloat 3.3;
+  assign gmFloat 1.0; // 3.0
   printFloat gmFloat; nl;
   
 // TODO

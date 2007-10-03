@@ -7,15 +7,17 @@ OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
 
+FLYMAKE_LOG=flymake-log.temp
+
 CAML_LIBS = str.cma
-LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo expander.cmo genllvm.cmo
+LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo expander.cmo genllvm.cmo parseutils.cmo
 
 all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags
 
 # ocamlbuild:
 # 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
 
-SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo dllzompvm.so machine.cmo sexprtoplevel.cmo
+SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo genllvm.cmo common.cmo expander.cmo dllzompvm.so machine.cmo parseutils.cmo sexprtoplevel.cmo
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	echo Building $@ ...
@@ -38,6 +40,10 @@ zompc: $(LANG_CMOS) zompc.cmo
 gencode: gencode.cmo gencode.ml
 	echo Building $@ ...
 	$(OCAMLC) -g -o $@ str.cma gencode.cmo
+
+forktest: forktest.cmo
+	echo Building forktest
+	$(OCAMLC) -g -o $@ str.cma unix.cma forktest.cmo
 
 machine.cmo: machine.skel
 
@@ -104,9 +110,19 @@ clean_tags:
 
 clean_all: clean clean_tags
 
-check-syntax: $(CHK_SOURCES:_flymake.ml=.cmo) all
-	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> ./flymake-log.temp
-	@ocamlc -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > ./flymake-output.temp
+ml_check:
+	@echo Checking OCaml files $(CHK_SOURCES)
+	@ocamlc -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
+
+cpp_check:
+	@echo Checking C++ files $(CHK_SOURCES)
+	@g++ -c $(CHK_SOURCES) `llvm-config --cxxflags` -fsyntax-only > $(FLYMAKE_LOG)
+
+check-source: $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES)))
+	@cat $(FLYMAKE_LOG)
+
+check-syntax: check-source all
+	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> $(FLYMAKE_LOG)
 
 # check-syntax:
 # 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log

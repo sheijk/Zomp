@@ -3,6 +3,7 @@ open Printf
 open Expander
 open Genllvm
 open Common
+open Parseutils
 
 type llvmCode = string
     
@@ -13,18 +14,7 @@ type compilationResult =
 
 let parseChannel lexbuf parseF () : compilationResult =
   try
-    let rec parse bindings codeAccum =
-      try
-        let expr = parseF lexbuf in
-        let exprString = Ast2.expression2string expr in
-        let exprComment = commentOut "; " exprString in
-        printf "%s\n" exprComment;
-        let newBindings, simpleforms = Expander.translateTL bindings expr in
-        parse newBindings (codeAccum @ simpleforms)
-      with
-        | Lexer2.Eof | Sexprlexer.Eof -> codeAccum
-    in
-    let toplevelExprs :Lang.toplevelExpr list = parse Genllvm.defaultBindings [] in
+    let toplevelExprs :Lang.toplevelExpr list = parse parseF lexbuf Genllvm.defaultBindings [] in
     let llvmSource :string = genmodule toplevelExprs in
     CompilationSucceeded llvmSource
   with

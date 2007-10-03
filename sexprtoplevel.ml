@@ -172,7 +172,7 @@ let printWelcomeMessage() =
   printf "Welcome to the Zomp toplevel.\n";
   printf "!x - exit, ? - help.\n";
   printf "\n"
-  
+
 let () =
   if not (Machine.zompInit()) then begin
     eprintf "Could not initialize ZompVM\n";
@@ -216,5 +216,24 @@ let () =
             goon()
     end
   in
-  step Bindings.defaultBindings ()
+  let loadPrelude () =
+    let llvmPreludeFile = "stdlib.ll"
+    and zompPreludeFile = "stdlib.zomp"
+    in
+    printf "Loading LLVM prelude from %s\n" llvmPreludeFile; flush stdout;
+    loadLLVMFile [llvmPreludeFile] (Bindings.defaultBindings);
+    printf "Loading Zomp prelude from %s\n" zompPreludeFile; flush stdout;
+    let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
+    let parseF = Sexprparser.main Sexprlexer.token in
+    let simpleforms = Parseutils.parse parseF lexbuf Bindings.defaultBindings [] in
+    List.fold_left
+      (fun bindings form ->
+         match form with
+           | GlobalVar var -> Bindings.addVar bindings var
+           | DefineFunc func -> Bindings.addFunc bindings func)
+      Bindings.defaultBindings
+      simpleforms
+  in
+  let initialBindings = loadPrelude() in
+  step initialBindings ()
   

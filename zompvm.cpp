@@ -96,8 +96,9 @@ extern "C" {
     std::string llvmCode = llvmModule->getModuleInlineAsm();
     
     const char* header = "--- Inline ASM of module ---";
+    const char* decls =  "------- LLVM Symbols -------";
     const char* hline =  "----------------------------";
-    printf( "%s\n%s\n%s\n", header, llvmCode.c_str(), hline );
+    printf( "%s\n%s\n%s\n", header, llvmCode.c_str(), decls );
 
     const Module::global_iterator globalsEnd = llvmModule->global_end();
     for(Module::global_iterator global = llvmModule->global_begin(); global != globalsEnd; ++global) {
@@ -106,8 +107,16 @@ extern "C" {
 
     const Module::iterator functionsEnd = llvmModule->end();
     for(Module::iterator func = llvmModule->begin(); func != functionsEnd; ++func) {
-      func->print( cout );
+      std::string name = func->getName();
+      std::string rettypeName = "???";
+      std::string arguments = "???";
+      std::string impl = func->isDeclaration() ? ";" : " { ... }";
+      
+      printf( "%s %s(%s)%s\n", rettypeName.c_str(), name.c_str(), arguments.c_str(), impl.c_str() );
+//       func->print( cout );
     }
+
+    printf( "%s\n", hline );
   }
   
 } // extern "C"

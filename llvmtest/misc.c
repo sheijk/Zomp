@@ -4,6 +4,7 @@ void foo(int x) {}
 
 int f = 1;
 char* blub = "blubblubh";
+float someFloat = 0.3;
   
 int add(int l, int r) {
     return l + r;

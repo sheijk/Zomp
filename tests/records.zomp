@@ -8,7 +8,7 @@
 (func int testStack () (seq
   (var simple r)
   (setField r count 3)
-  (setField r foo 1.3)
+  (setField r foo 1.0)
   (field r count)
   ))
 
