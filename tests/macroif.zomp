@@ -1,0 +1,46 @@
+
+(macro if
+  (expr cond) then (expr onT)
+  (list elseifs (elseif (expr cond) then (expr onT)))
+  (optional else (expr onF))
+  (
+  (#newUnique label onTLabel notTLabel endLabel)
+  (branch cond onTLabel notTLabel)
+  (label onTLabel)
+  onT
+  (branch endLabel)
+  (label notTLabel)
+  (#foreach ei in elseifs
+    (#newUnique label eiTLabel nextLabel)
+    (branch ei.cond eiTLabel nextLabel)
+    (label eiTLabel)
+    ei.onT
+    (label nextLabel))
+  (#ifNonNull onF
+    onF)
+  (label endLabel)))
+
+
+type expr
+  string id
+  list<expr> args
+
+const int foo 10
+
+macro if cond:expr then onT:expr @list @name(elseif) (elseif cond:expr then onT:expr) [else onF:expr]
+  #newUnique label onTLabel notTLabel endLabel
+  branch cond onTLabel notTLabel
+  label onTLabel
+  onT
+  branch endLabel
+  label notTLabel
+  #foreach ei in elseifs
+    #newUnique label eiTLabel nextLabel
+    branch ei.cond eiTLabel nextLabel
+    label eiTLabel
+    ei.onT
+    label nextLabel
+  #ifNonNull onF
+    onF
+  label endLabel
+
