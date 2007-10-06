@@ -112,7 +112,7 @@ clean_all: clean clean_tags
 
 ml_check:
 	@echo Checking OCaml files $(CHK_SOURCES)
-	@ocamlc -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
+	@$(OCAMLC) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
 
 cpp_check:
 	@echo Checking C++ files $(CHK_SOURCES)

@@ -21,6 +21,15 @@
   (label endLabel)))
 
 
+if 10 > y then
+  print "foo"
+
+if: x > 10 then
+  print 10
+else
+  print 20
+end if
+    
 type expr
   string id
   list<expr> args

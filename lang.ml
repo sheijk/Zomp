@@ -78,9 +78,12 @@ and genericIntrinsic =
   | NullptrIntrinsic of composedType
   | MallocIntrinsic of composedType
   | DerefIntrinsic of variable
+  | GetAddrIntrinsic of variable
   | StoreIntrinsic of variable * variable (* value, ptr *)
-  | SetFieldIntrinsic of composedType * variable * string * expr
-  | GetFieldIntrinsic of composedType * variable * string
+  | LoadIntrinsic of variable
+  | GetFieldPointerIntrinsic of variable * string
+(*   | SetFieldIntrinsic of composedType * variable * string * expr *)
+(*   | GetFieldIntrinsic of composedType * variable * string *)
 and expr =
   | Sequence of expr list
   | DefineVariable of variable * expr option

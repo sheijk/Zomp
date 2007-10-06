@@ -100,7 +100,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     (name, `Intrinsic f, `Bool, ["l", `Int; "r", `Int])
   in
   let twoArgIntrinsic name instruction (typ :composedType) =
-    name, `Intrinsic (callIntr instruction typ), typ, ["l", typ]
+    name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
   in
 
   let intrinsicFuncs =
@@ -377,6 +377,12 @@ let gencodeGenericIntr gencode = function
         in
         (var2, comment ^ code)
       end
+  | GetAddrIntrinsic var ->
+      begin
+        match var.vstorage with
+          | MemoryStorage -> (resultVar var, "")
+          | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
+      end
   | StoreIntrinsic (valueVar, ptrVar) ->
       begin
         let valueVarLLVM, valueAccessCode = gencode (Variable valueVar) in
@@ -406,52 +412,95 @@ let gencodeGenericIntr gencode = function
                 (noVar, code)
               end
       end
-  | SetFieldIntrinsic (typ, recordVar, componentName, valueSimpleform) ->
+  | LoadIntrinsic ptrVar ->
       begin
-        match recordVar.vstorage with
-          | RegisterStorage -> raiseCodeGenError ~msg:"register storage for setField not implemented, yet"
-          | MemoryStorage ->
-              begin
-                let ptrToField = newLocalTempVar (`Pointer typ) in
-                let components = match recordVar.typ with
-                  | `Record components -> components
-                  | _ -> raiseCodeGenError ~msg:"used setField with non record var"
-                in
-                let llvmComponentTypeName = llvmTypeName typ in
-                let llvmRecordTypeName = llvmTypeName recordVar.typ in
-                let componentNum = string_of_int (componentNum components componentName) in
-                let valueVar, valueCode = gencode valueSimpleform in
-                let code =
-                  valueCode ^ "\n"
-                  ^ sprintf "%s = getelementptr %s* %%%s, i32 0, i32 %s\n"
-                    ptrToField.rvname llvmRecordTypeName recordVar.vname componentNum
-                  ^ sprintf "store %s %s, %s* %s\n"
-                    llvmComponentTypeName valueVar.rvname llvmComponentTypeName ptrToField.rvname
-                in
-                (noVar, code)
-              end
+        let resultType = match ptrVar.typ with
+          | `Pointer t -> t
+          | _ -> raiseCodeGenError ~msg:(sprintf "Expected %s to be a pointer" ptrVar.vname)
+        in
+        let tempVar = newLocalTempVar resultType in
+        let ptrvalue = newLocalTempVar ptrVar.typ in
+        let comment = sprintf "; loading from %s\n" ptrVar.vname in
+        (match ptrVar.vstorage with
+           | RegisterStorage -> raiseCodeGenError ~msg:"Cannot load from pointer with register-storage"
+           | _ -> ());
+        let code =
+          sprintf "%s = load %s* %s\n" ptrvalue.rvname ptrvalue.rvtypename (llvmName ptrVar.vname) ^
+            sprintf "%s = load %s %s" tempVar.rvname (llvmTypeName ptrVar.typ) ptrvalue.rvname
+        in
+        (tempVar, comment ^ code)
       end
-  | GetFieldIntrinsic (typ, recordVar, componentName) ->
+  | GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
-        if recordVar.vstorage = RegisterStorage then 
-          raiseCodeGenError ~msg:"register storage for field not supported, yet"
-        else
-          let llvmRecordTypeName = llvmTypeName recordVar.typ in
-          let llvmTypeName = llvmTypeName typ in
-          let ptrToField = newLocalTempVar (`Pointer typ) in
-          let resultVar = newLocalTempVar typ in
-          let components = match recordVar.typ with
-            | `Record components -> components
-            | _ -> raiseCodeGenError ~msg:"used setField with non record var"
-          in
-          let componentNum = string_of_int (componentNum components componentName) in
-          let code =
-            sprintf "%s = getelementptr %s* %%%s, i32 0, i32 %s\n"
-              ptrToField.rvname llvmRecordTypeName recordVar.vname componentNum
-            ^ sprintf "%s = load %s* %s\n" resultVar.rvname llvmTypeName ptrToField.rvname
-          in
-          (resultVar, code)
+        let components = match recordVar.typ with
+          | `Pointer `Record components -> components
+          | _ -> raiseCodeGenError ~msg:(sprintf "%s is not a pointer to a record type" recordVar.vname)
+        in
+        let fieldIndex = componentNum components fieldName in
+        let fieldType = match componentType components fieldName with
+          | None -> raiseCodeGenError ~msg:(sprintf "Could not find field %s in record %s" fieldName recordVar.vname)
+          | Some fieldType -> fieldType
+        in
+        let ptrVar = newLocalTempVar (`Pointer fieldType) in
+        let comment = sprintf "; obtaining address of %s.%s\n" recordVar.vname fieldName in
+        let code = sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n"
+          ptrVar.rvname
+          (llvmTypeName recordVar.typ)
+          (llvmName recordVar.vname)
+          fieldIndex in
+        (ptrVar, comment ^ code)
       end
+(*   | SetFieldIntrinsic (typ, recordVar, componentName, valueSimpleform) -> *)
+(*       begin *)
+(*         match recordVar.typ, recordVar.vstorage with *)
+(* (\*           | `Record components, MemoryStorage -> *\) *)
+(*           | `Pointer `Record components, _ -> *)
+(*               begin *)
+(*                 let comment = sprintf "; %s.%s = ...\n" recordVar.vname componentName in *)
+(*                 let ptrToField, derefs = *)
+(*                   newLocalTempVar typ, "*" *)
+(* (\*                   match recordVar.typ with *\) *)
+(* (\*                     | `Pointer _ -> resultVar recordVar, "" *\) *)
+(* (\*                     | _ -> newLocalTempVar typ, "" *\) *)
+(*                 in *)
+(* (\*                 let ptrToField = newLocalTempVar (`Pointer typ) in *\) *)
+(*                 let llvmComponentTypeName = llvmTypeName typ in *)
+(*                 let llvmRecordTypeName = llvmTypeName recordVar.typ in *)
+(*                 let componentNum = string_of_int (componentNum components componentName) in *)
+(*                 let valueVar, valueCode = gencode valueSimpleform in *)
+(*                 let code = *)
+(*                   valueCode ^ "\n" *)
+(*                   ^ sprintf "%s = getelementptr %s %%%s, i32 0, i32 %s\n" *)
+(*                     ptrToField.rvname (llvmRecordTypeName ^ derefs) recordVar.vname componentNum *)
+(*                   ^ sprintf "store %s %s, %s* %s\n" *)
+(*                     llvmComponentTypeName valueVar.rvname llvmComponentTypeName ptrToField.rvname *)
+(*                 in *)
+(*                 (noVar, comment ^ code) *)
+(*               end *)
+(*           | _, MemoryStorage -> raiseCodeGenError ~msg:"expected a record type" *)
+(*           | _, RegisterStorage -> raiseCodeGenError ~msg:"register storage for setField not implemented, yet" *)
+(*       end *)
+(*   | GetFieldIntrinsic (typ, recordVar, componentName) -> *)
+(*       begin *)
+(*         if recordVar.vstorage = RegisterStorage then  *)
+(*           raiseCodeGenError ~msg:"register storage for field not supported, yet" *)
+(*         else *)
+(*           let llvmRecordTypeName = llvmTypeName recordVar.typ in *)
+(*           let llvmTypeName = llvmTypeName typ in *)
+(*           let ptrToField = newLocalTempVar (`Pointer typ) in *)
+(*           let resultVar = newLocalTempVar typ in *)
+(*           let components = match recordVar.typ with *)
+(*             | `Record components -> components *)
+(*             | _ -> raiseCodeGenError ~msg:"used setField with non record var" *)
+(*           in *)
+(*           let componentNum = string_of_int (componentNum components componentName) in *)
+(*           let code = *)
+(*             sprintf "%s = getelementptr %s* %%%s, i32 0, i32 %s\n" *)
+(*               ptrToField.rvname llvmRecordTypeName recordVar.vname componentNum *)
+(*             ^ sprintf "%s = load %s* %s\n" resultVar.rvname llvmTypeName ptrToField.rvname *)
+(*           in *)
+(*           (resultVar, code) *)
+(*       end *)
     
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
@@ -463,8 +512,14 @@ let gencodeAssignVar gencode var expr =
 
 let gencodeReturn gencode expr =
   let exprVar, exprCode = gencode expr in
-  let comment = "; return\n" in
-  let retCode = sprintf "ret %s %s\n" exprVar.rvtypename exprVar.rvname in
+  let comment = sprintf "; return %s\n" exprVar.rvtypename in
+  let isValueType name = String.length name > 0 && name <> "void" in
+  let retCode = 
+    if isValueType exprVar.rvtypename then
+      sprintf "ret %s %s\n" exprVar.rvtypename exprVar.rvname
+    else
+      sprintf "ret void\n"
+  in
   (noVar, comment ^ exprCode ^ "\n" ^ retCode)
 
 let gencodeLabel label =

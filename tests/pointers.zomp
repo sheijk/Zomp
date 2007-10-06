@@ -57,9 +57,10 @@
 
   
 
-(func void test_store () (seq
+(func void test_store_load () (seq
   (var (ptr int) p (malloc int))
   (store p 3)
+  (var int t (load p))
   void
   ))
   
@@ -102,8 +103,18 @@
   (deref p)
   ))
 
+
+(func int testptr () (seq
+  (var int foo 10)
+  (var (ptr int) pfoo (ptr foo))
+  (var int foo2 (deref pfoo))
+  (ret foo2)
+  ))
+
+
 (func int main () (seq
-  (deref (int.new (twice 10)))
+  (testptr)
+//   (deref (int.new (twice 10)))
   ))
   
 
