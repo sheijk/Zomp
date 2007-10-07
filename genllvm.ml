@@ -561,7 +561,7 @@ let llvmStringLength str =
 let gencodeGlobalVar var =
   let varname = var.vname in
   match var.default with
-    | StringVal value ->
+    | StringLiteral value ->
         let contentVar = newGlobalTempVar `String
         and escapedValue = llvmEscapedString value
         in

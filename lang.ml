@@ -30,7 +30,7 @@ let string2integralValue str =
     with _ ->
       try Some ( BoolVal (bool_of_string str) )
       with _ ->
-        try Some ( StringVal (dequoteString str) )
+        try Some ( StringLiteral (dequoteString str) )
         with _ ->
           None
     

@@ -84,7 +84,7 @@ struct
     | VoidVal
     | IntVal of int
     | FloatVal of float
-    | StringVal of string
+    | StringLiteral of string
     | BoolVal of bool
     | PointerVal of typ * int option
     | RecordVal of (string * value) list
@@ -96,7 +96,7 @@ struct
     | VoidVal -> `Void
     | IntVal _ -> `Int
     | FloatVal _ -> `Float
-    | StringVal _ -> `String
+    | StringLiteral _ -> `String
     | BoolVal _ -> `Bool
     | PointerVal (t, _) -> t
     | RecordVal components ->
@@ -126,7 +126,7 @@ struct
     | VoidVal -> raise (Failure "no values of void allowed")
     | IntVal i -> string_of_int i
     | FloatVal f -> string_of_float f
-    | StringVal s -> "\"" ^ s ^ "\""
+    | StringLiteral s -> "\"" ^ s ^ "\""
     | BoolVal b -> string_of_bool b
     | PointerVal (typ, target) ->
         begin
@@ -165,7 +165,7 @@ struct
       | `String ->
           let length = String.length str in
           let value = String.sub str 1 (length-2) in
-          StringVal value
+          StringLiteral value
       | `Bool -> BoolVal (bool_of_string str)
       | `Pointer t -> if str == "null"
         then PointerVal (t, None)
@@ -177,7 +177,7 @@ struct
     | `Void -> VoidVal
     | `Int -> IntVal 0
     | `Float -> FloatVal 0.0
-    | `String -> StringVal ""
+    | `String -> StringLiteral ""
     | `Bool -> BoolVal false
     | `Pointer t -> PointerVal (t, None)
     | `Record components ->
