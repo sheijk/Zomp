@@ -18,6 +18,8 @@ expr:
     { { Ast2.id = "seq"; args = []; } }
 | PAREN_OPEN id = IDENTIFIER args = arg* PAREN_CLOSE
     { { Ast2.id = id; Ast2.args = args; } }
+| PAREN_OPEN firstarg = expr args = arg* PAREN_CLOSE
+    { { Ast2.id = "seq"; args = firstarg :: args; } }
 arg:
 | id = IDENTIFIER
     { { Ast2.id = id; Ast2.args = []; } }

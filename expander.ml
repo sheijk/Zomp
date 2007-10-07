@@ -173,7 +173,7 @@ let rec translateType bindings typeExpr =
     try
       Some (Lang.parseType name)
     with
-      | CouldNotParseType _ ->
+      | Typesystems.Zomp.CouldNotParseType _ ->
           match lookup bindings name with
             | TypedefSymbol t -> Some t
             | _ -> None
@@ -776,16 +776,19 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     (*       | Some t -> t *)
     (*       | None -> raise (UnknownType typeName) *)
     (*     in *)
-    let expr2param = function
-      | { id = typeName; args = [{ id = varName; args = [] }] } ->
-          begin
-            let typeExpr = { id = typeName; args = [] } in
-            match translateType bindings typeExpr with
-              | Some typ -> (varName, typ)
-              | None -> raiseInvalidType typeExpr
-          end
-      | _ as expr ->
-          raiseIllegalExpression expr "Expected 'typeName varName' for param"
+    let expr2param argExpr =
+      let translate varName typeExpr =
+        match translateType bindings typeExpr with
+          | Some typ -> (varName, typ)
+          | None -> raiseInvalidType typeExpr
+      in
+      match argExpr with
+        | { id = "seq"; args = [typeExpr; { id = varName; args = []};] } ->
+              translate varName typeExpr
+        | { id = typeName; args = [{ id = varName; args = [] }] } ->
+              translate varName { id = typeName; args = [] }
+        | _ as expr ->
+            raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
     let params = List.map expr2param paramExprs in
     let rec localBinding bindings = function

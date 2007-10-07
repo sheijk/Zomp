@@ -5,49 +5,49 @@
   (foo float)
   )
 
-(type simpleptr (ptr simple))
+// (type simpleptr (ptr simple))
 
-// (func int testStack () (seq
+// (func int testStack () (
 //   (var simple r)
 //   (setField r count 3)
 //   (setField r foo 1.0)
 //   (field r count)
 //   ))
 
-(func void setCount (seq (simpleptr r) (int value)) (seq
+(func void setCount (((ptr simple) r) (int value)) (
   (var (ptr int) countPtr (fieldptr r count))
   (store countPtr value)
   ))
 
-(func void setFoo (seq (simpleptr r) (float value)) (seq
+(func void setFoo (((ptr simple) r) (float value)) (
   (var (ptr float) fooPtr (fieldptr r foo))
   (store fooPtr value)
   ))
 
-(func int getCount (seq (simpleptr r)) (seq
+(func int getCount (((ptr simple) r)) (
   (var (ptr int) countPtr (fieldptr r count))
   (load countPtr)
   ))
 
-(func float getFoo (seq (simpleptr r)) (seq
+(func float getFoo (((ptr simple) r)) (
   (var (ptr float) fooPtr (fieldptr r foo))
   (load fooPtr)
   ))
 
-(func (ptr simple) testMalloc () (seq
+(func (ptr simple) testMalloc () (
   (var (ptr simple) p (malloc simple))
   (setCount p 3)
   (setFoo p 1.0)
   p
   ))
 
-(func void init (seq (simpleptr record)) (seq
+(func void init (((ptr simple) record)) (
   (setCount record 17)
   (setFoo record 1.0)
   (ret void)
   ))
 
-(func int main () (seq
+(func int main () (
   (var simple r)
   (init (ptr r))
   (getCount (ptr r))
