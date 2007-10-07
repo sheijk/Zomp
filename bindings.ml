@@ -1,7 +1,7 @@
 open Lang
 
 type symbol =
-  | VarSymbol of variable
+  | VarSymbol of composedType variable
   | FuncSymbol of func
   | MacroSymbol of macro
   | TypedefSymbol of composedType

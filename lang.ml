@@ -38,9 +38,9 @@ type varStorage =
   | RegisterStorage
   | MemoryStorage
 
-type variable = {
+type 'typ variable = {
   vname :string;
-  typ :composedType;
+  typ :'typ;
   default :integralValue;
   vstorage :varStorage;
   vmutable :bool;
@@ -70,32 +70,31 @@ and label = {
   lname :string;
 }
 and branch = {
-  bcondition :variable;
+  bcondition :[`Bool] variable;
   trueLabel :label;
   falseLabel :label;
 }
 and genericIntrinsic =
   | NullptrIntrinsic of composedType
   | MallocIntrinsic of composedType
-  | DerefIntrinsic of variable
-  | GetAddrIntrinsic of variable
-  | StoreIntrinsic of variable * variable (* value, ptr *)
-  | LoadIntrinsic of variable
-  | GetFieldPointerIntrinsic of variable * string
-(*   | SetFieldIntrinsic of composedType * variable * string * expr *)
-(*   | GetFieldIntrinsic of composedType * variable * string *)
-and expr =
-  | Sequence of expr list
-  | DefineVariable of variable * expr option
-  | Variable of variable
-  | Constant of integralValue
-  | FuncCall of funcCall
-  | AssignVar of variable * expr
-  | Return of expr
-  | Jump of label
-  | Branch of branch
-  | Label of label
-  | GenericIntrinsic of genericIntrinsic
+  | DerefIntrinsic of [`Pointer of typ] variable
+  | GetAddrIntrinsic of composedType variable
+  | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable (* value, ptr *)
+  | LoadIntrinsic of composedType variable
+  | GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
+and expr = [
+| `Sequence of expr list
+| `DefineVariable of composedType variable * expr option
+| `Variable of composedType variable
+| `Constant of integralValue
+| `FuncCall of funcCall
+| `AssignVar of composedType variable * expr
+| `Return of expr
+| `Jump of label
+| `Branch of branch
+| `Label of label
+| `GenericIntrinsic of genericIntrinsic
+]
 
 type func = {
   fname :string;
@@ -104,7 +103,7 @@ type func = {
   impl :expr option;
 }
 and toplevelExpr =
-  | GlobalVar of variable
+  | GlobalVar of composedType variable
   | DefineFunc of func
 
 let func name rettype args impl = {

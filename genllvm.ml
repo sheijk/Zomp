@@ -3,6 +3,7 @@ open Ast2
 open Lang
 open Printf
 open Bindings
+
 let combine = Common.combine
   
 exception CodeGenError of string
@@ -17,7 +18,7 @@ let llvmLocalName = llvmName
   
 let isLocalVar name = String.length name <= 2 || name.[1] <> '$'
   
-let rec llvmTypeName : Lang.composedType -> string = function
+let rec llvmTypeName = function
   | `Void -> "void"
   | `String -> "i8*"
   | `Int -> "i32"
@@ -52,7 +53,7 @@ let noVar = { rvname = ""; rvtypename = "" }
 let lastTempVarNum = ref 0
 let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
-  let newVar isGlobal typ =
+  let newVar isGlobal (typ :Lang.typ) =
     let id = nextUID () in
     let name = (sprintf "temp%d" id) in
     resultVar (variable name typ (defaultValue typ) RegisterStorage isGlobal)
@@ -360,13 +361,10 @@ let gencodeGenericIntr gencode = function
       end
   | DerefIntrinsic ptrVar ->
       begin
-        let ptrTypeNameLLVM = llvmTypeName ptrVar.typ in
+        let typ = (ptrVar.typ :> Lang.typ) in
+        let ptrTypeNameLLVM = llvmTypeName typ in
         let comment = sprintf "; deref %s %s\n" ptrTypeNameLLVM ptrVar.vname in
-        let resultType = match ptrVar.typ with
-          | `Pointer resultType -> resultType
-          | _ -> raiseCodeGenError ~msg:(sprintf "deref: %s is not a pointer type"
-                                           (Lang.typeName ptrVar.typ))
-        in
+        let `Pointer resultType = ptrVar.typ in
         let resultTypeLLVM = llvmTypeName resultType in
         let llvmPtrTypeName = llvmTypeName (`Pointer resultType) in
         let var = newLocalTempVar (`Pointer resultType) in
@@ -385,7 +383,7 @@ let gencodeGenericIntr gencode = function
       end
   | StoreIntrinsic (valueVar, ptrVar) ->
       begin
-        let valueVarLLVM, valueAccessCode = gencode (Variable valueVar) in
+        let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in
         let valueVarNameLLVM = valueVarLLVM.rvname in
         let valueType = valueVar.typ in
         let valueTypeLLVM = llvmTypeName valueType in
@@ -432,10 +430,7 @@ let gencodeGenericIntr gencode = function
       end
   | GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
-        let components = match recordVar.typ with
-          | `Pointer `Record components -> components
-          | _ -> raiseCodeGenError ~msg:(sprintf "%s is not a pointer to a record type" recordVar.vname)
-        in
+        let `Pointer `Record components = recordVar.typ in
         let fieldIndex = componentNum components fieldName in
         let fieldType = match componentType components fieldName with
           | None -> raiseCodeGenError ~msg:(sprintf "Could not find field %s in record %s" fieldName recordVar.vname)
@@ -445,7 +440,7 @@ let gencodeGenericIntr gencode = function
         let comment = sprintf "; obtaining address of %s.%s\n" recordVar.vname fieldName in
         let code = sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n"
           ptrVar.rvname
-          (llvmTypeName recordVar.typ)
+          (llvmTypeName ((recordVar.typ :> [`Pointer of Lang.typ]) :> Lang.typ))
           (llvmName recordVar.vname)
           fieldIndex in
         (ptrVar, comment ^ code)
@@ -540,17 +535,17 @@ let gencodeBranch branch =
   (noVar, code)
   
 let rec gencode : Lang.expr -> resultvar * string = function
-  | Sequence exprs -> gencodeSequence gencode exprs
-  | DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr
-  | Variable var -> gencodeVariable var
-  | Constant c -> gencodeConstant c
-  | FuncCall call -> gencodeFuncCall gencode call
-  | Return e -> gencodeReturn gencode e
-  | Label l -> gencodeLabel l
-  | Jump l -> gencodeJump l
-  | Branch b -> gencodeBranch b
-  | AssignVar (var, expr) -> gencodeAssignVar gencode var expr
-  | GenericIntrinsic intr -> gencodeGenericIntr gencode intr
+  | `Sequence exprs -> gencodeSequence gencode exprs
+  | `DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr
+  | `Variable var -> gencodeVariable var
+  | `Constant c -> gencodeConstant c
+  | `FuncCall call -> gencodeFuncCall gencode call
+  | `Return e -> gencodeReturn gencode e
+  | `Label l -> gencodeLabel l
+  | `Jump l -> gencodeJump l
+  | `Branch b -> gencodeBranch b
+  | `AssignVar (var, expr) -> gencodeAssignVar gencode var expr
+  | `GenericIntrinsic intr -> gencodeGenericIntr gencode intr
       
 let countChar str c =
   let count = ref 0 in
@@ -607,12 +602,12 @@ let gencodeDefineFunc func =
     | Some impl ->
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
         let lastExpr = function
-          | Sequence exprs as seq -> lastOrDefault exprs seq
+          | `Sequence exprs as seq -> lastOrDefault exprs seq
           | _ as expr -> expr
         in
         let resultVar, implCode = gencode impl in
         let impl = match lastExpr impl with
-          | Return _ ->
+          | `Return _ ->
               sprintf "{\n%s\n}" implCode
           | _ ->
               let isTypeName name = String.length name > 0 && name <> "void" in
