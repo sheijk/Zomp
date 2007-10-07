@@ -1,12 +1,17 @@
 
-var string text "this be text\n";
 
-func string gettext {string x;} {
-  text;
-};
+// (type string
+//   (int length)
+//   ((ptr char) chars))
 
-func int main {} {
-  printf text;
-  1;
-};
+(var string text "this be text\n")
 
+(func string gettext (seq (string x)) (seq
+  (text)
+  ))
+
+(func int main () (seq
+  (printf text)
+  1
+  ))
+  

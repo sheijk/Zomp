@@ -60,11 +60,11 @@ let variable ~name ~typ ~default ~storage ~global = {
 let localVar = variable ~storage:RegisterStorage ~global:false
 and globalVar = variable ~storage:MemoryStorage ~global:true
 
-type funcCall = {
+type 'argument funcCall = {
   fcname :string;
   fcrettype :composedType;
   fcparams :composedType list;
-  fcargs :expr list;
+  fcargs :'argument list;
 }
 and label = {
   lname :string;
@@ -74,7 +74,8 @@ and branch = {
   trueLabel :label;
   falseLabel :label;
 }
-and genericIntrinsic =
+    
+type genericIntrinsic =
   | NullptrIntrinsic of composedType
   | MallocIntrinsic of composedType
   | DerefIntrinsic of [`Pointer of typ] variable
@@ -82,12 +83,25 @@ and genericIntrinsic =
   | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable (* value, ptr *)
   | LoadIntrinsic of composedType variable
   | GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
-and expr = [
-| `Sequence of expr list
-| `DefineVariable of composedType variable * expr option
+
+type flatArgExpr = [
 | `Variable of composedType variable
 | `Constant of integralValue
-| `FuncCall of funcCall
+]
+(* type 'arg funcCallExpr = [ *)
+(* | `FuncCall of 'arg funcCall *)
+(* ] *)
+
+(* type rightHandExpr = [ *)
+(* | flatArgExpr *)
+(* | flatArgExpr funcCallExpr *)
+(* ] *)
+    
+type expr = [
+| flatArgExpr
+| `Sequence of expr list
+| `DefineVariable of composedType variable * expr option
+| `FuncCall of expr funcCall
 | `AssignVar of composedType variable * expr
 | `Return of expr
 | `Jump of label

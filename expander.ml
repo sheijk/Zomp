@@ -37,7 +37,7 @@ type typecheckResult =
       (** error message, found type, expected type *)
   | TypeError of string * composedType * composedType
       
-let rec typeOf = function
+let rec typeOf : Lang.expr -> typecheckResult = function
   | `Sequence [] -> TypeOf `Void
   | `Sequence [expr] -> typeOf expr
   | `Sequence (_ :: tail) -> typeOf (`Sequence tail)
@@ -64,7 +64,7 @@ let rec typeOf = function
         else
           List.fold_left2
             (fun prevResult typ arg ->
-               match typeOf arg with
+               match typeOf (arg :> Lang.expr) with
                  | TypeOf argType when typ = argType -> prevResult
                  | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
                  | TypeError(msg, invalidType, expectedType) ->
@@ -277,6 +277,123 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
     | _ ->
         None
         
+let expr2VarOrConst (bindings :bindings) = function
+  | { id = name; args = [] } -> begin
+      match lookup bindings name with
+        | VarSymbol v ->
+            Some (`Variable v)
+        | _ ->
+            match string2integralValue name with
+              | Some c -> Some (`Constant c)
+              | None -> None
+    end
+  | _ -> None
+      
+let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
+  match expr2VarOrConst bindings expr with
+    | Some varOrConst -> Some (bindings, [varOrConst])
+    | None -> None
+
+(* let rec flattenExpr (translateF :exprTranslateF) bindings expr = *)
+(*   match translateF bindings expr with *)
+(*     | Some( *)
+(* let rec flattenExpr bindings expr = *)
+(*   let { id = name; args = args } = expr in *)
+(*   match lookup bindings name with *)
+(*     | VarSymbol _ | UndefinedSymbol -> *)
+(*         begin match expr2VarOrConst bindings expr with *)
+(*           | Some varOrConst -> Some (([] :Lang.expr list), varOrConst ) *)
+(*           | None -> None *)
+(*         end *)
+(*     | FuncSymbol func -> *)
+(*         begin *)
+(*           let rec flattenArgs initCode args = function *)
+(*             | [] -> initCode, args *)
+(*             | expr :: remainingExprs -> *)
+(*                 begin *)
+(*                   match flattenExpr bindings expr with *)
+(*                     | Some (newInitCode, flatForm) -> flattenArgs (initCode @ newInitCode) (args @ [flatForm]) remainingExprs *)
+(*                     | None -> raiseIllegalExpression expr "Could not be translated to flat arg" *)
+(*                 end *)
+(*           in *)
+(*           let initCode, flatArgs = flattenArgs [] [] args in *)
+(* (\*           let initCodes, flatArgs = List.split (List.map (flattenExpr bindings) args) in *\) *)
+(*           let funccall = `FuncCall { *)
+(*             fcname = func.fname; *)
+(*             fcrettype = func.rettype; *)
+(*             fcargs = flatArgs; *)
+(*             fcparams = List.map snd func.fargs; *)
+(*           } in *)
+(*           Some (initCode, funccall) *)
+(*         end *)
+(*     | _ -> None *)
+        
+(* let rec expr2funcall (translateF :exprTranslateF) (bindings :bindings) expr = *)
+(*   let { id = name; args = args } = expr in *)
+(*   match lookup bindings name with *)
+(*     | FuncSymbol func -> *)
+(*         begin *)
+(* (\*           let flatten expr = *\) *)
+(* (\*             let forms, arg = *\) *)
+(* (\*               match expr2VarOrConst bindings expr with *\) *)
+(* (\*                 | Some (#Lang.flatArgExpr as e) -> [], e *\) *)
+(* (\*                 | None -> *\) *)
+(* (\*                     begin match expr2funcall translateF bindings expr with *\) *)
+(* (\*                       | Some (#Lang.funcCallExpr as e) -> [], e *\) *)
+(* (\*                       | None -> raiseIllegalExpression expr "Not allowed as a nested expression" *\) *)
+(* (\*                     end *\) *)
+(* (\*             in *\) *)
+(* (\*             forms, arg *\) *)
+(* (\*           in *\) *)
+(* (\*           let rec flattenArgs preCode args = function *\) *)
+(* (\*             | [] -> preCode, args *\) *)
+(* (\*             | hd :: tl -> *\) *)
+(* (\*                 let newPreCode, arg = flatten hd in *\) *)
+(* (\*                 flattenArgs (newPreCode @ newPreCode) (args @ [arg]) tl *\) *)
+(* (\*           in *\) *)
+(* (\*           let preCode, argExprs = flattenArgs [] [] args in *\) *)
+(* (\*                         let evalArg arg = *\) *)
+(* (\*                           match expr2VarOrConst bindings arg with *\) *)
+(* (\*                             | Some flatForm -> flatForm *\) *)
+(* (\*                             | None -> raiseIllegalExpression arg "Could not be translated to var or constant" *\) *)
+(* (\*                         in *\) *)
+          
+(* (\*           let flatten expr = *\) *)
+(* (\*             match translateF bindings expr with *\) *)
+(* (\*               | _, [#Lang.flatArgExpr as e] -> e *\) *)
+(* (\*               | _ -> raiseIllegalExpression expr "Could not be translated to flat arg" *\) *)
+(* (\*           in *\) *)
+(* (\*           let evalArg = flatten in *\) *)
+(* (\*           let argExprs = List.map evalArg args in *\) *)
+(*           let rec flattenArgs initCode args = function *)
+(*             | [] -> initCode, args *)
+(*             | expr :: remainingExprs -> *)
+(*                 begin *)
+(*                   match flattenExpr bindings expr with *)
+(*                     | Some (newInitCode, flatForm) -> flattenArgs (initCode @ newInitCode) (args @ [flatForm]) remainingExprs *)
+(*                     | None -> raiseIllegalExpression expr "Could not be translated to flat arg" *)
+(*                 end *)
+(*           in *)
+(*           let initCode, argExprs = flattenArgs [] [] args in *)
+(*           let funccall = `FuncCall { *)
+(*             fcname = name; *)
+(*             fcrettype = func.rettype; *)
+(*             fcparams = List.map snd func.fargs; *)
+(*             fcargs = argExprs; *)
+(*           } *)
+(*           in *)
+(*           match typeOf (funccall :> Lang.expr) with *)
+(*             | TypeOf _ -> Some funccall *)
+(*             | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg) *)
+(*         end *)
+(*     | _ -> *)
+(*         None *)
+            
+(* let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr = *)
+(*   match expr2funcall translateF bindings expr with *)
+(*       | Some funcCall -> Some( bindings, [funcCall] ) *)
+(*       | None -> None *)
+
 let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = args; } as expr ->
       match lookup bindings name with
@@ -300,7 +417,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
                 | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg)
             end
         | _ -> None
-
+            
 let translateMacro (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = macroName; args = args; } ->
       match lookup bindings macroName with
@@ -309,17 +426,6 @@ let translateMacro (translateF :exprTranslateF) (bindings :bindings) = function
             Some (translateF bindings transformedExpr)
         | _ -> None
             
-let translateSimpleExpr (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = name; args = [] } -> begin
-      match lookup bindings name with
-        | VarSymbol v ->
-            Some (bindings, [`Variable v])
-        | _ ->
-            match string2integralValue name with
-              | Some c -> Some( bindings, [`Constant c] )
-              | None -> None
-    end
-  | _ -> None
 
 let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->
