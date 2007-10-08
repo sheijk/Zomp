@@ -1,0 +1,17 @@
+
+
+(macro mapfunc name code
+  (func int name ((int x)) code)
+  )
+
+(mapfunc incr (
+  (var int r (int.add x 1))
+  (ret r)
+  ))
+  
+(func int main () (
+  (macro twice x (int.add x x))
+  (incr (twice 100))
+  ))
+
+  

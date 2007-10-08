@@ -85,6 +85,10 @@ deps:
 	echo Calculating dependencies ...
 	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
 
+parser2.cmo: ast2.ml
+sexprparser.cmo: ast2.ml
+sexprlexer.cmo: ast2.ml
+
 tags:
 	echo Generating tags ...
 	otags 2> /dev/null || echo "otags not found, no tags generated"

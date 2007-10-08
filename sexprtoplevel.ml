@@ -31,7 +31,9 @@ let toggleEvalCommand = makeToggleCommand evalLLVMCode "Evaluating LLVM code"
 let matchAnyRegexp patterns =
   match patterns with
     | [] -> Str.regexp ".*"
-    | _ -> Str.regexp ( "\\(" ^ combine "\\|" patterns ^ "\\)" )
+    | _ ->
+        let containsPatterns = List.map (fun p -> ".*" ^ p ^ ".*") patterns in
+        Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
       
 let printBindings args (bindings :Bindings.bindings) =
   let checkRE = matchAnyRegexp args in
@@ -234,7 +236,7 @@ let () =
          match form with
            | GlobalVar var -> Bindings.addVar bindings var
            | DefineFunc func -> Bindings.addFunc bindings func)
-      Bindings.defaultBindings
+      Genllvm.defaultBindings
       simpleforms
   in
   let initialBindings = loadPrelude() in

@@ -6,6 +6,9 @@ type expression = {
   args :expression list;
 }
 
+let idExpr name = { id = name; args = [] }
+let simpleExpr name args = { id = name; args = List.map (fun str -> { id = str; args = [] }) args }
+  
 let rec expression2string = function
   | { id = ""; args = [] } -> "()"
   | { id = id; args = args; } ->
@@ -21,3 +24,4 @@ let rec expression2string = function
         else
           Common.combine "\n  " (id::argStrings)
       end    
+

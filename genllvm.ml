@@ -144,13 +144,32 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     ]
   in
   let builtinMacros =
+    let rec replaceParams params args expr =
+      let replacementList = List.combine params args in
+      let replace name =
+        try List.assoc name replacementList
+        with Not_found -> { id = name; args = [] }
+      in
+      match replace expr.id with
+        | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
+        | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
+    in
     let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
     let delegateMacro macroName funcName =
       macro macroName (fun args -> { id = funcName; args = args; })
     in
+    let templateMacro name params expr =
+      macro name (fun args -> replaceParams params args expr)
+    in
     [
       delegateMacro "op+" "int.add";
       delegateMacro "op+_f" "float.add";
+
+      templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] });
+(*       templateMacro "if" ["testF"; "onTrue"] *)
+(*         ({ id = "seq"; *)
+(*            args = [ *)
+(*            ] }); *)
     ]
   in
   let defaultBindings =

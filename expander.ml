@@ -26,6 +26,7 @@ and macroPtr = "ptr"
 and macroReturn = "ret"
 and macroLabel = "label"
 and macroBranch = "branch"
+and macroMacro = "macro"
   
 exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
@@ -46,12 +47,12 @@ let rec typeOf : Lang.expr -> typecheckResult = function
         | Some expr ->
             begin
               match typeOf expr with
-                | TypeOf exprType when exprType = var.typ -> TypeOf var.typ
+                | TypeOf exprType when exprType = var.typ -> TypeOf `Void
                 | TypeOf wrongType -> TypeError (
                     "variable definition requires same type for var and default value", wrongType, var.typ)
-                | _ as e -> e
+                | TypeError _ as typeError -> typeError
             end
-        | None -> TypeOf var.typ
+        | None -> TypeOf `Void
     end
   | `Variable var -> TypeOf var.typ
   | `Constant value -> TypeOf (Lang.typeOf value)
@@ -235,13 +236,6 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
                   begin
                     let value = defaultValue typ in
                     let storage = MemoryStorage
-(*                       match typ with *)
-(*                         | `Pointer _ -> *)
-(*                             MemoryStorage *)
-(*                         | _ -> *)
-(*                             if id = macroVar *)
-(*                             then RegisterStorage *)
-(*                             else MemoryStorage *)
                     in
                     let var = variable name typ value storage false in
                     Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence simpleform)) ] )
@@ -418,7 +412,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
             end
         | _ -> None
             
-let translateMacro (translateF :exprTranslateF) (bindings :bindings) = function
+let translateMacro translateF (bindings :bindings) = function
   | { id = macroName; args = args; } ->
       match lookup bindings macroName with
         | MacroSymbol macro ->
@@ -426,6 +420,36 @@ let translateMacro (translateF :exprTranslateF) (bindings :bindings) = function
             Some (translateF bindings transformedExpr)
         | _ -> None
             
+let translateDefineMacro translateF (bindings :bindings) = function
+  | { id = id; args =
+        { id = name; args = [] }
+        :: paramImpl
+    } when id = macroMacro ->
+      begin match List.rev paramImpl with
+        | [] -> None
+        | impl :: args ->
+            begin
+              let args = List.rev args in
+              let rec replaceParams params args expr =
+                let replacementList = List.combine params args in
+                let replace name =
+                  try List.assoc name replacementList
+                  with Not_found -> { id = name; args = [] }
+                in
+                match replace expr.id with
+                  | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
+                  | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
+              in
+              let argNames = List.map (function
+                                         | { id = name; args = [] } -> name
+                                         | _ as arg -> raiseIllegalExpression arg "only identifier allowed as macro parameter")
+                args
+              in
+              Some( Bindings.addMacro bindings name (fun args -> replaceParams argNames args impl), [] )
+              end
+            end
+        | _ ->
+            None
 
 let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->
@@ -543,7 +567,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           let newBindings, newVar = getNewVar bindings newVarType in
           let _, simpleforms = translateF bindings expr in
           let rightHandExpr = `DefineVariable (newVar, Some (`Sequence simpleforms)) in
-          (newBindings, newVar, rightHandExpr)
+          (newBindings, newVar, rightHandExpr, typeOf (`Sequence simpleforms))
       | _ -> raiseIllegalExpression expr "expression is ill typed"
   in
   let convertSimple typeExpr constructF =
@@ -556,7 +580,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     | { id = "malloc"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> MallocIntrinsic t)
     | { id = "deref"; args = [rightHandExpr] } ->
         begin
-          let newBindings, newVar, rightHandExpr = newVarFromExpr bindings rightHandExpr in
+          let newBindings, newVar, rightHandExpr, _ = newVarFromExpr bindings rightHandExpr in
           let newVar = match newVar.typ with
             | `Pointer _ as typ -> { newVar with typ = typ }
             | _ -> raiseIllegalExpression expr "Can only deref pointers"
@@ -581,9 +605,9 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           match lookup bindings ptrName with
             | VarSymbol ptrVar when isPointer ptrVar.typ ->
                 begin
-                  let newBindings, newVar, rightHandSimpleform = newVarFromExpr bindings rightHandExpr
+                  let newBindings, newVar, rightHandSimpleform, rightHandType = newVarFromExpr bindings rightHandExpr
                   in
-                  match ptrVar.typ, typeOf rightHandSimpleform with
+                  match ptrVar.typ, rightHandType with
                     | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType ->
                         begin
                           let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in
@@ -593,10 +617,10 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                     | ptrType, TypeOf rightHandType ->
                         begin
                           raiseIllegalExpression expr
-                            (sprintf "first parameter (%s) should have type %s* instead of %s"
+                            (sprintf "first parameter (%s) should have type %s instead of %s"
                                ptrVar.vname
-                               (Lang.typeName ptrType)
-                               (Lang.typeName rightHandType))
+                               (Lang.typeName rightHandType)
+                               (Lang.typeName ptrType))
                         end
                     | _, TypeError (msg, _, _) ->
                         raiseIllegalExpression rightHandExpr msg
@@ -728,6 +752,7 @@ let translateNested = translate raiseIllegalExpression
     translateSimpleExpr;
     translateFuncCall;
     translateMacro;
+    translateDefineMacro;
     translateAssignVar;
     translateTypedef;
     translateGenericIntrinsic;
@@ -847,11 +872,15 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
         end
     | _ ->
         None
-        
+
+
+          
 let translateTL = translate raiseIllegalExpression [
   translateGlobalVar;
   translateFunc;
   translateTypedef;
+  translateDefineMacro;
+  translateMacro;
 ]
   
   
