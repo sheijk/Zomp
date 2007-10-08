@@ -4,17 +4,39 @@
   (branch foo)
   (ret 20)
   
-(label foo)
+ (label foo)
   (branch cond one two)
   
-(label one)
+ (label one)
   (ret 1)
   
-(label two)
+ (label two)
   (ret 2)
   ))
 
+(func void printString ((string s)))
+(func void printNewline ())
+
+(var string trueString "true")
+(var string falseString "false")
+
+(func void printBool ((bool b)) (
+  (branch b true false)
+  
+ (label true)
+  (printString trueString)
+  (printNewline)
+  // fall through to test if code generate can deal with it
+  
+ (label false)
+  (printString falseString)
+  (printNewline)
+  ))
+  
 (func int main () (seq
+  (printBool true)
+  (printBool false)
+  
   (var int one (oneortwo true))
   (var int two (oneortwo false))
   (var int four (int.add two two))

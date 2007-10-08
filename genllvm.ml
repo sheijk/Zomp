@@ -536,13 +536,14 @@ let gencodeReturn gencode expr =
   in
   (noVar, comment ^ exprCode ^ "\n" ^ retCode)
 
-let gencodeLabel label =
-  let code = sprintf "%s:\n" label.lname in
-  (noVar, code)
-
 let gencodeJump label =
   let code = sprintf "br label %%%s\n" label.lname in
   (noVar, code)
+    
+let gencodeLabel label =
+  let _, dummyJumpCode = gencodeJump label in
+  let code = sprintf "%s:\n" label.lname in
+  (noVar, dummyJumpCode ^ code)
 
 let gencodeBranch branch =
   let code =
@@ -611,14 +612,20 @@ let gencodeGlobalVar var =
         raiseCodeGenError ~msg:"global constant of record type not supported, yet"
 
 let gencodeDefineFunc func =
-  let param2string (name, typ) = (llvmTypeName typ) ^ " " ^ (llvmName name) in
-  let paramString = combine ", " (List.map param2string func.fargs) in
-  let decl = sprintf "%s @%s(%s) "
-    (llvmTypeName func.rettype) func.fname paramString
-  in
   match func.impl with
-    | None -> "declare " ^ decl
+    | None ->
+        let paramTypeNames = List.map (fun (_, typ) -> llvmTypeName typ) func.fargs in
+        let paramString = combine ", " paramTypeNames in
+        let decl = sprintf "%s @%s(%s) "
+          (llvmTypeName func.rettype) func.fname paramString
+        in
+        "declare " ^ decl
     | Some impl ->
+        let param2string (name, typ) = (llvmTypeName typ) ^ " " ^ (llvmName name) in
+        let paramString = combine ", " (List.map param2string func.fargs) in
+        let decl = sprintf "%s @%s(%s) "
+          (llvmTypeName func.rettype) func.fname paramString
+        in
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
         let lastExpr = function
           | `Sequence exprs as seq -> lastOrDefault exprs seq
@@ -637,15 +644,6 @@ let gencodeDefineFunc func =
                       resultVar.rvname)
                  else "  ret void\n}")
         in
-        (*         let isTypeName name = String.length name > 0 && name <> "void" in *)
-        (*         let impl = *)
-        (*           (sprintf "{\n%s\n}" implCode) *)
-        (*           ^ (if isTypeName resultVar.rvtypename then *)
-        (*                (sprintf "  ret %s %s\n}" *)
-        (*                   resultVar.rvtypename *)
-        (*                   resultVar.rvname) *)
-        (*              else "  ret void\n}") *)
-        (* in *)
         "define " ^ decl ^ impl
 
 let gencodeTL = function

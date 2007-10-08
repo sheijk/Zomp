@@ -11,6 +11,8 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/Assembly/Parser.h"
 
+#include <dlfcn.h>
+
 using std::printf;
 using namespace llvm;
 
@@ -69,6 +71,7 @@ extern "C" {
     ParseError errorInfo;
   
     Module* module = ParseAssemblyString( code, llvmModule, &errorInfo );
+//     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
 
     if( errorInfo.getRawMessage() != "none" ) {
       fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
@@ -78,6 +81,46 @@ extern "C" {
     }
 
     return true;
+  }
+  
+  bool zompSendCodeNewVar(const char* code) {
+//     printf( "Creating new var\n" );
+//     fflush( stdout );
+    return zompSendCode( code );
+  }
+  
+  bool zompSendCodeNewFunc(const char* code) {
+//     printf( "Create new function\n" );
+//     fflush( stdout );
+    return zompSendCode( code );
+  }
+
+  bool zompSendCodeModifyFunc(const char* code) {
+//     printf( "Modifying existing function\n" );
+//     fflush( stdout );
+    return zompSendCode( code );
+    
+//     ParseError errorInfo;
+  
+//     Module* module = ParseAssemblyString( code, llvmModule, &errorInfo );
+// //     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
+
+//     if( module != NULL ) {
+//       std::cout
+//         << "--- We just constructed this LLVM module ---\n\n"
+//         << *module << "\n"
+//         << "--------------------------------------------\n\n";
+//       std::cout.flush();
+//     }
+    
+//     if( errorInfo.getRawMessage() != "none" ) {
+//       fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
+//       fflush( stderr );
+
+//       return false;
+//     }
+
+//     return true;
   }
 
   bool zompLoadFile(const char* filename) {
@@ -136,6 +179,16 @@ extern "C" {
 
     printf( "%s\n", hline );
     */
+  }
+
+  void zompLoadLib(const char* name) {
+    printf("Loading lib %s\n", name);
+
+    dlopen( name, RTLD_LAZY );
+  }
+
+  bool zompCheckNativeSymbol(const char* name) {
+    return dlsym( NULL, name ) != NULL ? true : false;
   }
   
 } // extern "C"

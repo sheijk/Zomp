@@ -11,6 +11,7 @@ bool zompSendCode(const char* code);
 bool zompLoadFile(const char* filename);
 void zompRunFunction(const char* name);
 void zompPrintModuleCode();
+void zompLoadLib(const char* name);
 
 #endif
 

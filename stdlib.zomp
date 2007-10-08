@@ -4,6 +4,27 @@
 (func void printFloat (seq (float f)))
 (func void printNewline ())
 
+(func void zompLoadLib ((string libname)))
+(func bool zompCheckNativeSymbol ((string libname)))
+
 (func void stdlibHello ())
 (func void zompHello ())
 
+(var string trueString "true")
+(var string falseString "false")
+
+(func void printBool ((bool b)) (
+  (branch b true false)
+  
+  (label true)
+  (printString trueString)
+  (printNewline)
+  (branch end)
+  
+  (label false)
+  (printString falseString)
+  (printNewline)
+
+  (label end)
+  ))
+  

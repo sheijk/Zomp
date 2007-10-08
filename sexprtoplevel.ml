@@ -5,7 +5,7 @@ open Lang
 let combine = Common.combine
   
 let printLLVMCode = ref true
-and evalLLVMCode = ref true
+and llvmEvaluationOn = ref true
   
 module StringMap = Map.Make(String)
   
@@ -26,7 +26,7 @@ let makeToggleCommand refvar message _ _ =
   printf "%s: %s\n" message (boolString !refvar)
 
 let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
-let toggleEvalCommand = makeToggleCommand evalLLVMCode "Evaluating LLVM code"
+let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 
 let matchAnyRegexp patterns =
   match patterns with
@@ -178,48 +178,91 @@ let printWelcomeMessage() =
   printf "#x - exit, #help - help.\n";
   printf "\n"
 
-let () =
-  if not (Machine.zompInit()) then begin
-    eprintf "Could not initialize ZompVM\n";
-    exit(-1);
+exception InternalError
+  
+let evalMode bindings = function
+  | [GlobalVar _] -> `NewGlobal
+  | [DefineFunc func] ->
+      begin match Bindings.lookup bindings func.fname with
+        | Bindings.FuncSymbol _ -> `ModifyFunction
+        | _ -> `NewFunction
+      end
+  | _ ->
+      raise InternalError
+
+exception FailedToEvaluateLLVMCode of string
+  
+let evalLLVMCode llvmCode evalMode =
+  let evalF =
+    match evalMode with
+      | `NewGlobal -> Machine.zompSendCodeNewVar
+      | `NewFunction -> Machine.zompSendCodeNewFunc
+      | `ModifyFunction -> Machine.zompSendCodeModifyFunc
+  in
+  if evalF llvmCode then
+    ()
+  else
+    raise (FailedToEvaluateLLVMCode llvmCode)
+
+let catchingErrorsDo f ~onError =
+  let wasOk = ref false in
+  begin try
+    f();
+    wasOk := true
+  with
+    | Sexprparser.Error ->
+        printf "parsing error (sexpr).\n"
+    | Sexprlexer.UnknowChar c ->
+        printf "Lexer error: encountered unknown character %s.\n" c
+    | Parser2.Error ->
+        printf "Parsing error (cexpr).\n"
+    | AbortExpr ->
+        printf "Aborted expression, restarting with next line.\n"
+    | Expander.IllegalExpression (expr, msg) ->
+        printf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr)
+    | Lang.CouldNotParseType descr ->
+        printf "Unknown type: %s\n" descr
+    | FailedToEvaluateLLVMCode llvmCode ->
+        printf "Could not evaluate LLVM code:\n%s\n" llvmCode
+    | InternalError ->
+        printf "Internal error\n"
   end;
-  at_exit Machine.zompShutdown;
-  printWelcomeMessage();
+  if not !wasOk then
+    onError()
+
+
+let () =
+  let compileExpr bindings expr = 
+    let newBindings, simpleforms = Expander.translateTL bindings expr in
+    let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
+    let llvmCode = combine "\n" llvmCodes in
+    newBindings, simpleforms, llvmCode
+  in
   let rec step bindings () =
-    let goon() = step bindings () in
     begin
-      try
-        let expr = readExpr "" bindings "cexpr|sexpr # " in
-        let asString = Ast2.expression2string expr in
-        printf " => %s\n" asString;
-        let newBindings, simpleforms = Expander.translateTL bindings expr in
-        let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
-        let llvmCode = combine "\n" llvmCodes in
-        if !printLLVMCode then begin
-          printf "LLVM code:\n%s\n" llvmCode; flush stdout;
-        end;
-        if !evalLLVMCode then begin
-          if not( Machine.zompSendCode llvmCode ) then
-            eprintf "Error evaluating code\n"; flush stderr;
-        end;
-        step newBindings ()
-      with
-        | Sexprparser.Error -> printf "parsing error (sexpr).\n"; goon()
-        | Sexprlexer.UnknowChar c ->
-            printf "Lexer error: encountered unknown character %s.\n" c;
-            goon()
-        | Parser2.Error ->
-            printf "Parsing error (cexpr).\n"; goon()
-        | AbortExpr ->
-            printf "Aborted expression, restarting with next line.\n";
-            goon()
-        | Expander.IllegalExpression (expr, msg) ->
-            printf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr);
-            goon()
-        | Lang.CouldNotParseType descr ->
-            printf "Unknown type: %s\n" descr;
-            goon()
+      catchingErrorsDo
+        (fun () -> begin
+           let expr = readExpr "" bindings "cexpr|sexpr # " in
+           let asString = Ast2.expression2string expr in
+           printf " => %s\n" asString;
+           let newBindings, simpleform, llvmCode = compileExpr bindings expr in
+           if !printLLVMCode then begin
+             printf "LLVM code:\n%s\n" llvmCode; flush stdout;
+           end;
+           if !llvmEvaluationOn then begin
+             evalLLVMCode llvmCode (evalMode bindings simpleform)
+           end;
+           step newBindings ()
+         end)
+        ~onError:(step bindings)
     end
+  in
+  let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
+    try
+      let expr = parseF lexbuf in
+      parse parseF lexbuf (codeAccum @ [expr])
+    with
+      | Lexer2.Eof | Sexprlexer.Eof -> codeAccum
   in
   let loadPrelude () =
     let llvmPreludeFile = "stdlib.ll"
@@ -230,17 +273,33 @@ let () =
     printf "Loading Zomp prelude from %s\n" zompPreludeFile; flush stdout;
     let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
     let parseF = Sexprparser.main Sexprlexer.token in
-    let simpleforms = Parseutils.parse parseF lexbuf Bindings.defaultBindings [] in
-    List.fold_left
-      (fun bindings form ->
-         match form with
-           | GlobalVar var -> Bindings.addVar bindings var
-           | DefineFunc func -> Bindings.addFunc bindings func)
-      Genllvm.defaultBindings
-      simpleforms
+    let exprs = parse parseF lexbuf [] in
+    let newBindings =
+      List.fold_left
+        (fun bindings expr ->
+           let newBindings, simpleform, llvmCode = compileExpr bindings expr in
+           evalLLVMCode llvmCode (evalMode bindings simpleform);
+           newBindings)
+        Genllvm.defaultBindings
+        exprs
+    in
+    newBindings
   in
-  let initialBindings = loadPrelude() in
-(*   let _ = loadPrelude in *)
-(*   let initialBindings = Bindings.defaultBindings in *)
-  step initialBindings ()
+
+  if not (Machine.zompInit()) then begin
+    eprintf "Could not initialize ZompVM\n";
+    exit(-1);
+  end;
+  at_exit Machine.zompShutdown;
+  printWelcomeMessage();
+  catchingErrorsDo
+    (fun () -> begin
+       let initialBindings = loadPrelude() in
+       step initialBindings ()
+     end)
+    ~onError:
+    (fun () -> begin
+       eprintf "Could not load stdlib. Aborting\n";
+       exit (-1);
+     end)
   

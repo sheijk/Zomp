@@ -446,10 +446,10 @@ let translateDefineMacro translateF (bindings :bindings) = function
                 args
               in
               Some( Bindings.addMacro bindings name (fun args -> replaceParams argNames args impl), [] )
-              end
             end
-        | _ ->
-            None
+      end
+  | _ ->
+      None
 
 let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->

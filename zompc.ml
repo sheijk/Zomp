@@ -14,7 +14,7 @@ type compilationResult =
 
 let parseChannel lexbuf parseF () : compilationResult =
   try
-    let toplevelExprs :Lang.toplevelExpr list = parse parseF lexbuf Genllvm.defaultBindings [] in
+    let _, toplevelExprs = parse parseF lexbuf Genllvm.defaultBindings [] in
     let llvmSource :string = genmodule toplevelExprs in
     CompilationSucceeded llvmSource
   with
