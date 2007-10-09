@@ -23,6 +23,7 @@ let rec llvmTypeName = function
   | `String -> "i8*"
   | `Int -> "i32"
   | `Bool -> "i1"
+  | `Char -> "i8"
   | `Float -> "float"
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
@@ -599,7 +600,7 @@ let gencodeGlobalVar var =
             contentVar.rvname
         in
         stringStorageSrc ^ stringPointerSrc
-    | IntVal _ | BoolVal _ | FloatVal _ ->
+    | IntVal _ | BoolVal _ | FloatVal _ | CharVal _ ->
         sprintf "@%s = constant %s %s"
           varname
           (llvmTypeName var.typ)

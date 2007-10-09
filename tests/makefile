@@ -1,6 +1,6 @@
 
 WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp ops.zomp typedefs.zomp sexpr.zomp pointers.zomp records.zomp ret.zomp labels.zomp strings.zomp macros.zomp
-# WORKING = labels.zomp 
+# WORKING = labels.zomp comments.zomp 
 
 FAILING = simple.zomp
 

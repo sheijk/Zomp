@@ -112,7 +112,7 @@ extern "C" {
 
     if( func != NULL ) {
       executionEngine->recompileAndRelinkFunction( func );
-      
+
       return true;
     }
 

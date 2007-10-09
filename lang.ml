@@ -1,4 +1,6 @@
-
+open Printf
+open Common
+  
 let componentType components componentName =
   try Some( snd (List.find (fun (name, _) -> name = componentName) components) )
   with Not_found -> None
@@ -17,22 +19,35 @@ type composedType = typ
 type integralValue = value
 
 let string2integralValue str =
-  let dequoteString str =
+  let dequoteString quoteChar str =
     let length = String.length str in
-    if length > 2 && str.[0] = '"' && str.[length-1] = '"' then
+    if length > 2 && str.[0] = quoteChar && str.[length-1] = quoteChar then
       String.sub str 1 (length-2)
     else
-      raise (Failure "dequoteString")
+      raise (Failure (sprintf "dequoteString %c" quoteChar))
   in
-  try Some ( IntVal (int_of_string str) )
-  with _ ->
-    try Some ( FloatVal (float_of_string str) )
-    with _ ->
-      try Some ( BoolVal (bool_of_string str) )
-      with _ ->
-        try Some ( StringLiteral (dequoteString str) )
-        with _ ->
-          None
+  tryAll
+    [
+      lazy( IntVal (int_of_string str) );
+      lazy( FloatVal (float_of_string str) );
+      lazy( BoolVal (bool_of_string str) );
+      lazy( StringLiteral (dequoteString '"' str) );
+      lazy( CharVal (dequoteString '\'' str).[0] );
+    ]
+    ~onSuccess:some
+    ~ifAllFailed:(lazy None)
+    
+(*     try Some ( IntVal (int_of_string str) ) *)
+(*     with _ -> *)
+(*       try Some ( FloatVal (float_of_string str) ) *)
+(*       with _ -> *)
+(*         try Some ( BoolVal (bool_of_string str) ) *)
+(*         with _ -> *)
+(*           try Some ( StringLiteral (dequoteString '"' str) ) *)
+(*           with _ -> *)
+(*             try Some ( CharVal (dequoteString '\'' str).[0] ) *)
+(*             with _ -> *)
+(*               None *)
     
 type varStorage =
   | RegisterStorage

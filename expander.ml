@@ -442,7 +442,7 @@ let translateDefineMacro translateF (bindings :bindings) = function
               in
               let argNames = List.map (function
                                          | { id = name; args = [] } -> name
-                                         | _ as arg -> raiseIllegalExpression arg "only identifier allowed as macro parameter")
+                                         | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter")
                 args
               in
               Some( Bindings.addMacro bindings name (fun args -> replaceParams argNames args impl), [] )

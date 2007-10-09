@@ -4,6 +4,7 @@
 //   (int length)
 //   ((ptr char) chars))
 
+
 (var string text "this be text\n")
 
 (func string gettext (seq (string x)) (seq
@@ -11,6 +12,9 @@
   ))
 
 (func int main () (seq
+  (var char c 'x')
+  (printChar c)
+  (printNewline)
   (printf text)
   1
   ))

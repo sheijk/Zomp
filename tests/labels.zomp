@@ -14,13 +14,13 @@
   (ret 2)
   ))
 
-(func void printString ((string s)))
-(func void printNewline ())
+// (func void printString ((string s)))
+// (func void printNewline ())
 
-(var string trueString "true")
-(var string falseString "false")
+// (var string trueString "true")
+// (var string falseString "false")
 
-(func void printBool ((bool b)) (
+(func void test ((bool b)) (
   (branch b true false)
   
  (label true)
@@ -34,8 +34,8 @@
   ))
   
 (func int main () (seq
-  (printBool true)
-  (printBool false)
+  (test true)
+  (test false)
   
   (var int one (oneortwo true))
   (var int two (oneortwo false))

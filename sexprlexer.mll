@@ -21,6 +21,8 @@ rule token = parse
       { raise Eof }
   | (('"' [^'\"']* '"') as str)
       { IDENTIFIER(str) }
+  | (('\'' _ '\'') as chr)
+      { IDENTIFIER(chr) }
   | "//" [^'\n']* '\n'
       { token lexbuf }
   |  "/*"

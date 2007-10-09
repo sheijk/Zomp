@@ -13,6 +13,10 @@ void printFloat( float f ) {
     printf( "%f", f );
 }
 
+void printChar( char c ) {
+  printf( "%c", c );
+}
+
 void printNewline() {
     printf( "\n" );
 }

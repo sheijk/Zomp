@@ -2,6 +2,8 @@
 open Ast2
 open Printf
 open Lang
+open Common
+  
 let combine = Common.combine
   
 let printLLVMCode = ref true
@@ -56,25 +58,14 @@ let printBindings args (bindings :Bindings.bindings) =
         | Bindings.UndefinedSymbol ->
             printf "undefined %s\n" name
   in
-  List.iter printSymbol bindings
+  print_newline();
+  List.iter printSymbol bindings;
+  print_newline()
 
 let runMain args _ =
   match args with
     | [funcname] -> Machine.zompRunFunction funcname
     | _ -> eprintf "Only one argument allowed\n"; flush stderr
-
-let readFile filename =
-  let file = open_in filename in
-  let rec read() =
-	try
-	  let line = input_line file in
-	  line ^ "\n" ^ read()
-	with
-		End_of_file -> ""
-  in
-  let content = read() in
-  close_in file;
-  content
     
 let loadLLVMFile args _ =
   let loadFile filename =
@@ -187,6 +178,8 @@ let evalMode bindings = function
         | Bindings.FuncSymbol _ -> `ModifyFunction func.fname
         | _ -> `NewFunction func.fname
       end
+  | [] ->
+      `DoNothing
   | _ ->
       raise InternalError
 
@@ -204,6 +197,7 @@ let rec doAll ~onError ~onSuccess = function
       
 let evalLLVMCode llvmCode evalMode =
   match evalMode with
+    | `DoNothing -> ()
     | `NewGlobal _ | `NewFunction _ ->
         begin
           if not( Machine.zompSendCode llvmCode ) then

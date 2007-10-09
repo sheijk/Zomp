@@ -34,3 +34,40 @@ let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let commentedLines = List.map (fun line -> startDelim ^ line ^ stopDelim) lines in
   combine "\n" commentedLines
   
+
+let readFile filename =
+  let file = open_in filename in
+  let rec read() =
+	try
+	  let line = input_line file in
+	  line ^ "\n" ^ read()
+	with
+		End_of_file -> ""
+  in
+  let content = read() in
+  close_in file;
+  content
+
+    
+let some x = Some x
+let id x = x
+  
+let rec tryAll ~onSuccess ~ifAllFailed = function
+  | [] -> Lazy.force ifAllFailed
+  | f :: rem ->
+      try
+        onSuccess (Lazy.force f)
+      with _ ->
+        tryAll ~ifAllFailed ~onSuccess rem
+
+let tryAllCollectingErrors ~onSuccess ~ifAllFailed funcs =
+  let rec worker exceptions = function
+    | [] -> ifAllFailed exceptions
+    | f :: rem ->
+        try
+          onSuccess (Lazy.force f)
+        with e ->
+          worker (e :: exceptions) rem
+  in
+  worker [] funcs
+          

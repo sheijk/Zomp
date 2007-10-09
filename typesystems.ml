@@ -71,6 +71,7 @@ struct
   | `Float
   | `String
   | `Bool
+  | `Char
   ]
 
   type typ = [
@@ -86,6 +87,7 @@ struct
     | FloatVal of float
     | StringLiteral of string
     | BoolVal of bool
+    | CharVal of char
     | PointerVal of typ * int option
     | RecordVal of (string * value) list
 
@@ -98,6 +100,7 @@ struct
     | FloatVal _ -> `Float
     | StringLiteral _ -> `String
     | BoolVal _ -> `Bool
+    | CharVal _ -> `Char
     | PointerVal (t, _) -> t
     | RecordVal components ->
         let convert (name, value) = name, typeOf value in
@@ -110,6 +113,7 @@ struct
     | `Float -> "float"
     | `String -> "string"
     | `Bool -> "bool"
+    | `Char -> "char"
     | `Pointer t -> (typeName t) ^ "*"
     | `Record components ->
         let rec convert components str =
@@ -128,6 +132,7 @@ struct
     | FloatVal f -> string_of_float f
     | StringLiteral s -> "\"" ^ s ^ "\""
     | BoolVal b -> string_of_bool b
+    | CharVal c -> string_of_int (int_of_char c)
     | PointerVal (typ, target) ->
         begin
           match target with
@@ -153,20 +158,31 @@ struct
         | "float" -> `Float
         | "string" -> `String
         | "bool" -> `Bool
+        | "char" -> `Char
         | "void" -> `Void
         | _ as name -> raise (CouldNotParseType name)
         
   (* val parseValue : typ -> string -> value *)
   let parseValue typ str =
+    let unquoted quoteChar str =
+      let error() =
+        raise (Failure (sprintf "Expected format %ctext%c" quoteChar quoteChar));
+      in
+      let length = String.length str in
+      if length < 2 then
+        error();        
+      let value = String.sub str 1 (length-2) in
+      if str.[0] <> quoteChar || str.[length-1] <> quoteChar then
+        error();
+      value
+    in
     match typ with
       | `Void -> raise (Failure "no values of void allowed")
       | `Int -> IntVal (int_of_string str)
       | `Float -> FloatVal (float_of_string str)
-      | `String ->
-          let length = String.length str in
-          let value = String.sub str 1 (length-2) in
-          StringLiteral value
+      | `String -> StringLiteral (unquoted '"' str)
       | `Bool -> BoolVal (bool_of_string str)
+      | `Char -> CharVal (unquoted '\'' str).[0]
       | `Pointer t -> if str == "null"
         then PointerVal (t, None)
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
@@ -179,6 +195,7 @@ struct
     | `Float -> FloatVal 0.0
     | `String -> StringLiteral ""
     | `Bool -> BoolVal false
+    | `Char -> CharVal (char_of_int 0)
     | `Pointer t -> PointerVal (t, None)
     | `Record components ->
         let convert (name, typ) = name, defaultValue typ in
