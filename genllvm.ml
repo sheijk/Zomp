@@ -31,9 +31,10 @@ let rec llvmTypeName = function
       let componentNames = List.map (fun (_, t) -> llvmTypeName t) components in
       "{ " ^ combine ", " componentNames ^ "}"
       
-(*   | _ as t -> raiseCodeGenError *)
-(*       ~msg:(sprintf "Do not know how to generate llvm typename for %s" *)
-(*               (composedType2String t)) *)
+let paramTypeName = function
+  | `Char -> "i8 signext"
+  | other -> llvmTypeName other
+
       
 type resultvar = {
   rvname :string;
@@ -335,7 +336,7 @@ let gencodeFuncCall gencode call =
     | None ->
         let comment, funccallCode =
           let signatureString =
-            let argTypeNames = List.map llvmTypeName call.fcparams in
+            let argTypeNames = List.map paramTypeName call.fcparams in
             combine ", " argTypeNames
           in
 (*           let argString = paramString (List.combine vars call.fcparams) in *)
@@ -615,14 +616,14 @@ let gencodeGlobalVar var =
 let gencodeDefineFunc func =
   match func.impl with
     | None ->
-        let paramTypeNames = List.map (fun (_, typ) -> llvmTypeName typ) func.fargs in
+        let paramTypeNames = List.map (fun (_, typ) -> paramTypeName typ) func.fargs in
         let paramString = combine ", " paramTypeNames in
         let decl = sprintf "%s @%s(%s) "
           (llvmTypeName func.rettype) func.fname paramString
         in
         "declare " ^ decl
     | Some impl ->
-        let param2string (name, typ) = (llvmTypeName typ) ^ " " ^ (llvmName name) in
+        let param2string (name, typ) = (paramTypeName typ) ^ " " ^ (llvmName name) in
         let paramString = combine ", " (List.map param2string func.fargs) in
         let decl = sprintf "%s @%s(%s) "
           (llvmTypeName func.rettype) func.fname paramString

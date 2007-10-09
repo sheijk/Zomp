@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdint.h>
 
 void printString( char* str ) {
     printf( "%s", str );
@@ -13,7 +14,7 @@ void printFloat( float f ) {
     printf( "%f", f );
 }
 
-void printChar( char c ) {
+void printChar( int8_t c ) {
   printf( "%c", c );
 }
 

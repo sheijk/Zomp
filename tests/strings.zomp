@@ -4,6 +4,7 @@
 //   (int length)
 //   ((ptr char) chars))
 
+// (func void printChar ((char c)))
 
 (var string text "this be text\n")
 

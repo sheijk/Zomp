@@ -15,7 +15,6 @@
 
 /// utility functions
 
-
 (var string trueString "true")
 (var string falseString "false")
 
@@ -40,7 +39,7 @@
     (printNewline)
     ))
   ))
-  
+
 // (func void println () ((printNewline)))
 
 // (funcln printlnInt int (printInt v))

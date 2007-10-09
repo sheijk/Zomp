@@ -174,8 +174,8 @@ exception InternalError
 let evalMode bindings = function
   | [GlobalVar var] -> `NewGlobal var.vname
   | [DefineFunc func] ->
-      begin match Bindings.lookup bindings func.fname with
-        | Bindings.FuncSymbol _ -> `ModifyFunction func.fname
+      begin match func.impl, Bindings.lookup bindings func.fname with
+        | Some _, Bindings.FuncSymbol _ -> `ModifyFunction func.fname
         | _ -> `NewFunction func.fname
       end
   | [] ->
@@ -205,6 +205,7 @@ let evalLLVMCode llvmCode evalMode =
         end
     | `ModifyFunction funcName ->
         begin
+          printf "Modifying functions %s\n" funcName;
           doAll
             [
               (fun () -> Machine.zompRemoveFunctionBody funcName), "remove function";
