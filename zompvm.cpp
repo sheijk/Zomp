@@ -95,13 +95,39 @@ extern "C" {
     return zompSendCode( code );
   }
 
+  bool zompRemoveFunctionBody(const char* functionName) {
+    Function* func = llvmModule->getFunction( functionName );
+
+    if( func != NULL ) {
+      func->deleteBody();
+
+      return true;
+    }
+
+    return false;
+  }
+
+  bool zompRecompileAndRelinkFunction(const char* funcName) {
+    Function* func = llvmModule->getFunction( funcName );
+
+    if( func != NULL ) {
+      executionEngine->recompileAndRelinkFunction( func );
+      
+      return true;
+    }
+
+    return false;
+  }
+  
+  
   bool zompSendCodeModifyFunc(const char* code) {
 //     printf( "Modifying existing function\n" );
 //     fflush( stdout );
     return zompSendCode( code );
     
 //     ParseError errorInfo;
-  
+
+    
 //     Module* module = ParseAssemblyString( code, llvmModule, &errorInfo );
 // //     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
 

@@ -181,28 +181,45 @@ let printWelcomeMessage() =
 exception InternalError
   
 let evalMode bindings = function
-  | [GlobalVar _] -> `NewGlobal
+  | [GlobalVar var] -> `NewGlobal var.vname
   | [DefineFunc func] ->
       begin match Bindings.lookup bindings func.fname with
-        | Bindings.FuncSymbol _ -> `ModifyFunction
-        | _ -> `NewFunction
+        | Bindings.FuncSymbol _ -> `ModifyFunction func.fname
+        | _ -> `NewFunction func.fname
       end
   | _ ->
       raise InternalError
 
-exception FailedToEvaluateLLVMCode of string
-  
+exception FailedToEvaluateLLVMCode of string * string
+
+let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
+
+let rec doAll ~onError ~onSuccess = function
+  | [] -> onSuccess()
+  | (f, errorMsg) :: rem ->
+      if f() then
+        doAll ~onError ~onSuccess rem
+      else
+        onError errorMsg
+      
 let evalLLVMCode llvmCode evalMode =
-  let evalF =
-    match evalMode with
-      | `NewGlobal -> Machine.zompSendCodeNewVar
-      | `NewFunction -> Machine.zompSendCodeNewFunc
-      | `ModifyFunction -> Machine.zompSendCodeModifyFunc
-  in
-  if evalF llvmCode then
-    ()
-  else
-    raise (FailedToEvaluateLLVMCode llvmCode)
+  match evalMode with
+    | `NewGlobal _ | `NewFunction _ ->
+        begin
+          if not( Machine.zompSendCode llvmCode ) then
+            raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate"
+        end
+    | `ModifyFunction funcName ->
+        begin
+          doAll
+            [
+              (fun () -> Machine.zompRemoveFunctionBody funcName), "remove function";
+              (fun () -> Machine.zompSendCode llvmCode), "evaluate code";
+              (fun () -> Machine.zompRecompileAndRelinkFunction funcName), "recompile and relink function"
+            ]
+            ~onError:(raiseFailedToEvaluateLLVMCode llvmCode)
+            ~onSuccess:(fun () -> ())
+        end
 
 let catchingErrorsDo f ~onError =
   let wasOk = ref false in
@@ -222,8 +239,8 @@ let catchingErrorsDo f ~onError =
         printf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr)
     | Lang.CouldNotParseType descr ->
         printf "Unknown type: %s\n" descr
-    | FailedToEvaluateLLVMCode llvmCode ->
-        printf "Could not evaluate LLVM code:\n%s\n" llvmCode
+    | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
+        printf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
     | InternalError ->
         printf "Internal error\n"
   end;
