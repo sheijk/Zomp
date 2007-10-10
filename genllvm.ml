@@ -91,6 +91,7 @@ let stringMap f str =
 let llvmEscapedString str = 
   Str.global_replace (Str.regexp "\\\\n") "\\\\0A" str
 
+    
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -146,32 +147,18 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     ]
   in
   let builtinMacros =
-    let rec replaceParams params args expr =
-      let replacementList = List.combine params args in
-      let replace name =
-        try List.assoc name replacementList
-        with Not_found -> { id = name; args = [] }
-      in
-      match replace expr.id with
-        | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
-        | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
-    in
     let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
     let delegateMacro macroName funcName =
       macro macroName (fun args -> { id = funcName; args = args; })
     in
     let templateMacro name params expr =
-      macro name (fun args -> replaceParams params args expr)
+      macro name (fun args -> Ast2.replaceParams params args expr)
     in
     [
       delegateMacro "op+" "int.add";
       delegateMacro "op+_f" "float.add";
 
       templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] });
-(*       templateMacro "if" ["testF"; "onTrue"] *)
-(*         ({ id = "seq"; *)
-(*            args = [ *)
-(*            ] }); *)
     ]
   in
   let defaultBindings =
@@ -419,7 +406,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           | MemoryStorage -> (resultVar var, "")
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
-  | StoreIntrinsic (valueVar, ptrVar, offsetForm) ->
+  | StoreIntrinsic (valueVar, ptrVar) ->
       begin
 (*         let offsetStr, offsetAccessCode = offsetStringAndCode gencode offsetForm in *)
 (*         let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in *)
@@ -461,7 +448,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
                 (noVar, code)
               end
       end
-  | LoadIntrinsic (ptrVar, offsetForm) ->
+  | LoadIntrinsic ptrVar ->
       begin
         let resultType = match ptrVar.typ with
           | `Pointer t -> t
@@ -496,6 +483,19 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           fieldIndex in
         (ptrVar, comment ^ code)
       end
+  | PtrAddIntrinsic (ptrVarZomp, offsetForm) ->
+      begin
+        let resultVar = newLocalTempVar (ptrVarZomp.typ :> Lang.typ) in
+        let comment = sprintf "; ptr.add\n" in
+        let ptrVar, ptrVarAccessCode = gencode (`Variable {ptrVarZomp with typ = (ptrVarZomp.typ :> Lang.typ)}) in
+        let offsetString, offsetAccessCode = offsetStringAndCode gencode offsetForm in
+        let code =
+          sprintf "%s = getelementptr %s %s, i32 %s\n"
+            resultVar.rvname ptrVar.rvtypename ptrVar.rvname offsetString
+        in
+        (resultVar, comment ^ ptrVarAccessCode ^ offsetAccessCode ^ code)
+      end
+        
 (*   | SetFieldIntrinsic (typ, recordVar, componentName, valueSimpleform) -> *)
 (*       begin *)
 (*         match recordVar.typ, recordVar.vstorage with *)

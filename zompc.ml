@@ -58,7 +58,7 @@ let () =
   let printError = function
     | CouldNotParse msg -> eprintf "%s" msg
     | CouldNotCompile msg -> eprintf "%s" msg
-    | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError)
+    | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError); raise unknownError
   in
   let compile bindings input =
     let parseF lexbuf = parseChannel (Lexing.from_string input) lexbuf bindings in

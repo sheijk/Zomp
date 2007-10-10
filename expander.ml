@@ -99,7 +99,7 @@ let rec typeOf : Lang.expr -> typecheckResult = function
           | MemoryStorage -> TypeOf (`Pointer var.typ)
           | RegisterStorage -> TypeError ("Cannot get address of variable with register storage", var.typ, var.typ)
       end
-  | `GenericIntrinsic StoreIntrinsic (valueVar, ptrVar, _) ->
+  | `GenericIntrinsic StoreIntrinsic (valueVar, ptrVar) ->
       begin
         match valueVar.typ, ptrVar.typ with
           | valueType, `Pointer ptrTargetType when valueType = ptrTargetType -> TypeOf `Void
@@ -108,7 +108,7 @@ let rec typeOf : Lang.expr -> typecheckResult = function
                          (invalidPointerType :> Lang.typ),
                          `Pointer valueType)
       end
-  | `GenericIntrinsic LoadIntrinsic (ptrVar, _) ->
+  | `GenericIntrinsic LoadIntrinsic ptrVar ->
       begin
         match ptrVar.typ with
           | `Pointer t -> TypeOf t
@@ -120,6 +120,10 @@ let rec typeOf : Lang.expr -> typecheckResult = function
         match componentType components fieldName with
           | Some t -> TypeOf (`Pointer t)
           | None -> TypeError("Component not found", `Void, `Void)
+      end
+  | `GenericIntrinsic PtrAddIntrinsic (ptrVar, _) ->
+      begin
+        TypeOf (ptrVar.typ :> Lang.typ)
       end
         
 (*   | GenericIntrinsic SetFieldIntrinsic (typ, recordVar, componentName, valueExpr) -> *)
@@ -413,11 +417,15 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
         | _ -> None
             
 let translateMacro translateF (bindings :bindings) = function
-  | { id = macroName; args = args; } ->
+  | { id = macroName; args = args; } as expr ->
       match lookup bindings macroName with
         | MacroSymbol macro ->
-            let transformedExpr = macro.mtransformFunc args in
-            Some (translateF bindings transformedExpr)
+            begin try
+              let transformedExpr = macro.mtransformFunc args in
+              Some (translateF bindings transformedExpr)
+            with
+              | Failure msg -> raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
+            end
         | _ -> None
             
 let translateDefineMacro translateF (bindings :bindings) = function
@@ -430,22 +438,13 @@ let translateDefineMacro translateF (bindings :bindings) = function
         | impl :: args ->
             begin
               let args = List.rev args in
-              let rec replaceParams params args expr =
-                let replacementList = List.combine params args in
-                let replace name =
-                  try List.assoc name replacementList
-                  with Not_found -> { id = name; args = [] }
-                in
-                match replace expr.id with
-                  | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
-                  | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
-              in
-              let argNames = List.map (function
-                                         | { id = name; args = [] } -> name
-                                         | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter")
+              let argNames = List.map
+                (function
+                   | { id = name; args = [] } -> name
+                   | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter")
                 args
               in
-              Some( Bindings.addMacro bindings name (fun args -> replaceParams argNames args impl), [] )
+              Some( Bindings.addMacro bindings name (fun args -> Ast2.replaceParams argNames args impl), [] )
             end
       end
   | _ ->
@@ -585,7 +584,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | Some typ -> Some (bindings, [`GenericIntrinsic (constructF typ)])
       | None -> None
   in
-  let buildStoreInstruction ptrName rightHandExpr offset =
+  let buildStoreInstruction ptrName rightHandExpr =
     let isPointer = function
       | `Pointer _ -> true
       | _ -> false
@@ -599,7 +598,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
               | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType ->
                   begin
                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in
-                    let intrinsic = `GenericIntrinsic (StoreIntrinsic (newVar, ptrVar, offset)) in
+                    let intrinsic = `GenericIntrinsic (StoreIntrinsic (newVar, ptrVar)) in
                     Some (newBindings, rightHandSimpleform :: [intrinsic])
                   end
               | ptrType, TypeOf rightHandType ->
@@ -615,14 +614,14 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           end
       | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr"
   in
-  let buildLoadInstruction ptrVarName offsetForm = 
+  let buildLoadInstruction ptrVarName =
     let ptrVar = match lookup bindings ptrVarName with
       | VarSymbol v -> v
       | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" ptrVarName)
     in
     match ptrVar.typ with
       | `Pointer _ ->
-          Some( bindings, [`GenericIntrinsic (LoadIntrinsic (ptrVar, offsetForm))] )
+          Some( bindings, [`GenericIntrinsic (LoadIntrinsic ptrVar)] )
       | _ as invalidType ->
           raiseIllegalExpression expr
             (sprintf "Expected %s to be of pointer type instead of %s"
@@ -650,30 +649,28 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | VarSymbol var -> Some (bindings, [`GenericIntrinsic (GetAddrIntrinsic var)])
             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
         end
-    | { id = "store"; args = [
-          { id = ptrName; args = [] };
-          rightHandExpr
-        ] } ->
+    | { id = "store"; args = [{ id = ptrName; args = [] }; rightHandExpr] } ->
         begin
-          buildStoreInstruction ptrName rightHandExpr (`Constant (IntVal 0))
-        end
-    | { id = "store"; args = [
-          { id = ptrName; args = [] };
-          rightHandExpr;
-          offsetExpr;
-        ] } ->
-        begin
-          let errorMsg = "store expects an int constant/var as third argument" in
-          buildStoreInstruction ptrName rightHandExpr (intFlatForm offsetExpr errorMsg)
+          buildStoreInstruction ptrName rightHandExpr
         end
     | { id = "load"; args = [ { id = ptrVarName; args = [] } ] } ->
         begin
-          buildLoadInstruction ptrVarName (`Constant (IntVal 0))
+          buildLoadInstruction ptrVarName
         end
-    | { id = "load"; args = [ { id = ptrVarName; args = [] }; offsetExpr ] } ->
+    | { id = "ptr.add"; args = [
+          { id = ptrVarName; args = [] };
+          indexExpr
+        ] } ->
         begin
-          let errorMsg = "load expects an int constant/var as second argument" in
-          buildLoadInstruction ptrVarName (intFlatForm offsetExpr errorMsg)
+          let errorMsg = "Expected a constant/var as second argument" in
+          let indexForm = intFlatForm indexExpr errorMsg in
+          match lookup bindings ptrVarName with
+            | VarSymbol ({ typ = `Pointer _;  } as ptrVar) ->
+                Some( bindings, [`GenericIntrinsic (PtrAddIntrinsic (ptrVar, indexForm))] )
+            | VarSymbol _ ->
+                raiseIllegalExpression expr "Expected first argument to be a pointer"
+            | _ ->
+                raiseIllegalExpression expr (sprintf "Could not find variable %s" ptrVarName)
         end
     | { id = "fieldptr"; args = [
           { id = recordVarName; args = [] };
@@ -690,60 +687,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           in
           Some( bindings, [`GenericIntrinsic (GetFieldPointerIntrinsic (recordVar, fieldName))] )
         end
-          (*     | { id = "setField"; args = [ *)
-          (*           { id = recordName; args = [] }; *)
-          (*           { id = componentName; args = [] }; *)
-          (*           { id = _; args = [] } as valueExpr; *)
-          (*         ] } -> *)
-          (*         begin *)
-          (*           match lookup bindings recordName with *)
-          (*             | VarSymbol recordVar -> *)
-          (*                 begin *)
-          (*                   match recordVar.typ with *)
-          (*                     | `Record components | `Pointer `Record components -> *)
-          (*                         begin match componentType components componentName with *)
-          (*                           | Some componentType -> *)
-          (*                               begin *)
-          (*                                 let _, valueSimpleform = translateF bindings valueExpr in *)
-          (*                                 Some( bindings, [GenericIntrinsic (SetFieldIntrinsic *)
-          (*                                                                      (componentType, *)
-          (*                                                                       recordVar, *)
-          (*                                                                       componentName, *)
-          (*                                                                       Sequence valueSimpleform))] ) *)
-          (*                               end *)
-          (*                           | None -> *)
-          (*                               raiseIllegalExpression expr *)
-          (*                                 (sprintf "component with name %s not found" componentName) *)
-          (*                         end *)
-          (*                     | _ -> *)
-          (*                         raiseIllegalExpression expr *)
-          (*                           ("'setField recordName componentName valueExpr' expects a record variable") *)
-          (*                 end *)
-          (*             | _ -> raiseIllegalExpression expr (sprintf "could not find variable %s" recordName) *)
-          (*         end *)
-          (*     | { id = "field"; args = [ *)
-          (*           { id = recordName; args = [] }; *)
-          (*           { id = componentName; args = [] }; *)
-          (*         ] } -> *)
-          (*         begin *)
-          (*           match lookup bindings recordName with *)
-          (*             | VarSymbol var -> *)
-          (*                 begin match var.typ with *)
-          (*                   | `Record components -> *)
-          (*                       begin match componentType components componentName with *)
-          (*                         | Some typ -> *)
-          (*                             Some( bindings, [GenericIntrinsic (GetFieldIntrinsic(typ, var, componentName))] ) *)
-          (*                         | None -> raiseIllegalExpression expr *)
-          (*                             (sprintf "could not find component %s" componentName) *)
-          (*                       end *)
-          (*                   | illegalType -> *)
-          (*                       raiseIllegalExpression expr *)
-          (*                         (sprintf "%s should be a record but is a %s" *)
-          (*                            componentName (Lang.typeName illegalType)) *)
-          (*                 end *)
-          (*             | _ -> *)
-          (*                 raiseIllegalExpression expr (sprintf "could not find variable %s" recordName) *)
-          (*         end *)
     | _ ->
         None
 

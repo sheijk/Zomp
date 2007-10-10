@@ -1,23 +1,84 @@
 
 
-(func int main() (
+(func int main () (
   (var int arraySize 10)
   (var (ptr int) array (malloc int arraySize))
 
-  (var int index 0)
-  (label start)
-  (printlnInt index)
+  (var (ptr int) addr (nullptr int))
+  
+  (macro set index value (
+    (assign addr (ptr.add array index))
+    (store addr value)))
 
-  (store array index index)
+  
+//   (var int index 0)
+//   (label start)
+//     (set index index)
+
+//     (assign index (int.add index 1))
+//     (var bool test (int.ugreater index arraySize))
+//     (branch test end start)
+//   (label end)
+
+  (set 0 10)
+  (set 1 11)
+  (set 2 12)
+  (set 3 13)
+  (set 4 14)
+  (set 5 15)
+  (set 6 16)
+  (set 7 17)
+  (set 8 18)
+  (set 9 19)
+
+  (macro for i min max code (
+    (var int i min)
+    (label start2)
+      (code)
+
+      (assign i (int.add i 1))
+      (var bool test2 (int.uless i max))
+      (branch test2 start2 end2)
+    (label end2)
+    ))
+
+  (var (ptr int) t (nullptr int))
+  (var int t2 0)
+  
+  (for index2 0 arraySize (
+    (assign t (ptr.add array index2))
+    (printInt index2)
+    (printChar ' ')
+    (assign t2 (load t))
+    (printInt t2)
+    (println)
+    ))
     
-  (assign index (int.add index 1))
-  (var bool test (int.ugreater index arraySize))
-  (branch test end start)
-  (label end)
-
-  (var int third (load array 3))
-  (printInt third)
-  (printNewline)
-  123
+  (var (ptr int) addr2 (ptr.add array 9))
+  (load addr2)
   ))
+
+// (func int main() (
+//   (var int arraySize 10)
+//   (var (ptr int) array (malloc int arraySize))
+
+//   (var int index 0)
+//   (var (ptr int) addr (nullptr int))
+//   (label start)
+//   (printlnInt index)
+
+//   (store addr index)
+//   (ptr.add addr 1)
+    
+//   (assign index (int.add index 1))
+//   (var bool test (int.ugreater index arraySize))
+//   (branch test end start)
+//   (label end)
+
+//   (var (ptr int) thirdAddr (ptr.add array 3))
+//   (var int third (load thirdAddr))
+//   (printInt third)
+//   (printNewline)
+//   123
+//   ))
 

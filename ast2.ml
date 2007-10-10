@@ -1,4 +1,5 @@
-
+open Printf
+  
 type identifier = string
 
 type expression = {
@@ -25,3 +26,18 @@ let rec expression2string = function
           Common.combine "\n  " (id::argStrings)
       end    
 
+
+let rec replaceParams params args expr =
+  let argCount = List.length args
+  and paramCount = List.length params
+  in
+  if argCount <> paramCount then
+    failwith (sprintf "Macro called with %d parameters, expected %d" paramCount argCount);
+  let replacementList = List.combine params args in
+  let replace name =
+    try List.assoc name replacementList
+    with Not_found -> { id = name; args = [] }
+  in
+  match replace expr.id with
+    | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
+    | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }

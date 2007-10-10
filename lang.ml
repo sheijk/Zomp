@@ -96,15 +96,14 @@ type 'typ flatArgExpr = [
 | `Constant of integralValue
 ]
 
-type offset = [`Int] flatArgExpr
-    
 type genericIntrinsic =
   | NullptrIntrinsic of composedType
-  | MallocIntrinsic of composedType * offset
+  | MallocIntrinsic of composedType * [`Int] flatArgExpr
   | DerefIntrinsic of [`Pointer of typ] variable
   | GetAddrIntrinsic of composedType variable
-  | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable * offset
-  | LoadIntrinsic of composedType variable * offset
+  | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable
+  | LoadIntrinsic of composedType variable
+  | PtrAddIntrinsic of [`Pointer of typ] variable * [`Int] flatArgExpr
   | GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
 
 (* type 'arg funcCallExpr = [ *)
