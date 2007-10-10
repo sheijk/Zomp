@@ -106,7 +106,10 @@ clean:
 	rm -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
 	rm -f sexprtoplevel sexprtoplevel.cmi sexprtoplevel.cmo
 	rm -f gencode.cmi gencode.cmo gencode
-	rm -f machine.c machine.ml machine.cmi machine.cmo
+	rm -f machine.c machine.ml machine.cmi machine.cmo machine.o
+	rm -f forktest forktest.cmi forktest.cmo
+	rm -f dllzompvm.so libzompvm.a zompvm.o
+	rm -f *_flymake.*
 
 clean_tags:
 	rm -f *.annot

@@ -237,9 +237,9 @@ let gencodeDefineVariable gencode var default =
                   begin match default with
                     | Some expr ->
                         begin
-                          initVarCode ^ "\n"
+                          initVarCode
                           ^ sprintf "%s = alloca %s\n" ptrname typename
-                          ^ sprintf "store %s %s, %s* %s" typename initVar.rvname typename ptrname
+                          ^ sprintf "store %s %s, %s* %s\n" typename initVar.rvname typename ptrname
                         end
                     | None ->
                         sprintf "%s = alloca %s\n" ptrname typename
@@ -273,15 +273,15 @@ let gencodeDefineVariable gencode var default =
                   match zeroElement var.typ, default with
                     | Some zeroElementStr, Some expr ->
                         let initVar, initCode = gencode expr in
-                        sprintf "%s\n%s = %s %s %s, %s"
-                          initCode
+                        initCode ^
+                        sprintf "%s = %s %s %s, %s\n"
                           name
                           (initInstr var.typ)
                           typ
                           zeroElementStr
                           initVar.rvname
                     | _, _ ->
-                        sprintf "%s = alloca %s" name typ
+                        sprintf "%s = alloca %s\n" name typ
                 end
           in
           (noVar, comment ^ code)
@@ -343,7 +343,7 @@ let gencodeFuncCall gencode call =
           in
           comment,
           (assignResultCode
-           ^ (sprintf "call %s (%s)* @%s(%s)"
+           ^ (sprintf "call %s (%s)* @%s(%s)\n"
                 (llvmTypeName call.fcrettype)
                 signatureString
                 call.fcname
@@ -412,19 +412,6 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
       end
   | StoreIntrinsic (valueVar, ptrVar) ->
       begin
-(*         let offsetStr, offsetAccessCode = offsetStringAndCode gencode offsetForm in *)
-(*         let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in *)
-(*         let addressVar = newLocalTempVar (`Pointer valueVar.typ) in *)
-(*         let valueType = llvmTypeName valueVar.typ in *)
-(*         let ptrType = llvmTypeName (ptrVar.typ :> Lang.composedType) in *)
-(*         let ptrVarLLVM, ptrAccessCode = gencode (`Variable { ptrVar with typ = (ptrVar.typ :> Lang.composedType)}) in *)
-(*         let code = *)
-(*           (sprintf "%s = getelementptr %s** %s, i32 0, i32 %s\n" *)
-(*             addressVar.rvname valueType ptrVarLLVM.rvname offsetStr) *)
-(*           ^ (sprintf "store %s %s, %s %s" *)
-(*                valueType valueVarLLVM.rvname ptrType ptrVarLLVM.rvname) *)
-(*         in *)
-(*         (noVar, offsetAccessCode ^ ptrAccessCode ^ valueAccessCode ^ code) *)
         let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in
         let valueVarNameLLVM = valueVarLLVM.rvname in
         let valueType = valueVar.typ in
@@ -459,16 +446,19 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           | _ -> raiseCodeGenError ~msg:(sprintf "Expected %s to be a pointer" ptrVar.vname)
         in
         let tempVar = newLocalTempVar resultType in
-        let ptrvalue = newLocalTempVar ptrVar.typ in
         let comment = sprintf "; loading from %s\n" ptrVar.vname in
-        (match ptrVar.vstorage with
-           | RegisterStorage -> raiseCodeGenError ~msg:"Cannot load from pointer with register-storage"
-           | _ -> ());
-        let code =
-          sprintf "%s = load %s* %s\n" ptrvalue.rvname ptrvalue.rvtypename (llvmName ptrVar.vname) ^
-            sprintf "%s = load %s %s" tempVar.rvname (llvmTypeName ptrVar.typ) ptrvalue.rvname
-        in
-        (tempVar, comment ^ code)
+        let ptrVarLLVM, ptrAccessCode = gencode (`Variable ptrVar) in
+        let code = sprintf "%s = load %s %s\n" tempVar.rvname ptrVarLLVM.rvtypename ptrVarLLVM.rvname in
+        (tempVar, comment ^ ptrAccessCode ^ code)
+(*         let code = *)
+(*           match ptrVar.vstorage with *)
+(*             | MemoryStorage -> *)
+(*                 let ptrvalue = newLocalTempVar ptrVar.typ in *)
+(*                 sprintf "%s = load %s* %s\n" ptrvalue.rvname ptrvalue.rvtypename (llvmName ptrVar.vname) ^ *)
+(*                   sprintf "%s = load %s %s\n" tempVar.rvname (llvmTypeName ptrVar.typ) ptrvalue.rvname *)
+(*             | RegisterStorage -> *)
+(*                 sprintf "%s = load %s %%%s\n" tempVar.rvname (llvmTypeName ptrVar.typ) ptrVar.vname *)
+(*         in *)
       end
   | GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
@@ -585,7 +575,6 @@ let gencodeBranch gencode branch =
   let condVar, preCode = gencode (`Variable (branch.bcondition :> Lang.typ Lang.variable)) in
   let code =
     sprintf "br i1 %s, label %%%s, label %%%s"
-(*       branch.bcondition.vname *)
       condVar.rvname
       branch.trueLabel.lname
       branch.falseLabel.lname

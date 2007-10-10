@@ -1,0 +1,10 @@
+
+
+(func int foo () (
+  (var int x 10)
+  (printInt x)
+  (ret 5)
+//   (printInt 10)
+//   3
+  ))
+

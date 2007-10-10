@@ -1,0 +1,14 @@
+
+
+
+(func void talk((int arg)) (
+  (printlnInt arg)
+  (ret void)
+  ))
+
+(func int main () (
+  (var void foo (talk 3))
+  (ret 20)
+  ))
+
+  

@@ -1,0 +1,15 @@
+
+// testing nested expressions
+
+(func void dowork (((ptr int) foo) ((ptr int) x)) (
+  (store foo (int.add (load x) (int.add (load x) (load x))))
+  ))
+
+(func int main () (
+  (var int foo 99)
+  (var (ptr int) x (malloc int))
+  (store x 10)
+  (dowork (ptr foo) x)
+  (ret (int.add (int.add foo foo) (load x)))
+  ))
+  

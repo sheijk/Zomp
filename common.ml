@@ -10,7 +10,7 @@ let rec translate errorF translators bindings expr =
     | [] -> errorF expr "Expression can not be translated"
     | f :: remf -> begin
         match f (translate errorF translators) bindings expr with
-          | Some (newBindings, result, retvar) -> (newBindings, result, retvar)
+          | Some (newBindings, result) -> (newBindings, result)
           | None -> t remf
       end
   in

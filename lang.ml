@@ -127,6 +127,15 @@ type expr = [
 | `Label of label
 | `GenericIntrinsic of genericIntrinsic
 ]
+(* | `NullptrIntrinsic of composedType *)
+(* | `MallocIntrinsic of composedType * [`Int] flatArgExpr *)
+(* | `DerefIntrinsic of [`Pointer of typ] variable *)
+(* | `GetAddrIntrinsic of composedType variable *)
+(* | `StoreIntrinsic of composedType variable * [`Pointer of composedType] variable *)
+(* | `LoadIntrinsic of composedType variable *)
+(* | `PtrAddIntrinsic of [`Pointer of typ] variable * [`Int] flatArgExpr *)
+(* | `GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string *)
+(* ] *)
 
 type func = {
   fname :string;
