@@ -63,3 +63,10 @@ foo_t createfoo() {
   return foo;
 }
 
+void arrayAccess(float* ptr) {
+/*   float* ptr = NULL; */
+  ptr[99] = 0.0f;
+/*   float x = ptr[27]; */
+}
+
+

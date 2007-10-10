@@ -92,7 +92,7 @@ let listCommands commands _ _ =
 
 let commands =
   let rec internalCommands = [
-    "x", [], exitCommand, "Exit";
+    "exit", ["x"; "q"], exitCommand, "Exit";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
     "bindings", ["b"], printBindings, "Print a list of defined symbols";

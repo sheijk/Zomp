@@ -89,20 +89,24 @@ and branch = {
   trueLabel :label;
   falseLabel :label;
 }
+
+(* TODO: make `Constant + integralValue polymorphic *)
+type 'typ flatArgExpr = [
+| `Variable of 'typ variable
+| `Constant of integralValue
+]
+
+type offset = [`Int] flatArgExpr
     
 type genericIntrinsic =
   | NullptrIntrinsic of composedType
-  | MallocIntrinsic of composedType
+  | MallocIntrinsic of composedType * offset
   | DerefIntrinsic of [`Pointer of typ] variable
   | GetAddrIntrinsic of composedType variable
-  | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable (* value, ptr *)
-  | LoadIntrinsic of composedType variable
+  | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable * offset
+  | LoadIntrinsic of composedType variable * offset
   | GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
 
-type flatArgExpr = [
-| `Variable of composedType variable
-| `Constant of integralValue
-]
 (* type 'arg funcCallExpr = [ *)
 (* | `FuncCall of 'arg funcCall *)
 (* ] *)
@@ -113,7 +117,7 @@ type flatArgExpr = [
 (* ] *)
     
 type expr = [
-| flatArgExpr
+| composedType flatArgExpr
 | `Sequence of expr list
 | `DefineVariable of composedType variable * expr option
 | `FuncCall of expr funcCall

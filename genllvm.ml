@@ -366,7 +366,17 @@ let gencodeFuncCall gencode call =
         in
         (resultVar, comment ^ argevalCode ^ "\n" ^ intrinsicCallCode)
 
-let gencodeGenericIntr gencode = function
+let offsetStringAndCode gencode countForm =
+  match countForm with
+    | `Constant IntVal count ->
+        (string_of_int count), ""
+    | `Variable var ->
+        let valueVar, valueAccessCode = gencode (`Variable (var :> composedType variable)) in
+        valueVar.rvname, valueAccessCode
+    | _ -> raiseCodeGenError ~msg:"Invalid expression for count"
+
+
+let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
   | NullptrIntrinsic targetTyp ->
       begin
         let ptrTypeLLVMName = llvmTypeName (`Pointer targetTyp) in
@@ -374,11 +384,18 @@ let gencodeGenericIntr gencode = function
         let code = sprintf "%s = bitcast i8* null to %s\n" var.rvname ptrTypeLLVMName in
         (var, code)
       end
-  | MallocIntrinsic typ ->
+  | MallocIntrinsic (typ, countForm) ->
       begin
+        let offsetStr, preCode = offsetStringAndCode gencode countForm in
         let var = newLocalTempVar (`Pointer typ) in
-        let code = sprintf "%s = malloc %s" var.rvname (llvmTypeName typ) in
-        (var, code)
+        let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) offsetStr in
+        (var, preCode ^ code)
+          (*                 let var = newLocalTempVar (`Pointer typ) in *)
+          (*                 let code = sprintf "%s = malloc %s, i32 %d" var.rvname (llvmTypeName typ) count in *)
+          (*                 (var, code) *)
+          (*                 let var = newLocalTempVar (`Pointer typ) in *)
+          (*                 let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) valueVar.rvname in *)
+          (*                 (var, code) *)
       end
   | DerefIntrinsic ptrVar ->
       begin
@@ -402,8 +419,21 @@ let gencodeGenericIntr gencode = function
           | MemoryStorage -> (resultVar var, "")
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
-  | StoreIntrinsic (valueVar, ptrVar) ->
+  | StoreIntrinsic (valueVar, ptrVar, offsetForm) ->
       begin
+(*         let offsetStr, offsetAccessCode = offsetStringAndCode gencode offsetForm in *)
+(*         let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in *)
+(*         let addressVar = newLocalTempVar (`Pointer valueVar.typ) in *)
+(*         let valueType = llvmTypeName valueVar.typ in *)
+(*         let ptrType = llvmTypeName (ptrVar.typ :> Lang.composedType) in *)
+(*         let ptrVarLLVM, ptrAccessCode = gencode (`Variable { ptrVar with typ = (ptrVar.typ :> Lang.composedType)}) in *)
+(*         let code = *)
+(*           (sprintf "%s = getelementptr %s** %s, i32 0, i32 %s\n" *)
+(*             addressVar.rvname valueType ptrVarLLVM.rvname offsetStr) *)
+(*           ^ (sprintf "store %s %s, %s %s" *)
+(*                valueType valueVarLLVM.rvname ptrType ptrVarLLVM.rvname) *)
+(*         in *)
+(*         (noVar, offsetAccessCode ^ ptrAccessCode ^ valueAccessCode ^ code) *)
         let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in
         let valueVarNameLLVM = valueVarLLVM.rvname in
         let valueType = valueVar.typ in
@@ -431,7 +461,7 @@ let gencodeGenericIntr gencode = function
                 (noVar, code)
               end
       end
-  | LoadIntrinsic ptrVar ->
+  | LoadIntrinsic (ptrVar, offsetForm) ->
       begin
         let resultType = match ptrVar.typ with
           | `Pointer t -> t
@@ -547,14 +577,16 @@ let gencodeLabel label =
   let code = sprintf "%s:\n" label.lname in
   (noVar, dummyJumpCode ^ code)
 
-let gencodeBranch branch =
+let gencodeBranch gencode branch =
+  let condVar, preCode = gencode (`Variable (branch.bcondition :> Lang.typ Lang.variable)) in
   let code =
-    sprintf "br i1 %%%s, label %%%s, label %%%s"
-      branch.bcondition.vname
+    sprintf "br i1 %s, label %%%s, label %%%s"
+(*       branch.bcondition.vname *)
+      condVar.rvname
       branch.trueLabel.lname
       branch.falseLabel.lname
   in
-  (noVar, code)
+  (noVar, preCode ^ code)
 
 let rec gencode : Lang.expr -> resultvar * string = function
   | `Sequence exprs -> gencodeSequence gencode exprs
@@ -565,7 +597,7 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | `Return e -> gencodeReturn gencode e
   | `Label l -> gencodeLabel l
   | `Jump l -> gencodeJump l
-  | `Branch b -> gencodeBranch b
+  | `Branch b -> gencodeBranch gencode b
   | `AssignVar (var, expr) -> gencodeAssignVar gencode var expr
   | `GenericIntrinsic intr -> gencodeGenericIntr gencode intr
       

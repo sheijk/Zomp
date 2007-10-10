@@ -1,0 +1,23 @@
+
+
+(func int main() (
+  (var int arraySize 10)
+  (var (ptr int) array (malloc int arraySize))
+
+  (var int index 0)
+  (label start)
+  (printlnInt index)
+
+  (store array index index)
+    
+  (assign index (int.add index 1))
+  (var bool test (int.ugreater index arraySize))
+  (branch test end start)
+  (label end)
+
+  (var int third (load array 3))
+  (printInt third)
+  (printNewline)
+  123
+  ))
+

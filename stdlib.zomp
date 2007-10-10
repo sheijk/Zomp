@@ -33,16 +33,18 @@
   (label end)
   ))
 
-(macro funcln name type code (
-  (func name (type v) (
+(macro funcln name type code
+  (func void name ((type v)) (
     code
     (printNewline)
     ))
-  ))
+  )
 
-// (func void println () ((printNewline)))
+(func void println () ((printNewline)))
 
-// (funcln printlnInt int (printInt v))
-// (funcln printlnString string (printString v))
+(funcln printlnInt int (printInt v))
+(funcln printlnString string (printString v))
+
+
 
 
