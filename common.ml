@@ -4,13 +4,6 @@ let rec combine seperator = function
     [] -> ""
   | [str] -> str
   | hd :: tl -> hd ^ seperator ^ (combine seperator tl)
-
-let rec translatelst translateF bindings = function
-  | [] -> bindings, []
-  | expr :: tail ->
-      let newBindings, sf = translateF bindings expr in
-      let resultingBindings, sfuncs = translatelst translateF newBindings tail in
-      resultingBindings, (sf @ sfuncs)
         
 let rec translate errorF translators bindings expr =
   let rec t = function

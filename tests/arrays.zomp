@@ -42,15 +42,16 @@
     (label end2)
     ))
 
-  (var (ptr int) t (nullptr int))
-  (var int t2 0)
+//   (var (ptr int) t (nullptr int))
+//   (var int t2 0)
   
   (for index2 0 arraySize (
-    (assign t (ptr.add array index2))
+//     (assign t (ptr.add array index2))
     (printInt index2)
     (printChar ' ')
-    (assign t2 (load t))
-    (printInt t2)
+//     (assign t2 (load t))
+//     (printInt t2)
+    (printInt (load (ptr.add array index2)))
     (println)
     ))
     

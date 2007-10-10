@@ -196,8 +196,31 @@ let rec translateType bindings typeExpr =
         end
     | _ -> None
 
+
+(* type exprTranslateF = bindings -> expression -> bindings * expr list * typ variable option *)
+
+(* let translatelst (translateF :exprTranslateF) bindings expr = *)
+(*   let rec worker lastVar bindings = function *)
+(*     | [] -> bindings, [], lastVar *)
+(*     | expr :: tail -> *)
+(*         let newBindings, sf, var = translateF bindings expr in *)
+(*         let resultingBindings, sfuncs, var = worker var newBindings tail in *)
+(*         resultingBindings, (sf @ sfuncs), var *)
+(*   in *)
+(*   worker None bindings expr *)
+        
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
+let translatelst (translateF :exprTranslateF) bindings expr =
+  let rec worker lastVar bindings = function
+    | [] -> bindings, []
+    | expr :: tail ->
+        let newBindings, sf = translateF bindings expr in
+        let resultingBindings, sfuncs = worker lastVar newBindings tail in
+        resultingBindings, (sf @ sfuncs)
+  in
+  worker None bindings expr
+        
 let translateSeq (translateF : exprTranslateF) bindings = function
   | { id = id; args = sequence } when id = macroSequence ->
       Some (translatelst translateF bindings sequence)

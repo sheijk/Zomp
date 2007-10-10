@@ -215,73 +215,77 @@ let gencodeSequence gencode exprs =
 
 let gencodeDefineVariable gencode var default =
   match var.vstorage with
-    | RegisterStorage -> begin
-        let zeroElement = function
-          | `Pointer _ -> Some "null"
-          | `Record _ -> None
-          | #integralType as t -> Some (Lang.valueString (defaultValue t))
-        in
-        let initInstr = function
-          | `Int | `Float | `Pointer _ -> "add"
-          | `Bool -> "or"
-          | _ as t -> raiseCodeGenError
-              ~msg:(sprintf "no init instruction implemented for %s" (Lang.typeName t))
-        in
-        (*         let initVar, initVarCode = *)
-        (*           match default with *)
-        (*             | Some expr -> gencode expr *)
-        (*             | None -> "", "" *)
-        (*         in *)
-        let name = llvmName var.vname
-        and typ = llvmTypeName var.typ
-        in
-        let comment = sprintf "; defining var %s : %s\n" var.vname typ in
-        let code =
-          match var.typ with
-            | `Pointer _ | `Record _ -> begin
-                raiseCodeGenError ~msg:"code gen for pointers and records with register storage not supported, yet"
-              end
-            | _ -> begin
-                match zeroElement var.typ, default with
-                  | Some zeroElementStr, Some expr ->
-                      let initVar, initCode = gencode expr in
-                      sprintf "%s\n%s = %s %s %s, %s"
-                        initCode
-                        name
-                        (initInstr var.typ)
-                        typ
-                        zeroElementStr
-                        initVar.rvname
-                  | _, _ ->
-                      sprintf "%s = alloca %s" name typ
-              end
-        in
-        (noVar, comment ^ code)
-      end
-    | MemoryStorage -> begin
-        let typename = llvmTypeName var.typ
-        and ptrname = (llvmName var.vname)
-        in
-        let comment = sprintf "; allocating var %s : %s/%s on stack\n"
-          var.vname
-          (Lang.typeName var.typ)
-          typename
-        in
-        let allocCode =
-          match default with
-            | Some expr ->
-                begin
-                  let initVar, initVarCode = gencode expr
-                  in
-                  initVarCode ^ "\n"
-                  ^ sprintf "%s = alloca %s\n" ptrname typename
-                  ^ sprintf "store %s %s, %s* %s" typename initVar.rvname typename ptrname
+    | MemoryStorage ->
+        begin
+          let typename = llvmTypeName var.typ
+          and ptrname = (llvmName var.vname)
+          in
+          let comment = sprintf "; allocating var %s : %s/%s on stack\n"
+            var.vname
+            (Lang.typeName var.typ)
+            typename
+          in
+          let initVar, initVarCode =
+            match default with
+              | Some expr -> gencode expr
+              | None -> noVar, ""
+          in
+          let allocCode =
+            match var.typ with
+              | `Void -> initVarCode
+              | _ ->
+                  begin match default with
+                    | Some expr ->
+                        begin
+                          initVarCode ^ "\n"
+                          ^ sprintf "%s = alloca %s\n" ptrname typename
+                          ^ sprintf "store %s %s, %s* %s" typename initVar.rvname typename ptrname
+                        end
+                    | None ->
+                        sprintf "%s = alloca %s\n" ptrname typename
+                  end
+          in
+          (noVar, comment ^ allocCode)
+        end
+    | RegisterStorage ->
+        begin
+          let zeroElement = function
+            | `Pointer _ -> Some "null"
+            | `Record _ -> None
+            | #integralType as t -> Some (Lang.valueString (defaultValue t))
+          in
+          let initInstr = function
+            | `Int | `Float | `Pointer _ -> "add"
+            | `Bool -> "or"
+            | _ as t -> raiseCodeGenError
+                ~msg:(sprintf "no init instruction implemented for %s" (Lang.typeName t))
+          in
+          let name = llvmName var.vname
+          and typ = llvmTypeName var.typ
+          in
+          let comment = sprintf "; defining var %s : %s\n" var.vname typ in
+          let code =
+            match var.typ with
+              | `Pointer _ | `Record _ -> begin
+                  raiseCodeGenError ~msg:"code gen for pointers and records with register storage not supported, yet"
                 end
-            | None ->
-                sprintf "%s = alloca %s\n" ptrname typename
-        in
-        (noVar, comment ^ allocCode)
-      end
+              | _ -> begin
+                  match zeroElement var.typ, default with
+                    | Some zeroElementStr, Some expr ->
+                        let initVar, initCode = gencode expr in
+                        sprintf "%s\n%s = %s %s %s, %s"
+                          initCode
+                          name
+                          (initInstr var.typ)
+                          typ
+                          zeroElementStr
+                          initVar.rvname
+                    | _, _ ->
+                        sprintf "%s = alloca %s" name typ
+                end
+          in
+          (noVar, comment ^ code)
+        end
 
 let gencodeVariable v =
   let typeName = llvmTypeName v.typ in
