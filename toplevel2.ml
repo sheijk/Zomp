@@ -13,7 +13,7 @@ let _ =
       let expr = Parser2.main Lexer2.token lexbuf in
       let asString = Ast2.expression2string expr in
       printf "=== Parsed ===\n%s\n" asString;
-      let newBindings, simpleforms = Expander.translateTL bindings expr in
+      let newBindings, simpleforms, _ = Expander.translateTL bindings expr in
       let llvmCodes = List.map gencodeTL simpleforms in
       let llvmCode = combine "\n" llvmCodes in
       printf "=== LLVM ===\n%s\n\n" llvmCode;

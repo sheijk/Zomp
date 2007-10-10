@@ -245,7 +245,7 @@ let catchingErrorsDo f ~onError =
 
 let () =
   let compileExpr bindings expr = 
-    let newBindings, simpleforms = Expander.translateTL bindings expr in
+    let newBindings, simpleforms, _ = Expander.translateTL bindings expr in
     let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
     let llvmCode = combine "\n" llvmCodes in
     newBindings, simpleforms, llvmCode

@@ -195,31 +195,34 @@ let rec translateType bindings typeExpr =
           lookupType bindings name
         end
     | _ -> None
-
-
-(* type exprTranslateF = bindings -> expression -> bindings * expr list * typ variable option *)
+        
+(* type exprTranslateF = bindings -> expression -> bindings * expr list *)
 
 (* let translatelst (translateF :exprTranslateF) bindings expr = *)
 (*   let rec worker lastVar bindings = function *)
-(*     | [] -> bindings, [], lastVar *)
+(*     | [] -> bindings, [] *)
 (*     | expr :: tail -> *)
-(*         let newBindings, sf, var = translateF bindings expr in *)
-(*         let resultingBindings, sfuncs, var = worker var newBindings tail in *)
-(*         resultingBindings, (sf @ sfuncs), var *)
+(*         let newBindings, sf = translateF bindings expr in *)
+(*         let resultingBindings, sfuncs = worker lastVar newBindings tail in *)
+(*         resultingBindings, (sf @ sfuncs) *)
 (*   in *)
 (*   worker None bindings expr *)
-        
-type exprTranslateF = bindings -> expression -> bindings * expr list
+
+type retval =
+  | ReturnsNothing
+  | Returns of typ variable
+      
+type exprTranslateF = bindings -> expression -> bindings * expr list * retval
 
 let translatelst (translateF :exprTranslateF) bindings expr =
   let rec worker lastVar bindings = function
-    | [] -> bindings, []
+    | [] -> bindings, [], lastVar
     | expr :: tail ->
-        let newBindings, sf = translateF bindings expr in
-        let resultingBindings, sfuncs = worker lastVar newBindings tail in
-        resultingBindings, (sf @ sfuncs)
+        let newBindings, sf, var = translateF bindings expr in
+        let resultingBindings, sfuncs, var = worker var newBindings tail in
+        resultingBindings, (sf @ sfuncs), var
   in
-  worker None bindings expr
+  worker ReturnsNothing bindings expr
         
 let translateSeq (translateF : exprTranslateF) bindings = function
   | { id = id; args = sequence } when id = macroSequence ->
@@ -257,7 +260,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
       | Some (#integralType as typ)
       | Some (`Pointer _ as typ) ->
           begin
-            let _, simpleform = translateF bindings valueExpr in
+            let _, simpleform, todo = translateF bindings valueExpr in
             match typ, typeOf (`Sequence simpleform) with
               | leftHandType, TypeOf rightHandType when leftHandType = rightHandType ->
                   begin
@@ -265,7 +268,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
                     let storage = MemoryStorage
                     in
                     let var = variable name typ value storage false in
-                    Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence simpleform)) ] )
+                    Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence simpleform)) ], ReturnsNothing )
                   end
               | leftHandType, TypeOf rightHandType ->
                   raiseIllegalExpression expr
@@ -276,7 +279,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
       | Some (`Record _ as typ) ->
           begin
             let var = variable name typ (defaultValue typ) MemoryStorage false in
-            Some( addVar bindings var, [ `DefineVariable (var, None) ] )
+            Some( addVar bindings var, [ `DefineVariable (var, None) ], ReturnsNothing )
           end
       | _ ->
           raise (CouldNotParseType (Ast2.expression2string typeExpr))
@@ -312,7 +315,7 @@ let expr2VarOrConst (bindings :bindings) = function
       
 let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
   match expr2VarOrConst bindings expr with
-    | Some varOrConst -> Some (bindings, [varOrConst])
+    | Some varOrConst -> Some (bindings, [varOrConst], ReturnsNothing)
     | None -> None
 
 (* let rec flattenExpr (translateF :exprTranslateF) bindings expr = *)
@@ -422,8 +425,8 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
             begin
               let evalArg arg =
                 match translateF bindings arg with
-                  | _, [expr] -> expr
-                  | _, exprList -> `Sequence exprList
+                  | _, [expr], todo -> expr
+                  | _, exprList, todo -> `Sequence exprList
               in
               let argExprs = List.map evalArg args in
               let funccall = `FuncCall {
@@ -434,7 +437,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
               }
               in
               match typeOf funccall with
-                | TypeOf _ -> Some( bindings, [funccall] )
+                | TypeOf _ -> Some( bindings, [funccall], ReturnsNothing )
                 | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg)
             end
         | _ -> None
@@ -447,7 +450,8 @@ let translateMacro translateF (bindings :bindings) = function
               let transformedExpr = macro.mtransformFunc args in
               Some (translateF bindings transformedExpr)
             with
-              | Failure msg -> raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
+              | Failure msg ->
+                  raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
             end
         | _ -> None
             
@@ -467,7 +471,7 @@ let translateDefineMacro translateF (bindings :bindings) = function
                    | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter")
                 args
               in
-              Some( Bindings.addMacro bindings name (fun args -> Ast2.replaceParams argNames args impl), [] )
+              Some( Bindings.addMacro bindings name (fun args -> Ast2.replaceParams argNames args impl), [], ReturnsNothing )
             end
       end
   | _ ->
@@ -477,8 +481,8 @@ let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->
       begin
         match translateF bindings expr with
-          | _, [form] -> Some( bindings, [`Return form] )
-          | _, _ -> None
+          | _, [form], todo -> Some( bindings, [`Return form], ReturnsNothing )
+          | _, _, _ -> None
       end
   | _ -> None
   
@@ -487,10 +491,10 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
         { id = varName; args = [] };
         rightHandExpr;
       ] } when id = macroAssign -> begin
-      let _, rightHandSimpleform = translateF bindings rightHandExpr in
+      let _, rightHandSimpleform, todo = translateF bindings rightHandExpr in
       match lookup bindings varName with
         | VarSymbol v ->
-            Some (bindings, [`AssignVar (v, `Sequence rightHandSimpleform)])
+            Some (bindings, [`AssignVar (v, `Sequence rightHandSimpleform)], ReturnsNothing)
         | _ -> None
     end
   | _ -> None
@@ -504,7 +508,7 @@ let translateTypedef translateF (bindings :bindings) = function
       begin
         match translateType bindings targetTypeExpr with
           | None -> raiseInvalidType targetTypeExpr
-          | Some t -> Some (addTypedef bindings newTypeName t, [])
+          | Some t -> Some (addTypedef bindings newTypeName t, [], ReturnsNothing)
       end
   | { id = id; args =
         { id = typeName; args = [] }
@@ -522,10 +526,12 @@ let translateTypedef translateF (bindings :bindings) = function
           | _ -> raiseIllegalExpression expr "(type typeName (componentName typeExpression)* ) expected"
         in
         let components = List.map expr2comp componentExprs in
-        Some (addTypedef bindings typeName (`Record components), [])
+        Some (addTypedef bindings typeName (`Record components), [], ReturnsNothing)
       end
   | _ -> None
 
+let snd3 (_, x, _) = x
+  
 let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args =
         { id = name; args = []; }
@@ -548,7 +554,7 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
                   | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
                       begin
                         if argName = compName then begin
-                          `Sequence (snd (translateF bindings argExpr))
+                          `Sequence (snd3 (translateF bindings argExpr))
                         end else
                           raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
                       end
@@ -561,7 +567,7 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
                   fcparams = List.map snd initFunc.fargs;
                   fcargs = List.map2 translate initFunc.fargs componentExprs;
                 } in
-                Some (bindings, [`FuncCall call])
+                Some (bindings, [`FuncCall call], ReturnsNothing)
               end
           | UndefinedSymbol -> raiseIllegalExpression expr (sprintf "%s is undefined" name)
           | _ -> raiseIllegalExpression expr (sprintf "%s is not a record" name)
@@ -571,13 +577,13 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
 let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr =
   let intFlatForm countExpr errorMsg =
     match translateF bindings countExpr with
-      | _, [`Constant IntVal _ as c] -> c
-      | _, [`Variable var] ->
+      | _, [`Constant IntVal _ as c], todo -> c
+      | _, [`Variable var], todo ->
           begin match var.typ with
             | `Int -> `Variable { var with typ = `Int }
             | _ -> raiseIllegalExpression countExpr errorMsg
           end
-      | _, _ -> raiseIllegalExpression countExpr errorMsg
+      | _, _, _ -> raiseIllegalExpression countExpr errorMsg
   in
   let getNewVar bindings typ =
     let newVarName =
@@ -594,17 +600,17 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     (addVar bindings var, var)
   in
   let newVarFromExpr binding expr =
-    match typeOf (`Sequence (snd (translateF binding expr))) with
+    match typeOf (`Sequence (snd3 (translateF binding expr))) with
       | TypeOf newVarType ->
           let newBindings, newVar = getNewVar bindings newVarType in
-          let _, simpleforms = translateF bindings expr in
+          let _, simpleforms, todo = translateF bindings expr in
           let rightHandExpr = `DefineVariable (newVar, Some (`Sequence simpleforms)) in
           (newBindings, newVar, rightHandExpr, typeOf (`Sequence simpleforms))
       | _ -> raiseIllegalExpression expr "expression is ill typed"
   in
   let convertSimple typeExpr constructF =
     match translateType bindings typeExpr with
-      | Some typ -> Some (bindings, [`GenericIntrinsic (constructF typ)])
+      | Some typ -> Some (bindings, [`GenericIntrinsic (constructF typ)], ReturnsNothing)
       | None -> None
   in
   let buildStoreInstruction ptrName rightHandExpr =
@@ -622,7 +628,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                   begin
                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in
                     let intrinsic = `GenericIntrinsic (StoreIntrinsic (newVar, ptrVar)) in
-                    Some (newBindings, rightHandSimpleform :: [intrinsic])
+                    Some (newBindings, rightHandSimpleform :: [intrinsic], ReturnsNothing)
                   end
               | ptrType, TypeOf rightHandType ->
                   begin
@@ -644,7 +650,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     in
     match ptrVar.typ with
       | `Pointer _ ->
-          Some( bindings, [`GenericIntrinsic (LoadIntrinsic ptrVar)] )
+          Some( bindings, [`GenericIntrinsic (LoadIntrinsic ptrVar)], ReturnsNothing )
       | _ as invalidType ->
           raiseIllegalExpression expr
             (sprintf "Expected %s to be of pointer type instead of %s"
@@ -664,12 +670,12 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | `Pointer _ as typ -> { newVar with typ = typ }
             | _ -> raiseIllegalExpression expr "Can only deref pointers"
           in
-          Some (newBindings, rightHandExpr :: [`GenericIntrinsic (DerefIntrinsic newVar)])
+          Some (newBindings, rightHandExpr :: [`GenericIntrinsic (DerefIntrinsic newVar)], ReturnsNothing)
         end
     | { id = "ptr"; args = [{ id = varName; args = [] }] } ->
         begin
           match lookup bindings varName with
-            | VarSymbol var -> Some (bindings, [`GenericIntrinsic (GetAddrIntrinsic var)])
+            | VarSymbol var -> Some (bindings, [`GenericIntrinsic (GetAddrIntrinsic var)], ReturnsNothing)
             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
         end
     | { id = "store"; args = [{ id = ptrName; args = [] }; rightHandExpr] } ->
@@ -689,7 +695,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           let indexForm = intFlatForm indexExpr errorMsg in
           match lookup bindings ptrVarName with
             | VarSymbol ({ typ = `Pointer _;  } as ptrVar) ->
-                Some( bindings, [`GenericIntrinsic (PtrAddIntrinsic (ptrVar, indexForm))] )
+                Some( bindings, [`GenericIntrinsic (PtrAddIntrinsic (ptrVar, indexForm))], ReturnsNothing )
             | VarSymbol _ ->
                 raiseIllegalExpression expr "Expected first argument to be a pointer"
             | _ ->
@@ -708,7 +714,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | `Pointer `Record _ as typ -> { recordVar with typ = typ }
             | _ -> raiseIllegalExpression expr (sprintf "Expected %s to be a pointer to a record" recordVarName)
           in
-          Some( bindings, [`GenericIntrinsic (GetFieldPointerIntrinsic (recordVar, fieldName))] )
+          Some( bindings, [`GenericIntrinsic (GetFieldPointerIntrinsic (recordVar, fieldName))], ReturnsNothing )
         end
     | _ ->
         None
@@ -716,14 +722,14 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
 let translateLabel (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [{ id = name; args = [] }] } when id = macroLabel ->
       begin
-        Some( addLabel bindings name, [`Label { lname = name; }] )
+        Some( addLabel bindings name, [`Label { lname = name; }], ReturnsNothing )
       end
   | _ -> None
 
 let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [{ id = labelName; args = [] }] } when id = macroBranch ->
       begin
-        Some( bindings, [`Jump { lname = labelName; }] )
+        Some( bindings, [`Jump { lname = labelName; }], ReturnsNothing )
       end
   | { id = id; args = [
         { id = condVarName; args = [] };
@@ -737,7 +743,7 @@ let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
                 Some( bindings, [`Branch {
                                    bcondition = { var with typ = `Bool };
                                    trueLabel = { lname = trueLabelName};
-                                   falseLabel = { lname = falseLabelName}; }] )
+                                   falseLabel = { lname = falseLabelName}; }], ReturnsNothing )
               end
           | _ ->
               raiseIllegalExpression expr "Branch requires a bool variable as condition"
@@ -762,7 +768,7 @@ let translateNested = translate raiseIllegalExpression
     translateBranch;
   ]
 
-type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list
+type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list * retval
 
 let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
@@ -779,12 +785,12 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
                     let value = parseValue typ valueString in
                     let var = globalVar name typ value in
                     let newBindings = addVar bindings var in
-                    Some( newBindings, [ GlobalVar var ] )
+                    Some( newBindings, [ GlobalVar var ], ReturnsNothing )
                 | `Pointer targetType ->
                     if valueString = "null" then
                       let var = globalVar name (`Pointer targetType) (PointerVal (targetType, None)) in
                       let newBindings = addVar bindings var in
-                      Some( newBindings, [GlobalVar var] )
+                      Some( newBindings, [GlobalVar var], ReturnsNothing )
                     else
                       raiseIllegalExpression expr "only null values supported for pointers currently"
                 | _ -> raiseIllegalExpression expr
@@ -824,7 +830,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     in
     let innerBindings = localBinding bindings params in
     let impl = match implExprOption with
-      | Some implExpr -> Some (`Sequence (snd (translateNested innerBindings implExpr)))
+      | Some implExpr -> Some (`Sequence (snd3 (translateNested innerBindings implExpr)))
       | None -> None
     in
     let f = func name typ params impl in
@@ -844,7 +850,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
             | Some typ -> begin
                 let newBindings, funcDef = buildFunction typ name paramExprs (Some implExpr) in
                 match typeOfTL funcDef with
-                  | TypeOf _ -> Some( newBindings, [ funcDef ] )
+                  | TypeOf _ -> Some( newBindings, [ funcDef ], ReturnsNothing )
                   | TypeError (msg, declaredType, returnedType) ->
                       raiseIllegalExpression
                         expr
@@ -865,7 +871,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
             | Some typ ->
                 begin
                   let newBindings, funcDecl = buildFunction typ name paramExprs None in
-                  Some (newBindings, [funcDecl])
+                  Some (newBindings, [funcDecl], ReturnsNothing)
                 end
             | None ->
                 raiseInvalidType typeExpr
@@ -874,7 +880,6 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
         None
 
 
-          
 let translateTL = translate raiseIllegalExpression [
   translateGlobalVar;
   translateFunc;
