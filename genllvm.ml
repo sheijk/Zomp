@@ -368,14 +368,14 @@ let offsetStringAndCode gencode countForm =
 
 
 let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
-  | NullptrIntrinsic targetTyp ->
+  | `NullptrIntrinsic targetTyp ->
       begin
         let ptrTypeLLVMName = llvmTypeName (`Pointer targetTyp) in
         let var = newLocalTempVar (`Pointer targetTyp) in
         let code = sprintf "%s = bitcast i8* null to %s\n" var.rvname ptrTypeLLVMName in
         (var, code)
       end
-  | MallocIntrinsic (typ, countForm) ->
+  | `MallocIntrinsic (typ, countForm) ->
       begin
         let offsetStr, preCode = offsetStringAndCode gencode countForm in
         let var = newLocalTempVar (`Pointer typ) in
@@ -388,7 +388,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           (*                 let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) valueVar.rvname in *)
           (*                 (var, code) *)
       end
-  | DerefIntrinsic ptrVar ->
+  | `DerefIntrinsic ptrVar ->
       begin
         let typ = (ptrVar.typ :> Lang.typ) in
         let ptrTypeNameLLVM = llvmTypeName typ in
@@ -404,13 +404,13 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
         in
         (var2, comment ^ code)
       end
-  | GetAddrIntrinsic var ->
+  | `GetAddrIntrinsic var ->
       begin
         match var.vstorage with
           | MemoryStorage -> (resultVar var, "")
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
-  | StoreIntrinsic (valueVar, ptrVar) ->
+  | `StoreIntrinsic (valueVar, ptrVar) ->
       begin
         let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in
         let valueVarNameLLVM = valueVarLLVM.rvname in
@@ -439,7 +439,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
                 (noVar, code)
               end
       end
-  | LoadIntrinsic ptrVar ->
+  | `LoadIntrinsic ptrVar ->
       begin
         let resultType = match ptrVar.typ with
           | `Pointer t -> t
@@ -460,7 +460,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
 (*                 sprintf "%s = load %s %%%s\n" tempVar.rvname (llvmTypeName ptrVar.typ) ptrVar.vname *)
 (*         in *)
       end
-  | GetFieldPointerIntrinsic (recordVar, fieldName) ->
+  | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
         let `Pointer `Record components = recordVar.typ in
         let fieldIndex = componentNum components fieldName in
@@ -477,7 +477,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           fieldIndex in
         (ptrVar, comment ^ code)
       end
-  | PtrAddIntrinsic (ptrVarZomp, offsetForm) ->
+  | `PtrAddIntrinsic (ptrVarZomp, offsetForm) ->
       begin
         let resultVar = newLocalTempVar (ptrVarZomp.typ :> Lang.typ) in
         let comment = sprintf "; ptr.add\n" in
@@ -592,7 +592,7 @@ let rec gencode : Lang.expr -> resultvar * string = function
   | `Jump l -> gencodeJump l
   | `Branch b -> gencodeBranch gencode b
   | `AssignVar (var, expr) -> gencodeAssignVar gencode var expr
-  | `GenericIntrinsic intr -> gencodeGenericIntr gencode intr
+  | #genericIntrinsic as intr -> gencodeGenericIntr gencode intr
       
 let countChar str c =
   let count = ref 0 in

@@ -107,20 +107,20 @@ let rec typeOf : Lang.expr -> typecheckResult = function
   | `Label _ -> TypeOf `Void
   | `Jump _ -> TypeOf `Void
   | `Branch _ -> TypeOf `Void
-  | `GenericIntrinsic NullptrIntrinsic typ -> TypeOf (`Pointer typ)
-  | `GenericIntrinsic MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
-  | `GenericIntrinsic DerefIntrinsic var ->
+  | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
+  | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
+  | `DerefIntrinsic var ->
       begin
         let `Pointer targetType = var.typ in
         TypeOf targetType
       end
-  | `GenericIntrinsic GetAddrIntrinsic var ->
+  | `GetAddrIntrinsic var ->
       begin
         match var.vstorage with
           | MemoryStorage -> TypeOf (`Pointer var.typ)
           | RegisterStorage -> TypeError ("Cannot get address of variable with register storage", var.typ, var.typ)
       end
-  | `GenericIntrinsic StoreIntrinsic (valueVar, ptrVar) ->
+  | `StoreIntrinsic (valueVar, ptrVar) ->
       begin
         match valueVar.typ, ptrVar.typ with
           | valueType, `Pointer ptrTargetType when valueType = ptrTargetType -> TypeOf `Void
@@ -129,20 +129,20 @@ let rec typeOf : Lang.expr -> typecheckResult = function
                          (invalidPointerType :> Lang.typ),
                          `Pointer valueType)
       end
-  | `GenericIntrinsic LoadIntrinsic ptrVar ->
+  | `LoadIntrinsic ptrVar ->
       begin
         match ptrVar.typ with
           | `Pointer t -> TypeOf t
           | _ as invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void)
       end
-  | `GenericIntrinsic GetFieldPointerIntrinsic (recordVar, fieldName) ->
+  | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
         let `Pointer `Record components = recordVar.typ in
         match componentType components fieldName with
           | Some t -> TypeOf (`Pointer t)
           | None -> TypeError("Component not found", `Void, `Void)
       end
-  | `GenericIntrinsic PtrAddIntrinsic (ptrVar, _) ->
+  | `PtrAddIntrinsic (ptrVar, _) ->
       begin
         TypeOf (ptrVar.typ :> Lang.typ)
       end
@@ -619,7 +619,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
   in
   let convertSimple typeExpr constructF =
     match translateType bindings typeExpr with
-      | Some typ -> Some (bindings, [`GenericIntrinsic (constructF typ)] )
+      | Some typ -> Some (bindings, [constructF typ] )
       | None -> None
   in
   let buildStoreInstruction ptrName rightHandExpr =
@@ -636,7 +636,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
               | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType ->
                   begin
                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in
-                    let intrinsic = `GenericIntrinsic (StoreIntrinsic (newVar, ptrVar)) in
+                    let intrinsic = `StoreIntrinsic (newVar, ptrVar) in
                     Some (newBindings, rightHandSimpleform :: [intrinsic] )
                   end
               | ptrType, TypeOf rightHandType ->
@@ -659,19 +659,19 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     in
     match ptrVar.typ with
       | `Pointer _ ->
-          Some( bindings, [`GenericIntrinsic (LoadIntrinsic ptrVar)] )
+          Some( bindings, [`LoadIntrinsic ptrVar] )
       | _ as invalidType ->
           raiseIllegalExpression expr
             (sprintf "Expected %s to be of pointer type instead of %s"
                ptrVarName (typeName invalidType))
   in
   match expr with
-    | { id = "nullptr"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> NullptrIntrinsic t)
+    | { id = "nullptr"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
     | { id = "malloc"; args = [typeExpr] } ->
-        convertSimple typeExpr (fun t -> MallocIntrinsic (t, `Constant (IntVal 1)))
+        convertSimple typeExpr (fun t -> `MallocIntrinsic (t, `Constant (IntVal 1)))
     | { id = "malloc"; args = [typeExpr; countExpr] } ->
         let errorMsg = "malloc expects an int constant/var as 2nd argument" in
-        convertSimple typeExpr (fun t -> MallocIntrinsic (t, intFlatForm countExpr errorMsg))
+        convertSimple typeExpr (fun t -> `MallocIntrinsic (t, intFlatForm countExpr errorMsg))
     | { id = "deref"; args = [rightHandExpr] } ->
         begin
           let newBindings, newVar, rightHandExpr, _ = newVarFromExpr bindings rightHandExpr in
@@ -679,12 +679,12 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | `Pointer _ as typ -> { newVar with typ = typ }
             | _ -> raiseIllegalExpression expr "Can only deref pointers"
           in
-          Some (newBindings, rightHandExpr :: [`GenericIntrinsic (DerefIntrinsic newVar)] )
+          Some (newBindings, rightHandExpr :: [`DerefIntrinsic newVar] )
         end
     | { id = "ptr"; args = [{ id = varName; args = [] }] } ->
         begin
           match lookup bindings varName with
-            | VarSymbol var -> Some (bindings, [`GenericIntrinsic (GetAddrIntrinsic var)] )
+            | VarSymbol var -> Some (bindings, [`GetAddrIntrinsic var] )
             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
         end
     | { id = "store"; args = [{ id = ptrName; args = [] }; rightHandExpr] } ->
@@ -704,7 +704,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           let indexForm = intFlatForm indexExpr errorMsg in
           match lookup bindings ptrVarName with
             | VarSymbol ({ typ = `Pointer _;  } as ptrVar) ->
-                Some( bindings, [`GenericIntrinsic (PtrAddIntrinsic (ptrVar, indexForm))] )
+                Some( bindings, [`PtrAddIntrinsic (ptrVar, indexForm)] )
             | VarSymbol _ ->
                 raiseIllegalExpression expr "Expected first argument to be a pointer"
             | _ ->
@@ -723,7 +723,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | `Pointer `Record _ as typ -> { recordVar with typ = typ }
             | _ -> raiseIllegalExpression expr (sprintf "Expected %s to be a pointer to a record" recordVarName)
           in
-          Some( bindings, [`GenericIntrinsic (GetFieldPointerIntrinsic (recordVar, fieldName))] )
+          Some( bindings, [`GetFieldPointerIntrinsic (recordVar, fieldName)] )
         end
     | _ ->
         None
