@@ -466,23 +466,15 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | Some typ -> Some (bindings, [constructF typ] )
       | None -> None
   in
-  let buildStoreInstruction ptrName rightHandExpr =
-    let isPointer = function
-      | `Pointer _ -> true
-      | _ -> false
-    in
-    match lookup bindings ptrName with
-      | VarSymbol ({ typ = `Pointer _ } as ptrVar) when isPointer ptrVar.typ ->
-          begin
-            let newBindings, rightHandForm = translateF bindings rightHandExpr >>= apply2nd toSingleForm in
-            let storeInstruction = `StoreIntrinsic (ptrVar, rightHandForm) in
-            match typeCheck storeInstruction with
-              | TypeOf _ ->
-                  Some( newBindings, [storeInstruction] )
-              | TypeError (m,f,e) ->
-                  raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
-          end
-      | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr"
+  let buildStoreInstruction ptrExpr rightHandExpr =
+    let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in
+    let newBindings, rightHandForm = translateF newBindings rightHandExpr >>= apply2nd toSingleForm in
+    let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
+    match typeCheck storeInstruction with
+      | TypeOf _ ->
+          Some( newBindings, [storeInstruction] )
+      | TypeError (m,f,e) ->
+          raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
   in
   let buildMallocInstruction typeExpr countExpr =
     let typ =
@@ -524,9 +516,9 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | VarSymbol var -> Some (bindings, [`GetAddrIntrinsic var] )
             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
         end
-    | { id = "store"; args = [{ id = ptrName; args = [] }; rightHandExpr] } ->
+    | { id = "store"; args = [ptrExpr; rightHandExpr] } ->
         begin
-          buildStoreInstruction ptrName rightHandExpr
+          buildStoreInstruction ptrExpr rightHandExpr
         end
     | { id = "load"; args = [ ptrExpr ] } ->
         begin

@@ -396,33 +396,15 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           | MemoryStorage -> (resultVar var, "")
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
-  | `StoreIntrinsic ((ptrVar :[`Pointer of Lang.typ] variable), valueForm) ->
+  | `StoreIntrinsic (ptrForm, valueForm) ->
       begin
-        let valueVarLLVM, valueAccessCode = gencode valueForm in
-        let valueVarNameLLVM = valueVarLLVM.rvname in
-        let valueTypeLLVM = valueVarLLVM.rvtypename in
-        let ptrTypeNameLLVM = llvmTypeName (ptrVar.typ :> Lang.typ) in
-        match ptrVar.vstorage with
-          | MemoryStorage ->
-              begin
-                let ptrVarLLVM = newLocalTempVar (ptrVar.typ :> Lang.typ) in
-                let comment = sprintf "; storing (reg) into %s\n" ptrVar.vname in
-                let code =
-                  comment ^ valueAccessCode ^
-                    (sprintf "%s = load %s* %%%s\n" ptrVarLLVM.rvname ptrVarLLVM.rvtypename ptrVar.vname) ^
-                    (sprintf "store %s %s, %s %s\n" valueTypeLLVM valueVarNameLLVM ptrTypeNameLLVM ptrVarLLVM.rvname) in
-                (noVar, code)
-              end
-          | RegisterStorage ->
-              begin
-                let ptrVarNameLLVM = llvmName ptrVar.vname in
-                let comment = sprintf "; storing (mem) into %s\n" ptrVar.vname in
-                let code =
-                  comment ^ valueAccessCode ^
-                    sprintf "store %s %s, %s %s\n" valueTypeLLVM valueVarNameLLVM ptrTypeNameLLVM ptrVarNameLLVM
-                in
-                (noVar, code)
-              end
+        let ptrVar, ptrAccessCode = gencode ptrForm in
+        let valueVar, valueAccessCode = gencode valueForm in
+        let code =
+          sprintf "store %s %s, %s %s\n"
+            valueVar.rvtypename valueVar.rvname ptrVar.rvtypename ptrVar.rvname
+        in
+        (noVar, ptrAccessCode ^ valueAccessCode ^ code)
       end
   | `LoadIntrinsic (`Pointer targetType, expr) ->
       begin
