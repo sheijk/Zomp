@@ -406,8 +406,15 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
         in
         (noVar, ptrAccessCode ^ valueAccessCode ^ code)
       end
-  | `LoadIntrinsic (`Pointer targetType, expr) ->
+  | `LoadIntrinsic expr ->
       begin
+        let targetType =
+          match typeOfForm expr with
+            | `Pointer targetType -> targetType
+            | nonPointerType ->
+                raiseCodeGenError ~msg:("Expected pointer argument instead of "
+                ^ (typeName nonPointerType))
+        in
         let ptrVar, accessCode = gencode expr in
         let resultVar = newLocalTempVar targetType in
         let comment = sprintf "; loading %s\n" ptrVar.rvtypename in

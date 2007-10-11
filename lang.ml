@@ -96,31 +96,12 @@ type 'typ flatArgExpr = [
 | `Constant of integralValue
 ]
 
-(* type genericIntrinsic = *)
-(*   | NullptrIntrinsic of composedType *)
-(*   | MallocIntrinsic of composedType * [`Int] flatArgExpr *)
-(*   | DerefIntrinsic of [`Pointer of typ] variable *)
-(*   | GetAddrIntrinsic of composedType variable *)
-(*   | StoreIntrinsic of composedType variable * [`Pointer of composedType] variable *)
-(*   | LoadIntrinsic of composedType variable *)
-(*   | PtrAddIntrinsic of [`Pointer of typ] variable * [`Int] flatArgExpr *)
-(*   | GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string *)
-
-(* type 'arg funcCallExpr = [ *)
-(* | `FuncCall of 'arg funcCall *)
-(* ] *)
-
-(* type rightHandExpr = [ *)
-(* | flatArgExpr *)
-(* | flatArgExpr funcCallExpr *)
-(* ] *)
-
 type 'expr genericIntrinsic = [
 | `NullptrIntrinsic of composedType
 | `MallocIntrinsic of composedType * 'expr
 | `GetAddrIntrinsic of composedType variable
 | `StoreIntrinsic of 'expr * 'expr
-| `LoadIntrinsic of [`Pointer of typ] * 'expr
+| `LoadIntrinsic of 'expr
 | `PtrAddIntrinsic of 'expr * 'expr (* pointer, int *)
 | `GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
 ]
@@ -278,11 +259,10 @@ let rec typeCheck : expr -> typecheckResult =
             | (_ as l), (_ as r) ->
                 l >> r
         end
-    | `LoadIntrinsic (ptrType, expr) ->
+    | `LoadIntrinsic expr ->
         begin
           match typeCheck expr with
-            | TypeOf `Pointer (t as foundType) when ptrType = `Pointer foundType -> TypeOf t
-            | TypeOf (`Pointer _ as invalid) -> TypeError ("Inconsistent types", invalid, (ptrType :> typ))
+            | TypeOf `Pointer targetType -> TypeOf targetType
             | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
             | TypeError _ as t -> t
         end

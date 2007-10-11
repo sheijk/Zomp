@@ -491,18 +491,11 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
   in
   let buildLoadInstruction ptrExpr =
     let _, simpleForms = translateF bindings ptrExpr in
-    match typeCheck (`Sequence simpleForms) with
-      | TypeOf (`Pointer _ as targetType) ->
-          begin
-            let loadForm = `LoadIntrinsic (targetType, `Sequence simpleForms) in
-            match typeCheck loadForm with
-              | TypeOf _ -> Some( bindings, [loadForm] )
-              | TypeError (m,f,e) ->
-                  raiseIllegalExpressionFromTypeError expr (m,f,e)
-          end
-      | TypeOf nonPointerType
-      | TypeError (_, _, nonPointerType) ->
-          raiseIllegalExpression ptrExpr ("Expected pointer but found " ^ typeName nonPointerType)
+    let loadForm = `LoadIntrinsic (`Sequence simpleForms) in
+    match typeCheck loadForm with
+      | TypeOf _ -> Some( bindings, [loadForm] )
+      | TypeError (m,f,e) ->
+          raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
   match expr with
     | { id = "nullptr"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
