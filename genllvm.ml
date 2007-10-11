@@ -439,27 +439,28 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
                 (noVar, code)
               end
       end
-  | `LoadIntrinsic ptrVar ->
+  | `LoadIntrinsic (`Pointer targetType, expr) ->
       begin
-        let resultType = match ptrVar.typ with
-          | `Pointer t -> t
-          | _ -> raiseCodeGenError ~msg:(sprintf "Expected %s to be a pointer" ptrVar.vname)
+        let ptrVar, accessCode = gencode expr in
+        let resultVar = newLocalTempVar targetType in
+        let comment = sprintf "; loading %s\n" ptrVar.rvtypename in
+        let code =
+          sprintf "%s = load %s %s\n" resultVar.rvname ptrVar.rvtypename ptrVar.rvname
         in
-        let tempVar = newLocalTempVar resultType in
-        let comment = sprintf "; loading from %s\n" ptrVar.vname in
-        let ptrVarLLVM, ptrAccessCode = gencode (`Variable ptrVar) in
-        let code = sprintf "%s = load %s %s\n" tempVar.rvname ptrVarLLVM.rvtypename ptrVarLLVM.rvname in
-        (tempVar, comment ^ ptrAccessCode ^ code)
-(*         let code = *)
-(*           match ptrVar.vstorage with *)
-(*             | MemoryStorage -> *)
-(*                 let ptrvalue = newLocalTempVar ptrVar.typ in *)
-(*                 sprintf "%s = load %s* %s\n" ptrvalue.rvname ptrvalue.rvtypename (llvmName ptrVar.vname) ^ *)
-(*                   sprintf "%s = load %s %s\n" tempVar.rvname (llvmTypeName ptrVar.typ) ptrvalue.rvname *)
-(*             | RegisterStorage -> *)
-(*                 sprintf "%s = load %s %%%s\n" tempVar.rvname (llvmTypeName ptrVar.typ) ptrVar.vname *)
-(*         in *)
+        (resultVar, comment ^ accessCode ^ code)
       end
+        (*   | `LoadIntrinsic ptrVar -> *)
+        (*       begin *)
+        (*         let resultType = match ptrVar.typ with *)
+        (*           | `Pointer t -> t *)
+        (*           | _ -> raiseCodeGenError ~msg:(sprintf "Expected %s to be a pointer" ptrVar.vname) *)
+        (*         in *)
+        (*         let tempVar = newLocalTempVar resultType in *)
+        (*         let comment = sprintf "; loading from %s\n" ptrVar.vname in *)
+        (*         let ptrVarLLVM, ptrAccessCode = gencode (`Variable ptrVar) in *)
+        (*         let code = sprintf "%s = load %s %s\n" tempVar.rvname ptrVarLLVM.rvtypename ptrVarLLVM.rvname in *)
+        (*         (tempVar, comment ^ ptrAccessCode ^ code) *)
+        (*       end *)
   | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
         let `Pointer `Record components = recordVar.typ in

@@ -121,7 +121,7 @@ type 'expr genericIntrinsic = [
 | `DerefIntrinsic of [`Pointer of typ] variable
 | `GetAddrIntrinsic of composedType variable
 | `StoreIntrinsic of composedType variable * [`Pointer of composedType] variable
-| `LoadIntrinsic of composedType variable
+| `LoadIntrinsic of [`Pointer of typ] * 'expr
 | `PtrAddIntrinsic of [`Pointer of typ] variable * [`Int] flatArgExpr
 | `GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
 ]

@@ -58,7 +58,11 @@ type typecheckResult =
   | TypeOf of composedType
       (** error message, found type, expected type *)
   | TypeError of string * composedType * composedType
-      
+
+let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
+  raiseIllegalExpression expr (sprintf "Expected type %s but found %s" (typeName expected) (typeName found))
+
+  
 let rec typeOf : Lang.expr -> typecheckResult = function
   | `Sequence [] -> TypeOf `Void
   | `Sequence [expr] -> typeOf expr
@@ -129,11 +133,19 @@ let rec typeOf : Lang.expr -> typecheckResult = function
                          (invalidPointerType :> Lang.typ),
                          `Pointer valueType)
       end
-  | `LoadIntrinsic ptrVar ->
+(*   | `LoadIntrinsic ptrVar -> *)
+(*       begin *)
+(*         match ptrVar.typ with *)
+(*           | `Pointer t -> TypeOf t *)
+(*           | _ as invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) *)
+(*       end *)
+  | `LoadIntrinsic (ptrType, expr) ->
       begin
-        match ptrVar.typ with
-          | `Pointer t -> TypeOf t
-          | _ as invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void)
+        match typeOf expr with
+          | TypeOf `Pointer (t as foundType) when ptrType = `Pointer foundType -> TypeOf t
+          | TypeOf (`Pointer _ as invalid) -> TypeError ("Inconsistent types", invalid, (ptrType :> Lang.typ))
+          | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
+          | TypeError _ as t -> t
       end
   | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
@@ -146,38 +158,6 @@ let rec typeOf : Lang.expr -> typecheckResult = function
       begin
         TypeOf (ptrVar.typ :> Lang.typ)
       end
-        
-(*   | GenericIntrinsic SetFieldIntrinsic (typ, recordVar, componentName, valueExpr) -> *)
-(*       begin *)
-(*         match recordVar.typ with *)
-(*           | `Record components | `Pointer `Record components -> *)
-(*               begin *)
-(*                 match componentType components componentName, typeOf valueExpr with *)
-(*                   | None, _ -> *)
-(*                       TypeError (sprintf "component %s does not exists" componentName, `Void, `Void) *)
-(*                   | Some targetType, TypeOf valueType when targetType = valueType -> *)
-(*                       TypeOf `Void *)
-(*                   | Some targetType, TypeOf wrongType -> *)
-(*                       TypeError ("mismatching types in setField", wrongType, targetType) *)
-(*                   | _, (TypeError _ as error) -> *)
-(*                       error *)
-(*               end *)
-(*           | _ as wrongType -> *)
-(*               TypeError ("setField requires record variable", wrongType, `Record []) *)
-(*       end *)
-(*   | GenericIntrinsic GetFieldIntrinsic (typ, recordVar, componentName) -> *)
-(*       begin *)
-(*         match recordVar.typ with *)
-(*           | `Record components -> *)
-(*               begin *)
-(*                 match componentType components componentName with *)
-(*                   | Some t when t = typ -> TypeOf t *)
-(*                   | Some t -> TypeError (sprintf "internal error, get field claims wrong type", typ, t) *)
-(*                   | None -> TypeError (sprintf "component %s does not exist" componentName, `Void, `Void) *)
-(*               end *)
-(*           | _ as invalidType -> *)
-(*               TypeError ("expected record type", invalidType, `Record []) *)
-(*       end *)
 
 let rec typeOfTL = function
   | GlobalVar var -> TypeOf var.typ
@@ -652,18 +632,20 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           end
       | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr"
   in
-  let buildLoadInstruction ptrVarName =
-    let ptrVar = match lookup bindings ptrVarName with
-      | VarSymbol v -> v
-      | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" ptrVarName)
-    in
-    match ptrVar.typ with
-      | `Pointer _ ->
-          Some( bindings, [`LoadIntrinsic ptrVar] )
-      | _ as invalidType ->
-          raiseIllegalExpression expr
-            (sprintf "Expected %s to be of pointer type instead of %s"
-               ptrVarName (typeName invalidType))
+  let buildLoadInstruction ptrExpr =
+    let _, simpleForms = translateF bindings ptrExpr in
+    match typeOf (`Sequence simpleForms) with
+      | TypeOf (`Pointer _ as targetType) ->
+          begin
+            let loadForm = `LoadIntrinsic (targetType, `Sequence simpleForms) in
+            match typeOf loadForm with
+              | TypeOf _ -> Some( bindings, [loadForm] )
+              | TypeError (m,f,e) ->
+                  raiseIllegalExpressionFromTypeError expr (m,f,e)
+          end
+      | TypeOf nonPointerType
+      | TypeError (_, _, nonPointerType) ->
+          raiseIllegalExpression ptrExpr ("Expected pointer but found " ^ typeName nonPointerType)
   in
   match expr with
     | { id = "nullptr"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
@@ -691,9 +673,9 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         begin
           buildStoreInstruction ptrName rightHandExpr
         end
-    | { id = "load"; args = [ { id = ptrVarName; args = [] } ] } ->
+    | { id = "load"; args = [ ptrExpr ] } ->
         begin
-          buildLoadInstruction ptrVarName
+          buildLoadInstruction ptrExpr
         end
     | { id = "ptr.add"; args = [
           { id = ptrVarName; args = [] };
