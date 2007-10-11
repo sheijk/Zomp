@@ -114,13 +114,13 @@ type 'typ flatArgExpr = [
 (* | flatArgExpr *)
 (* | flatArgExpr funcCallExpr *)
 (* ] *)
-    
+
 type 'expr genericIntrinsic = [
 | `NullptrIntrinsic of composedType
 | `MallocIntrinsic of composedType * [`Int] flatArgExpr
 | `DerefIntrinsic of [`Pointer of typ] variable
 | `GetAddrIntrinsic of composedType variable
-| `StoreIntrinsic of composedType variable * [`Pointer of composedType] variable
+| `StoreIntrinsic of [`Pointer of composedType] variable * 'expr
 | `LoadIntrinsic of [`Pointer of typ] * 'expr
 | `PtrAddIntrinsic of [`Pointer of typ] variable * [`Int] flatArgExpr
 | `GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
@@ -140,6 +140,11 @@ type expr = [
 (* ] *)
 | expr genericIntrinsic
 ]
+
+let toSingleForm formlist =
+  match formlist with
+    | [(singleForm :expr)] -> singleForm
+    | sequence -> `Sequence sequence
 
 
 type func = {

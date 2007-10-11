@@ -124,14 +124,15 @@ let rec typeOf : Lang.expr -> typecheckResult = function
           | MemoryStorage -> TypeOf (`Pointer var.typ)
           | RegisterStorage -> TypeError ("Cannot get address of variable with register storage", var.typ, var.typ)
       end
-  | `StoreIntrinsic (valueVar, ptrVar) ->
+  | `StoreIntrinsic (ptrVar, valueExpr) ->
       begin
-        match valueVar.typ, ptrVar.typ with
-          | valueType, `Pointer ptrTargetType when valueType = ptrTargetType -> TypeOf `Void
-          | valueType, invalidPointerType ->
+        match ptrVar.typ, typeOf valueExpr with
+          | `Pointer ptrTargetType, TypeOf valueType when valueType = ptrTargetType -> TypeOf `Void
+          | #Lang.typ as invalidPointerType, TypeOf valueType ->
               TypeError ("tried to store value to pointer of mismatching type",
-                         (invalidPointerType :> Lang.typ),
+                         invalidPointerType,
                          `Pointer valueType)
+          | _, (TypeError(_,_,_) as e) -> e
       end
 (*   | `LoadIntrinsic ptrVar -> *)
 (*       begin *)
@@ -602,34 +603,73 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | Some typ -> Some (bindings, [constructF typ] )
       | None -> None
   in
+(*   let buildStoreInstruction ptrName rightHandExpr = *)
+(*     let isPointer = function *)
+(*       | `Pointer _ -> true *)
+(*       | _ -> false *)
+(*     in *)
+(*     match lookup bindings ptrName with *)
+(*       | VarSymbol ptrVar when isPointer ptrVar.typ -> *)
+(*           begin *)
+(*             let newBindings, newVar, rightHandSimpleform, rightHandType = newVarFromExpr bindings rightHandExpr *)
+(*             in *)
+(*             match ptrVar.typ, rightHandType with *)
+(*               | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType -> *)
+(*                   begin *)
+(*                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in *)
+(*                     let intrinsic = `StoreIntrinsic (newVar, ptrVar) in *)
+(*                     Some (newBindings, rightHandSimpleform :: [intrinsic] ) *)
+(*                   end *)
+(*               | ptrType, TypeOf rightHandType -> *)
+(*                   begin *)
+(*                     raiseIllegalExpression expr *)
+(*                       (sprintf "first parameter (%s) should have type %s instead of %s" *)
+(*                          ptrVar.vname *)
+(*                          (Lang.typeName rightHandType) *)
+(*                          (Lang.typeName ptrType)) *)
+(*                   end *)
+(*               | _, TypeError (msg, _, _) -> *)
+(*                   raiseIllegalExpression rightHandExpr msg *)
+(*           end *)
+(*       | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr" *)
+(*   in *)
   let buildStoreInstruction ptrName rightHandExpr =
     let isPointer = function
       | `Pointer _ -> true
       | _ -> false
     in
     match lookup bindings ptrName with
-      | VarSymbol ptrVar when isPointer ptrVar.typ ->
+      | VarSymbol ({ typ = `Pointer _ } as ptrVar) when isPointer ptrVar.typ ->
           begin
-            let newBindings, newVar, rightHandSimpleform, rightHandType = newVarFromExpr bindings rightHandExpr
-            in
-            match ptrVar.typ, rightHandType with
-              | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType ->
-                  begin
-                    let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in
-                    let intrinsic = `StoreIntrinsic (newVar, ptrVar) in
-                    Some (newBindings, rightHandSimpleform :: [intrinsic] )
-                  end
-              | ptrType, TypeOf rightHandType ->
-                  begin
-                    raiseIllegalExpression expr
-                      (sprintf "first parameter (%s) should have type %s instead of %s"
-                         ptrVar.vname
-                         (Lang.typeName rightHandType)
-                         (Lang.typeName ptrType))
-                  end
-              | _, TypeError (msg, _, _) ->
-                  raiseIllegalExpression rightHandExpr msg
+            let newBindings, rightHandForm = translateF bindings rightHandExpr >>= apply2nd toSingleForm in
+            let storeInstruction = `StoreIntrinsic (ptrVar, rightHandForm) in
+            match typeOf storeInstruction with
+              | TypeOf _ ->
+                  Some( newBindings, [storeInstruction] )
+              | TypeError (m,f,e) ->
+                  raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
           end
+(*           begin *)
+(*             let newBindings, newVar, rightHandSimpleform, rightHandType = newVarFromExpr bindings rightHandExpr *)
+(*             in *)
+(*             match ptrVar.typ, rightHandType with *)
+(*               | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType -> *)
+(*                   begin *)
+(*                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in *)
+(*                     let intrinsic = `StoreIntrinsic (newVar, ptrVar) in *)
+(*                     Some (newBindings, rightHandSimpleform :: [intrinsic] ) *)
+(*                   end *)
+(*               | ptrType, TypeOf rightHandType -> *)
+(*                   begin *)
+(*                     raiseIllegalExpression expr *)
+(*                       (sprintf "first parameter (%s) should have type %s instead of %s" *)
+(*                          ptrVar.vname *)
+(*                          (Lang.typeName rightHandType) *)
+(*                          (Lang.typeName ptrType)) *)
+(*                   end *)
+(*               | _, TypeError (msg, _, _) -> *)
+(*                   raiseIllegalExpression rightHandExpr msg *)
+(*           end *)
       | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr"
   in
   let buildLoadInstruction ptrExpr =

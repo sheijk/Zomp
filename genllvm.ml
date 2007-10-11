@@ -94,12 +94,12 @@ let llvmEscapedString str =
     
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
-    sprintf "%s %s %s" intrName (llvmTypeName typ) (combine ", " argVarNames)
+    sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
   in
   let void argVarNames = "" in
   let compareIntrinsicI name cond =
     let f argVarNames = 
-      sprintf "icmp %s i32 %s" cond (combine ", " argVarNames)
+      sprintf "icmp %s i32 %s\n" cond (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Bool, ["l", `Int; "r", `Int])
   in
@@ -410,31 +410,30 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           | MemoryStorage -> (resultVar var, "")
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
-  | `StoreIntrinsic (valueVar, ptrVar) ->
+  | `StoreIntrinsic ((ptrVar :[`Pointer of Lang.typ] variable), valueForm) ->
       begin
-        let valueVarLLVM, valueAccessCode = gencode (`Variable valueVar) in
+        let valueVarLLVM, valueAccessCode = gencode valueForm in
         let valueVarNameLLVM = valueVarLLVM.rvname in
-        let valueType = valueVar.typ in
-        let valueTypeLLVM = llvmTypeName valueType in
-        let ptrTypeNameLLVM = llvmTypeName (`Pointer valueType) in
+        let valueTypeLLVM = valueVarLLVM.rvtypename in
+        let ptrTypeNameLLVM = llvmTypeName (ptrVar.typ :> Lang.typ) in
         match ptrVar.vstorage with
           | MemoryStorage ->
               begin
-                let ptrVarLLVM = newLocalTempVar (`Pointer valueType) in
-                let comment = sprintf "; storing %s (reg) into %s\n" valueVar.vname ptrVar.vname in
+                let ptrVarLLVM = newLocalTempVar (ptrVar.typ :> Lang.typ) in
+                let comment = sprintf "; storing (reg) into %s\n" ptrVar.vname in
                 let code =
                   comment ^ valueAccessCode ^
                     (sprintf "%s = load %s* %%%s\n" ptrVarLLVM.rvname ptrVarLLVM.rvtypename ptrVar.vname) ^
-                    (sprintf "store %s %s, %s %s" valueTypeLLVM valueVarNameLLVM ptrTypeNameLLVM ptrVarLLVM.rvname) in
+                    (sprintf "store %s %s, %s %s\n" valueTypeLLVM valueVarNameLLVM ptrTypeNameLLVM ptrVarLLVM.rvname) in
                 (noVar, code)
               end
           | RegisterStorage ->
               begin
                 let ptrVarNameLLVM = llvmName ptrVar.vname in
-                let comment = sprintf "; storing %s (mem) into %s\n" valueVar.vname ptrVar.vname in
+                let comment = sprintf "; storing (mem) into %s\n" ptrVar.vname in
                 let code =
                   comment ^ valueAccessCode ^
-                    sprintf "store %s %s, %s %s" valueTypeLLVM valueVarNameLLVM ptrTypeNameLLVM ptrVarNameLLVM
+                    sprintf "store %s %s, %s %s\n" valueTypeLLVM valueVarNameLLVM ptrTypeNameLLVM ptrVarNameLLVM
                 in
                 (noVar, code)
               end

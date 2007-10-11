@@ -1,5 +1,9 @@
 
 
+let apply2nd f (fst, snd) = (fst, f snd)
+let (<<=) f g = f g
+let (>>=) x f = f x
+  
 let rec combine seperator = function
     [] -> ""
   | [str] -> str
