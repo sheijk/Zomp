@@ -366,7 +366,11 @@ let offsetStringAndCode gencode countForm =
         valueVar.rvname, valueAccessCode
     | _ -> raiseCodeGenError ~msg:"Invalid expression for count"
 
-
+let checkType resultVar typ =
+  if llvmTypeName typ <> resultVar.rvtypename then
+    raiseCodeGenError ~msg:(sprintf "Internal error: expected %s to be of type %s instead of %s"
+                              resultVar.rvname (llvmTypeName typ) resultVar.rvtypename)
+                              
 let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
   | `NullptrIntrinsic targetTyp ->
       begin
@@ -377,32 +381,11 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
       end
   | `MallocIntrinsic (typ, countForm) ->
       begin
-        let offsetStr, preCode = offsetStringAndCode gencode countForm in
+        let countVar, preCode = gencode countForm in
+        checkType countVar `Int;
         let var = newLocalTempVar (`Pointer typ) in
-        let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) offsetStr in
+        let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) countVar.rvname in
         (var, preCode ^ code)
-          (*                 let var = newLocalTempVar (`Pointer typ) in *)
-          (*                 let code = sprintf "%s = malloc %s, i32 %d" var.rvname (llvmTypeName typ) count in *)
-          (*                 (var, code) *)
-          (*                 let var = newLocalTempVar (`Pointer typ) in *)
-          (*                 let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) valueVar.rvname in *)
-          (*                 (var, code) *)
-      end
-  | `DerefIntrinsic ptrVar ->
-      begin
-        let typ = (ptrVar.typ :> Lang.typ) in
-        let ptrTypeNameLLVM = llvmTypeName typ in
-        let comment = sprintf "; deref %s %s\n" ptrTypeNameLLVM ptrVar.vname in
-        let `Pointer resultType = ptrVar.typ in
-        let resultTypeLLVM = llvmTypeName resultType in
-        let llvmPtrTypeName = llvmTypeName (`Pointer resultType) in
-        let var = newLocalTempVar (`Pointer resultType) in
-        let var2 = newLocalTempVar resultType in
-        let code =
-          (sprintf "%s = load %s* %%%s\n" var.rvname llvmPtrTypeName ptrVar.vname) ^
-            (sprintf "%s = load %s* %s" var2.rvname resultTypeLLVM var.rvname)
-        in
-        (var2, comment ^ code)
       end
   | `GetAddrIntrinsic var ->
       begin
@@ -448,18 +431,6 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
         in
         (resultVar, comment ^ accessCode ^ code)
       end
-        (*   | `LoadIntrinsic ptrVar -> *)
-        (*       begin *)
-        (*         let resultType = match ptrVar.typ with *)
-        (*           | `Pointer t -> t *)
-        (*           | _ -> raiseCodeGenError ~msg:(sprintf "Expected %s to be a pointer" ptrVar.vname) *)
-        (*         in *)
-        (*         let tempVar = newLocalTempVar resultType in *)
-        (*         let comment = sprintf "; loading from %s\n" ptrVar.vname in *)
-        (*         let ptrVarLLVM, ptrAccessCode = gencode (`Variable ptrVar) in *)
-        (*         let code = sprintf "%s = load %s %s\n" tempVar.rvname ptrVarLLVM.rvtypename ptrVarLLVM.rvname in *)
-        (*         (tempVar, comment ^ ptrAccessCode ^ code) *)
-        (*       end *)
   | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
         let `Pointer `Record components = recordVar.typ in
@@ -481,66 +452,18 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
       begin
         let resultVar = newLocalTempVar (ptrVarZomp.typ :> Lang.typ) in
         let comment = sprintf "; ptr.add\n" in
-        let ptrVar, ptrVarAccessCode = gencode (`Variable {ptrVarZomp with typ = (ptrVarZomp.typ :> Lang.typ)}) in
-        let offsetString, offsetAccessCode = offsetStringAndCode gencode offsetForm in
+        let ptrVar, ptrVarAccessCode =
+          gencode (`Variable {ptrVarZomp with typ = (ptrVarZomp.typ :> Lang.typ)})
+        in
+        let offsetVar, offsetAccessCode = gencode offsetForm in
+        let `Pointer targetType = ptrVarZomp.typ in
+        checkType offsetVar targetType;
         let code =
           sprintf "%s = getelementptr %s %s, i32 %s\n"
-            resultVar.rvname ptrVar.rvtypename ptrVar.rvname offsetString
+            resultVar.rvname ptrVar.rvtypename ptrVar.rvname offsetVar.rvname
         in
         (resultVar, comment ^ ptrVarAccessCode ^ offsetAccessCode ^ code)
       end
-        
-(*   | SetFieldIntrinsic (typ, recordVar, componentName, valueSimpleform) -> *)
-(*       begin *)
-(*         match recordVar.typ, recordVar.vstorage with *)
-(* (\*           | `Record components, MemoryStorage -> *\) *)
-(*           | `Pointer `Record components, _ -> *)
-(*               begin *)
-(*                 let comment = sprintf "; %s.%s = ...\n" recordVar.vname componentName in *)
-(*                 let ptrToField, derefs = *)
-(*                   newLocalTempVar typ, "*" *)
-(* (\*                   match recordVar.typ with *\) *)
-(* (\*                     | `Pointer _ -> resultVar recordVar, "" *\) *)
-(* (\*                     | _ -> newLocalTempVar typ, "" *\) *)
-(*                 in *)
-(* (\*                 let ptrToField = newLocalTempVar (`Pointer typ) in *\) *)
-(*                 let llvmComponentTypeName = llvmTypeName typ in *)
-(*                 let llvmRecordTypeName = llvmTypeName recordVar.typ in *)
-(*                 let componentNum = string_of_int (componentNum components componentName) in *)
-(*                 let valueVar, valueCode = gencode valueSimpleform in *)
-(*                 let code = *)
-(*                   valueCode ^ "\n" *)
-(*                   ^ sprintf "%s = getelementptr %s %%%s, i32 0, i32 %s\n" *)
-(*                     ptrToField.rvname (llvmRecordTypeName ^ derefs) recordVar.vname componentNum *)
-(*                   ^ sprintf "store %s %s, %s* %s\n" *)
-(*                     llvmComponentTypeName valueVar.rvname llvmComponentTypeName ptrToField.rvname *)
-(*                 in *)
-(*                 (noVar, comment ^ code) *)
-(*               end *)
-(*           | _, MemoryStorage -> raiseCodeGenError ~msg:"expected a record type" *)
-(*           | _, RegisterStorage -> raiseCodeGenError ~msg:"register storage for setField not implemented, yet" *)
-(*       end *)
-(*   | GetFieldIntrinsic (typ, recordVar, componentName) -> *)
-(*       begin *)
-(*         if recordVar.vstorage = RegisterStorage then  *)
-(*           raiseCodeGenError ~msg:"register storage for field not supported, yet" *)
-(*         else *)
-(*           let llvmRecordTypeName = llvmTypeName recordVar.typ in *)
-(*           let llvmTypeName = llvmTypeName typ in *)
-(*           let ptrToField = newLocalTempVar (`Pointer typ) in *)
-(*           let resultVar = newLocalTempVar typ in *)
-(*           let components = match recordVar.typ with *)
-(*             | `Record components -> components *)
-(*             | _ -> raiseCodeGenError ~msg:"used setField with non record var" *)
-(*           in *)
-(*           let componentNum = string_of_int (componentNum components componentName) in *)
-(*           let code = *)
-(*             sprintf "%s = getelementptr %s* %%%s, i32 0, i32 %s\n" *)
-(*               ptrToField.rvname llvmRecordTypeName recordVar.vname componentNum *)
-(*             ^ sprintf "%s = load %s* %s\n" resultVar.rvname llvmTypeName ptrToField.rvname *)
-(*           in *)
-(*           (resultVar, code) *)
-(*       end *)
     
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in

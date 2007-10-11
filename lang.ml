@@ -117,12 +117,11 @@ type 'typ flatArgExpr = [
 
 type 'expr genericIntrinsic = [
 | `NullptrIntrinsic of composedType
-| `MallocIntrinsic of composedType * [`Int] flatArgExpr
-| `DerefIntrinsic of [`Pointer of typ] variable
+| `MallocIntrinsic of composedType * 'expr
 | `GetAddrIntrinsic of composedType variable
 | `StoreIntrinsic of [`Pointer of composedType] variable * 'expr
 | `LoadIntrinsic of [`Pointer of typ] * 'expr
-| `PtrAddIntrinsic of [`Pointer of typ] variable * [`Int] flatArgExpr
+| `PtrAddIntrinsic of [`Pointer of typ] variable * 'expr
 | `GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
 ]
     
@@ -136,8 +135,6 @@ type expr = [
 | `Jump of label
 | `Branch of branch
 | `Label of label
-(* | `GenericIntrinsic of genericIntrinsic *)
-(* ] *)
 | expr genericIntrinsic
 ]
 

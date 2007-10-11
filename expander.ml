@@ -113,11 +113,6 @@ let rec typeOf : Lang.expr -> typecheckResult = function
   | `Branch _ -> TypeOf `Void
   | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
   | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
-  | `DerefIntrinsic var ->
-      begin
-        let `Pointer targetType = var.typ in
-        TypeOf targetType
-      end
   | `GetAddrIntrinsic var ->
       begin
         match var.vstorage with
@@ -579,60 +574,11 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
   | _ -> None
 
 let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr =
-  let intFlatForm countExpr errorMsg =
-    match translateF bindings countExpr with
-      | _, [`Constant IntVal _ as c] -> c
-      | _, [`Variable var] ->
-          begin match var.typ with
-            | `Int -> `Variable { var with typ = `Int }
-            | _ -> raiseIllegalExpression countExpr errorMsg
-          end
-      | _, _ -> raiseIllegalExpression countExpr errorMsg
-  in
-  let newVarFromExpr binding expr =
-    match typeOf (`Sequence (snd (translateF binding expr))) with
-      | TypeOf newVarType ->
-          let newBindings, newVar = getNewVar bindings newVarType in
-          let _, simpleforms = translateF bindings expr in
-          let rightHandExpr = `DefineVariable (newVar, Some (`Sequence simpleforms)) in
-          (newBindings, newVar, rightHandExpr, typeOf (`Sequence simpleforms))
-      | _ -> raiseIllegalExpression expr "expression is ill typed"
-  in
   let convertSimple typeExpr constructF =
     match translateType bindings typeExpr with
       | Some typ -> Some (bindings, [constructF typ] )
       | None -> None
   in
-(*   let buildStoreInstruction ptrName rightHandExpr = *)
-(*     let isPointer = function *)
-(*       | `Pointer _ -> true *)
-(*       | _ -> false *)
-(*     in *)
-(*     match lookup bindings ptrName with *)
-(*       | VarSymbol ptrVar when isPointer ptrVar.typ -> *)
-(*           begin *)
-(*             let newBindings, newVar, rightHandSimpleform, rightHandType = newVarFromExpr bindings rightHandExpr *)
-(*             in *)
-(*             match ptrVar.typ, rightHandType with *)
-(*               | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType -> *)
-(*                   begin *)
-(*                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in *)
-(*                     let intrinsic = `StoreIntrinsic (newVar, ptrVar) in *)
-(*                     Some (newBindings, rightHandSimpleform :: [intrinsic] ) *)
-(*                   end *)
-(*               | ptrType, TypeOf rightHandType -> *)
-(*                   begin *)
-(*                     raiseIllegalExpression expr *)
-(*                       (sprintf "first parameter (%s) should have type %s instead of %s" *)
-(*                          ptrVar.vname *)
-(*                          (Lang.typeName rightHandType) *)
-(*                          (Lang.typeName ptrType)) *)
-(*                   end *)
-(*               | _, TypeError (msg, _, _) -> *)
-(*                   raiseIllegalExpression rightHandExpr msg *)
-(*           end *)
-(*       | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr" *)
-(*   in *)
   let buildStoreInstruction ptrName rightHandExpr =
     let isPointer = function
       | `Pointer _ -> true
@@ -649,28 +595,20 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
               | TypeError (m,f,e) ->
                   raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
           end
-(*           begin *)
-(*             let newBindings, newVar, rightHandSimpleform, rightHandType = newVarFromExpr bindings rightHandExpr *)
-(*             in *)
-(*             match ptrVar.typ, rightHandType with *)
-(*               | `Pointer ptrTargetType, TypeOf rightHandType when rightHandType = ptrTargetType -> *)
-(*                   begin *)
-(*                     let ptrVar = { ptrVar with typ = `Pointer ptrTargetType } in *)
-(*                     let intrinsic = `StoreIntrinsic (newVar, ptrVar) in *)
-(*                     Some (newBindings, rightHandSimpleform :: [intrinsic] ) *)
-(*                   end *)
-(*               | ptrType, TypeOf rightHandType -> *)
-(*                   begin *)
-(*                     raiseIllegalExpression expr *)
-(*                       (sprintf "first parameter (%s) should have type %s instead of %s" *)
-(*                          ptrVar.vname *)
-(*                          (Lang.typeName rightHandType) *)
-(*                          (Lang.typeName ptrType)) *)
-(*                   end *)
-(*               | _, TypeError (msg, _, _) -> *)
-(*                   raiseIllegalExpression rightHandExpr msg *)
-(*           end *)
       | _ -> raiseIllegalExpression expr "'store ptr var' requires a pointer type var for ptr"
+  in
+  let buildMallocInstruction typeExpr countExpr =
+    let typ =
+      match translateType bindings typeExpr with
+        | Some t -> t
+        | None -> raiseIllegalExpression typeExpr "Could not translate type"
+    in
+    let newBindings, rightHandForm = translateF bindings countExpr >>= apply2nd toSingleForm in
+    let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
+    match typeOf mallocForm with
+      | TypeOf _ -> Some( newBindings, [mallocForm] )
+      | TypeError (m,f,e) ->
+          raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
   let buildLoadInstruction ptrExpr =
     let _, simpleForms = translateF bindings ptrExpr in
@@ -690,19 +628,9 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
   match expr with
     | { id = "nullptr"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
     | { id = "malloc"; args = [typeExpr] } ->
-        convertSimple typeExpr (fun t -> `MallocIntrinsic (t, `Constant (IntVal 1)))
+        buildMallocInstruction typeExpr { id = "1"; args = [] }
     | { id = "malloc"; args = [typeExpr; countExpr] } ->
-        let errorMsg = "malloc expects an int constant/var as 2nd argument" in
-        convertSimple typeExpr (fun t -> `MallocIntrinsic (t, intFlatForm countExpr errorMsg))
-    | { id = "deref"; args = [rightHandExpr] } ->
-        begin
-          let newBindings, newVar, rightHandExpr, _ = newVarFromExpr bindings rightHandExpr in
-          let newVar = match newVar.typ with
-            | `Pointer _ as typ -> { newVar with typ = typ }
-            | _ -> raiseIllegalExpression expr "Can only deref pointers"
-          in
-          Some (newBindings, rightHandExpr :: [`DerefIntrinsic newVar] )
-        end
+        buildMallocInstruction typeExpr countExpr
     | { id = "ptr"; args = [{ id = varName; args = [] }] } ->
         begin
           match lookup bindings varName with
@@ -722,15 +650,20 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           indexExpr
         ] } ->
         begin
-          let errorMsg = "Expected a constant/var as second argument" in
-          let indexForm = intFlatForm indexExpr errorMsg in
-          match lookup bindings ptrVarName with
-            | VarSymbol ({ typ = `Pointer _;  } as ptrVar) ->
-                Some( bindings, [`PtrAddIntrinsic (ptrVar, indexForm)] )
-            | VarSymbol _ ->
-                raiseIllegalExpression expr "Expected first argument to be a pointer"
-            | _ ->
-                raiseIllegalExpression expr (sprintf "Could not find variable %s" ptrVarName)
+          let newBindings, indexForm = translateF bindings indexExpr >>= apply2nd toSingleForm in
+          let ptrVar = 
+            match lookup bindings ptrVarName with
+              | VarSymbol ({ typ = `Pointer _;  } as ptrVar) -> ptrVar
+              | VarSymbol _ ->
+                  raiseIllegalExpression expr "Expected first argument to be a pointer"
+              | _ ->
+                  raiseIllegalExpression expr (sprintf "Could not find variable %s" ptrVarName)
+          in
+          let ptradd = `PtrAddIntrinsic (ptrVar, indexForm) in
+          match typeOf ptradd with
+            | TypeOf _ -> Some( newBindings, [ptradd] )
+            | TypeError (m,f,e) ->
+                raiseIllegalExpressionFromTypeError expr (m,f,e)
         end
     | { id = "fieldptr"; args = [
           { id = recordVarName; args = [] };

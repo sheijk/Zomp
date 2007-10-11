@@ -7,7 +7,7 @@
 
 (func int main () (
   (var int foo 99)
-  (var (ptr int) x (malloc int))
+  (var (ptr int) x (malloc int (int.sub 2 1)))
   (store x 10)
   (dowork (ptr foo) x)
   (ret (int.add (int.add foo foo) (load x)))

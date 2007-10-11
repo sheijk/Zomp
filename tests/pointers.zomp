@@ -21,14 +21,14 @@
 
   
   
-(func void test_deref () (
+(func void test_load () (
   (var (ptr int) p (nullptr int))
-  (var int v (deref p))
+  (var int v (load p))
   void
   ))
 
-(func int test_deref_ptr ((iptr pi)) (
-  (deref pi)
+(func int test_load_ptr ((iptr pi)) (
+  (load pi)
   ))
 
 (func void test_mutableptr () (
@@ -37,9 +37,9 @@
   void
   ))
   
-(func void test_deref_memstorage () (
+(func void test_load_memstorage () (
   (mvar (ptr int) pi (nullptr int))
-  (var int i (deref pi))
+  (var int i (load pi))
   void
   ))
   
@@ -99,22 +99,21 @@
   ptr2ptr2int
   ))
  
-(func int derefint ((iptr p)) (
-  (deref p)
+(func int loadint ((iptr p)) (
+  (load p)
   ))
 
 
 (func int testptr () (
   (var int foo 10)
   (var (ptr int) pfoo (ptr foo))
-  (var int foo2 (deref pfoo))
+  (var int foo2 (load pfoo))
   (ret foo2)
   ))
 
 
 (func int main () (
   (testptr)
-//   (deref (int.new (twice 10)))
   ))
   
 

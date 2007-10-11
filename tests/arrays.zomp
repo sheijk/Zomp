@@ -2,12 +2,12 @@
 
 (func int main () (
   (var int arraySize 10)
-  (var (ptr int) array (malloc int arraySize))
+  (var (ptr int) array (malloc int (int.add 0 arraySize)))
 
   (var (ptr int) addr (nullptr int))
   
   (macro set index value (
-    (assign addr (ptr.add array index))
+    (assign addr (ptr.add array (int.sub (int.mul index 2) index)))
     (store addr value)))
 
   
@@ -42,15 +42,9 @@
     (label end2)
     ))
 
-//   (var (ptr int) t (nullptr int))
-//   (var int t2 0)
-  
   (for index2 0 arraySize (
-//     (assign t (ptr.add array index2))
     (printInt index2)
     (printChar ' ')
-//     (assign t2 (load t))
-//     (printInt t2)
     (printInt (load (ptr.add array index2)))
     (println)
     ))
