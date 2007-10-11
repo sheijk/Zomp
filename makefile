@@ -93,6 +93,9 @@ tags:
 	echo Generating tags ...
 	otags 2> /dev/null || echo "otags not found, no tags generated"
 
+cleanml:
+	rm -f *.cmo *.cmi
+
 clean:
 	cd tests && make clean_tests
 	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})

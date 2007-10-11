@@ -9,6 +9,8 @@ let combine = Common.combine
 exception CodeGenError of string
 let raiseCodeGenError ~msg = raise (CodeGenError msg)
 
+let typeOfForm = Lang.typeOfForm ~onError:raiseCodeGenError
+    
 let llvmName name =
   if name.[0] = '%' then name
   else "%" ^ name
@@ -51,12 +53,13 @@ let resultVar var = {
 }
   
 let noVar = { rvname = ""; rvtypename = "" }
-
+    
 let lastTempVarNum = ref 0
 let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
   let newVar isGlobal (typ :Lang.typ) =
     let id = nextUID () in
+(*      if id = 74 then failwith "got him!"; *)
     let name = (sprintf "temp%d" id) in
     resultVar (variable name typ (defaultValue typ) RegisterStorage isGlobal)
   in
@@ -429,7 +432,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
         let code =
           sprintf "%s = load %s %s\n" resultVar.rvname ptrVar.rvtypename ptrVar.rvname
         in
-        (resultVar, comment ^ accessCode ^ code)
+        (resultVar, comment ^ accessCode ^ "\n" ^ code)
       end
   | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
       begin
@@ -448,23 +451,24 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
           fieldIndex in
         (ptrVar, comment ^ code)
       end
-  | `PtrAddIntrinsic (ptrVarZomp, offsetForm) ->
+  | `PtrAddIntrinsic (ptrForm, offsetForm) ->
       begin
-        let resultVar = newLocalTempVar (ptrVarZomp.typ :> Lang.typ) in
+        let ptrType = typeOfForm ptrForm in
+        let resultVar = newLocalTempVar ptrType in
         let comment = sprintf "; ptr.add\n" in
-        let ptrVar, ptrVarAccessCode =
-          gencode (`Variable {ptrVarZomp with typ = (ptrVarZomp.typ :> Lang.typ)})
-        in
+        let ptrVar, ptrVarAccessCode = gencode ptrForm in
         let offsetVar, offsetAccessCode = gencode offsetForm in
-        let `Pointer targetType = ptrVarZomp.typ in
-        checkType offsetVar targetType;
         let code =
           sprintf "%s = getelementptr %s %s, i32 %s\n"
             resultVar.rvname ptrVar.rvtypename ptrVar.rvname offsetVar.rvname
         in
-        (resultVar, comment ^ ptrVarAccessCode ^ offsetAccessCode ^ code)
+        (resultVar,
+         comment ^
+           ptrVarAccessCode ^
+           offsetAccessCode ^
+           code)
       end
-    
+
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
   let name = (resultVar var).rvname in

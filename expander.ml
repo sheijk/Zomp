@@ -29,8 +29,13 @@ and macroBranch = "branch"
 and macroMacro = "macro"
   
 exception IllegalExpression of expression * string
+  
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
+  
+let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
+  raiseIllegalExpression expr (sprintf "Expected type %s but found %s" (typeName expected) (typeName found))
 
+    
 let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
 
 
@@ -53,124 +58,6 @@ let getNewVar bindings typ =
   let value = defaultValue typ in
   let var = variable newVarName typ value (determineStorage typ) false in
   (addVar bindings var, var)
-
-type typecheckResult =
-  | TypeOf of composedType
-      (** error message, found type, expected type *)
-  | TypeError of string * composedType * composedType
-
-let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
-  raiseIllegalExpression expr (sprintf "Expected type %s but found %s" (typeName expected) (typeName found))
-
-  
-let rec typeOf : Lang.expr -> typecheckResult = function
-  | `Sequence [] -> TypeOf `Void
-  | `Sequence [expr] -> typeOf expr
-  | `Sequence (_ :: tail) -> typeOf (`Sequence tail)
-  | `DefineVariable (var, expr) -> begin
-      match expr with
-        | Some expr ->
-            begin
-              match typeOf expr with
-                | TypeOf exprType when exprType = var.typ -> TypeOf `Void
-                | TypeOf wrongType -> TypeError (
-                    "variable definition requires same type for var and default value", wrongType, var.typ)
-                | TypeError _ as typeError -> typeError
-            end
-        | None -> TypeOf `Void
-    end
-  | `Variable var -> TypeOf var.typ
-  | `Constant value -> TypeOf (Lang.typeOf value)
-  | `FuncCall call ->
-      begin
-        let paramCount = List.length call.fcparams
-        and argCount = List.length call.fcargs in
-        if paramCount != argCount then
-          TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
-        else
-          List.fold_left2
-            (fun prevResult typ arg ->
-               match typeOf (arg :> Lang.expr) with
-                 | TypeOf argType when typ = argType -> prevResult
-                 | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
-                 | TypeError(msg, invalidType, expectedType) ->
-                     TypeError ("Argument type is invalid: " ^ msg, invalidType, expectedType)
-            )
-            (TypeOf (call.fcrettype :> composedType))
-            call.fcparams call.fcargs
-      end
-  | `AssignVar (v, expr) -> begin
-      match typeOf expr with
-        | TypeOf exprType when exprType = v.typ -> TypeOf `Void
-        | TypeOf exprType -> TypeError (
-            "Cannot assign result of expression to var because types differ",
-            exprType, v.typ)
-        | _ as typeError -> typeError
-    end
-  | `Return expr -> typeOf expr
-  | `Label _ -> TypeOf `Void
-  | `Jump _ -> TypeOf `Void
-  | `Branch _ -> TypeOf `Void
-  | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
-  | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
-  | `GetAddrIntrinsic var ->
-      begin
-        match var.vstorage with
-          | MemoryStorage -> TypeOf (`Pointer var.typ)
-          | RegisterStorage -> TypeError ("Cannot get address of variable with register storage", var.typ, var.typ)
-      end
-  | `StoreIntrinsic (ptrVar, valueExpr) ->
-      begin
-        match ptrVar.typ, typeOf valueExpr with
-          | `Pointer ptrTargetType, TypeOf valueType when valueType = ptrTargetType -> TypeOf `Void
-          | #Lang.typ as invalidPointerType, TypeOf valueType ->
-              TypeError ("tried to store value to pointer of mismatching type",
-                         invalidPointerType,
-                         `Pointer valueType)
-          | _, (TypeError(_,_,_) as e) -> e
-      end
-(*   | `LoadIntrinsic ptrVar -> *)
-(*       begin *)
-(*         match ptrVar.typ with *)
-(*           | `Pointer t -> TypeOf t *)
-(*           | _ as invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) *)
-(*       end *)
-  | `LoadIntrinsic (ptrType, expr) ->
-      begin
-        match typeOf expr with
-          | TypeOf `Pointer (t as foundType) when ptrType = `Pointer foundType -> TypeOf t
-          | TypeOf (`Pointer _ as invalid) -> TypeError ("Inconsistent types", invalid, (ptrType :> Lang.typ))
-          | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
-          | TypeError _ as t -> t
-      end
-  | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
-      begin
-        let `Pointer `Record components = recordVar.typ in
-        match componentType components fieldName with
-          | Some t -> TypeOf (`Pointer t)
-          | None -> TypeError("Component not found", `Void, `Void)
-      end
-  | `PtrAddIntrinsic (ptrVar, _) ->
-      begin
-        TypeOf (ptrVar.typ :> Lang.typ)
-      end
-
-let rec typeOfTL = function
-  | GlobalVar var -> TypeOf var.typ
-  | DefineFunc f ->
-      match f.impl with
-        | None -> TypeOf f.rettype
-        | Some impl ->
-            match typeOf impl with
-              | TypeOf implType when implType = f.rettype ->
-                  TypeOf f.rettype
-              | TypeOf wrongType ->
-                  TypeError (
-                    "Function's return type is not equal to it's implementation",
-                    f.rettype,
-                    wrongType)
-              | TypeError _ as e ->
-                  e
 
 
 let rec translateType bindings typeExpr =
@@ -251,7 +138,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
       | Some (`Pointer _ as typ) ->
           begin
             let _, simpleform = translateF bindings valueExpr in
-            match typ, typeOf (`Sequence simpleform) with
+            match typ, typeCheck (`Sequence simpleform) with
               | leftHandType, TypeOf rightHandType when leftHandType = rightHandType ->
                   begin
                     let value = defaultValue typ in
@@ -396,7 +283,7 @@ let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
 (*             fcargs = argExprs; *)
 (*           } *)
 (*           in *)
-(*           match typeOf (funccall :> Lang.expr) with *)
+(*           match typeCheck (funccall :> Lang.expr) with *)
 (*             | TypeOf _ -> Some funccall *)
 (*             | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg) *)
 (*         end *)
@@ -426,7 +313,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
                 fcargs = argExprs;
               }
               in
-              match typeOf funccall with
+              match typeCheck funccall with
                 | TypeOf _ -> Some( bindings, [funccall] )
                 | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg)
             end
@@ -589,7 +476,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           begin
             let newBindings, rightHandForm = translateF bindings rightHandExpr >>= apply2nd toSingleForm in
             let storeInstruction = `StoreIntrinsic (ptrVar, rightHandForm) in
-            match typeOf storeInstruction with
+            match typeCheck storeInstruction with
               | TypeOf _ ->
                   Some( newBindings, [storeInstruction] )
               | TypeError (m,f,e) ->
@@ -605,18 +492,18 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     in
     let newBindings, rightHandForm = translateF bindings countExpr >>= apply2nd toSingleForm in
     let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
-    match typeOf mallocForm with
+    match typeCheck mallocForm with
       | TypeOf _ -> Some( newBindings, [mallocForm] )
       | TypeError (m,f,e) ->
           raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
   let buildLoadInstruction ptrExpr =
     let _, simpleForms = translateF bindings ptrExpr in
-    match typeOf (`Sequence simpleForms) with
+    match typeCheck (`Sequence simpleForms) with
       | TypeOf (`Pointer _ as targetType) ->
           begin
             let loadForm = `LoadIntrinsic (targetType, `Sequence simpleForms) in
-            match typeOf loadForm with
+            match typeCheck loadForm with
               | TypeOf _ -> Some( bindings, [loadForm] )
               | TypeError (m,f,e) ->
                   raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -645,22 +532,12 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         begin
           buildLoadInstruction ptrExpr
         end
-    | { id = "ptr.add"; args = [
-          { id = ptrVarName; args = [] };
-          indexExpr
-        ] } ->
+    | { id = "ptr.add"; args = [ptrExpr; indexExpr] } ->
         begin
-          let newBindings, indexForm = translateF bindings indexExpr >>= apply2nd toSingleForm in
-          let ptrVar = 
-            match lookup bindings ptrVarName with
-              | VarSymbol ({ typ = `Pointer _;  } as ptrVar) -> ptrVar
-              | VarSymbol _ ->
-                  raiseIllegalExpression expr "Expected first argument to be a pointer"
-              | _ ->
-                  raiseIllegalExpression expr (sprintf "Could not find variable %s" ptrVarName)
-          in
-          let ptradd = `PtrAddIntrinsic (ptrVar, indexForm) in
-          match typeOf ptradd with
+          let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in
+          let newBindings, indexForm = translateF newBindings indexExpr >>= apply2nd toSingleForm in
+          let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
+          match typeCheck ptradd with
             | TypeOf _ -> Some( newBindings, [ptradd] )
             | TypeError (m,f,e) ->
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -813,7 +690,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
           match translateType bindings typeExpr with
             | Some typ -> begin
                 let newBindings, funcDef = buildFunction typ name paramExprs (Some implExpr) in
-                match typeOfTL funcDef with
+                match typeCheckTL funcDef with
                   | TypeOf _ -> Some( newBindings, [ funcDef ] )
                   | TypeError (msg, declaredType, returnedType) ->
                       raiseIllegalExpression
