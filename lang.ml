@@ -103,7 +103,7 @@ type 'expr genericIntrinsic = [
 | `StoreIntrinsic of 'expr * 'expr
 | `LoadIntrinsic of 'expr
 | `PtrAddIntrinsic of 'expr * 'expr (* pointer, int *)
-| `GetFieldPointerIntrinsic of [`Pointer of [`Record of recordType]] variable * string
+| `GetFieldPointerIntrinsic of 'expr * string
 ]
     
 type expr = [
@@ -266,12 +266,20 @@ let rec typeCheck : expr -> typecheckResult =
             | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
             | TypeError _ as t -> t
         end
-    | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
+    | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
         begin
-          let `Pointer `Record components = recordVar.typ in
-          match componentType components fieldName with
-            | Some t -> TypeOf (`Pointer t)
-            | None -> TypeError("Component not found", `Void, `Void)
+          match typeCheck recordForm with
+            | TypeOf `Pointer `Record components ->
+                begin
+                  match componentType components fieldName with
+                    | Some t -> TypeOf (`Pointer t)
+                    | None -> TypeError("Component not found", `Void, `Void)
+                end
+            | TypeOf nonPtrToRecord ->
+                TypeError
+                  ("Expected pointer to record type", nonPtrToRecord, `Pointer (`Record []))
+            | _ as typeError ->
+                typeError
         end
     | `PtrAddIntrinsic (ptrExpr, offsetExpr) ->
         begin

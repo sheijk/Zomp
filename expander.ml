@@ -528,20 +528,32 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
         end
     | { id = "fieldptr"; args = [
-          { id = recordVarName; args = [] };
+          recordExpr;
           { id = fieldName; args = [] };
         ] } ->
         begin
-          let recordVar = match lookup bindings recordVarName with
-            | VarSymbol v -> v
-            | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" recordVarName)
-          in
-          let recordVar = match recordVar.typ with
-            | `Pointer `Record _ as typ -> { recordVar with typ = typ }
-            | _ -> raiseIllegalExpression expr (sprintf "Expected %s to be a pointer to a record" recordVarName)
-          in
-          Some( bindings, [`GetFieldPointerIntrinsic (recordVar, fieldName)] )
+          let newBindings, recordForm = translateF bindings recordExpr >>= apply2nd toSingleForm in
+          let fieldptr = `GetFieldPointerIntrinsic (recordForm, fieldName) in
+          match typeCheck fieldptr with
+            | TypeOf _ -> Some( newBindings, [fieldptr] )
+            | TypeError (m,f,e) ->
+                raiseIllegalExpressionFromTypeError expr (m,f,e)
         end
+(*     | { id = "fieldptr"; args = [ *)
+(*           { id = recordVarName; args = [] }; *)
+(*           { id = fieldName; args = [] }; *)
+(*         ] } -> *)
+(*         begin *)
+(*           let recordVar = match lookup bindings recordVarName with *)
+(*             | VarSymbol v -> v *)
+(*             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" recordVarName) *)
+(*           in *)
+(*           let recordVar = match recordVar.typ with *)
+(*             | `Pointer `Record _ as typ -> { recordVar with typ = typ } *)
+(*             | _ -> raiseIllegalExpression expr (sprintf "Expected %s to be a pointer to a record" recordVarName) *)
+(*           in *)
+(*           Some( bindings, [`GetFieldPointerIntrinsic (recordVar, fieldName)] ) *)
+(*         end *)
     | _ ->
         None
 

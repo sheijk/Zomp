@@ -413,7 +413,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
             | `Pointer targetType -> targetType
             | nonPointerType ->
                 raiseCodeGenError ~msg:("Expected pointer argument instead of "
-                ^ (typeName nonPointerType))
+                                        ^ (typeName nonPointerType))
         in
         let ptrVar, accessCode = gencode expr in
         let resultVar = newLocalTempVar targetType in
@@ -423,23 +423,49 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
         in
         (resultVar, comment ^ accessCode ^ "\n" ^ code)
       end
-  | `GetFieldPointerIntrinsic (recordVar, fieldName) ->
+  | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
       begin
-        let `Pointer `Record components = recordVar.typ in
-        let fieldIndex = componentNum components fieldName in
-        let fieldType = match componentType components fieldName with
-          | None -> raiseCodeGenError ~msg:(sprintf "Could not find field %s in record %s" fieldName recordVar.vname)
-          | Some fieldType -> fieldType
+        let fieldType, fieldIndex =
+          match typeOfForm recordForm with
+            | `Pointer `Record components ->
+                let fieldType = match componentType components fieldName with
+                  | Some fieldType -> fieldType
+                  | None -> raiseCodeGenError ~msg:
+                      (sprintf "Could not find field %s" fieldName)
+                in
+                let fieldIndex = componentNum components fieldName in
+                fieldType, fieldIndex
+            | _ as invalidType -> raiseCodeGenError ~msg:
+                (sprintf "Expected pointer to record instead of %s" (typeName invalidType))
         in
         let ptrVar = newLocalTempVar (`Pointer fieldType) in
-        let comment = sprintf "; obtaining address of %s.%s\n" recordVar.vname fieldName in
+        let recordVar, recordAccessCode = gencode recordForm in
+        let comment = sprintf "; obtaining address of %s.%s\n" recordVar.rvname fieldName in
         let code = sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n"
           ptrVar.rvname
-          (llvmTypeName ((recordVar.typ :> [`Pointer of Lang.typ]) :> Lang.typ))
-          (llvmName recordVar.vname)
-          fieldIndex in
-        (ptrVar, comment ^ code)
+          recordVar.rvtypename
+          recordVar.rvname
+          fieldIndex
+        in
+        (ptrVar, comment ^ recordAccessCode ^ code)
       end
+        (*   | `GetFieldPointerIntrinsic (recordVar, fieldName) -> *)
+        (*       begin *)
+        (*         let `Pointer `Record components = recordVar.typ in *)
+        (*         let fieldIndex = componentNum components fieldName in *)
+        (*         let fieldType = match componentType components fieldName with *)
+        (*           | None -> raiseCodeGenError ~msg:(sprintf "Could not find field %s in record %s" fieldName recordVar.vname) *)
+        (*           | Some fieldType -> fieldType *)
+        (*         in *)
+        (*         let ptrVar = newLocalTempVar (`Pointer fieldType) in *)
+        (*         let comment = sprintf "; obtaining address of %s.%s\n" recordVar.vname fieldName in *)
+        (*         let code = sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n" *)
+        (*           ptrVar.rvname *)
+        (*           (llvmTypeName ((recordVar.typ :> [`Pointer of Lang.typ]) :> Lang.typ)) *)
+        (*           (llvmName recordVar.vname) *)
+        (*           fieldIndex in *)
+        (*         (ptrVar, comment ^ code) *)
+        (*       end *)
   | `PtrAddIntrinsic (ptrForm, offsetForm) ->
       begin
         let ptrType = typeOfForm ptrForm in
