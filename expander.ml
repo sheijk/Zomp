@@ -27,6 +27,13 @@ and macroReturn = "ret"
 and macroLabel = "label"
 and macroBranch = "branch"
 and macroMacro = "macro"
+and macroFieldptr = "fieldptr"
+and macroLoad = "load"
+and macroStore = "store"
+and macroNullptr = "nullptr"
+and macroPtradd = "ptradd"
+and macroMalloc = "malloc"
+and macroGetaddr = "ptr"
   
 exception IllegalExpression of expression * string
   
@@ -82,19 +89,8 @@ let rec translateType bindings typeExpr =
           lookupType bindings name
         end
     | _ -> None
-        
-(* type exprTranslateF = bindings -> expression -> bindings * expr list *)
 
-(* let translatelst (translateF :exprTranslateF) bindings expr = *)
-(*   let rec worker lastVar bindings = function *)
-(*     | [] -> bindings, [] *)
-(*     | expr :: tail -> *)
-(*         let newBindings, sf = translateF bindings expr in *)
-(*         let resultingBindings, sfuncs = worker lastVar newBindings tail in *)
-(*         resultingBindings, (sf @ sfuncs) *)
-(*   in *)
-(*   worker None bindings expr *)
-      
+        
 type exprTranslateF = bindings -> expression -> bindings * expr list
 
 let translatelst (translateF :exprTranslateF) bindings expr =
@@ -122,11 +118,6 @@ let rec expr2value typ expr =
               (Printf.sprintf "expected value of type %s" (Lang.typeName typ))
       end
     | `Record components -> begin
-        (*         let translateField (name, fieldValueExpr) = *)
-        (*           name, expr2value `Int fieldValueExpr *)
-        (*         in *)
-        (*         let componentValues = List.map translateField components in *)
-        (*         `RecordVal componentValues *)
         raiseIllegalExpression expr "records not supported"
       end
     | _ -> raiseIllegalExpression expr "unsupported value expression"
@@ -194,106 +185,7 @@ let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
   match expr2VarOrConst bindings expr with
     | Some varOrConst -> Some (bindings, [varOrConst] )
     | None -> None
-
-(* let rec flattenExpr (translateF :exprTranslateF) bindings expr = *)
-(*   match translateF bindings expr with *)
-(*     | Some( *)
-(* let rec flattenExpr bindings expr = *)
-(*   let { id = name; args = args } = expr in *)
-(*   match lookup bindings name with *)
-(*     | VarSymbol _ | UndefinedSymbol -> *)
-(*         begin match expr2VarOrConst bindings expr with *)
-(*           | Some varOrConst -> Some (([] :Lang.expr list), varOrConst ) *)
-(*           | None -> None *)
-(*         end *)
-(*     | FuncSymbol func -> *)
-(*         begin *)
-(*           let rec flattenArgs initCode args = function *)
-(*             | [] -> initCode, args *)
-(*             | expr :: remainingExprs -> *)
-(*                 begin *)
-(*                   match flattenExpr bindings expr with *)
-(*                     | Some (newInitCode, flatForm) -> flattenArgs (initCode @ newInitCode) (args @ [flatForm]) remainingExprs *)
-(*                     | None -> raiseIllegalExpression expr "Could not be translated to flat arg" *)
-(*                 end *)
-(*           in *)
-(*           let initCode, flatArgs = flattenArgs [] [] args in *)
-(* (\*           let initCodes, flatArgs = List.split (List.map (flattenExpr bindings) args) in *\) *)
-(*           let funccall = `FuncCall { *)
-(*             fcname = func.fname; *)
-(*             fcrettype = func.rettype; *)
-(*             fcargs = flatArgs; *)
-(*             fcparams = List.map snd func.fargs; *)
-(*           } in *)
-(*           Some (initCode, funccall) *)
-(*         end *)
-(*     | _ -> None *)
           
-(* let rec expr2funcall (translateF :exprTranslateF) (bindings :bindings) expr = *)
-(*   let { id = name; args = args } = expr in *)
-(*   match lookup bindings name with *)
-(*     | FuncSymbol func -> *)
-(*         begin *)
-(* (\*           let flatten expr = *\) *)
-(* (\*             let forms, arg = *\) *)
-(* (\*               match expr2VarOrConst bindings expr with *\) *)
-(* (\*                 | Some (#Lang.flatArgExpr as e) -> [], e *\) *)
-(* (\*                 | None -> *\) *)
-(* (\*                     begin match expr2funcall translateF bindings expr with *\) *)
-(* (\*                       | Some (#Lang.funcCallExpr as e) -> [], e *\) *)
-(* (\*                       | None -> raiseIllegalExpression expr "Not allowed as a nested expression" *\) *)
-(* (\*                     end *\) *)
-(* (\*             in *\) *)
-(* (\*             forms, arg *\) *)
-(* (\*           in *\) *)
-(* (\*           let rec flattenArgs preCode args = function *\) *)
-(* (\*             | [] -> preCode, args *\) *)
-(* (\*             | hd :: tl -> *\) *)
-(* (\*                 let newPreCode, arg = flatten hd in *\) *)
-(* (\*                 flattenArgs (newPreCode @ newPreCode) (args @ [arg]) tl *\) *)
-(* (\*           in *\) *)
-(* (\*           let preCode, argExprs = flattenArgs [] [] args in *\) *)
-(* (\*                         let evalArg arg = *\) *)
-(* (\*                           match expr2VarOrConst bindings arg with *\) *)
-(* (\*                             | Some flatForm -> flatForm *\) *)
-(* (\*                             | None -> raiseIllegalExpression arg "Could not be translated to var or constant" *\) *)
-(* (\*                         in *\) *)
-          
-(* (\*           let flatten expr = *\) *)
-(* (\*             match translateF bindings expr with *\) *)
-(* (\*               | _, [#Lang.flatArgExpr as e] -> e *\) *)
-(* (\*               | _ -> raiseIllegalExpression expr "Could not be translated to flat arg" *\) *)
-(* (\*           in *\) *)
-(* (\*           let evalArg = flatten in *\) *)
-(* (\*           let argExprs = List.map evalArg args in *\) *)
-(*           let rec flattenArgs initCode args = function *)
-(*             | [] -> initCode, args *)
-(*             | expr :: remainingExprs -> *)
-(*                 begin *)
-(*                   match flattenExpr bindings expr with *)
-(*                     | Some (newInitCode, flatForm) -> flattenArgs (initCode @ newInitCode) (args @ [flatForm]) remainingExprs *)
-(*                     | None -> raiseIllegalExpression expr "Could not be translated to flat arg" *)
-(*                 end *)
-(*           in *)
-(*           let initCode, argExprs = flattenArgs [] [] args in *)
-(*           let funccall = `FuncCall { *)
-(*             fcname = name; *)
-(*             fcrettype = func.rettype; *)
-(*             fcparams = List.map snd func.fargs; *)
-(*             fcargs = argExprs; *)
-(*           } *)
-(*           in *)
-(*           match typeCheck (funccall :> Lang.expr) with *)
-(*             | TypeOf _ -> Some funccall *)
-(*             | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg) *)
-(*         end *)
-(*     | _ -> *)
-(*         None *)
-          
-(* let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr = *)
-(*   match expr2funcall translateF bindings expr with *)
-(*       | Some funcCall -> Some( bindings, [funcCall] ) *)
-(*       | None -> None *)
 
 let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = args; } as expr ->
@@ -362,15 +254,6 @@ let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
           | _, _ -> None
       end
   | _ -> None
-
-(* let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function *)
-(*   | { id = id; args = [expr] } when id = macroReturn -> *)
-(*       begin *)
-(*         match translateF bindings expr with *)
-(*           | _, [form], todo -> Some( bindings, [`Return form], ReturnsNothing ) *)
-(*           | _, _, _ -> None *)
-(*       end *)
-(*   | _ -> None *)
       
 let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
@@ -416,8 +299,6 @@ let translateTypedef translateF (bindings :bindings) = function
       end
   | _ -> None
 
-let snd3 (_, x, _) = x
-  
 let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args =
         { id = name; args = []; }
@@ -498,26 +379,27 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
   match expr with
-    | { id = "nullptr"; args = [typeExpr] } -> convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
-    | { id = "malloc"; args = [typeExpr] } ->
+    | { id = id; args = [typeExpr] } when id = macroNullptr ->
+        convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
+    | { id = id; args = [typeExpr] } when id = macroMalloc ->
         buildMallocInstruction typeExpr { id = "1"; args = [] }
-    | { id = "malloc"; args = [typeExpr; countExpr] } ->
+    | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
         buildMallocInstruction typeExpr countExpr
-    | { id = "ptr"; args = [{ id = varName; args = [] }] } ->
+    | { id = id; args = [{ id = varName; args = [] }] } when id = macroGetaddr ->
         begin
           match lookup bindings varName with
             | VarSymbol var -> Some (bindings, [`GetAddrIntrinsic var] )
             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
         end
-    | { id = "store"; args = [ptrExpr; rightHandExpr] } ->
+    | { id = id; args = [ptrExpr; rightHandExpr] } when id = macroStore ->
         begin
           buildStoreInstruction ptrExpr rightHandExpr
         end
-    | { id = "load"; args = [ ptrExpr ] } ->
+    | { id = id; args = [ ptrExpr ] } when id = macroLoad ->
         begin
           buildLoadInstruction ptrExpr
         end
-    | { id = "ptr.add"; args = [ptrExpr; indexExpr] } ->
+    | { id = id; args = [ptrExpr; indexExpr] } when id = macroPtradd ->
         begin
           let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in
           let newBindings, indexForm = translateF newBindings indexExpr >>= apply2nd toSingleForm in
@@ -527,10 +409,10 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | TypeError (m,f,e) ->
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
         end
-    | { id = "fieldptr"; args = [
+    | { id = id; args = [
           recordExpr;
-          { id = fieldName; args = [] };
-        ] } ->
+          { id = fieldName; args = [ ] };
+        ] } when id = macroFieldptr ->
         begin
           let newBindings, recordForm = translateF bindings recordExpr >>= apply2nd toSingleForm in
           let fieldptr = `GetFieldPointerIntrinsic (recordForm, fieldName) in
@@ -539,21 +421,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | TypeError (m,f,e) ->
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
         end
-(*     | { id = "fieldptr"; args = [ *)
-(*           { id = recordVarName; args = [] }; *)
-(*           { id = fieldName; args = [] }; *)
-(*         ] } -> *)
-(*         begin *)
-(*           let recordVar = match lookup bindings recordVarName with *)
-(*             | VarSymbol v -> v *)
-(*             | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" recordVarName) *)
-(*           in *)
-(*           let recordVar = match recordVar.typ with *)
-(*             | `Pointer `Record _ as typ -> { recordVar with typ = typ } *)
-(*             | _ -> raiseIllegalExpression expr (sprintf "Expected %s to be a pointer to a record" recordVarName) *)
-(*           in *)
-(*           Some( bindings, [`GetFieldPointerIntrinsic (recordVar, fieldName)] ) *)
-(*         end *)
     | _ ->
         None
 

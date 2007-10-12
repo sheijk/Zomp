@@ -7,7 +7,7 @@
   (var (ptr int) addr (nullptr int))
   
   (macro set index value (
-    (assign addr (ptr.add array (int.sub (int.mul index 2) index)))
+    (assign addr (ptradd array (int.sub (int.mul index 2) index)))
     (store addr value)))
 
   
@@ -45,11 +45,11 @@
   (for index2 0 arraySize (
     (printInt index2)
     (printChar ' ')
-    (printInt (load (ptr.add array index2)))
+    (printInt (load (ptradd array index2)))
     (println)
     ))
     
-  (var (ptr int) addr2 (ptr.add array 9))
+  (var (ptr int) addr2 (ptradd array 9))
   (load addr2)
   ))
 
