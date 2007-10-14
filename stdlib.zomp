@@ -2,32 +2,34 @@
 /// external (C) functions
 
 (func void printInt ((int i)))
-(func void printString ((string s)))
+(func void printString (((ptr char) s)))
 (func void printFloat ((float f)))
 (func void printChar ((char c)))
 (func void printNewline ())
 
-(func void zompLoadLib ((string libname)))
-(func bool zompCheckNativeSymbol ((string libname)))
+// (func void zompLoadLib ((string libname)))
+// (func bool zompCheckNativeSymbol ((string libname)))
 
 (func void stdlibHello ())
 (func void zompHello ())
 
 /// utility functions
 
-(var string trueString "true")
-(var string falseString "false")
+// (var string trueString "true")
+// (var string falseString "false")
 
 (func void printBool ((bool b)) (
   (branch b true false)
   
   (label true)
-  (printString trueString)
+  (printChar 't')
+//   (printString trueString)
   (printNewline)
   (branch end)
   
   (label false)
-  (printString falseString)
+  (printChar 'f')
+//   (printString falseString)
   (printNewline)
 
   (label end)
@@ -43,7 +45,7 @@
 (func void println () ((printNewline)))
 
 (funcln printlnInt int (printInt v))
-(funcln printlnString string (printString v))
+// (funcln printlnString string (printString v))
 
 
 

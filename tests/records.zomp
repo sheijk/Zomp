@@ -1,8 +1,8 @@
 
 /** define a type */
 (type simple
-  (count int)
-  (foo float)
+  (int count)
+  (float foo)
   )
 
 // (type simpleptr (ptr simple))

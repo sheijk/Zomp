@@ -69,7 +69,7 @@ struct
   | `Void
   | `Int
   | `Float
-  | `String
+(*   | `String *)
   | `Bool
   | `Char
   ]
@@ -98,7 +98,7 @@ struct
     | VoidVal -> `Void
     | IntVal _ -> `Int
     | FloatVal _ -> `Float
-    | StringLiteral _ -> `String
+    | StringLiteral _ -> (`Pointer `Char)
     | BoolVal _ -> `Bool
     | CharVal _ -> `Char
     | PointerVal (t, _) -> t
@@ -111,7 +111,7 @@ struct
     | `Void -> "void"
     | `Int -> "int"
     | `Float -> "float"
-    | `String -> "string"
+(*     | `String -> "string" *)
     | `Bool -> "bool"
     | `Char -> "char"
     | `Pointer t -> (typeName t) ^ "*"
@@ -156,7 +156,7 @@ struct
       match str with
         | "int" -> `Int
         | "float" -> `Float
-        | "string" -> `String
+(*         | "string" -> `String *)
         | "bool" -> `Bool
         | "char" -> `Char
         | "void" -> `Void
@@ -180,9 +180,10 @@ struct
       | `Void -> raise (Failure "no values of void allowed")
       | `Int -> IntVal (int_of_string str)
       | `Float -> FloatVal (float_of_string str)
-      | `String -> StringLiteral (unquoted '"' str)
       | `Bool -> BoolVal (bool_of_string str)
       | `Char -> CharVal (unquoted '\'' str).[0]
+(*       | `String -> StringLiteral (unquoted '"' str) *)
+      | `Pointer `Char -> StringLiteral (unquoted '"' str)
       | `Pointer t -> if str == "null"
         then PointerVal (t, None)
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
@@ -193,7 +194,7 @@ struct
     | `Void -> VoidVal
     | `Int -> IntVal 0
     | `Float -> FloatVal 0.0
-    | `String -> StringLiteral ""
+(*     | `String -> StringLiteral "" *)
     | `Bool -> BoolVal false
     | `Char -> CharVal (char_of_int 0)
     | `Pointer t -> PointerVal (t, None)

@@ -1,14 +1,14 @@
 
 // std lib functions
 func void printInt {int i;};
-func void printString {string s;};
+// func void printString {string s;};
 func void printFloat {float f;};
 func void printNewline {};
 
 func void nl {} { printNewline; };
 
 var int gInt 10;
-var string gString "message";
+// var string gString "message";
 var float gFloat 1.0;
 // broken due to changed format of llvm floats:
 // var float gFloat 1.1;
@@ -23,7 +23,7 @@ func int main {} {
   printInt f; nl;
   
   printInt gInt; nl;
-  printString gString; nl;
+//   printString gString; nl;
   printFloat gFloat; nl;
 
   var int lInt 11;

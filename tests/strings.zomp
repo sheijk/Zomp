@@ -1,14 +1,66 @@
 
 
-// (type string
-//   (int length)
-//   ((ptr char) chars))
+(type cstring (ptr char))
 
-// (func void printChar ((char c)))
+(type string
+  (int length)
+  ((ptr char) chars)
+  )
 
-(var string text "this be text\n")
+(func int length ((cstring s)) (
+  (var (ptr char) ptr s)
+  (var int count -1)
 
-(func string gettext (seq (string x)) (seq
+  (label start)
+  (var char c (load ptr))
+
+  (assign ptr (ptradd ptr 1))
+  (assign count (int.add count 1))
+  (var bool b (char.equal c '\0'))
+  (branch b end start)
+  
+  (label end)
+  
+  (ret count)
+  ))
+
+(func (ptr string) makestring ((cstring cstr)) (
+  (var (ptr string) pstr (malloc string))
+  (store (fieldptr pstr length) (length cstr))
+  (store (fieldptr pstr chars) cstr)
+  (ret pstr)
+  ))
+
+(func (ptr string) newString ((int length) (char init)) (
+  (var (ptr char) chars (malloc char (int.add 1 length)))
+  (store (ptradd chars length) '\0')
+  (var int index 0)
+  (label start)
+  (store (ptradd chars index) init)
+  (assign index (int.add index 1))
+  (var bool reachedEnd (int.ugreaterEqual index length))
+  (branch reachedEnd end start)
+  (label end)
+  
+  (var (ptr string) result (malloc string))
+  (store (fieldptr result length) length)
+  (store (fieldptr result chars) chars)
+  (ret result)
+  ))
+
+(macro get record componentName (
+  (load (fieldptr record componentName))
+  ))
+  
+(func (ptr string) append (((ptr string) l) ((ptr string) r)) (
+  (var int length (int.add (get l length) (get r length)))
+  (var (ptr string) result (newString length '-'))
+  (ret (nullptr string))
+  ))
+
+(var cstring text "this be text\n")
+
+(func (ptr char) gettext () (seq
   (text)
   ))
 
@@ -16,7 +68,9 @@
   (var char c 'x')
   (printChar c)
   (printNewline)
-  (printf text)
-  1
+  (printf (gettext))
+  (printInt (length text)) (println)
+  (printString (get (newString 80 '=') chars)) (println)
+  111
   ))
   

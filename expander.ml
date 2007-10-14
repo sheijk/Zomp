@@ -183,7 +183,11 @@ let expr2VarOrConst (bindings :bindings) = function
 
 let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
   match expr2VarOrConst bindings expr with
-    | Some varOrConst -> Some (bindings, [varOrConst] )
+    | Some varOrConst ->
+        begin match varOrConst with
+          | `Constant StringLiteral _ -> raiseIllegalExpression expr "String literals are not allowed, yet"
+          | _ -> Some (bindings, [varOrConst] )
+        end
     | None -> None
           
 
@@ -285,14 +289,18 @@ let translateTypedef translateF (bindings :bindings) = function
     } as expr
       when id = macroTypedef ->
       begin
-        let expr2comp = function
-          | { id = componentName; args = [typeExpr] } ->
-              begin
-                match translateType bindings typeExpr with
-                  | Some typ -> componentName, typ
-                  | None -> raise (CouldNotParseType typeName)
-              end
-          | _ -> raiseIllegalExpression expr "(type typeName (componentName typeExpression)* ) expected"
+        let expr2comp =
+          let translate name typeExpr = 
+            match translateType bindings typeExpr with
+              | Some typ -> name, typ
+              | None -> raise (CouldNotParseType typeName)
+          in
+          function
+            | { id = typeName; args = [{ id = componentName; args = []}] } ->
+                translate componentName { id = typeName; args = [] }
+            | { id = seq; args = [typeExpr; { id = componentName; args = [] }] } when seq = macroSequence ->
+                translate componentName typeExpr
+            | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
         in
         let components = List.map expr2comp componentExprs in
         Some (addTypedef bindings typeName (`Record components), [] )
@@ -486,7 +494,7 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
         match translateType bindings typeExpr with
           | Some ctyp -> begin
               match ctyp with
-                | #integralType as typ ->
+                | (#integralType as typ) | (`Pointer `Char as typ) ->
                     let value = parseValue typ valueString in
                     let var = globalVar name typ value in
                     let newBindings = addVar bindings var in

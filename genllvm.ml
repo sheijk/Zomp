@@ -96,16 +96,31 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
   in
   let void argVarNames = "" in
-  let compareIntrinsicI name cond =
+  let compareIntrinsic typ name cond =
     let f argVarNames = 
-      sprintf "icmp %s i32 %s\n" cond (combine ", " argVarNames)
+      sprintf "icmp %s %s %s\n" cond (llvmTypeName typ) (combine ", " argVarNames)
     in
-    (name, `Intrinsic f, `Bool, ["l", `Int; "r", `Int])
+    (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
   in
   let twoArgIntrinsic name instruction (typ :composedType) =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
   in
 
+  let compareIntrinsics typ =
+    let typeName = typeName typ in
+    [
+      compareIntrinsic typ (typeName ^ ".equal") "eq";
+      compareIntrinsic typ (typeName ^ ".notEqual") "ne";
+      compareIntrinsic typ (typeName ^ ".ugreater") "ugt";
+      compareIntrinsic typ (typeName ^ ".ugreaterEqual") "uge";
+      compareIntrinsic typ (typeName ^ ".uless") "ult";
+      compareIntrinsic typ (typeName ^ ".ulessEqual") "ule";
+      compareIntrinsic typ (typeName ^ ".sgreater") "sgt";
+      compareIntrinsic typ (typeName ^ ".sgreaterEqual") "sge";
+      compareIntrinsic typ (typeName ^ ".sless") "slt";
+      compareIntrinsic typ (typeName ^ ".slessEqual") "sle";
+    ]
+  in
   let intrinsicFuncs =
     [
       twoArgIntrinsic "int.add" "add" `Int;
@@ -130,20 +145,11 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       twoArgIntrinsic "float.fdiv" "fdiv" `Float;
       twoArgIntrinsic "float.frem" "frem" `Float;
       
-      "printf", `ExternalFunc, `Void, ["test", `String];
+      "printf", `ExternalFunc, `Void, ["test", `Pointer `Char];
       "void", `Intrinsic void, `Void, [];
-
-      compareIntrinsicI "int.equal" "eq";
-      compareIntrinsicI "int.notEqual" "ne";
-      compareIntrinsicI "int.ugreater" "ugt";
-      compareIntrinsicI "int.ugreaterEqual" "uge";
-      compareIntrinsicI "int.uless" "ult";
-      compareIntrinsicI "int.ulessEqual" "ule";
-      compareIntrinsicI "int.sgreater" "sgt";
-      compareIntrinsicI "int.sgreaterEqual" "sge";
-      compareIntrinsicI "int.sless" "slt";
-      compareIntrinsicI "int.slessEqual" "sle";
     ]
+    @ compareIntrinsics `Int
+    @ compareIntrinsics `Char
   in
   let builtinMacros =
     let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
@@ -530,7 +536,7 @@ let gencodeGlobalVar var =
   let varname = var.vname in
   match var.default with
     | StringLiteral value ->
-        let contentVar = newGlobalTempVar `String
+        let contentVar = newGlobalTempVar (`Pointer `Char)
         and escapedValue = llvmEscapedString value
         in
         let length = llvmStringLength escapedValue + 1 in

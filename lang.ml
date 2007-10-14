@@ -18,6 +18,24 @@ include Typesystems.Zomp
 type composedType = typ
 type integralValue = value
 
+let dequoteEscapeSequence str =
+  let numRE = Str.regexp "^\\\\[0-9]\\([0-9][0-9]\\)?$"
+  and specialStrings =
+    [
+      "\\n", '\n';
+      "\\t", '\t';
+    ]
+  in
+  if Str.string_match numRE str 0 then
+    let numStr = Str.string_after str 1 in
+    let num = int_of_string numStr in
+    char_of_int num
+  else try
+    List.assoc str specialStrings
+  with Not_found ->
+    failwith (sprintf "Cannot dequote escape sequence %s" str)
+
+
 let string2integralValue str =
   let dequoteString quoteChar str =
     let length = String.length str in
@@ -26,28 +44,23 @@ let string2integralValue str =
     else
       raise (Failure (sprintf "dequoteString %c" quoteChar))
   in
+  let dequoteChar str =
+    let dequoted = dequoteString '\'' str in
+    if String.length dequoted = 1 then
+      dequoted.[0]
+    else
+      dequoteEscapeSequence dequoted
+  in
   tryAll
     [
       lazy( IntVal (int_of_string str) );
       lazy( FloatVal (float_of_string str) );
       lazy( BoolVal (bool_of_string str) );
       lazy( StringLiteral (dequoteString '"' str) );
-      lazy( CharVal (dequoteString '\'' str).[0] );
+      lazy( CharVal (dequoteChar str) );
     ]
     ~onSuccess:some
     ~ifAllFailed:(lazy None)
-    
-(*     try Some ( IntVal (int_of_string str) ) *)
-(*     with _ -> *)
-(*       try Some ( FloatVal (float_of_string str) ) *)
-(*       with _ -> *)
-(*         try Some ( BoolVal (bool_of_string str) ) *)
-(*         with _ -> *)
-(*           try Some ( StringLiteral (dequoteString '"' str) ) *)
-(*           with _ -> *)
-(*             try Some ( CharVal (dequoteString '\'' str).[0] ) *)
-(*             with _ -> *)
-(*               None *)
     
 type varStorage =
   | RegisterStorage
