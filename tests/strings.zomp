@@ -6,6 +6,7 @@
   (int length)
   ((ptr char) chars)
   )
+(type pstring (ptr string))
 
 (func int length ((cstring s)) (
   (var (ptr char) ptr s)
@@ -48,14 +49,41 @@
   (ret result)
   ))
 
-(macro get record componentName (
+(macro getField record componentName (
   (load (fieldptr record componentName))
+  ))
+
+(macro setField record componentName value (
+  (store (fieldptr record componentName) value)
   ))
   
 (func (ptr string) append (((ptr string) l) ((ptr string) r)) (
-  (var int length (int.add (get l length) (get r length)))
-  (var (ptr string) result (newString length '-'))
-  (ret (nullptr string))
+  (var int length (int.add (getField l length) (getField r length)))
+  (var (ptr string) result (newString length 'x'))
+  (var (ptr char) chars (getField result chars))
+  (var (ptr char) leftChars (getField l chars))
+  (var int leftLength (getField l length))
+  (var (ptr char) rightChars (getField r chars))
+  (var int rightLength (getField r length))
+
+  (var int index 0)
+  
+  (label lbegin)
+  (store (ptradd chars index) (load (ptradd leftChars index)))
+  (assign index (int.add index 1))
+  (var bool test (int.uless index leftLength))
+  (branch test lbegin lend)
+  (label lend)
+
+  (assign index 0)
+  (label rbegin)
+  (store (ptradd chars (int.add leftLength index)) (load (ptradd rightChars index)))
+  (assign index (int.add index 1))
+  (var bool test2 (int.uless index rightLength))
+  (branch test2 rbegin rend)
+  (label rend)
+  
+  (ret result)
   ))
 
 (var cstring text "this be text\n")
@@ -64,13 +92,24 @@
   (text)
   ))
 
+(func void printstr ((pstring str)) (
+  (printString (getField str chars))
+  ))
+  
 (func int main () (seq
   (var char c 'x')
   (printChar c)
   (printNewline)
   (printf (gettext))
   (printInt (length text)) (println)
-  (printString (get (newString 80 '=') chars)) (println)
+  (var pstring left (newString 40 '-'))
+  (printstr left)
+  (var pstring right (newString 40 '='))
+  (printstr right)
+  (println)
+  (var pstring hline (append right left))
+  (printstr hline)
+  (println)
   111
   ))
   

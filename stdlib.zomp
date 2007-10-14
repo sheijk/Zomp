@@ -45,8 +45,6 @@
 (func void println () ((printNewline)))
 
 (funcln printlnInt int (printInt v))
-// (funcln printlnString string (printString v))
-
-
+(funcln printlnString (ptr char) (printString v))
 
 
