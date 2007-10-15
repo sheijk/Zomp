@@ -7,6 +7,7 @@
 (* #load "bindings.cmo";; *)
 
 open Lang
+open Semantic
 open Ast2
 open Common
 open Bindings
@@ -40,7 +41,10 @@ exception IllegalExpression of expression * string
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
   
 let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
-  raiseIllegalExpression expr (sprintf "Expected type %s but found %s" (typeName expected) (typeName found))
+  raiseIllegalExpression expr (sprintf "Expected type %s but found %s: %s"
+                                 (typeName expected)
+                                 (typeName found)
+                                 msg )
 
     
 let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
@@ -129,20 +133,29 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
       | Some (`Pointer _ as typ) ->
           begin
             let _, simpleform = translateF bindings valueExpr in
-            match typ, typeCheck (`Sequence simpleform) with
-              | leftHandType, TypeOf rightHandType when leftHandType = rightHandType ->
-                  begin
-                    let value = defaultValue typ in
-                    let storage = MemoryStorage
-                    in
-                    let var = variable name typ value storage false in
-                    Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence simpleform)) ] )
-                  end
-              | leftHandType, TypeOf rightHandType ->
-                  raiseIllegalExpression expr
-                    (sprintf "types %s and %s do not match"
-                       (Lang.typeName leftHandType) (Lang.typeName rightHandType))
-              | _, TypeError (msg, _, _) -> raiseIllegalExpression valueExpr msg
+            let value = defaultValue typ in
+            let storage = MemoryStorage
+            in
+            let var = variable name typ value storage false in
+            let defvar = `DefineVariable (var, Some (`Sequence simpleform))
+            in
+            match typeCheck bindings defvar with
+              | TypeOf _ -> Some( addVar bindings var, [defvar] )
+              | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+(*             match typ, typeCheck bindings (`Sequence simpleform) with *)
+(*               | leftHandType, TypeOf rightHandType when leftHandType = rightHandType -> *)
+(*                   begin *)
+(*                     let value = defaultValue typ in *)
+(*                     let storage = MemoryStorage *)
+(*                     in *)
+(*                     let var = variable name typ value storage false in *)
+(*                     Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence simpleform)) ] ) *)
+(*                   end *)
+(*               | leftHandType, TypeOf rightHandType -> *)
+(*                   raiseIllegalExpression expr *)
+(*                     (sprintf "types %s and %s do not match" *)
+(*                        (Lang.typeName leftHandType) (Lang.typeName rightHandType)) *)
+(*               | _, TypeError (msg, _, _) -> raiseIllegalExpression valueExpr msg *)
           end
       | Some (`Record _ as typ) ->
           begin
@@ -209,7 +222,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
                 fcargs = argExprs;
               }
               in
-              match typeCheck funccall with
+              match typeCheck bindings funccall with
                 | TypeOf _ -> Some( bindings, [funccall] )
                 | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg)
             end
@@ -278,20 +291,23 @@ let translateTypedef translateF (bindings :bindings) = function
         targetTypeExpr;
       ] }
       when id = macroTypedef ->
+      (** type foo typeExpr *)
       begin
         match translateType bindings targetTypeExpr with
           | None -> raiseInvalidType targetTypeExpr
-          | Some t -> Some (addTypedef bindings newTypeName t, [] )
+          | Some t -> Some (addTypedef bindings newTypeName t, [`Typedef (newTypeName, t)] )
       end
   | { id = id; args =
         { id = typeName; args = [] }
         :: componentExprs
     } as expr
       when id = macroTypedef ->
+      (** record typedef *)
       begin
-        let expr2comp =
+        let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
+        let expr2component =
           let translate name typeExpr = 
-            match translateType bindings typeExpr with
+            match translateType tempBindings typeExpr with
               | Some typ -> name, typ
               | None -> raise (CouldNotParseType typeName)
           in
@@ -302,8 +318,9 @@ let translateTypedef translateF (bindings :bindings) = function
                 translate componentName typeExpr
             | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
         in
-        let components = List.map expr2comp componentExprs in
-        Some (addTypedef bindings typeName (`Record components), [] )
+        let components = List.map expr2component componentExprs in
+        let recordType = `Record components in
+        Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
       end
   | _ -> None
 
@@ -359,7 +376,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in
     let newBindings, rightHandForm = translateF newBindings rightHandExpr >>= apply2nd toSingleForm in
     let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
-    match typeCheck storeInstruction with
+    match typeCheck newBindings storeInstruction with
       | TypeOf _ ->
           Some( newBindings, [storeInstruction] )
       | TypeError (m,f,e) ->
@@ -373,7 +390,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     in
     let newBindings, rightHandForm = translateF bindings countExpr >>= apply2nd toSingleForm in
     let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
-    match typeCheck mallocForm with
+    match typeCheck newBindings mallocForm with
       | TypeOf _ -> Some( newBindings, [mallocForm] )
       | TypeError (m,f,e) ->
           raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -381,7 +398,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
   let buildLoadInstruction ptrExpr =
     let _, simpleForms = translateF bindings ptrExpr in
     let loadForm = `LoadIntrinsic (`Sequence simpleForms) in
-    match typeCheck loadForm with
+    match typeCheck bindings loadForm with
       | TypeOf _ -> Some( bindings, [loadForm] )
       | TypeError (m,f,e) ->
           raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -412,7 +429,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in
           let newBindings, indexForm = translateF newBindings indexExpr >>= apply2nd toSingleForm in
           let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
-          match typeCheck ptradd with
+          match typeCheck newBindings ptradd with
             | TypeOf _ -> Some( newBindings, [ptradd] )
             | TypeError (m,f,e) ->
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -424,7 +441,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         begin
           let newBindings, recordForm = translateF bindings recordExpr >>= apply2nd toSingleForm in
           let fieldptr = `GetFieldPointerIntrinsic (recordForm, fieldName) in
-          match typeCheck fieldptr with
+          match typeCheck newBindings fieldptr with
             | TypeOf _ -> Some( newBindings, [fieldptr] )
             | TypeError (m,f,e) ->
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -473,7 +490,7 @@ let translateNested = translate raiseIllegalExpression
     translateMacro;
     translateDefineMacro;
     translateAssignVar;
-    translateTypedef;
+(*     translateTypedef; *)
     translateGenericIntrinsic;
     translateRecord;
     translateReturn;
@@ -498,12 +515,12 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
                     let value = parseValue typ valueString in
                     let var = globalVar name typ value in
                     let newBindings = addVar bindings var in
-                    Some( newBindings, [ GlobalVar var ] )
+                    Some( newBindings, [ `GlobalVar var ] )
                 | `Pointer targetType ->
                     if valueString = "null" then
                       let var = globalVar name (`Pointer targetType) (PointerVal (targetType, None)) in
                       let newBindings = addVar bindings var in
-                      Some( newBindings, [GlobalVar var] )
+                      Some( newBindings, [`GlobalVar var] )
                     else
                       raiseIllegalExpression expr "only null values supported for pointers currently"
                 | _ -> raiseIllegalExpression expr
@@ -548,7 +565,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
     in
     let f = func name typ params impl in
     let newBindings = addFunc bindings f in
-    let funcDef = DefineFunc f in
+    let funcDef = `DefineFunc f in
     newBindings, funcDef
   in
   match expr with
@@ -562,7 +579,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
           match translateType bindings typeExpr with
             | Some typ -> begin
                 let newBindings, funcDef = buildFunction typ name paramExprs (Some implExpr) in
-                match typeCheckTL funcDef with
+                match typeCheckTL newBindings funcDef with
                   | TypeOf _ -> Some( newBindings, [ funcDef ] )
                   | TypeError (msg, declaredType, returnedType) ->
                       raiseIllegalExpression

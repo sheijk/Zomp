@@ -49,14 +49,6 @@
   (ret result)
   ))
 
-(macro getField record componentName (
-  (load (fieldptr record componentName))
-  ))
-
-(macro setField record componentName value (
-  (store (fieldptr record componentName) value)
-  ))
-  
 (func (ptr string) append (((ptr string) l) ((ptr string) r)) (
   (var int length (int.add (getField l length) (getField r length)))
   (var (ptr string) result (newString length 'x'))

@@ -4,10 +4,10 @@ type number temp_t;
 
 var number blah 3;
 
+type number2 number;
+
 func int main {} {
   var number local 21;
-
-  type number2 number;
 
   var number2 x { int.add blah local; };
 

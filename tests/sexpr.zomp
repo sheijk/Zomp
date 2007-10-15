@@ -1,9 +1,7 @@
 
-(func void printString (seq (string s)))
-
 (var int retval 99)
 
-(var string message "hello, s-expression!\n")
+(var (ptr char) message "hello, s-expression!\n")
 
 // this works here
 /* this, too */

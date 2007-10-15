@@ -14,11 +14,8 @@
   (ret 2)
   ))
 
-// (func void printString ((string s)))
-// (func void printNewline ())
-
-// (var string trueString "true")
-// (var string falseString "false")
+(var (ptr char) trueString "true")
+(var (ptr char) falseString "false")
 
 (func void test ((bool b)) (
   (branch b true false)

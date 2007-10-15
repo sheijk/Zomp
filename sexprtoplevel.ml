@@ -172,8 +172,8 @@ let printWelcomeMessage() =
 exception InternalError
   
 let evalMode bindings = function
-  | [GlobalVar var] -> `NewGlobal var.vname
-  | [DefineFunc func] ->
+  | [`GlobalVar var] -> `NewGlobal var.vname
+  | [`DefineFunc func] ->
       begin match func.impl, Bindings.lookup bindings func.fname with
         | Some _, Bindings.FuncSymbol _ -> `ModifyFunction func.fname
         | _ -> `NewFunction func.fname

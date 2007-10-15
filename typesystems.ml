@@ -77,6 +77,7 @@ struct
   | integralType
   | `Pointer of typ
   | `Record of recordType
+  | `TypeRef of string
   ]
   and recordType = (string * typ) list
 
@@ -106,26 +107,21 @@ struct
         `Record (List.map convert components)
           
   (* val typeName : typ -> string *)
-  let rec typeName = function
+  let rec typeName : typ -> string = function
     | `Void -> "void"
     | `Int -> "int"
     | `Float -> "float"
     | `Bool -> "bool"
     | `Char -> "char"
+    | `TypeRef name -> name
     | `Pointer t -> (typeName t) ^ "*"
-(*     | `NamedType name -> name *)
     | `Record components ->
-        let rec convert components str =
-          match components with
-            | [] -> ""
-            | (name, typ) :: tail ->
-                let s = Printf.sprintf "(%s : %s)" name (typeName typ) in
-                convert tail (str ^ s)
-        in
-        "(" ^ convert components "" ^ ")"
+        let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
+        let componentStrings = List.map component2String components in
+        "(" ^ Common.combine ", " componentStrings ^ ")"
 
   (* val valueString : value -> string *)
-  let rec valueString = function
+  let rec valueString : value -> string = function
     | VoidVal -> raise (Failure "no values of void allowed")
     | IntVal i -> string_of_int i
     | FloatVal f -> string_of_float f
@@ -147,7 +143,7 @@ struct
         "(" ^ convert components ^ ")"
 
   (* val parseType : string -> typ *)
-  let rec parseType str = 
+  let rec parseType (str :string) :typ = 
     let len = String.length str in
     if len >= 1 && str.[len-1] = '*' then
       `Pointer (parseType (Str.string_before str (len - 1)))
@@ -161,7 +157,7 @@ struct
         | _ as name -> raise (CouldNotParseType name)
         
   (* val parseValue : typ -> string -> value *)
-  let parseValue typ str =
+  let parseValue (typ :typ) str :value =
     let unquoted quoteChar str =
       let error() =
         raise (Failure (sprintf "Expected format %ctext%c" quoteChar quoteChar));
@@ -175,7 +171,8 @@ struct
       value
     in
     match typ with
-      | `Void -> raise (Failure "no values of void allowed")
+      | `TypeRef name -> failwith (sprintf "Cannot parse value of type %s referred by name" name)
+      | `Void -> failwith "no values of void allowed"
       | `Int -> IntVal (int_of_string str)
       | `Float -> FloatVal (float_of_string str)
       | `Bool -> BoolVal (bool_of_string str)
@@ -188,8 +185,9 @@ struct
 (*       | `NamedType name -> failwith (sprintf "Cannot parse value of type %s only known by name" name) *)
           
   (* val defaultValue : typ -> value *)
-  let rec defaultValue = function
+  let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
+    | `TypeRef name -> failwith (sprintf "No default value for type %s referred by name" name)
     | `Int -> IntVal 0
     | `Float -> FloatVal 0.0
     | `Bool -> BoolVal false

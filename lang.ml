@@ -144,9 +144,11 @@ type func = {
   fargs :(string * composedType) list;
   impl :expr option;
 }
-and toplevelExpr =
-  | GlobalVar of composedType variable
-  | DefineFunc of func
+and toplevelExpr = [
+| `GlobalVar of composedType variable
+| `DefineFunc of func
+| `Typedef of string * typ
+]
 
 let func name rettype args impl = {
   fname = name;
@@ -182,144 +184,3 @@ type macro = {
     
 
 
-type typecheckResult =
-  | TypeOf of composedType
-      (** error message, found type, expected type *)
-  | TypeError of string * composedType * composedType
-  
-let rec typeCheck : expr -> typecheckResult =
-  let pointerType form =
-    match typeCheck form with
-      | TypeOf (`Pointer _ as pointerType) -> TypeOf pointerType
-      | TypeOf invalidType -> TypeError ("Expected pointer type", invalidType, `Pointer `Void)
-      | _ as e -> e
-  in
-  let expectType form expectType =
-    match typeCheck form with
-      | TypeOf typ when typ = expectType -> TypeOf typ
-      | TypeOf invalidType -> TypeError ("Invalid type in 2nd parameter", invalidType, `Int)
-      | _ as e -> e
-  in
-  let (>>) l r =
-    match l with
-      | TypeError _ as e -> e
-      | TypeOf _ -> r
-  in
-  function
-    | `Sequence [] -> TypeOf `Void
-    | `Sequence [expr] -> typeCheck expr
-    | `Sequence (_ :: tail) -> typeCheck (`Sequence tail)
-    | `DefineVariable (var, expr) -> begin
-        match expr with
-          | Some expr ->
-              begin
-                match typeCheck expr with
-                  | TypeOf exprType when exprType = var.typ -> TypeOf `Void
-                  | TypeOf wrongType -> TypeError (
-                      "variable definition requires same type for var and default value", wrongType, var.typ)
-                  | TypeError _ as typeError -> typeError
-              end
-          | None -> TypeOf `Void
-      end
-    | `Variable var -> TypeOf var.typ
-    | `Constant value -> TypeOf (typeOf value)
-    | `FuncCall call ->
-        begin
-          let paramCount = List.length call.fcparams
-          and argCount = List.length call.fcargs in
-          if paramCount != argCount then
-            TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
-          else
-            List.fold_left2
-              (fun prevResult typ arg ->
-                 match typeCheck (arg :> expr) with
-                   | TypeOf argType when typ = argType -> prevResult
-                   | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
-                   | TypeError(msg, invalidType, expectedType) ->
-                       TypeError ("Argument type is invalid: " ^ msg, invalidType, expectedType)
-              )
-              (TypeOf (call.fcrettype :> composedType))
-              call.fcparams call.fcargs
-        end
-    | `AssignVar (v, expr) -> begin
-        match typeCheck expr with
-          | TypeOf exprType when exprType = v.typ -> TypeOf `Void
-          | TypeOf exprType -> TypeError (
-              "Cannot assign result of expression to var because types differ",
-              exprType, v.typ)
-          | _ as typeError -> typeError
-      end
-    | `Return expr -> typeCheck expr
-    | `Label _ -> TypeOf `Void
-    | `Jump _ -> TypeOf `Void
-    | `Branch _ -> TypeOf `Void
-    | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
-    | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
-    | `GetAddrIntrinsic var ->
-        begin
-          match var.vstorage with
-            | MemoryStorage -> TypeOf (`Pointer var.typ)
-            | RegisterStorage -> TypeError ("Cannot get address of variable with register storage", var.typ, var.typ)
-        end
-    | `StoreIntrinsic (ptrExpr, valueExpr) ->
-        begin
-          match typeCheck ptrExpr, typeCheck valueExpr with
-            | TypeOf `Pointer ptrTargetType, TypeOf valueType when valueType = ptrTargetType -> TypeOf `Void
-            | TypeOf (#typ as invalidPointerType), TypeOf valueType ->
-                TypeError ("tried to store value to pointer of mismatching type",
-                           invalidPointerType,
-                           `Pointer valueType)
-            | (_ as l), (_ as r) ->
-                l >> r
-        end
-    | `LoadIntrinsic expr ->
-        begin
-          match typeCheck expr with
-            | TypeOf `Pointer targetType -> TypeOf targetType
-            | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
-            | TypeError _ as t -> t
-        end
-    | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
-        begin
-          match typeCheck recordForm with
-            | TypeOf `Pointer `Record components ->
-                begin
-                  match componentType components fieldName with
-                    | Some t -> TypeOf (`Pointer t)
-                    | None -> TypeError("Component not found", `Void, `Void)
-                end
-            | TypeOf nonPtrToRecord ->
-                TypeError
-                  ("Expected pointer to record type", nonPtrToRecord, `Pointer (`Record []))
-            | _ as typeError ->
-                typeError
-        end
-    | `PtrAddIntrinsic (ptrExpr, offsetExpr) ->
-        begin
-          expectType offsetExpr `Int
-          >> pointerType ptrExpr
-        end
-  
-let rec typeCheckTL = function
-  | GlobalVar var -> TypeOf var.typ
-  | DefineFunc f ->
-      match f.impl with
-        | None -> TypeOf f.rettype
-        | Some impl ->
-            match typeCheck impl with
-              | TypeOf implType when implType = f.rettype ->
-                  TypeOf f.rettype
-              | TypeOf wrongType ->
-                  TypeError (
-                    "Function's return type is not equal to it's implementation",
-                    f.rettype,
-                    wrongType)
-              | TypeError _ as e ->
-                  e
-    
-let typeOfForm ~onError form =
-  match typeCheck form with
-    | TypeOf typ -> typ
-    | TypeError (msg, _, _) ->
-        onError ~msg
-          

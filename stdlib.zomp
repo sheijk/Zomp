@@ -48,3 +48,12 @@
 (funcln printlnString (ptr char) (printString v))
 
 
+(macro getField record componentName (
+  (load (fieldptr record componentName))
+  ))
+
+(macro setField record componentName value (
+  (store (fieldptr record componentName) value)
+  ))
+  
+

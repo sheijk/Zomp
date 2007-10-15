@@ -9,7 +9,7 @@ let combine = Common.combine
 exception CodeGenError of string
 let raiseCodeGenError ~msg = raise (CodeGenError msg)
 
-let typeOfForm = Lang.typeOfForm ~onError:raiseCodeGenError
+let typeOfForm = Semantic.typeOfForm ~onError:raiseCodeGenError
     
 let llvmName name =
   if name.[0] = '%' then name
@@ -20,13 +20,13 @@ let llvmLocalName = llvmName
   
 let isLocalVar name = String.length name <= 2 || name.[1] <> '$'
   
-let rec llvmTypeName = function
+let rec llvmTypeName : Lang.typ -> string = function
   | `Void -> "void"
-  | `String -> "i8*"
   | `Int -> "i32"
   | `Bool -> "i1"
   | `Char -> "i8"
   | `Float -> "float"
+  | `TypeRef name -> "%" ^ name
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | `Record components ->
@@ -55,7 +55,6 @@ let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
   let newVar isGlobal (typ :Lang.typ) =
     let id = nextUID () in
-(*      if id = 74 then failwith "got him!"; *)
     let name = (sprintf "temp%d" id) in
     resultVar (variable name typ (defaultValue typ) RegisterStorage isGlobal)
   in
@@ -256,7 +255,7 @@ let gencodeDefineVariable gencode var default =
         begin
           let zeroElement = function
             | `Pointer _ -> Some "null"
-            | `Record _ -> None
+            | `Record _ | `TypeRef _ -> None
             | #integralType as t -> Some (Lang.valueString (defaultValue t))
           in
           let initInstr = function
@@ -375,7 +374,9 @@ let checkType resultVar typ =
   if llvmTypeName typ <> resultVar.rvtypename then
     raiseCodeGenError ~msg:(sprintf "Internal error: expected %s to be of type %s instead of %s"
                               resultVar.rvname (llvmTypeName typ) resultVar.rvtypename)
-                              
+
+let todoBindings = defaultBindings
+  
 let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
   | `NullptrIntrinsic targetTyp ->
       begin
@@ -411,7 +412,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
   | `LoadIntrinsic expr ->
       begin
         let targetType =
-          match typeOfForm expr with
+          match typeOfForm todoBindings expr with
             | `Pointer targetType -> targetType
             | nonPointerType ->
                 raiseCodeGenError ~msg:("Expected pointer argument instead of "
@@ -428,7 +429,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
   | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
       begin
         let fieldType, fieldIndex =
-          match typeOfForm recordForm with
+          match typeOfForm todoBindings recordForm with
             | `Pointer `Record components ->
                 let fieldType = match componentType components fieldName with
                   | Some fieldType -> fieldType
@@ -453,7 +454,7 @@ let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
       end
   | `PtrAddIntrinsic (ptrForm, offsetForm) ->
       begin
-        let ptrType = typeOfForm ptrForm in
+        let ptrType = typeOfForm todoBindings ptrForm in
         let resultVar = newLocalTempVar ptrType in
         let comment = sprintf "; ptr.add\n" in
         let ptrVar, ptrVarAccessCode = gencode ptrForm in
@@ -600,25 +601,35 @@ let gencodeDefineFunc func =
         in
         "define " ^ decl ^ impl
 
+let gencodeTypedef name typ =
+  sprintf "%%%s = type %s\n" name (llvmTypeName typ)
+  
 let gencodeTL = function
-  | GlobalVar var -> gencodeGlobalVar var
-  | DefineFunc func -> gencodeDefineFunc func
+  | `GlobalVar var -> gencodeGlobalVar var
+  | `DefineFunc func -> gencodeDefineFunc func
+  | `Typedef (name, typ) -> gencodeTypedef name typ
 
-let genmodule toplevelExprs =
+let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
   let rec seperateVarsAndFuncs = function
-    | [] -> ([], [])
+    | [] -> ([], [], [])
     | expr :: tail ->
-        let vars, funcs = seperateVarsAndFuncs tail in
+        let typedefs, vars, funcs = seperateVarsAndFuncs tail in
         match expr with
-          | GlobalVar var -> (GlobalVar var :: vars, funcs)
-          | DefineFunc func -> (vars, DefineFunc func :: funcs)
+          | `Typedef _ as typedef -> (typedef :: typedefs, vars, funcs)
+          | `GlobalVar _ as var -> (typedefs, var :: vars, funcs)
+          | `DefineFunc _ as func -> (typedefs, vars, func :: funcs)
   in
-  let globalVars, globalFuncs = seperateVarsAndFuncs toplevelExprs in
+  let globalTypedefs, globalVars, globalFuncs = seperateVarsAndFuncs toplevelExprs in
   let headerCode = ""
+  and typedefCode = List.map gencodeTL globalTypedefs
   and varCode = List.map gencodeTL globalVars
   and funcCode = List.map gencodeTL globalFuncs
   in
-  headerCode ^ "\n"
+  "\n\n;;; header ;;;\n\n"
+  ^ headerCode ^ "\n"
+  ^ "\n\n;;; typedefs ;;;\n\n"
+  ^ (combine "\n" typedefCode)
+  ^ "\n\n;;; variables ;;;\n\n"
   ^ (combine "\n" varCode)
   ^ "\n\n;;; implementation ;;;\n\n"
   ^ (combine "\n" funcCode)

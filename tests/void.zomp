@@ -1,12 +1,12 @@
 
-var string msg "stuff\n";
+(var (ptr char) msg "stuff\n")
 
-func void dostuff {int ignored;} {
-  printf msg;
-};
+(func void dostuff ((int ignored)) (
+  (printf msg)
+  ))
 
-func int main {} {
-  dostuff 1;
-  10;
-};
+(func int main () (
+  (dostuff 1)
+  10
+  ))
 

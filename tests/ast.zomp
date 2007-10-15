@@ -1,0 +1,104 @@
+
+(type cstring (ptr char))
+
+(type string
+  (int length)
+  ((ptr char) chars)
+  )
+(type pstring (ptr string))
+
+
+(func int length ((cstring s)) (
+  (var (ptr char) ptr s)
+  (var int count -1)
+
+  (label start)
+  (var char c (load ptr))
+
+  (assign ptr (ptradd ptr 1))
+  (assign count (int.add count 1))
+  (var bool b (char.equal c '\0'))
+  (branch b end start)
+  
+  (label end)
+  
+  (ret count)
+  ))
+
+(func (ptr string) makestring ((cstring cstr)) (
+  (var (ptr string) pstr (malloc string))
+  (store (fieldptr pstr length) (length cstr))
+  (store (fieldptr pstr chars) cstr)
+  (ret pstr)
+  ))
+
+
+//------------------------------------------------------------------------------
+
+(type ast
+  (cstring id)
+  (int childCount)
+  ((ptr (ptr ast)) childs) )
+
+
+(var (ptr char) msg "hello, ast")
+(var (ptr char) simpleName "simple")
+
+
+(func (ptr ast) simpleAst ((cstring name)) (
+  (var (ptr ast) a (malloc ast))
+
+  (store (fieldptr a id) name)
+  (store (fieldptr a childCount) 0)
+  (store (fieldptr a childs) (nullptr (ptr ast)))
+  
+  (ret a)
+  ))
+
+(func void printIndent ((int count)) (
+  (var int counter count)
+  (label start)
+  (var bool t (int.ugreater counter 0))
+  (branch t goon end)
+  (label goon)
+  (printChar ' ') (printChar ' ')
+  (assign counter (int.sub counter 1))
+  (branch start)
+  (label end)
+  ))
+  
+(func void printAst (((ptr ast) a) (int indent)) (
+  (printIndent indent)
+  (printString (load (fieldptr a id)))
+  (printChar ' ')
+  (printInt (getField a childCount))
+  (println)
+  
+  (var int index 0)
+  (label start)
+  (var bool t (int.uless index (getField a childCount)))
+  (branch t goon end)
+  (label goon)
+  (printIndent (int.add indent 1))
+  (printChar 'c')
+  (println)
+  (assign index (int.add index 1))
+  (label end)
+  ))
+
+
+(func void addChild ( ((ptr ast) t) ((ptr ast) child) ) (
+  (var int newChildCount (int.add 1 (getField t childCount)))
+  (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
+  ))
+
+(func int main () (
+  (printlnString msg)
+
+  (var (ptr ast) ast (simpleAst simpleName))
+  (printAst ast 0)
+  
+  100
+  ))
+
+  
