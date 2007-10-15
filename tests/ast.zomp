@@ -41,9 +41,9 @@
   ((ptr (ptr ast)) childs) )
 
 
-(var (ptr char) msg "hello, ast")
-(var (ptr char) simpleName "simple")
-
+(var cstring msg "hello, ast")
+(var cstring simpleName "simple")
+(var cstring childName "child1")
 
 (func (ptr ast) simpleAst ((cstring name)) (
   (var (ptr ast) a (malloc ast))
@@ -70,8 +70,8 @@
 (func void printAst (((ptr ast) a) (int indent)) (
   (printIndent indent)
   (printString (load (fieldptr a id)))
-  (printChar ' ')
-  (printInt (getField a childCount))
+//   (printChar ' ')
+//   (printInt (getField a childCount))
   (println)
   
   (var int index 0)
@@ -79,24 +79,37 @@
   (var bool t (int.uless index (getField a childCount)))
   (branch t goon end)
   (label goon)
-  (printIndent (int.add indent 1))
-  (printChar 'c')
-  (println)
+  (printAst (load (ptradd (getField a childs) index)) (int.add indent 1))
   (assign index (int.add index 1))
   (label end)
   ))
 
 
-(func void addChild ( ((ptr ast) t) ((ptr ast) child) ) (
-  (var int newChildCount (int.add 1 (getField t childCount)))
+(func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
+  (var int newChildCount (int.add 1 (getField tree childCount)))
   (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
+
+  (var int index 0)
+  (label start)
+  (var bool t (int.uless index (getField tree childCount)))
+  (branch t goon end)
+  (label goon)
+  (store (ptradd newChilds index) (load (ptradd (getField tree childs) index)))
+  (label end)
+
+  (store (ptradd newChilds (getField tree childCount)) child)
+
+  (setField tree childs newChilds)
+  (setField tree childCount newChildCount)
   ))
 
+  
 (func int main () (
   (printlnString msg)
 
-  (var (ptr ast) ast (simpleAst simpleName))
-  (printAst ast 0)
+  (var (ptr ast) tree (simpleAst simpleName))
+  (addChild tree (simpleAst childName))
+  (printAst tree 0)
   
   100
   ))

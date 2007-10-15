@@ -11,6 +11,10 @@
   (ret 3)
   ))
 
+(func void recursive ((int n)) (
+  (recursive (int.add n n))
+  ))
+  
 (func int main () (seq
   (var int r (foo 1 2))
   (var int y 0)

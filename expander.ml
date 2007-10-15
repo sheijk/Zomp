@@ -142,20 +142,6 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
             match typeCheck bindings defvar with
               | TypeOf _ -> Some( addVar bindings var, [defvar] )
               | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
-(*             match typ, typeCheck bindings (`Sequence simpleform) with *)
-(*               | leftHandType, TypeOf rightHandType when leftHandType = rightHandType -> *)
-(*                   begin *)
-(*                     let value = defaultValue typ in *)
-(*                     let storage = MemoryStorage *)
-(*                     in *)
-(*                     let var = variable name typ value storage false in *)
-(*                     Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence simpleform)) ] ) *)
-(*                   end *)
-(*               | leftHandType, TypeOf rightHandType -> *)
-(*                   raiseIllegalExpression expr *)
-(*                     (sprintf "types %s and %s do not match" *)
-(*                        (Lang.typeName leftHandType) (Lang.typeName rightHandType)) *)
-(*               | _, TypeError (msg, _, _) -> raiseIllegalExpression valueExpr msg *)
           end
       | Some (`Record _ as typ) ->
           begin
@@ -532,11 +518,7 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
       None
 
 let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
-  let buildFunction typ name paramExprs implExprOption =
-    (*     let typ = match lookupType bindings typeName with *)
-    (*       | Some t -> t *)
-    (*       | None -> raise (UnknownType typeName) *)
-    (*     in *)
+  let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
@@ -578,7 +560,8 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
         begin
           match translateType bindings typeExpr with
             | Some typ -> begin
-                let newBindings, funcDef = buildFunction typ name paramExprs (Some implExpr) in
+                let tempBindings, _ = buildFunction bindings typ name paramExprs None in
+                let newBindings, funcDef = buildFunction tempBindings typ name paramExprs (Some implExpr) in
                 match typeCheckTL newBindings funcDef with
                   | TypeOf _ -> Some( newBindings, [ funcDef ] )
                   | TypeError (msg, declaredType, returnedType) ->
@@ -600,7 +583,7 @@ let translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) exp
           match translateType bindings typeExpr with
             | Some typ ->
                 begin
-                  let newBindings, funcDecl = buildFunction typ name paramExprs None in
+                  let newBindings, funcDecl = buildFunction bindings typ name paramExprs None in
                   Some (newBindings, [funcDecl] )
                 end
             | None ->
