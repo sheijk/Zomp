@@ -69,7 +69,6 @@ struct
   | `Void
   | `Int
   | `Float
-(*   | `String *)
   | `Bool
   | `Char
   ]
@@ -111,10 +110,10 @@ struct
     | `Void -> "void"
     | `Int -> "int"
     | `Float -> "float"
-(*     | `String -> "string" *)
     | `Bool -> "bool"
     | `Char -> "char"
     | `Pointer t -> (typeName t) ^ "*"
+(*     | `NamedType name -> name *)
     | `Record components ->
         let rec convert components str =
           match components with
@@ -156,7 +155,6 @@ struct
       match str with
         | "int" -> `Int
         | "float" -> `Float
-(*         | "string" -> `String *)
         | "bool" -> `Bool
         | "char" -> `Char
         | "void" -> `Void
@@ -182,25 +180,25 @@ struct
       | `Float -> FloatVal (float_of_string str)
       | `Bool -> BoolVal (bool_of_string str)
       | `Char -> CharVal (unquoted '\'' str).[0]
-(*       | `String -> StringLiteral (unquoted '"' str) *)
       | `Pointer `Char -> StringLiteral (unquoted '"' str)
       | `Pointer t -> if str == "null"
         then PointerVal (t, None)
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
       | `Record _ -> raise (Failure (sprintf "cannot parse records (value was %s)" str))
+(*       | `NamedType name -> failwith (sprintf "Cannot parse value of type %s only known by name" name) *)
           
   (* val defaultValue : typ -> value *)
   let rec defaultValue = function
     | `Void -> VoidVal
     | `Int -> IntVal 0
     | `Float -> FloatVal 0.0
-(*     | `String -> StringLiteral "" *)
     | `Bool -> BoolVal false
     | `Char -> CharVal (char_of_int 0)
     | `Pointer t -> PointerVal (t, None)
     | `Record components ->
         let convert (name, typ) = name, defaultValue typ in
         RecordVal (List.map convert components)
+(*     | `NamedType name -> failwith (sprintf "No default value for type %s only known by name" name) *)
 end
 
 module Tests =

@@ -36,20 +36,45 @@ type expr
 
 const int foo 10
 
-macro if cond:expr then onT:expr @list @name(elseif) (elseif cond:expr then onT:expr) [else onF:expr]
-  #newUnique label onTLabel notTLabel endLabel
-  branch cond onTLabel notTLabel
-  label onTLabel
-  onT
-  branch endLabel
-  label notTLabel
-  #foreach ei in elseifs
-    #newUnique label eiTLabel nextLabel
-    branch ei.cond eiTLabel nextLabel
-    label eiTLabel
+macro uniqueName name comment
+  var string name = uniqueId comment
+  
+macro while abortCond loopCode
+  #uniqueName start "whileStart"
+  #uniqueName end "whileEnd"
+  label #start
+  #loopCode
+  branch #abortCond #start #end
+  label #end
+
+macro for index start stop code
+  var int #index = #start
+  while (#index < #stop)
+    #code
+    #index += 1
+max)
+macro assert testCode
+  if not #testCode then
+    printf "#{'testCode.toString} failed"
+    exit 1
+
+macro if cond:expr "then" onT:expr @list @name(elseif) ("elseif" cond:expr then onT:expr) ["else" onF:expr]
+  #uniqueName onTLabel "ifthenelseTrue"
+  #uniqueName notTLabel "ifthenelseFalse"
+  #uniqueName endLabel "ifthenelseEnd"
+  branch #cond #onTLabel #notTLabel
+  label #onTLabel
+  #onT
+  branch #endLabel
+  label #notTLabel
+  #foreach ei in #elseifs
+    #uniqueName eiTLabel "elseifTrue"
+    #uniqueName nextLabel "elseifNext"
+    branch #ei.cond #eiTLabel #nextLabel
+    label #eiTLabel
     ei.onT
-    label nextLabel
-  #ifNonNull onF
-    onF
-  label endLabel
+    label #nextLabel
+  #ifNonNull #onF
+    #onF
+  label #endLabel
 

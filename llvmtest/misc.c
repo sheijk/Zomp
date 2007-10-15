@@ -70,3 +70,13 @@ void arrayAccess(float* ptr) {
 }
 
 
+struct rectype {
+  int num;
+  struct rectype* childs;
+};
+
+int rectypeTest(struct rectype* foo) {
+  return foo->num;
+}
+
+
