@@ -1,0 +1,17 @@
+/**
+ * Minimalistic test for interactive toplevel integration in emacs
+ */
+
+(func int main () (
+  (printlnInt 1000)
+  (ret 101)
+  ))
+
+(func void test () (
+  (printString "Calling main()... \n")
+  (var int retval (main))
+  (printString "Returned: ")
+  (printInt retval)
+  (println)
+  ))
+  

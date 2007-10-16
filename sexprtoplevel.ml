@@ -4,7 +4,8 @@ open Printf
 open Lang
 open Common
   
-let combine = Common.combine
+let prompt =          "  # "
+and continuedPrompt = "..# "
   
 let printLLVMCode = ref true
 and llvmEvaluationOn = ref true
@@ -134,7 +135,7 @@ let handleCommand commandLine bindings =
 (*   with *)
 (*     | Not_found -> *)
 (*         printf "Error: Could not find command %s.\n" commandName *)
-
+  
 let rec readExpr previousLines bindings prompt =
   printf "%s" prompt;
   flush stdout;
@@ -158,7 +159,7 @@ let rec readExpr previousLines bindings prompt =
             let lexbuf = Lexing.from_string (input ^ "!") in
             Sexprparser.main Sexprlexer.token lexbuf
           with _ ->
-            readExpr input bindings "cont. inp.  # "
+            readExpr input bindings continuedPrompt
         end
     in
     expr
@@ -170,18 +171,24 @@ let printWelcomeMessage() =
   printf "\n"
 
 exception InternalError
-  
-let evalMode bindings = function
-  | [`GlobalVar var] -> `NewGlobal var.vname
-  | [`DefineFunc func] ->
+
+type evalMode = [
+| `NewGlobal of string
+| `NewFunction of string
+| `ModifyFunction of string
+| `Typedef
+| `DoNothing
+]
+    
+let evalMode bindings : Lang.toplevelExpr -> evalMode = function
+  | `GlobalVar var -> `NewGlobal var.vname
+  | `DefineFunc func ->
       begin match func.impl, Bindings.lookup bindings func.fname with
         | Some _, Bindings.FuncSymbol _ -> `ModifyFunction func.fname
         | _ -> `NewFunction func.fname
       end
-  | [] ->
-      `DoNothing
-  | _ ->
-      raise InternalError
+  | `Typedef (name, _) ->
+      `Typedef
 
 exception FailedToEvaluateLLVMCode of string * string
 
@@ -195,26 +202,51 @@ let rec doAll ~onError ~onSuccess = function
       else
         onError errorMsg
       
-let evalLLVMCode llvmCode evalMode =
-  match evalMode with
-    | `DoNothing -> ()
-    | `NewGlobal _ | `NewFunction _ ->
-        begin
-          if not( Machine.zompSendCode llvmCode ) then
-            raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate"
-        end
-    | `ModifyFunction funcName ->
-        begin
-          printf "Modifying functions %s\n" funcName;
-          doAll
-            [
-              (fun () -> Machine.zompRemoveFunctionBody funcName), "remove function";
-              (fun () -> Machine.zompSendCode llvmCode), "evaluate code";
-              (fun () -> Machine.zompRecompileAndRelinkFunction funcName), "recompile and relink function"
-            ]
-            ~onError:(raiseFailedToEvaluateLLVMCode llvmCode)
-            ~onSuccess:(fun () -> ())
-        end
+let evalLLVMCode bindings simpleforms llvmCode :unit =
+  let isDefinedFunction func =
+    match func.impl, Bindings.lookup bindings func.fname with
+      | Some _, Bindings.FuncSymbol _ -> true
+      | _, _ -> false
+  in
+  let redefinedFunctions = List.fold_left
+    (fun redefinedFunctions toplevelForm ->
+       match toplevelForm with
+         | `DefineFunc func when isDefinedFunction func -> func.fname :: redefinedFunctions
+         | _ -> redefinedFunctions )
+    []
+    simpleforms
+  in
+  let tryApplyToAll ~onError f list =
+    List.iter
+      (fun obj -> if not( f obj ) then onError obj)
+      list
+  in
+  let removeFunctionBody name = Machine.zompRemoveFunctionBody name in
+  let recompileAndRelinkFunction name = Machine.zompRecompileAndRelinkFunction name in
+  tryApplyToAll removeFunctionBody redefinedFunctions ~onError:(raiseFailedToEvaluateLLVMCode llvmCode);
+  if not (Machine.zompSendCode llvmCode) then
+    raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate";
+  tryApplyToAll recompileAndRelinkFunction redefinedFunctions ~onError:(raiseFailedToEvaluateLLVMCode llvmCode)
+  
+(*   match evalMode with *)
+(*     | `DoNothing -> () *)
+(*     | `NewGlobal _ | `NewFunction _ | `Typedef -> *)
+(*         begin *)
+(*           if not( Machine.zompSendCode llvmCode ) then *)
+(*             raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate" *)
+(*         end *)
+(*     | `ModifyFunction funcName -> *)
+(*         begin *)
+(*           printf "Modifying functions %s\n" funcName; *)
+(*           doAll *)
+(*             [ *)
+(*               (fun () -> Machine.zompRemoveFunctionBody funcName), "remove function"; *)
+(*               (fun () -> Machine.zompSendCode llvmCode), "evaluate code"; *)
+(*               (fun () -> Machine.zompRecompileAndRelinkFunction funcName), "recompile and relink function" *)
+(*             ] *)
+(*             ~onError:(raiseFailedToEvaluateLLVMCode llvmCode) *)
+(*             ~onSuccess:(fun () -> ()) *)
+(*         end *)
 
 let catchingErrorsDo f ~onError =
   let wasOk = ref false in
@@ -253,15 +285,15 @@ let () =
     begin
       catchingErrorsDo
         (fun () -> begin
-           let expr = readExpr "" bindings "cexpr|sexpr # " in
+           let expr = readExpr "" bindings prompt in
            let asString = Ast2.expression2string expr in
            printf " => %s\n" asString;
-           let newBindings, simpleform, llvmCode = compileExpr bindings expr in
+           let newBindings, simpleforms, llvmCode = compileExpr bindings expr in
            if !printLLVMCode then begin
              printf "LLVM code:\n%s\n" llvmCode; flush stdout;
            end;
            if !llvmEvaluationOn then begin
-             evalLLVMCode llvmCode (evalMode bindings simpleform)
+             evalLLVMCode bindings simpleforms llvmCode
            end;
            step newBindings ()
          end)
@@ -288,8 +320,8 @@ let () =
     let newBindings =
       List.fold_left
         (fun bindings expr ->
-           let newBindings, simpleform, llvmCode = compileExpr bindings expr in
-           evalLLVMCode llvmCode (evalMode bindings simpleform);
+           let newBindings, simpleforms, llvmCode = compileExpr bindings expr in
+           evalLLVMCode bindings simpleforms llvmCode;
            newBindings)
         Genllvm.defaultBindings
         exprs

@@ -47,10 +47,12 @@
 **** TODO Find a way to keep connection to stdin on crash in other process
 *** TODO Emacs support
 **** TODO Flymake support
-**** TODO Start zomp toplevel in emacs
-**** TODO Send current region/buffer to toplevel
-**** TODO Send current function toplevel
-
+**** DONE Start zomp toplevel in emacs
+     CLOSED: [2007-10-16 Tue 22:11]
+**** DONE Send current region/buffer to toplevel
+     CLOSED: [2007-10-16 Tue 22:11]
+**** DONE Send current function toplevel
+     CLOSED: [2007-10-16 Tue 22:11]
 
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]

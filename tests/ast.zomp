@@ -127,3 +127,14 @@
   ))
 
   
+(func int five () (
+  (ret 5)
+  ))
+
+(func void test () (
+  (printlnInt 1)
+  (printlnInt 2)
+  (printlnInt 3)
+  (printlnInt 100)
+  ))
+  
