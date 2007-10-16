@@ -70,8 +70,8 @@
 (func void printAst (((ptr ast) a) (int indent)) (
   (printIndent indent)
   (printString (load (fieldptr a id)))
-//   (printChar ' ')
-//   (printInt (getField a childCount))
+  (printChar ' ')
+  (printInt (getField a childCount))
   (println)
   
   (var int index 0)
@@ -81,6 +81,7 @@
   (label goon)
   (printAst (load (ptradd (getField a childs) index)) (int.add indent 1))
   (assign index (int.add index 1))
+  (branch start)
   (label end)
   ))
 
@@ -108,7 +109,11 @@
   (printlnString msg)
 
   (var (ptr ast) tree (simpleAst simpleName))
-  (addChild tree (simpleAst childName))
+  (macro extraChild name (
+    (addChild tree (simpleAst name))
+    ))
+  (extraChild childName)
+  (extraChild "child2")
   (printAst tree 0)
   
   100

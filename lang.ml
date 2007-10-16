@@ -130,15 +130,9 @@ type expr = [
 | `Branch of branch
 | `Label of label
 | expr genericIntrinsic
+(* | `ToplevelForm of toplevelExpr *)
 ]
-
-let toSingleForm formlist =
-  match formlist with
-    | [(singleForm :expr)] -> singleForm
-    | sequence -> `Sequence sequence
-
-
-type func = {
+and func = {
   fname :string;
   rettype :composedType;
   fargs :(string * composedType) list;
@@ -149,6 +143,12 @@ and toplevelExpr = [
 | `DefineFunc of func
 | `Typedef of string * typ
 ]
+
+let toSingleForm formlist =
+  match formlist with
+    | [(singleForm :expr)] -> singleForm
+    | sequence -> `Sequence sequence
+
 
 let func name rettype args impl = {
   fname = name;

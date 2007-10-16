@@ -510,6 +510,7 @@ let gencodeBranch gencode branch =
   (noVar, preCode ^ code)
 
 let rec gencode : Lang.expr -> resultvar * string = function
+(*   | `ToplevelForm _ -> raiseCodeGenError ~msg:"toplevel form not allowed, here" *)
   | `Sequence exprs -> gencodeSequence gencode exprs
   | `DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr
   | `Variable var -> gencodeVariable var

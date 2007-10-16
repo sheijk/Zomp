@@ -53,6 +53,7 @@ let rec typeCheck bindings : expr -> typecheckResult =
       | TypeOf _ -> r
   in
   function
+(*     | `ToplevelForm #toplevelExpr -> TypeOf `Void *)
     | `Sequence [] -> TypeOf `Void
     | `Sequence [expr] -> typeCheck bindings expr
     | `Sequence (_ :: tail) -> typeCheck bindings (`Sequence tail)
@@ -163,7 +164,8 @@ let rec typeCheckTL bindings = function
                     wrongType)
               | TypeError _ as e ->
                   e
-    
+  
+  
 let typeOfForm ~onError bindings form =
   match typeCheck bindings form with
     | TypeOf typ -> typ
