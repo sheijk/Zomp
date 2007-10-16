@@ -1,0 +1,119 @@
+
+* Tasks									:zomp:
+
+** Fix language quirks
+*** DONE Allow getting pointer to variables
+*** DONE Fix record support: allow writing to record fields
+    CLOSED: [2007-10-06 Sat 21:36]
+*** DONE Correctly parse ((ptr int) foo) in arguments/types
+    CLOSED: [2007-10-08 Mon 01:45]
+*** DONE Add support for characters
+    CLOSED: [2007-10-09 Tue 23:51]
+*** DONE Add support for arrays
+    CLOSED: [2007-10-11 Thu 00:29]
+*** DONE Disallow strings as constants in simpleform
+    CLOSED: [2007-10-16 Tue 19:04]
+    Let the expander turn them into global strings
+*** DONE Use bindings / semantics checking in expander.ml
+    CLOSED: [2007-10-16 Tue 19:04]
+*** TODO Add instruction to free memory
+
+** Refactorings
+*** TODO Allow nested expressions in branch instruction
+*** TODO Turn value type into polymorphic variant type
+** Compiler
+*** TODO Generate nice and readable LLVM code
+**** TODO Let functions in genllvm.ml return a string list instead of strings with newlines
+**** TODO Add empty line(s) between functions
+**** TODO Fix useless newlines which appear on some operations
+**** DONE Fix missing line breaks
+    CLOSED: [2007-09-28 Fri 23:17]
+
+*** TODO Bug: (func int main () 20) does not compile
+    But (func int main () ((ret 20))) does as well as (func int main () ((printInt 10) 20))
+*** TODO Bug: some generic intrinsics might return invalid bindings
+** Interactive toplevel
+*** DONE Create C interface
+    CLOSED: [2007-09-30 Sun 01:53]
+    Reuse native function generator from opengl bindings(?)
+*** DONE Create inferiour llvm machine
+    CLOSED: [2007-09-30 Sun 01:53]
+    Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
+*** DONE Read-Eval-Print loop
+    CLOSED: [2007-09-30 Sun 01:53]
+*** DONE Make it run stable and be usable
+    CLOSED: [2007-10-03 Wed 03:33]
+*** TODO Fork to avoid crashes
+**** TODO Find a way to keep connection to stdin on crash in other process
+*** TODO Emacs support
+**** TODO Flymake support
+**** TODO Start zomp toplevel in emacs
+**** TODO Send current region/buffer to toplevel
+**** TODO Send current function toplevel
+
+
+*** DONE Change/reevaluate functions
+    CLOSED: [2007-10-09 Tue 16:20]
+*** TODO Redefine/change variables
+*** Macros
+**** DONE Allow definition of simple "template" macros
+**** TODO Allow running code inside macros
+
+* Notes											:zomp:
+- separated macro expansion / interpretation
+- mutable variables
+- loops
+- metadata ( let @mutable x = 10 )
+- support for operators (+, -, <<, etc.)
+- compiler
+- type system
+
+** Type annotations
+Annotate types using meta data?
+
+let @type(int) x = 10
+
+Use : as infix operator (: symbol type) as a macro name:
+
+macro : symbol thetype = {
+  @type(thetype) symbol
+}
+
+then:
+
+let x :int = 10
+
+** ; / expression separation
+Let ; be an operator/macro?
+
+print "1+1="; print 2;
+
+=>
+
+(op; (print "1+1=") (print 2))
+
+;-macro evaluates each expression + returns value of the last one
+(problem: requires macro expansion at run time. maybe instead create a sequence expression (evalseq (print "1+1=") (print 2)) and return that?)
+
+Then monads are probably possible without expanding the syntax (and possibly even without any/too much runtime overhead because no closures need to be passed around)
+
+** Annotations
+
+See the declare statement in lisp
+
+*** python's doctest clone
+
+automatically check embedded examples in documentation for correctness
+
+
+ LocalWords:  AST IR VM Zomp zomp simpleform expr var boundsCheck alloca SSA
+ LocalWords:  bytecode  Ast ast
+** Type System
+*** Composable type system
+*** Security level
+A variable a has an associated security level l(a). Writing a := b requires l(b) >= l(a).
+Similarily, the relation of security levels between function's arguments and parameters can be declared.
+Might allow to do flow analysis.
+See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
+       
+
