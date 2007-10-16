@@ -178,21 +178,25 @@ let expr2VarOrConst (bindings :bindings) = function
     end
   | _ -> None
 
-let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
-  let getNewVar bindings typ =
-    let newVarName =
-      let rec tryTempVar num =
-        let name = (Printf.sprintf "tempvar_%d" num) in
-        match lookup bindings name with
-          | UndefinedSymbol -> name
-          | _ -> tryTempVar (num + 1)
-      in
-      tryTempVar 0
+      
+let lastTempVarNum = ref 0
+
+let getNewVar bindings typ =
+  let newVarName =
+    let rec tryTempVar num =
+      let name = (Printf.sprintf "tempvar_%d" num) in
+      match lookup bindings name with
+        | UndefinedSymbol -> name
+        | _ -> tryTempVar (num + 1)
     in
-    let value = defaultValue typ in
-    let var = globalVar newVarName typ value in
-    (addVar bindings var, var)
+    incr lastTempVarNum;
+    tryTempVar !lastTempVarNum
   in
+  let value = defaultValue typ in
+  let var = globalVar newVarName typ value in
+  (addVar bindings var, var)
+      
+let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
   match expr2VarOrConst bindings expr with
     | Some varOrConst ->
         begin match varOrConst with

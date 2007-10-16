@@ -35,6 +35,19 @@
 
 //------------------------------------------------------------------------------
 
+(func void printIndent ((int count)) (
+  (var int counter count)
+  (label start)
+  (var bool t (int.ugreater counter 0))
+  (branch t goon end)
+  (label goon)
+  (printChar ' ') (printChar ' ')
+  (assign counter (int.sub counter 1))
+  (branch start)
+  (label end)
+  ))
+  
+
 (type ast
   (cstring id)
   (int childCount)
@@ -55,31 +68,20 @@
   (ret a)
   ))
 
-(func void printIndent ((int count)) (
-  (var int counter count)
-  (label start)
-  (var bool t (int.ugreater counter 0))
-  (branch t goon end)
-  (label goon)
-  (printChar ' ') (printChar ' ')
-  (assign counter (int.sub counter 1))
-  (branch start)
-  (label end)
-  ))
-  
 (func void printAst (((ptr ast) a) (int indent)) (
   (printIndent indent)
   (printString (load (fieldptr a id)))
   (printChar ' ')
   (printInt (getField a childCount))
   (println)
-  
+
   (var int index 0)
   (label start)
   (var bool t (int.uless index (getField a childCount)))
   (branch t goon end)
   (label goon)
-  (printAst (load (ptradd (getField a childs) index)) (int.add indent 1))
+  (var (ptr ast) child (load (ptradd (getField a childs) index)))
+  (printAst child (int.add indent 1))
   (assign index (int.add index 1))
   (branch start)
   (label end)
@@ -87,18 +89,21 @@
 
 
 (func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
-  (var int newChildCount (int.add 1 (getField tree childCount)))
+  (var int oldChildCount (getField tree childCount))
+  (var int newChildCount (int.add 1 oldChildCount))
   (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
 
   (var int index 0)
   (label start)
-  (var bool t (int.uless index (getField tree childCount)))
+  (var bool t (int.uless index oldChildCount))
   (branch t goon end)
   (label goon)
   (store (ptradd newChilds index) (load (ptradd (getField tree childs) index)))
+  (assign index (int.add index 1))
+  (branch start)
   (label end)
 
-  (store (ptradd newChilds (getField tree childCount)) child)
+  (store (ptradd newChilds oldChildCount) child)
 
   (setField tree childs newChilds)
   (setField tree childCount newChildCount)
@@ -114,6 +119,8 @@
     ))
   (extraChild childName)
   (extraChild "child2")
+  (extraChild "child3")
+  (extraChild "child4")
   (printAst tree 0)
   
   100
