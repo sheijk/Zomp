@@ -34,7 +34,7 @@ let rec equalTypes bindings ltype rtype =
     | `Pointer l, `Pointer r when equalTypes bindings l r -> true
     | _, _ -> ltype = rtype
       
-let rec typeCheck bindings : expr -> typecheckResult =
+let rec typeCheck bindings : form -> typecheckResult =
   let expectPointerType form =
     match typeCheck bindings form with
       | TypeOf (`Pointer _ as pointerType) -> TypeOf pointerType
@@ -80,7 +80,7 @@ let rec typeCheck bindings : expr -> typecheckResult =
           else
             List.fold_left2
               (fun prevResult typ arg ->
-                 match typeCheck bindings (arg :> expr) with
+                 match typeCheck bindings (arg :> form) with
                    | TypeOf argType when equalTypes bindings typ argType -> prevResult
                    | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
                    | TypeError(msg, invalidType, expectedType) ->

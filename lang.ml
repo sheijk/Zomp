@@ -104,39 +104,39 @@ and branch = {
 }
 
 (* TODO: make `Constant + integralValue polymorphic *)
-type 'typ flatArgExpr = [
+type 'typ flatArgForm = [
 | `Variable of 'typ variable
 | `Constant of integralValue
 ]
 
-type 'expr genericIntrinsic = [
+type 'form genericIntrinsic = [
 | `NullptrIntrinsic of composedType
-| `MallocIntrinsic of composedType * 'expr
+| `MallocIntrinsic of composedType * 'form
 | `GetAddrIntrinsic of composedType variable
-| `StoreIntrinsic of 'expr * 'expr
-| `LoadIntrinsic of 'expr
-| `PtrAddIntrinsic of 'expr * 'expr (* pointer, int *)
-| `GetFieldPointerIntrinsic of 'expr * string
+| `StoreIntrinsic of 'form * 'form
+| `LoadIntrinsic of 'form
+| `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
+| `GetFieldPointerIntrinsic of 'form * string
 ]
     
-type expr = [
-| composedType flatArgExpr
-| `Sequence of expr list
-| `DefineVariable of composedType variable * expr option
-| `FuncCall of expr funcCall
-| `AssignVar of composedType variable * expr
-| `Return of expr
+type form = [
+| composedType flatArgForm
+| `Sequence of form list
+| `DefineVariable of composedType variable * form option
+| `FuncCall of form funcCall
+| `AssignVar of composedType variable * form
+| `Return of form
 | `Jump of label
 | `Branch of branch
 | `Label of label
-| expr genericIntrinsic
+| form genericIntrinsic
 (* | `ToplevelForm of toplevelExpr *)
 ]
 and func = {
   fname :string;
   rettype :composedType;
   fargs :(string * composedType) list;
-  impl :expr option;
+  impl :form option;
 }
 and toplevelExpr = [
 | `GlobalVar of composedType variable
@@ -146,7 +146,7 @@ and toplevelExpr = [
 
 let toSingleForm formlist =
   match formlist with
-    | [(singleForm :expr)] -> singleForm
+    | [(singleForm :form)] -> singleForm
     | sequence -> `Sequence sequence
 
 
@@ -173,7 +173,7 @@ let funcDef name rettype args impl = {
 
 type macro = {
   mname :string;
-  mtransformFunc :Ast2.expression list -> Ast2.expression;
+  mtransformFunc :Ast2.sexpr list -> Ast2.sexpr;
 }
     
 (* type package = { *)

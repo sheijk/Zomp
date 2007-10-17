@@ -9,7 +9,7 @@
 %token SEPERATOR
 %token <string> OP_PLUS
   
-%start <Ast2.expression> main
+%start <Ast2.sexpr> main
 
 %%
 

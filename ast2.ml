@@ -1,10 +1,8 @@
 open Printf
-  
-type identifier = string
 
-type expression = {
-  id :identifier;
-  args :expression list;
+type sexpr = {
+  id :string;
+  args :sexpr list;
 }
 
 let idExpr name = { id = name; args = [] }

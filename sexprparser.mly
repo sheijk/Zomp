@@ -8,7 +8,7 @@
 %token <string> IDENTIFIER
 (* %token END_SYMBOL *)
   
-%start <Ast2.expression> main
+%start <Ast2.sexpr> main
 
 %%
 

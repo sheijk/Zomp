@@ -36,7 +36,7 @@ and macroPtradd = "ptradd"
 and macroMalloc = "malloc"
 and macroGetaddr = "ptr"
   
-exception IllegalExpression of expression * string
+exception IllegalExpression of sexpr * string
   
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
   
@@ -81,7 +81,7 @@ let rec translateType bindings typeExpr =
     | _ -> None
 
         
-type exprTranslateF = bindings -> expression -> bindings * [`ToplevelForm of toplevelExpr | expr] list
+type exprTranslateF = bindings -> sexpr -> bindings * [`ToplevelForm of toplevelExpr | form] list
 
 let rec extractToplevelForms = function
   | [] -> [], []
@@ -90,7 +90,7 @@ let rec extractToplevelForms = function
         let remTL, remImpl = extractToplevelForms rem in
         match head with
           | `ToplevelForm #toplevelExpr as tlform -> tlform::remTL, remImpl
-          | #Lang.expr as implF -> remTL, implF::remImpl
+          | #Lang.form as implF -> remTL, implF::remImpl
       end
 
         
@@ -235,7 +235,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
 (*               in *)
 (*               let argExprs_ = List.map evalArg args in *)
 (*               let toplevelForms, argsExprs = extractToplevelForms argsExprs_ in *)
-              let evalArg (argExpr :Ast2.expression) =
+              let evalArg (argExpr :Ast2.sexpr) =
                 let _, xforms = translateF bindings argExpr in
                 let toplevelForms, forms = extractToplevelForms xforms in
                 toplevelForms, toSingleForm forms
@@ -522,7 +522,7 @@ let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
   | _ -> None
 
       
-type toplevelExprTranslateF = bindings -> expression -> bindings * toplevelExpr list
+type toplevelExprTranslateF = bindings -> sexpr -> bindings * toplevelExpr list
 
 let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
   | { id = id; args = [

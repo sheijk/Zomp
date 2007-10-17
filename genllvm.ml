@@ -376,8 +376,8 @@ let checkType resultVar typ =
                               resultVar.rvname (llvmTypeName typ) resultVar.rvtypename)
 
 let todoBindings = defaultBindings
-  
-let gencodeGenericIntr (gencode : Lang.expr -> resultvar * string) = function
+
+let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
   | `NullptrIntrinsic targetTyp ->
       begin
         let ptrTypeLLVMName = llvmTypeName (`Pointer targetTyp) in
@@ -509,7 +509,7 @@ let gencodeBranch gencode branch =
   in
   (noVar, preCode ^ code)
 
-let rec gencode : Lang.expr -> resultvar * string = function
+let rec gencode : Lang.form -> resultvar * string = function
 (*   | `ToplevelForm _ -> raiseCodeGenError ~msg:"toplevel form not allowed, here" *)
   | `Sequence exprs -> gencodeSequence gencode exprs
   | `DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr

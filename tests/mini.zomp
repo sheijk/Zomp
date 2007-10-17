@@ -4,7 +4,7 @@
 
 (func int main () (
   (printlnInt 1000)
-  (ret 101)
+  (ret 103)
   ))
 
 (func void test () (
