@@ -3,7 +3,9 @@ open Ast2
 open Printf
 open Lang
 open Common
-  
+
+open Zompvm
+
 let prompt =          "  # "
 and continuedPrompt = "..# "
   
@@ -127,14 +129,6 @@ let handleCommand commandLine bindings =
   else
     printf "Not a command string: '%s'\n" commandLine
   
-(* let handleCommand commandLine bindings = *)
-(*   let commandName = String.sub commandLine 1 (-1 + String.length commandLine) in *)
-(*   try *)
-(*     let (func, _) = StringMap.find commandName commands in *)
-(*     func bindings *)
-(*   with *)
-(*     | Not_found -> *)
-(*         printf "Error: Could not find command %s.\n" commandName *)
   
 let rec readExpr previousLines bindings prompt =
   printf "%s" prompt;
@@ -169,31 +163,7 @@ let printWelcomeMessage() =
   printf "Welcome to the Zomp toplevel.\n";
   printf "#x - exit, #help - help.\n";
   printf "\n"
-
-exception InternalError
-
-type evalMode = [
-| `NewGlobal of string
-| `NewFunction of string
-| `ModifyFunction of string
-| `Typedef
-| `DoNothing
-]
     
-let evalMode bindings : Lang.toplevelExpr -> evalMode = function
-  | `GlobalVar var -> `NewGlobal var.vname
-  | `DefineFunc func ->
-      begin match func.impl, Bindings.lookup bindings func.fname with
-        | Some _, Bindings.FuncSymbol _ -> `ModifyFunction func.fname
-        | _ -> `NewFunction func.fname
-      end
-  | `Typedef (name, _) ->
-      `Typedef
-
-exception FailedToEvaluateLLVMCode of string * string
-
-let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
-
 let rec doAll ~onError ~onSuccess = function
   | [] -> onSuccess()
   | (f, errorMsg) :: rem ->
@@ -202,52 +172,6 @@ let rec doAll ~onError ~onSuccess = function
       else
         onError errorMsg
       
-let evalLLVMCode bindings simpleforms llvmCode :unit =
-  let isDefinedFunction func =
-    match func.impl, Bindings.lookup bindings func.fname with
-      | Some _, Bindings.FuncSymbol _ -> true
-      | _, _ -> false
-  in
-  let redefinedFunctions = List.fold_left
-    (fun redefinedFunctions toplevelForm ->
-       match toplevelForm with
-         | `DefineFunc func when isDefinedFunction func -> func.fname :: redefinedFunctions
-         | _ -> redefinedFunctions )
-    []
-    simpleforms
-  in
-  let tryApplyToAll ~onError f list =
-    List.iter
-      (fun obj -> if not( f obj ) then onError obj)
-      list
-  in
-  let removeFunctionBody name = Machine.zompRemoveFunctionBody name in
-  let recompileAndRelinkFunction name = Machine.zompRecompileAndRelinkFunction name in
-  tryApplyToAll removeFunctionBody redefinedFunctions ~onError:(raiseFailedToEvaluateLLVMCode llvmCode);
-  if not (Machine.zompSendCode llvmCode) then
-    raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate";
-  tryApplyToAll recompileAndRelinkFunction redefinedFunctions ~onError:(raiseFailedToEvaluateLLVMCode llvmCode)
-  
-(*   match evalMode with *)
-(*     | `DoNothing -> () *)
-(*     | `NewGlobal _ | `NewFunction _ | `Typedef -> *)
-(*         begin *)
-(*           if not( Machine.zompSendCode llvmCode ) then *)
-(*             raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate" *)
-(*         end *)
-(*     | `ModifyFunction funcName -> *)
-(*         begin *)
-(*           printf "Modifying functions %s\n" funcName; *)
-(*           doAll *)
-(*             [ *)
-(*               (fun () -> Machine.zompRemoveFunctionBody funcName), "remove function"; *)
-(*               (fun () -> Machine.zompSendCode llvmCode), "evaluate code"; *)
-(*               (fun () -> Machine.zompRecompileAndRelinkFunction funcName), "recompile and relink function" *)
-(*             ] *)
-(*             ~onError:(raiseFailedToEvaluateLLVMCode llvmCode) *)
-(*             ~onSuccess:(fun () -> ()) *)
-(*         end *)
-
 let catchingErrorsDo f ~onError =
   let wasOk = ref false in
   begin try
@@ -268,15 +192,13 @@ let catchingErrorsDo f ~onError =
         printf "Unknown type: %s\n" descr
     | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
         printf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
-    | InternalError ->
-        printf "Internal error\n"
   end;
   if not !wasOk then
     onError()
 
 let () =
-  let compileExpr bindings expr = 
-    let newBindings, simpleforms = Expander.translateTL bindings expr in
+  let compileExpr bindings sexpr = 
+    let newBindings, simpleforms = Expander.translateTL bindings sexpr in
     let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
     let llvmCode = combine "\n" llvmCodes in
     newBindings, simpleforms, llvmCode

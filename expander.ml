@@ -202,7 +202,6 @@ let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
         begin match varOrConst with
           | `Constant StringLiteral string ->
               begin
-(*                 failwith "no string literals supported, yet"; *)
                 let newBindings, var = getNewVar bindings (`Pointer `Char) in
                 let var = { var with default = StringLiteral string } in
                 Some( newBindings, [`ToplevelForm (`GlobalVar var); `Variable var] )
@@ -228,13 +227,6 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
       match lookup bindings name with
         | FuncSymbol func ->
             begin
-(*               let evalArg arg = *)
-(*                 match translateF bindings arg with *)
-(*                   | _, [expr] -> expr *)
-(*                   | _, exprList -> `Sequence exprList *)
-(*               in *)
-(*               let argExprs_ = List.map evalArg args in *)
-(*               let toplevelForms, argsExprs = extractToplevelForms argsExprs_ in *)
               let evalArg (argExpr :Ast2.sexpr) =
                 let _, xforms = translateF bindings argExpr in
                 let toplevelForms, forms = extractToplevelForms xforms in
@@ -295,9 +287,6 @@ let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
       begin
         let _, form, toplevelExprs = translateToForms translateF bindings expr in
         Some( bindings, toplevelExprs @ [`Return form] )
-(*         match translateF bindings expr with *)
-(*           | _, [form] -> Some( bindings, [`Return form] ) *)
-(*           | _, _ -> None *)
       end
   | _ -> None
       
@@ -307,7 +296,6 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
         rightHandExpr;
       ] } when id = macroAssign -> begin
       let _, rightHandForm, toplevelForms = translateToForms translateF bindings rightHandExpr in      
-(*       let _, rightHandSimpleform = translateF bindings rightHandExpr in *)
       match lookup bindings varName with
         | VarSymbol v ->
             Some (bindings, toplevelForms @ [`AssignVar (v, rightHandForm)] )
@@ -380,7 +368,6 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
                           if List.length toplevelForms > 0 then
                             raiseIllegalExpression expr "No nested toplevel forms allowed inside record";
                           form
-(*                           `Sequence (snd (translateF bindings argExpr)) *)
                         end else
                           raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
                       end
@@ -409,8 +396,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
   let buildStoreInstruction ptrExpr rightHandExpr =
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
     let _, rightHandForm, toplevelForms2 = translateToForms translateF bindings rightHandExpr in
-(*     let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in *)
-(*     let newBindings, rightHandForm = translateF newBindings rightHandExpr >>= apply2nd toSingleForm in *)
     let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
     match typeCheck bindings storeInstruction with
       | TypeOf _ ->
@@ -425,7 +410,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         | None -> raiseIllegalExpression typeExpr "Could not translate type"
     in
     let _, rightHandForm, toplevelForms = translateToForms translateF bindings countExpr in
-(*     let newBindings, rightHandForm = translateF bindings countExpr >>= apply2nd toSingleForm in *)
     let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
     match typeCheck bindings mallocForm with
       | TypeOf _ -> Some( bindings, toplevelForms @ [mallocForm] )
@@ -434,7 +418,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
   in
   let buildLoadInstruction ptrExpr =
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
-(*     let _, simpleForms = translateF bindings ptrExpr in *)
     let loadForm = `LoadIntrinsic ptrForm in
     match typeCheck bindings loadForm with
       | TypeOf _ -> Some( bindings, toplevelForms @ [loadForm] )
@@ -466,8 +449,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         begin
           let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
           let _, indexForm, toplevelForms2 = translateToForms translateF bindings indexExpr in
-(*         let newBindings, ptrForm = translateF bindings ptrExpr >>= apply2nd toSingleForm in *)
-(*           let newBindings, indexForm = translateF newBindings indexExpr >>= apply2nd toSingleForm in *)
           let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
           match typeCheck bindings ptradd with
             | TypeOf _ -> Some( bindings, toplevelForms @ toplevelForms2 @ [ptradd] )
@@ -480,7 +461,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         ] } when id = macroFieldptr ->
         begin
           let _, recordForm, toplevelForms = translateToForms translateF bindings recordExpr in
-(*           let newBindings, recordForm = translateF bindings recordExpr >>= apply2nd toSingleForm in *)
           let fieldptr = `GetFieldPointerIntrinsic (recordForm, fieldName) in
           match typeCheck bindings fieldptr with
             | TypeOf _ -> Some( bindings, toplevelForms @ [fieldptr] )
