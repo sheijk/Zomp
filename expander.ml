@@ -545,9 +545,11 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
 let uniqueIdCounter = ref 0
 
 let uniqueIdF =
-  incr uniqueIdCounter;
   function
-    | [] -> { id = sprintf "\"__id_%d\"" !uniqueIdCounter; args = [] }
+      (*     | [] -> { id = sprintf "\"__id_%d\"" !uniqueIdCounter; args = [] } *)
+    | [] ->
+        incr uniqueIdCounter;
+        { id = string_of_int !uniqueIdCounter; args = [] }
     | _ as args -> raiseIllegalExpression { id = "uniqueIdF"; args = args } "Macro expects 0 params"
 
 let compileTimeBindings = ref
@@ -573,7 +575,7 @@ let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) =
             eprintf "Translating %s\n" (Ast2.expression2string sexpr);
             translateF bindings sexpr
           in
-          let newctBindings, ctforms = tracingTranslateF !compileTimeBindings ctexpr in
+          let newctBindings, ctforms = Printexc.print (fun () -> tracingTranslateF !compileTimeBindings ctexpr) () in
           let lastOfList list =
             let rec worker prev = function
               | [] -> prev
@@ -583,12 +585,13 @@ let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) =
             worker (List.hd list) list
           in
           match lastOfList ctforms with
-            | `Constant StringLiteral str ->
-                let sexpr = { id = str; args = [] } in
+            | `Constant c ->
+                let sexpr = { id = valueString c; args = [] } in
                 let newBindings, simpleforms = translateF bindings sexpr in
                 Some( newBindings, simpleforms )
             | `Variable var ->
                 let sexpr = { id = var.vname; args = [] } in
+                eprintf "Ok2\n";
                 let newBindings, simpleforms = translateF bindings sexpr in
                 Some( newBindings, simpleforms )
             | _ ->
