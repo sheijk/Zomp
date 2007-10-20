@@ -9,12 +9,14 @@ UPDATE=cp
 
 FLYMAKE_LOG=flymake-log.temp
 
-CAML_INCLUDE=-I `ocamlfind query type-conv` -I `ocamlfind query sexplib`
-CAML_PP=-pp "camlp4o $(CAML_INCLUDE) pa_type_conv.cmo pa_sexp_conv.cmo"
+# CAML_INCLUDE=-I `ocamlfind query type-conv` -I `ocamlfind query sexplib`
+# CAML_PP=-pp "camlp4o $(CAML_INCLUDE) pa_type_conv.cmo pa_sexp_conv.cmo"
+CAML_INCLUDE=
+CAML_PP=
 
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 
-CAML_LIBS = str.cma bigarray.cma sexplib.cma
+CAML_LIBS = str.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo expander.cmo parseutils.cmo
 
 all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags

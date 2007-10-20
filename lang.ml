@@ -1,6 +1,4 @@
 
-TYPE_CONV_PATH "Lang"
-  
 open Printf
 open Common
   
@@ -18,8 +16,8 @@ let componentNum components componentName =
 
 include Typesystems.Zomp
 
-type composedType = typ with sexp
-type integralValue = value with sexp
+type composedType = typ
+type integralValue = value
 
 let dequoteEscapeSequence str =
   let numRE = Str.regexp "^\\\\[0-9]\\([0-9][0-9]\\)?$"
@@ -68,7 +66,6 @@ let string2integralValue str =
 type varStorage =
   | RegisterStorage
   | MemoryStorage
-with sexp
     
 type 'typ variable = {
   vname :string;
@@ -77,7 +74,7 @@ type 'typ variable = {
   vstorage :varStorage;
   vmutable :bool;
   vglobal :bool;
-} with sexp
+}
 
 let variable ~name ~typ ~default ~storage ~global = {
   vname = name;
@@ -88,6 +85,13 @@ let variable ~name ~typ ~default ~storage ~global = {
   vglobal = global;
 }
 
+let varToStringShort var =
+  sprintf "%s : %s" var.vname (typeName var.typ)
+    
+let varToString var =
+  sprintf "%s : %s = %s" var.vname (typeName var.typ) (valueString var.default)
+    
+    
 (* TODO: fix this! TODO: find out what should be fixed... *)
 let localVar = variable ~storage:RegisterStorage ~global:false
 and globalVar = variable ~storage:MemoryStorage ~global:true
@@ -106,13 +110,21 @@ and branch = {
   trueLabel :label;
   falseLabel :label;
 }
-with sexp
 
+let funcCallToString argToString fc =
+  let argStrings : string list = List.map argToString fc.fcargs in
+  sprintf "%s(%s)" fc.fcname (Common.combine ", " argStrings)
+
+let labelToString l = l.lname
+
+let branchToString b =
+  sprintf "%s ? %s : %s" b.bcondition.vname (labelToString b.trueLabel) (labelToString b.falseLabel)
+    
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
 | `Variable of 'typ variable
 | `Constant of integralValue
-] with sexp
+]
 
 type 'form genericIntrinsic = [
 | `NullptrIntrinsic of composedType
@@ -122,7 +134,7 @@ type 'form genericIntrinsic = [
 | `LoadIntrinsic of 'form
 | `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
 | `GetFieldPointerIntrinsic of 'form * string
-] with sexp
+]
     
 type form = [
 | composedType flatArgForm
@@ -148,8 +160,42 @@ and toplevelExpr = [
 | `DefineFunc of func
 | `Typedef of string * typ
 ]
-with sexp
+
+let rec formToString : form -> string = function
+  | `Variable var -> sprintf "Variable (%s)" (varToString var)
+  | `Constant c -> sprintf "Constant (%s)" (valueString c)
+  | `Sequence s ->
+      let strings = List.map formToString s in
+      sprintf "Sequence(%s)" (Common.combine "; " strings)
+  | `DefineVariable (var, form) ->
+      sprintf "DefineVar(%s = %s)" (varToStringShort var) (match form with Some form -> formToString form | None -> "undef")
+  | `FuncCall fc ->
+      sprintf "FuncCall(%s)" (funcCallToString formToString fc)
+  | `AssignVar (var, form) ->
+      sprintf "AssignVar(%s, %s)" (varToStringShort var) (formToString form)
+  | `Return form ->
+      sprintf "Return( %s )" (formToString form)
+  | `Jump label ->
+      sprintf "Jump( %s )" (labelToString label)
+  | `Branch b ->
+      sprintf "Branch( %s )" (branchToString b)
+  | `Label l ->
+      labelToString l
+  | #genericIntrinsic -> "some generic intrinsic"
+
+let funcToString func =
+  let argToString (name, typ) = name ^ " :" ^ typeName typ in
+  let argStrings = List.map argToString func.fargs in
+  sprintf "%s(%s)" func.fname (Common.combine ", " argStrings)
     
+let toplevelFormToString = function
+  | `GlobalVar var ->
+      sprintf "GlobalVar( %s )" (varToString var)
+  | `DefineFunc func ->
+      sprintf "DefineFunc( %s )" (funcToString func)
+  | `Typedef (name, typ) ->
+      sprintf "Typedef( %s = %s )" name (typeName typ)
+      
 let toSingleForm formlist =
   match formlist with
     | [(singleForm :form)] -> singleForm
