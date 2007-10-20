@@ -1,3 +1,6 @@
+
+TYPE_CONV_PATH "Typesystems"
+
 open Printf
   
 module type TYPE_SYSTEM =
@@ -19,6 +22,8 @@ module Llvm =
 struct
   exception CouldNotParseType of string
   type typ = Void | Int8 | Int32
+  with sexp
+      
   type value = VoidValue | Int8Value of int | Int32Value of Int32.t
 
   let typeInfo = [
@@ -71,7 +76,7 @@ struct
   | `Float
   | `Bool
   | `Char
-  ]
+  ] with sexp
 
   type typ = [
   | integralType
@@ -80,7 +85,8 @@ struct
   | `TypeRef of string
   ]
   and recordType = (string * typ) list
-
+  with sexp
+     
   type value =
     | VoidVal
     | IntVal of int
@@ -90,7 +96,8 @@ struct
     | CharVal of char
     | PointerVal of typ * int option
     | RecordVal of (string * value) list
-
+  with sexp
+      
   exception CouldNotParseType of string
 
   (* val typeOf : value -> typ *)

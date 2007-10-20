@@ -1,3 +1,6 @@
+
+TYPE_CONV_PATH "Lang"
+  
 open Printf
 open Common
   
@@ -15,8 +18,8 @@ let componentNum components componentName =
 
 include Typesystems.Zomp
 
-type composedType = typ
-type integralValue = value
+type composedType = typ with sexp
+type integralValue = value with sexp
 
 let dequoteEscapeSequence str =
   let numRE = Str.regexp "^\\\\[0-9]\\([0-9][0-9]\\)?$"
@@ -65,7 +68,8 @@ let string2integralValue str =
 type varStorage =
   | RegisterStorage
   | MemoryStorage
-
+with sexp
+    
 type 'typ variable = {
   vname :string;
   typ :'typ;
@@ -73,7 +77,7 @@ type 'typ variable = {
   vstorage :varStorage;
   vmutable :bool;
   vglobal :bool;
-}
+} with sexp
 
 let variable ~name ~typ ~default ~storage ~global = {
   vname = name;
@@ -102,12 +106,13 @@ and branch = {
   trueLabel :label;
   falseLabel :label;
 }
+with sexp
 
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
 | `Variable of 'typ variable
 | `Constant of integralValue
-]
+] with sexp
 
 type 'form genericIntrinsic = [
 | `NullptrIntrinsic of composedType
@@ -117,7 +122,7 @@ type 'form genericIntrinsic = [
 | `LoadIntrinsic of 'form
 | `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
 | `GetFieldPointerIntrinsic of 'form * string
-]
+] with sexp
     
 type form = [
 | composedType flatArgForm
@@ -143,7 +148,8 @@ and toplevelExpr = [
 | `DefineFunc of func
 | `Typedef of string * typ
 ]
-
+with sexp
+    
 let toSingleForm formlist =
   match formlist with
     | [(singleForm :form)] -> singleForm

@@ -9,7 +9,7 @@ open Zompvm
 let prompt =          "  # "
 and continuedPrompt = "..# "
   
-let printLLVMCode = ref true
+let printLLVMCode = ref false
 and llvmEvaluationOn = ref true
   
 module StringMap = Map.Make(String)

@@ -9,8 +9,13 @@ UPDATE=cp
 
 FLYMAKE_LOG=flymake-log.temp
 
-CAML_LIBS = str.cma
-LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo expander.cmo genllvm.cmo parseutils.cmo
+CAML_INCLUDE=-I `ocamlfind query type-conv` -I `ocamlfind query sexplib`
+CAML_PP=-pp "camlp4o $(CAML_INCLUDE) pa_type_conv.cmo pa_sexp_conv.cmo"
+
+CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
+
+CAML_LIBS = str.cma bigarray.cma sexplib.cma
+LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo expander.cmo parseutils.cmo
 
 all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags
 
@@ -27,23 +32,19 @@ dllzompvm.so: zompvm.h zompvm.cpp machine.c
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
-	$(OCAMLC) -g -o $@ str.cma $(SEXPR_TL_INPUT)
+	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...
-	$(OCAMLC) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
+	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
 
 zompc: $(LANG_CMOS) zompc.cmo
 	echo Building $@ ...
-	$(OCAMLC) -g -o $@ str.cma $(LANG_CMOS) zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) zompc.cmo
 
 gencode: gencode.cmo gencode.ml
 	echo Building $@ ...
-	$(OCAMLC) -g -o $@ str.cma gencode.cmo
-
-forktest: forktest.cmo
-	echo Building forktest
-	$(OCAMLC) -g -o $@ str.cma unix.cma forktest.cmo
+	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) gencode.cmo
 
 machine.cmo: machine.skel
 
@@ -67,7 +68,7 @@ stdlib.bc stdlib.ll: stdlib.c
 .mly.ml:
 	echo Generating parser $< ...
 	$(MENHIR) $<
-	$(OCAMLC) -c $(<:.mly=.mli)
+	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
 .mll.ml:
 	echo Generating lexer $< ...
@@ -75,20 +76,21 @@ stdlib.bc stdlib.ll: stdlib.c
 
 .ml.cmi:
 	echo Compiling $< triggered by .cmi ...
-	$(OCAMLC) -g -c $<
+	$(OCAMLC) $(CAML_FLAGS) -g -c $<
 
 .ml.cmo:
 	echo Compiling $< ...
-	$(OCAMLC) -g -c $<
+	$(OCAMLC) $(CAML_FLAGS) -g -c $<
 
 deps:
 	echo Calculating dependencies ...
-	$(OCAMLDEP) *.ml *.mly *.mll > makefile.depends
+	$(OCAMLDEP) $(CAML_PP) *.ml *.mly *.mll > makefile.depends
 
 parser2.cmo: ast2.ml
 sexprparser.cmo: ast2.ml
 sexprlexer.cmo: ast2.ml
 
+# generate tags if otags exists
 tags:
 	echo Generating tags ...
 	otags 2> /dev/null || echo "otags not found, no tags generated"
@@ -122,7 +124,7 @@ clean_all: clean clean_tags
 
 ml_check:
 	@echo Checking OCaml files $(CHK_SOURCES)
-	@$(OCAMLC) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
+	@$(OCAMLC) $(CAML_FLAGS) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
 
 cpp_check:
 	@echo Checking C++ files $(CHK_SOURCES)

@@ -6,6 +6,8 @@
 (* #load "common.cmo";; *)
 (* #load "bindings.cmo";; *)
 
+TYPE_CONV_PATH "Expander"
+
 open Lang
 open Semantic
 open Ast2
@@ -80,8 +82,10 @@ let rec translateType bindings typeExpr =
         end
     | _ -> None
 
-        
-type exprTranslateF = bindings -> sexpr -> bindings * [`ToplevelForm of toplevelExpr | form] list
+
+type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form] with sexp
+    
+type exprTranslateF = bindings -> sexpr -> bindings * formWithTLsEmbedded list
 
 let rec extractToplevelForms = function
   | [] -> [], []
@@ -535,6 +539,47 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
+let uniqueIdCounter = ref 0
+
+let uniqueIdF =
+  incr uniqueIdCounter;
+  function
+    | [] -> { id = sprintf "\"__id_%d\"" !uniqueIdCounter; args = [] }
+    | _ as args -> raiseIllegalExpression { id = "uniqueIdF"; args = args } "Macro expects 0 params"
+
+let compileTimeBindings = ref
+  begin
+    Bindings.addMacro Genllvm.defaultBindings "uniqueId" uniqueIdF
+ end
+
+let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) =
+  function
+    | { id = "antiquote"; args = args } as expr ->
+        begin
+          let exprFromArgs = function
+            | { id = id; args = [] } :: moreArgs -> Some { id = id; args = moreArgs }
+            | _ -> None
+          in
+          let ctexpr =
+            match exprFromArgs args with
+              | Some ctexpr -> ctexpr
+              | None -> raiseIllegalExpression expr "First argument of antiquoted expr must not have arguments"
+          in
+          let newctBindings, ctforms = translateF !compileTimeBindings ctexpr in
+          match ctforms with
+            | [`Constant StringLiteral str] ->
+                let sexpr = { id = str; args = [] } in
+                let newBindings, simpleforms = translateF bindings sexpr in
+                Some( newBindings, simpleforms )
+            | illforms ->
+                let illformSexps = List.map sexp_of_formWithTLsEmbedded illforms in
+                let illformStrings = List.map Sexplib.Conv.string_of_sexp illformSexps in
+                let illformCombined = Common.combine "\n" illformStrings in
+                raiseIllegalExpression ctexpr (sprintf "Resulted in invalid form: %s" illformCombined)
+        end
+    | _ ->
+        None
+
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -550,6 +595,7 @@ let translateNested = translate raiseIllegalExpression
     translateReturn;
     translateLabel;
     translateBranch;
+    translateAntiquote;
   ]
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
