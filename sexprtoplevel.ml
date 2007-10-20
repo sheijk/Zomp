@@ -3,6 +3,7 @@ open Ast2
 open Printf
 open Lang
 open Common
+open Bindings
 
 open Zompvm
 
@@ -40,35 +41,56 @@ let matchAnyRegexp patterns =
         let containsPatterns = List.map (fun p -> ".*" ^ p ^ ".*") patterns in
         Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
       
-let printBindings args (bindings :Bindings.bindings) =
+let printBindings args (bindings :bindings) =
   let checkRE = matchAnyRegexp args in
   let printSymbol (name, symbol)  =
     if Str.string_match checkRE name 0 then 
       match symbol with
-        | Bindings.VarSymbol var ->
+        | VarSymbol var ->
             printf "var %s : %s\n" var.vname (Lang.typeName var.typ)
-        | Bindings.FuncSymbol f ->
+        | FuncSymbol f ->
             let arg2string (name, typ) = Lang.typeName typ ^ " " ^ name in
             let args = List.map arg2string f.fargs in
             let argString = combine ", " args in
             printf "func %s : %s -> %s\n" f.fname argString (Lang.typeName f.rettype)
-        | Bindings.MacroSymbol m ->
+        | MacroSymbol m ->
             printf "macro %s\n" m.mname
-        | Bindings.TypedefSymbol t ->
+        | TypedefSymbol t ->
             printf "type %s\n" name
-        | Bindings.LabelSymbol { lname = name; } ->
+        | LabelSymbol { lname = name; } ->
             printf "label %s\n" name
-        | Bindings.UndefinedSymbol ->
+        | UndefinedSymbol ->
             printf "undefined %s\n" name
   in
   print_newline();
   List.iter printSymbol bindings;
   print_newline()
 
-let runMain args _ =
+let runMain args bindings =
   match args with
-    | [funcname] -> Machine.zompRunFunction funcname
-    | _ -> eprintf "Only one argument allowed\n"; flush stderr
+    | [funcname] ->
+        begin
+          match Bindings.lookup bindings funcname with
+            | FuncSymbol func ->
+                begin
+                  match func.rettype with
+                    | `Void ->
+                        Machine.zompRunFunction funcname;
+                        printf " => void\n";
+                    | `Int ->
+                        let retval = Machine.zompRunFunctionInt funcname in
+                        printf " => %d\n" retval
+                    | `Pointer `Char ->
+                        let retval = Machine.zompRunFunctionString funcname in
+                        printf " => %s\n" retval
+                    | otherRetType ->
+                        eprintf "Cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
+                end
+            | _ ->
+                eprintf "Cannot run %s because no such function was found\n" funcname
+        end
+    | _ ->
+        eprintf "Only one argument allowed\n"; flush stderr
     
 let loadLLVMFile args _ =
   let loadFile filename =

@@ -48,6 +48,28 @@ extern "C" {
   }
 }
 
+llvm::GenericValue runFunction(const char* name) {
+  std::vector<const Type*> noargs;
+  FunctionType* voidType = FunctionType::get( Type::VoidTy, noargs, false, NULL );
+
+  Function* func = llvmModule->getFunction( name );
+
+  if( func == NULL ) {
+    printf( "Function %s not found in module\n", name );
+    fflush( stdout );
+      
+    func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
+  }
+
+  std::vector<GenericValue> args;
+  GenericValue retval = executionEngine->runFunction( func, args );
+
+  fflush( stdout );
+  fflush( stderr );
+
+  return retval;
+}
+
 extern "C" {
 #include "zompvm.h"
 
@@ -70,7 +92,7 @@ extern "C" {
   bool zompSendCode(const char* code) {
     ParseError errorInfo;
   
-    Module* module = ParseAssemblyString( code, llvmModule, &errorInfo );
+    ParseAssemblyString( code, llvmModule, &errorInfo );
 //     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
 
     if( errorInfo.getRawMessage() != "none" ) {
@@ -153,31 +175,30 @@ extern "C" {
     return false;
   }
 
-  void zompRunFunction(const char* name) {
-    std::vector<const Type*> noargs;
-    FunctionType* voidType = FunctionType::get( Type::VoidTy, noargs, false, NULL );
 
-    Function* func = llvmModule->getFunction( name );
+  void zompRunFunction(const char* functionName) {
+    runFunction( functionName );
+  }
+  
+  int zompRunFunctionInt(const char* functionName) {
+    GenericValue result = runFunction( functionName );
+    return result.IntVal.getLimitedValue();
+  }
 
-    if( func == NULL ) {
-      printf( "Function %s not found in module\n", name );
-      fflush( stdout );
-      
-      func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
-    }
+  const char* zompRunFunctionString(const char* functionName) {
+    GenericValue result = runFunction( functionName );
 
-    std::vector<GenericValue> args;
-    executionEngine->runFunction( func, args );
+    static std::string buffer;
 
-    fflush( stdout );
-    fflush( stderr );
+    buffer = (const char*) result.PointerVal;
+    return buffer.c_str();
   }
 
   void zompPrintModuleCode() {
-  std::cout
-    << "--- We just constructed this LLVM module ---\n\n"
-    << *llvmModule << "\n"
-    << "--------------------------------------------\n\n";
+    std::cout
+      << "--- We just constructed this LLVM module ---\n\n"
+      << *llvmModule << "\n"
+      << "--------------------------------------------\n\n";
   
     /*
     std::string llvmCode = llvmModule->getModuleInlineAsm();

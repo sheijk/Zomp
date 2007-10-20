@@ -130,7 +130,7 @@ ml_check:
 
 cpp_check:
 	@echo Checking C++ files $(CHK_SOURCES)
-	@g++ -c $(CHK_SOURCES) `llvm-config --cxxflags` -fsyntax-only > $(FLYMAKE_LOG)
+	@g++ -c $(CHK_SOURCES) -Wall `llvm-config --cxxflags` -fsyntax-only > $(FLYMAKE_LOG)
 
 check-source: $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES)))
 	@cat $(FLYMAKE_LOG)

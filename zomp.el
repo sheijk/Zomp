@@ -90,7 +90,7 @@
   (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
 
 (defun zomp-tl-run (funcname)
-  (interactive "MName of function (of type void -> void): ")
+  (interactive "MName of function: ")
   (zomp-tl-do (concat "#run " funcname)) )
 
 (defun zomp-tl-list-bindings (regexps)

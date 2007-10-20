@@ -199,7 +199,7 @@ let _ =
   addType ~name:"GLbitfield" ~mltype:"int"
     ~ctype2val:"Val_long" ~value2ctype:"Long_val" ();
   addType ~name:"const char*" ~mltype:"string"
-    ~ctype2val:"safe_caml_copy_string" ~value2ctype:"String_val" ();
+    ~ctype2val:"caml_copy_string" ~value2ctype:"String_val" ();
   addType ~name:"const GLchar*" ~mltype:"string"
     ~ctype2val:"caml_copy_string" ~value2ctype:"String_val" ();
   addType ~name:"GLbyte" ~mltype:"int" ();

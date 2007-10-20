@@ -19,7 +19,6 @@
 //   ))
   
 (macro for index min max code (
-  #(var cstring startLabel (uniqueId))
   (var int index min)
   (label start)
   (var bool t (int.uless index max))
@@ -34,6 +33,10 @@
 (func void printChars ((char c) (int count)) (
   (for i 0 count
     (printChar c) )
+  ))
+
+(func (ptr char) foo () (
+  (ret "hello, there")
   ))
   
 (func void test () (

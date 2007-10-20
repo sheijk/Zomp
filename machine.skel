@@ -7,13 +7,20 @@ http://sheijk.dword.org/zomp
     
 	bool zompInit ()
 	void zompShutdown ()
+    
     bool zompSendCode (const char* code)
     bool zompSendCodeNewVar (const char* code)
     bool zompSendCodeNewFunc (const char* code)
     bool zompSendCodeModifyFunc (const char* code)
+    
     bool zompLoadFile (const char* filename)
-    void zompRunFunction (const char* name)
+    
     void zompPrintModuleCode ()
+    
     bool zompRemoveFunctionBody (const char* funcName)
     bool zompRecompileAndRelinkFunction (const char* funcName)
+    
+    void zompRunFunction (const char* name)
+    int zompRunFunctionInt (const char* name)
+    const char* zompRunFunctionString (const char* name)
     

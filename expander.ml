@@ -556,7 +556,7 @@ let compileTimeBindings = ref
   begin
     Bindings.addMacro Genllvm.defaultBindings "uniqueId" uniqueIdF
  end
-
+(* TODO: let uniqueId return a string and make it work *)
 let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) =
   function
     | { id = "antiquote"; args = args } as expr ->
