@@ -89,7 +89,13 @@ let stringMap f str =
 let llvmEscapedString str = 
   Str.global_replace (Str.regexp "\\\\n") "\\\\0A" str
 
-    
+let lastUniqueId = ref 0
+let newUniqueId() =
+  incr lastUniqueId;
+  !lastUniqueId
+let newUniqueName() =
+  "__temp_" ^ string_of_int (newUniqueId())
+  
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -158,11 +164,47 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let templateMacro name params expr =
       macro name (fun args -> Ast2.replaceParams params args expr)
     in
+    let quoteMacro =
+      macro "quote"
+        (fun args ->
+           let rec sexpr2code = function
+             | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
+             | sexprWithArgs ->
+                 let tempVarName = newUniqueName() in
+                 let defVarExpr =
+                   { id = "var";
+                     args = [
+                       simpleExpr "ptr" ["ast"];
+                       idExpr tempVarName;
+                       simpleExpr "simpleAst" ["\"" ^ sexprWithArgs.id ^ "\""]]
+                   }
+                 in
+                 let returnExpr = idExpr tempVarName in
+                 let addChildExpr childExpr =
+                   { id = "addChild"; args = [
+                       idExpr tempVarName;
+                       childExpr;
+                     ] }
+                 in
+                 let argExprs = List.map sexpr2code sexprWithArgs.args in
+                 let argAddExprs = List.map addChildExpr argExprs in
+                 let r = seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] ) in
+                 printf "\nQuoted:\n%s\n\n" (Ast2.expression2string r);
+                 r
+           in
+           match args with
+             | [quotedExpr] -> sexpr2code quotedExpr
+             | [] -> simpleExpr "simpleAst" ["seq"]
+             | args -> { id = "quote"; args = args }
+        )
+    in
     [
       delegateMacro "op+" "int.add";
       delegateMacro "op+_f" "float.add";
 
       templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] });
+
+      quoteMacro;
     ]
   in
   let defaultBindings =

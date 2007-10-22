@@ -601,7 +601,7 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
 (*         end *)
 (*     | _ -> *)
 (*         None *)
-          
+
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;

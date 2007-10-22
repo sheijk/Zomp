@@ -7,6 +7,8 @@ type sexpr = {
 
 let idExpr name = { id = name; args = [] }
 let simpleExpr name args = { id = name; args = List.map (fun str -> { id = str; args = [] }) args }
+let emptyExpr = { id = "seq"; args = [] }
+let seqExpr args = { id = "seq"; args = args }
   
 let rec expression2string = function
   | { id = ""; args = [] } -> "()"
@@ -21,7 +23,7 @@ let rec expression2string = function
           else
             inOneLine
         else
-          Common.combine "\n  " (id::argStrings)
+          "(" ^ Common.combine "\n  " (id::argStrings) ^ " )"
       end    
 
 
@@ -39,3 +41,4 @@ let rec replaceParams params args expr =
   match replace expr.id with
     | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
     | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
+

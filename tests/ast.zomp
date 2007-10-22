@@ -71,8 +71,9 @@
 (func void printAst (((ptr ast) a) (int indent)) (
   (printIndent indent)
   (printString (load (fieldptr a id)))
-  (printChar ' ')
+  (printString " [")
   (printInt (getField a childCount))
+  (printString " childs]")
   (println)
 
   (var int index 0)
@@ -110,8 +111,18 @@
   ))
 
 (func void quoteTest () (
+  (printlnString "Printing quoted ast:")
   (var (ptr ast) tree `(theid arg0 arg1 (arg2 arg2a arg2b)))
+//   (var (ptr ast) tree `(theid (foo bar)))
   (printAst tree 0)
+
+  (printlnString "Printing handcrafted ast:")
+  (var (ptr ast) tst (seq
+    (var (ptr ast) t (simpleAst "foo"))
+    (addChild t (simpleAst "a"))
+    (addChild t (simpleAst "b"))
+    t ))
+  (printAst tst 0)
   ))
   
 (func int main () (
@@ -126,6 +137,8 @@
   (extraChild "child3")
   (extraChild "child4")
   (printAst tree 0)
+
+  (quoteTest)
   
   100
   ))
