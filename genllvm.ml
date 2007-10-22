@@ -239,16 +239,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   defaultBindings, externalFuncDecls, findIntrinsic
   
-let indent string =
-  let indentLine line =
-    let len = String.length line in
-    if len >= 1 && line.[len-1] = ':' then line
-    else "  " ^ line
-  in
-  let lines = Str.split (Str.regexp "\n") string in
-  let indentedLines = List.map indentLine lines in
-  combine "\n" indentedLines
-
 let gencodeSequence gencode exprs =
   let rec lastVarAndCode var code = function
     | [] -> var, code
@@ -257,7 +247,7 @@ let gencodeSequence gencode exprs =
         lastVarAndCode resultVar (code @ [exprCode]) tail
   in
   let resultVar, code = lastVarAndCode noVar [] exprs in
-  resultVar, indent (combine "\n\n" code)
+  resultVar, Common.indent (combine "\n\n" code)
 
 let gencodeDefineVariable gencode var default =
   match var.vstorage with

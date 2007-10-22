@@ -113,7 +113,6 @@
 (func void quoteTest () (
   (printlnString "Printing quoted ast:")
   (var (ptr ast) tree `(theid arg0 arg1 (arg2 arg2a arg2b)))
-//   (var (ptr ast) tree `(theid (foo bar)))
   (printAst tree 0)
 
   (printlnString "Printing handcrafted ast:")

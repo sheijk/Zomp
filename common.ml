@@ -31,6 +31,15 @@ let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let commentedLines = List.map (fun line -> startDelim ^ line ^ stopDelim) lines in
   combine "\n" commentedLines
   
+let indent string =
+  let indentLine line =
+    let len = String.length line in
+    if len >= 1 && line.[len-1] = ':' then line
+    else "  " ^ line
+  in
+  let lines = Str.split (Str.regexp "\n") string in
+  let indentedLines = List.map indentLine lines in
+  combine "\n" indentedLines
 
 let readFile filename =
   let file = open_in filename in
