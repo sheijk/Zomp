@@ -31,7 +31,7 @@ namespace {
   
   void assureModuleExists() {
     if (llvmModule == 0) {
-      debugMessage("Creating new llvm module\n");
+//       debugMessage("Creating new llvm module\n");
       llvmModule = new Module("llvm_module.bc");
     }
   }
@@ -74,7 +74,7 @@ extern "C" {
 #include "zompvm.h"
 
   bool zompInit() {
-    printf( "Initializing ZompVM\n" );
+//     printf( "Initializing ZompVM\n" );
     fflush( stdout );
   
     assureModuleExists();
@@ -85,7 +85,7 @@ extern "C" {
   }
   
   void zompShutdown() {
-    printf( "Shutting down ZompVM\n" );
+//     printf( "Shutting down ZompVM\n" );
     fflush( stdout );
   }
 

@@ -42,13 +42,11 @@ toplevel2: $(LANG_CMOS) toplevel2.cmo
 
 zompc: $(LANG_CMOS) zompc.cmo
 	echo Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) dllzompvm.so machine.cmo zompvm.cmo zompc.cmo
 
 gencode: gencode.cmo gencode.ml
 	echo Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) gencode.cmo
-
-machine.cmo: machine.skel
 
 machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
@@ -91,6 +89,9 @@ deps:
 parser2.cmo: ast2.ml
 sexprparser.cmo: ast2.ml
 sexprlexer.cmo: ast2.ml
+machine.cmo: machine.skel
+zompvm.cmo: machine.cmo
+zompc: dllzompvm.so
 
 # generate tags if otags exists
 tags:

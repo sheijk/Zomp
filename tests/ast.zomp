@@ -109,6 +109,10 @@
   (setField tree childCount newChildCount)
   ))
 
+(func void quoteTest () (
+  (var (ptr ast) tree `(theid arg0 arg1 (arg2 arg2a arg2b)))
+  (printAst tree 0)
+  ))
   
 (func int main () (
   (printlnString msg)
@@ -124,11 +128,6 @@
   (printAst tree 0)
   
   100
-  ))
-
-  
-(func int five () (
-  (ret 5)
   ))
 
 (func void test () (

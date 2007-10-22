@@ -47,14 +47,33 @@ let parseChannel lexbuf parseF bindings =
              (Ast2.expression2string expr) msg)
       end
           
-let rec readInput str =
-  try readInput (str ^ read_line() ^ "\n")
-  with End_of_file -> str
-          
-let () =
+let readInput channel =
+  let rec worker str = 
+    try worker (str ^ input_line channel ^ "\n")
+    with End_of_file -> str
+  in
+  worker ""
+
+let printInstructions() =
+  printf "zompc -c fileName.zomp\n";
+  printf "to compile fileName.zomp into fileName.ll\n"
+
+let reportError message =
+  printf "Error: %s\n" message;
+  printInstructions()
+
+
+let getBasename filename =
+  let zompFileRE = Str.regexp "\\(.+\\)\\.zomp" in
+  if Str.string_match zompFileRE filename 0 then
+    Some (Str.matched_group 1 filename)
+  else
+    None
+
+let compile instream outstream =
   let preludeFileName = Filename.dirname Sys.executable_name ^ "/stdlib.zomp" in
   let prelude = Common.readFile preludeFileName in
-  let input = readInput "" in
+  let input = readInput instream in
   let printError = function
     | CouldNotParse msg -> eprintf "%s" msg
     | CouldNotCompile msg -> eprintf "%s" msg
@@ -67,15 +86,51 @@ let () =
         lazy (parseF (Parser2.main Lexer2.token));
         lazy (parseF (Sexprparser.main Sexprlexer.token));
       ]
-      ~onSuccess:(fun (newBindings, llvmCode) -> printf "%s" llvmCode; Some newBindings)
+      ~onSuccess:(fun (newBindings, llvmCode) -> output_string outstream llvmCode; Some newBindings)
       ~ifAllFailed:(fun exceptions -> List.iter printError exceptions; None)
   in
-  match compile Genllvm.defaultBindings prelude with
-    | Some bindings ->
-        begin match compile bindings input with
-          | Some _ -> exit 0
-          | None -> exit 2
-        end
-    | None ->
-        exit 1
+  if not( Zompvm.zompInit() ) then begin
+    eprintf "Could not init ZompVM\n";
+    exit 3;
+  end;
+  let exitCode =
+    match compile Genllvm.defaultBindings prelude with
+      | Some bindings ->
+          begin match compile bindings input with
+            | Some _ -> 0
+            | None -> 2
+          end
+      | None -> 1
+  in
+  Zompvm.zompShutdown();
+  exit exitCode
 
+    
+let () =
+  match Sys.argv with
+      [| _; "-c"; fileName |] ->
+        begin
+          match getBasename fileName with
+            | Some baseName ->
+                begin
+                  let inStream = open_in (baseName ^ ".zomp")
+                  and outStream = open_out (baseName ^ ".ll")
+                  in
+                  try
+                    compile inStream outStream
+                  with
+                    | Sexprlexer.Eof ->
+                        close_in inStream;
+                        close_out outStream;
+                    | _ as e ->
+                        close_in inStream;
+                        close_out outStream;
+                        Sys.remove (baseName ^ ".ll");
+                        raise e
+                end
+            | None ->
+                reportError "Invalid file name. Expected *.zomp"
+        end
+    | _ ->
+        printInstructions()
+    

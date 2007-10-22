@@ -9,6 +9,12 @@ exception FailedToEvaluateLLVMCode of string * string
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 
+let compileExpr bindings sexpr = 
+  let newBindings, simpleforms = Expander.translateTL bindings sexpr in
+  let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
+  let llvmCode = combine "\n" llvmCodes in
+  newBindings, simpleforms, llvmCode
+  
 let evalLLVMCode bindings simpleforms llvmCode :unit =
   let isDefinedFunction func =
     match func.impl, Bindings.lookup bindings func.fname with

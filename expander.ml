@@ -542,65 +542,65 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
-let uniqueIdCounter = ref 0
+(* let uniqueIdCounter = ref 0 *)
 
-let uniqueIdF =
-  function
-      (*     | [] -> { id = sprintf "\"__id_%d\"" !uniqueIdCounter; args = [] } *)
-    | [] ->
-        incr uniqueIdCounter;
-        { id = string_of_int !uniqueIdCounter; args = [] }
-    | _ as args -> raiseIllegalExpression { id = "uniqueIdF"; args = args } "Macro expects 0 params"
+(* let uniqueIdF = *)
+(*   function *)
+(*       (\*     | [] -> { id = sprintf "\"__id_%d\"" !uniqueIdCounter; args = [] } *\) *)
+(*     | [] -> *)
+(*         incr uniqueIdCounter; *)
+(*         { id = string_of_int !uniqueIdCounter; args = [] } *)
+(*     | _ as args -> raiseIllegalExpression { id = "uniqueIdF"; args = args } "Macro expects 0 params" *)
 
-let compileTimeBindings = ref
-  begin
-    Bindings.addMacro Genllvm.defaultBindings "uniqueId" uniqueIdF
- end
-(* TODO: let uniqueId return a string and make it work *)
-let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) =
-  function
-    | { id = "antiquote"; args = args } as expr ->
-        begin
-          let exprFromArgs = function
-            | { id = id; args = [] } :: moreArgs -> Some { id = id; args = moreArgs }
-            | _ -> None
-          in
-          let ctexpr =
-            match exprFromArgs args with
-              | Some ctexpr -> ctexpr
-              | None -> raiseIllegalExpression expr "First argument of antiquoted expr must not have arguments"
-          in
-          eprintf "Translating sexpr %s\n" (Ast2.expression2string ctexpr);
-          let tracingTranslateF bindings sexpr =
-            eprintf "Translating %s\n" (Ast2.expression2string sexpr);
-            translateF bindings sexpr
-          in
-          let newctBindings, ctforms = Printexc.print (fun () -> tracingTranslateF !compileTimeBindings ctexpr) () in
-          let lastOfList list =
-            let rec worker prev = function
-              | [] -> prev
-              | h :: t ->
-                  worker h t
-            in
-            worker (List.hd list) list
-          in
-          match lastOfList ctforms with
-            | `Constant c ->
-                let sexpr = { id = valueString c; args = [] } in
-                let newBindings, simpleforms = translateF bindings sexpr in
-                Some( newBindings, simpleforms )
-            | `Variable var ->
-                let sexpr = { id = var.vname; args = [] } in
-                eprintf "Ok2\n";
-                let newBindings, simpleforms = translateF bindings sexpr in
-                Some( newBindings, simpleforms )
-            | _ ->
-                let illformStrings = List.map formWithTLsEmbeddedToString ctforms in
-                let illformCombined = Common.combine "\n" illformStrings in
-                raiseIllegalExpression ctexpr (sprintf "Resulted in invalid form: %s" illformCombined)
-        end
-    | _ ->
-        None
+(* let compileTimeBindings = ref *)
+(*   begin *)
+(*     Bindings.addMacro Genllvm.defaultBindings "uniqueId" uniqueIdF *)
+(*  end *)
+(* (\* TODO: let uniqueId return a string and make it work *\) *)
+(* let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) = *)
+(*   function *)
+(*     | { id = "antiquote"; args = args } as expr -> *)
+(*         begin *)
+(*           let exprFromArgs = function *)
+(*             | { id = id; args = [] } :: moreArgs -> Some { id = id; args = moreArgs } *)
+(*             | _ -> None *)
+(*           in *)
+(*           let ctexpr = *)
+(*             match exprFromArgs args with *)
+(*               | Some ctexpr -> ctexpr *)
+(*               | None -> raiseIllegalExpression expr "First argument of antiquoted expr must not have arguments" *)
+(*           in *)
+(*           eprintf "Translating sexpr %s\n" (Ast2.expression2string ctexpr); *)
+(*           let tracingTranslateF bindings sexpr = *)
+(*             eprintf "Translating %s\n" (Ast2.expression2string sexpr); *)
+(*             translateF bindings sexpr *)
+(*           in *)
+(*           let newctBindings, ctforms = Printexc.print (fun () -> tracingTranslateF !compileTimeBindings ctexpr) () in *)
+(*           let lastOfList list = *)
+(*             let rec worker prev = function *)
+(*               | [] -> prev *)
+(*               | h :: t -> *)
+(*                   worker h t *)
+(*             in *)
+(*             worker (List.hd list) list *)
+(*           in *)
+(*           match lastOfList ctforms with *)
+(*             | `Constant c -> *)
+(*                 let sexpr = { id = valueString c; args = [] } in *)
+(*                 let newBindings, simpleforms = translateF bindings sexpr in *)
+(*                 Some( newBindings, simpleforms ) *)
+(*             | `Variable var -> *)
+(*                 let sexpr = { id = var.vname; args = [] } in *)
+(*                 eprintf "Ok2\n"; *)
+(*                 let newBindings, simpleforms = translateF bindings sexpr in *)
+(*                 Some( newBindings, simpleforms ) *)
+(*             | _ -> *)
+(*                 let illformStrings = List.map formWithTLsEmbeddedToString ctforms in *)
+(*                 let illformCombined = Common.combine "\n" illformStrings in *)
+(*                 raiseIllegalExpression ctexpr (sprintf "Resulted in invalid form: %s" illformCombined) *)
+(*         end *)
+(*     | _ -> *)
+(*         None *)
           
 let translateNested = translate raiseIllegalExpression
   [
@@ -617,7 +617,7 @@ let translateNested = translate raiseIllegalExpression
     translateReturn;
     translateLabel;
     translateBranch;
-    translateAntiquote;
+(*     translateAntiquote; *)
   ]
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
