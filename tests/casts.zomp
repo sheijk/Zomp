@@ -1,0 +1,22 @@
+
+
+(type point
+  (int x)
+  (int y) )
+
+(func (ptr point) makepoint ((int x) (int y)) (
+  (var (ptr point) p (malloc point))
+  (setField p x x)
+  (setField p y y)
+  (ret p)
+  ))
+
+(func int main () (
+  (var (ptr point) original (makepoint 10 20))
+  (var int asint (cast int original))
+  (var (ptr point) casted (cast (ptr point) asint))
+  
+  (ret (int.add (getField casted x) (getField casted y)))
+  ))
+
+  

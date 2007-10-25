@@ -36,6 +36,7 @@ and macroNullptr = "nullptr"
 and macroPtradd = "ptradd"
 and macroMalloc = "malloc"
 and macroGetaddr = "ptr"
+and macroCast = "cast"
   
 exception IllegalExpression of sexpr * string
   
@@ -497,6 +498,16 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
             | TypeOf _ -> Some( bindings, toplevelForms @ [fieldptr] )
             | TypeError (m,f,e) ->
                 raiseIllegalExpressionFromTypeError expr (m,f,e)
+        end
+    | { id = id; args = [targetTypeExpr; valueExpr] } when id = macroCast ->
+        begin
+          match translateType bindings targetTypeExpr with
+            | Some typ ->
+                let _, valueForm, toplevelForms = translateToForms translateF bindings valueExpr in
+                let castForm = `CastIntrinsic( typ, valueForm ) in
+                Some( bindings, toplevelForms @ [castForm] )
+            | None ->
+                raiseIllegalExpression targetTypeExpr "Expected a valid type"
         end
     | _ ->
         None

@@ -134,6 +134,7 @@ type 'form genericIntrinsic = [
 | `LoadIntrinsic of 'form
 | `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
 | `GetFieldPointerIntrinsic of 'form * string
+| `CastIntrinsic of composedType * 'form
 ]
     
 type form = [
@@ -147,7 +148,6 @@ type form = [
 | `Branch of branch
 | `Label of label
 | form genericIntrinsic
-(* | `ToplevelForm of toplevelExpr *)
 ]
 and func = {
   fname :string;

@@ -53,7 +53,6 @@ let rec typeCheck bindings : form -> typecheckResult =
       | TypeOf _ -> r
   in
   function
-(*     | `ToplevelForm #toplevelExpr -> TypeOf `Void *)
     | `Sequence [] -> TypeOf `Void
     | `Sequence [expr] -> typeCheck bindings expr
     | `Sequence (_ :: tail) -> typeCheck bindings (`Sequence tail)
@@ -106,13 +105,19 @@ let rec typeCheck bindings : form -> typecheckResult =
     | `GetAddrIntrinsic var ->
         begin
           match var.vstorage with
-            | MemoryStorage -> TypeOf (`Pointer var.typ)
-            | RegisterStorage -> TypeError ("Cannot get address of variable with register storage", var.typ, var.typ)
+            | MemoryStorage ->
+                TypeOf (`Pointer var.typ)
+            | RegisterStorage ->
+                TypeError ("Cannot get address of variable with register storage",
+                           var.typ, var.typ)
         end
     | `StoreIntrinsic (ptrExpr, valueExpr) ->
         begin
           match typeCheck bindings ptrExpr, typeCheck bindings valueExpr with
-            | TypeOf `Pointer ptrTargetType, TypeOf valueType when equalTypes bindings ptrTargetType valueType -> TypeOf `Void
+            | TypeOf `Pointer ptrTargetType, TypeOf valueType
+                when equalTypes bindings ptrTargetType valueType
+                  ->
+                TypeOf `Void
             | TypeOf (#typ as invalidPointerType), TypeOf valueType ->
                 TypeError ("tried to store value to pointer of mismatching type",
                            invalidPointerType,
@@ -147,6 +152,11 @@ let rec typeCheck bindings : form -> typecheckResult =
           expectType offsetExpr `Int
           >> expectPointerType ptrExpr
         end
+    | `CastIntrinsic (targetType, valueExpr) ->
+        begin
+          TypeOf targetType
+        end
+        
   
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ

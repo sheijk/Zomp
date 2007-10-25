@@ -503,7 +503,29 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
            offsetAccessCode ^
            code)
       end
-
+  | `CastIntrinsic (targetType, valueForm) ->
+      let valueVar, valueCode = gencode valueForm in
+      let valueType = typeOfForm todoBindings valueForm in
+      let resultVar = newLocalTempVar targetType in
+      let comment = sprintf "; casting to %s\n\n" resultVar.rvtypename in
+      let instructionName = 
+        match valueType, targetType with
+          | `Pointer _, `Int -> "ptrtoint"
+          | `Int, `Pointer _ -> "inttoptr"
+          | _, _ ->
+              raiseCodeGenError ~msg:(sprintf "Cannot cast from %s to %s"
+                                        (typeName valueType) (typeName targetType))
+      in
+      let code =
+        sprintf "%s = %s %s %s to %s\n"
+          resultVar.rvname
+          instructionName
+          valueVar.rvtypename
+          valueVar.rvname
+          (llvmTypeName targetType)
+      in
+      resultVar, comment ^ valueCode ^ "\n" ^ code
+      
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
   let name = (resultVar var).rvname in
