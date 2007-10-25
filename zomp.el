@@ -21,6 +21,62 @@
                          (backward-char 1)))
                   ))))))
 
+(defun zomp-onkey-do (key code)
+  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
+
+
+(defun zomp-tl-run (funcname)
+  (interactive "MName of function: ")
+  (zomp-tl-do (concat "#run " funcname)) )
+
+(defun zomp-tl-list-bindings (regexps)
+  (interactive "MList bindings matching: ")
+  (zomp-tl-do (concat "#bindings " regexps)) )
+
+(defun zomp-toplevel ()
+  (interactive)
+  (shell "*zomp-toplevel*")
+  (zomp-tl-do (concat "cd " zomp-basedir))
+  (zomp-tl-do "./sexprtoplevel; exit")
+  (message "Started zomp toplevel")
+  )
+
+(defun zomp-tl-do (code)
+  (process-send-string (get-buffer-process "*zomp-toplevel*") (concat code ""))
+  )
+
+(defun zomp-tl-eval-region ()
+  (interactive)
+  (message "Evaluating region")
+  (process-send-region (get-buffer-process "*zomp-toplevel*") (region-beginning) (region-end))
+  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
+  )
+
+(defun zomp-tl-eval-current ()
+  (interactive)
+  (message "Evaluating function at point")
+  (push-mark)
+  (search-backward-regexp "^(")
+  (push-mark (point) t t)
+  (goto-match-paren 4)
+  (zomp-tl-eval-region)
+  (pop-mark)
+  (set-mark-command 1)
+  )
+
+(defun zomp-tl-eval-buffer ()
+  (interactive)
+  (message "Evaluating buffer")
+  (process-send-region (get-buffer-process "*zomp-toplevel*") (buffer-end -1) (buffer-end 1))
+  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
+  )
+
+(defun zomp-tl-run-test ()
+  (interactive)
+  (message "Running function test")
+  (zomp-tl-do "#run test")
+  )
+
 (define-generic-mode zomp-mode
   nil
   '("{" "}")
@@ -85,55 +141,4 @@
            (zomp-onkey-do [(control c) (?.) (e)] "#eval")
            ))
   "A simple mode for the zomp language")
-
-(defun zomp-onkey-do (key code)
-  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
-
-(defun zomp-tl-run (funcname)
-  (interactive "MName of function: ")
-  (zomp-tl-do (concat "#run " funcname)) )
-
-(defun zomp-tl-list-bindings (regexps)
-  (interactive "MList bindings matching: ")
-  (zomp-tl-do (concat "#bindings " regexps)) )
-
-(defun zomp-toplevel ()
-  (interactive)
-  (shell "*zomp-toplevel*")
-  (zomp-tl-do (concat "cd " zomp-basedir))
-  (zomp-tl-do "./sexprtoplevel; exit")
-  (message "Started zomp toplevel")
-  )
-
-(defun zomp-tl-do (code)
-  (process-send-string (get-buffer-process "*zomp-toplevel*") (concat code ""))
-  )
-
-(defun zomp-tl-eval-region ()
-  (interactive)
-  (process-send-region (get-buffer-process "*zomp-toplevel*") (region-beginning) (region-end))
-  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
-  )
-
-(defun zomp-tl-eval-current ()
-  (interactive)
-  (push-mark)
-  (search-backward-regexp "^(")
-  (push-mark (point) t t)
-  (goto-match-paren 4)
-  (zomp-tl-eval-region)
-  (pop-mark)
-  (set-mark-command 1)
-  )
-
-(defun zomp-tl-eval-buffer ()
-  (interactive)
-  (process-send-region (get-buffer-process "*zomp-toplevel*") (buffer-end -1) (buffer-end 1))
-  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
-  )
-
-(defun zomp-tl-run-test ()
-  (interactive)
-  (zomp-tl-do "#run test")
-  )
   

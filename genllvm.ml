@@ -168,6 +168,10 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       macro "quote"
         (fun args ->
            let rec sexpr2code = function
+             | { id = "antiquote"; args = [{ id = id; args = args}] } ->
+                 begin
+                   { id = id; args = args }
+                 end
              | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
              | sexprWithArgs ->
                  let tempVarName = newUniqueName() in
@@ -188,9 +192,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                  in
                  let argExprs = List.map sexpr2code sexprWithArgs.args in
                  let argAddExprs = List.map addChildExpr argExprs in
-                 let r = seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] ) in
-                 printf "\nQuoted:\n%s\n\n" (Ast2.expression2string r);
-                 r
+                 seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
            in
            match args with
              | [quotedExpr] -> sexpr2code quotedExpr

@@ -123,6 +123,16 @@
     t ))
   (printAst tst 0)
   ))
+
+(func void printBuilder ((cstring name)) (
+  (var (ptr ast) tree `(print #(simpleAst name)))
+  (printString "Printing ast for ") (printString name) (println)
+  (printAst tree 1)
+  ))
+
+(macro compileMessage (
+  #(printlnString "hello, compiler")
+  ))
   
 (func int main () (
   (printlnString msg)
@@ -138,6 +148,10 @@
   (printAst tree 0)
 
   (quoteTest)
+
+  (printBuilder "foo")
+  (printBuilder "bar")
+  (printBuilder "baz")
   
   100
   ))
