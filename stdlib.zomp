@@ -211,3 +211,30 @@
   ))
 
 
+(func cstring macroAstId ((int tree)) (
+  (getField (cast (ptr ast) tree) id) ))
+
+(func int macroAstChildCount ((int tree)) (
+  (getField (cast (ptr ast) tree) childCount) ))
+
+(func int macroAstChild ((int treeaddr) (int num)) (
+  (var (ptr ast) tree (cast (ptr ast) treeaddr))
+  (var (ptr ast) child (load (ptradd (getField tree childs) num)))
+  (ret (cast int child))
+  ))
+
+/*
+(func int testast2 () (
+  (var (ptr ast) tree `(this is a (simple ast) (for testing purposes)))
+  (ret (cast int tree))
+  ))
+
+(func void test () (
+  (var int t (testast2))
+  
+  (println)
+  (printString (macroAstId t)) (printInt (macroAstChildCount t)) (println)
+  (printlnString (macroAstId (macroAstChild t 2)))
+))
+*/
+

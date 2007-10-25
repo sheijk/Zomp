@@ -23,7 +23,7 @@
 (macro compileMessage (
   #(printlnString "hello, compiler")
   ))
-  
+
 (func int main () (
   (printlnString "hello, ast")
 

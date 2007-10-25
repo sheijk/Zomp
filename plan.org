@@ -18,6 +18,11 @@
     CLOSED: [2007-10-16 Tue 19:04]
 *** TODO Add instruction to free memory
 
+*** TODO Support global pointers
+
+*** TODO Methods are added to bindings twice
+    func returns bindings where the functions is added twice
+
 ** Refactorings
 *** TODO Allow nested expressions in branch instruction
 *** TODO Turn value type into polymorphic variant type
