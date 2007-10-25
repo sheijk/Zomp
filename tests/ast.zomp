@@ -1,114 +1,4 @@
 
-(type cstring (ptr char))
-
-(type string
-  (int length)
-  ((ptr char) chars)
-  )
-(type pstring (ptr string))
-
-
-(func int length ((cstring s)) (
-  (var (ptr char) ptr s)
-  (var int count -1)
-
-  (label start)
-  (var char c (load ptr))
-
-  (assign ptr (ptradd ptr 1))
-  (assign count (int.add count 1))
-  (var bool b (char.equal c '\0'))
-  (branch b end start)
-  
-  (label end)
-  
-  (ret count)
-  ))
-
-(func (ptr string) makestring ((cstring cstr)) (
-  (var (ptr string) pstr (malloc string))
-  (store (fieldptr pstr length) (length cstr))
-  (store (fieldptr pstr chars) cstr)
-  (ret pstr)
-  ))
-
-
-//------------------------------------------------------------------------------
-
-(func void printIndent ((int count)) (
-  (var int counter count)
-  (label start)
-  (var bool t (int.ugreater counter 0))
-  (branch t goon end)
-  (label goon)
-  (printChar ' ') (printChar ' ')
-  (assign counter (int.sub counter 1))
-  (branch start)
-  (label end)
-  ))
-  
-
-(type ast
-  (cstring id)
-  (int childCount)
-  ((ptr (ptr ast)) childs) )
-
-
-(var cstring msg "hello, ast")
-(var cstring simpleName "simple")
-(var cstring childName "child1")
-
-(func (ptr ast) simpleAst ((cstring name)) (
-  (var (ptr ast) a (malloc ast))
-
-  (store (fieldptr a id) name)
-  (store (fieldptr a childCount) 0)
-  (store (fieldptr a childs) (nullptr (ptr ast)))
-  
-  (ret a)
-  ))
-
-(func void printAst (((ptr ast) a) (int indent)) (
-  (printIndent indent)
-  (printString (load (fieldptr a id)))
-  (printString " [")
-  (printInt (getField a childCount))
-  (printString " childs]")
-  (println)
-
-  (var int index 0)
-  (label start)
-  (var bool t (int.uless index (getField a childCount)))
-  (branch t goon end)
-  (label goon)
-  (var (ptr ast) child (load (ptradd (getField a childs) index)))
-  (printAst child (int.add indent 1))
-  (assign index (int.add index 1))
-  (branch start)
-  (label end)
-  ))
-
-
-(func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
-  (var int oldChildCount (getField tree childCount))
-  (var int newChildCount (int.add 1 oldChildCount))
-  (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
-
-  (var int index 0)
-  (label start)
-  (var bool t (int.uless index oldChildCount))
-  (branch t goon end)
-  (label goon)
-  (store (ptradd newChilds index) (load (ptradd (getField tree childs) index)))
-  (assign index (int.add index 1))
-  (branch start)
-  (label end)
-
-  (store (ptradd newChilds oldChildCount) child)
-
-  (setField tree childs newChilds)
-  (setField tree childCount newChildCount)
-  ))
 
 (func void quoteTest () (
   (printlnString "Printing quoted ast:")
@@ -135,13 +25,13 @@
   ))
   
 (func int main () (
-  (printlnString msg)
+  (printlnString "hello, ast")
 
-  (var (ptr ast) tree (simpleAst simpleName))
+  (var (ptr ast) tree (simpleAst "simple"))
   (macro extraChild name (
     (addChild tree (simpleAst name))
     ))
-  (extraChild childName)
+  (extraChild "child")
   (extraChild "child2")
   (extraChild "child3")
   (extraChild "child4")

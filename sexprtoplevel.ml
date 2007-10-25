@@ -7,6 +7,9 @@ open Bindings
 
 open Zompvm
 
+let toplevelCommandChar = '!'
+let toplevelCommandString = String.make 1 toplevelCommandChar
+  
 let prompt =          "  # "
 and continuedPrompt = "..# "
   
@@ -96,7 +99,7 @@ let loadLLVMFile args _ =
   let loadFile filename =
     try
       let content = readFile filename in
-      if not( Machine.zompSendCode content ) then
+      if not( Machine.zompSendCode content "" ) then
         eprintf "Could not eval llvm code from file %s\n" filename
     with
         Sys_error message ->
@@ -105,13 +108,13 @@ let loadLLVMFile args _ =
   List.iter loadFile args
                
 let listCommands commands _ _ =
-  printf "# to abort multi-line (continued input)\n";
+  printf "%c to abort multi-line (continued input)\n" toplevelCommandChar;
   let maxCommandLength =
     List.fold_left (fun oldMax (name, _, _, _) -> max oldMax (String.length name)) 5 commands
   in
   let printCommand (name, aliases, _, doc) =
     let aliasString = if List.length aliases > 0 then " (also " ^ combine ", " aliases ^ ")" else "" in
-    printf "#%-*s - %s%s\n" (maxCommandLength+1) name doc aliasString
+    printf "!%-*s - %s%s\n" (maxCommandLength+1) name doc aliasString
   in
   List.iter printCommand commands
 
@@ -134,9 +137,9 @@ let commands =
     List.fold_left (fun map name -> StringMap.add name (func, docRef) map) newMap aliases
   in
   List.fold_left addCommands StringMap.empty internalCommands
-
+  
 let handleCommand commandLine bindings =
-  let commandRE = Str.regexp "#\\([a-zA-Z0-9]+\\)\\(.*\\)" in
+  let commandRE = Str.regexp (toplevelCommandString ^ "\\([a-zA-Z0-9]+\\)\\(.*\\)") in
   if Str.string_match commandRE commandLine 0 then
     let commandName = Str.matched_group 1 commandLine
     and argString = Str.matched_group 2 commandLine
@@ -151,7 +154,6 @@ let handleCommand commandLine bindings =
   else
     printf "Not a command string: '%s'\n" commandLine
   
-  
 let rec readExpr previousLines bindings prompt =
   printf "%s" prompt;
   flush stdout;
@@ -159,33 +161,27 @@ let rec readExpr previousLines bindings prompt =
   let input = previousLines ^ line in
   if String.length line = 0 then begin
     readExpr previousLines bindings prompt
-  end else if line = "#" then begin
+  end else if line = toplevelCommandString then begin
     raise AbortExpr
-  end else if line.[0] = '#' then begin
+  end else if line.[0] = toplevelCommandChar then begin
     handleCommand line bindings;
     readExpr previousLines bindings prompt
   end else begin
     let expr =
       try
-        let lexbuf = Lexing.from_string (input ^ " !") in
-        Parser2.main Lexer2.token lexbuf
+        let lexbuf = Lexing.from_string (input ^ "!!!") in
+        Sexprparser.main Sexprlexer.token lexbuf
       with _ ->
-        begin
-          try
-            let lexbuf = Lexing.from_string (input ^ "!") in
-            Sexprparser.main Sexprlexer.token lexbuf
-          with _ ->
-            readExpr input bindings continuedPrompt
-        end
+        readExpr input bindings continuedPrompt
     in
     expr
   end
     
 let printWelcomeMessage() = 
   printf "Welcome to the Zomp toplevel.\n";
-  printf "#x - exit, #help - help.\n";
+  printf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar;
   printf "\n"
-    
+
 let rec doAll ~onError ~onSuccess = function
   | [] -> onSuccess()
   | (f, errorMsg) :: rem ->
@@ -226,7 +222,7 @@ let () =
            let expr = readExpr "" bindings prompt in
            let asString = Ast2.expression2string expr in
            printf " => %s\n" asString;
-           let newBindings, simpleforms, llvmCode = Zompvm.compileExpr bindings expr in
+           let newBindings, simpleforms, llvmCode = Zompvm.compileExpr Expander.translateTL bindings expr in
            if !printLLVMCode then begin
              printf "LLVM code:\n%s\n" llvmCode; flush stdout;
            end;
@@ -258,7 +254,7 @@ let () =
     let newBindings =
       List.fold_left
         (fun bindings expr ->
-           let newBindings, simpleforms, llvmCode = compileExpr bindings expr in
+           let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
            evalLLVMCode bindings simpleforms llvmCode;
            newBindings)
         Genllvm.defaultBindings

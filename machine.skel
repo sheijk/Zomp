@@ -8,10 +8,7 @@ http://sheijk.dword.org/zomp
 	bool zompInit ()
 	void zompShutdown ()
     
-    bool zompSendCode (const char* code)
-    bool zompSendCodeNewVar (const char* code)
-    bool zompSendCodeNewFunc (const char* code)
-    bool zompSendCodeModifyFunc (const char* code)
+    bool zompSendCode (const char* code, const char* moduleName)
     
     bool zompLoadFile (const char* filename)
     

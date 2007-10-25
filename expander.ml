@@ -253,7 +253,8 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
                 | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg)
             end
         | _ -> None
-            
+
+
 let translateMacro translateF (bindings :bindings) = function
   | { id = macroName; args = args; } as expr ->
       match lookup bindings macroName with
@@ -266,7 +267,8 @@ let translateMacro translateF (bindings :bindings) = function
                   raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
             end
         | _ -> None
-            
+
+
 let translateDefineMacro translateF (bindings :bindings) = function
   | { id = id; args =
         { id = name; args = [] }
@@ -288,6 +290,28 @@ let translateDefineMacro translateF (bindings :bindings) = function
       end
   | _ ->
       None
+            
+(* let translateDefineMacro translateF (bindings :bindings) = function *)
+(*   | { id = id; args = *)
+(*         { id = name; args = [] } *)
+(*         :: paramImpl *)
+(*     } when id = macroMacro -> *)
+(*       begin match List.rev paramImpl with *)
+(*         | [] -> None *)
+(*         | impl :: args -> *)
+(*             begin *)
+(*               let args = List.rev args in *)
+(*               let argNames = List.map *)
+(*                 (function *)
+(*                    | { id = name; args = [] } -> name *)
+(*                    | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter") *)
+(*                 args *)
+(*               in *)
+(*               Some( Bindings.addMacro bindings name (fun args -> Ast2.replaceParams argNames args impl), [] ) *)
+(*             end *)
+(*       end *)
+(*   | _ -> *)
+(*       None *)
 
 let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->
@@ -542,66 +566,6 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
-(* let uniqueIdCounter = ref 0 *)
-
-(* let uniqueIdF = *)
-(*   function *)
-(*       (\*     | [] -> { id = sprintf "\"__id_%d\"" !uniqueIdCounter; args = [] } *\) *)
-(*     | [] -> *)
-(*         incr uniqueIdCounter; *)
-(*         { id = string_of_int !uniqueIdCounter; args = [] } *)
-(*     | _ as args -> raiseIllegalExpression { id = "uniqueIdF"; args = args } "Macro expects 0 params" *)
-
-(* let compileTimeBindings = ref *)
-(*   begin *)
-(*     Bindings.addMacro Genllvm.defaultBindings "uniqueId" uniqueIdF *)
-(*  end *)
-(* (\* TODO: let uniqueId return a string and make it work *\) *)
-(* let translateAntiquote (translateF :exprTranslateF) (bindings :bindings) = *)
-(*   function *)
-(*     | { id = "antiquote"; args = args } as expr -> *)
-(*         begin *)
-(*           let exprFromArgs = function *)
-(*             | { id = id; args = [] } :: moreArgs -> Some { id = id; args = moreArgs } *)
-(*             | _ -> None *)
-(*           in *)
-(*           let ctexpr = *)
-(*             match exprFromArgs args with *)
-(*               | Some ctexpr -> ctexpr *)
-(*               | None -> raiseIllegalExpression expr "First argument of antiquoted expr must not have arguments" *)
-(*           in *)
-(*           eprintf "Translating sexpr %s\n" (Ast2.expression2string ctexpr); *)
-(*           let tracingTranslateF bindings sexpr = *)
-(*             eprintf "Translating %s\n" (Ast2.expression2string sexpr); *)
-(*             translateF bindings sexpr *)
-(*           in *)
-(*           let newctBindings, ctforms = Printexc.print (fun () -> tracingTranslateF !compileTimeBindings ctexpr) () in *)
-(*           let lastOfList list = *)
-(*             let rec worker prev = function *)
-(*               | [] -> prev *)
-(*               | h :: t -> *)
-(*                   worker h t *)
-(*             in *)
-(*             worker (List.hd list) list *)
-(*           in *)
-(*           match lastOfList ctforms with *)
-(*             | `Constant c -> *)
-(*                 let sexpr = { id = valueString c; args = [] } in *)
-(*                 let newBindings, simpleforms = translateF bindings sexpr in *)
-(*                 Some( newBindings, simpleforms ) *)
-(*             | `Variable var -> *)
-(*                 let sexpr = { id = var.vname; args = [] } in *)
-(*                 eprintf "Ok2\n"; *)
-(*                 let newBindings, simpleforms = translateF bindings sexpr in *)
-(*                 Some( newBindings, simpleforms ) *)
-(*             | _ -> *)
-(*                 let illformStrings = List.map formWithTLsEmbeddedToString ctforms in *)
-(*                 let illformCombined = Common.combine "\n" illformStrings in *)
-(*                 raiseIllegalExpression ctexpr (sprintf "Resulted in invalid form: %s" illformCombined) *)
-(*         end *)
-(*     | _ -> *)
-(*         None *)
-
 let translateNested = translate raiseIllegalExpression
   [
     translateSeq;
@@ -620,6 +584,25 @@ let translateNested = translate raiseIllegalExpression
 (*     translateAntiquote; *)
   ]
 
+let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
+  | { id = "antiquote"; args = [quotedExpr] } ->
+      begin
+        let newBindings, simpleforms = translateF bindings quotedExpr in
+        match Common.lastElement simpleforms with
+          | Some `GlobalVar var ->
+              begin
+                let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
+                let llvmCode = Common.combine "\n" llvmCodes in
+                printf "sending code to zompvm\n"; flush stdout;
+                Zompvm.evalLLVMCode ~targetModule:Zompvm.Compiletime bindings simpleforms llvmCode;
+                Some( bindings, [] )
+              end
+          | _ ->
+              raiseIllegalExpression quotedExpr "Did not evaluate to a variable declaration"
+      end
+  | _ ->
+      None
+  
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -649,8 +632,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           let nestedForms = snd (translateNested innerBindings implExpr) in
           let nestedTLForms, implForms = extractToplevelForms nestedForms in
           let nestedTLForms = List.map (fun (`ToplevelForm f) -> f) nestedTLForms in
-(*           if nestedTLForms <> [] then failwith "nested tl forms aren't empty"; *)
-(*           if implForms <> nestedForms then failwith "implForms <> nestedForms"; *)
           nestedTLForms, Some (`Sequence implForms)
       | None -> [], None
     in
@@ -710,6 +691,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateTypedef;
     translateDefineMacro;
     translateMacro;
+    translateCompileTimeVar;
   ]
   bindings expr
 
@@ -718,36 +700,3 @@ let makeNested (translateF :toplevelExprTranslateF) (_ :exprTranslateF) (binding
   let nestedForms = List.map (fun f -> `ToplevelForm f) toplevelForms in
   Some( bindings, nestedForms )
 
-
-(*                     | `Sequence expressionns -> *)
-(*                         let newtls, seqImpls = toplevelAndImpl expressionns in *)
-(*                         newtls @ remTL, (`Sequence seqImpls)::remImpl *)
-(*                     | `DefineVariable (var, rightHandForm) -> *)
-(*                         begin match rightHandForm with *)
-(*                           | Some rightHandForm -> *)
-(*                               begin *)
-(*                                 let newtls, rightHand = toplevelAndImpl rightHandForm in *)
-(*                                 newtls @ remTL, (`DefineVariable(var,rightHand))::remImpl *)
-(*                               end *)
-(*                           | None -> remTL, head::remImpl *)
-(*                         end *)
-(*                     | `FuncCall funcCall -> *)
-(*                         begin *)
-(*                           let newtlsList, argImpls = List.map toplevelAndImpl funcCall.fcargs in *)
-(*                           let newtls = List.flatten newtlsList in *)
-(*                           newtls @ remTL, (`FuncCall {funcCall with args = argImpls})::remImpl *)
-(*                         end *)
-(*                     | `AssignVar (var, rightHandForm) -> *)
-(*                         let newtls, rightHand = toplevelAndImpl rightHandForm in *)
-(*                         newtls @ remTL, (`AssignVar rightHand)::remImpl *)
-(*                     | `Return form -> *)
-(*                         let newtls, newForm = toplevelAndImpl form in *)
-(*                         newtls @ remTL, (`Return newForm)::remImpl *)
-(*                     | `MallocIntrinsic (typ, countForm) -> *)
-(*                         let newtls, newCountForm =  in *)
-(*                     | `GetAddrIntrinsic of composedType variable *)
-(*                     | `StoreIntrinsic of 'expr * 'expr *)
-(*                     | `LoadIntrinsic of 'expr *)
-(*                     | `PtrAddIntrinsic of 'expr * 'expr (\* pointer, int *\) *)
-(*                     | `GetFieldPointerIntrinsic of 'expr * string *)
-(*                 end *)

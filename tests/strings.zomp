@@ -1,82 +1,36 @@
 
 
-(type cstring (ptr char))
+// (type cstring (ptr char))
 
-(type string
-  (int length)
-  ((ptr char) chars)
-  )
-(type pstring (ptr string))
+// (type string
+//   (int length)
+//   ((ptr char) chars)
+//   )
+// (type pstring (ptr string))
 
-(func int length ((cstring s)) (
-  (var (ptr char) ptr s)
-  (var int count -1)
+// (func int length ((cstring s)) (
+//   (var (ptr char) ptr s)
+//   (var int count -1)
 
-  (label start)
-  (var char c (load ptr))
+//   (label start)
+//   (var char c (load ptr))
 
-  (assign ptr (ptradd ptr 1))
-  (assign count (int.add count 1))
-  (var bool b (char.equal c '\0'))
-  (branch b end start)
+//   (assign ptr (ptradd ptr 1))
+//   (assign count (int.add count 1))
+//   (var bool b (char.equal c '\0'))
+//   (branch b end start)
   
-  (label end)
+//   (label end)
   
-  (ret count)
-  ))
+//   (ret count)
+//   ))
 
-(func (ptr string) makestring ((cstring cstr)) (
-  (var (ptr string) pstr (malloc string))
-  (store (fieldptr pstr length) (length cstr))
-  (store (fieldptr pstr chars) cstr)
-  (ret pstr)
-  ))
-
-(func (ptr string) newString ((int length) (char init)) (
-  (var (ptr char) chars (malloc char (int.add 1 length)))
-  (store (ptradd chars length) '\0')
-  (var int index 0)
-  (label start)
-  (store (ptradd chars index) init)
-  (assign index (int.add index 1))
-  (var bool reachedEnd (int.ugreaterEqual index length))
-  (branch reachedEnd end start)
-  (label end)
-  
-  (var (ptr string) result (malloc string))
-  (store (fieldptr result length) length)
-  (store (fieldptr result chars) chars)
-  (ret result)
-  ))
-
-(func (ptr string) append (((ptr string) l) ((ptr string) r)) (
-  (var int length (int.add (getField l length) (getField r length)))
-  (var (ptr string) result (newString length 'x'))
-  (var (ptr char) chars (getField result chars))
-  (var (ptr char) leftChars (getField l chars))
-  (var int leftLength (getField l length))
-  (var (ptr char) rightChars (getField r chars))
-  (var int rightLength (getField r length))
-
-  (var int index 0)
-  
-  (label lbegin)
-  (store (ptradd chars index) (load (ptradd leftChars index)))
-  (assign index (int.add index 1))
-  (var bool test (int.uless index leftLength))
-  (branch test lbegin lend)
-  (label lend)
-
-  (assign index 0)
-  (label rbegin)
-  (store (ptradd chars (int.add leftLength index)) (load (ptradd rightChars index)))
-  (assign index (int.add index 1))
-  (var bool test2 (int.uless index rightLength))
-  (branch test2 rbegin rend)
-  (label rend)
-  
-  (ret result)
-  ))
+// (func (ptr string) makestring ((cstring cstr)) (
+//   (var (ptr string) pstr (malloc string))
+//   (store (fieldptr pstr length) (length cstr))
+//   (store (fieldptr pstr chars) cstr)
+//   (ret pstr)
+//   ))
 
 (var cstring text "this be text\n")
 

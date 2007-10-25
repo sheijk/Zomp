@@ -1,6 +1,7 @@
 {
   open Sexprparser
   exception Eof
+  exception AbortInput
   exception UnknowChar of string
 }
 
@@ -21,6 +22,8 @@ rule token = parse
       { IDENTIFIER(id) }
   | eof
       { raise Eof }
+  | "!!!"
+      { raise AbortInput }
   | (('"' [^'\"']* '"') as str)
       { IDENTIFIER(str) }
   | (('\'' [^'\'']* '\'') as chr)

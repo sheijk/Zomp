@@ -95,7 +95,34 @@ let newUniqueId() =
   !lastUniqueId
 let newUniqueName() =
   "__temp_" ^ string_of_int (newUniqueId())
-  
+
+let rec sexpr2code = function
+  | { id = "antiquote"; args = [{ id = id; args = args}] } ->
+      begin
+        { id = id; args = args }
+      end
+  | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
+  | sexprWithArgs ->
+      let tempVarName = newUniqueName() in
+      let defVarExpr =
+        { id = "var";
+          args = [
+            simpleExpr "ptr" ["ast"];
+            idExpr tempVarName;
+            simpleExpr "simpleAst" ["\"" ^ sexprWithArgs.id ^ "\""]]
+        }
+      in
+      let returnExpr = idExpr tempVarName in
+      let addChildExpr childExpr =
+        { id = "addChild"; args = [
+            idExpr tempVarName;
+            childExpr;
+          ] }
+      in
+      let argExprs = List.map sexpr2code sexprWithArgs.args in
+      let argAddExprs = List.map addChildExpr argExprs in
+      seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
+
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -167,33 +194,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let quoteMacro =
       macro "quote"
         (fun args ->
-           let rec sexpr2code = function
-             | { id = "antiquote"; args = [{ id = id; args = args}] } ->
-                 begin
-                   { id = id; args = args }
-                 end
-             | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
-             | sexprWithArgs ->
-                 let tempVarName = newUniqueName() in
-                 let defVarExpr =
-                   { id = "var";
-                     args = [
-                       simpleExpr "ptr" ["ast"];
-                       idExpr tempVarName;
-                       simpleExpr "simpleAst" ["\"" ^ sexprWithArgs.id ^ "\""]]
-                   }
-                 in
-                 let returnExpr = idExpr tempVarName in
-                 let addChildExpr childExpr =
-                   { id = "addChild"; args = [
-                       idExpr tempVarName;
-                       childExpr;
-                     ] }
-                 in
-                 let argExprs = List.map sexpr2code sexprWithArgs.args in
-                 let argAddExprs = List.map addChildExpr argExprs in
-                 seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
-           in
            match args with
              | [quotedExpr] -> sexpr2code quotedExpr
              | [] -> simpleExpr "simpleAst" ["seq"]

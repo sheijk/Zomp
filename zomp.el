@@ -27,11 +27,11 @@
 
 (defun zomp-tl-run (funcname)
   (interactive "MName of function: ")
-  (zomp-tl-do (concat "#run " funcname)) )
+  (zomp-tl-do (concat "!run " funcname)) )
 
 (defun zomp-tl-list-bindings (regexps)
   (interactive "MList bindings matching: ")
-  (zomp-tl-do (concat "#bindings " regexps)) )
+  (zomp-tl-do (concat "!bindings " regexps)) )
 
 (defun zomp-toplevel ()
   (interactive)
@@ -74,7 +74,7 @@
 (defun zomp-tl-run-test ()
   (interactive)
   (message "Running function test")
-  (zomp-tl-do "#run test")
+  (zomp-tl-do "!run test")
   )
 
 (define-generic-mode zomp-mode
@@ -133,12 +133,12 @@
 
            (local-set-key [(control c) (d)] 'zomp-tl-run)
            (local-set-key [(control c) (f)] 'zomp-tl-list-bindings)
-           (zomp-onkey-do [(control c) (control f)] "#bindings")
-           (zomp-onkey-do [(control c) (h)] "#help")
-           (zomp-onkey-do [(control c) (q)] "#exit")
+           (zomp-onkey-do [(control c) (control f)] "!bindings")
+           (zomp-onkey-do [(control c) (h)] "!elp")
+           (zomp-onkey-do [(control c) (q)] "!exit")
            
-           (zomp-onkey-do [(control c) (?.) (l)] "#llvm")
-           (zomp-onkey-do [(control c) (?.) (e)] "#eval")
+           (zomp-onkey-do [(control c) (?.) (l)] "!llvm")
+           (zomp-onkey-do [(control c) (?.) (e)] "!eval")
            ))
   "A simple mode for the zomp language")
   

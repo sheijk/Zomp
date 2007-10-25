@@ -27,12 +27,17 @@ namespace {
   ExecutionEngine* executionEngine = 0;
 
   Module* llvmModule = 0;
+  Module* macroModule = 0;
   ExistingModuleProvider* moduleProvider = 0;
   
   void assureModuleExists() {
     if (llvmModule == 0) {
 //       debugMessage("Creating new llvm module\n");
       llvmModule = new Module("llvm_module.bc");
+    }
+
+    if( macroModule == 0 ) {
+      macroModule = new Module("llvm_macro_module.bc");
     }
   }
 }
@@ -89,11 +94,15 @@ extern "C" {
     fflush( stdout );
   }
 
-  bool zompSendCode(const char* code) {
+  bool zompSendCode(const char* code, const char* module) {
     ParseError errorInfo;
+
+    Module* targetModule = llvmModule;
+    if( std::string(module) == "compiletime" ) {
+      targetModule = macroModule;
+    }
   
-    ParseAssemblyString( code, llvmModule, &errorInfo );
-//     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
+    ParseAssemblyString( code, targetModule, &errorInfo );
 
     if( errorInfo.getRawMessage() != "none" ) {
       fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
@@ -105,17 +114,17 @@ extern "C" {
     return true;
   }
   
-  bool zompSendCodeNewVar(const char* code) {
+//   bool zompSendCodeNewVar(const char* code) {
 //     printf( "Creating new var\n" );
 //     fflush( stdout );
-    return zompSendCode( code );
-  }
+//     return zompSendCode( code );
+//   }
   
-  bool zompSendCodeNewFunc(const char* code) {
+//   bool zompSendCodeNewFunc(const char* code) {
 //     printf( "Create new function\n" );
 //     fflush( stdout );
-    return zompSendCode( code );
-  }
+//     return zompSendCode( code );
+//   }
 
   bool zompRemoveFunctionBody(const char* functionName) {
     Function* func = llvmModule->getFunction( functionName );
@@ -142,10 +151,10 @@ extern "C" {
   }
   
   
-  bool zompSendCodeModifyFunc(const char* code) {
+//   bool zompSendCodeModifyFunc(const char* code) {
 //     printf( "Modifying existing function\n" );
 //     fflush( stdout );
-    return zompSendCode( code );
+//     return zompSendCode( code );
     
 //     ParseError errorInfo;
 
@@ -169,7 +178,7 @@ extern "C" {
 //     }
 
 //     return true;
-  }
+//   }
 
   bool zompLoadFile(const char* filename) {
     return false;

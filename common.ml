@@ -77,3 +77,8 @@ let tryAllCollectingErrors ~onSuccess ~ifAllFailed funcs =
   in
   worker [] funcs
           
+let rec lastElement = function
+  | [] -> None
+  | [last] -> Some last
+  | _ :: tail -> lastElement tail
+      

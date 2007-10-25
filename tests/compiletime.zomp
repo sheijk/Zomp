@@ -24,6 +24,7 @@
   (printLastId)
   (printLastId)
   (printLastId)
+  (printAst `(this be an (nested ast)) 0)
   (ret 100)
   ))
 

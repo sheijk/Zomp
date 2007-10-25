@@ -9,13 +9,16 @@ exception FailedToEvaluateLLVMCode of string * string
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 
-let compileExpr bindings sexpr = 
-  let newBindings, simpleforms = Expander.translateTL bindings sexpr in
+let compileExpr translateF bindings sexpr = 
+  let newBindings, simpleforms = translateF bindings sexpr in
   let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
   let llvmCode = combine "\n" llvmCodes in
   newBindings, simpleforms, llvmCode
-  
-let evalLLVMCode bindings simpleforms llvmCode :unit =
+
+type targetModule = Runtime | Compiletime
+    
+let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
+  let targetModuleName = match targetModule with Runtime -> "" | Compiletime -> "compiletime" in
   let isDefinedFunction func =
     match func.impl, Bindings.lookup bindings func.fname with
       | Some _, Bindings.FuncSymbol _ -> true
@@ -37,7 +40,7 @@ let evalLLVMCode bindings simpleforms llvmCode :unit =
   let removeFunctionBody name = Machine.zompRemoveFunctionBody name in
   let recompileAndRelinkFunction name = Machine.zompRecompileAndRelinkFunction name in
   tryApplyToAll removeFunctionBody redefinedFunctions ~onError:(raiseFailedToEvaluateLLVMCode llvmCode);
-  if not (Machine.zompSendCode llvmCode) then
+  if not (Machine.zompSendCode llvmCode targetModuleName) then
     raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate";
   tryApplyToAll recompileAndRelinkFunction redefinedFunctions ~onError:(raiseFailedToEvaluateLLVMCode llvmCode)
   
