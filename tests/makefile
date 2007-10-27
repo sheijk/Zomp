@@ -19,12 +19,23 @@ checkall: $(TESTPROGS:.zomp=.check)
 
 build: $(WORKING:.zomp=.bc)
 
+compileperftest:
+	@for funcs in 10 100 1000 1200 1400 1600 1800 2000 2200 2400 2600 2800 3000 4000 5000 7500 10000; \
+	do \
+	  rm -f compileperf.zomp; \
+	  echo; \
+	  echo Measuring compile time of simple program: `wc -l compileperf.zomp`; \
+	  ocaml genperftest.ml $$funcs compileperf.zomp; \
+	  time ../zomp-check-syntax.sh compileperf.zomp; \
+	done
+
 stdlibfuncs_exe.bc: stdlibfuncs.bc
 	@llvm-ld ../stdlib.bc $< -o ${@:.bc=}
 
 clean_tests:
 	@echo Cleaning tests...
 	rm -f *.ll *.bc
+	rm -f compileperf.*
 
 .SUFFIXES: .zomp .ll .check .bc .run
 

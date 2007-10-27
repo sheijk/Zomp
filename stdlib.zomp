@@ -223,6 +223,11 @@
   (ret (cast int child))
   ))
 
+(func int macroExec () (
+  (var (ptr ast) tree `(native tree))
+  (cast int tree)
+  ))
+
 /*
 (func int testast2 () (
   (var (ptr ast) tree `(this is a (simple ast) (for testing purposes)))

@@ -157,7 +157,7 @@ let handleCommand commandLine bindings =
 let rec readExpr previousLines bindings prompt =
   printf "%s" prompt;
   flush stdout;
-  let line = read_line() ^ "\n" in
+  let line = read_line() in
   if String.length line = 0 then begin
     readExpr previousLines bindings prompt
   end else if line = toplevelCommandString then begin
@@ -167,7 +167,7 @@ let rec readExpr previousLines bindings prompt =
     readExpr previousLines bindings prompt
   end else begin
     let expr =
-      let input = previousLines ^ line in
+      let input = previousLines ^ line ^ "\n" in
       try
         let lexbuf = Lexing.from_string input in
         Sexprparser.main Sexprlexer.token lexbuf
