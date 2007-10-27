@@ -53,9 +53,12 @@ extern "C" {
   }
 }
 
-llvm::GenericValue runFunction(const char* name) {
-  std::vector<const Type*> noargs;
-  FunctionType* voidType = FunctionType::get( Type::VoidTy, noargs, false, NULL );
+llvm::GenericValue runFunctionWithArgs(
+  const char* name,
+  const std::vector<const Type*>& argTypes,
+  const std::vector<GenericValue>& args)
+{
+  FunctionType* voidType = FunctionType::get( Type::VoidTy, argTypes, false, NULL );
 
   Function* func = llvmModule->getFunction( name );
 
@@ -66,13 +69,19 @@ llvm::GenericValue runFunction(const char* name) {
     func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
   }
 
-  std::vector<GenericValue> args;
+//   std::vector<GenericValue> args;
   GenericValue retval = executionEngine->runFunction( func, args );
 
   fflush( stdout );
   fflush( stderr );
 
   return retval;
+}
+
+llvm::GenericValue runFunction(const char* name) {
+  std::vector<const Type*> noparams;
+  std::vector<GenericValue> noargs;
+  return runFunctionWithArgs( name, noparams, noargs );
 }
 
 extern "C" {
@@ -188,9 +197,29 @@ extern "C" {
   void zompRunFunction(const char* functionName) {
     runFunction( functionName );
   }
-  
+
   int zompRunFunctionInt(const char* functionName) {
     GenericValue result = runFunction( functionName );
+    return result.IntVal.getLimitedValue();
+  }
+
+  std::vector<const Type*> argTypes;
+  std::vector<GenericValue> argValues;
+
+  void zompResetArgs() {
+    argTypes.clear();
+    argValues.clear();
+  }
+
+  void zompAddIntArg(int arg) {
+    argTypes.push_back( Type::Int32Ty );
+    GenericValue intval;
+    intval.IntVal = APInt( 32, arg );
+    argValues.push_back( intval );
+  }
+
+  int zompRunFunctionIntWithArgs(const char* functionName) {
+    GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
     return result.IntVal.getLimitedValue();
   }
 

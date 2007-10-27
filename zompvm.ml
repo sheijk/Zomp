@@ -9,11 +9,6 @@ exception FailedToEvaluateLLVMCode of string * string
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 
-let compileExpr translateF bindings sexpr = 
-  let newBindings, simpleforms = translateF bindings sexpr in
-  let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
-  let llvmCode = combine "\n" llvmCodes in
-  newBindings, simpleforms, llvmCode
 
 type targetModule = Runtime | Compiletime
     

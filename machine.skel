@@ -16,8 +16,12 @@ http://sheijk.dword.org/zomp
     
     bool zompRemoveFunctionBody (const char* funcName)
     bool zompRecompileAndRelinkFunction (const char* funcName)
+
+    void zompResetArgs ()
+    void zompAddIntArg (int arg)
     
     void zompRunFunction (const char* name)
     int zompRunFunctionInt (const char* name)
+    int zompRunFunctionIntWithArgs (const char* name)
     const char* zompRunFunctionString (const char* name)
     

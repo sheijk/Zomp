@@ -200,16 +200,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
              | args -> { id = "quote"; args = args }
         )
     in
-    let testRunMacro args =
-      let constructMacroFunction() = () in
-      let constructCallerFunction args = () in
-      let callMacro() = 0 in
-      let extractSExprFromNativeAst _ = { id = "nativeExtraction"; args = args } in
-      constructMacroFunction();
-      constructCallerFunction args;
-      let astAddress = callMacro() in
-      extractSExprFromNativeAst astAddress
-    in
     [
       delegateMacro "op+" "int.add";
       delegateMacro "op+_f" "float.add";
@@ -217,7 +207,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] });
 
       quoteMacro;
-      macro "asttest" testRunMacro;
+      macro "asttest" Builtins.testRunMacro;
     ]
   in
   let defaultBindings =

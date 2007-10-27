@@ -213,6 +213,12 @@ let catchingErrorsDo f ~onError =
   end;
   if not !wasOk then
     onError()
+
+let compileExpr translateF bindings sexpr = 
+  let newBindings, simpleforms = translateF bindings sexpr in
+  let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
+  let llvmCode = combine "\n" llvmCodes in
+  newBindings, simpleforms, llvmCode
       
 let () =
   let rec step bindings () =
@@ -222,7 +228,7 @@ let () =
            let expr = readExpr "" bindings prompt in
            let asString = Ast2.expression2string expr in
            printf " => %s\n" asString;
-           let newBindings, simpleforms, llvmCode = Zompvm.compileExpr Expander.translateTL bindings expr in
+           let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
            if !printLLVMCode then begin
              printf "LLVM code:\n%s\n" llvmCode; flush stdout;
            end;
