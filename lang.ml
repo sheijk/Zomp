@@ -93,7 +93,13 @@ let varToString var =
     
     
 (* TODO: fix this! TODO: find out what should be fixed... *)
-let localVar = variable ~storage:RegisterStorage ~global:false
+let localVar ~typ =
+  variable
+    ~typ
+    ~storage:RegisterStorage
+    ~global:false
+    ~default:(Typesystems.Zomp.defaultValue typ)
+    
 and globalVar = variable ~storage:MemoryStorage ~global:true
 
 type 'argument funcCall = {
@@ -166,7 +172,7 @@ let rec formToString : form -> string = function
   | `Constant c -> sprintf "Constant (%s)" (valueString c)
   | `Sequence s ->
       let strings = List.map formToString s in
-      sprintf "Sequence(%s)" (Common.combine "; " strings)
+      sprintf "Sequence(\n%s\n)" (Common.combine "\n  " strings)
   | `DefineVariable (var, form) ->
       sprintf "DefineVar(%s = %s)" (varToStringShort var) (match form with Some form -> formToString form | None -> "undef")
   | `FuncCall fc ->
@@ -186,7 +192,10 @@ let rec formToString : form -> string = function
 let funcToString func =
   let argToString (name, typ) = name ^ " :" ^ typeName typ in
   let argStrings = List.map argToString func.fargs in
-  sprintf "%s(%s)" func.fname (Common.combine ", " argStrings)
+  sprintf "%s(%s) :%s"
+    func.fname
+    (Common.combine ", " argStrings)
+    (typeName func.rettype)
     
 let toplevelFormToString = function
   | `GlobalVar var ->
@@ -223,9 +232,9 @@ let funcDef name rettype args impl = {
   impl = Some impl;
 }
 
-type macro = {
+type 'bindings macro = {
   mname :string;
-  mtransformFunc :Ast2.sexpr list -> Ast2.sexpr;
+  mtransformFunc : 'bindings -> Ast2.sexpr list -> Ast2.sexpr;
 }
     
 (* type package = { *)

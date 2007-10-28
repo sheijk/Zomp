@@ -223,6 +223,13 @@ extern "C" {
     return result.IntVal.getLimitedValue();
   }
 
+  const char* zompRunFunctionStringWithArgs(const char* functionName) {
+    GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
+    static std::string buffer;
+    buffer = (const char*) result.PointerVal;
+    return buffer.c_str();
+  }
+
   const char* zompRunFunctionString(const char* functionName) {
     GenericValue result = runFunction( functionName );
 

@@ -3,12 +3,11 @@ open Lang
 type symbol =
   | VarSymbol of composedType variable
   | FuncSymbol of func
-  | MacroSymbol of macro
+  | MacroSymbol of bindings macro
   | TypedefSymbol of composedType
   | LabelSymbol of label
   | UndefinedSymbol
-
-type bindings = (string * symbol) list
+and bindings = (string * symbol) list
 
 let defaultBindings : bindings = []
 

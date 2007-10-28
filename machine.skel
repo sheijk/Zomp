@@ -24,4 +24,5 @@ http://sheijk.dword.org/zomp
     int zompRunFunctionInt (const char* name)
     int zompRunFunctionIntWithArgs (const char* name)
     const char* zompRunFunctionString (const char* name)
+    const char* zompRunFunctionStringWithArgs (const char* name)
     

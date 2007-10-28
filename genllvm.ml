@@ -9,7 +9,12 @@ let combine = Common.combine
 exception CodeGenError of string
 let raiseCodeGenError ~msg = raise (CodeGenError msg)
 
-let typeOfForm = Semantic.typeOfForm ~onError:raiseCodeGenError
+let typeOfForm = Semantic.typeOfForm
+  ~onError:(fun ~msg ~found ~expected ->
+              raiseCodeGenError ~msg:(sprintf "%s: expected %s but found %s"
+                                   msg
+                                   (Typesystems.Zomp.typeName expected)
+                                   (Typesystems.Zomp.typeName found) ) )
     
 let llvmName name =
   if name.[0] = '%' then name
@@ -186,14 +191,14 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let builtinMacros =
     let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
     let delegateMacro macroName funcName =
-      macro macroName (fun args -> { id = funcName; args = args; })
+      macro macroName (fun _ args -> { id = funcName; args = args; })
     in
     let templateMacro name params expr =
-      macro name (fun args -> Ast2.replaceParams params args expr)
+      macro name (fun _ args -> Ast2.replaceParams params args expr)
     in
     let quoteMacro =
       macro "quote"
-        (fun args ->
+        (fun _ args ->
            match args with
              | [quotedExpr] -> sexpr2code quotedExpr
              | [] -> simpleExpr "simpleAst" ["seq"]
@@ -207,7 +212,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] });
 
       quoteMacro;
-      macro "asttest" Builtins.testRunMacro;
+(*       macro "asttest" Builtins.testRunMacro; *)
     ]
   in
   let defaultBindings =

@@ -212,30 +212,34 @@
 
 
 (func cstring macroAstId ((int macroCurrentAst)) (
-  (printlnString "macroAstId")
   (getField (cast (ptr ast) macroCurrentAst) id) ))
 
 (func int macroAstChildCount ((int macroCurrentAst)) (
-  (printlnInt macroCurrentAst)
-  (printlnString "macroAstChildCount")
   (getField (cast (ptr ast) macroCurrentAst) childCount) ))
 
 (func int macroAstChild ((int treeaddr) (int num)) (
-  (printlnString "macroAstChild")
   (var (ptr ast) tree (cast (ptr ast) treeaddr))
   (var (ptr ast) child (load (ptradd (getField tree childs) num)))
   (var int i (cast int child))
   (ret i)
   ))
 
+(type astp (ptr ast))
+
+(func astp testMacro2 ((astp lastArg)) (
+  (ret `(native (nested tree) (with (args a b c #lastArg))))
+  ))
+
 (func int macroExec () (
-  (printlnString "running macroExec")
-  (var (ptr ast) tree `(native tree x))
+  (var astp tree (testMacro2 `(foo bar)))
   (var int i (cast int tree))
-  (printString "id = ") (printlnInt i)
   (ret i)
   ))
 
+(func astp macroTest () (
+  (ret `(macro test))
+  ))
+  
 (macro testf impl
   (func void test () (impl)) )
 

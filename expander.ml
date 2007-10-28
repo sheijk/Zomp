@@ -261,7 +261,7 @@ let translateMacro translateF (bindings :bindings) = function
       match lookup bindings macroName with
         | MacroSymbol macro ->
             begin try
-              let transformedExpr = macro.mtransformFunc args in
+              let transformedExpr = macro.mtransformFunc bindings args in
               Some (translateF bindings transformedExpr)
             with
               | Failure msg ->
@@ -269,12 +269,150 @@ let translateMacro translateF (bindings :bindings) = function
             end
         | _ -> None
 
+let count = ref 0
 
-let translateDefineMacro translateF (bindings :bindings) = function
+let astType = `Record [
+  "id", `Pointer `Char;
+  "childCount", `Int;
+  "childs", `Pointer (`Pointer (`TypeRef "ast")) ]
+(* let astType = `TypeRef "ast" *)
+let astPtrType = `Pointer astType
+
+let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
+  
+let createNativeMacro translateF bindings macroName argNames impl =
+  let sexprImpl = Genllvm.sexpr2code impl in
+  let bindings =
+    List.fold_left
+      (fun bindings name ->
+         Bindings.addVar bindings
+           (Lang.variable
+              ~name
+              ~typ:astPtrType
+              ~default:(PointerVal (astPtrType, None))
+              ~storage:Lang.RegisterStorage
+              ~global:false) )
+      bindings argNames
+  in
+  let _, xforms = translateF bindings sexprImpl in
+  let initForms, implforms = extractToplevelForms xforms in
+  let initForms = flattenNestedTLForms initForms in
+  let macroFunc = {
+    Lang.fname = macroName;
+    rettype = astPtrType;
+    fargs = List.map (fun name -> (name, astPtrType)) argNames;
+    impl = Some (toSingleForm implforms);
+  } in
+  let tlforms = initForms @ [`DefineFunc macroFunc] in
+  printf "Def of macro %s yielded the following definitions:\n" macroName;
+  List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) tlforms;
+  let llvmCodes = List.map Genllvm.gencodeTL tlforms in
+  let llvmCode = Common.combine "\n" llvmCodes in
+(*   printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implforms)); *)
+(*   printf "LLVM code:\n%s\n------------------------------\n" llvmCode; *)
+  Zompvm.evalLLVMCodeB
+    ~targetModule:Zompvm.Runtime
+    []
+    (tlforms @ [`DefineFunc macroFunc])
+    llvmCode
+  
+let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
+  incr count;
+  let rec repeatedList element count =
+    if count > 0 then element :: repeatedList element (count-1)
+    else []
+  in
+  let constructMacroFunction() = () in
+  let constructCallerFunction args =
+    let argAstExprs = List.map Genllvm.sexpr2code args in
+    let tlforms, argAstForms = List.fold_left
+      (fun (prevTLForms, prevForms) expr ->
+         let _, xforms = translateNestedF bindings expr in
+         let tlforms, simpleforms = extractToplevelForms xforms in
+         prevTLForms @ tlforms, prevForms @ simpleforms )
+      ([], [])
+      argAstExprs
+    in
+    let resultVar = { (Lang.localVar ~name:"result" ~typ:astPtrType)
+                      with vstorage = MemoryStorage }
+    in
+    let func = `DefineFunc {
+      Lang.fname = "macroExec";
+      rettype = `Int;
+      fargs = [];
+      impl = Some (
+        `Sequence [
+          `FuncCall { fcname = "printlnInt";
+                      fcrettype = `Void;
+                      fcparams = [`Int];
+                      fcargs = [`Constant (IntVal !count)] };
+          `DefineVariable(resultVar,
+                          Some (`FuncCall { fcname = name;
+                                            fcrettype = astPtrType;
+                                            fcparams = repeatedList astPtrType (List.length argAstForms);
+                                            fcargs = argAstForms; }) );
+          `CastIntrinsic (`Int, `Variable resultVar);
+          (*           `Return (`Constant (IntVal 0)); *)
+        ]);
+    } in
+    let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
+    let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
+    let llvmCode = Common.combine "\n" llvmCodeLines in
+    Zompvm.evalLLVMCodeB
+      ~targetModule:Zompvm.Runtime
+      ["macroExec"]
+      alltlforms
+      llvmCode
+  in
+  let callMacro() =
+    Zompvm.zompRunFunctionInt "macroExec"
+  in
+  let calli1i functionName arg =
+    Zompvm.zompResetArgs();
+    Zompvm.zompAddIntArg arg;
+    Zompvm.zompRunFunctionIntWithArgs functionName
+  in
+  let calls1i functionName arg =
+    Zompvm.zompResetArgs();
+    Zompvm.zompAddIntArg arg;
+    Zompvm.zompRunFunctionStringWithArgs functionName
+  in
+  let calli2ii functionName arg0 arg1 =
+    Zompvm.zompResetArgs();
+    Zompvm.zompAddIntArg arg0;
+    Zompvm.zompAddIntArg arg1;
+    Zompvm.zompRunFunctionIntWithArgs functionName
+  in
+  let rec extractSExprFromNativeAst astAddress =
+    if astAddress = 0 then
+      Ast2.idExpr "error, macro returned NULL"
+    else
+      let name = calls1i "macroAstId" astAddress in
+      let childCount = calli1i "macroAstChildCount" astAddress in
+      let childs =
+        let rec getChilds num =
+          if num < childCount then
+            let childAddress = calli2ii "macroAstChild" astAddress num in
+            let child = extractSExprFromNativeAst childAddress in
+            child :: getChilds (num+1)
+          else
+            []
+        in
+        getChilds 0
+      in
+      { id = name; args = childs }
+  in
+  constructMacroFunction();
+  constructCallerFunction args;
+  let astAddress = callMacro() in
+  extractSExprFromNativeAst astAddress
+
+
+let translateDefineMacro translateNestedF translateF (bindings :bindings) = function
   | { id = id; args =
         { id = name; args = [] }
         :: paramImpl
-    } when id = macroMacro ->
+    } when id = macroMacro or id = "xmacro"->
       begin match List.rev paramImpl with
         | [] -> None
         | impl :: args ->
@@ -286,34 +424,22 @@ let translateDefineMacro translateF (bindings :bindings) = function
                    | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter")
                 args
               in
-              Some( Bindings.addMacro bindings name (fun args -> Ast2.replaceParams argNames args impl), [] )
+              let macroF =
+                if id = "xmacro" then begin
+                  printf "Creating macro function... ";
+                  createNativeMacro translateNestedF bindings name argNames impl;
+                  printf "done\n";
+                  translateFuncMacro translateNestedF name
+                end else
+                  (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
+              in
+              Some( Bindings.addMacro bindings name
+                      (fun bindings args -> macroF bindings argNames args impl), [] )
             end
       end
   | _ ->
       None
             
-(* let translateDefineMacro translateF (bindings :bindings) = function *)
-(*   | { id = id; args = *)
-(*         { id = name; args = [] } *)
-(*         :: paramImpl *)
-(*     } when id = macroMacro -> *)
-(*       begin match List.rev paramImpl with *)
-(*         | [] -> None *)
-(*         | impl :: args -> *)
-(*             begin *)
-(*               let args = List.rev args in *)
-(*               let argNames = List.map *)
-(*                 (function *)
-(*                    | { id = name; args = [] } -> name *)
-(*                    | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter") *)
-(*                 args *)
-(*               in *)
-(*               Some( Bindings.addMacro bindings name (fun args -> Ast2.replaceParams argNames args impl), [] ) *)
-(*             end *)
-(*       end *)
-(*   | _ -> *)
-(*       None *)
-
 let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->
       begin
@@ -577,14 +703,14 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
-let translateNested = translate raiseIllegalExpression
+let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateSeq;
     translateDefineVar;
     translateSimpleExpr;
     translateFuncCall;
     translateMacro;
-    translateDefineMacro;
+    translateDefineMacro translateNested;
     translateAssignVar;
     (*     translateTypedef; *)
     translateGenericIntrinsic;
@@ -594,6 +720,7 @@ let translateNested = translate raiseIllegalExpression
     translateBranch;
 (*     translateAntiquote; *)
   ]
+  translateF bindings
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
   | { id = "antiquote"; args = [quotedExpr] } ->
@@ -634,7 +761,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let rec localBinding bindings = function
       | [] -> bindings
       | (name, typ) :: tail ->
-          let var = localVar name typ (defaultValue typ) in
+          let var = localVar ~name ~typ in
           localBinding (addVar bindings var) tail
     in
     let innerBindings = localBinding bindings params in
@@ -700,7 +827,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateGlobalVar;
     translateFunc;
     translateTypedef;
-    translateDefineMacro;
+    translateDefineMacro translateNested;
     translateMacro;
     translateCompileTimeVar;
   ]

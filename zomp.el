@@ -37,7 +37,7 @@
   (interactive)
   (shell "*zomp-toplevel*")
   (zomp-tl-do (concat "cd " zomp-basedir))
-  (zomp-tl-do "./sexprtoplevel; exit")
+  (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
   (message "Started zomp toplevel")
   )
 

@@ -179,6 +179,6 @@ let rec typeCheckTL bindings = function
 let typeOfForm ~onError bindings form =
   match typeCheck bindings form with
     | TypeOf typ -> typ
-    | TypeError (msg, _, _) ->
-        onError ~msg
+    | TypeError (msg, found, expected) ->
+        onError ~msg ~found ~expected
           
