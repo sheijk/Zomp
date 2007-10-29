@@ -102,7 +102,7 @@ let rec extractToplevelForms = function
       end
 
         
-let translatelst (translateF :exprTranslateF) bindings expr =
+let translatelst translateF bindings expr =
   let rec worker bindings = function
     | [] -> bindings, []
     | expr :: tail ->
@@ -112,7 +112,7 @@ let translatelst (translateF :exprTranslateF) bindings expr =
   in
   worker bindings expr
     
-let translateSeq (translateF : exprTranslateF) bindings = function
+let translateSeq translateF bindings = function
   | { id = id; args = sequence } when id = macroSequence ->
       Some (translatelst translateF bindings sequence)
   | _ ->
@@ -850,6 +850,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateDefineMacro translateNested;
     translateMacro;
     translateCompileTimeVar;
+(*     translateSeq; *)
   ]
   bindings expr
 

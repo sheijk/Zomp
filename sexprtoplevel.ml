@@ -69,29 +69,30 @@ let printBindings args (bindings :bindings) =
   List.iter printSymbol bindings;
   print_newline()
 
+let runFunction bindings funcname =
+  match Bindings.lookup bindings funcname with
+    | FuncSymbol func ->
+        begin
+          match func.rettype with
+            | `Void ->
+                Machine.zompRunFunction funcname;
+                printf " => void\n";
+            | `Int ->
+                let retval = Machine.zompRunFunctionInt funcname in
+                printf " => %d\n" retval
+            | `Pointer `Char ->
+                let retval = Machine.zompRunFunctionString funcname in
+                printf " => %s\n" retval
+            | otherRetType ->
+                eprintf "Cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
+        end
+    | _ ->
+        eprintf "Cannot run %s because no such function was found\n" funcname
+  
 let runMain args bindings =
   match args with
     | [funcname] ->
-        begin
-          match Bindings.lookup bindings funcname with
-            | FuncSymbol func ->
-                begin
-                  match func.rettype with
-                    | `Void ->
-                        Machine.zompRunFunction funcname;
-                        printf " => void\n";
-                    | `Int ->
-                        let retval = Machine.zompRunFunctionInt funcname in
-                        printf " => %d\n" retval
-                    | `Pointer `Char ->
-                        let retval = Machine.zompRunFunctionString funcname in
-                        printf " => %s\n" retval
-                    | otherRetType ->
-                        eprintf "Cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
-                end
-            | _ ->
-                eprintf "Cannot run %s because no such function was found\n" funcname
-        end
+        runFunction bindings funcname
     | _ ->
         eprintf "Only one argument allowed\n"; flush stderr
     
@@ -269,6 +270,38 @@ let () =
     newBindings
   in
 
+(*   let addToplevelBindings bindings = *)
+(*     let macros = [ *)
+(*       "run", *)
+(*       (fun bindings args -> *)
+(*          (match args with *)
+(*            | [{ id = funcName; args = [] }] -> runFunction bindings funcName *)
+(*            | _ -> eprintf "Expected (run functionName)\n"); *)
+(*          seqExpr [] *)
+(*       ); *)
+(*       "do", *)
+(*       (fun bindings args -> *)
+(*          let funcName = "toplevelDo" in *)
+(*          let funcSExpr = *)
+(*            { id = "func"; args = [ *)
+(*                idExpr "void"; *)
+(*                idExpr funcName; *)
+(*                seqExpr []; *)
+(*                seqExpr args; *)
+(*              ] } *)
+(*          in *)
+(*          seqExpr [ *)
+(*            funcSExpr; *)
+(*            simpleExpr "run" [funcName]; *)
+(*          ]) *)
+(*     ] in *)
+(*     List.fold_left *)
+(*       (fun bindings (name, macroF) -> Bindings.addMacro bindings name macroF) *)
+(*       bindings *)
+(*       macros *)
+(*   in *)
+  let addToplevelBindings bindings = bindings in
+
   if not (Machine.zompInit()) then begin
     eprintf "Could not initialize ZompVM\n";
     exit(-1);
@@ -277,7 +310,8 @@ let () =
   printWelcomeMessage();
   catchingErrorsDo
     (fun () -> begin
-       let initialBindings = loadPrelude() in
+       let preludeBindings = loadPrelude() in
+       let initialBindings = addToplevelBindings preludeBindings in
        step initialBindings ()
      end)
     ~onError:
