@@ -370,9 +370,9 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       impl = Some (`Sequence implForms);
     } in
     let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
-(*     printf "Def of macroExec yielded the following definitions:\n"; *)
-(*     List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) alltlforms; *)
-(*     printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implForms)); *)
+(*         eprintf "Def of macroExec yielded the following definitions:\n"; *)
+(*         List.iter (fun f -> eprintf "\t=>> %s\n" (Lang.toplevelFormToString f)) alltlforms; *)
+(*         eprintf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implForms)); *)
     let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
     let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
     Zompvm.evalLLVMCodeB
@@ -422,7 +422,10 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   constructMacroFunction();
   constructCallerFunction args;
   let astAddress = callMacro() in
-  extractSExprFromNativeAst astAddress
+  let sexpr = extractSExprFromNativeAst astAddress in
+(*   printf "Extracted macro to\n--------------------\n%s\n--------------------\n" *)
+(*     (Ast2.expression2string sexpr); *)
+  sexpr
 
 
 let translateDefineMacro translateNestedF translateF (bindings :bindings) = function
@@ -443,9 +446,9 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
               in
               let macroF =
                 if id = "xmacro" then begin
-                  printf "Creating macro function... ";
+(*                   printf "Creating macro function... "; *)
                   createNativeMacro translateNestedF bindings name argNames impl;
-                  printf "done\n";
+(*                   printf "done\n"; *)
                   translateFuncMacro translateNestedF name
                 end else
                   (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)

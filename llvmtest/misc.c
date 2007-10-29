@@ -2,6 +2,8 @@
 
 void foo(int x) {}
 
+char* dasfas = "\"foo\"";
+
 int f = 1;
 char* blub = "blubblubh";
 float someFloat = 0.3;

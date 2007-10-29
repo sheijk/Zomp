@@ -1,4 +1,5 @@
 
+
 ;; (defvar zomp-basedir "/Users/sheijk/Documents/Development/Stuff/ocaml/lang/v3/")
 
 (defun goto-match-paren (arg)
@@ -130,9 +131,9 @@
            (local-set-key [(control c)(control b)] 'zomp-tl-eval-buffer)
            (local-set-key [(control c)(control e)] 'zomp-tl-eval-current)
            (local-set-key [(control c)(control r)] 'zomp-tl-eval-region)
-           (local-set-key [(control c)(control t)] 'zomp-tl-run-test)
 
            (local-set-key [(control c) (d)] 'zomp-tl-run)
+           (local-set-key [(control c) (t)] 'zomp-tl-run-test)
            (local-set-key [(control c) (f)] 'zomp-tl-list-bindings)
            (zomp-onkey-do [(control c) (meta f)] "!bindings")
            (zomp-onkey-do [(control c) (h)] "!help")

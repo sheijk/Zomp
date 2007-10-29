@@ -265,8 +265,39 @@
   (var int id (newUniqueId))
   (var cstring numstr (int2cstring id))
   (ret (appendCStrings "_tmp_" numstr)) ))
+
+(func cstring newUniqueNameFor ((cstring purpose)) (
+  (var cstring name (newUniqueName))
+  (ret (appendCStrings (appendCStrings name "_") purpose)) ))
   
-/*  
+(xmacro if test onTrue onFalse (
+  (var cstring trueLabel (newUniqueNameFor "true"))
+  (var cstring falseLabel (newUniqueNameFor "false"))
+  (var cstring endLabel (newUniqueNameFor "end"))
+  (var cstring testResult (newUniqueNameFor "testresult"))
+
+  (var (ptr ast) result `(
+    (var bool #testResult #test)
+    (branch #testResult #trueLabel #falseLabel)
+    (label #trueLabel)
+    #onTrue
+    (branch #endLabel)
+    (label #falseLabel)
+    #onFalse
+    (label #endLabel)
+    ))
+  (ret result)
+  ))
+  
+/*
+
+(func void test () (
+  (println)
+  (if (int.uless 2 4)
+    (printlnString "yippieh!")
+    (printlnString "wtf?")
+    )
+  ))
 
 (xmacro inline3 code (
   (var (ptr ast) tree (simpleAst "seq"))
@@ -276,24 +307,7 @@
   (ret tree)
   ))
 
-(xmacro if test onT (
-  (var cstring trueLabel (newUniqueName))
-  (var cstring falseLabel (newUniqueName))
-  (var cstring testResult (newUniqueName))
-
-  (ret `(
-    (var bool #testResult #test)
-    (branch #testResult #trueLabel #falseLabel)
-    (label #trueLabel)
-    #onT
-    (label #falseLabel) ))
-  ))
-  
-(func void test () (
-  (println)
-  (if (gt 10 4) (printlnInt 100))
-  (if (gt 2 4) (printlnInt 100))
-  ))
+(var cstring yippieh "yippieh!")
   
 (xmacro txmacro2 arg
   (insert xmacro #arg) )

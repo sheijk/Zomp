@@ -3,6 +3,7 @@ open Ast2
 open Lang
 open Printf
 open Bindings
+open Common
 
 let combine = Common.combine
   
@@ -90,10 +91,13 @@ let stringMap f str =
     newString := !newString ^ f str.[i]
   done;
   !newString
-  
-let llvmEscapedString str = 
-  Str.global_replace (Str.regexp "\\\\n") "\\\\0A" str
 
+let llvmEscapedString str =
+  let replace regexp newstring = Str.global_replace (Str.regexp regexp) newstring in
+  str
+  >>= replace "\\\\n" "\\\\0A"
+  >>= replace "\"" "\\\\22"
+                             
 let lastUniqueId = ref 0
 let newUniqueId() =
   incr lastUniqueId;
