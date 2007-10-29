@@ -7,6 +7,8 @@
 (func void printChar ((char c)))
 (func void printNewline ())
 
+(func (ptr char) int2cstring ((int i)))
+
 // (func void zompLoadLib ((string libname)))
 // (func bool zompCheckNativeSymbol ((string libname)))
 
@@ -14,9 +16,6 @@
 (func void zompHello ())
 
 /// utility functions
-
-// (var string trueString "true")
-// (var string falseString "false")
 
 (func void printBool ((bool b)) (
   (branch b true false)
@@ -242,6 +241,25 @@
   
 (macro testf impl
   (func void test () (impl)) )
+
+/*  
+(xmacro txmacro2 arg
+  (insert xmacro #arg) )
+
+(xmacro txmacro3 arg0 arg1
+  (foo bar #arg0 #arg1) )
+
+(var int lastid 0)
+
+(xmacro if test onT
+  (printlnInt #lastid)
+  )
+(func void test () (
+  (println)
+  (if (gt 10 4) (printlnInt 100))
+  (if (gt 2 4) (printlnInt 100))
+  ))
+*/
 
 /*
 (func int testast2 () (

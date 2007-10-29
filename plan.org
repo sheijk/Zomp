@@ -37,6 +37,7 @@
 *** TODO Bug: (func int main () 20) does not compile
     But (func int main () ((ret 20))) does as well as (func int main () ((printInt 10) 20))
 *** TODO Bug: some generic intrinsics might return invalid bindings
+
 ** Interactive toplevel
 *** DONE Create C interface
     CLOSED: [2007-09-30 Sun 01:53]
@@ -65,6 +66,11 @@
 *** Macros
 **** DONE Allow definition of simple "template" macros
 **** TODO Allow running code inside macros
+**** TODO Insert astFromInt or astFromString if a var/func returns int/string
+**** TODO Put macro functions into seperate module
+**** TODO Allow macros to call any ordinary function
+**** TODO Write "if then else" macro
+**** TODO Write "for i min max" macro
 
 * Notes											:zomp:
 - separated macro expansion / interpretation
@@ -123,4 +129,5 @@ Similarily, the relation of security levels between function's arguments and par
 Might allow to do flow analysis.
 See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
        
+
 

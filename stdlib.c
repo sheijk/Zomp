@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 void printString( char* str ) {
     printf( "%s", str );
@@ -29,4 +31,16 @@ int* nullptr() {
 void stdlibHello() {
   printf( "hello, stdlib\n" );
 }
+
+char* int2cstring(int i) {
+  char buffer[1000];
+  sprintf( buffer, "%d", i );
+/*   itoa( i, buffer, 10 ); */
+
+  size_t charCount = strlen( buffer );
+  char* result = (char*) malloc( sizeof(char) * (charCount + 1) );
+  strcpy( result, buffer );
+  return result;
+}
+
 

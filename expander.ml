@@ -279,7 +279,14 @@ let astType = `Record [
 let astPtrType = `Pointer astType
 
 let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
-  
+
+let macroFuncs = ref []
+
+let rec listContains element = function
+  | [] -> false
+  | e :: rem when e = element -> true
+  | _ :: rem -> listContains element rem
+      
 let createNativeMacro translateF bindings macroName argNames impl =
   let sexprImpl = Genllvm.sexpr2code impl in
   let bindings =
@@ -304,15 +311,20 @@ let createNativeMacro translateF bindings macroName argNames impl =
     impl = Some (toSingleForm implforms);
   } in
   let tlforms = initForms @ [`DefineFunc macroFunc] in
-  printf "Def of macro %s yielded the following definitions:\n" macroName;
-  List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) tlforms;
+  eprintf "Def of macro %s yielded the following definitions:\n" macroName;
+  List.iter (fun f -> eprintf "\t=>> %s\n" (Lang.toplevelFormToString f)) tlforms;
   let llvmCodes = List.map Genllvm.gencodeTL tlforms in
   let llvmCode = Common.combine "\n" llvmCodes in
-(*   printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implforms)); *)
-(*   printf "LLVM code:\n%s\n------------------------------\n" llvmCode; *)
+  (*   printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implforms)); *)
+  (*   printf "LLVM code:\n%s\n------------------------------\n" llvmCode; *)
   Zompvm.evalLLVMCodeB
     ~targetModule:Zompvm.Runtime
-    []
+    (if listContains macroName !macroFuncs then
+       [macroName]
+     else begin
+       macroFuncs := macroName :: !macroFuncs;
+       []
+     end)
     (tlforms @ [`DefineFunc macroFunc])
     llvmCode
   
@@ -329,35 +341,39 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       (fun (prevTLForms, prevForms) expr ->
          let _, xforms = translateNestedF bindings expr in
          let tlforms, simpleforms = extractToplevelForms xforms in
-         prevTLForms @ tlforms, prevForms @ simpleforms )
+         prevTLForms @ tlforms, prevForms @ [(toSingleForm simpleforms)] )
       ([], [])
       argAstExprs
     in
     let resultVar = { (Lang.localVar ~name:"result" ~typ:astPtrType)
                       with vstorage = MemoryStorage }
     in
+    let implForms = [
+      `FuncCall { fcname = "printlnInt";
+                  fcrettype = `Void;
+                  fcparams = [`Int];
+                  fcargs = [`Constant (IntVal !count)] };
+      `DefineVariable(resultVar,
+                      Some (`FuncCall { fcname = name;
+                                        fcrettype = astPtrType;
+                                        fcparams = repeatedList astPtrType (List.length argAstForms);
+                                        fcargs = argAstForms; }) );
+      `CastIntrinsic (`Int, `Variable resultVar);
+      (*           `Return (`Constant (IntVal 0)); *)
+    ]
+    in
     let func = `DefineFunc {
       Lang.fname = "macroExec";
       rettype = `Int;
       fargs = [];
-      impl = Some (
-        `Sequence [
-          `FuncCall { fcname = "printlnInt";
-                      fcrettype = `Void;
-                      fcparams = [`Int];
-                      fcargs = [`Constant (IntVal !count)] };
-          `DefineVariable(resultVar,
-                          Some (`FuncCall { fcname = name;
-                                            fcrettype = astPtrType;
-                                            fcparams = repeatedList astPtrType (List.length argAstForms);
-                                            fcargs = argAstForms; }) );
-          `CastIntrinsic (`Int, `Variable resultVar);
-          (*           `Return (`Constant (IntVal 0)); *)
-        ]);
+      impl = Some (`Sequence implForms);
     } in
     let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
+    printf "Def of macroExec yielded the following definitions:\n";
+    List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) alltlforms;
+    printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implForms));
     let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
-    let llvmCode = Common.combine "\n" llvmCodeLines in
+    let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
     Zompvm.evalLLVMCodeB
       ~targetModule:Zompvm.Runtime
       ["macroExec"]
