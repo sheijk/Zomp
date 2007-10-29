@@ -101,10 +101,10 @@ let newUniqueId() =
 let newUniqueName() =
   "__temp_" ^ string_of_int (newUniqueId())
 
-let rec sexpr2code = function
+let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = function
   | { id = "antiquote"; args = [{ id = id; args = args}] } ->
       begin
-        { id = id; args = args }
+        antiquoteF id args
       end
   | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
   | sexprWithArgs ->
@@ -124,10 +124,25 @@ let rec sexpr2code = function
             childExpr;
           ] }
       in
-      let argExprs = List.map sexpr2code sexprWithArgs.args in
+      let argExprs = List.map (sexpr2code ~antiquoteF) sexprWithArgs.args in
       let argAddExprs = List.map addChildExpr argExprs in
       seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
 
+(* will turn #foo int (astFromInt foo) if foo evaluates to `Int etc. *)
+let insertAstConstructors bindings =
+  fun id args ->
+    let default = { id = id; args = args } in
+    match args with
+      | [] ->
+          begin match lookup bindings id with
+            | VarSymbol { typ = `Int } ->
+                { id = "astFromInt"; args = [idExpr id] }
+            | VarSymbol { typ = `Pointer `Char } ->
+                { id = "simpleAst"; args = [idExpr id] }
+            | _ -> default
+          end
+      | _ -> default
+        
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -198,9 +213,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     let quoteMacro =
       macro "quote"
-        (fun _ args ->
+        (fun bindings args ->
            match args with
-             | [quotedExpr] -> sexpr2code quotedExpr
+             | [quotedExpr] -> sexpr2code ~antiquoteF:(insertAstConstructors bindings) quotedExpr
              | [] -> simpleExpr "simpleAst" ["seq"]
              | args -> { id = "quote"; args = args }
         )

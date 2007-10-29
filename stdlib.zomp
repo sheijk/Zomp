@@ -1,5 +1,5 @@
 
-/// external (C) functions
+/// external (C) functions ----------------------------------------
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
@@ -15,7 +15,7 @@
 (func void stdlibHello ())
 (func void zompHello ())
 
-/// utility functions
+/// utility functions ----------------------------------------
 
 (func void printBool ((bool b)) (
   (branch b true false)
@@ -55,7 +55,7 @@
   (store (fieldptr record componentName) value)
   ))
   
-/// string functions
+/// string functions ----------------------------------------
 
 (type cstring (ptr char))
 
@@ -150,7 +150,7 @@
   (label end)
   ))
   
-/// ast  
+/// ast ----------------------------------------
 
 (type ast
   (cstring id)
@@ -166,6 +166,10 @@
   
   (ret a)
   ))
+
+(func (ptr ast) astFromInt ((int i)) (
+  (var cstring asString (int2cstring i))
+  (simpleAst asString) ))
 
 (func void printAst (((ptr ast) a) (int indent)) (
   (printIndent indent)
@@ -209,6 +213,7 @@
   (setField tree childCount newChildCount)
   ))
 
+/// macro support ----------------------------------------
 
 (func cstring macroAstId ((int macroCurrentAst)) (
   (getField (cast (ptr ast) macroCurrentAst) id) ))
@@ -242,23 +247,59 @@
 (macro testf impl
   (func void test () (impl)) )
 
-/*  
-(xmacro txmacro2 arg
-  (insert xmacro #arg) )
-
-(xmacro txmacro3 arg0 arg1
-  (foo bar #arg0 #arg1) )
-
+  
 (var int lastid 0)
 
-(xmacro if test onT
-  (printlnInt #lastid)
-  )
+(func int newUniqueId () (
+  (assign lastid (int.add lastid 1))
+  (ret lastid) ))
+
+(func cstring appendCStrings ((cstring l) (cstring r)) (
+  (var (ptr string) lstr (makestring l))
+  (var (ptr string) rstr (makestring r))
+  (var (ptr string) appended (append lstr rstr))
+  (ret (getField appended chars))
+  ))
+  
+(func cstring newUniqueName () (
+  (var int id (newUniqueId))
+  (var cstring numstr (int2cstring id))
+  (ret (appendCStrings "_tmp_" numstr)) ))
+  
+/*  
+
+(xmacro inline3 code (
+  (var (ptr ast) tree (simpleAst "seq"))
+  (addChild tree code)
+  (addChild tree code)
+  (addChild tree code)
+  (ret tree)
+  ))
+
+(xmacro if test onT (
+  (var cstring trueLabel (newUniqueName))
+  (var cstring falseLabel (newUniqueName))
+  (var cstring testResult (newUniqueName))
+
+  (ret `(
+    (var bool #testResult #test)
+    (branch #testResult #trueLabel #falseLabel)
+    (label #trueLabel)
+    #onT
+    (label #falseLabel) ))
+  ))
+  
 (func void test () (
   (println)
   (if (gt 10 4) (printlnInt 100))
   (if (gt 2 4) (printlnInt 100))
   ))
+  
+(xmacro txmacro2 arg
+  (insert xmacro #arg) )
+
+(xmacro txmacro3 arg0 arg1
+  (foo bar #arg0 #arg1) )
 */
 
 /*

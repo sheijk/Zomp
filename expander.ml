@@ -286,9 +286,10 @@ let rec listContains element = function
   | [] -> false
   | e :: rem when e = element -> true
   | _ :: rem -> listContains element rem
-      
+
 let createNativeMacro translateF bindings macroName argNames impl =
-  let sexprImpl = Genllvm.sexpr2code impl in
+(*   let sexprImpl = Genllvm.sexpr2code ~antiquoteF:(insertAstConstructors bindings) impl in *)
+  let sexprImpl = impl in
   let bindings =
     List.fold_left
       (fun bindings name ->
@@ -311,8 +312,8 @@ let createNativeMacro translateF bindings macroName argNames impl =
     impl = Some (toSingleForm implforms);
   } in
   let tlforms = initForms @ [`DefineFunc macroFunc] in
-  eprintf "Def of macro %s yielded the following definitions:\n" macroName;
-  List.iter (fun f -> eprintf "\t=>> %s\n" (Lang.toplevelFormToString f)) tlforms;
+  (*   printf "Def of macro %s yielded the following definitions:\n" macroName; *)
+  (*   List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) tlforms; *)
   let llvmCodes = List.map Genllvm.gencodeTL tlforms in
   let llvmCode = Common.combine "\n" llvmCodes in
   (*   printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implforms)); *)
@@ -336,7 +337,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   in
   let constructMacroFunction() = () in
   let constructCallerFunction args =
-    let argAstExprs = List.map Genllvm.sexpr2code args in
+    let argAstExprs = List.map (Genllvm.sexpr2code ~antiquoteF:(Genllvm.insertAstConstructors bindings)) args in
     let tlforms, argAstForms = List.fold_left
       (fun (prevTLForms, prevForms) expr ->
          let _, xforms = translateNestedF bindings expr in
@@ -369,9 +370,9 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       impl = Some (`Sequence implForms);
     } in
     let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
-    printf "Def of macroExec yielded the following definitions:\n";
-    List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) alltlforms;
-    printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implForms));
+(*     printf "Def of macroExec yielded the following definitions:\n"; *)
+(*     List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) alltlforms; *)
+(*     printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implForms)); *)
     let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
     let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
     Zompvm.evalLLVMCodeB

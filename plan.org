@@ -65,7 +65,8 @@
 *** TODO Redefine/change variables
 *** Macros
 **** DONE Allow definition of simple "template" macros
-**** TODO Allow running code inside macros
+**** DONE Allow running code inside macros
+     CLOSED: [2007-10-29 Mon 15:48] 
 **** TODO Insert astFromInt or astFromString if a var/func returns int/string
 **** TODO Put macro functions into seperate module
 **** TODO Allow macros to call any ordinary function

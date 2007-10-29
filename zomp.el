@@ -126,6 +126,7 @@
            (setq comment-start "//")
            (setq indent-tabs-mode nil)
            (local-set-key [(control c)(control s)] 'zomp-toplevel)
+           (zomp-onkey-do [(control c) (control q)] "!exit")
            (local-set-key [(control c)(control b)] 'zomp-tl-eval-buffer)
            (local-set-key [(control c)(control e)] 'zomp-tl-eval-current)
            (local-set-key [(control c)(control r)] 'zomp-tl-eval-region)
@@ -133,9 +134,8 @@
 
            (local-set-key [(control c) (d)] 'zomp-tl-run)
            (local-set-key [(control c) (f)] 'zomp-tl-list-bindings)
-           (zomp-onkey-do [(control c) (control f)] "!bindings")
-           (zomp-onkey-do [(control c) (h)] "!elp")
-           (zomp-onkey-do [(control c) (q)] "!exit")
+           (zomp-onkey-do [(control c) (meta f)] "!bindings")
+           (zomp-onkey-do [(control c) (h)] "!help")
            
            (zomp-onkey-do [(control c) (?.) (l)] "!llvm")
            (zomp-onkey-do [(control c) (?.) (e)] "!eval")
