@@ -1,0 +1,147 @@
+
+
+/// significant indentation
+func int foo a b c
+  print a
+  print b
+  print c
+
+// means the following s-expression:
+(func int foo a b c (
+  (print a)
+  (print b)
+  (print c) ))
+  
+/// expressions spanning multiple rows
+
+if: a > b
+  print "yes"
+else
+  print "no"
+/if
+
+if: a > b
+  print "yes"
+else
+  print "no"
+end if
+
+/// dot notation
+
+// equivalent
+2.pow 3
+pow 2 3
+
+1.upto 10 ...
+
+/// operators
+
+// equivalent
+(a + b)
+(op+ a b)
+
+// which operators to support?
+// all common math symbols
++,-,*,/,...
+
+// custom operators
+
+// _id for alternatives (subscript like)
++_f, *_dot
+
+// any combination?
+++, +-, +*, +'
+// has precedence like the first component (above all have same precedence as '+')
+  // conflicts with expectations of c programmers
+  // odd/inconvenient precedences: -> has precedence like '-'
+// or: all non-standard ops have a default precedence?
+  // user needs to know standard operators
+  // adding operators to the language later on causes problems
+
+// latex style operators?
+\sum, \concat
+
+// juxtaposition has highest priority  
+foo a + bar b
+(op+ (foo a) (bar b))
+
+print 1 + 2
+(op+ (print 1) 2)
+
+/// s-expressions versus m-expressions
+
+// s-expression
+call( a, b c )
+// m-expression
+call a b c
+
+// how to allow both?
+
+print( 1+2, pow(2, 3) )
+print( 1+2, 2.pow 3 )
+
+// where do they conflict?
+foo bar ( 3 + 4 )
+(foo (bar (+ 3 4)))
+(foo bar (+ 3 4))
+
+// no mixing?
+ok:
+foo bar (baz a b c)
+foo( bar, baz a b c )
+
+not ok:
+foo bar baz(a,b,c)
+  (foo bar baz (op, a b c)) ?
+  (foo bar (baz a b c)) ?
+
+print a b (c)
+  (print a b (c)) ?
+  (print a (b c)) ?
+
+// might work:
+sexpr ::= '('id sexpr*')'
+mexpr ::= id'(' comma-delimited-list(mexprArg) ')'
+mexprArg ::= mexpr | sexpr
+// however this will not work:
+foreach i in subdirs(currentDir)
+  ...
+
+// significant white space?
+foreach i in subdirs(pwd)
+(foreach i in (subdirs pwd)
+
+foreach i in subdirs (pwd)
+(foreach i in subdirs (pwd))
+
+add( "10".parseIntBase 20, pow(1, 3+2) )
+"10".parseIntBase(20).add(pow(1, 3+2))
+(add ("10".parseIntBase 20) (pow 1 (3+2)) )
+
+
+// different syntax for ambiguous situations?
+// what's ambiguous?
+
+// different parenthesis?
+<foo arg>
+foo(arg)
+<foo a b c>
+foo(a, b, c)
+
+// conflicts with </> (less/greater)
+  // </foo bar/>
+  // </foo bar /foo>
+  // if <. a > b .>
+  // if <. foo bar .foo>
+
+// require white space between operators and symbols?
+
+(a b)
+
+foo.(a, b)
+
+(/foo a b/)
+.(foo a b)
+
+[foo a b]
+
