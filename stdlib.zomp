@@ -289,6 +289,26 @@
   (ret result)
   ))
 
+
+(xmacro for index min max code (
+  (var cstring startLabel (newUniqueNameFor "for_start"))
+  (var cstring endLabel (newUniqueNameFor "for_exit"))
+  (var cstring testResult (newUniqueNameFor "for_testvar"))
+  (var cstring execLabel (newUniqueNameFor "for_code"))
+
+  (ret `(
+    (var int #index #min)
+    (label #startLabel)
+    (var bool #testResult (int.sless #index #max))
+    (branch #testResult #execLabel #endLabel)
+    (label #execLabel)
+    #code
+    (assign #index (int.add #index 1))
+    (branch #startLabel)
+    (label #endLabel)
+    ))
+  ))
+
 /*
 
 (func void test () (
