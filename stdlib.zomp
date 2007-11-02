@@ -167,6 +167,9 @@
   (ret a)
   ))
 
+(func (ptr ast) astFromString ((cstring name)) (
+  (simpleAst name) ))
+
 (func (ptr ast) astFromInt ((int i)) (
   (var cstring asString (int2cstring i))
   (simpleAst asString) ))
@@ -321,10 +324,13 @@
 
 (xmacro inline3 code (
   (var (ptr ast) tree (simpleAst "seq"))
+  (printlnString "Warning: you suck!")
   (addChild tree code)
   (addChild tree code)
   (addChild tree code)
-  (ret tree)
+  (ret `(
+    (printlnString "doing it three times!")
+    #tree ))
   ))
 
 (var cstring yippieh "yippieh!")

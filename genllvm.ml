@@ -142,7 +142,7 @@ let insertAstConstructors bindings =
             | VarSymbol { typ = `Int } ->
                 { id = "astFromInt"; args = [idExpr id] }
             | VarSymbol { typ = `Pointer `Char } ->
-                { id = "simpleAst"; args = [idExpr id] }
+                { id = "astFromString"; args = [idExpr id] }
             | _ -> default
           end
       | _ -> default

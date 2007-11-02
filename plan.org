@@ -49,6 +49,10 @@
     CLOSED: [2007-09-30 Sun 01:53]
 *** DONE Make it run stable and be usable
     CLOSED: [2007-10-03 Wed 03:33]
+*** TODO Support loading DLLs and calling their functions
+**** TODO Load DLLs
+**** TODO Call functions in them
+**** TODO Add search paths
 *** TODO Fork to avoid crashes
 **** TODO Find a way to keep connection to stdin on crash in other process
 *** TODO Emacs support
@@ -63,15 +67,35 @@
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]
 *** TODO Redefine/change variables
-*** Macros
+** Macros
 **** DONE Allow definition of simple "template" macros
 **** DONE Allow running code inside macros
      CLOSED: [2007-10-29 Mon 15:48] 
-**** TODO Insert astFromInt or astFromString if a var/func returns int/string
-**** TODO Put macro functions into seperate module
-**** TODO Allow macros to call any ordinary function
-**** TODO Write "if then else" macro
-**** TODO Write "for i min max" macro
+**** DONE Insert astFromInt or astFromString if a var/func returns int/string
+     CLOSED: [2007-11-02 Fri 02:46] **** TODO Put macro functions into seperate module
+**** DONE Allow macros to call any ordinary function
+     CLOSED: [2007-11-02 Fri 02:50] **** TODO Write "if then else" macro
+**** DONE Write "for i min max" macro
+     CLOSED: [2007-11-02 Fri 02:50]
+**** TODO Query existing functions and variables
+** Language
+*** TODO OpenGL support
+*** TODO Generic list / container generation macro
+*** TODO Syntax
+*** Namespaces / Modules
+*** Object system
+**** vtable calls
+**** Syntax support
+**** Represent them in zomp ast type
+
+*** Compile multi file projects
+**** Realize definition of project files
+     A central project file which will list all linked in modules,
+     settings etc.
+
+     "zompc project.zomp release" should be enough to build the whole project
+
+**** Define .zobj format
 
 * Notes											:zomp:
 - separated macro expansion / interpretation
