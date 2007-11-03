@@ -239,6 +239,13 @@ extern "C" {
     return buffer.c_str();
   }
 
+  bool zompRunFunctionBool(const char* functionName) {
+    GenericValue result = runFunction( functionName );
+
+    return result.IntVal != 0;
+  }
+  
+
   void zompPrintModuleCode() {
     std::cout
       << "--- We just constructed this LLVM module ---\n\n"
@@ -273,10 +280,16 @@ extern "C" {
     */
   }
 
-  void zompLoadLib(const char* name) {
-    printf("Loading lib %s\n", name);
+  int zompLoadLib(const char* name) {
+    void* handle = dlopen( name, RTLD_LAZY );
+//     void* handle = dlopen( "dlltest.dylib", RTLD_LAZY );
 
-    dlopen( name, RTLD_LAZY );
+    if( handle == NULL ) {
+      printf( "Could not load dll '%s': %s\n", name, dlerror() );
+      fflush( stdout );
+    }
+
+    return reinterpret_cast<int>( handle );
   }
 
   bool zompCheckNativeSymbol(const char* name) {

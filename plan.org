@@ -23,6 +23,16 @@
 *** TODO Methods are added to bindings twice
     func returns bindings where the functions is added twice
 
+*** TODO Variadic macros
+    (macro template name (rest args)
+      (var (ptr ast) tree `(macro #name))
+      (foreach arg in args
+        (addChild tree arg) )
+      (ret tree) )
+    
+    (template uniqueLabel name purpose (
+      (var cstring #name (newUniqueNameFor #purpose)) ))
+
 ** Refactorings
 *** TODO Allow nested expressions in branch instruction
 *** TODO Turn value type into polymorphic variant type
@@ -80,6 +90,9 @@
 **** TODO Query existing functions and variables
 ** Language
 *** TODO OpenGL support
+*** TODO Explicit polymorphism
+    Overloading functions should be possible
+
 *** TODO Generic list / container generation macro
 *** TODO Syntax
 *** Namespaces / Modules

@@ -25,4 +25,7 @@ http://sheijk.dword.org/zomp
     int zompRunFunctionIntWithArgs (const char* name)
     const char* zompRunFunctionString (const char* name)
     const char* zompRunFunctionStringWithArgs (const char* name)
+    bool zompRunFunctionBool (const char* name)
+    
+    int zompLoadLib (const char* name)
     

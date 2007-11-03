@@ -1,0 +1,100 @@
+
+/// glfw, use "!dlopen libglfw.dylib" before calling these functions
+(func int glfwInit ())
+(func void glfwTerminate ())
+(func int glfwOpenWindow (
+  (int width) (int height)
+  (int redbits) (int greenbits) (int bluebits)
+  (int alphabits) (int depthbits) (int stencilbits)
+  (int mode) ))
+(func void glfwCloseWindow ())
+
+(func void glfwGetVersion (
+  ((ptr int) major)
+  ((ptr int) minor)
+  ((ptr int) rev) ))
+
+(func void glfwSetWindowTitle ((cstring title)))
+(func void glfwSwapBuffers ())
+
+/// opengl
+(type GLenum int)
+(type GLint int)
+(type GLuint int)
+
+(var int GL_TRUE 1)
+(var int GL_FALSE 0)
+
+(func void glClearColor ( (float r) (float g) (float b) (float a) ))
+
+(const int GL_COLOR_BUFFER_BIT 16384) // 0x00004000
+
+(func int glGetError ())
+(func cstring gluErrorString ((GLenum error)))
+(func void glClear ((int mode)))
+
+(const int GLFW_WINDOW 65537) // 0x00010001
+(const int GLFW_FULLSCREEN 65538) // 0x00010002
+
+(func void printGLError () (
+  (var int error 0)
+
+  (while ((assign error (glGetError)) (int.notEqual error 0)) (
+    (const cstring message (gluErrorString error))
+    (printString "OpenGL error ")
+    (printInt error)
+    (printString ": ")
+    (printlnString message)
+    ))
+  ))
+
+(func void printGlfwVersion () (
+  (var int major 0)
+  (var int minor 0)
+  (var int rev 0)
+
+  (glfwGetVersion (ptr major) (ptr minor) (ptr rev))
+  
+  (printString "Glfw version: ")
+  (printString "major = ") (printInt major)
+  (printString ", minor = ") (printInt minor)
+  (printString ", rev = ") (printInt rev)
+  (println)
+  ))
+
+(func bool openWindow () (
+  (printlnString "Opening window... ")
+  (var int result
+    (glfwOpenWindow 400 300 8 8 8 8 16 0 GLFW_WINDOW))
+  (const bool succeeded (int.equal result GL_TRUE))
+
+  (if succeeded
+    (printlnString "ok")
+    (printlnString "failed") )
+  (ret succeeded)
+  ))
+
+(func void renderTest () (
+  (glfwInit)
+  (openWindow)
+  (glfwSetWindowTitle "renderTest")
+  (glClear GL_COLOR_BUFFER_BIT)
+  (glfwSwapBuffers)
+  (printGLError)
+  ))
+
+(func void clearScreen () (
+  (glClearColor 1.0 1.0 1.0 1.0)
+  (glClear GL_COLOR_BUFFER_BIT)
+  (glfwSwapBuffers)
+  (printGLError)
+  ))
+
+/**
+Enter this into toplevel to load libs. You will need to copy
+the file libglfw.dylib from the lib/macosx dir of GLFW 2.6
+into the zomp main dir
+
+!load libglfw.dylib dlltest.dylib
+*/
+

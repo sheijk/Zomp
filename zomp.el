@@ -5,7 +5,7 @@
 (defun goto-match-paren (arg)
   "Go to the matching parenthesis if on paranthesis. Else go to the
    opening paranthesis one level up.
-   Ripped from unknow source, probably emacswiki.org"
+   Partially ripped from unknow source, probably emacswiki.org"
   (interactive "p")
   (cond ((looking-at "\\s\(") (forward-list 1))
         (t
@@ -79,12 +79,13 @@
   )
 
 (define-generic-mode zomp-mode
-  '(("/*" . "*/"))
+  '(("//" . nil)
+    ("/*" . "*/"))
   '("{" "}")
   '(
-    ("///.*" 0 font-lock-doc-face)
-    ("//.*" 0 font-lock-comment-face)
-;;     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face)
+    ("///.*" 0 font-lock-doc-face t)
+;;     ("//.*" 0 font-lock-comment-face)
+    ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
 ;;     ("/\\*[^\\*]*\\*/" 0 font-lock-comment-face)
     ("'[^']'" 0 font-lock-string-face)
 ;;     ("'\[0-9]+'" 0 font-lock-string-face)
@@ -126,6 +127,8 @@
   (list '(lambda ()
            (setq comment-start "//")
            (setq indent-tabs-mode nil)
+           (hl-sexp-mode t)
+           
            (local-set-key [(control c)(control s)] 'zomp-toplevel)
            (zomp-onkey-do [(control c) (control q)] "!exit")
            (local-set-key [(control c)(control b)] 'zomp-tl-eval-buffer)

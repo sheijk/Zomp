@@ -272,13 +272,17 @@
 (func cstring newUniqueNameFor ((cstring purpose)) (
   (var cstring name (newUniqueName))
   (ret (appendCStrings (appendCStrings name "_") purpose)) ))
-  
-(xmacro if test onTrue onFalse (
-  (var cstring trueLabel (newUniqueNameFor "true"))
-  (var cstring falseLabel (newUniqueNameFor "false"))
-  (var cstring endLabel (newUniqueNameFor "end"))
-  (var cstring testResult (newUniqueNameFor "testresult"))
 
+(xmacro uniqueId name purpose (
+  (ret `(var cstring #name (newUniqueNameFor #purpose)))
+  ))
+
+(xmacro if test onTrue onFalse (
+  (uniqueId trueLabel "iftrue")
+  (uniqueId falseLabel "iffalse")
+  (uniqueId endLabel "ifend")
+  (uniqueId testResult "iftestresult")
+  
   (var (ptr ast) result `(
     (var bool #testResult #test)
     (branch #testResult #trueLabel #falseLabel)
@@ -292,12 +296,11 @@
   (ret result)
   ))
 
-
 (xmacro for index min max code (
-  (var cstring startLabel (newUniqueNameFor "for_start"))
-  (var cstring endLabel (newUniqueNameFor "for_exit"))
-  (var cstring testResult (newUniqueNameFor "for_testvar"))
-  (var cstring execLabel (newUniqueNameFor "for_code"))
+  (uniqueId startLabel "for_start")
+  (uniqueId endLabel "for_exit")
+  (uniqueId testResult "for_testvar")
+  (uniqueId execLabel "for_body")
 
   (ret `(
     (var int #index #min)
@@ -312,7 +315,30 @@
     ))
   ))
 
+(xmacro while test body (
+  (uniqueId begin "while_begin")
+  (uniqueId exit "while_exit")
+  (uniqueId goon "while_body")
+  (uniqueId testVar "while_testvar")
+  
+  (ret `(
+    (label #begin)
+    (var bool #testVar (#test))
+    (branch #testVar #goon #exit)
+    (label #goon)
+    #body
+    (branch #begin)
+    (label #exit)
+    ))
+  ))
+
+/// workaround until "const" is properly supported
+(xmacro const type name default (
+  (ret `(var #type #name #default)) ))
+  
 /*
+
+!load libglfw.dylib dlltest.dylib
 
 (func void test () (
   (println)

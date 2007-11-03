@@ -80,11 +80,14 @@ let runFunction bindings funcname =
             | `Int ->
                 let retval = Machine.zompRunFunctionInt funcname in
                 printf " => %d\n" retval
+            | `Bool ->
+                let retval = Machine.zompRunFunctionBool funcname in
+                printf " => %b\n" retval
             | `Pointer `Char ->
                 let retval = Machine.zompRunFunctionString funcname in
                 printf " => %s\n" retval
             | otherRetType ->
-                eprintf "Cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
+                printf "Cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
         end
     | _ ->
         eprintf "Cannot run %s because no such function was found\n" funcname
@@ -96,8 +99,7 @@ let runMain args bindings =
     | _ ->
         eprintf "Only one argument allowed\n"; flush stderr
     
-let loadLLVMFile args _ =
-  let loadFile filename =
+let loadLLVMFile filename _ =
     try
       let content = readFile filename in
       if not( Machine.zompSendCode content "" ) then
@@ -105,9 +107,26 @@ let loadLLVMFile args _ =
     with
         Sys_error message ->
           eprintf "Could not load file %s: %s\n" filename message
-  in
-  List.iter loadFile args
-               
+
+let loadCDll pathAndName _ =
+  let handle = Zompvm.zompLoadLib pathAndName in
+  if handle = 0 then
+    printf "Could not load %s\n" pathAndName
+  else
+    printf "Succesfully loaded %s\n" pathAndName
+
+let loadCode args bindings =
+  let matches re string = Str.string_match (Str.regexp re) string 0 in
+  List.iter
+    (fun name ->
+       if matches ".*\\.ll" name then 
+         loadLLVMFile name bindings
+       else if matches ".*\\.\\(dylib\\|so\\|dll\\)" name then
+         loadCDll name bindings
+       else
+         printf "Unsupported file extension\n" )
+    args
+  
 let listCommands commands _ _ =
   printf "%c to abort multi-line (continued input)\n" toplevelCommandChar;
   let maxCommandLength =
@@ -127,7 +146,7 @@ let commands =
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
-    "load", [], loadLLVMFile, "Load file containing LLVM code (*.ll)";
+    "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
     "help", ["h"], printHelp, "List all toplevel commands";
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
@@ -253,7 +272,7 @@ let () =
     and zompPreludeFile = "stdlib.zomp"
     in
     printf "Loading LLVM prelude from %s\n" llvmPreludeFile; flush stdout;
-    loadLLVMFile [llvmPreludeFile] (Bindings.defaultBindings);
+    loadLLVMFile llvmPreludeFile (Bindings.defaultBindings);
     printf "Loading Zomp prelude from %s\n" zompPreludeFile; flush stdout;
     let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
     let parseF = Sexprparser.main Sexprlexer.token in
