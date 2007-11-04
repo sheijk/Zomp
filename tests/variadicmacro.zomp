@@ -1,0 +1,50 @@
+///
+/// Tests variadic macros. A variadic macro is one whose last parameter will collect
+/// an arbitrary number of parameters stored in a seq expression
+///
+
+(xmacro vartest firstArg (rest remArgs) (
+  (const int argCount (getField remArgs childCount))
+ 
+  (printString "Invoked macro ")
+  (printString (getField firstArg id))
+  (printString " with ")
+  (printInt argCount)
+  (printString " arguments")
+  (println)
+
+  (ret `(printlnInt 10))
+  ))
+
+(xmacro forEachAstChild childVar tree code (
+  (uniqueId count "child_count")
+  
+  (ret `(
+    (const int #count (getField #tree childCount))
+    (printString "child count = ") (printlnInt #count)
+    ))
+  ))
+
+(func int main () (
+  (vartest foo0)
+  (vartest foo1 a)
+
+//   (forEachAstChild c `(foo bar baz blup) (
+//     (printString "ast: ")
+//     (printAst c 4) ))
+
+  (ret 23)
+  ))
+
+(testf (
+  (const int retval (main))
+  (printString "main returned ")
+  (printlnInt retval) ))
+
+// (xmacro template name (rest argsAndImpl) (
+//   (var (ptr ast) t (simpleAst "macro"))
+//   (addChild t name)
+
+//   (ret t)
+//   ))
+

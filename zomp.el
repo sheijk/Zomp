@@ -22,6 +22,14 @@
                          (backward-char 1)))
                   ))))))
 
+(defun zomp-mark-sexp ()
+  (interactive)
+  (cond ((not (looking-at "("))
+         (goto-match-paren 0)))
+  (set-mark (point))
+  (goto-match-paren 0)
+  )
+
 (defun zomp-onkey-do (key code)
   (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
 
@@ -56,14 +64,23 @@
 (defun zomp-tl-eval-current ()
   (interactive)
   (message "Evaluating function at point")
-  (push-mark)
-  (search-backward-regexp "^(")
-  (push-mark (point) t t)
-  (goto-match-paren 4)
-  (zomp-tl-eval-region)
-  (pop-mark)
-  (set-mark-command 1)
-  )
+  (save-excursion
+    (forward-char)
+    (search-backward-regexp "^(")
+    (push-mark (point) t t)
+    (goto-match-paren 4)
+    (zomp-tl-eval-region) ))
+
+(defun zomp-next-tl-expr ()
+  (interactive)
+  (forward-char)
+  (search-forward-regexp "^(")
+  (backward-char) )
+
+(defun zomp-prev-tl-expr ()
+  (interactive)
+  (backward-char)
+  (search-backward-regexp "^(") )
 
 (defun zomp-tl-eval-buffer ()
   (interactive)
@@ -82,8 +99,8 @@
   '(("/*" . "*/"))
   '("{" "}")
   '(
-    ("///.*" 0 font-lock-doc-face t)
     ("//.*" 0 font-lock-comment-face t t)
+    ("///.*" 0 font-lock-doc-face t t)
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
 ;;     ("/\\*[^\\*]*\\*/" 0 font-lock-comment-face)
     ("'[^']'" 0 font-lock-string-face)
@@ -126,6 +143,7 @@
   (list '(lambda ()
            (setq comment-start "//")
            (setq indent-tabs-mode nil)
+           ; highlight s-expression under cursor
            (hl-sexp-mode t)
            
            (local-set-key [(control c)(control s)] 'zomp-toplevel)
@@ -139,9 +157,20 @@
            (local-set-key [(control c) (f)] 'zomp-tl-list-bindings)
            (zomp-onkey-do [(control c) (meta f)] "!bindings")
            (zomp-onkey-do [(control c) (h)] "!help")
-           
            (zomp-onkey-do [(control c) (?.) (l)] "!llvm")
            (zomp-onkey-do [(control c) (?.) (e)] "!eval")
+
+           (local-set-key [(meta n)] 'zomp-next-tl-expr)
+           (local-set-key [(meta p)] 'zomp-prev-tl-expr)
+           (local-set-key [(meta k)] 'zomp-mark-sexp)
            ))
   "A simple mode for the zomp language")
-  
+
+(defun zomp-forward-sexp ()
+  (interactive)
+  (forward-sexp) )
+
+(defun zomp-backward-sexp ()
+  (interactive)
+  (backward-sexp) )
+

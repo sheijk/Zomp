@@ -328,11 +328,16 @@ let createNativeMacro translateF bindings macroName argNames impl =
     llvmCode
   
 let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
+  let expectedArgCount = List.length argNames in
+  let foundArgCount = List.length args in
+  if expectedArgCount <> foundArgCount then 
+    raiseIllegalExpression
+      { id = name; args = args }
+      (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
   let rec repeatedList element count =
     if count > 0 then element :: repeatedList element (count-1)
     else []
   in
-  let constructMacroFunction() = () in
   let constructCallerFunction args =
     let argAstExprs = List.map (Genllvm.sexpr2code ~antiquoteF:(Genllvm.insertAstConstructors bindings)) args in
     let tlforms, argAstForms = List.fold_left
@@ -353,7 +358,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
                                         fcparams = repeatedList astPtrType (List.length argAstForms);
                                         fcargs = argAstForms; }) );
       `CastIntrinsic (`Int, `Variable resultVar);
-      (*           `Return (`Constant (IntVal 0)); *)
     ]
     in
     let func = `DefineFunc {
@@ -363,9 +367,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       impl = Some (`Sequence implForms);
     } in
     let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
-(*         eprintf "Def of macroExec yielded the following definitions:\n"; *)
-(*         List.iter (fun f -> eprintf "\t=>> %s\n" (Lang.toplevelFormToString f)) alltlforms; *)
-(*         eprintf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implForms)); *)
     let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
     let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
     Zompvm.evalLLVMCodeB
@@ -412,14 +413,30 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       in
       { id = name; args = childs }
   in
-  constructMacroFunction();
   constructCallerFunction args;
   let astAddress = callMacro() in
   let sexpr = extractSExprFromNativeAst astAddress in
-(*   printf "Extracted macro to\n--------------------\n%s\n--------------------\n" *)
-(*     (Ast2.expression2string sexpr); *)
   sexpr
 
+let translateVariadicFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
+  let internalArgCount = List.length argNames in
+  let splitAfter firstLength list = 
+    let rec worker num accum = function
+      | [] -> accum, []
+      | hd :: tl ->
+          if num < firstLength then
+            worker (num+1) (hd::accum) tl
+          else
+            accum, hd::tl
+    in
+    let first, second = worker 0 [] list in
+    List.rev first, second
+  in
+  let inflatedArgs =
+    let regularArgs, variadicArgs = splitAfter (internalArgCount-1) args in
+    regularArgs @ [{ id = "seq"; args = variadicArgs}]
+  in
+  translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
 
 let translateDefineMacro translateNestedF translateF (bindings :bindings) = function
   | { id = id; args =
@@ -431,18 +448,23 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
         | impl :: args ->
             begin
               let args = List.rev args in
-              let argNames = List.map
-                (function
-                   | { id = name; args = [] } -> name
-                   | _ as arg -> raiseIllegalExpression arg "only identifiers allowed as macro parameter")
-                args
+              let argNames, isVariadic =
+                let rec worker accum = function
+                  | [] -> accum, false
+                  | [{ id = "rest"; args = [{ id = name; args = [] }] }] -> (name :: accum), true
+                  | { id = name; args = [] } :: rem -> worker (name :: accum) rem
+                  | (_ as arg) :: _ -> raiseIllegalExpression arg "only identifiers allowed as macro parameter"
+                in
+                let reversed, isVariadic = worker [] args in
+                List.rev reversed, isVariadic
               in
               let macroF =
                 if id = "xmacro" then begin
-(*                   printf "Creating macro function... "; *)
                   createNativeMacro translateNestedF bindings name argNames impl;
-(*                   printf "done\n"; *)
-                  translateFuncMacro translateNestedF name
+                  if isVariadic then
+                    translateVariadicFuncMacro translateNestedF name
+                  else
+                    translateFuncMacro translateNestedF name
                 end else
                   (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
               in

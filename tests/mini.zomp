@@ -52,4 +52,9 @@
   (for i 10 20 ((printString "index = ") (printlnInt i)))
   (println)
   ))
+
+(testf (
+  (var (ptr ast) t `(foo (bar x) baz))
+  (printlnInt (getField t childCount))
+  ))
   

@@ -8,7 +8,7 @@ open Bindings
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
   
-let prompt =          "  # "
+let defaultPrompt = "  # "
 and continuedPrompt = "..# "
   
 let printLLVMCode = ref false
@@ -173,7 +173,8 @@ let rec readExpr prompt previousLines bindings =
   if String.length line = 0 then begin
     readExpr prompt previousLines bindings
   end else if line = toplevelCommandString then begin
-    raise AbortExpr
+(*     raise AbortExpr *)
+    readExpr defaultPrompt "" bindings
   end else if line.[0] = toplevelCommandChar then begin
     handleCommand line bindings;
     readExpr prompt previousLines bindings
@@ -225,7 +226,7 @@ let () =
   (*   in *)
   let step bindings () =
     Parseutils.compile
-      ~readExpr:(fun bindings -> Some (readExpr prompt "" bindings))
+      ~readExpr:(fun bindings -> Some (readExpr defaultPrompt "" bindings))
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     let asString = Ast2.expression2string expr in
                     printf " => %s\n" asString;
