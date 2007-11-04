@@ -5,8 +5,6 @@ open Lang
 open Common
 open Bindings
 
-open Zompvm
-
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
   
@@ -100,13 +98,7 @@ let runMain args bindings =
         eprintf "Only one argument allowed\n"; flush stderr
     
 let loadLLVMFile filename _ =
-    try
-      let content = readFile filename in
-      if not( Machine.zompSendCode content "" ) then
-        eprintf "Could not eval llvm code from file %s\n" filename
-    with
-        Sys_error message ->
-          eprintf "Could not load file %s: %s\n" filename message
+  Zompvm.loadLLVMFile filename
 
 let loadCDll pathAndName _ =
   let handle = Zompvm.zompLoadLib pathAndName in
@@ -174,17 +166,17 @@ let handleCommand commandLine bindings =
   else
     printf "Not a command string: '%s'\n" commandLine
   
-let rec readExpr previousLines bindings prompt =
+let rec readExpr prompt previousLines bindings =
   printf "%s" prompt;
   flush stdout;
   let line = read_line() in
   if String.length line = 0 then begin
-    readExpr previousLines bindings prompt
+    readExpr prompt previousLines bindings
   end else if line = toplevelCommandString then begin
     raise AbortExpr
   end else if line.[0] = toplevelCommandChar then begin
     handleCommand line bindings;
-    readExpr previousLines bindings prompt
+    readExpr prompt previousLines bindings
   end else begin
     let expr =
       let input = previousLines ^ line ^ "\n" in
@@ -192,7 +184,7 @@ let rec readExpr previousLines bindings prompt =
         let lexbuf = Lexing.from_string input in
         Sexprparser.main Sexprlexer.token lexbuf
       with Sexprlexer.Eof ->
-        readExpr input bindings continuedPrompt
+        readExpr continuedPrompt input bindings
     in
     expr
   end
@@ -209,116 +201,42 @@ let rec doAll ~onError ~onSuccess = function
         doAll ~onError ~onSuccess rem
       else
         onError errorMsg
-      
-let catchingErrorsDo f ~onError =
-  let wasOk = ref false in
-  begin try
-    f();
-    wasOk := true
-  with
-    | Sexprparser.Error ->
-        printf "parsing error (sexpr).\n"
-    | Sexprlexer.UnknowChar c ->
-        printf "Lexer error: encountered unknown character %s.\n" c
-    | Parser2.Error ->
-        printf "Parsing error (cexpr).\n"
-    | AbortExpr ->
-        printf "Aborted expression, restarting with next line.\n"
-    | Expander.IllegalExpression (expr, msg) ->
-        printf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr)
-    | Lang.CouldNotParseType descr ->
-        printf "Unknown type: %s\n" descr
-    | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-        printf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
-  end;
-  if not !wasOk then
-    onError()
 
-let compileExpr translateF bindings sexpr = 
-  let newBindings, simpleforms = translateF bindings sexpr in
-  let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
-  let llvmCode = combine "\n" llvmCodes in
-  newBindings, simpleforms, llvmCode
-      
+          
 let () =
-  let rec step bindings () =
-    begin
-      catchingErrorsDo
-        (fun () -> begin
-           let expr = readExpr "" bindings prompt in
-           let asString = Ast2.expression2string expr in
-           printf " => %s\n" asString;
-           let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
-           if !printLLVMCode then begin
-             printf "LLVM code:\n%s\n" llvmCode; flush stdout;
-           end;
-           if !llvmEvaluationOn then begin
-             evalLLVMCode bindings simpleforms llvmCode
-           end;
-           step newBindings ()
-         end)
-        ~onError:(step bindings)
-    end
-  in
-  let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
-    try
-      let expr = parseF lexbuf in
-      parse parseF lexbuf (codeAccum @ [expr])
-    with
-      | Lexer2.Eof | Sexprlexer.Eof -> codeAccum
-  in
-  let loadPrelude () =
-    let llvmPreludeFile = "stdlib.ll"
-    and zompPreludeFile = "stdlib.zomp"
-    in
-    printf "Loading LLVM prelude from %s\n" llvmPreludeFile; flush stdout;
-    loadLLVMFile llvmPreludeFile (Bindings.defaultBindings);
-    printf "Loading Zomp prelude from %s\n" zompPreludeFile; flush stdout;
-    let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
-    let parseF = Sexprparser.main Sexprlexer.token in
-    let exprs = parse parseF lexbuf [] in
-    let newBindings =
-      List.fold_left
-        (fun bindings expr ->
-           let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
-           evalLLVMCode bindings simpleforms llvmCode;
-           newBindings)
-        Genllvm.defaultBindings
-        exprs
-    in
-    newBindings
+  (*   let rec step bindings () = *)
+  (*     begin *)
+  (*       catchingErrorsDo *)
+  (*         (fun () -> begin *)
+  (*            let expr = readExpr prompt "" bindings in *)
+  (*            let asString = Ast2.expression2string expr in *)
+  (*            printf " => %s\n" asString; *)
+  (*            let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in *)
+  (*            if !printLLVMCode then begin *)
+  (*              printf "LLVM code:\n%s\n" llvmCode; flush stdout; *)
+  (*            end; *)
+  (*            if !llvmEvaluationOn then begin *)
+  (*              Zompvm.evalLLVMCode bindings simpleforms llvmCode *)
+  (*            end; *)
+  (*            step newBindings () *)
+  (*          end) *)
+  (*         ~onError:(step bindings) *)
+  (*     end *)
+  (*   in *)
+  let step bindings () =
+    Parseutils.compile
+      ~readExpr:(fun bindings -> Some (readExpr prompt "" bindings))
+      ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                    let asString = Ast2.expression2string expr in
+                    printf " => %s\n" asString;
+                    if !printLLVMCode then
+                      printf "LLVM code:\n%s\n" llvmCode;
+                    if !llvmEvaluationOn then
+                      Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
+                 )
+      bindings
   in
 
-(*   let addToplevelBindings bindings = *)
-(*     let macros = [ *)
-(*       "run", *)
-(*       (fun bindings args -> *)
-(*          (match args with *)
-(*            | [{ id = funcName; args = [] }] -> runFunction bindings funcName *)
-(*            | _ -> eprintf "Expected (run functionName)\n"); *)
-(*          seqExpr [] *)
-(*       ); *)
-(*       "do", *)
-(*       (fun bindings args -> *)
-(*          let funcName = "toplevelDo" in *)
-(*          let funcSExpr = *)
-(*            { id = "func"; args = [ *)
-(*                idExpr "void"; *)
-(*                idExpr funcName; *)
-(*                seqExpr []; *)
-(*                seqExpr args; *)
-(*              ] } *)
-(*          in *)
-(*          seqExpr [ *)
-(*            funcSExpr; *)
-(*            simpleExpr "run" [funcName]; *)
-(*          ]) *)
-(*     ] in *)
-(*     List.fold_left *)
-(*       (fun bindings (name, macroF) -> Bindings.addMacro bindings name macroF) *)
-(*       bindings *)
-(*       macros *)
-(*   in *)
   let addToplevelBindings bindings = bindings in
 
   if not (Machine.zompInit()) then begin
@@ -327,15 +245,48 @@ let () =
   end;
   at_exit Machine.zompShutdown;
   printWelcomeMessage();
-  catchingErrorsDo
-    (fun () -> begin
-       let preludeBindings = loadPrelude() in
-       let initialBindings = addToplevelBindings preludeBindings in
-       step initialBindings ()
-     end)
-    ~onError:
-    (fun () -> begin
-       eprintf "Could not load stdlib. Aborting\n";
-       exit (-1);
-     end)
+  let finalBindings = 
+    Parseutils.catchingErrorsDo
+      (fun () -> begin
+         let preludeBindings = Parseutils.loadPrelude "./" in
+         let initialBindings = addToplevelBindings preludeBindings in
+         step initialBindings ()
+       end)
+      ~onError:
+      (fun () -> begin
+         eprintf "Could not load stdlib. Aborting\n";
+         exit (-1);
+       end)
+  in
+  ignore finalBindings
   
+  (*   let addToplevelBindings bindings = *)
+  (*     let macros = [ *)
+  (*       "run", *)
+  (*       (fun bindings args -> *)
+  (*          (match args with *)
+  (*            | [{ id = funcName; args = [] }] -> runFunction bindings funcName *)
+  (*            | _ -> eprintf "Expected (run functionName)\n"); *)
+  (*          seqExpr [] *)
+  (*       ); *)
+  (*       "do", *)
+  (*       (fun bindings args -> *)
+  (*          let funcName = "toplevelDo" in *)
+  (*          let funcSExpr = *)
+  (*            { id = "func"; args = [ *)
+  (*                idExpr "void"; *)
+  (*                idExpr funcName; *)
+  (*                seqExpr []; *)
+  (*                seqExpr args; *)
+  (*              ] } *)
+  (*          in *)
+  (*          seqExpr [ *)
+  (*            funcSExpr; *)
+  (*            simpleExpr "run" [funcName]; *)
+  (*          ]) *)
+  (*     ] in *)
+  (*     List.fold_left *)
+  (*       (fun bindings (name, macroF) -> Bindings.addMacro bindings name macroF) *)
+  (*       bindings *)
+  (*       macros *)
+  (*   in *)

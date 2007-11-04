@@ -21,7 +21,7 @@ void printChar( int8_t c ) {
 }
 
 void printNewline() {
-    printf( "\n" );
+  printf( "\n" );
 }
 
 int* nullptr() {
@@ -34,8 +34,6 @@ void stdlibHello() {
 
 char* int2cstring(int i) {
   char buffer[1000];
-  sprintf( buffer, "%d", i );
-/*   itoa( i, buffer, 10 ); */
 
   size_t charCount = strlen( buffer );
   char* result = (char*) malloc( sizeof(char) * (charCount + 1) );

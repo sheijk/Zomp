@@ -1,10 +1,9 @@
 
-
 // (type cstring (ptr char))
 
 // (type string
 //   (int length)
-//   ((ptr char) chars)
+//  ((ptr char) chars)
 //   )
 // (type pstring (ptr string))
 
@@ -46,7 +45,7 @@
   (var char c 'x')
   (printChar c)
   (printNewline)
-  (printf (gettext))
+  (printString (gettext))
   (printInt (length text)) (println)
   (var pstring left (newString 40 '-'))
   (printstr left)

@@ -201,7 +201,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       twoArgIntrinsic "float.fdiv" "fdiv" `Float;
       twoArgIntrinsic "float.frem" "frem" `Float;
       
-      "printf", `ExternalFunc, `Void, ["test", `Pointer `Char];
+(*       "printf", `ExternalFunc, `Void, ["test", `Pointer `Char]; *)
       "void", `Intrinsic void, `Void, [];
     ]
     @ compareIntrinsics `Int
@@ -212,9 +212,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let delegateMacro macroName funcName =
       macro macroName (fun _ args -> { id = funcName; args = args; })
     in
-    let templateMacro name params expr =
-      macro name (fun _ args -> Ast2.replaceParams params args expr)
-    in
+(*     let templateMacro name params expr = *)
+(*       macro name (fun _ args -> Ast2.replaceParams params args expr) *)
+(*     in *)
     let quoteMacro =
       macro "quote"
         (fun bindings args ->
@@ -228,7 +228,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       delegateMacro "op+" "int.add";
       delegateMacro "op+_f" "float.add";
 
-      templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] });
+(*       templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] }); *)
 
       quoteMacro;
 (*       macro "asttest" Builtins.testRunMacro; *)

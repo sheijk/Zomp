@@ -1,4 +1,6 @@
 
+(* moved here from Zompvm because exception was not caught properly (compiler bug?) *)
+exception FailedToEvaluateLLVMCode of string * string
 
 let apply2nd f (fst, snd) = (fst, f snd)
 let (<<=) f g = f g

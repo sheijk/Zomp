@@ -1,4 +1,8 @@
 
+* To be sorted
+** TODO zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
+** TODO zompc and sexprtoplevel should share evaluation code
+
 * Tasks									:zomp:
 
 ** Fix language quirks

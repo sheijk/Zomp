@@ -250,7 +250,6 @@
 (macro testf impl
   (func void test () (impl)) )
 
-  
 (var int lastid 0)
 
 (func int newUniqueId () (
@@ -273,10 +272,26 @@
   (var cstring name (newUniqueName))
   (ret (appendCStrings (appendCStrings name "_") purpose)) ))
 
+(xmacro xmacrotst (
+  (ret `(3))
+//   (printlnString "Applying macro xmacrotst")
+//   (ret `(printlnString "Running code"))
+  ))
+(xmacro ymacrotst (
+  (ret `(printInt 999))
+  ))
+  
 (xmacro uniqueId name purpose (
   (ret `(var cstring #name (newUniqueNameFor #purpose)))
   ))
 
+(xmacro foo (
+  (var cstring xxx (newUniqueNameFor "ss"))
+  (uniqueId foo "foo")
+  (uniqueId bar "bar")
+  (ret `(xxx))
+  ))
+  
 (xmacro if test onTrue onFalse (
   (uniqueId trueLabel "iftrue")
   (uniqueId falseLabel "iffalse")
@@ -335,7 +350,7 @@
 /// workaround until "const" is properly supported
 (xmacro const type name default (
   (ret `(var #type #name #default)) ))
-  
+
 /*
 
 !load libglfw.dylib dlltest.dylib

@@ -5,7 +5,7 @@ open Lang
 
 include Machine
   
-exception FailedToEvaluateLLVMCode of string * string
+(* exception FailedToEvaluateLLVMCode of string * string *)
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 
@@ -25,13 +25,13 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
   tryApplyToAll
     removeFunctionBody
     redefinedFunctions
-    ~onError:(raiseFailedToEvaluateLLVMCode llvmCode);
+    ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not remove function body: " ^ msg));
   if not (Machine.zompSendCode llvmCode targetModuleName) then
     raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate";
   tryApplyToAll
     recompileAndRelinkFunction
     redefinedFunctions
-    ~onError:(raiseFailedToEvaluateLLVMCode llvmCode)
+    ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not recompile and relink function: " ^ msg))
   
 let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
   let isDefinedFunction func =
@@ -52,4 +52,12 @@ let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
   in
   evalLLVMCodeB ~targetModule redefinedFunctions simpleforms llvmCode
 
+let loadLLVMFile filename =
+  try
+    let content = readFile filename in
+    if not( Machine.zompSendCode content "" ) then
+      eprintf "Could not eval llvm code from file %s\n" filename
+  with
+      Sys_error message ->
+        eprintf "Could not load file %s: %s\n" filename message
   

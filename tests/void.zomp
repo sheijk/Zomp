@@ -2,7 +2,7 @@
 (var (ptr char) msg "stuff\n")
 
 (func void dostuff ((int ignored)) (
-  (printf msg)
+  (printString msg)
   ))
 
 (func int main () (

@@ -79,12 +79,11 @@
   )
 
 (define-generic-mode zomp-mode
-  '(("//" . nil)
-    ("/*" . "*/"))
+  '(("/*" . "*/"))
   '("{" "}")
   '(
     ("///.*" 0 font-lock-doc-face t)
-;;     ("//.*" 0 font-lock-comment-face)
+    ("//.*" 0 font-lock-comment-face t t)
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
 ;;     ("/\\*[^\\*]*\\*/" 0 font-lock-comment-face)
     ("'[^']'" 0 font-lock-string-face)

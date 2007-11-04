@@ -5,13 +5,15 @@
 /**
  This is the beautiful documentation
  */
-func int main {} {
+(func int main () (
 /* comment */
-  4;
+  (4)
+  (printString "hello, comments")
 /* more comments */
-
+  (ymacrotst)
+  
   /// here is a short doc line
-  ret 6;
-};
+  (ret (xmacrotst))
+  ))
 
 

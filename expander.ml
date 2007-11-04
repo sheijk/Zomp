@@ -269,8 +269,6 @@ let translateMacro translateF (bindings :bindings) = function
             end
         | _ -> None
 
-let count = ref 0
-
 let astType = `Record [
   "id", `Pointer `Char;
   "childCount", `Int;
@@ -330,7 +328,6 @@ let createNativeMacro translateF bindings macroName argNames impl =
     llvmCode
   
 let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
-  incr count;
   let rec repeatedList element count =
     if count > 0 then element :: repeatedList element (count-1)
     else []
@@ -350,10 +347,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
                       with vstorage = MemoryStorage }
     in
     let implForms = [
-      `FuncCall { fcname = "printlnInt";
-                  fcrettype = `Void;
-                  fcparams = [`Int];
-                  fcargs = [`Constant (IntVal !count)] };
       `DefineVariable(resultVar,
                       Some (`FuncCall { fcname = name;
                                         fcrettype = astPtrType;
