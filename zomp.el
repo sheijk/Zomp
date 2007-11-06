@@ -24,10 +24,15 @@
 
 (defun zomp-mark-sexp ()
   (interactive)
+  (cond (mark-active
+         (goto-match-paren 0)
+         (goto-match-paren 0)
+         (forward-char)))
+        
   (cond ((not (looking-at "("))
-         (goto-match-paren 0)))
-  (set-mark (point))
-  (goto-match-paren 0)
+          (goto-match-paren 0)))
+   (set-mark (point))
+   (goto-match-paren 0)
   )
 
 (defun zomp-onkey-do (key code)

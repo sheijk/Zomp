@@ -47,18 +47,19 @@ let compileExpr translateF bindings sexpr =
   let llvmCode = combine "\n" llvmCodes in
   newBindings, simpleforms, llvmCode
 
-let rec compile ~readExpr ~onSuccess bindings =
+let rec compile ~readExpr ?(beforeCompilingExpr = fun (_:Ast2.sexpr) -> ()) ~onSuccess bindings =
   catchingErrorsDo
     (fun () -> begin
        match readExpr bindings with
          | Some expr ->
+             let () = beforeCompilingExpr expr in
              let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
              let () = onSuccess expr bindings newBindings simpleforms llvmCode in
-             compile ~readExpr ~onSuccess newBindings
+             compile ~readExpr ~beforeCompilingExpr ~onSuccess newBindings
          | None ->
              bindings
      end)
-    ~onError:(fun () -> compile readExpr onSuccess bindings)
+    ~onError:(fun () -> compile ~readExpr ~beforeCompilingExpr ~onSuccess bindings)
   
 let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir =
   let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =

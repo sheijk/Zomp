@@ -16,35 +16,86 @@
   (ret `(printlnInt 10))
   ))
 
+(func (ptr ast) astChild (((ptr ast) parent) (int index)) (
+  (const (ptr ast) child (load (ptradd (getField parent childs) index)))
+  (ret child) ))
+  
 (xmacro forEachAstChild childVar tree code (
-  (uniqueId count "child_count")
+  (uniqueId count "count")
+  (uniqueId index "index")
   
   (ret `(
     (const int #count (getField #tree childCount))
     (printString "child count = ") (printlnInt #count)
+    (for #index 0 #count (
+      (const (ptr ast) #childVar (astChild #tree #index))
+      #code
+      ))
     ))
   ))
+
+(xmacro template name (rest argsAndImpl) (
+  (var (ptr ast) t (simpleAst "xmacro"))
+  (addChild t name)
+
+  (const int argCount (getField argsAndImpl childCount))
+  (for argnum 0 argCount (
+    (const (ptr ast) arg (astChild argsAndImpl argnum))
+    (if (int.uless argnum (int.sub argCount 1))
+      (addChild t arg)
+      (addChild t (
+        (var (ptr ast) foo (simpleAst "quote"))
+        (addChild foo arg)
+        (var (ptr ast) reti (simpleAst "ret"))
+        (addChild reti foo)
+        reti))
+      )
+    ))
+
+  (printAst t 4)
+  (ret t)
+  ))
+
+(template print2 p ((printInt p) (printInt #x)))
+
+(xmacro print2 p (ret `((printInt #p) (printInt #p))))
+
+(xmacro alias name replacement (
+  (var (ptr ast) code (simpleAst "macro"))
+  (addChild code name)
+  (addChild code replacement)
+  (ret code)
+  ))
+
+(alias hello (printlnString "hello!"))
 
 (func int main () (
   (vartest foo0)
   (vartest foo1 a)
 
-//   (forEachAstChild c `(foo bar baz blup) (
-//     (printString "ast: ")
-//     (printAst c 4) ))
+  (hello)
 
-  (ret 23)
+
+  (forEachAstChild c `(foo bar (baz buzz bozz bizz) blup) (
+    (printString "ast: ")
+    (printAst c 0) ))
+
+  (ret 24)
   ))
+
+(xmacro times count code (
+  (uniqueId index "times")
+
+  (ret `(for #index 1 #count #code))
+  ))
+  
+// (testf ( */
+//   (times 10 (printlnString (newUniqueNameFor "test"))) */
+//   )) */
 
 (testf (
   (const int retval (main))
-  (printString "main returned ")
-  (printlnInt retval) ))
+  (printString "main returned ") (printlnInt retval)
+  ))
 
-// (xmacro template name (rest argsAndImpl) (
-//   (var (ptr ast) t (simpleAst "macro"))
-//   (addChild t name)
-
-//   (ret t)
-//   ))
 

@@ -68,6 +68,7 @@ let printBindings args (bindings :bindings) =
   print_newline()
 
 let runFunction bindings funcname =
+  printf "\n"; flush stdout;
   match Bindings.lookup bindings funcname with
     | FuncSymbol func ->
         begin
@@ -195,38 +196,12 @@ let printWelcomeMessage() =
   printf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar;
   printf "\n"
 
-let rec doAll ~onError ~onSuccess = function
-  | [] -> onSuccess()
-  | (f, errorMsg) :: rem ->
-      if f() then
-        doAll ~onError ~onSuccess rem
-      else
-        onError errorMsg
-
           
 let () =
-  (*   let rec step bindings () = *)
-  (*     begin *)
-  (*       catchingErrorsDo *)
-  (*         (fun () -> begin *)
-  (*            let expr = readExpr prompt "" bindings in *)
-  (*            let asString = Ast2.expression2string expr in *)
-  (*            printf " => %s\n" asString; *)
-  (*            let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in *)
-  (*            if !printLLVMCode then begin *)
-  (*              printf "LLVM code:\n%s\n" llvmCode; flush stdout; *)
-  (*            end; *)
-  (*            if !llvmEvaluationOn then begin *)
-  (*              Zompvm.evalLLVMCode bindings simpleforms llvmCode *)
-  (*            end; *)
-  (*            step newBindings () *)
-  (*          end) *)
-  (*         ~onError:(step bindings) *)
-  (*     end *)
-  (*   in *)
   let step bindings () =
     Parseutils.compile
       ~readExpr:(fun bindings -> Some (readExpr defaultPrompt "" bindings))
+      ~beforeCompilingExpr:(fun _ -> printf "\n"; flush stdout)
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     let asString = Ast2.expression2string expr in
                     printf " => %s\n" asString;

@@ -35,6 +35,8 @@ void stdlibHello() {
 char* int2cstring(int i) {
   char buffer[1000];
 
+  sprintf( buffer, "%d", i );
+
   size_t charCount = strlen( buffer );
   char* result = (char*) malloc( sizeof(char) * (charCount + 1) );
   strcpy( result, buffer );
