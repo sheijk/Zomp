@@ -150,26 +150,49 @@
            (setq indent-tabs-mode nil)
            ; highlight s-expression under cursor
            (hl-sexp-mode t)
-           
-           (local-set-key [(control c)(control s)] 'zomp-toplevel)
-           (zomp-onkey-do [(control c) (control q)] "!exit")
-           (local-set-key [(control c)(control b)] 'zomp-tl-eval-buffer)
-           (local-set-key [(control c)(control e)] 'zomp-tl-eval-current)
-           (local-set-key [(control c)(control r)] 'zomp-tl-eval-region)
 
-           (local-set-key [(control c) (d)] 'zomp-tl-run)
-           (local-set-key [(control c) (t)] 'zomp-tl-run-test)
-           (local-set-key [(control c) (f)] 'zomp-tl-list-bindings)
-           (zomp-onkey-do [(control c) (meta f)] "!bindings")
-           (zomp-onkey-do [(control c) (h)] "!help")
-           (zomp-onkey-do [(control c) (?.) (l)] "!llvm")
-           (zomp-onkey-do [(control c) (?.) (e)] "!eval")
+           ; create zomp menu. order of the zomp-add-action commands is reversed order in menu
+           (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
+
+           (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
+           (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
+
+           (zomp-add-seperator zomp-sep-3)
+           (zomp-add-action zomp-tl-run [(control c)(d)] "Run function...")
+           (zomp-add-action zomp-tl-run-test [(control c)(t)] "Run 'void test()'")
+           (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
+           (zomp-add-action zomp-tl-list-bindings [(control c)(f)] "List bindings...")
+           (zomp-add-action zomp-tl-help [(control c)(h)] "Show toplevel help")
+
+           (zomp-add-seperator zomp-sep-2)
+           (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
+           (zomp-add-action zomp-tl-eval-region [(control c)(control r)] "Eval region")
+           (zomp-add-action zomp-tl-eval-current [(control c)(control e)] "Eval function at point")
+
+           (zomp-add-seperator zomp-sep-1)
+           (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
+           (zomp-add-action zomp-toplevel [(control c)(control s)] "Start toplevel")
 
            (local-set-key [(meta n)] 'zomp-next-tl-expr)
            (local-set-key [(meta p)] 'zomp-prev-tl-expr)
            (local-set-key [(meta k)] 'zomp-mark-sexp)
            ))
   "A simple mode for the zomp language")
+
+(defmacro zomp-add-seperator (seperator-id)
+  `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
+   
+(defmacro zomp-dofun (name command)
+  `(defun ,name () (interactive) (zomp-tl-do ,command)))
+
+(zomp-dofun zomp-tl-exit "!exit")
+(zomp-dofun zomp-tl-list-bindings "!bindings")
+(zomp-dofun zomp-tl-help "!help")
+(zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
+
+(defmacro zomp-add-action (command key caption)
+  `(list (local-set-key ,key (quote ,command))
+         (local-set-key [menu-bar zomp ,command] '(,caption . ,command))))
 
 (defun zomp-forward-sexp ()
   (interactive)
