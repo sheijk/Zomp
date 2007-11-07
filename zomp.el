@@ -100,6 +100,11 @@
   (zomp-tl-do "!run test")
   )
 
+(defface todo-face
+  '(t (:foreground "#A00"))
+ "A face for todo items")
+(defvar todo-face 'todo-face)
+
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
   '("{" "}")
@@ -110,6 +115,8 @@
 ;;     ("/\\*[^\\*]*\\*/" 0 font-lock-comment-face)
     ("'[^']'" 0 font-lock-string-face)
 ;;     ("'\[0-9]+'" 0 font-lock-string-face)
+
+    ("// *\\(TODO\\)" 1 todo-face t t)
      
     ("\\bconst\\b" 0 font-lock-keyword-face)
     ("\\bvar\\b" 0 font-lock-keyword-face)
