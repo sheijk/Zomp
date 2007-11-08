@@ -100,6 +100,30 @@
   (zomp-tl-do "!run test")
   )
 
+(defmacro zomp-add-seperator (seperator-id)
+  `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
+   
+(defmacro zomp-dofun (name command)
+  `(defun ,name () (interactive) (zomp-tl-do ,command)))
+
+(zomp-dofun zomp-tl-exit "!exit")
+(zomp-dofun zomp-tl-list-bindings "!bindings")
+(zomp-dofun zomp-tl-help "!help")
+(zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
+
+(defmacro zomp-add-action (command key caption)
+  `(list (local-set-key ,key (quote ,command))
+         (local-set-key [menu-bar zomp ,command] '(,caption . ,command))))
+
+(defun zomp-forward-sexp ()
+  (interactive)
+  (forward-sexp) )
+
+(defun zomp-backward-sexp ()
+  (interactive)
+  (backward-sexp) )
+
+
 (defface todo-face
   '(t (:foreground "#A00"))
  "A face for todo items")
@@ -185,27 +209,4 @@
            (local-set-key [(meta k)] 'zomp-mark-sexp)
            ))
   "A simple mode for the zomp language")
-
-(defmacro zomp-add-seperator (seperator-id)
-  `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
-   
-(defmacro zomp-dofun (name command)
-  `(defun ,name () (interactive) (zomp-tl-do ,command)))
-
-(zomp-dofun zomp-tl-exit "!exit")
-(zomp-dofun zomp-tl-list-bindings "!bindings")
-(zomp-dofun zomp-tl-help "!help")
-(zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
-
-(defmacro zomp-add-action (command key caption)
-  `(list (local-set-key ,key (quote ,command))
-         (local-set-key [menu-bar zomp ,command] '(,caption . ,command))))
-
-(defun zomp-forward-sexp ()
-  (interactive)
-  (forward-sexp) )
-
-(defun zomp-backward-sexp ()
-  (interactive)
-  (backward-sexp) )
 

@@ -93,9 +93,5 @@
 //   (times 10 (printlnString (newUniqueNameFor "test"))) */
 //   )) */
 
-(testf (
-  (const int retval (main))
-  (printString "main returned ") (printlnInt retval)
-  ))
 
 

@@ -249,9 +249,6 @@
 (func astp macroTest () (
   (ret `(macro test))
   ))
-  
-(macro testf impl
-  (func void test () (impl)) )
 
 (var int lastid 0)
 
@@ -354,6 +351,19 @@
 (xmacro const type name default (
   (ret `(var #type #name #default)) ))
 
+/// quickly define a test function to be run with C-c,t in emacs
+(macro testf impl
+  (func void test () (impl)) )
+
+(func int main ())
+
+/// default test function
+(testf (
+  (const int retval (main))
+  (println)
+  (printString "main() returned ") (printlnInt retval)
+  ))
+  
 /*
 
 !load libglfw.dylib dlltest.dylib
