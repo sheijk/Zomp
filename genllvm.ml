@@ -105,11 +105,7 @@ let newUniqueId() =
 let newUniqueName() =
   "__temp_" ^ string_of_int (newUniqueId())
 
-let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = function
-  | { id = "antiquote"; args = [{ id = id; args = args}] } ->
-      begin
-        antiquoteF id args
-      end
+let sexpr2codeNoAntiquotes recursion = function
   | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
   | sexprWithArgs ->
       let tempVarName = newUniqueName() in
@@ -128,11 +124,22 @@ let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = f
             childExpr;
           ] }
       in
-      let argExprs = List.map (sexpr2code ~antiquoteF) sexprWithArgs.args in
+      let argExprs = List.map recursion sexprWithArgs.args in
+(*       let argExprs = List.map (sexpr2code ~antiquoteF) sexprWithArgs.args in *)
       let argAddExprs = List.map addChildExpr argExprs in
       seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
 
-(* will turn #foo int (astFromInt foo) if foo evaluates to `Int etc. *)
+let rec sexpr2codeasis expr = sexpr2codeNoAntiquotes sexpr2codeasis expr
+  
+let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = function
+  | { id = "antiquote"; args = [{ id = id; args = args}] } ->
+      begin
+        antiquoteF id args
+      end
+  | expr ->
+      sexpr2codeNoAntiquotes (sexpr2code ~antiquoteF) expr
+
+(** will turn #foo into (astFromInt foo) if foo evaluates to `Int etc. *)
 let insertAstConstructors bindings =
   fun id args ->
     let default = { id = id; args = args } in
@@ -224,14 +231,21 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
              | args -> { id = "quote"; args = args }
         )
     in
+    let quoteasisMacro =
+      macro "quoteasis"
+        (fun bindings args ->
+           match args with
+             | [quotedExpr] -> sexpr2codeasis quotedExpr
+             | [] -> simpleExpr "simpleAst" ["seq"]
+             | args -> { id = "quote"; args = args }
+        )
+    in
     [
       delegateMacro "op+" "int.add";
       delegateMacro "op+_f" "float.add";
 
-(*       templateMacro "echo" ["message"] ({ id = "seq"; args = [simpleExpr "printInt" ["message"]; idExpr "printNewline"] }); *)
-
       quoteMacro;
-(*       macro "asttest" Builtins.testRunMacro; *)
+      quoteasisMacro;
     ]
   in
   let defaultBindings =

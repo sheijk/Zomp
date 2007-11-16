@@ -41,6 +41,7 @@ clean_tests:
 
 .zomp.check:
 	@echo Checking $<
+	@rm -f ${<:.zomp=.ll}
 	@../zomp-check-syntax.sh $< || cat ${<:.zomp=.ll}
 
 .bc.run:

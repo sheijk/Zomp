@@ -355,15 +355,17 @@
 (macro testf impl
   (func void test () (impl)) )
 
-(func int main ())
+// (func int main ()) */
 
+/*
 /// default test function
 (testf (
   (const int retval (main))
   (println)
   (printString "main() returned ") (printlnInt retval)
   ))
-  
+*/
+
 /*
 
 !load libglfw.dylib dlltest.dylib

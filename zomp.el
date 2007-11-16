@@ -125,7 +125,7 @@
 
 
 (defface todo-face
-  '(t (:foreground "#A00"))
+  '((t (:foreground "#A00")))
  "A face for todo items")
 (defvar todo-face 'todo-face)
 

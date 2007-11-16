@@ -95,8 +95,8 @@
 **** DONE Send current function toplevel
      CLOSED: [2007-10-16 Tue 22:11]
 
-**** TODO [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
-** Macros
+**** DONE [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
+     CLOSED: [2007-11-16 Fri 02:33] ** Macros
 **** DONE Allow definition of simple "template" macros
 **** DONE Allow running code inside macros
      CLOSED: [2007-10-29 Mon 15:48] 
@@ -106,8 +106,10 @@
      CLOSED: [2007-11-02 Fri 02:50] **** TODO Write "if then else" macro
 **** DONE Write "for i min max" macro
      CLOSED: [2007-11-02 Fri 02:50]
-**** TODO Query existing functions and variables
+**** DONE Query existing functions and variables
+     CLOSED: [2007-11-16 Fri 02:33]
 ** Language
+*** TODO [#A] Allow testing macros (running them on code and printing the resulting AST)
 *** TODO [#A] File I/O
 *** TODO [#A] Regular expressions
 *** TODO [#A] OpenGL support

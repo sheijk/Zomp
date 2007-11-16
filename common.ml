@@ -84,3 +84,15 @@ let rec lastElement = function
   | [last] -> Some last
   | _ :: tail -> lastElement tail
       
+let splitAfter firstLength list =
+  let rec worker num accum = function
+    | [] -> accum, []
+    | hd :: tl ->
+        if num < firstLength then
+          worker (num+1) (hd::accum) tl
+        else
+          accum, hd::tl
+  in
+  let first, second = worker 0 [] list in
+  List.rev first, second
+

@@ -2,15 +2,20 @@
   exception ParseError of string
 
   let quoteId = function
-    | '`' -> "quote"
-    | '#' -> "antiquote"
-    | invalidChar -> raise (ParseError (Printf.sprintf "Invalid quoting char: %c" invalidChar))
-        
+    | "`" -> "quote"
+    | "``" -> "quoteasis"
+    | "#" -> "antiquote"
+    | invalidString ->
+        raise (ParseError
+                 (Printf.sprintf
+                    "Invalid quoting char: %s"
+                    invalidString))
+
 %}
 
 %token PAREN_OPEN
 %token PAREN_CLOSE
-%token <char> QUOTE
+%token <string> QUOTE
 %token <string> IDENTIFIER
 (* %token END_SYMBOL *)
   

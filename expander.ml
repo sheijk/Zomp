@@ -117,7 +117,7 @@ let translateSeq translateF bindings = function
       Some (translatelst translateF bindings sequence)
   | _ ->
       None
-
+        
 let rec expr2value typ expr =
   match typ with
     | #integralType -> begin
@@ -326,7 +326,17 @@ let createNativeMacro translateF bindings macroName argNames impl =
      end)
     (tlforms @ [`DefineFunc macroFunc])
     llvmCode
-  
+
+let log message = ()
+(*   eprintf "%s\n" message; *)
+(*   flush stderr *)
+    
+let trace message f =
+  log ("-> " ^ message);
+  let result = f() in
+  log ("<- " ^ message);
+  result
+
 let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
   let expectedArgCount = List.length argNames in
   let foundArgCount = List.length args in
@@ -339,7 +349,10 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
     else []
   in
   let constructCallerFunction args =
-    let argAstExprs = List.map (Genllvm.sexpr2code ~antiquoteF:(Genllvm.insertAstConstructors bindings)) args in
+    log "building arg expr";
+    let argAstExprs = List.map Genllvm.sexpr2codeasis args in
+    List.iter (fun expr -> log (Ast2.expression2string expr)) argAstExprs;
+    log "translating to simpleform";
     let tlforms, argAstForms = List.fold_left
       (fun (prevTLForms, prevForms) expr ->
          let _, xforms = translateNestedF bindings expr in
@@ -351,6 +364,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
     let resultVar = { (Lang.localVar ~name:"result" ~typ:astPtrType)
                       with vstorage = MemoryStorage }
     in
+    log "building function impl";
     let implForms = [
       `DefineVariable(resultVar,
                       Some (`FuncCall { fcname = name;
@@ -366,6 +380,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       fargs = [];
       impl = Some (`Sequence implForms);
     } in
+    log "...";
     let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
     let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
     let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
@@ -376,7 +391,8 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       llvmCode
   in
   let callMacro() =
-    Zompvm.zompRunFunctionInt "macroExec"
+    trace "calling macro"
+      (fun () -> Zompvm.zompRunFunctionInt "macroExec")
   in
   let calli1i functionName arg =
     Zompvm.zompResetArgs();
@@ -413,27 +429,19 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       in
       { id = name; args = childs }
   in
+  log "constructing caller function";
   constructCallerFunction args;
+  log "running macro";
   let astAddress = callMacro() in
+  log "extracting result";
   let sexpr = extractSExprFromNativeAst astAddress in
+  log "done";
   sexpr
 
 let translateVariadicFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
   let internalArgCount = List.length argNames in
-  let splitAfter firstLength list = 
-    let rec worker num accum = function
-      | [] -> accum, []
-      | hd :: tl ->
-          if num < firstLength then
-            worker (num+1) (hd::accum) tl
-          else
-            accum, hd::tl
-    in
-    let first, second = worker 0 [] list in
-    List.rev first, second
-  in
   let inflatedArgs =
-    let regularArgs, variadicArgs = splitAfter (internalArgCount-1) args in
+    let regularArgs, variadicArgs = Common.splitAfter (internalArgCount-1) args in
     regularArgs @ [{ id = "seq"; args = variadicArgs}]
   in
   translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
@@ -442,7 +450,7 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
   | { id = id; args =
         { id = name; args = [] }
         :: paramImpl
-    } when id = macroMacro or id = "xmacro"->
+    } when id = macroMacro or id = "xmacro" ->
       begin match List.rev paramImpl with
         | [] -> None
         | impl :: args ->

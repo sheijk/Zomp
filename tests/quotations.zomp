@@ -1,5 +1,6 @@
-
-
+///
+/// various ways of using quotes
+///
 
 (func (ptr ast) makeSampleAst () (
 /// a simple quotation
@@ -16,14 +17,41 @@
   `((#code) (#code))
   ))
 
-/// TODO nested quotations and antiquotations
-'(fooo #bar) -> antiquotations don't work here
-`(foo #bar) -> antiquotations work here
+(func void usingAntiquotes () (
+  (var (ptr ast) name `(you))
+  (printAst `(hello #name) 0)
+  ))
 
-alternativen:
-`(foo bar `(nested ##(replaced)))
-(replace placeholder expr `(foo bar `(nested placeholder)))
-`(foo bar `(nested #_2(replaced)))
+(func void nestedQuotes () (
+  (printAst `(toplevel `(nested quote more args)) 0)
+  ))
+
+(func void nestedAntiquotes () (
+  (var (ptr ast) name `(foobar blah))
+  (printAst `(toplevel `(nested #name foo)) 0)
+  ))
+  
+(testf ((nestedAntiquotes)))
+
+(func void quoteAsIs () (
+  (printAst ``(will be left as it is #(even if antiquoted)) 0)
+  ))
+  
+(xmacro printit tree (
+  (printAst tree 1)
+  (ret `(func void test () ()))
+  ))
+
+(printit (foo bar #baz))
+
+/// TODO nested quotations and antiquotations
+// ``(foo #bar) -> antiquotations don't work here */
+// `(foo #bar) -> antiquotations work here */
+
+// alternativen: */
+// `(foo bar `(nested ##(replaced))) */
+// (replace placeholder expr `(foo bar `(nested placeholder))) */
+// `(foo bar `(nested #_2(replaced))) */
 
 (func int main () (
   (printlnString "Sample ast:")

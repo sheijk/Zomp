@@ -16,8 +16,8 @@ rule token = parse
       { PAREN_OPEN }
   | ')'
       { PAREN_CLOSE }
-  | ('`' | '#') as char
-      { QUOTE(char) }
+  | (("``" | "`" | "#" ) as quoteOp)
+      { QUOTE(quoteOp) }
   | (identifierChar+ as id) | (('-' identifierChar+) as id)
       { IDENTIFIER(id) }
   | eof
