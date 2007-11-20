@@ -44,15 +44,6 @@
 
 (printit (foo bar #baz))
 
-/// TODO nested quotations and antiquotations
-// ``(foo #bar) -> antiquotations don't work here */
-// `(foo #bar) -> antiquotations work here */
-
-// alternativen: */
-// `(foo bar `(nested ##(replaced))) */
-// (replace placeholder expr `(foo bar `(nested placeholder))) */
-// `(foo bar `(nested #_2(replaced))) */
-
 (func int main () (
   (printlnString "Sample ast:")
   (printAst (makeSampleAst) 0)
@@ -61,4 +52,4 @@
   
   (ret 1)
   ))
-  
+

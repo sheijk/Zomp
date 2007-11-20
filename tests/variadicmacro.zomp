@@ -13,7 +13,9 @@
   (printString " arguments")
   (println)
 
-  (ret `(printlnInt 10))
+  (ret `(
+    (printString "vartest ")
+    (printlnInt #argCount)))
   ))
 
 (func (ptr ast) astChild (((ptr ast) parent) (int index)) (
@@ -56,9 +58,9 @@
   (ret t)
   ))
 
-(template print2 p ((printInt p) (printInt p)))
+(template print2 p ((printInt #p) (printInt #p)))
 
-(xmacro print2 p (ret `((printInt #p) (printInt #p))))
+// (xmacro print2 p (ret ``((printInt #p) (printInt #p))))
 
 (xmacro alias name replacement (
   (var (ptr ast) code (simpleAst "macro"))
@@ -71,9 +73,10 @@
 
 (func int main () (
   (vartest foo0)
-  (vartest foo1 a)
+  (vartest foo1 a b c)
 
   (print2 10)
+  (println)
   (hello)
 
   (forEachAstChild c `(foo bar (baz buzz bozz bizz) blup) (
