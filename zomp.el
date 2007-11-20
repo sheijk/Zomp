@@ -207,6 +207,31 @@
            (local-set-key [(meta n)] 'zomp-next-tl-expr)
            (local-set-key [(meta p)] 'zomp-prev-tl-expr)
            (local-set-key [(meta k)] 'zomp-mark-sexp)
+           
+           (local-set-key [(control ?.)] 'zomp-complete)
            ))
   "A simple mode for the zomp language")
 
+(defun zomp-complete ()
+  (interactive)
+  (let* ((word (current-word)) (expansion (cdr (assoc word zomp-snippets))))
+    (if (null expansion)
+        (message (concat "Could not find a snippet named " word))
+      (progn
+        (backward-kill-word 1)
+        (snippet-insert expansion))
+      )))
+
+(defvar zomp-snippets
+  '(("func" .  "(func $${retval} ($${args}) (\n  $.\n  ))\n")
+    ("xmacro" . "(xmacro $${name} $${args} (\n  $.\n  ))\n")
+    ))
+
+(defun zomp-add-snippet (name expansion)
+  "Adds an snippet for zomp. The snippet will not be saved on exit!"
+  (interactive "MName for macro? 
+MExpansion? ")
+  (setq zomp-snippets (cons `(,name . ,expansion) zomp-snippets)))
+  
+(zomp-add-snippet "main" "(func int main () (\n  $.\n  ret 0\n  ))\n")
+ 
