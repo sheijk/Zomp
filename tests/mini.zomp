@@ -7,7 +7,7 @@
   (ret 104)
   ))
 
-(macro twice code (
+(template twice code (
   (code)
   (code)
   ))
@@ -18,7 +18,7 @@
 //   (ret lastId)
 //   ))
   
-(macro for index min max code (
+(template for index min max code (
   (var int index min)
   (label start)
   (var bool t (int.uless index max))

@@ -44,9 +44,11 @@ clean_tests:
 	@rm -f ${<:.zomp=.ll}
 	@../zomp-check-syntax.sh $< || cat ${<:.zomp=.ll}
 
-.bc.run:
-	@echo Running $(<:.bc=)
-	@lli $<
+.zomp.run:
+	@rm -f ${<:.zomp=.ll} ${<:.zomp=.bc}
+	@make $(<:.zomp=.bc)
+	@echo Running $(<:.zomp=)
+	@lli $(<:.zomp=.bc)
 	@echo Done
 
 .zomp.ll:

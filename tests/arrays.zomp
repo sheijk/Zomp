@@ -6,19 +6,9 @@
 
   (var (ptr int) addr (nullptr int))
   
-  (macro set index value (
-    (assign addr (ptradd array (int.sub (int.mul index 2) index)))
-    (store addr value)))
-
-  
-//   (var int index 0)
-//   (label start)
-//     (set index index)
-
-//     (assign index (int.add index 1))
-//     (var bool test (int.ugreater index arraySize))
-//     (branch test end start)
-//   (label end)
+  (template set index value (
+    (assign addr (ptradd array (int.sub (int.mul #index 2) #index)))
+    (store addr #value)))
 
   (set 0 10)
   (set 1 11)
@@ -31,17 +21,6 @@
   (set 8 18)
   (set 9 19)
 
-  (macro for i min max code (
-    (var int i min)
-    (label start2)
-      (code)
-
-      (assign i (int.add i 1))
-      (var bool test2 (int.uless i max))
-      (branch test2 start2 end2)
-    (label end2)
-    ))
-
   (for index2 0 arraySize (
     (printInt index2)
     (printChar ' ')
@@ -52,28 +31,4 @@
   (var (ptr int) addr2 (ptradd array 9))
   (load addr2)
   ))
-
-// (func int main() (
-//   (var int arraySize 10)
-//   (var (ptr int) array (malloc int arraySize))
-
-//   (var int index 0)
-//   (var (ptr int) addr (nullptr int))
-//   (label start)
-//   (printlnInt index)
-
-//   (store addr index)
-//   (ptr.add addr 1)
-    
-//   (assign index (int.add index 1))
-//   (var bool test (int.ugreater index arraySize))
-//   (branch test end start)
-//   (label end)
-
-//   (var (ptr int) thirdAddr (ptr.add array 3))
-//   (var int third (load thirdAddr))
-//   (printInt third)
-//   (printNewline)
-//   123
-//   ))
 

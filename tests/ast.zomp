@@ -21,15 +21,16 @@
   ))
 
 (macro compileMessage (
-  #(printlnString "hello, compiler")
+  (printlnString "hello, compiler")
+  (ret `(seq))
   ))
 
 (func int main () (
   (printlnString "hello, ast")
 
   (var (ptr ast) tree (simpleAst "simple"))
-  (macro extraChild name (
-    (addChild tree (simpleAst name))
+  (template extraChild name (
+    (addChild tree (simpleAst #name))
     ))
   (extraChild "child")
   (extraChild "child2")

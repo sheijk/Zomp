@@ -1,12 +1,12 @@
 
 
-(macro printLastId (
+(template printLastId (
   (printString "last id = ")
 //   (printInt (#uniqueId))
   (println)
   ))
 
-// (macro for index min max code (
+// (template for index min max code (
 //   #(var cstring startLabel (uniqueId))
 //   (var int index min)
 //   (label start)

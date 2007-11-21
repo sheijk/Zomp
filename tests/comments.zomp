@@ -8,12 +8,11 @@
 (func int main () (
 /* comment */
   (4)
-  (printString "hello, comments")
+  (printlnString "hello, comments")
 /* more comments */
-  (ymacrotst)
   
   /// here is a short doc line
-  (ret (xmacrotst))
+  (ret 100)
   ))
 
 

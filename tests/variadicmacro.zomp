@@ -3,7 +3,7 @@
 /// an arbitrary number of parameters stored in a seq expression
 ///
 
-(xmacro vartest firstArg (rest remArgs) (
+(macro vartest firstArg (rest remArgs) (
   (const int argCount (getField remArgs childCount))
  
   (printString "Invoked macro ")
@@ -18,52 +18,12 @@
     (printlnInt #argCount)))
   ))
 
-(func (ptr ast) astChild (((ptr ast) parent) (int index)) (
-  (const (ptr ast) child (load (ptradd (getField parent childs) index)))
-  (ret child) ))
-  
-(xmacro forEachAstChild childVar tree code (
-  (uniqueId count "count")
-  (uniqueId index "index")
-  
-  (ret `(
-    (const int #count (getField #tree childCount))
-    (printString "child count = ") (printlnInt #count)
-    (for #index 0 #count (
-      (const (ptr ast) #childVar (astChild #tree #index))
-      #code
-      ))
-    ))
-  ))
-
-(xmacro template name (rest argsAndImpl) (
-  (var (ptr ast) t (simpleAst "xmacro"))
-  (addChild t name)
-
-  (const int argCount (getField argsAndImpl childCount))
-  (for argnum 0 argCount (
-    (const (ptr ast) arg (astChild argsAndImpl argnum))
-    (if (int.uless argnum (int.sub argCount 1))
-      (addChild t arg)
-      (addChild t (
-        (var (ptr ast) foo (simpleAst "quote"))
-        (addChild foo arg)
-        (var (ptr ast) reti (simpleAst "ret"))
-        (addChild reti foo)
-        reti))
-      )
-    ))
-
-  (printAst t 4)
-  (ret t)
-  ))
-
 (template print2 p ((printInt #p) (printInt #p)))
 
-// (xmacro print2 p (ret ``((printInt #p) (printInt #p))))
+// (macro print2 p (ret ``((printInt #p) (printInt #p))))
 
-(xmacro alias name replacement (
-  (var (ptr ast) code (simpleAst "macro"))
+(macro alias name replacement (
+  (var (ptr ast) code (simpleAst "template"))
   (addChild code name)
   (addChild code replacement)
   (ret code)
@@ -86,7 +46,7 @@
   (ret 24)
   ))
 
-(xmacro times count code (
+(macro times count code (
   (uniqueId index "times")
 
   (ret `(for #index 1 #count #code))
