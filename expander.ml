@@ -29,6 +29,7 @@ and macroReturn = "ret"
 and macroLabel = "label"
 and macroBranch = "branch"
 and macroMacro = "macro"
+and macroReplacement = "macroReplace"
 and macroFieldptr = "fieldptr"
 and macroLoad = "load"
 and macroStore = "store"
@@ -450,7 +451,7 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
   | { id = id; args =
         { id = name; args = [] }
         :: paramImpl
-    } when id = macroMacro or id = "xmacro" ->
+    } when id = macroMacro or id = macroReplacement ->
       begin match List.rev paramImpl with
         | [] -> None
         | impl :: args ->
@@ -467,7 +468,7 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
                 List.rev reversed, isVariadic
               in
               let macroF =
-                if id = "xmacro" then begin
+                if id = macroMacro then begin
                   createNativeMacro translateNestedF bindings name argNames impl;
                   if isVariadic then
                     translateVariadicFuncMacro translateNestedF name

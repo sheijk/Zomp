@@ -1,11 +1,14 @@
 
 * To be sorted
+** TODO compilation needs O(n^2) time
+** TODO compiling is extremely slow
 ** TODO can't send antiquote to macro
   (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
   (twice (printInt #i))
 
 ** TODO nested quotes and antiquotes don't work
-** TODO BUG: (ret (load (ptradd (getField parent childs) index))) in function returning (ptr ast) is not accepted
+** TODO BUG: (ret (load (ptradd (getField parent childs) index))) 
+in function returning (ptr ast) is not accepted
 ** TODO BUG: sometimes llvm source is printed on compiler errors unnecessarily
 ** TODO int representations: 0xff 0b1001 etc.
 
@@ -96,7 +99,8 @@
      CLOSED: [2007-10-16 Tue 22:11]
 
 **** DONE [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
-     CLOSED: [2007-11-16 Fri 02:33] ** Macros
+     CLOSED: [2007-11-16 Fri 02:33] 
+** Macros
 **** DONE Allow definition of simple "template" macros
 **** DONE Allow running code inside macros
      CLOSED: [2007-10-29 Mon 15:48] 
@@ -109,7 +113,10 @@
 **** DONE Query existing functions and variables
      CLOSED: [2007-11-16 Fri 02:33]
 ** Language
-*** TODO [#A] Allow testing macros (running them on code and printing the resulting AST)
+*** TODO [#A] template
+    Implemented as macro
+*** TODO [#A] Allow testing macros 
+(running them on code and printing the resulting AST)
 *** TODO [#A] File I/O
 *** TODO [#A] Regular expressions
 *** TODO [#A] OpenGL support

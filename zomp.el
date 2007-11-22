@@ -107,7 +107,7 @@
   `(defun ,name () (interactive) (zomp-tl-do ,command)))
 
 (zomp-dofun zomp-tl-exit "!exit")
-(zomp-dofun zomp-tl-list-bindings "!bindings")
+(zomp-dofun zomp-tl-list-all-bindings "!bindings")
 (zomp-dofun zomp-tl-help "!help")
 (zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
 
@@ -223,15 +223,16 @@
       )))
 
 (defvar zomp-snippets
-  '(("func" .  "(func $${retval} ($${args}) (\n  $.\n  ))\n")
+  '(("func" .  "(func $${retval} $${name} ($${args}) (\n  $.\n  ))\n")
     ("xmacro" . "(xmacro $${name} $${args} (\n  $.\n  ))\n")
+    ("main" . "(func int main () (\n  $.\n  ret 0\n  ))\n")
     ))
 
 (defun zomp-add-snippet (name expansion)
-  "Adds an snippet for zomp. The snippet will not be saved on exit!"
-  (interactive "MName for macro? 
-MExpansion? ")
+  "Adds a snippet for zomp. The snippet will not be saved on exit!"
+  (interactive "MName for macro? \nMExpansion? ")
   (setq zomp-snippets (cons `(,name . ,expansion) zomp-snippets)))
-  
-(zomp-add-snippet "main" "(func int main () (\n  $.\n  ret 0\n  ))\n")
+
+;; (defvar shk-recenter-pos  TODO
  
+

@@ -4,7 +4,7 @@ open Printf
 module Utils =
 struct
   (* the ocaml toplevel ignores prints newlines as \n, fix this *)
-  let print_nice (f : Format.formatter) str = 
+  let print_nice (f : Format.formatter) str =
     let lines = Str.split (Str.regexp "\n") str in
     match lines with
         [] -> ()
@@ -15,7 +15,7 @@ struct
           Format.fprintf f "\""
 
   (* #install_printer print_nice *)
-    
+
   let test_re ~str ~re =
     let r = Str.regexp re in
     if Str.string_match r str 0 then (
@@ -37,10 +37,10 @@ struct
     )
     else false
 
-  let forEachFile ?(path = ".") ?(matchre = ".*") func = 
+  let forEachFile ?(path = ".") ?(matchre = ".*") func =
     let re = Str.regexp matchre in
-    Array.iter 
-      (fun dirname -> if (Str.string_match re dirname 0) then func dirname) 
+    Array.iter
+      (fun dirname -> if (Str.string_match re dirname 0) then func dirname)
       (Sys.readdir path);;
 
   let isLastChar str chr =
@@ -51,6 +51,12 @@ struct
     let newstr = String.create len in
     String.blit str first newstr 0 len;
     newstr
+
+  let lastChar string =
+    string.[String.length string - 1]
+      
+  let withoutLastChar string =
+    substring string ~first:0 ~len:(String.length string - 1)
 
   let concat stringList delimeter =
     let rec conc = function
@@ -69,7 +75,7 @@ struct
 end
 
 open Utils
-  
+
 exception Type_not_found of string
 exception Compile_error of string
 
@@ -118,7 +124,7 @@ end
 module GlewParser : PARSER =
 struct
   include BindingExpressions
-    
+
   let splitparam str =
     let items = Str.split (Str.regexp " ") str in
     match items with
@@ -182,11 +188,11 @@ struct
     in
     readline()
 end
-  
+
 module Printer =
 struct
   open BindingExpressions
-    
+
   let constant2string c = Printf.sprintf
     "Contant name='%s' value='%s'"
     c.name
@@ -209,7 +215,7 @@ struct
       f.fname
       f.retval
       (List.length f.params)
-    
+
   let expr2string = function
     | Include filename -> "#include \"" ^ filename ^ "\""
     | Constant c -> constant2string c
@@ -219,7 +225,7 @@ end
 
 module CamlTypemapper =
 struct
-  
+
   class type paramType = object
     method name : string
     method mltype : string
@@ -228,7 +234,7 @@ struct
     method ctype2val : string
     method isArray : bool
   end
-    
+
   class paramTypeGen
     ~(name :string)
     ~(mltype :string)
@@ -285,7 +291,7 @@ struct
       Format.printf "\n"
     in
     Hashtbl.iter print types
-      
+
   let addType ~name
       ?(mltype = name)
       ?(ctype = name)
@@ -332,7 +338,7 @@ struct
     addType ~name:"bool" ~mltype:"bool" ();
     addType ~name:"GLsizei" ~mltype:"int" ()
 end
-  
+
 (**
  * Generates glue code from expressions. Glue code consists of two parts: C code and
  * target language code. The C code will be linked into the native library while
@@ -341,9 +347,31 @@ end
 module type CODEGEN =
 sig
   val transform : BindingExpressions.expr list -> BindingExpressions.expr list
-    
+
   val generate_c_code : BindingExpressions.expr list -> string
   val generate_lang_code : BindingExpressions.expr list -> string
+
+  val lang_extension : string
+end
+
+module Processor(Parser : PARSER)(Codegen : CODEGEN) =
+struct
+  let process_file moduleName =
+    let fileName = moduleName ^ ".skel" in
+    let writefile ~filename ~text =
+      let file = open_out filename in
+      output_string file text;
+      close_out file
+    in
+    let testfile = open_in fileName in
+    let content = Codegen.transform ( Parser.parse testfile ) in
+    close_in testfile;
+    let langCode = Codegen.generate_lang_code content
+    and ccode = Codegen.generate_c_code content in
+    if String.length langCode > 0 then
+      writefile ~filename:(moduleName ^ "." ^ Codegen.lang_extension) ~text:langCode;
+    if String.length ccode > 0 then
+      writefile ~filename:(moduleName ^ ".c") ~text:ccode
 end
 
 (**
@@ -353,9 +381,9 @@ module Camlcodegen : CODEGEN =
 struct
   open BindingExpressions
   open CamlTypemapper
-    
+
   let ml_constant_name c_name = String.lowercase c_name
-  
+
   let gencaml_constant constant =
     "let " ^ (ml_constant_name constant.name) ^ " = " ^ constant.value
 
@@ -379,15 +407,15 @@ struct
       | _ -> (concat (List.map (fun p -> nametag p) paramList) " -> ") ^ " -> "
 
   let mltype2string retval = (findType retval)#mltype
-    
+
   let gencaml_function func =
     let paramCount = List.length func.params in
     "external " ^ func.fname
     ^ " : " ^ (mltype_sig func.params) ^ (mltype2string func.retval)
-    ^ " = " 
+    ^ " = "
     ^ (if paramCount > 5 then "\"" ^ (cstub_name_byte func) ^ "\" " else "")
     ^ "\"" ^ (cstub_name func) ^ "\""
-    
+
   let gencaml_unknown str = "(* " ^ str ^ " *)"
 
   let gen_caml_code expressions =
@@ -448,9 +476,9 @@ struct
 
   let value2ctype t = (findType t)#value2ctype
   let ctype2val t = (findType t)#ctype2val
-  
+
   exception FloatArraysNotSupported
-  
+
   let make_local_cvar param =
     let value () =
       let create =
@@ -520,8 +548,8 @@ struct
          (fun l r -> l or (Str.string_match (Str.regexp r) funcName 0))
          false
          nonChecked)
-    
-  
+
+
   let genc_function func =
     let namedParams = named_params func.params in
     let funccall =
@@ -605,14 +633,14 @@ struct
     (concat snippets "")
 
   let generate_c_code = gen_c_code
-    
+
   let transformParam (p : param) =
     {
       pname = p.pname;
       ptype = p.ptype;
       mltype = Some (findType p.ptype)#mltype
     }
-      
+
   let transformExpr (expr : expr) : expr =
     match expr with
         Function f -> Function {
@@ -639,53 +667,163 @@ struct
         end
     in
     transformExprList expressions
+
+  let lang_extension = "ml"
+end
+
+module UniqueId =
+struct
+  let counter = ref 0
+
+  let nextInt () = incr counter; !counter
+  let nextString name = incr counter; sprintf "%s%d" name !counter
 end
 
 module ZompCodegen : CODEGEN =
 struct
   let transform (exprs :BindingExpressions.expr list) = exprs
   let generate_c_code (_ :BindingExpressions.expr list) = ""
+
+  open BindingExpressions
+
+  let supportedTypes = [
+    "GLenum", "int";
+    "GLuint", "int";
+    "GLbitfield", "int";
+    (* previous types should be unsigned! *)
+    "GLint", "int";
+    "GLboolean", "bool";
+    "GLfloat", "float";
+    "GLclampf", "float";
+    "GLvoid", "void";
+    (* native c/zomp types *)
+    "void", "";
+    "int", "";
+    "float", "";
+    "bool", "";
+  ]
+
+  exception TypeNotSupported of string
+
+  let rec isSupportedType name =
+    if Utils.lastChar name = '*' then
+      isSupportedType (Utils.withoutLastChar name)
+    else
+      try
+        ignore( List.assoc name supportedTypes );
+        true
+      with _ ->
+        false
+
+  let generate_zomp_code = function
+    | Include fileName -> sprintf "/// include %s\n" fileName
+    | Constant c ->
+        let intToDecimal hexNumber =
+          try
+            let i64 = Int64.of_string hexNumber in
+            Int64.to_string i64
+          with _ ->
+            (* some constant's values are names of other constants and
+               thus cannot be converted to decimals *)
+            hexNumber
+        in
+        sprintf "(const GLint %s %s)\n" c.name (intToDecimal c.value)
+    | Function f ->
+        begin
+          let error = ref None in
+          let checkType typeName = 
+            if not (isSupportedType typeName) then
+              let newMessage = (sprintf "type %s not supported" typeName) in
+              error := match !error with
+                | None -> Some newMessage
+                | Some oldMessage -> Some (oldMessage ^ ", " ^ newMessage)
+          in
+          checkType f.retval;
+          let rec zompTypename cTypeName =
+            if Utils.lastChar cTypeName = '*' then
+              sprintf "(ptr %s)" (zompTypename (Utils.withoutLastChar cTypeName))
+            else
+              cTypeName
+          in
+          let paramString =
+            let toString param =
+              checkType param.ptype;
+              sprintf "(%s %s)"
+                (zompTypename param.ptype)
+                (match param.pname with
+                   | Some name -> name
+                   | None -> UniqueId.nextString "arg")
+            in
+            let paramStrings = List.map toString f.params in
+            Utils.concat paramStrings " "
+          in
+          let declaration = 
+            sprintf "(func %s %s (%s))"
+              f.retval f.fname paramString
+          in
+          match !error with
+            | None -> declaration ^ "\n"
+            | Some errorMessage -> sprintf "// %s\n// failed: %s\n" declaration errorMessage
+        end
+    | Unknown text ->
+        if String.length text > 0 then 
+          sprintf "// %s\n" text
+        else
+          "\n"
+
   let generate_lang_code (exprs :BindingExpressions.expr list) =
-    "/// zomp definitions "
-end
-  
-module Processor(Parser : PARSER)(Codegen : CODEGEN) =
-struct
-  let process_file moduleName =
-    let fileName = moduleName ^ ".skel" in
-    let writefile ~filename ~text =
-      let file = open_out filename in
-      output_string file text;
-      close_out file
+    let lines = List.map generate_zomp_code exprs in
+    let typeDecls =
+      List.map (fun (name, typ) ->
+                  if String.length typ > 0 then 
+                    sprintf "(type %s %s)\n" name typ
+                  else
+                    "")
+        supportedTypes
     in
-    let testfile = open_in fileName in
-    let content = Codegen.transform ( Parser.parse testfile ) in
-    close_in testfile;
-    let mlcode = Camlcodegen.generate_lang_code content
-    and ccode = Camlcodegen.generate_c_code content in
-    writefile ~filename:(moduleName ^ ".ml") ~text:mlcode;
-    writefile ~filename:(moduleName ^ ".c") ~text:ccode
+    "/// zomp definitions\n\n" ^
+      (Utils.concat typeDecls "") ^
+      Utils.concat lines ""
+
+  let lang_extension = "zomp"
 end
 
 module CamlbindingsGen = Processor(GlewParser)(Camlcodegen)
-  
+module ZompbindingsGen = Processor(GlewParser)(ZompCodegen)
+
+let errorInvalidLanguage = 1
+and errorInvalidParams = 2
+and errorSystemError = 3
+and errorCompilerError = 4
+
 let _ =
-  if Array.length Sys.argv > 1 then
-    try
-      CamlbindingsGen.process_file Sys.argv.(1);
-    with
-      | Invalid_argument msg
-      | Sys_error msg ->
-          begin
-            print_string ("sytem error: " ^ msg);
-            print_string "usage: ocaml gencode.ml file";
-            exit (-1);
-          end
-      | Compile_error command ->
-          begin
-            print_string ("building the dll failed in command: " ^ command);
-            exit (-2);
-          end
-  else
-    printf "Create .c and .ml bindings code for foo.skel using \"gencode foo\"\n"
-      
+  let processFileF, moduleName =
+    match Sys.argv with
+      | [| _; moduleName |] ->
+          CamlbindingsGen.process_file, moduleName
+      | [| _; "-lang"; "ml"; moduleName |] ->
+          CamlbindingsGen.process_file, moduleName
+      | [| _; "-lang"; "zomp"; moduleName |] ->
+          ZompbindingsGen.process_file, moduleName
+      | [| _; "-lang"; invalidLanguage; _ |] ->
+          eprintf "Language %s is not supported. Try ml or zomp\n" invalidLanguage;
+          exit errorInvalidLanguage;
+      | _ ->
+          eprintf "Invalid arguments. 'gencode -lang lang foo' will generate bindings for module foo and language lang\n";
+          exit errorInvalidParams
+  in
+  try
+    processFileF moduleName
+  with
+    | Invalid_argument msg
+    | Sys_error msg ->
+        begin
+          printf "System error: %s\n" msg;
+          exit 1;
+        end
+    | Compile_error command ->
+        begin
+          print_string ("building the dll failed in command: " ^ command);
+          exit 2;
+        end
+

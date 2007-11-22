@@ -17,6 +17,9 @@
 (func void glfwSetWindowTitle ((cstring title)))
 (func void glfwSwapBuffers ())
 
+(const int GLFW_WINDOW 65537) // 0x00010001
+(const int GLFW_FULLSCREEN 65538) // 0x00010002
+
 /// opengl
 (type GLenum int)
 (type GLint int)
@@ -26,15 +29,22 @@
 (var int GL_FALSE 0)
 
 (func void glClearColor ( (float r) (float g) (float b) (float a) ))
-
+(func void glClear ((int mode)))
 (const int GL_COLOR_BUFFER_BIT 16384) // 0x00004000
 
 (func int glGetError ())
 (func cstring gluErrorString ((GLenum error)))
-(func void glClear ((int mode)))
 
-(const int GLFW_WINDOW 65537) // 0x00010001
-(const int GLFW_FULLSCREEN 65538) // 0x00010002
+(func void glBegin ((GLenum kind)))
+(func void glEnd ())
+(const GLenum GL_TRIANGLES 4) // 0x0004
+
+(func void glVertex3f ((float x) (float y) (float z)))
+(func void glColor4f ((float r) (float g) (float b) (float a)))
+
+(func void glLoadIdentity ())
+(func void glTranslatef ((float x) (float y) (float z)))
+
 
 (func void printGLError () (
   (var int error 0)
@@ -90,6 +100,21 @@
   (printGLError)
   ))
 
+(func void drawTriangle () (
+  (glClearColor 0.0 0.0 0.0 1.0)
+  (glClear GL_COLOR_BUFFER_BIT)
+  (glTranslatef 0.0 0.0 1.0)
+  (glColor4f 1.0 0.5 0.0 1.0)
+  (glBegin GL_TRIANGLES)
+    (glVertex3f -1.0 0.0 0.0)
+    (glVertex3f 0.0 1.0 0.0)
+    (glVertex3f 1.0 0.0 0.0)
+  (glEnd)
+  (glfwSwapBuffers)
+  (printGLError)
+  ))
+
+  
 /**
 Enter this into toplevel to load libs. You will need to copy
 the file libglfw.dylib from the lib/macosx dir of GLFW 2.6

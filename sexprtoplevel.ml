@@ -174,7 +174,7 @@ let rec readExpr prompt previousLines bindings =
   if String.length line = 0 then begin
     readExpr prompt previousLines bindings
   end else if line = toplevelCommandString then begin
-(*     raise AbortExpr *)
+    printf "Aborted input, cleared \"%s\"\n" previousLines;
     readExpr defaultPrompt "" bindings
   end else if line.[0] = toplevelCommandChar then begin
     handleCommand line bindings;

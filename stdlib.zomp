@@ -34,7 +34,7 @@
   (label end)
   ))
 
-(macro funcln name type code
+(macroReplace funcln name type code
   (func void name ((type v)) (
     code
     (printNewline)
@@ -47,11 +47,11 @@
 (funcln printlnString (ptr char) (printString v))
 
 
-(macro getField record componentName (
+(macroReplace getField record componentName (
   (load (fieldptr record componentName))
   ))
 
-(macro setField record componentName value (
+(macroReplace setField record componentName value (
   (store (fieldptr record componentName) value)
   ))
   
@@ -197,7 +197,6 @@
   (label end)
   ))
 
-
 (func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
   (var int oldChildCount (getField tree childCount))
   (var int newChildCount (int.add 1 oldChildCount))
@@ -218,6 +217,11 @@
   (setField tree childs newChilds)
   (setField tree childCount newChildCount)
   ))
+
+/// get pointer to index-th child of parent
+(func (ptr ast) astChild (((ptr ast) parent) (int index)) (
+  (var (ptr ast) child (load (ptradd (getField parent childs) index)))
+  (ret child) ))
 
 /// macro support ----------------------------------------
 
@@ -272,27 +276,27 @@
   (var cstring name (newUniqueName))
   (ret (appendCStrings (appendCStrings name "_") purpose)) ))
 
-(xmacro xmacrotst (
+(macro macrotst (
   (ret `(3))
-//   (printlnString "Applying macro xmacrotst")
+//   (printlnString "Applying macro macrotst")
 //   (ret `(printlnString "Running code"))
   ))
-(xmacro ymacrotst (
+(macro ymacrotst (
   (ret `(printInt 999))
   ))
   
-(xmacro uniqueId name purpose (
+(macro uniqueId name purpose (
   (ret `(var cstring #name (newUniqueNameFor #purpose)))
   ))
 
-(xmacro foo (
+(macro foo (
   (var cstring xxx (newUniqueNameFor "ss"))
   (uniqueId foo "foo")
   (uniqueId bar "bar")
   (ret `(xxx))
   ))
 
-(xmacro if test onTrue onFalse (
+(macro if test onTrue onFalse (
   (uniqueId trueLabel "iftrue")
   (uniqueId falseLabel "iffalse")
   (uniqueId endLabel "ifend")
@@ -311,7 +315,7 @@
   (ret result)
   ))
 
-(xmacro for index min max code (
+(macro for index min max code (
   (uniqueId startLabel "for_start")
   (uniqueId endLabel "for_exit")
   (uniqueId testResult "for_testvar")
@@ -330,7 +334,7 @@
     ))
   ))
 
-(xmacro while test body (
+(macro while test body (
   (uniqueId begin "while_begin")
   (uniqueId exit "while_exit")
   (uniqueId goon "while_body")
@@ -347,17 +351,59 @@
     ))
   ))
 
+/// execute code for each node of ast  
+(macro forEachAstChild childVar tree code (
+  (uniqueId count "count")
+  (uniqueId index "index")
+  
+  (ret `(
+    (const int #count (getField #tree childCount))
+    (printString "child count = ") (printlnInt #count)
+    (for #index 0 #count (
+      (const (ptr ast) #childVar (astChild #tree #index))
+      #code
+      ))
+    ))
+  ))
+  
 /// workaround until "const" is properly supported
-(xmacro const type name default (
+(macro const type name default (
   (ret `(var #type #name #default)) ))
 
+/// A template is similar to a macro but it is not defined by
+/// code producing an ast but by directly specifying an ast with
+/// antiquotes to insert the values of variables
+(macro template name (rest argsAndImpl) (
+  (var (ptr ast) t (simpleAst "macro"))
+  (addChild t name)
+
+  (const int argCount (getField argsAndImpl childCount))
+  (for argnum 0 argCount (
+    (const (ptr ast) arg (astChild argsAndImpl argnum))
+    (if (int.uless argnum (int.sub argCount 1))
+      (addChild t arg)
+      (addChild t (
+        (var (ptr ast) foo (simpleAst "quote"))
+        (addChild foo arg)
+        (var (ptr ast) reti (simpleAst "ret"))
+        (addChild reti foo)
+        reti))
+      )
+    ))
+
+  (ret t)
+  ))
+
+
+  
 /// quickly define a test function to be run with C-c,t in emacs
-(macro testf impl
+(template testf impl
   (func void test () (impl)) )
 
-// (func int main ()) */
 
 /*
+(func int main ())
+
 /// default test function
 (testf (
   (const int retval (main))
@@ -378,7 +424,7 @@
     )
   ))
 
-(xmacro inline3 code (
+(macro inline3 code (
   (var (ptr ast) tree (simpleAst "seq"))
   (printlnString "Warning: you suck!")
   (addChild tree code)
@@ -391,10 +437,10 @@
 
 (var cstring yippieh "yippieh!")
   
-(xmacro txmacro2 arg
-  (insert xmacro #arg) )
+(macro tmacro2 arg
+  (insert macro #arg) )
 
-(xmacro txmacro3 arg0 arg1
+(macro tmacro3 arg0 arg1
   (foo bar #arg0 #arg1) )
 */
 

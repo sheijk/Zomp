@@ -19,7 +19,7 @@ CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo builtins.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
-all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags dlltest.dylib
+all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags dlltest.dylib opengl20.zomp
 
 # ocamlbuild:
 # 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
@@ -67,6 +67,8 @@ stdlib.bc stdlib.ll: stdlib.c
 	llvm-gcc --emit-llvm -c $< -o $@
 	llvm-dis < stdlib.bc > stdlib.ll
 
+opengl20.zomp: opengl20.skel gencode
+	./gencode -lang zomp opengl20
 
 .SUFFIXES: .ml .cmo .mly .mll .cmi
 
