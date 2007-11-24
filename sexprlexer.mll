@@ -34,7 +34,11 @@ rule token = parse
       { mlcomment lexbuf }
   | _ as c
       { raise (UnknowChar (Printf.sprintf "%c" c)) }
-and mlcomment = shortest 
+and mlcomment = shortest
   | (_)* "*/"
       { token lexbuf }
-    
+  | (_)* '\n'
+      { mlcomment lexbuf }
+  | eof
+      { raise Eof }
+      

@@ -351,14 +351,18 @@
     ))
   ))
 
-/// execute code for each node of ast  
+(macro times count code (
+  (uniqueId counterVar "timesCounter")
+  (ret `(for #counterVar 0 #count #code))
+  ))
+  
+/// execute code for each node of ast
 (macro forEachAstChild childVar tree code (
   (uniqueId count "count")
   (uniqueId index "index")
   
   (ret `(
     (const int #count (getField #tree childCount))
-    (printString "child count = ") (printlnInt #count)
     (for #index 0 #count (
       (const (ptr ast) #childVar (astChild #tree #index))
       #code
@@ -394,11 +398,18 @@
   (ret t)
   ))
 
-
+(macro compilerMessage (rest text) (
+  (printString "[message] ")
+  (forEachAstChild child text (
+    (printString (getField child id))
+    (printString " ") ))
+  (println)
+  (ret `())
+  ))
   
 /// quickly define a test function to be run with C-c,t in emacs
 (template testf impl
-  (func void test () (impl)) )
+  (func void test () (#impl)) )
 
 
 /*

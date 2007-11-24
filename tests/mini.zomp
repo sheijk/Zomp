@@ -12,12 +12,37 @@
   (code)
   ))
 
-// (#var int lastId 0)
-// (func int uniqueId () (
-//   (assign lastId (int.add lastId 1))
-//   (ret lastId)
-//   ))
-  
+(macro printCode code (
+  (printAst code 0)
+  (ret `())
+  ))
+
+(printCode (foo bar))
+
+(func (ptr ast) astSeq () (
+  (simpleAst "seq") ))
+
+(macro makeIntVars baseName count (
+  (var (ptr ast) vars (astSeq))
+  (for i 0 4 (
+    (addChild vars `(var int #(simpleAst (newUniqueNameFor "var")) 0)) ))
+  (printAst vars 2)
+  (ret vars)
+  ))
+
+(makeIntVars "foo" 2)
+
+
+(macro toplevelSeq (
+  (ret `(
+    (var int somevar1 10)
+    (var int somevar2 20)
+    ))
+  ))
+
+(toplevelSeq)
+
+
 (template for index min max code (
   (var int index min)
   (label start)

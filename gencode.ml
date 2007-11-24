@@ -695,7 +695,6 @@ struct
     "GLboolean", "bool";
     "GLfloat", "float";
     "GLclampf", "float";
-    "GLvoid", "void";
     (* native c/zomp types *)
     "void", "";
     "int", "";
@@ -715,6 +714,8 @@ struct
       with _ ->
         false
 
+  let previousConstants = ref []
+    
   let generate_zomp_code = function
     | Include fileName -> sprintf "/// include %s\n" fileName
     | Constant c ->
@@ -725,9 +726,16 @@ struct
           with _ ->
             (* some constant's values are names of other constants and
                thus cannot be converted to decimals *)
-            hexNumber
+            let valueConstantName = String.uppercase hexNumber in
+            begin try
+              List.assoc valueConstantName !previousConstants
+            with Not_found ->
+              raise (Compile_error (sprintf "Could not find constant '%s'" valueConstantName))
+            end
         in
-        sprintf "(const GLint %s %s)\n" c.name (intToDecimal c.value)
+        let value = intToDecimal c.value in
+        previousConstants := (c.name, value) :: !previousConstants;
+        sprintf "(const GLint %s %s)\n" c.name value
     | Function f ->
         begin
           let error = ref None in
@@ -742,6 +750,8 @@ struct
           let rec zompTypename cTypeName =
             if Utils.lastChar cTypeName = '*' then
               sprintf "(ptr %s)" (zompTypename (Utils.withoutLastChar cTypeName))
+            else if cTypeName = "GLvoid" then
+              "void"
             else
               cTypeName
           in
@@ -788,6 +798,7 @@ struct
   let lang_extension = "zomp"
 end
 
+
 module CamlbindingsGen = Processor(GlewParser)(Camlcodegen)
 module ZompbindingsGen = Processor(GlewParser)(ZompCodegen)
 
@@ -823,7 +834,7 @@ let _ =
         end
     | Compile_error command ->
         begin
-          print_string ("building the dll failed in command: " ^ command);
+          print_string ("Generating bindings failed: " ^ command);
           exit 2;
         end
 

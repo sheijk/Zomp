@@ -9,54 +9,9 @@ of GLFW 2.6 into the zomp main dir
 */
 
 (include "opengl20.zomp")
-
-/// glfw, use "!dlopen libglfw.dylib" before calling these functions
-(func int glfwInit ())
-(func void glfwTerminate ())
-(func int glfwOpenWindow (
-  (int width) (int height)
-  (int redbits) (int greenbits) (int bluebits)
-  (int alphabits) (int depthbits) (int stencilbits)
-  (int mode) ))
-(func void glfwCloseWindow ())
-
-(func void glfwGetVersion (
-  ((ptr int) major)
-  ((ptr int) minor)
-  ((ptr int) rev) ))
+(include "glfw.zomp")
 
 (func void glfwSetWindowTitle ((cstring title)))
-(func void glfwSwapBuffers ())
-
-(const int GLFW_WINDOW 65537) // 0x00010001
-(const int GLFW_FULLSCREEN 65538) // 0x00010002
-
-/*
-/// opengl
-(type GLenum int)
-(type GLint int)
-(type GLuint int)
-
-(var int GL_TRUE 1)
-(var int GL_FALSE 0)
-
-(func void glClearColor ( (float r) (float g) (float b) (float a) ))
-(func void glClear ((int mode)))
-(const int GL_COLOR_BUFFER_BIT 16384) // 0x00004000
-
-(func int glGetError ())
-(func cstring gluErrorString ((GLenum error)))
-
-(func void glBegin ((GLenum kind)))
-(func void glEnd ())
-(const GLenum GL_TRIANGLES 4) // 0x0004
-
-(func void glVertex3f ((float x) (float y) (float z)))
-(func void glColor4f ((float r) (float g) (float b) (float a)))
-
-(func void glLoadIdentity ())
-(func void glTranslatef ((float x) (float y) (float z)))
-*/
 
 (func cstring gluErrorString ((GLenum error)))
 
@@ -98,13 +53,21 @@ of GLFW 2.6 into the zomp main dir
   (ret succeeded)
   ))
 
-(func void renderTest () (
-  (glfwInit)
-  (openWindow)
-  (glfwSetWindowTitle "renderTest")
-  (glClear GL_COLOR_BUFFER_BIT)
-  (glfwSwapBuffers)
-  (printGLError)
+(var bool wasInitialized false)
+
+(func void init () (
+  (if wasInitialized
+    (printlnString "Already initialized")
+  // else
+    (
+    (glfwInit)
+    (openWindow)
+    (glfwSetWindowTitle "renderTest")
+    (glClear GL_COLOR_BUFFER_BIT)
+    (glfwSwapBuffers)
+    (printGLError)
+    (assign wasInitialized true)
+    ))
   ))
 
 (func void clearScreen () (

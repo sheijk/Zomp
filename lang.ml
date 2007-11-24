@@ -54,7 +54,7 @@ let string2integralValue str =
   in
   tryAll
     [
-      lazy( IntVal (int_of_string str) );
+      lazy( IntVal (Int32.of_string str) );
       lazy( FloatVal (float_of_string str) );
       lazy( BoolVal (bool_of_string str) );
       lazy( StringLiteral (dequoteString '"' str) );

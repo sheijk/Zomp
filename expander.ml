@@ -908,7 +908,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         end
     | _ ->
         None
-          
+
 and translateTL bindings expr = translate raiseIllegalExpression
   [
     translateGlobalVar;
@@ -917,13 +917,13 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateDefineMacro translateNested;
     translateMacro;
     translateCompileTimeVar;
-(*     translateSeq; *)
+    translateSeq;
     translateInclude;
   ]
   bindings expr
 
-let makeNested (translateF :toplevelExprTranslateF) (_ :exprTranslateF) (bindings :bindings) expr =
-  let _, toplevelForms = translateF bindings expr in
-  let nestedForms = List.map (fun f -> `ToplevelForm f) toplevelForms in
-  Some( bindings, nestedForms )
+(* let makeNested (translateF :toplevelExprTranslateF) (_ :exprTranslateF) (bindings :bindings) expr = *)
+(*   let _, toplevelForms = translateF bindings expr in *)
+(*   let nestedForms = List.map (fun f -> `ToplevelForm f) toplevelForms in *)
+(*   Some( bindings, nestedForms ) *)
 

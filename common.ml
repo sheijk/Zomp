@@ -5,6 +5,7 @@ exception FailedToEvaluateLLVMCode of string * string
 let apply2nd f (fst, snd) = (fst, f snd)
 let (<<=) f g = f g
 let (>>=) x f = f x
+let (++) f g x = f (g x)
   
 let rec combine seperator = function
     [] -> ""

@@ -151,6 +151,9 @@
     ("\\bseq\\b" 0 font-lock-keyword-face)
     ("\\bassign\\b" 0 font-lock-keyword-face)
     ("\\btype\\b" 0 font-lock-keyword-face)
+
+    ("\\btrue\\b" 0 font-lock-keyword-face)
+    ("\\bfalse\\b" 0 font-lock-keyword-face)
     
     ("\\bstore\\b" 0 font-lock-keyword-face)
     ("\\bload\\b" 0 font-lock-keyword-face)

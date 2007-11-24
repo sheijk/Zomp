@@ -1,5 +1,6 @@
 
 
+
 open Printf
   
 module type TYPE_SYSTEM =
@@ -86,7 +87,7 @@ struct
      
   type value =
     | VoidVal
-    | IntVal of int
+    | IntVal of Int32.t
     | FloatVal of float
     | StringLiteral of string
     | BoolVal of bool
@@ -126,7 +127,7 @@ struct
   (* val valueString : value -> string *)
   let rec valueString : value -> string = function
     | VoidVal -> raise (Failure "no values of void allowed")
-    | IntVal i -> string_of_int i
+    | IntVal i -> Int32.to_string i
     | FloatVal f -> string_of_float f
     | StringLiteral s -> "\"" ^ s ^ "\""
     | BoolVal b -> string_of_bool b
@@ -176,7 +177,7 @@ struct
     match typ with
       | `TypeRef name -> failwith (sprintf "Cannot parse value of type %s referred by name" name)
       | `Void -> failwith "no values of void allowed"
-      | `Int -> IntVal (int_of_string str)
+      | `Int -> IntVal (Int32.of_string str)
       | `Float -> FloatVal (float_of_string str)
       | `Bool -> BoolVal (bool_of_string str)
       | `Char -> CharVal (unquoted '\'' str).[0]
@@ -191,7 +192,7 @@ struct
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
     | `TypeRef name -> failwith (sprintf "No default value for type %s referred by name" name)
-    | `Int -> IntVal 0
+    | `Int -> IntVal 0l
     | `Float -> FloatVal 0.0
     | `Bool -> BoolVal false
     | `Char -> CharVal (char_of_int 0)

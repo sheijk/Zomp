@@ -437,7 +437,7 @@ let gencodeFuncCall gencode call =
 let offsetStringAndCode gencode countForm =
   match countForm with
     | `Constant IntVal count ->
-        (string_of_int count), ""
+        (Int32.to_string count), ""
     | `Variable var ->
         let valueVar, valueAccessCode = gencode (`Variable (var :> composedType variable)) in
         valueVar.rvname, valueAccessCode

@@ -39,13 +39,13 @@ let matchAnyRegexp patterns =
   match patterns with
     | [] -> Str.regexp ".*"
     | _ ->
-        let containsPatterns = List.map (fun p -> ".*" ^ p ^ ".*") patterns in
+        let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
         Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
       
 let printBindings args (bindings :bindings) =
   let checkRE = matchAnyRegexp args in
   let printSymbol (name, symbol)  =
-    if Str.string_match checkRE name 0 then 
+    if Str.string_match checkRE (String.lowercase name) 0 then
       match symbol with
         | VarSymbol var ->
             printf "var %s : %s\n" var.vname (Lang.typeName var.typ)

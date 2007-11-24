@@ -1,26 +1,25 @@
 
 * To be sorted
-** TODO represent integer constants using Int32 instead of int to avoid overflows
-** TODO macros need a way to signal errors
-** TODO compilation needs O(n^2) time
-** TODO compiling is extremely slow
-** TODO can't send antiquote to macro
-  (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
-  (twice (printInt #i))
-
-** TODO nested quotes and antiquotes don't work
-** TODO BUG: (ret (load (ptradd (getField parent childs) index))) 
-in function returning (ptr ast) is not accepted
-** TODO BUG: sometimes llvm source is printed on compiler errors unnecessarily
-** TODO int representations: 0xff 0b1001 etc.
 
 * Tasks									:zomp:
 
 ** BUGS
+*** TODO [#A] BUG: (ret (load (ptradd (getField parent childs) index))) 
+in function returning (ptr ast) is not accepted
+*** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily
 *** DONE fix toplevel "!" / abort expr
     CLOSED: [2007-11-04 Sun 19:51]
 
 ** Fix language quirks
+*** DONE [#A] represent integer constants using Int32 instead of int to avoid overflows
+    CLOSED: [2007-11-24 Sat 20:05] 
+*** TODO [#A] macros need a way to signal errors
+*** TODO [#B] can't send antiquote to macro
+  (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
+  (twice (printInt #i))
+
+*** TODO int representations: 0xff 0b1001 etc.
+*** TODO nested quotes and antiquotes don't work
 *** DONE Allow getting pointer to variables
 *** DONE Fix record support: allow writing to record fields
     CLOSED: [2007-10-06 Sat 21:36]
@@ -58,6 +57,8 @@ in function returning (ptr ast) is not accepted
 *** TODO [#C] Turn value type into polymorphic variant type
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
 ** Compiler
+*** TODO compilation needs O(n^2) time
+*** TODO compiling is extremely slow
 *** TODO [#C] Generate nice and readable LLVM code
 **** TODO [#C] Let functions in genllvm.ml return a string list instead of strings with newlines
 **** TODO [#C] Add empty line(s) between functions
@@ -115,7 +116,8 @@ in function returning (ptr ast) is not accepted
 **** DONE Query existing functions and variables
      CLOSED: [2007-11-16 Fri 02:33]
 ** Language
-*** TODO [#A] template
+*** DONE [#A] template
+    CLOSED: [2007-11-24 Sat 20:12]     
     Implemented as macro
 *** TODO [#A] Allow testing macros 
 (running them on code and printing the resulting AST)
