@@ -22,6 +22,12 @@
                          (backward-char 1)))
                   ))))))
 
+(defvar zomp-imenu-generic-expression
+  '(("macro" "^(macro +\\([a-zA-Z0-9]+\\) " 1)
+    ("function" "^(func +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\) " 1)
+    ("var" "^(var +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\) " 1)
+    ("const" "^(const +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\) " 1) ))
+    
 (defun zomp-mark-sexp ()
   (interactive)
   (cond (mark-active
@@ -182,6 +188,10 @@
   (list '(lambda ()
            (setq comment-start "//")
            (setq indent-tabs-mode nil)
+
+           (setq imenu-generic-expression zomp-imenu-generic-expression)
+           (local-set-key [(control ?')] 'imenu)
+           
            ; highlight s-expression under cursor
            (hl-sexp-mode t)
 
@@ -238,4 +248,3 @@
 
 ;; (defvar shk-recenter-pos  TODO
  
-
