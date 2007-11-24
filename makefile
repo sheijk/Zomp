@@ -19,7 +19,7 @@ CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo builtins.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
-all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags dlltest.dylib opengl20.zomp
+all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags dlltest.dylib opengl20.zomp deps.png
 
 # ocamlbuild:
 # 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
@@ -69,6 +69,13 @@ stdlib.bc stdlib.ll: stdlib.c
 
 opengl20.zomp: opengl20.skel gencode
 	./gencode -lang zomp opengl20
+
+# generate a file for graphviz which visualizes the dependencies
+# between modules
+deps.dot deps.png: deps
+	echo Generating dependency graph for graphviz ...
+	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
+	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
 
 .SUFFIXES: .ml .cmo .mly .mll .cmi
 
