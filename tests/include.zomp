@@ -1,0 +1,11 @@
+/**
+Demonstrates the builtin macro include which will
+include the given file similar to a C-preprocessor
+*/
+
+(include "tests/include_lib.zomp")
+
+(func int main () (
+  (ret (next 10))
+  ))
+  

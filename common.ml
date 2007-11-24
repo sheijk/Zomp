@@ -96,3 +96,15 @@ let splitAfter firstLength list =
   let first, second = worker 0 [] list in
   List.rev first, second
 
+let removeQuotes str =
+  let length = String.length str in
+  if length > 0 && str.[0] = '"' && str.[length-1] = '"' then begin
+    let substring str ~first ~len =
+      let newstr = String.create len in
+      String.blit str first newstr 0 len;
+      newstr
+    in
+    substring str 1 (String.length str - 2)
+  end else
+    str
+  

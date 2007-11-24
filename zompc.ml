@@ -110,7 +110,7 @@ let compile instream outstream =
          in
          match compileCode bindings input with
            | Some _ -> 0
-           | None -> 2 )
+           | None -> 2)
       ~onError:(fun () -> 1)
   in
   Zompvm.zompShutdown();

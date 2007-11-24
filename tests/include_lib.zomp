@@ -1,0 +1,8 @@
+/**
+This file will be included by include.zomp
+*/
+
+(func int next ((int i)) (
+  (ret (int.add i 1))
+  ))
+

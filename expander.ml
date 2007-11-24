@@ -784,7 +784,50 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
       end
   | _ ->
       None
+
+let macroInclude = "include"
   
+let translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) = function
+  | { id = id; args = [{ id = fileName; args = []}] } as expr when id = macroInclude ->
+      begin
+        let fileName = Common.removeQuotes fileName in
+        let parse fileName : sexpr list =
+          try
+            let fileContent = Common.readFile fileName in
+            let lexbuf = Lexing.from_string fileContent in
+            let rec parseExprs lexbuf exprAccum =
+              try
+                let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
+                parseExprs lexbuf (sexpr :: exprAccum)
+              with
+                | Sexprlexer.Eof -> exprAccum
+            in
+            let sexprs = List.rev (parseExprs lexbuf []) in
+            sexprs
+              (*             let sexpr = Sexprparser.main Sexprlexer.token lexbuf in *)
+              (*             match sexpr with *)
+              (*               | { id = id; args = exprs } when id = macroSequence -> exprs *)
+              (*               | expr -> [expr] *)
+          with
+            | Sys_error message -> raiseIllegalExpression expr
+                (sprintf "Could not find file '%s': %s" fileName message)
+        in
+        let sexprs = parse fileName in
+        let newBindings, tlexprsFromFile =
+          List.fold_left
+            (fun (bindings,prevExprs) sexpr ->
+               let newBindings, newExprs = translateF bindings sexpr in
+               newBindings, prevExprs @ newExprs )
+            (bindings, [])
+            sexprs
+        in
+        Some( newBindings, tlexprsFromFile )
+      end
+  | { id = id; args = _ } as invalidExpr when id = macroInclude ->
+      raiseIllegalExpression invalidExpr "Expected one parameter"
+  | _ ->
+      None
+        
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -875,6 +918,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateMacro;
     translateCompileTimeVar;
 (*     translateSeq; *)
+    translateInclude;
   ]
   bindings expr
 

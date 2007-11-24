@@ -1,3 +1,14 @@
+/**
+Demonstrates using OpenGL.
+
+Enter this into toplevel to load libs:
+!load libglfw.dylib dlltest.dylib
+
+You will need to copy the file libglfw.dylib from the lib/macosx dir
+of GLFW 2.6 into the zomp main dir
+*/
+
+(include "opengl20.zomp")
 
 /// glfw, use "!dlopen libglfw.dylib" before calling these functions
 (func int glfwInit ())
@@ -20,6 +31,7 @@
 (const int GLFW_WINDOW 65537) // 0x00010001
 (const int GLFW_FULLSCREEN 65538) // 0x00010002
 
+/*
 /// opengl
 (type GLenum int)
 (type GLint int)
@@ -44,7 +56,9 @@
 
 (func void glLoadIdentity ())
 (func void glTranslatef ((float x) (float y) (float z)))
+*/
 
+(func cstring gluErrorString ((GLenum error)))
 
 (func void printGLError () (
   (var int error 0)
@@ -114,12 +128,4 @@
   (printGLError)
   ))
 
-  
-/**
-Enter this into toplevel to load libs. You will need to copy
-the file libglfw.dylib from the lib/macosx dir of GLFW 2.6
-into the zomp main dir
-
-!load libglfw.dylib dlltest.dylib
-*/
 

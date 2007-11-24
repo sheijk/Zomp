@@ -1,5 +1,7 @@
 
 * To be sorted
+** TODO represent integer constants using Int32 instead of int to avoid overflows
+** TODO macros need a way to signal errors
 ** TODO compilation needs O(n^2) time
 ** TODO compiling is extremely slow
 ** TODO can't send antiquote to macro
