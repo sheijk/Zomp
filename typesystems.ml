@@ -18,54 +18,54 @@ sig
   val defaultValue : typ -> value
 end
 
-module Llvm =
-struct
-  exception CouldNotParseType of string
-  type typ = Void | Int8 | Int32
+(* module Llvm = *)
+(* struct *)
+(*   exception CouldNotParseType of string *)
+(*   type typ = Void | Int8 | Int32 *)
         
-  type value = VoidValue | Int8Value of int | Int32Value of Int32.t
+(*   type value = VoidValue | Int8Value of int | Int32Value of Int32.t *)
 
-  let typeInfo = [
-    Void, "void";
-    Int8, "i8";
-    Int32, "i32";
-  ]
+(*   let typeInfo = [ *)
+(*     Void, "void"; *)
+(*     Int8, "i8"; *)
+(*     Int32, "i32"; *)
+(*   ] *)
 
-  let typeOf = function
-    | VoidValue -> Void
-    | Int8Value _ -> Int8
-    | Int32Value _ -> Int32
+(*   let typeOf = function *)
+(*     | VoidValue -> Void *)
+(*     | Int8Value _ -> Int8 *)
+(*     | Int32Value _ -> Int32 *)
 
-  let typeName searchedTyp =
-    let _, name = List.find (fun (typ, _) -> typ = searchedTyp) typeInfo in
-    name
+(*   let typeName searchedTyp = *)
+(*     let _, name = List.find (fun (typ, _) -> typ = searchedTyp) typeInfo in *)
+(*     name *)
 
-  let valueString = function
-    | VoidValue -> "void"
-    | Int8Value i -> string_of_int i
-    | Int32Value i -> Int32.to_string i
+(*   let valueString = function *)
+(*     | VoidValue -> "void" *)
+(*     | Int8Value i -> string_of_int i *)
+(*     | Int32Value i -> Int32.to_string i *)
 
-  let parseType typeName =
-    try
-      let typ, _ = List.find (fun (_, name) -> name = typeName) typeInfo in
-      typ
-    with
-        Not_found -> raise (CouldNotParseType typeName)
+(*   let parseType typeName = *)
+(*     try *)
+(*       let typ, _ = List.find (fun (_, name) -> name = typeName) typeInfo in *)
+(*       typ *)
+(*     with *)
+(*         Not_found -> raise (CouldNotParseType typeName) *)
 
-  let parseValue typ valueString =
-    try
-      match typ with
-      | Void -> if valueString = "void" then VoidValue else raise (Failure valueString)
-      | Int8 -> Int8Value (int_of_string valueString)
-      | Int32 -> Int32Value (Int32.of_string valueString)
-    with
-        _ -> raise (Failure valueString)
+(*   let parseValue typ valueString = *)
+(*     try *)
+(*       match typ with *)
+(*       | Void -> if valueString = "void" then VoidValue else raise (Failure valueString) *)
+(*       | Int8 -> Int8Value (int_of_string valueString) *)
+(*       | Int32 -> Int32Value (Int32.of_string valueString) *)
+(*     with *)
+(*         _ -> raise (Failure valueString) *)
 
-  let defaultValue = function
-    | Void -> VoidValue
-    | Int8 -> Int8Value 0
-    | Int32 -> Int32Value 0l
-end
+(*   let defaultValue = function *)
+(*     | Void -> VoidValue *)
+(*     | Int8 -> Int8Value 0 *)
+(*     | Int32 -> Int32Value 0l *)
+(* end *)
 
 module Zomp =
 struct
@@ -73,6 +73,7 @@ struct
   | `Void
   | `Int
   | `Float
+  | `Double
   | `Bool
   | `Char
   ]
@@ -89,6 +90,7 @@ struct
     | VoidVal
     | IntVal of Int32.t
     | FloatVal of float
+    | DoubleVal of float
     | StringLiteral of string
     | BoolVal of bool
     | CharVal of char
@@ -102,6 +104,7 @@ struct
     | VoidVal -> `Void
     | IntVal _ -> `Int
     | FloatVal _ -> `Float
+    | DoubleVal _ -> `Double
     | StringLiteral _ -> (`Pointer `Char)
     | BoolVal _ -> `Bool
     | CharVal _ -> `Char
@@ -115,6 +118,7 @@ struct
     | `Void -> "void"
     | `Int -> "int"
     | `Float -> "float"
+    | `Double -> "double"
     | `Bool -> "bool"
     | `Char -> "char"
     | `TypeRef name -> name
@@ -129,6 +133,7 @@ struct
     | VoidVal -> raise (Failure "no values of void allowed")
     | IntVal i -> Int32.to_string i
     | FloatVal f -> string_of_float f
+    | DoubleVal f -> string_of_float f
     | StringLiteral s -> "\"" ^ s ^ "\""
     | BoolVal b -> string_of_bool b
     | CharVal c -> string_of_int (int_of_char c)
@@ -155,6 +160,7 @@ struct
       match str with
         | "int" -> `Int
         | "float" -> `Float
+        | "double" -> `Double
         | "bool" -> `Bool
         | "char" -> `Char
         | "void" -> `Void
@@ -179,6 +185,7 @@ struct
       | `Void -> failwith "no values of void allowed"
       | `Int -> IntVal (Int32.of_string str)
       | `Float -> FloatVal (float_of_string str)
+      | `Double -> DoubleVal (float_of_string str)
       | `Bool -> BoolVal (bool_of_string str)
       | `Char -> CharVal (unquoted '\'' str).[0]
       | `Pointer `Char -> StringLiteral (unquoted '"' str)
@@ -186,14 +193,13 @@ struct
         then PointerVal (t, None)
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
       | `Record _ -> raise (Failure (sprintf "cannot parse records (value was %s)" str))
-(*       | `NamedType name -> failwith (sprintf "Cannot parse value of type %s only known by name" name) *)
           
-  (* val defaultValue : typ -> value *)
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
     | `TypeRef name -> failwith (sprintf "No default value for type %s referred by name" name)
     | `Int -> IntVal 0l
     | `Float -> FloatVal 0.0
+    | `Double -> DoubleVal 0.0
     | `Bool -> BoolVal false
     | `Char -> CharVal (char_of_int 0)
     | `Pointer t -> PointerVal (t, None)
@@ -211,6 +217,6 @@ struct
   end
 
   module TestZomp = TypesysTest(Zomp)
-  module TestLlvm = TypesysTest(Llvm)
+(*   module TestLlvm = TypesysTest(Llvm) *)
 end  
   

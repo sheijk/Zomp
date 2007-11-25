@@ -32,18 +32,18 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Bool -> "i1"
   | `Char -> "i8"
   | `Float -> "float"
+  | `Double -> "double"
   | `TypeRef name -> "%" ^ name
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | `Record components ->
       let componentNames = List.map (fun (_, t) -> llvmTypeName t) components in
       "{ " ^ combine ", " componentNames ^ "}"
-      
+
 let paramTypeName = function
   | `Char -> "i8 signext"
   | other -> llvmTypeName other
 
-      
 type resultvar = {
   rvname :string;
   rvtypename :string;
@@ -184,6 +184,16 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       compareIntrinsic typ (typeName ^ ".slessEqual") "sle";
     ]
   in
+  let floatIntrinsics typ =
+    let typeName = typeName typ in
+    [
+      twoArgIntrinsic (typeName ^ ".add") "add" typ;
+      twoArgIntrinsic (typeName ^ ".sub") "sub" typ;
+      twoArgIntrinsic (typeName ^ ".mul") "mul" typ;
+      twoArgIntrinsic (typeName ^ ".fdiv") "fdiv" typ;
+      twoArgIntrinsic (typeName ^ ".frem") "frem" typ;
+    ]
+  in
   let intrinsicFuncs =
     [
       twoArgIntrinsic "int.add" "add" `Int;
@@ -202,15 +212,14 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       twoArgIntrinsic "int.or" "or" `Int;
       twoArgIntrinsic "int.xor" "xor" `Int;
 
-      twoArgIntrinsic "float.add" "add" `Float;
-      twoArgIntrinsic "float.sub" "sub" `Float;
-      twoArgIntrinsic "float.mul" "mul" `Float;
-      twoArgIntrinsic "float.fdiv" "fdiv" `Float;
-      twoArgIntrinsic "float.frem" "frem" `Float;
+      twoArgIntrinsic "bool.and" "and" `Bool;
+      twoArgIntrinsic "bool.or" "or" `Bool;
+      twoArgIntrinsic "bool.xor" "xor" `Bool;
       
-(*       "printf", `ExternalFunc, `Void, ["test", `Pointer `Char]; *)
       "void", `Intrinsic void, `Void, [];
     ]
+    @ floatIntrinsics `Float
+    @ floatIntrinsics `Double
     @ compareIntrinsics `Int
     @ compareIntrinsics `Char
   in
@@ -650,7 +659,7 @@ let gencodeGlobalVar var =
             contentVar.rvname
         in
         stringStorageSrc ^ stringPointerSrc
-    | IntVal _ | BoolVal _ | FloatVal _ | CharVal _ ->
+    | IntVal _ | BoolVal _ | FloatVal _ | DoubleVal _ | CharVal _ ->
         sprintf "@%s = constant %s %s"
           varname
           (llvmTypeName var.typ)

@@ -52,6 +52,12 @@ let string2integralValue str =
     else
       dequoteEscapeSequence dequoted
   in
+  let parseWithSuffix parseF suffix str =
+    if Str.string_match (Str.regexp ("\\(.*\\)" ^ suffix)) str 0 then begin
+      parseF (Str.matched_group 1 str);
+    end else
+      raise (Failure "parseWithSuffix")
+  in
   tryAll
     [
       lazy( IntVal (Int32.of_string str) );
@@ -59,6 +65,7 @@ let string2integralValue str =
       lazy( BoolVal (bool_of_string str) );
       lazy( StringLiteral (dequoteString '"' str) );
       lazy( CharVal (dequoteChar str) );
+      lazy( DoubleVal (parseWithSuffix float_of_string "d" str) );
     ]
     ~onSuccess:some
     ~ifAllFailed:(lazy None)

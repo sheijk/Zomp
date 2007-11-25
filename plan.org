@@ -34,6 +34,12 @@ in function returning (ptr ast) is not accepted
     Let the expander turn them into global strings
 *** DONE Use bindings / semantics checking in expander.ml
     CLOSED: [2007-10-16 Tue 19:04]
+
+*** TODO [#A] Support more data types
+**** TODO double
+**** TODO unsigned ints
+**** TODO int8/16/32
+**** TODO c.int, c.short etc.
 *** TODO [#B] Add instruction to free memory
 
 *** TODO [#B] Support global pointers
@@ -123,7 +129,8 @@ in function returning (ptr ast) is not accepted
 (running them on code and printing the resulting AST)
 *** TODO [#A] File I/O
 *** TODO [#A] Regular expressions
-*** TODO [#A] OpenGL support
+*** DONE [#A] OpenGL support
+    CLOSED: [2007-11-25 Sun 00:35] 
 *** TODO [#A] Explicit polymorphism
     Overloading functions should be possible
 

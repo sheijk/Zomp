@@ -694,11 +694,13 @@ struct
     "GLint", "int";
     "GLboolean", "bool";
     "GLfloat", "float";
+    "GLdouble", "double";
     "GLclampf", "float";
     (* native c/zomp types *)
     "void", "";
     "int", "";
     "float", "";
+    "double", "";
     "bool", "";
   ]
 

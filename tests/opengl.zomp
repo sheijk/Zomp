@@ -78,8 +78,6 @@ of GLFW 2.6 into the zomp main dir
   ))
 
 (func void drawTriangle () (
-  (glClearColor 0.0 0.0 0.0 1.0)
-  (glClear GL_COLOR_BUFFER_BIT)
   (glTranslatef 0.0 0.0 1.0)
   (glColor4f 1.0 0.5 0.0 1.0)
   (glBegin GL_TRIANGLES)
@@ -87,8 +85,32 @@ of GLFW 2.6 into the zomp main dir
     (glVertex3f 0.0 1.0 0.0)
     (glVertex3f 1.0 0.0 0.0)
   (glEnd)
-  (glfwSwapBuffers)
-  (printGLError)
   ))
 
+(func bool keyDown ((int key)) (
+  (int.equal (glfwGetKey key) GL_TRUE)
+  ))
 
+(func bool bool.not ((bool v)) (
+  (bool.xor v true) ))
+
+(func double sin ((double x)))
+(func float sinf ((float x)))
+
+  
+(func void anim () (
+  (init)
+  (glfwPollEvents)
+  (glfwPollEvents)
+  (while (bool.not (keyDown GLFW_KEY_ESC)) (
+    (glClearColor 0.0 0.0 0.0 1.0)
+    (glClear GL_COLOR_BUFFER_BIT)
+    (glLoadIdentity)
+    (glRotated (double.mul 500.0d (sin (double.mul (glfwGetTime) 1.3d))) 0.0d 0.0d 1.0d)
+    (drawTriangle)
+    (glfwSwapBuffers)
+    (glfwPollEvents)
+    ))
+  (glfwPollEvents)
+  ))
+  
