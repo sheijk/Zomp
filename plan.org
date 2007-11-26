@@ -1,5 +1,7 @@
 
 * To be sorted
+** TODO BUG: locals vars defined several times should produce an error in the expander
+** TODO stdlib funktionen in fake-namespaces tun
 
 * Tasks									:zomp:
 
@@ -36,7 +38,8 @@ in function returning (ptr ast) is not accepted
     CLOSED: [2007-10-16 Tue 19:04]
 
 *** TODO [#A] Support more data types
-**** TODO double
+**** DONE double
+     CLOSED: [2007-11-26 Mon 01:26] 
 **** TODO unsigned ints
 **** TODO int8/16/32
 **** TODO c.int, c.short etc.

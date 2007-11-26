@@ -1,0 +1,18 @@
+
+
+(func int main () (
+  (printlnString "Running floating point tests")
+  
+  (unittest.assert (float.equal 1.0 1.0))
+  (unittest.assert (float.notEqual 1.0 2.0))
+  (unittest.assert (float.less 1.0 2.0))
+  (unittest.assert (float.greater 2.0 1.0))
+  (unittest.assert (float.lessEqual 1.0 1.0))
+  (unittest.assert (float.lessEqual 1.0 2.0))
+  (unittest.assert (float.greaterEqual 2.0 2.0))
+  (unittest.assert (float.greaterEqual 2.0 1.0))
+
+  (ret 0)
+  ))
+
+  

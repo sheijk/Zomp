@@ -160,8 +160,13 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   let void argVarNames = "" in
   let compareIntrinsic typ name cond =
+    let instruction =
+      match typ with
+        | `Float | `Double -> "fcmp"
+        | _ -> "icmp"
+    in
     let f argVarNames = 
-      sprintf "icmp %s %s %s\n" cond (llvmTypeName typ) (combine ", " argVarNames)
+      sprintf "%s %s %s %s\n" instruction cond (llvmTypeName typ) (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
   in
@@ -187,6 +192,13 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let floatIntrinsics typ =
     let typeName = typeName typ in
     [
+      compareIntrinsic typ (typeName ^ ".oequal") "oeq";
+      compareIntrinsic typ (typeName ^ ".onotEqual") "one";
+      compareIntrinsic typ (typeName ^ ".ogreater") "ogt";
+      compareIntrinsic typ (typeName ^ ".ogreaterEqual") "oge";
+      compareIntrinsic typ (typeName ^ ".oless") "olt";
+      compareIntrinsic typ (typeName ^ ".olessEqual") "ole";
+
       twoArgIntrinsic (typeName ^ ".add") "add" typ;
       twoArgIntrinsic (typeName ^ ".sub") "sub" typ;
       twoArgIntrinsic (typeName ^ ".mul") "mul" typ;

@@ -131,6 +131,47 @@ let listCommands commands _ _ =
   in
   List.iter printCommand commands
 
+let writeSymbols args bindings =
+  match args with
+    | [fileName] ->
+        begin
+          Sys.remove fileName;
+          let stream = open_out fileName in
+          try
+            let print = fprintf stream in
+            print "Symbol table\n";
+            let typeName = Typesystems.Zomp.typeName in
+            List.iter (fun (name, symbol) ->
+                         fprintf stream "%s=" name;
+                         begin match symbol with
+                           | VarSymbol var ->
+                               fprintf stream "var of type %s" (typeName var.typ);
+                           | FuncSymbol func ->
+                               let argToString (name, typ) = sprintf "%s %s" (typeName typ) name in
+                               let args = List.map argToString func.fargs in
+                               let argString = Common.combine ", " args in
+                               fprintf stream "func(%s) -> %s" argString (typeName func.rettype);
+                           | MacroSymbol macro ->
+                               fprintf stream "macro";
+                           | LabelSymbol label ->
+                               fprintf stream "label %s" label.lname;
+                           | TypedefSymbol typ ->
+                               fprintf stream "type %s" (typeName typ)
+                           | UndefinedSymbol ->
+                               fprintf stream "undefined";
+                         end;
+                         fprintf stream "\n" )
+              bindings;
+            close_out stream
+          with _ ->
+            close_out stream
+        end
+    | _ ->
+        begin
+          eprintf "Expecting one argument\n";
+          flush stderr
+        end
+  
 let commands =
   let rec internalCommands = [
     "exit", ["x"; "q"], exitCommand, "Exit";
@@ -140,6 +181,7 @@ let commands =
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
     "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
+    "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
     "help", ["h"], printHelp, "List all toplevel commands";
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2

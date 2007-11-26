@@ -23,10 +23,13 @@
                   ))))))
 
 (defvar zomp-imenu-generic-expression
-  '((nil "^(macro +\\([a-zA-Z0-9]+\\) " 1)
-    (nil "^(func +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\) " 1)
-    (nil "^(var +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\) " 1)
-    (nil "^(const +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\) " 1) ))
+  '((nil "^(macro +\\([a-zA-Z0-9]+\\)" 1)
+    (nil "^(func +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\)" 1)
+    (nil "^(var +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\)" 1)
+    (nil "^(const +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\)" 1)
+    (nil "^(type +\\([a-zA-Z0-9]+\\)" 1)
+    (nil "^(template +\\([a-zA-Z0-9]+\\)" 1)
+    ))
     
 (defun zomp-mark-sexp ()
   (interactive)
@@ -191,6 +194,9 @@
 
            (setq imenu-generic-expression zomp-imenu-generic-expression)
            (local-set-key [(control ?')] 'imenu)
+
+           (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
+;;            (eldoc-mode t)
            
            ; highlight s-expression under cursor
            (hl-sexp-mode t)
@@ -220,6 +226,13 @@
            (local-set-key [(meta n)] 'zomp-next-tl-expr)
            (local-set-key [(meta p)] 'zomp-prev-tl-expr)
            (local-set-key [(meta k)] 'zomp-mark-sexp)
+
+           (local-set-key [(alt r)] '(lambda () (interactive)
+                                       (zomp-tl-eval-current)
+                                       (zomp-tl-run-test) ))
+           (local-set-key [(alt e)] 'zomp-tl-eval-current)
+           (local-set-key [(alt d)] 'zomp-tl-run)
+           (local-set-key [(alt shift d)] 'zomp-tl-run-test)
            
            (local-set-key [(control ?.)] 'zomp-complete)
            ))
@@ -246,5 +259,31 @@
   (interactive "MName for macro? \nMExpansion? ")
   (setq zomp-snippets (cons `(,name . ,expansion) zomp-snippets)))
 
-;; (defvar shk-recenter-pos  TODO
- 
+(defvar zomp-symbol-file "/tmp/zomp-symbols")
+(defvar zomp-symbol-buffer "*zomp-symbols*")
+  
+(defun zomp-build-symbol-buffer ()
+  (interactive)
+  (save-excursion
+    (when (file-exists-p zomp-symbol-file)
+      (set-buffer (get-buffer-create zomp-symbol-buffer))
+      (insert-file-contents zomp-symbol-file nil nil nil t)
+      (message "Building symbol buffer completed") )
+    (zomp-tl-do (concat "!writeSymbols " zomp-symbol-file))
+    ))
+  
+(defun zomp-get-eldoc-string ()
+  (save-excursion
+    (zomp-build-symbol-buffer)
+    (let ((symbol (thing-at-point 'word)))
+      (set-buffer (get-buffer-create zomp-symbol-buffer))
+      (save-excursion
+        (goto-char (point-max))
+        (search-backward-regexp (concat "^" symbol "="))
+        (search-forward "=")
+        (let ((startpos (point)))
+          (end-of-line)
+          (concat symbol ": " (buffer-substring startpos (point))) )
+        ))))
+
+

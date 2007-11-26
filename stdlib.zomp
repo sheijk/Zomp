@@ -15,7 +15,11 @@
 (func void stdlibHello ())
 (func void zompHello ())
 
+(func void exit ((int exitCode)))
+
 /// utility functions ----------------------------------------
+
+(func bool bool.not ((bool b)) ((bool.xor true b)))
 
 (func void printBool ((bool b)) (
   (branch b true false)
@@ -147,6 +151,12 @@
   (assign counter (int.sub counter 1))
   (branch start)
   (label end)
+  ))
+
+(func int strcmp ((cstring l) (cstring r)))
+
+(func bool cstring.equal ((cstring l) (cstring r)) (
+  (ret (int.equal 0 (strcmp l r)))
   ))
   
 /// ast ----------------------------------------
@@ -411,6 +421,88 @@
 (template testf impl
   (func void test () (#impl)) )
 
+(macro assert checkCode (
+  (ret `(
+    (if (bool.not (#checkCode))
+      ((printlnString "Assertion failed")
+       (printAst `#checkCode 0)
+       (exit 1))
+      ())
+    ))
+  ))
+
+(func void printHLine ((char chr) (int count)) (
+  (times count (printChar chr))
+  (println)
+  ))
+
+(macro unittest.assert testCode (
+  (ret `(
+    (if #testCode
+      // then
+      ()
+      // else
+      ((printHLine '-' 40)
+       (printlnString "Assertion failed")
+       (printAst `#testCode 0)))
+     ))
+  ))
+
+(macro mret code (
+  (ret `(
+    (printAst #code 0)
+    (ret #code)
+    ))
+  ))
+
+/// additional ast functions --------------------------------
+
+(func void ast.setChild
+    (((ptr ast) parent) (int index) ((ptr ast) newChild))
+  (
+  (assert (int.uless index (getField parent childCount)))
+  (var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index))
+  (store childptrAddr newChild)
+  ))
+
+(func void ast.replace (
+    ((ptr ast) tree)
+    (cstring placeholder)
+    ((ptr ast) replacement) )
+  (
+  (const int count (getField tree childCount))
+  (for childNum 0 count (
+    (var (ptr ast) child (astChild tree childNum))
+    (if (cstring.equal placeholder (getField child id))
+      ( (ast.setChild tree childNum replacement) )
+      /*else*/ ())
+    ))
+  (forEachAstChild c tree (
+    (ast.replace c placeholder replacement)
+    ))
+  ))
+
+/// floating point support --------------------------------
+
+(macro float.aliasNoQNAN funcName (
+  (var cstring macroName (appendCStrings "float." (getField funcName id)))
+  (var astp orderedName (simpleAst (appendCStrings "float.o" (getField funcName id))))
+  (addChild orderedName ``#l)
+  (addChild orderedName ``#r)
+
+  (var astp macroDef `(macro #macroName l r (
+                        (ret `(orderedName)))) )
+  (ast.replace macroDef "orderedName" orderedName)
+  (ret macroDef)
+  ))
+
+(float.aliasNoQNAN equal)
+(float.aliasNoQNAN notEqual)
+(float.aliasNoQNAN less)
+(float.aliasNoQNAN greater)
+(float.aliasNoQNAN lessEqual)
+(float.aliasNoQNAN greaterEqual)
+  
 
 /*
 (func int main ())

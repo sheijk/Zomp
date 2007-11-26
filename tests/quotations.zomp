@@ -36,6 +36,11 @@
 (func void quoteAsIs () (
   (printAst ``(will be left as it is #(even if antiquoted)) 0)
   ))
+
+(func void quoteAsIsInQuote () (
+  (var (ptr ast) foo `(this be foo))
+  (printAst `(check (expanded #foo) ``(expanded.too #foo)) 0)
+  ))
   
 (macro printit tree (
   (printAst tree 1)
