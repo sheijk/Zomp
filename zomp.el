@@ -196,7 +196,7 @@
            (local-set-key [(control ?')] 'imenu)
 
            (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
-;;            (eldoc-mode t)
+           (eldoc-mode t)
            
            ; highlight s-expression under cursor
            (hl-sexp-mode t)
@@ -271,19 +271,31 @@
       (message "Building symbol buffer completed") )
     (zomp-tl-do (concat "!writeSymbols " zomp-symbol-file))
     ))
-  
-(defun zomp-get-eldoc-string ()
+
+(defun zomp-symbol-at-point ()
+  (interactive)
   (save-excursion
-    (zomp-build-symbol-buffer)
-    (let ((symbol (thing-at-point 'word)))
-      (set-buffer (get-buffer-create zomp-symbol-buffer))
+    (goto-match-paren 0)
+    (forward-char)
+    (let ((startpos (point)))
+      (forward-word)
+      (buffer-substring startpos (point))
+      )))
+    
+(defun zomp-get-eldoc-string ()
+  (condition-case nil
       (save-excursion
-        (goto-char (point-max))
-        (search-backward-regexp (concat "^" symbol "="))
-        (search-forward "=")
-        (let ((startpos (point)))
-          (end-of-line)
-          (concat symbol ": " (buffer-substring startpos (point))) )
-        ))))
+        (zomp-build-symbol-buffer)
+        (let ((symbol (zomp-symbol-at-point)))
+          (set-buffer (get-buffer-create zomp-symbol-buffer))
+          (save-excursion
+            (goto-char (point-max))
+            (search-backward-regexp (concat "^" symbol "="))
+            (search-forward "=")
+            (let ((startpos (point)))
+              (end-of-line)
+              (concat symbol ": " (buffer-substring startpos (point))) )
+            )))
+      (error "No help available")))
 
 

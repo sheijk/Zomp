@@ -173,63 +173,56 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let twoArgIntrinsic name instruction (typ :composedType) =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
   in
-
+  let simpleTwoArgIntrinsincs typ namespace names =
+    List.map (fun name -> twoArgIntrinsic (sprintf "%s.%s" namespace name) name typ) names
+  in
+  
   let compareIntrinsics typ =
     let typeName = typeName typ in
-    [
-      compareIntrinsic typ (typeName ^ ".equal") "eq";
-      compareIntrinsic typ (typeName ^ ".notEqual") "ne";
-      compareIntrinsic typ (typeName ^ ".ugreater") "ugt";
-      compareIntrinsic typ (typeName ^ ".ugreaterEqual") "uge";
-      compareIntrinsic typ (typeName ^ ".uless") "ult";
-      compareIntrinsic typ (typeName ^ ".ulessEqual") "ule";
-      compareIntrinsic typ (typeName ^ ".sgreater") "sgt";
-      compareIntrinsic typ (typeName ^ ".sgreaterEqual") "sge";
-      compareIntrinsic typ (typeName ^ ".sless") "slt";
-      compareIntrinsic typ (typeName ^ ".slessEqual") "sle";
-    ]
+    let functionMapping =
+      [
+        "equal", "eq";
+        "notEqual", "ne";
+        "ugreater", "ugt";
+        "ugreaterEqual", "uge";
+        "uless", "ult";
+        "ulessEqual", "ule";
+        "sgreater", "sgt";
+        "sgreaterEqual", "sge";
+        "sless", "slt";
+        "slessEqual", "sle";
+      ]
+    in
+    List.map (fun (zompName, llvmName) ->
+                compareIntrinsic typ (typeName ^ "." ^ zompName) llvmName)
+      functionMapping
   in
   let floatIntrinsics typ =
     let typeName = typeName typ in
-    [
-      compareIntrinsic typ (typeName ^ ".oequal") "oeq";
-      compareIntrinsic typ (typeName ^ ".onotEqual") "one";
-      compareIntrinsic typ (typeName ^ ".ogreater") "ogt";
-      compareIntrinsic typ (typeName ^ ".ogreaterEqual") "oge";
-      compareIntrinsic typ (typeName ^ ".oless") "olt";
-      compareIntrinsic typ (typeName ^ ".olessEqual") "ole";
-
-      twoArgIntrinsic (typeName ^ ".add") "add" typ;
-      twoArgIntrinsic (typeName ^ ".sub") "sub" typ;
-      twoArgIntrinsic (typeName ^ ".mul") "mul" typ;
-      twoArgIntrinsic (typeName ^ ".fdiv") "fdiv" typ;
-      twoArgIntrinsic (typeName ^ ".frem") "frem" typ;
+    let functionMappings = [
+      "equal", "eq";
+      "notEqual", "ne";
+      "greater", "gt";
+      "greaterEqual", "ge";
+      "less", "lt";
+      "lessEqual", "le";
     ]
+    in
+    let makeIntrinsic prefix (zompName, llvmName) =
+      compareIntrinsic typ (typeName ^ "." ^ prefix ^ zompName) (prefix ^ llvmName)
+    in
+    List.map (makeIntrinsic "o") functionMappings
+    @ simpleTwoArgIntrinsincs typ typeName ["add"; "sub"; "mul"; "fdiv"; "frem"];
   in
   let intrinsicFuncs =
     [
-      twoArgIntrinsic "int.add" "add" `Int;
-      twoArgIntrinsic "int.sub" "sub" `Int;
-      twoArgIntrinsic "int.mul" "mul" `Int;
-      twoArgIntrinsic "int.sdiv" "sdiv" `Int;
-      twoArgIntrinsic "int.udiv" "udiv" `Int;
-      twoArgIntrinsic "int.urem" "urem" `Int;
-      twoArgIntrinsic "int.srem" "srem" `Int;
-      
       (*     twoArgIntrinsic "int.shl" "shl" `Int; *)
       (*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
       (*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
-      
-      twoArgIntrinsic "int.and" "and" `Int;
-      twoArgIntrinsic "int.or" "or" `Int;
-      twoArgIntrinsic "int.xor" "xor" `Int;
-
-      twoArgIntrinsic "bool.and" "and" `Bool;
-      twoArgIntrinsic "bool.or" "or" `Bool;
-      twoArgIntrinsic "bool.xor" "xor" `Bool;
-      
       "void", `Intrinsic void, `Void, [];
     ]
+    @ simpleTwoArgIntrinsincs `Int "int" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
     @ floatIntrinsics `Float
     @ floatIntrinsics `Double
     @ compareIntrinsics `Int

@@ -19,7 +19,7 @@ CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_LIBS = str.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
-all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags dlltest.dylib opengl20.zomp glfw.zomp deps.png
+all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags opengl20.zomp glfw.zomp deps.png
 
 # ocamlbuild:
 # 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
@@ -32,10 +32,10 @@ dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	gcc -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser`
 
-dlltest.dylib: testdll.c
-	echo Building $@ ...
-	gcc -c testdll.c -o testdll.o
-	gcc -dynamiclib -framework OpenGL testdll.o -o $@
+# opengl.dylib: opengl.c
+# 	echo Building $@ ...
+# 	gcc -c opengl.c -o opengl.o
+# 	gcc -dynamiclib -framework OpenGL opengl.o -o $@
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...

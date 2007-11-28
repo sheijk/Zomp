@@ -135,7 +135,8 @@ let writeSymbols args bindings =
   match args with
     | [fileName] ->
         begin
-          Sys.remove fileName;
+          if Sys.file_exists fileName then
+            Sys.remove fileName;
           let stream = open_out fileName in
           try
             let print = fprintf stream in
@@ -278,33 +279,3 @@ let () =
   in
   ignore finalBindings
   
-  (*   let addToplevelBindings bindings = *)
-  (*     let macros = [ *)
-  (*       "run", *)
-  (*       (fun bindings args -> *)
-  (*          (match args with *)
-  (*            | [{ id = funcName; args = [] }] -> runFunction bindings funcName *)
-  (*            | _ -> eprintf "Expected (run functionName)\n"); *)
-  (*          seqExpr [] *)
-  (*       ); *)
-  (*       "do", *)
-  (*       (fun bindings args -> *)
-  (*          let funcName = "toplevelDo" in *)
-  (*          let funcSExpr = *)
-  (*            { id = "func"; args = [ *)
-  (*                idExpr "void"; *)
-  (*                idExpr funcName; *)
-  (*                seqExpr []; *)
-  (*                seqExpr args; *)
-  (*              ] } *)
-  (*          in *)
-  (*          seqExpr [ *)
-  (*            funcSExpr; *)
-  (*            simpleExpr "run" [funcName]; *)
-  (*          ]) *)
-  (*     ] in *)
-  (*     List.fold_left *)
-  (*       (fun bindings (name, macroF) -> Bindings.addMacro bindings name macroF) *)
-  (*       bindings *)
-  (*       macros *)
-  (*   in *)

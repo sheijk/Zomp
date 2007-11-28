@@ -2,10 +2,16 @@
 Demonstrates using OpenGL.
 
 Enter this into toplevel to load libs:
-!load libglfw.dylib dlltest.dylib
+!load libglfw.dylib
+dlltest.dylib
 
 You will need to copy the file libglfw.dylib from the lib/macosx dir
 of GLFW 2.6 into the zomp main dir
+
+Conventions for function names:
+  send* - sending vertex data (to be included in glbegin/end)
+  render* - send geometry (outside of glBegin/glEnd)
+  draw* - setup material and render
 */
 
 (include "opengl20.zomp")
@@ -41,10 +47,14 @@ of GLFW 2.6 into the zomp main dir
   (println)
   ))
 
+(const int windowWidth 400)
+(const int windowHeight 300)
+
 (func bool openWindow () (
   (printlnString "Opening window... ")
+  (glfwOpenWindowHint GLFW_FSAA_SAMPLES GL_TRUE)
   (var int result
-    (glfwOpenWindow 400 300 8 8 8 8 16 0 GLFW_WINDOW))
+    (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW))
   (const bool succeeded (int.equal result GL_TRUE))
 
   (if succeeded
@@ -77,17 +87,21 @@ of GLFW 2.6 into the zomp main dir
   (printGLError)
   ))
 
-(func void drawTriangle () (
-  (glTranslatef 0.0 0.0 1.0)
-  (glColor4f 1.0 0.5 0.0 1.0)
-  (glBegin GL_TRIANGLES)
-    (glVertex3f -1.0 0.0 0.0)
-    (glVertex3f 0.0 1.0 0.0)
-    (glVertex3f 1.0 0.0 0.0)
+(template rendergl primitiveType (rest code) (
+  (glBegin #primitiveType)
+  #code
   (glEnd)
   ))
 
-(func bool keyDown ((int key)) (
+(func void renderTriangle () (
+  (glTranslatef 0.0 0.0 1.0)
+  (rendergl GL_TRIANGLES
+    (glVertex3f -1.0 0.0 0.0)
+    (glVertex3f 0.0 1.0 0.0)
+    (glVertex3f 1.0 0.0 0.0) )
+  ))
+
+(func bool isPressed ((int key)) (
   (int.equal (glfwGetKey key) GL_TRUE)
   ))
 
@@ -97,20 +111,94 @@ of GLFW 2.6 into the zomp main dir
 (func double sin ((double x)))
 (func float sinf ((float x)))
 
+(func void setupProjection () (
+  (glMatrixMode GL_PROJECTION)
+  (glLoadIdentity)
+  (gluPerspective 90.0d 1.33d 1.0d 100.0d)
+  (glMatrixMode GL_MODELVIEW)
+  (glLoadIdentity)
+  ))
+
+(func void showCoordSys ((float length)) (
+  (template lineTo x y z (
+    (glVertex3f 0.0 0.0 0.0)
+    (glVertex3f #x #y #z)
+    ))
+  (rendergl GL_LINES
+    (lineTo 1.0 0.0 0.0)
+    (lineTo 0.0 1.0 0.0)
+    (lineTo 0.0 0.0 1.0))
+  ))
+
+(func void renderQuad ((float size)) (
+  (rendergl GL_QUADS
+    (glVertex3f -1. -1. 0.)
+    (glVertex3f -1. 1. 0.)
+    (glVertex3f 1. 1. 0.)
+    (glVertex3f 1. -1. 0.))
+  ))
+
+(func void renderStripes ((float count) (float size) (float alpha)) (
+  (const float left (float.sub 0. size))
+  (const float right size)
+  (var float y (float.sub 0.0 size))
+  (var float step (float.fdiv (float.mul 2.0 size) count))
+  (var bool black false)
+  (glBegin GL_QUADS)
+  (while (float.less y size) (
+    (if black
+      (glColor4f 0. 0. 0. alpha)
+      (glColor4f 1. 1. 0. alpha))
+    (assign black (bool.not black))
+    (glVertex3f left y 0.0)
+    (glVertex3f right y 0.0)
+    (assign y (float.add y step))
+    (glVertex3f right y 0.0)
+    (glVertex3f left y 0.0)
+    ))
+  (glEnd)
+  ))
   
+(func void renderQuadOverScreen () (
+  (glMatrixMode GL_PROJECTION)
+  (glLoadIdentity)
+  (glMatrixMode GL_MODELVIEW)
+  (glLoadIdentity)
+  (renderQuad 1.0)
+  ))
+
 (func void anim () (
   (init)
   (glfwPollEvents)
   (glfwPollEvents)
-  (while (bool.not (keyDown GLFW_KEY_ESC)) (
-    (glClearColor 0.0 0.0 0.0 1.0)
+  (setupProjection)
+  (glEnable GL_BLEND)
+  (glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
+
+  (while (bool.not (isPressed GLFW_KEY_ESC)) (
+    (glClearColor 0. 0. 0. 1.)
     (glClear GL_COLOR_BUFFER_BIT)
     (glLoadIdentity)
+    (glTranslatef -1.0 -0.5 -4.0)
+    (const double z (double.mul 2.0d (sin (glfwGetTime))))
+    (glTranslated 0.0d 0.0d z)
     (glRotated (double.mul 500.0d (sin (double.mul (glfwGetTime) 1.3d))) 0.0d 0.0d 1.0d)
-    (drawTriangle)
+    (glColor4f 1.0 .0 0.0 1.0)
+    (renderQuad 2.0)
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
-  (glfwPollEvents)
+    
+  (glMatrixMode GL_PROJECTION)
+  (glLoadIdentity)
+  (glMatrixMode GL_MODELVIEW)
+  (glLoadIdentity)
+  (glScalef 0.75 1. 1.)
+  (glRotatef 45.0 0. 0. 1.)
+  (renderStripes 10.0 2.0 0.125)
+  (glfwSwapBuffers)
+  (printGLError)
   ))
-  
+
+(testf (anim))
+
