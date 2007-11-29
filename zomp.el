@@ -270,7 +270,7 @@
       (set-buffer (get-buffer-create zomp-symbol-buffer))
       (insert-file-contents zomp-symbol-file nil nil nil t)
       (message "Building symbol buffer completed") )
-    (zomp-tl-do (concat "!writeSymbols " zomp-symbol-file))
+    (zomp-tl-do (concat "!silent !writeSymbols " zomp-symbol-file))
     ))
 
 (defun zomp-symbol-at-point ()
@@ -279,7 +279,7 @@
     (goto-match-paren 0)
     (forward-char)
     (let ((startpos (point)))
-      (search-forward " ")
+      (search-forward-regexp "[ )]")
       (backward-char)
       (buffer-substring startpos (point))
       )))

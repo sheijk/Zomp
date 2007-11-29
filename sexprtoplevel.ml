@@ -229,13 +229,31 @@ let handleCommand commandLine bindings =
           printf "Error: Could not find command %s.\n" commandName
   else
     printf "Not a command string: '%s'\n" commandLine
-  
+
+let hiddenCommandPrefix = "!silent"
+
+let beginsWith line word =
+  let wordLength = String.length word
+  and lineLength = String.length line
+  in
+  lineLength >= wordLength &&
+    (String.sub line 0 (String.length word)) = word
+
+let removeBeginning text count =
+  let textLength = String.length text in
+  let count = min textLength count in
+  String.sub text count (textLength - count)
+    
 let rec readExpr prompt previousLines bindings =
   printf "%s" prompt;
   flush stdout;
   let line = read_line() in
   if String.length line = 0 then begin
     readExpr prompt previousLines bindings
+  end else if beginsWith line hiddenCommandPrefix then begin
+    let command = removeBeginning line (String.length hiddenCommandPrefix + 1) in
+    handleCommand command bindings;
+    readExpr "" previousLines bindings
   end else if line = toplevelCommandString then begin
     printf "Aborted input, cleared \"%s\"\n" previousLines;
     readExpr defaultPrompt "" bindings

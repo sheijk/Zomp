@@ -19,13 +19,15 @@ checkall: $(TESTPROGS:.zomp=.check)
 
 build: $(WORKING:.zomp=.bc)
 
+FUNCTION_COUNTS=10 100 1000 1200 1400 1600 1800 2000 2200 2400
+
 compileperftest:
-	@for funcs in 10 100 1000 1200 1400 1600 1800 2000 2200 2400 2600 2800 3000 4000 5000 7500 10000; \
+	@for funcs in $(FUNCTION_COUNTS); \
 	do \
 	  rm -f compileperf.zomp; \
 	  echo; \
-	  echo Measuring compile time of simple program: `wc -l compileperf.zomp`; \
 	  ocaml genperftest.ml $$funcs compileperf.zomp; \
+	  echo Measuring compile time of simple program: `wc -l compileperf.zomp`; \
 	  time ../zomp-check-syntax.sh compileperf.zomp; \
 	done
 

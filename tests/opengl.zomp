@@ -3,7 +3,6 @@ Demonstrates using OpenGL.
 
 Enter this into toplevel to load libs:
 !load libglfw.dylib
-dlltest.dylib
 
 You will need to copy the file libglfw.dylib from the lib/macosx dir
 of GLFW 2.6 into the zomp main dir
