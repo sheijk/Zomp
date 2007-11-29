@@ -143,7 +143,7 @@ let writeSymbols args bindings =
             print "Symbol table\n";
             let typeName = Typesystems.Zomp.typeName in
             List.iter (fun (name, symbol) ->
-                         fprintf stream "%s=" name;
+                         fprintf stream "%s =" name;
                          begin match symbol with
                            | VarSymbol var ->
                                fprintf stream "var of type %s" (typeName var.typ);
@@ -153,16 +153,36 @@ let writeSymbols args bindings =
                                let argString = Common.combine ", " args in
                                fprintf stream "func(%s) -> %s" argString (typeName func.rettype);
                            | MacroSymbol macro ->
-                               fprintf stream "macro";
+                               fprintf stream "macro %s" macro.mdocstring;
                            | LabelSymbol label ->
                                fprintf stream "label %s" label.lname;
                            | TypedefSymbol typ ->
                                fprintf stream "type %s" (typeName typ)
                            | UndefinedSymbol ->
-                               fprintf stream "undefined";
+                                 fprintf stream "undefined"
                          end;
                          fprintf stream "\n" )
               bindings;
+            let builtinDoc (name, params) = fprintf stream "%s =builtin %s\n" name params in
+            List.iter builtinDoc [
+              "var", "type name default";
+              "func", "returnType ((typ0 arg0)...) implExp";
+              "assign", "lvar value";
+              "seq", "expr...";
+              "type", "name typeExpr";
+              "ptr", "var";
+              "ret", "expr";
+              "label", "name";
+              "branch", "label | boolExpr trueLabel falseLabel";
+              "macro", "args* implExpr";
+              "fieldptr", "recordExpr fieldName";
+              "load", "pointerExpr";
+              "store", "pointerExpr valueExpr";
+              "nullptr", "type";
+              "ptradd", "pointerExpr intExpr";
+              "malloc", "type count?";
+              "cast", "type value";
+            ];
             close_out stream
           with _ ->
             close_out stream

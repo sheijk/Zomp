@@ -248,9 +248,10 @@
         (snippet-insert expansion))
       )))
 
-(defvar zomp-snippets
+(setq zomp-snippets
   '(("func" .  "(func $${retval} $${name} ($${args}) (\n  $.\n  ))\n")
-    ("xmacro" . "(xmacro $${name} $${args} (\n  $.\n  ))\n")
+    ("macro" . "(macro $${name} $${args} (\n  $.\n  ))\n")
+    ("template" . "(template $${name} $${args} (\n  $.\n  ))\n")
     ("main" . "(func int main () (\n  $.\n  ret 0\n  ))\n")
     ))
 
@@ -278,24 +279,26 @@
     (goto-match-paren 0)
     (forward-char)
     (let ((startpos (point)))
-      (forward-word)
+      (search-forward " ")
+      (backward-char)
       (buffer-substring startpos (point))
       )))
     
 (defun zomp-get-eldoc-string ()
-  (condition-case nil
-      (save-excursion
-        (zomp-build-symbol-buffer)
-        (let ((symbol (zomp-symbol-at-point)))
+  (let ((symbol "unknown"))
+    (condition-case nil
+        (save-excursion
+          (zomp-build-symbol-buffer)
+          (setq symbol (zomp-symbol-at-point))
           (set-buffer (get-buffer-create zomp-symbol-buffer))
           (save-excursion
             (goto-char (point-max))
-            (search-backward-regexp (concat "^" symbol "="))
-            (search-forward "=")
+            (search-backward-regexp (concat "^" symbol " ="))
+            (search-forward " =")
             (let ((startpos (point)))
               (end-of-line)
-              (concat symbol ": " (buffer-substring startpos (point))) )
-            )))
-      (error "No help available")))
+              (concat symbol ": " (buffer-substring startpos (point))))
+            ))
+      (error (concat "Error looking up " symbol)))))
 
 

@@ -15,10 +15,10 @@ open Bindings
 open Printf
 
 let macroVar = "var"
-and macroMutableVar = "mvar"
+(* and macroMutableVar = "mvar" *)
 and macroFunc = "func"
-and macroIfThenElse = "ifthenelse"
-and macroLoop = "loop"
+(* and macroIfThenElse = "ifthenelse" *)
+(* and macroLoop = "loop" *)
 and macroAssign = "assign"
 and macroSequence = "seq"
 and macroTypedef = "type"
@@ -164,13 +164,13 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
           { id = name; args = [] };
           valueExpr
         ] }
-        when (id = macroVar) || (id = macroMutableVar) ->
+        when (id = macroVar) ->
         transform id name typeExpr valueExpr
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
         ] }
-        when (id = macroVar) || (id = macroMutableVar) ->
+        when (id = macroVar) ->
         transform id name typeExpr { id = ""; args = []}
     | _ ->
         None
@@ -467,6 +467,9 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
                 let reversed, isVariadic = worker [] args in
                 List.rev reversed, isVariadic
               in
+              let docstring =
+                Common.combine " " argNames ^ if isVariadic then "..." else ""
+              in
               let macroF =
                 if id = macroMacro then begin
                   createNativeMacro translateNestedF bindings name argNames impl;
@@ -477,7 +480,7 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
                 end else
                   (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
               in
-              Some( Bindings.addMacro bindings name
+              Some( Bindings.addMacro bindings name docstring
                       (fun bindings args -> macroF bindings argNames args impl), [] )
             end
       end
@@ -722,7 +725,7 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
         { id = name; args = [] };
         { id = valueString; args = [] }
       ] } as expr
-      when id = macroVar || id = macroMutableVar ->
+      when id = macroVar ->
       begin
         match translateType bindings typeExpr with
           | Some ctyp -> begin

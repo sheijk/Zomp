@@ -19,7 +19,7 @@ let addTypedef bindings name typ = (name, TypedefSymbol typ) :: bindings
 
 let addLabel bindings name = (name, LabelSymbol { lname = name }) :: bindings
 
-let addMacro bindings name implF = (name, MacroSymbol { mname = name; mtransformFunc = implF }) :: bindings
+let addMacro bindings name doc implF = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = implF }) :: bindings
 
 let rec lookup (bindings :bindings) name =
   match bindings with

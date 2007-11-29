@@ -229,15 +229,16 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     @ compareIntrinsics `Char
   in
   let builtinMacros =
-    let macro name f = (name, MacroSymbol { mname = name; mtransformFunc = f; }) in
+    let macro name doc f = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = f; }) in
     let delegateMacro macroName funcName =
-      macro macroName (fun _ args -> { id = funcName; args = args; })
+      macro macroName ("delegates to " ^ funcName) (fun _ args -> { id = funcName; args = args; })
     in
 (*     let templateMacro name params expr = *)
 (*       macro name (fun _ args -> Ast2.replaceParams params args expr) *)
 (*     in *)
     let quoteMacro =
       macro "quote"
+        "ast..."
         (fun bindings args ->
            match args with
              | [quotedExpr] -> sexpr2code ~antiquoteF:(insertAstConstructors bindings) quotedExpr
@@ -246,7 +247,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         )
     in
     let quoteasisMacro =
-      macro "quoteasis"
+      macro "quoteasis" "ast..."
         (fun bindings args ->
            match args with
              | [quotedExpr] -> sexpr2codeasis quotedExpr
