@@ -166,6 +166,30 @@ Conventions for function names:
   (renderQuad 1.0)
   ))
 
+
+(func GLuint createShader ((cstring vertexSource) (cstring fragmentSource)) (
+  (var GLuint program (glCreateProgram))
+
+  (var cstring vertexSource_ vertexSource)
+  (var cstring fragmentSource_ fragmentSource)
+  
+  (var GLuint vertexShader (glCreateShader GL_VERTEX_SHADER))
+  (var GLuint fragmentShader (glCreateShader GL_FRAGMENT_SHADER))
+
+  (glShaderSource vertexShader 1 (ptr vertexSource_) (nullptr int))
+  (glShaderSource fragmentShader 1 (ptr fragmentSource_) (nullptr int))
+
+  (glCompileShader vertexShader)
+  (glCompileShader fragmentShader)
+
+  (glAttachShader program vertexShader)
+  (glAttachShader program fragmentShader)
+
+  (glLinkProgram program)
+
+  (ret program)
+  ))
+
 (func void anim () (
   (init)
   (glfwPollEvents)
@@ -173,6 +197,10 @@ Conventions for function names:
   (setupProjection)
   (glEnable GL_BLEND)
   (glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
+
+  (var GLuint shader (createShader
+    "void main(void) { gl_Position = ftransform(); }"
+    "void main(void) { gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); }" ))
 
   (while (bool.not (isPressed GLFW_KEY_ESC)) (
     (glClearColor 0. 0. 0. 1.)
@@ -183,10 +211,14 @@ Conventions for function names:
     (glTranslated 0.0d 0.0d z)
     (glRotated (double.mul 500.0d (sin (double.mul (glfwGetTime) 1.3d))) 0.0d 0.0d 1.0d)
     (glColor4f 1.0 .0 0.0 1.0)
+    (glUseProgram shader)
     (renderQuad 2.0)
+    (glUseProgram 0)
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
+
+  (glDeleteProgram shader)
     
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)

@@ -696,6 +696,8 @@ struct
     "GLfloat", "float";
     "GLdouble", "double";
     "GLclampf", "float";
+    "GLsizei", "int";
+    "GLchar", "char";
     (* native c/zomp types *)
     "void", "";
     "int", "";
@@ -706,16 +708,33 @@ struct
 
   exception TypeNotSupported of string
 
-  let rec isSupportedType name =
-    if Utils.lastChar name = '*' then
-      isSupportedType (Utils.withoutLastChar name)
-    else
-      try
-        ignore( List.assoc name supportedTypes );
-        true
-      with _ ->
-        false
+  let rec isSupportedPrimitiveType name =
+    try
+      ignore( List.assoc name supportedTypes );
+      true
+    with _ ->
+      false
 
+  open Utils
+  
+  let rec zompTypename cTypeName =
+    let cTypeName = Str.global_replace (Str.regexp "const *") "" cTypeName in
+    let trim str =
+      let str = Str.global_replace (Str.regexp "^ +") "" str in
+      str
+    in
+    let cTypeName = trim cTypeName in
+    if lastChar cTypeName = '*' then
+      match zompTypename (withoutLastChar cTypeName) with
+        | Some zompTypeName -> Some (sprintf "(ptr %s)" zompTypeName)
+        | None -> None
+    else if cTypeName = "GLvoid" then
+      Some "void"
+    else if isSupportedPrimitiveType cTypeName then
+      Some cTypeName
+    else
+      None
+          
   let previousConstants = ref []
     
   let generate_zomp_code = function
@@ -741,27 +760,22 @@ struct
     | Function f ->
         begin
           let error = ref None in
-          let checkType typeName = 
-            if not (isSupportedType typeName) then
-              let newMessage = (sprintf "type %s not supported" typeName) in
-              error := match !error with
-                | None -> Some newMessage
-                | Some oldMessage -> Some (oldMessage ^ ", " ^ newMessage)
+          let translateType ctype =
+            match zompTypename ctype with
+              | Some zompType -> zompType
+              | None ->
+                  let newMessage = (sprintf "type %s not supported" ctype) in
+                  error := (match !error with
+                    | None -> Some newMessage
+                    | Some oldMessage -> Some (oldMessage ^ ", " ^ newMessage));
+                  ctype
           in
-          checkType f.retval;
-          let rec zompTypename cTypeName =
-            if Utils.lastChar cTypeName = '*' then
-              sprintf "(ptr %s)" (zompTypename (Utils.withoutLastChar cTypeName))
-            else if cTypeName = "GLvoid" then
-              "void"
-            else
-              cTypeName
-          in
+          let zompRetType = translateType f.retval in
           let paramString =
             let toString param =
-              checkType param.ptype;
+              let zompParamType = translateType param.ptype in
               sprintf "(%s %s)"
-                (zompTypename param.ptype)
+                zompParamType
                 (match param.pname with
                    | Some name -> name
                    | None -> UniqueId.nextString "arg")
@@ -771,7 +785,7 @@ struct
           in
           let declaration = 
             sprintf "(func %s %s (%s))"
-              f.retval f.fname paramString
+              zompRetType f.fname paramString
           in
           match !error with
             | None -> declaration ^ "\n"

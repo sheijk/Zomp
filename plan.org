@@ -1,5 +1,8 @@
 
+
 * To be sorted
+** TODO llvm does not allow to hide global vars by local vars -> rename on nameclashes (also applies to vars in nested scopes)
+** TODO getting addresses of global variables
 ** TODO BUG: locals vars defined several times should produce an error in the expander
 ** TODO stdlib funktionen in fake-namespaces tun
 

@@ -268,8 +268,7 @@
   (save-excursion
     (when (file-exists-p zomp-symbol-file)
       (set-buffer (get-buffer-create zomp-symbol-buffer))
-      (insert-file-contents zomp-symbol-file nil nil nil t)
-      (message "Building symbol buffer completed") )
+      (insert-file-contents zomp-symbol-file nil nil nil t))
     (zomp-tl-do (concat "!silent !writeSymbols " zomp-symbol-file))
     ))
 
@@ -299,6 +298,6 @@
               (end-of-line)
               (concat symbol ": " (buffer-substring startpos (point))))
             ))
-      (error (concat "Error looking up " symbol)))))
+      (error nil))))
 
 

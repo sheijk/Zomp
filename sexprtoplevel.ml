@@ -182,6 +182,7 @@ let writeSymbols args bindings =
               "ptradd", "pointerExpr intExpr";
               "malloc", "type count?";
               "cast", "type value";
+              "include", "filename";
             ];
             close_out stream
           with _ ->
@@ -238,7 +239,7 @@ let beginsWith line word =
   in
   lineLength >= wordLength &&
     (String.sub line 0 (String.length word)) = word
-
+      
 let removeBeginning text count =
   let textLength = String.length text in
   let count = min textLength count in
