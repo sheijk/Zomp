@@ -35,6 +35,8 @@ let catchingErrorsDo f ~onError =
           signalError (sprintf "Unknown type: %s\n" descr)
       | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
           signalError (sprintf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode)
+      | Failure msg ->
+          signalError (sprintf "Internal error: Failure(%s)\n" msg)
     end
   with
     | CatchedError msg ->

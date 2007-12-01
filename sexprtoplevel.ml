@@ -291,6 +291,7 @@ let () =
                       printf "LLVM code:\n%s\n" llvmCode;
                     if !llvmEvaluationOn then
                       Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
+                    flush stdout;
                  )
       bindings
   in

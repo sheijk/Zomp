@@ -107,19 +107,22 @@ Conventions for function names:
 (func bool bool.not ((bool v)) (
   (bool.xor v true) ))
 
-(func double sin ((double x)))
-(func float sinf ((float x)))
-
 (func void setupProjection () (
+  (var int width 0)
+  (var int height 0)
+  (glfwGetWindowSize (ptr width) (ptr height))
+  (var double aspect (double.fdiv (int.toDouble width) (int.toDouble height)))
+  
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)
-  (gluPerspective 90.0d 1.33d 1.0d 100.0d)
+  (gluPerspective 90.0d aspect 1.0d 100.0d)
   (glMatrixMode GL_MODELVIEW)
   (glLoadIdentity)
   ))
 
 (func void showCoordSys ((float length)) (
   (template lineTo x y z (
+    (glColor4f #x #y #z 1.)
     (glVertex3f 0.0 0.0 0.0)
     (glVertex3f #x #y #z)
     ))
@@ -129,12 +132,51 @@ Conventions for function names:
     (lineTo 0.0 0.0 1.0))
   ))
 
+(func void drawOrientationGrid () (
+  (var float size 10.0)
+  (var float msize (float.sub 0. size))
+
+  (template line xs ys zs to xd yd zd (
+    (glVertex3f #xs #ys #zs)
+    (glVertex3f #xd #yd #zd)
+    ))
+  (template lineTo x y z (
+    (glVertex3f 0. 0. 0.)
+    (glVertex3f #x #y #z)
+    ))
+  
+  (rendergl GL_LINES
+    (glColor3f 1. 1. 1.)
+    (lineTo 1. 0. 0.)
+    (lineTo 0. 1. 0.)
+    (lineTo 0. 0. 1.)
+    (for d -10 10 (
+      (var float df (int.toFloat d))
+      (glColor3f 1. 0. 0.)
+      (line 0. msize df to 0. size df)
+      (line 0. df msize to 0. df size)
+
+      (glColor3f 0. 1. 0.)
+      (line size 0. df to msize 0. df)
+      (line df 0. size to df 0. msize)
+
+      (glColor3f 0. 0. 1.)
+      (line size df 0. to msize df 0.)
+      (line df size 0. to df msize 0.)
+      ))
+    )
+    (glColor3f 1. 1. 1.)
+    (lineTo 1. 0. 0.)
+    (lineTo 0. 1. 0.)
+    (lineTo 0. 0. 1.)
+  ))
+  
 (func void renderQuad ((float size)) (
   (rendergl GL_QUADS
-    (glVertex3f -1. -1. 0.)
-    (glVertex3f -1. 1. 0.)
-    (glVertex3f 1. 1. 0.)
-    (glVertex3f 1. -1. 0.))
+    (glTexCoord2f 0. 0.) (glVertex3f -1. -1. 0.)
+    (glTexCoord2f 0. 1.) (glVertex3f -1. 1. 0.)
+    (glTexCoord2f 1. 1.) (glVertex3f 1. 1. 0.)
+    (glTexCoord2f 1. 0.) (glVertex3f 1. -1. 0.))
   ))
 
 (func void renderStripes ((float count) (float size) (float alpha)) (
@@ -190,30 +232,262 @@ Conventions for function names:
   (ret program)
   ))
 
+(macro makeGLFactory glgenF factoryName (
+  (var (ptr ast) funcCall glgenF)
+  (addChild funcCall `1)
+  (addChild funcCall `(ptr name))
+  (ret `(func GLuint #factoryName () (
+          (var GLuint name 0)
+          #funcCall
+          (ret name)
+          )))
+  ))
+
+(makeGLFactory glGenFramebuffersEXT makeFramebuffer)
+(makeGLFactory glGenTextures makeTexture)
+(makeGLFactory glGenRenderbuffersEXT makeRenderbuffer)
+
+(func void glBindTexture2D ((GLuint texture)) ((glBindTexture GL_TEXTURE_2D texture)))
+
+(type framebuffer
+  (int width)
+  (int height)
+  (GLuint fbo)
+  (GLuint colorTexture)
+  (GLuint colorBuffer)
+  (GLuint depthTexture)
+  (GLuint depthBuffer)
+  )
+
+(func (ptr framebuffer) fbo_make ((int width) (int height)) (
+  (var (ptr framebuffer) fbo (malloc framebuffer))
+  (template set field value (setField fbo #field #value))
+  (setFieldsTo 0 fbo colorTexture colorBuffer depthTexture depthBuffer)
+  (setField fbo width width)
+  (setField fbo height height)
+  (ret fbo)
+  ))
+
+(func void fbo_attachColorTexture (((ptr framebuffer) fbo)) (
+  (var GLuint texture (makeTexture))
+  (glBindTexture2D texture)
+  (template texParam param value
+    (glTexParameteri GL_TEXTURE_2D #param #value))
+  (texParam GL_TEXTURE_MIN_FILTER GL_LINEAR)
+  (texParam GL_TEXTURE_MAG_FILTER GL_LINEAR)
+  (glTexImage2D GL_TEXTURE_2D 0 GL_RGBA
+    (getField fbo width) (getField fbo height)
+    0 GL_RGBA GL_UNSIGNED_BYTE (nullptr void))
+  (setField fbo colorTexture texture)
+  ))
+
+(func void fbo_create (((ptr framebuffer) fbo)) (
+  (var GLuint fboName (makeFramebuffer))
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName)
+  
+  (var GLuint depthBuffer (makeRenderbuffer))
+  (glBindRenderbufferEXT GL_RENDERBUFFER_EXT depthBuffer)
+  (glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height))
+  (glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT depthBuffer)
+
+  (glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D (getField fbo colorTexture) 0)
+
+  (setField fbo fbo fboName)
+  (setField fbo depthBuffer depthBuffer)
+  ))
+
+(func void fbo_bind (((ptr framebuffer) fbo)) (
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT (getField fbo fbo))
+  (glViewport 0 0 (getField fbo width) (getField fbo height))
+  ))
+
+(func void fbo_unbind (((ptr framebuffer) fbo)) (
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0)
+  ))
+
+(func void fbo_makeColorTexture (((ptr framebuffer) fbo)) (
+  (glBindTexture2D (getField fbo colorTexture))
+  (glGenerateMipmapEXT GL_TEXTURE_2D)
+  (glBindTexture2D 0)
+  ))
+
+(template saveTransforms (rest code) (
+  (glMatrixMode GL_TEXTURE)
+  (glPushMatrix)
+  (glMatrixMode GL_PROJECTION)
+  (glPushMatrix)
+  (glMatrixMode GL_MODELVIEW)
+  (glPushMatrix)
+  #code
+  (glMatrixMode GL_TEXTURE)
+  (glPopMatrix)
+  (glMatrixMode GL_PROJECTION)
+  (glPopMatrix)
+  (glMatrixMode GL_MODELVIEW)
+  (glPopMatrix)
+  ))
+
+(func void sendCircle () (
+  (template vertex x y (glVertex3f #x #y 0.0))
+
+  (const float float.pi (float.mul 2.0 (acosf 0.0)))
+  (const float step (float.fdiv 1.0 10.0))
+  (var float fangle 0.0)
+  (while (float.lessEqual fangle (float.add step (float.mul 2.0 float.pi))) (
+    (vertex (sinf fangle) (cosf fangle))
+    (assign fangle (float.add fangle step))
+    ))
+  ))
+
+(func GLuint makeBillboard ((int width) (int height)) (
+  (var (ptr framebuffer) fbo (fbo_make 128 128))
+  (fbo_attachColorTexture fbo)
+  (fbo_create fbo)
+  (fbo_bind fbo)
+  
+  (saveTransforms
+    (glClearColor .0 1.0 0.0 0.0)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    
+    (glMatrixMode GL_PROJECTION)
+    (glLoadIdentity)
+    (gluPerspective 90.0d 1.0d 1.0d 100.0d)
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (gluLookAt
+      0.d 0.d 1.d
+      0.d 0.d 0.d
+      0.d 1.d 0.d)
+
+    (rendergl GL_TRIANGLE_FAN
+      (glColor4f 1. 1. 1. 1.)
+      (glVertex3f 0. 0. 0.)
+      (sendCircle)
+      )
+    )
+    
+  (fbo_makeColorTexture fbo)
+  (fbo_unbind fbo)
+  (ret (getField fbo colorTexture))
+  ))
+
+(template int.neg x (int.sub 0 x))
+
+(func void autoSetupViewport () (
+  (var int width 0)
+  (var int height 0)
+  (glfwGetWindowSize (ptr width) (ptr height))
+  (glViewport 0 0 width height)
+  ))
+
+(var double autoTimeout 100000.0)
+
+(func int rand ())
+
+(func int random ((int max)) (
+  (ret (int.srem (rand) max))
+  ))
+
+(testf (printlnInt (random 10)))
+
+(template float.neg x (float.sub 0. #x))
+
 (func void anim () (
   (init)
   (glfwPollEvents)
   (glfwPollEvents)
-  (setupProjection)
+
   (glEnable GL_BLEND)
   (glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
 
-  (var GLuint shader (createShader
-    "void main(void) { gl_Position = ftransform(); }"
-    "void main(void) { gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); }" ))
+  (glEnable GL_DEPTH_TEST)
+  (glDepthFunc GL_LEQUAL)
 
-  (while (bool.not (isPressed GLFW_KEY_ESC)) (
+  (var GLuint shader (createShader
+"
+varying vec2 texCoord;
+void main(void) {
+  gl_Position = ftransform();
+  texCoord = gl_MultiTexCoord0.xy;
+}
+"
+
+"
+varying vec2 texCoord;
+uniform sampler2D texture;
+
+void main(void) {
+  gl_FragColor = vec4(0.1, 0.1, 0.1, 0.0) + texture2D(texture, texCoord);
+}
+" ))
+
+  (var GLuint billboard (makeBillboard 128 128))
+  
+  (const double startTime (glfwGetTime))
+
+  (const int sphereCount 100)
+  (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
+  (template foreachSphere indexVar posVar code (
+    (var int #indexVar 0)
+    (var (ptr float) #posVar (nullptr float))
+    (while (int.sless #indexVar sphereCount) (
+      (assign #posVar (ptradd positions (int.mul #indexVar 3)))
+      #code
+      (assign #indexVar (int.add #indexVar 1))
+      ))
+    ))
+
+  (template frand ((int.toFloat (random 10))))
+
+  (foreachSphere index pos (
+    (store (ptradd pos 0) (frand))
+    (store (ptradd pos 1) (frand))
+    (store (ptradd pos 2) (frand))
+    ))
+
+  (var bool abortLoop false)
+  
+  (while (bool.not abortLoop) (
+    (if (isPressed GLFW_KEY_ESC) (assign abortLoop true) ())
+    (if (double.ogreater (double.sub (glfwGetTime) startTime) autoTimeout)
+      (assign abortLoop true) ())
+    
     (glClearColor 0. 0. 0. 1.)
-    (glClear GL_COLOR_BUFFER_BIT)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    
+    (autoSetupViewport)
+    (setupProjection)
+    (glMatrixMode GL_MODELVIEW)
     (glLoadIdentity)
-    (glTranslatef -1.0 -0.5 -4.0)
-    (const double z (double.mul 2.0d (sin (glfwGetTime))))
-    (glTranslated 0.0d 0.0d z)
-    (glRotated (double.mul 500.0d (sin (double.mul (glfwGetTime) 1.3d))) 0.0d 0.0d 1.0d)
-    (glColor4f 1.0 .0 0.0 1.0)
+    (glTranslatef -1.0 -0.5 -32.0)
+
+//     (const double z (double.mul 2.0d (sin (glfwGetTime)))) */
+//     (glTranslated 0.0d 0.0d z) */
+//     (glRotated (double.mul 500.0d (sin (double.mul (glfwGetTime) 1.3d))) 0.0d 0.0d 1.0d) */
+
+    (showCoordSys 3.0)
+    
+    (glColor4f 1.0 1.0 1.0 1.0)
     (glUseProgram shader)
+    (glBindTexture2D billboard)
     (renderQuad 2.0)
+
+    (glTranslatef 1. 1. 1.)
+    (renderQuad 2.0)
+
+    (foreachSphere index2 pos2 (
+      (var float x (load (ptradd pos2 0)))
+      (var float y (load (ptradd pos2 1)))
+      (var float z (load (ptradd pos2 2)))
+      
+      (glTranslatef x y z)
+      (renderQuad 2.0)
+      (glTranslatef (float.neg x) (float.neg y) (float.neg z))
+      ))
+    
+    (glBindTexture2D 0)
     (glUseProgram 0)
+    
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
@@ -231,6 +505,9 @@ Conventions for function names:
   (printGLError)
   ))
 
-(testf (anim))
+(testf (
+  (assign autoTimeout 1.0)
+  (anim)
+  ))
 
 

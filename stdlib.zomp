@@ -1,9 +1,9 @@
-
 /// external (C) functions ----------------------------------------
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
 (func void printFloat ((float f)))
+(func void printDouble ((double d)))
 (func void printChar ((char c)))
 (func void printNewline ())
 
@@ -16,6 +16,15 @@
 (func void zompHello ())
 
 (func void exit ((int exitCode)))
+
+(func double sin ((double x)))
+(func double cos ((double x)))
+(func float sinf ((float x)))
+(func float cosf ((float x)))
+
+(func float atanf ((float x)))
+(func float asinf ((float x)))
+(func float acosf ((float x)))
 
 /// utility functions ----------------------------------------
 
@@ -448,6 +457,14 @@
      ))
   ))
 
+(macro unittest.assertAll (rest checks) (
+  (var (ptr ast) code `())
+  (forEachAstChild check checks (
+    (addChild code `(unittest.assert #check))
+    ))
+  (ret code)
+  ))
+  
 (macro mret code (
   (ret `(
     (printAst #code 0)
@@ -482,6 +499,14 @@
     ))
   ))
 
+(macro setFieldsTo value (rest fields) (
+  (var (ptr ast) code `())
+  (forEachAstChild field fields (
+    (addChild code `(setField fbo #field #value))
+    ))
+  (ret code)
+  ))
+  
 /// floating point support --------------------------------
 
 (macro float.aliasNoQNAN funcName (
@@ -502,17 +527,17 @@
 (float.aliasNoQNAN greater)
 (float.aliasNoQNAN lessEqual)
 (float.aliasNoQNAN greaterEqual)
-  
 
-/*
+/** default test function
 (func int main ())
 
-/// default test function
-(testf (
+(func void runMain () (
   (const int retval (main))
   (println)
   (printString "main() returned ") (printlnInt retval)
   ))
+
+(testf (runMain))
 */
 
 /*
@@ -561,4 +586,5 @@
   (printlnString (macroAstId (macroAstChild t 2)))
 ))
 */
+
 

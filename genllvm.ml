@@ -214,12 +214,26 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     List.map (makeIntrinsic "o") functionMappings
     @ simpleTwoArgIntrinsincs typ typeName ["add"; "sub"; "mul"; "fdiv"; "frem"];
   in
+  let convertIntr funcName intrName fromType toType = 
+    let convertIntrF intrName = function
+      | [arg] -> sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType)
+      | _ -> raiseCodeGenError ~msg:(sprintf "Only one argument expected by %s" intrName)
+    in
+    funcName, `Intrinsic (convertIntrF intrName), toType, ["v", fromType]
+  in
   let intrinsicFuncs =
     [
       (*     twoArgIntrinsic "int.shl" "shl" `Int; *)
       (*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
       (*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
       "void", `Intrinsic void, `Void, [];
+
+      convertIntr "float.toInt" "fptosi" `Float `Int;
+      convertIntr "int.toFloat" "sitofp" `Int `Float;
+      convertIntr "int.toDouble" "sitofp" `Int `Double;
+      convertIntr "double.toInt" "fptosi" `Double `Int;
+      convertIntr "float.toDouble" "fpext" `Float `Double;
+      convertIntr "double.toFloat" "fptrunc" `Double `Float;
     ]
     @ simpleTwoArgIntrinsincs `Int "int" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
@@ -233,9 +247,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let delegateMacro macroName funcName =
       macro macroName ("delegates to " ^ funcName) (fun _ args -> { id = funcName; args = args; })
     in
-(*     let templateMacro name params expr = *)
-(*       macro name (fun _ args -> Ast2.replaceParams params args expr) *)
-(*     in *)
+    (*     let templateMacro name params expr = *)
+    (*       macro name (fun _ args -> Ast2.replaceParams params args expr) *)
+    (*     in *)
     let quoteMacro =
       macro "quote"
         "ast..."
@@ -646,7 +660,7 @@ let llvmStringLength str =
 
 let gencodeGlobalVar var =
   let varname = var.vname in
-  match var.default with
+  match var.vdefault with
     | StringLiteral value ->
         let contentVar = newGlobalTempVar (`Pointer `Char)
         and escapedValue = llvmEscapedString value
@@ -669,7 +683,7 @@ let gencodeGlobalVar var =
         sprintf "@%s = constant %s %s"
           varname
           (llvmTypeName var.typ)
-          (Lang.valueString var.default)
+          (Lang.valueString var.vdefault)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
     | PointerVal _ ->

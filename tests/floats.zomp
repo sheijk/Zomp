@@ -2,17 +2,40 @@
 
 (func int main () (
   (printlnString "Running floating point tests")
-  
-  (unittest.assert (float.equal 1.0 1.0))
-  (unittest.assert (float.notEqual 1.0 2.0))
-  (unittest.assert (float.less 1.0 2.0))
-  (unittest.assert (float.greater 2.0 1.0))
-  (unittest.assert (float.lessEqual 1.0 1.0))
-  (unittest.assert (float.lessEqual 1.0 2.0))
-  (unittest.assert (float.greaterEqual 2.0 2.0))
-  (unittest.assert (float.greaterEqual 2.0 1.0))
+
+  (unittest.assertAll
+    // basic operations
+    (float.equal 1.0 1.0)
+    (float.notEqual 1.0 2.0)
+    (float.less 1.0 2.0)
+    (float.greater 2.0 1.0)
+    (float.lessEqual 1.0 1.0)
+    (float.lessEqual 1.0 2.0)
+    (float.greaterEqual 2.0 2.0)
+    (float.greaterEqual 2.0 1.0))
+
+//   (unittest.assertAll */
+//     /\/ parsing numbers which cannot be represented accurately as floats */
+//     (float.equal 3.1415 3.1415)) */
+
+  (unittest.assertAll
+    // conversion to/from int
+    (int.equal (float.toInt 1.0) 1)
+    (int.equal (float.toInt 2.0) 2)
+    (int.equal (float.toInt -1.0) -1)
+    (int.equal (float.toInt -10.0) -10)
+    (float.equal (int.toFloat 1) 1.0)
+    (float.equal (int.toFloat -1) -1.0)
+    (float.equal (int.toFloat 10) 10.0))
+
+  (unittest.assertAll
+    // conversion between float and double
+    (double.oequal (float.toDouble 1.0) 1.0d)
+    (double.oequal (float.toDouble 10.0) 10.0d)
+    (double.oequal (float.toDouble -3.0) -3.0d))
 
   (ret 0)
   ))
 
-  
+(testf (runMain))
+

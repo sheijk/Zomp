@@ -16,6 +16,10 @@ void printFloat( float f ) {
     printf( "%f", f );
 }
 
+void printDouble( double d ) {
+  printf( "%f", d );
+}
+
 void printChar( int8_t c ) {
   printf( "%c", c );
 }

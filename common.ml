@@ -109,3 +109,9 @@ let removeQuotes str =
   end else
     str
   
+let restrictToSingleprecision double =
+  let array = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout 1 in
+  Bigarray.Array1.set array 0 double;
+  Bigarray.Array1.get array 0
+
+    

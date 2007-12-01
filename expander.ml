@@ -212,7 +212,7 @@ let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
           | `Constant StringLiteral string ->
               begin
                 let newBindings, var = getNewVar bindings (`Pointer `Char) in
-                let var = { var with default = StringLiteral string } in
+                let var = { var with vdefault = StringLiteral string } in
                 Some( newBindings, [`ToplevelForm (`GlobalVar var); `Variable var] )
               end
           | _ -> Some (bindings, [varOrConst] )

@@ -1,8 +1,14 @@
 
 
 * To be sorted
+** TODO float literals need to be fixed
+** TODO support break in loops
+** TODO global var of type double can have default of 0.0 (float format)
+** TODO add hook to zomp-mode
+** TODO double does not map equal etc. to oequal
+** TODO emit warning on missing ret
 ** TODO llvm does not allow to hide global vars by local vars -> rename on nameclashes (also applies to vars in nested scopes)
-** TODO getting addresses of global variables
+** TODO getting addresses of global variables (?)
 ** TODO BUG: locals vars defined several times should produce an error in the expander
 ** TODO stdlib funktionen in fake-namespaces tun
 

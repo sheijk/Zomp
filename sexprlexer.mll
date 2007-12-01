@@ -24,8 +24,10 @@ rule token = parse
       { raise Eof }
   | "!!!"
       { raise AbortInput }
-  | (('"' [^'\"']* '"') as str)
-      { IDENTIFIER(str) }
+(*   | (('"' [^'\"']* '"') as str) *)
+(*       { IDENTIFIER(str) } *)
+  | '"'
+      { IDENTIFIER (mlstring "\"" lexbuf) }
   | (('\'' [^'\'']* '\'') as chr)
       { IDENTIFIER(chr) }
   | "//" [^'\n']* '\n'
@@ -39,6 +41,13 @@ and mlcomment = shortest
       { token lexbuf }
   | (_)* '\n'
       { mlcomment lexbuf }
+  | eof
+      { raise Eof }
+and mlstring prevString = shortest
+  | ((_)* '"') as str
+      { prevString ^ str }
+  | ((_)* '\n') as str
+      { mlstring (prevString ^ str) lexbuf }
   | eof
       { raise Eof }
       

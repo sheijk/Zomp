@@ -184,7 +184,7 @@ struct
       | `TypeRef name -> failwith (sprintf "Cannot parse value of type %s referred by name" name)
       | `Void -> failwith "no values of void allowed"
       | `Int -> IntVal (Int32.of_string str)
-      | `Float -> FloatVal (float_of_string str)
+      | `Float -> FloatVal (Common.restrictToSingleprecision (float_of_string str))
       | `Double -> DoubleVal (float_of_string str)
       | `Bool -> BoolVal (bool_of_string str)
       | `Char -> CharVal (unquoted '\'' str).[0]

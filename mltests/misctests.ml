@@ -22,7 +22,6 @@ type composed = [
 | integral
 | `Pointer of composed
 ]
-
-
+    
 
     

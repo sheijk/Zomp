@@ -16,7 +16,7 @@ CAML_PP=
 
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 
-CAML_LIBS = str.cma
+CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
 all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags opengl20.zomp glfw.zomp deps.png
