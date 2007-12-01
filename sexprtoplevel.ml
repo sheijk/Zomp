@@ -12,6 +12,8 @@ let defaultPrompt = "  # "
 and continuedPrompt = "..# "
   
 let printLLVMCode = ref false
+and printSExpr = ref false
+and printDeclarations = ref true
 and llvmEvaluationOn = ref true
   
 module StringMap = Map.Make(String)
@@ -32,7 +34,9 @@ let makeToggleCommand refvar message _ _ =
   refvar := not !refvar;
   printf "%s: %s\n" message (boolString !refvar)
 
+let toggleSExprCommand = makeToggleCommand printSExpr "Printing s-expressions"
 let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
+let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 
 let matchAnyRegexp patterns =
@@ -199,6 +203,8 @@ let commands =
     "exit", ["x"; "q"], exitCommand, "Exit";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
+    "printSExpr", [], toggleSExprCommand, "Toggle printing of parsed s-expressions";
+    "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
@@ -285,12 +291,20 @@ let () =
       ~readExpr:(fun bindings -> Some (readExpr defaultPrompt "" bindings))
       ~beforeCompilingExpr:(fun _ -> printf "\n"; flush stdout)
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                    let asString = Ast2.expression2string expr in
-                    printf " => %s\n" asString;
+                    if !printSExpr then begin
+                      let asString = Ast2.expression2string expr in
+                      printf " => %s\n" asString;
+                    end;
                     if !printLLVMCode then
                       printf "LLVM code:\n%s\n" llvmCode;
                     if !llvmEvaluationOn then
                       Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
+                    if !printDeclarations then begin
+                      List.iter (fun form ->
+                                   let text = Lang.toplevelFormToString form in
+                                   printf "%s\n" text)
+                        simpleforms;
+                    end;
                     flush stdout;
                  )
       bindings

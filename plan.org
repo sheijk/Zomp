@@ -1,6 +1,12 @@
 
 
 * To be sorted
+** TODO default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not)
+** TODO check return type in functions!
+** TODO print var/func/macro declaration in toplevel
+** TODO make printing parsed s-expr optional
+** TODO (ret) should behave like (ret void)
+** TODO if should be able to handle only an onTrue block
 ** TODO float literals need to be fixed
 ** TODO support break in loops
 ** TODO global var of type double can have default of 0.0 (float format)

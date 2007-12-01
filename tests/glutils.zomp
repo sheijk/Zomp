@@ -1,0 +1,136 @@
+
+(func void glfwSetWindowTitle ((cstring title)))
+(func cstring gluErrorString ((GLenum error)))
+
+(func void printGLError () (
+  (var int error 0)
+
+  (while ((assign error (glGetError)) (int.notEqual error 0)) (
+    (const cstring message (gluErrorString error))
+    (printString "OpenGL error ")
+    (printInt error)
+    (printString ": ")
+    (printlnString message)
+    ))
+  ))
+
+(func void printGlfwVersion () (
+  (var int major 0)
+  (var int minor 0)
+  (var int rev 0)
+
+  (glfwGetVersion (ptr major) (ptr minor) (ptr rev))
+  
+  (printString "Glfw version: ")
+  (printString "major = ") (printInt major)
+  (printString ", minor = ") (printInt minor)
+  (printString ", rev = ") (printInt rev)
+  (println)
+  ))
+
+(func bool checkAndReportShaderError ((GLuint shader) (cstring shaderName)) (
+  (var GLint compileError 0)
+  (glGetShaderiv shader GL_COMPILE_STATUS (ptr compileError))
+
+  (if (int.equal GL_TRUE compileError) (
+    (printString "Error compiling shader ")
+    (printlnString shaderName)
+    (ret false)
+    )
+    (ret true))
+
+  (ret false)
+  ))
+
+(func GLuint createShader ((cstring vertexSource) (cstring fragmentSource)) (
+  (template abortOnCompileError shader name (
+    (if (checkAndReportShaderError #shader #name) 
+        (ret 0)
+        ()) 
+    ))
+    
+  (var GLuint program (glCreateProgram))
+  
+  (var cstring vertexSource_ vertexSource)
+  (var cstring fragmentSource_ fragmentSource)
+  
+  (var GLuint vertexShader (glCreateShader GL_VERTEX_SHADER))
+  (var GLuint fragmentShader (glCreateShader GL_FRAGMENT_SHADER))
+
+  (glShaderSource vertexShader 1 (ptr vertexSource_) (nullptr int))
+  (glShaderSource fragmentShader 1 (ptr fragmentSource_) (nullptr int))
+
+  (glCompileShader vertexShader)
+  (abortOnCompileError vertexShader "vertex")
+  (glCompileShader fragmentShader)
+  (abortOnCompileError fragmentShader "fragment")
+  
+  (glAttachShader program vertexShader)
+  (glAttachShader program fragmentShader)
+
+  (glLinkProgram program)
+
+  (ret program)
+  ))
+
+//------------------------------------------------------------------------------
+
+(template rendergl primitiveType (rest code) (
+  (glBegin #primitiveType)
+  #code
+  (glEnd)
+  ))
+
+(func void renderStripes ((float count) (float size) (float alpha)) (
+  (const float left (float.sub 0. size))
+  (const float right size)
+  (var float y (float.sub 0.0 size))
+  (var float step (float.fdiv (float.mul 2.0 size) count))
+  (var bool black false)
+  (glBegin GL_QUADS)
+  (while (float.less y size) (
+    (if black
+      (glColor4f 0. 0. 0. alpha)
+      (glColor4f 1. 1. 0. alpha))
+    (assign black (bool.not black))
+    (glVertex3f left y 0.0)
+    (glVertex3f right y 0.0)
+    (assign y (float.add y step))
+    (glVertex3f right y 0.0)
+    (glVertex3f left y 0.0)
+    ))
+  (glEnd)
+  ))
+  
+(func void drawPausedOverlay () (
+  (glPushAttrib GL_BLEND)
+    (glEnable GL_BLEND)
+    (glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA)
+    (glMatrixMode GL_PROJECTION)
+    (glLoadIdentity)
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (glScalef 0.75 1. 1.)
+    (glRotatef 45.0 0. 0. 1.)
+    (renderStripes 10.0 2.0 0.125)
+    (glfwSwapBuffers)
+  (glPopAttrib)
+  ))
+
+(func void renderQuad ((float size)) (
+  (rendergl GL_QUADS
+    (glTexCoord2f 0. 0.) (glVertex3f -1. -1. 0.)
+    (glTexCoord2f 0. 1.) (glVertex3f -1. 1. 0.)
+    (glTexCoord2f 1. 1.) (glVertex3f 1. 1. 0.)
+    (glTexCoord2f 1. 0.) (glVertex3f 1. -1. 0.))
+  ))
+  
+//------------------------------------------------------------------------------
+
+(func void autoSetupViewport () (
+  (var int width 0)
+  (var int height 0)
+  (glfwGetWindowSize (ptr width) (ptr height))
+  (glViewport 0 0 width height)
+  ))
+  

@@ -217,11 +217,11 @@ let funcToString func =
     
 let toplevelFormToString = function
   | `GlobalVar var ->
-      sprintf "GlobalVar( %s )" (varToString var)
+      sprintf "var %s" (varToString var)
   | `DefineFunc func ->
-      sprintf "DefineFunc( %s )" (funcToString func)
+      sprintf "func %s" (funcToString func)
   | `Typedef (name, typ) ->
-      sprintf "Typedef( %s = %s )" name (typeName typ)
+      sprintf "type %s = %s" name (typeName typ)
       
 let toSingleForm formlist =
   match formlist with

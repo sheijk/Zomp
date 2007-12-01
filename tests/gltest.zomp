@@ -1,0 +1,100 @@
+/**
+Demonstrates using OpenGL.
+
+Enter this into toplevel to load libs:
+!load libglfw.dylib
+!load libGLEW.dylib
+
+You will need to copy the file libglfw.dylib from the lib/macosx dir
+of GLFW 2.6 into the zomp main dir
+
+Conventions for function names:
+  send* - sending vertex data (to be included in glbegin/end)
+  render* - send geometry (outside of glBegin/glEnd)
+  draw* - setup material and render
+*/
+
+(include "opengl20.zomp")
+(include "glfw.zomp")
+
+(include "tests/glutils.zomp")
+
+(const int windowWidth 400)
+(const int windowHeight 300)
+
+(var bool initialized false)
+
+(func bool init () (
+  (template assertGLTrue code (
+    (if (int.notEqual GL_TRUE #code)
+      ((printlnString "Init failed")
+       (printAst `#code 0)
+       (ret false))
+      ())
+    ))
+  
+  (if initialized (ret true) ())
+
+  (assertGLTrue (glfwInit))
+  (assertGLTrue (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW))
+
+  (assign initialized true)
+  (ret true)
+  ))
+
+(var double autoTimeout 1.0)
+
+(func int main () (
+  (if (bool.not (init)) (ret 100) ())
+
+  (glfwPollEvents)
+  (glfwPollEvents)
+
+  (var bool abort false)
+
+  (var double startTime (glfwGetTime))
+  
+  (while (bool.not abort) (
+    (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
+      (assign abort true)
+      )())
+
+    (if (double.ogreater (double.sub (glfwGetTime) startTime) autoTimeout)
+      (assign abort true) ())
+
+    (var int width 0)
+    (var int height 0)
+    (glfwGetWindowSize (ptr width) (ptr height))
+    (var double aspect (double.fdiv (int.toDouble width) (int.toDouble height)))
+    (glViewport 0 0 width height)
+    (glMatrixMode GL_PROJECTION)
+    (glLoadIdentity)
+    (gluPerspective 90.0d aspect 1.0d 100.0d)
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (glTranslatef 2. 1. -2.)
+
+    (renderQuad 1.0)
+  
+    (glClearColor 1. 0. 0. 1.)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    (glfwSwapBuffers)
+    (glfwPollEvents)
+    ))
+
+  (drawPausedOverlay)
+  (ret 0)
+  ))
+
+(testf (
+  (zompLoadLib "libglfw.dylib")
+  (zompLoadLib "libGLEW.dylib")
+  
+  (const int retval (main))
+  (printString "Main returned ")
+  (printInt retval)
+  (println)
+  ))
+
+
+  

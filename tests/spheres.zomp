@@ -2,7 +2,8 @@
 Demonstrates using OpenGL.
 
 Enter this into toplevel to load libs:
-!load libglfw.dylib
+x!load libglfw.dylib
+x!load libGLEW.dylib
 
 You will need to copy the file libglfw.dylib from the lib/macosx dir
 of GLFW 2.6 into the zomp main dir
@@ -51,7 +52,7 @@ Conventions for function names:
 
 (func bool openWindow () (
   (printlnString "Opening window... ")
-  (glfwOpenWindowHint GLFW_FSAA_SAMPLES GL_TRUE)
+//   (glfwOpenWindowHint GLFW_FSAA_SAMPLES GL_TRUE) */
   (var int result
     (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW))
   (const bool succeeded (int.equal result GL_TRUE))
@@ -69,8 +70,12 @@ Conventions for function names:
     (printlnString "Already initialized")
   // else
     (
+    (zompLoadLib "libglfw.dylib")
+    (zompLoadLib "libGLEW.dylib")
+    
     (glfwInit)
     (openWindow)
+    (glewInit)
     (glfwSetWindowTitle "renderTest")
     (glClear GL_COLOR_BUFFER_BIT)
     (glfwSwapBuffers)
@@ -86,11 +91,6 @@ Conventions for function names:
   (printGLError)
   ))
 
-(template rendergl primitiveType (rest code) (
-  (glBegin #primitiveType)
-  #code
-  (glEnd)
-  ))
 
 (func void renderTriangle () (
   (glTranslatef 0.0 0.0 1.0)
@@ -104,8 +104,8 @@ Conventions for function names:
   (int.equal (glfwGetKey key) GL_TRUE)
   ))
 
-(func bool bool.not ((bool v)) (
-  (bool.xor v true) ))
+// (func bool bool.not ((bool v)) (
+//   (bool.xor v true) ))
 
 (func void setupProjection () (
   (var int width 0)
@@ -171,35 +171,6 @@ Conventions for function names:
     (lineTo 0. 0. 1.)
   ))
   
-(func void renderQuad ((float size)) (
-  (rendergl GL_QUADS
-    (glTexCoord2f 0. 0.) (glVertex3f -1. -1. 0.)
-    (glTexCoord2f 0. 1.) (glVertex3f -1. 1. 0.)
-    (glTexCoord2f 1. 1.) (glVertex3f 1. 1. 0.)
-    (glTexCoord2f 1. 0.) (glVertex3f 1. -1. 0.))
-  ))
-
-(func void renderStripes ((float count) (float size) (float alpha)) (
-  (const float left (float.sub 0. size))
-  (const float right size)
-  (var float y (float.sub 0.0 size))
-  (var float step (float.fdiv (float.mul 2.0 size) count))
-  (var bool black false)
-  (glBegin GL_QUADS)
-  (while (float.less y size) (
-    (if black
-      (glColor4f 0. 0. 0. alpha)
-      (glColor4f 1. 1. 0. alpha))
-    (assign black (bool.not black))
-    (glVertex3f left y 0.0)
-    (glVertex3f right y 0.0)
-    (assign y (float.add y step))
-    (glVertex3f right y 0.0)
-    (glVertex3f left y 0.0)
-    ))
-  (glEnd)
-  ))
-  
 (func void renderQuadOverScreen () (
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)
@@ -210,51 +181,6 @@ Conventions for function names:
 
 (macro free ptr ())
 
-(func bool checkAndReportShaderError ((GLuint shader) (cstring shaderName)) (
-  (var GLint compileError 0)
-  (glGetShaderiv shader GL_COMPILE_STATUS (ptr compileError))
-
-  (if (int.equal GL_TRUE compileError) (
-    (printString "Error compiling shader ")
-    (printlnString shaderName)
-    (ret false)
-    )
-    (ret true))
-
-  (ret false)
-  ))
-
-(func GLuint createShader ((cstring vertexSource) (cstring fragmentSource)) (
-//   (template abortOnCompileError shader name ( */
-//     (ret `( */
-//       (if (checkAndReportShaderError #shader #name) */
-//         (ret 0) */
-//         ()) */
-//       )) */
-//     )) */
-    
-  (var GLuint program (glCreateProgram))
-  
-  (var cstring vertexSource_ vertexSource)
-  (var cstring fragmentSource_ fragmentSource)
-  
-  (var GLuint vertexShader (glCreateShader GL_VERTEX_SHADER))
-  (var GLuint fragmentShader (glCreateShader GL_FRAGMENT_SHADER))
-
-  (glShaderSource vertexShader 1 (ptr vertexSource_) (nullptr int))
-  (glShaderSource fragmentShader 1 (ptr fragmentSource_) (nullptr int))
-
-  (glCompileShader vertexShader)
-//   (abortOnCompileError vertexShader "vertex") */
-  (glCompileShader fragmentShader)
-  
-  (glAttachShader program vertexShader)
-  (glAttachShader program fragmentShader)
-
-  (glLinkProgram program)
-
-  (ret program)
-  ))
 
 (macro makeGLFactory glgenF factoryName (
   (var (ptr ast) funcCall glgenF)
@@ -364,6 +290,27 @@ Conventions for function names:
   ))
 
 (func GLuint makeBillboard ((int width) (int height)) (
+//   (const GLuint program (createShader
+// "
+// varying vec3 normal;
+
+// void main(void) {
+//   gl_Position = ftransform();
+//   normal = vec4( 1.0, 0.0, 0.0 );
+// }
+// "
+
+// "
+// varying vec3 normal;
+
+// void main(void) {
+//   gl_FragColor = vec4( 1.0, 1.0, 0.0, 1.0 );
+// }
+// "))
+//   (printString "billboard shader id = ")
+//   (printInt program)
+//   (println)
+
   (var (ptr framebuffer) fbo (fbo_make 1024 1024))
   (fbo_attachColorTexture fbo)
   (fbo_create fbo)
@@ -383,21 +330,7 @@ Conventions for function names:
       0.d 0.d 0.d
       0.d 1.d 0.d)
 
-    (const GLuint program (createShader
-"
-void main(void) {
-  gl_Position = ftransform();
-  gl_Normal = normalized( gl_Position );
-}
-"
-
-"
-void main(void) {
-  gl_FragColor = vec4( gl_Normal, 1.0 );
-}
-"))
-
-//     (glUseProgram program) */
+//     (glUseProgram program)
 
     (rendergl GL_TRIANGLE_FAN
       (glColor4f 1. 1. 1. 1.)
@@ -405,7 +338,7 @@ void main(void) {
       (sendCircle)
       )
 
-//     (glUseProgram 0) */
+//     (glUseProgram 0)
 //     (glDeleteProgram program)  => GL_INVALID_OPERATION
     )
     
@@ -417,12 +350,6 @@ void main(void) {
 
 (template int.neg x (int.sub 0 x))
 
-(func void autoSetupViewport () (
-  (var int width 0)
-  (var int height 0)
-  (glfwGetWindowSize (ptr width) (ptr height))
-  (glViewport 0 0 width height)
-  ))
 
 (var double autoTimeout 100000.0)
 
@@ -432,10 +359,11 @@ void main(void) {
   (ret (int.srem (rand) max))
   ))
 
-(testf (printlnInt (random 10)))
+// (testf (printlnInt (random 10)))
 
 (template float.neg x (float.sub 0. #x))
 
+  
 (func void anim () (
   (init)
   (glfwPollEvents)
@@ -445,25 +373,26 @@ void main(void) {
   (glEnable GL_DEPTH_TEST)
   (glDepthFunc GL_LEQUAL)
 
-  (var GLuint shader (createShader
-"
-varying vec2 texCoord;
-void main(void) {
-  gl_Position = ftransform();
-  texCoord = gl_MultiTexCoord0.xy;
-}
-"
+//   (var GLuint shader (createShader
+// "
+// varying vec2 texCoord;
+// void main(void) {
+//   gl_Position = ftransform();
+//   texCoord = gl_MultiTexCoord0.xy;
+// }
+// "
 
-"
-varying vec2 texCoord;
-uniform sampler2D texture;
+// "
+// varying vec2 texCoord;
+// uniform sampler2D texture;
 
-void main(void) {
-  gl_FragColor = vec4(0.1, 0.1, 0.1, 0.0) + texture2D(texture, texCoord);
-}
-" ))
+// void main(void) {
+//   gl_FragColor = vec4(0.1, 0.1, 0.1, 0.0) + texture2D(texture, texCoord);
+// }
+// " ))
 
-  (var GLuint billboard (makeBillboard 128 128))
+//   (var GLuint billboard (makeBillboard 128 128))
+  (var GLuint billboard 0)
   
   (const double startTime (glfwGetTime))
 
@@ -515,8 +444,8 @@ void main(void) {
     (glAlphaFunc GL_NOTEQUAL 0.0)
 
     (glColor4f 1.0 1.0 1.0 1.0)
-    (glUseProgram shader)
-    (glBindTexture2D billboard)
+//     (glUseProgram shader)
+//     (glBindTexture2D billboard)
     (renderQuad 2.0)
 
     (glTranslatef 1. 1. 1.)
@@ -532,29 +461,87 @@ void main(void) {
       (glTranslatef (float.neg x) (float.neg y) (float.neg z))
       ))
 
-    (glBindTexture2D 0)
-    (glUseProgram 0)
+//     (glBindTexture2D 0)
+//     (glUseProgram 0)
     
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
 
-  (glDeleteProgram shader)
+//   (glDeleteProgram shader)
+
+  (drawPausedOverlay)
     
-  (glMatrixMode GL_PROJECTION)
-  (glLoadIdentity)
-  (glMatrixMode GL_MODELVIEW)
-  (glLoadIdentity)
-  (glScalef 0.75 1. 1.)
-  (glRotatef 45.0 0. 0. 1.)
-  (renderStripes 10.0 2.0 0.125)
-  (glfwSwapBuffers)
   (printGLError)
   ))
 
-(testf (
-//   (assign autoTimeout 1000.0) */
-  (anim)
+(func void testExtensions () (
+  (init)
+  
+  (glfwPollEvents)
+  (glfwPollEvents)
+  
+  (if (int.notEqual (glfwInit) GL_TRUE) (
+    (printlnString "glfw initialization failed")
+    (ret void))
+    ())
+
+  (var GLuint program (createShader
+"
+void main(void) {
+  gl_Position = ftransform();
+}
+"
+"
+void main(void) {
+  gl_FragColor = vec4(0., 1., 0., 1.);
+}
+"))
+
+  (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW)
+
+  (var bool abort false)
+
+  (while (bool.not abort) (
+    (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
+      (assign abort true)
+      )())
+
+    (glClearColor 1. 1. 0. 1.)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    
+    (autoSetupViewport)
+
+    (setupProjection)
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (glTranslatef -1.0 -0.5 -5.0)
+    (glColor4f 1. 1. 1. 1.)
+    (drawOrientationGrid)
+
+    (glUseProgram program)
+    (renderQuad 1.0)
+    (glUseProgram 0)
+  
+    (glfwSwapBuffers)
+    (glfwPollEvents)
+    ))
+
+  (drawPausedOverlay)
+  (printGLError)
   ))
+
+(func int main () (
+  (zompLoadLib "libglfw.dylib")
+  (zompLoadLib "libGLEW.dylib")
+  (init)
+  (ret 0)
+  ))
+  
+// (testf (
+//   (assign autoTimeout 6000.0)
+//   (anim)
+// //   (testExtensions)
+//   ))
 
 

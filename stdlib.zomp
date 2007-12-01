@@ -26,6 +26,8 @@
 (func float asinf ((float x)))
 (func float acosf ((float x)))
 
+(func int zompLoadLib (((ptr char) dllname)))
+
 /// utility functions ----------------------------------------
 
 (func bool bool.not ((bool b)) ((bool.xor true b)))
