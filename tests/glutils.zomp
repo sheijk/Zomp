@@ -124,6 +124,57 @@
     (glTexCoord2f 1. 1.) (glVertex3f 1. 1. 0.)
     (glTexCoord2f 1. 0.) (glVertex3f 1. -1. 0.))
   ))
+
+(func void drawCoordSys ((float length)) (
+  (template lineTo x y z (
+    (glColor4f #x #y #z 1.)
+    (glVertex3f 0.0 0.0 0.0)
+    (glVertex3f #x #y #z)
+    ))
+  (rendergl GL_LINES
+    (lineTo 1.0 0.0 0.0)
+    (lineTo 0.0 1.0 0.0)
+    (lineTo 0.0 0.0 1.0))
+  ))
+
+(func void drawOrientationGrid () (
+  (var float size 10.0)
+  (var float msize (float.sub 0. size))
+
+  (template line xs ys zs to xd yd zd (
+    (glVertex3f #xs #ys #zs)
+    (glVertex3f #xd #yd #zd)
+    ))
+  (template lineTo x y z (
+    (glVertex3f 0. 0. 0.)
+    (glVertex3f #x #y #z)
+    ))
+  
+  (rendergl GL_LINES
+    (glColor3f 1. 1. 1.)
+    (lineTo 1. 0. 0.)
+    (lineTo 0. 1. 0.)
+    (lineTo 0. 0. 1.)
+    (for d -10 10 (
+      (var float df (int.toFloat d))
+      (glColor3f 1. 0. 0.)
+      (line 0. msize df to 0. size df)
+      (line 0. df msize to 0. df size)
+
+      (glColor3f 0. 1. 0.)
+      (line size 0. df to msize 0. df)
+      (line df 0. size to df 0. msize)
+
+      (glColor3f 0. 0. 1.)
+      (line size df 0. to msize df 0.)
+      (line df size 0. to df msize 0.)
+      ))
+    )
+    (glColor3f 1. 1. 1.)
+    (lineTo 1. 0. 0.)
+    (lineTo 0. 1. 0.)
+    (lineTo 0. 0. 1.)
+  ))
   
 //------------------------------------------------------------------------------
 

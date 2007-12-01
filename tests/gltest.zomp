@@ -67,17 +67,20 @@ Conventions for function names:
     (glfwGetWindowSize (ptr width) (ptr height))
     (var double aspect (double.fdiv (int.toDouble width) (int.toDouble height)))
     (glViewport 0 0 width height)
+
+    (glClearColor 0.0 0.0 0.0 1.0)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    
     (glMatrixMode GL_PROJECTION)
     (glLoadIdentity)
     (gluPerspective 90.0d aspect 1.0d 100.0d)
     (glMatrixMode GL_MODELVIEW)
     (glLoadIdentity)
-    (glTranslatef 2. 1. -2.)
+    (glTranslatef -2. -1.5 -10.)
 
+    (drawOrientationGrid)
     (renderQuad 1.0)
   
-    (glClearColor 1. 0. 0. 1.)
-    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
@@ -89,6 +92,8 @@ Conventions for function names:
 (testf (
   (zompLoadLib "libglfw.dylib")
   (zompLoadLib "libGLEW.dylib")
+
+  (assign autoTimeout 1000.0d)
   
   (const int retval (main))
   (printString "Main returned ")
