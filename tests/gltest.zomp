@@ -103,6 +103,26 @@ void main(void) {
   
 (var double autoTimeout 1.0)
 
+(func GLuint makeMainShader () (
+  (createShader
+"
+varying vec2 texCoord;
+
+void main(void) {
+  gl_Position = ftransform();
+  texCoord = gl_MultiTexCoord0.xy;
+}"
+
+"
+uniform sampler2D texture;
+varying vec2 texCoord;
+
+void main(void) {
+  gl_FragColor = texture2D( texture, texCoord );
+}
+")
+  ))
+  
 (func int main () (
   (if (bool.not (init)) (ret 100) ())
 
@@ -113,6 +133,8 @@ void main(void) {
   (var double startTime (glfwGetTime))
 
   (var GLuint billboard (makeBillboard 128 128))
+
+  (var GLuint sphereShader (makeMainShader))
   
   (while (bool.not abort) (
     (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
@@ -142,16 +164,20 @@ void main(void) {
     (glTranslatef -2. -1.5 -10.)
 
     (drawOrientationGrid)
-    (glEnable GL_TEXTURE_2D)
+    
+//     (glEnable GL_TEXTURE_2D) */
+    (glUseProgram sphereShader)
     (glBindTexture2D billboard)
     (renderQuad 1.0)
     (glBindTexture2D 0)
-    (glDisable GL_TEXTURE_2D)
+    (glUseProgram 0)
+//     (glDisable GL_TEXTURE_2D) */
   
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
 
+  (glDeleteProgram sphereShader)
   (glDeleteTextures 1 (ptr billboard))
 
   (drawPausedOverlay)
