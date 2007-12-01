@@ -114,11 +114,20 @@ void main(void) {
 }"
 
 "
+uniform vec4 lightPos;
 uniform sampler2D texture;
 varying vec2 texCoord;
 
 void main(void) {
-  gl_FragColor = texture2D( texture, texCoord );
+  vec4 texval = texture2D( texture, texCoord );
+  float alpha = texval.a;
+  vec3 normal = texval.xyz;
+
+  vec3 lightDir = normalize( lightPos.xyz );
+  float intensity = dot( lightDir, normal );
+  intensity += 0.3;
+
+  gl_FragColor = vec4( intensity, intensity, intensity, alpha );
 }
 ")
   ))
@@ -165,13 +174,13 @@ void main(void) {
 
     (drawOrientationGrid)
     
-//     (glEnable GL_TEXTURE_2D) */
     (glUseProgram sphereShader)
     (glBindTexture2D billboard)
+    (const GLuint lightPosL (glGetUniformLocation sphereShader "lightPos"))
+    (glUniform4f lightPosL -2. 3. 2. 0.)
     (renderQuad 1.0)
     (glBindTexture2D 0)
     (glUseProgram 0)
-//     (glDisable GL_TEXTURE_2D) */
   
     (glfwSwapBuffers)
     (glfwPollEvents)
