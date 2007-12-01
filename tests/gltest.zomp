@@ -42,6 +42,39 @@ Conventions for function names:
   (ret true)
   ))
 
+(func GLuint makeBillboard ((int width) (int height)) (
+  (var (ptr framebuffer) fbo (fbo_make width height))
+  (fbo_attachColorTexture fbo)
+  (fbo_create fbo)
+  (fbo_bind fbo)
+  
+  (saveTransforms
+    (glClearColor .0 1.0 0.0 0.0)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    
+    (glMatrixMode GL_PROJECTION)
+    (glLoadIdentity)
+    (gluPerspective 90.0d 1.0d 1.0d 100.0d)
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (gluLookAt
+      0.d 0.d 1.d
+      0.d 0.d 0.d
+      0.d 1.d 0.d)
+
+    (rendergl GL_TRIANGLE_FAN
+      (glColor4f 1. 0. 0. 1.)
+      (glVertex3f 0. 0. 0.)
+      (sendCircle)
+      )
+    )
+    
+  (fbo_makeColorTexture fbo)
+  (fbo_unbind fbo)
+    
+  (ret (getField fbo colorTexture))
+  ))
+  
 (var double autoTimeout 1.0)
 
 (func int main () (
@@ -51,8 +84,9 @@ Conventions for function names:
   (glfwPollEvents)
 
   (var bool abort false)
-
   (var double startTime (glfwGetTime))
+
+  (var GLuint billboard (makeBillboard 128 128))
   
   (while (bool.not abort) (
     (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
@@ -61,6 +95,9 @@ Conventions for function names:
 
     (if (double.ogreater (double.sub (glfwGetTime) startTime) autoTimeout)
       (assign abort true) ())
+
+    (glEnable GL_DEPTH_TEST)
+    (glDepthFunc GL_LEQUAL)
 
     (var int width 0)
     (var int height 0)
@@ -79,11 +116,17 @@ Conventions for function names:
     (glTranslatef -2. -1.5 -10.)
 
     (drawOrientationGrid)
+    (glEnable GL_TEXTURE_2D)
+    (glBindTexture2D billboard)
     (renderQuad 1.0)
+    (glBindTexture2D 0)
+    (glDisable GL_TEXTURE_2D)
   
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
+
+  (glDeleteTextures 1 (ptr billboard))
 
   (drawPausedOverlay)
   (ret 0)
@@ -93,13 +136,14 @@ Conventions for function names:
   (zompLoadLib "libglfw.dylib")
   (zompLoadLib "libGLEW.dylib")
 
-  (assign autoTimeout 1000.0d)
-  
   (const int retval (main))
   (printString "Main returned ")
   (printInt retval)
   (println)
   ))
+
+(func void long () ((assign autoTimeout 1000.0d) (test)))
+(func void short () ((assign autoTimeout 1.0d) (test)))
 
 
   

@@ -175,6 +175,18 @@
     (lineTo 0. 1. 0.)
     (lineTo 0. 0. 1.)
   ))
+
+(func void sendCircle () (
+  (template vertex x y (glVertex3f #x #y 0.0))
+
+  (const float float.pi (float.mul 2.0 (acosf 0.0)))
+  (const float step (float.fdiv 1.0 10.0))
+  (var float fangle 0.0)
+  (while (float.lessEqual fangle (float.add step (float.mul 2.0 float.pi))) (
+    (vertex (sinf fangle) (cosf fangle))
+    (assign fangle (float.add fangle step))
+    ))
+  ))
   
 //------------------------------------------------------------------------------
 
@@ -184,4 +196,103 @@
   (glfwGetWindowSize (ptr width) (ptr height))
   (glViewport 0 0 width height)
   ))
+
+(template saveTransforms (rest code) (
+  (glMatrixMode GL_TEXTURE)
+  (glPushMatrix)
+  (glMatrixMode GL_PROJECTION)
+  (glPushMatrix)
+  (glMatrixMode GL_MODELVIEW)
+  (glPushMatrix)
+  #code
+  (glMatrixMode GL_TEXTURE)
+  (glPopMatrix)
+  (glMatrixMode GL_PROJECTION)
+  (glPopMatrix)
+  (glMatrixMode GL_MODELVIEW)
+  (glPopMatrix)
+  ))
   
+//------------------------------------------------------------------------------
+
+(macro makeGLFactory glgenF factoryName (
+  (var (ptr ast) funcCall glgenF)
+  (addChild funcCall `1)
+  (addChild funcCall `(ptr name))
+  (ret `(func GLuint #factoryName () (
+          (var GLuint name 0)
+          #funcCall
+          (ret name)
+          )))
+  ))
+
+(makeGLFactory glGenFramebuffersEXT makeFramebuffer)
+(makeGLFactory glGenTextures makeTexture)
+(makeGLFactory glGenRenderbuffersEXT makeRenderbuffer)
+
+(func void glBindTexture2D ((GLuint texture)) ((glBindTexture GL_TEXTURE_2D texture)))
+
+//------------------------------------------------------------------------------
+
+(type framebuffer
+  (int width)
+  (int height)
+  (GLuint fbo)
+  (GLuint colorTexture)
+  (GLuint colorBuffer)
+  (GLuint depthTexture)
+  (GLuint depthBuffer)
+  )
+
+(func (ptr framebuffer) fbo_make ((int width) (int height)) (
+  (var (ptr framebuffer) fbo (malloc framebuffer))
+  (template set field value (setField fbo #field #value))
+  (setFieldsTo 0 fbo colorTexture colorBuffer depthTexture depthBuffer)
+  (setField fbo width width)
+  (setField fbo height height)
+  (ret fbo)
+  ))
+
+(func void fbo_attachColorTexture (((ptr framebuffer) fbo)) (
+  (var GLuint texture (makeTexture))
+  (glBindTexture2D texture)
+  (template texParam param value
+    (glTexParameteri GL_TEXTURE_2D #param #value))
+  (texParam GL_TEXTURE_MIN_FILTER GL_LINEAR)
+  (texParam GL_TEXTURE_MAG_FILTER GL_LINEAR)
+  (glTexImage2D GL_TEXTURE_2D 0 GL_RGBA
+    (getField fbo width) (getField fbo height)
+    0 GL_RGBA GL_UNSIGNED_BYTE (nullptr void))
+  (setField fbo colorTexture texture)
+  ))
+
+(func void fbo_create (((ptr framebuffer) fbo)) (
+  (var GLuint fboName (makeFramebuffer))
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName)
+  
+  (var GLuint depthBuffer (makeRenderbuffer))
+  (glBindRenderbufferEXT GL_RENDERBUFFER_EXT depthBuffer)
+  (glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height))
+  (glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT depthBuffer)
+
+  (glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D (getField fbo colorTexture) 0)
+
+  (setField fbo fbo fboName)
+  (setField fbo depthBuffer depthBuffer)
+  ))
+
+(func void fbo_bind (((ptr framebuffer) fbo)) (
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT (getField fbo fbo))
+  (glViewport 0 0 (getField fbo width) (getField fbo height))
+  ))
+
+(func void fbo_unbind (((ptr framebuffer) fbo)) (
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0)
+  ))
+
+(func void fbo_makeColorTexture (((ptr framebuffer) fbo)) (
+  (glBindTexture2D (getField fbo colorTexture))
+  (glGenerateMipmapEXT GL_TEXTURE_2D)
+  (glBindTexture2D 0)
+  ))
+
