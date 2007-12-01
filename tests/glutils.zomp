@@ -35,6 +35,13 @@
   (if (int.equal GL_FALSE compileError) (
     (printString "Error compiling shader ")
     (printlnString shaderName)
+
+    (const int maxLength 500)
+    (var cstring message (malloc char maxLength))
+    (glGetShaderInfoLog shader maxLength (ptr maxLength) message)
+
+    (printlnString message)
+    
     (ret false)
     )
     (ret true))

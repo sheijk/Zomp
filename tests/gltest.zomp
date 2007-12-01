@@ -45,14 +45,18 @@ Conventions for function names:
 (func GLuint makeBillboardGShader () (
   (var GLuint shader (createShader
 "
+varying vec3 normal;
 void main(void) {
   gl_Position = ftransform();
+  normal = normalize( gl_Position.xyz );
 }
 "
 
 "
+varying vec3 normal;
+
 void main(void) {
-  gl_FragColor = vec4( 1.0, 1.0, 0.0, 1.0 );
+  gl_FragColor = vec4( normal, 1.0 );
 }
 "))
   (ret shader)
