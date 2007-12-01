@@ -42,11 +42,29 @@ Conventions for function names:
   (ret true)
   ))
 
+(func GLuint makeBillboardGShader () (
+  (var GLuint shader (createShader
+"
+void main(void) {
+  gl_Position = ftransform();
+}
+"
+
+"
+void main(void) {
+  gl_FragColor = vec4( 1.0, 1.0, 0.0, 1.0 );
+}
+"))
+  (ret shader)
+  ))
+
 (func GLuint makeBillboard ((int width) (int height)) (
   (var (ptr framebuffer) fbo (fbo_make width height))
   (fbo_attachColorTexture fbo)
   (fbo_create fbo)
   (fbo_bind fbo)
+
+  (const GLuint shader (makeBillboardGShader))
   
   (saveTransforms
     (glClearColor .0 1.0 0.0 0.0)
@@ -62,12 +80,16 @@ Conventions for function names:
       0.d 0.d 0.d
       0.d 1.d 0.d)
 
+    (glUseProgram shader)
     (rendergl GL_TRIANGLE_FAN
       (glColor4f 1. 0. 0. 1.)
       (glVertex3f 0. 0. 0.)
       (sendCircle)
       )
+    (glUseProgram 0)
     )
+
+  (glDeleteProgram shader)
     
   (fbo_makeColorTexture fbo)
   (fbo_unbind fbo)

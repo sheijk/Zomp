@@ -32,7 +32,7 @@
   (var GLint compileError 0)
   (glGetShaderiv shader GL_COMPILE_STATUS (ptr compileError))
 
-  (if (int.equal GL_TRUE compileError) (
+  (if (int.equal GL_FALSE compileError) (
     (printString "Error compiling shader ")
     (printlnString shaderName)
     (ret false)
@@ -45,8 +45,8 @@
 (func GLuint createShader ((cstring vertexSource) (cstring fragmentSource)) (
   (template abortOnCompileError shader name (
     (if (checkAndReportShaderError #shader #name) 
-        (ret 0)
-        ()) 
+        ()
+        (ret 0)) 
     ))
     
   (var GLuint program (glCreateProgram))
