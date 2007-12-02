@@ -10,6 +10,7 @@
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/Assembly/Parser.h"
+#include "llvm/Analysis/Verifier.h"
 
 #include <dlfcn.h>
 
@@ -104,23 +105,39 @@ extern "C" {
   }
 
   bool zompSendCode(const char* code, const char* module) {
+    bool errorsOccurred = false;
+    
     ParseError errorInfo;
 
     Module* targetModule = llvmModule;
     if( std::string(module) == "compiletime" ) {
       targetModule = macroModule;
     }
-  
-    ParseAssemblyString( code, targetModule, &errorInfo );
+
+    Module* parsedModule = ParseAssemblyString( code, targetModule, &errorInfo );
+    std::string errorMessage;
+    if( parsedModule == NULL ) {
+      printf( "Parsed module is NULL\n" );
+      fflush( stdout );
+      
+      errorsOccurred = true;
+    }
+    else if( true == verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
+      printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
+      fflush( stdout );
+      fflush( stderr );
+
+      errorsOccurred = true;
+    }
 
     if( errorInfo.getRawMessage() != "none" ) {
       fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
       fflush( stderr );
 
-      return false;
+      errorsOccurred = true;
     }
 
-    return true;
+    return !errorsOccurred;
   }
   
 //   bool zompSendCodeNewVar(const char* code) {

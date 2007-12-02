@@ -8,7 +8,9 @@
 let whitespace = [' ' '\t' '\n']*
 
 let identifierChar = [':' 'a'-'z' '0'-'9' 'A'-'Z' '_' '.']
-
+let addOp = ['+']
+let multOp = ['*']
+  
 rule token = parse
   | whitespace
       { token lexbuf }
@@ -16,6 +18,10 @@ rule token = parse
       { PAREN_OPEN }
   | ')'
       { PAREN_CLOSE }
+  | addOp as op
+      { ADD_OP(String.make 1 op) }
+  | multOp as op
+      { MULT_OP(String.make 1 op) }
   | (("``" | "`" | "#" ) as quoteOp)
       { QUOTE(quoteOp) }
   | (identifierChar+ as id) | (('-' identifierChar+) as id)

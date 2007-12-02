@@ -1,12 +1,9 @@
 
+(var int x 0)
 
-func int main {} {
-  var int l 10;
-  var int r 20;
-  var int x { l + r; };
+(func int foo () ((ret 1)))
 
-  var float f { 1.0 +_f 2.0; };
-
-  ret {op+ 1 r;};
-};
+(func void bar () (
+  (var int x (foo))
+  ))
 

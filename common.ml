@@ -1,4 +1,5 @@
-
+open Printf
+  
 (* moved here from Zompvm because exception was not caught properly (compiler bug?) *)
 exception FailedToEvaluateLLVMCode of string * string
 
@@ -114,4 +115,11 @@ let restrictToSingleprecision double =
   Bigarray.Array1.set array 0 double;
   Bigarray.Array1.get array 0
 
+let collectTimingInfo name f =
+  let startTime = Sys.time() in
+  let result = f() in
+  let duration = Sys.time() -. startTime in
+  printf "Time for %s: %f\n" name duration;
+  result
+    
     

@@ -13,7 +13,7 @@ var float gFloat 1.0;
 // broken due to changed format of llvm floats:
 // var float gFloat 1.1;
 var bool gBool true;
-mvar float gmFloat 1.0; // 0.3
+var float gmFloat 1.0; // 0.3
 
 func int plus2 {int i;} { i; };
 
@@ -32,7 +32,7 @@ func int main {} {
   var float lFloat 1.0; // 2.0
   printFloat lFloat; nl;
 
-  mvar int mInt 9;
+  var int mInt 9;
   assign mInt 11;
   printInt mInt; nl;
 

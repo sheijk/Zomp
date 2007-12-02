@@ -284,7 +284,6 @@ let printWelcomeMessage() =
   printf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar;
   printf "\n"
 
-          
 let () =
   let step bindings () =
     Parseutils.compile
