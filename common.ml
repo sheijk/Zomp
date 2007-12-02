@@ -122,4 +122,4 @@ let collectTimingInfo name f =
   printf "Time for %s: %f\n" name duration;
   result
     
-    
+

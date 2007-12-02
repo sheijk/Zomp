@@ -21,17 +21,27 @@
 %token <string> IDENTIFIER
 %token <string> ADD_OP
 %token <string> MULT_OP
+%token <string> COMPARE_OP
+
+%left COMPARE_OP
+%left ADD_OP
+%left MULT_OP
   
 %start <Ast2.sexpr> main
 
 %%
 
-
 main:
 | PAREN_OPEN e = sexpr PAREN_CLOSE
     { e }
+| PAREN_OPEN e = operatorExpr PAREN_CLOSE
+    { e }
 | PAREN_OPEN PAREN_CLOSE
     {{ Ast2.id = "seq"; args = [] }}
+| q = QUOTE e = main
+    {{ Ast2.id = quoteId q; args = [e] }}
+| q = QUOTE e = IDENTIFIER
+    {{ Ast2.id = quoteId q; args = [{Ast2.id = e; args = []}] }}
 sexpr:
 | id = IDENTIFIER args = sexprArg*
     {{ Ast2.id = id; args = args }}
@@ -42,34 +52,16 @@ sexprArg:
     {{ Ast2.id = id; args = [] }}
 | e = main
     { e }
-        
-/*    
 operatorExpr:
-| l = main op = ADD_OP r = main
+| l = operatorArg op = ADD_OP r = operatorArg
     {{ Ast2.id = operatorName op; args = [l; r] }}
-| l = main op = MULT_OP r = main
+| l = operatorArg op = MULT_OP r = operatorArg
     {{ Ast2.id = operatorName op; args = [l; r] }}
-*/
-    
-/*
-main:
+| l = operatorArg op = COMPARE_OP r = operatorArg
+    {{ Ast2.id = operatorName op; args = [l; r] }}
+operatorArg:
 | e = sexpr
     { e }
-arg:
-| id = IDENTIFIER
-    { { Ast2.id = id; Ast2.args = []; } }
-| e = sexpr
+| e = operatorExpr
     { e }
-sexpr:
-| PAREN_OPEN PAREN_CLOSE
-    { { Ast2.id = "seq"; args = []; } }
-| PAREN_OPEN id = IDENTIFIER args = arg* PAREN_CLOSE
-    { { Ast2.id = id; Ast2.args = args; } }
-| PAREN_OPEN firstarg = sexpr args = arg* PAREN_CLOSE
-    { { Ast2.id = "seq"; args = firstarg :: args; } }
-| q = QUOTE id = IDENTIFIER
-    { { Ast2.id = quoteId q; args = [{ Ast2.id = id; args = [] }] } }
-| q = QUOTE code = sexpr
-    { { Ast2.id = quoteId q; args = [code] } }
-/**/
-    
+        

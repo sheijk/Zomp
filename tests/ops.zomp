@@ -1,9 +1,32 @@
 
-(var int x 0)
+(template op+ l r (int.add #l #r))
+(template op- l r (int.sub #l #r))
+(template op* l r (int.mul #l #r))
+(template op/ l r (int.sdiv #l #r))
 
-(func int foo () ((ret 1)))
+(template op== l r (int.equal #l #r))
 
-(func void bar () (
+(func int foo () ((ret 20)))
+  
+(func int main () (
   (var int x (foo))
-  ))
+  (var int y 3)
+  (var int sum (x + y * x + y))
 
+  (unittest.assertAll /// simple operator usage
+    (int.equal 10 (6 + 4))
+    (int.equal 20 (100 - 80))
+    (int.equal 12 (3 * 4))
+    (int.equal 5 (10 / 2))
+    )
+
+  (unittest.assertAll /// combined operators
+    (int.equal (10 * 3 + 1) 31)
+    (int.equal (10 * 4 / 8) 5)
+    (4 == 4)
+    (10 == 3 * 3 + 1)
+    )
+  
+  (ret 5)
+  ))
+  

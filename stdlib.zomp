@@ -1,7 +1,6 @@
 
-/*
-/// external (C) functions ----------------------------------------
 
+/// external (C) functions ----------------------------------------
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
@@ -313,13 +312,6 @@
   (ret `(var cstring #name (newUniqueNameFor #purpose)))
   ))
 
-(macro foo (
-  (var cstring xxx (newUniqueNameFor "ss"))
-  (uniqueId foo "foo")
-  (uniqueId bar "bar")
-  (ret `(xxx))
-  ))
-
 (macro if test onTrue onFalse (
   (uniqueId trueLabel "iftrue")
   (uniqueId falseLabel "iffalse")
@@ -532,9 +524,9 @@
 (float.aliasNoQNAN greater)
 (float.aliasNoQNAN lessEqual)
 (float.aliasNoQNAN greaterEqual)
-*/
 
-/** default test function
+
+/* /// default test function
 (func int main ())
 
 (func void runMain () (

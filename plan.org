@@ -1,6 +1,7 @@
 
 
 * To be sorted
+** TODO zomp toplevel in emacs: don't switch to buffer on C-c,C-s
 ** TODO default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not)
 ** TODO check return type in functions!
 ** TODO print var/func/macro declaration in toplevel

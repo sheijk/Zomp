@@ -16,15 +16,13 @@ let typeOfForm = Semantic.typeOfForm
                                    msg
                                    (Typesystems.Zomp.typeName expected)
                                    (Typesystems.Zomp.typeName found) ) )
+
+let escapeName name = "\"" ^ name ^ "\""
     
 let llvmName name =
+  let name = escapeName name in
   if name.[0] = '%' then name
   else "%" ^ name
-
-let llvmGlobalName name = name
-let llvmLocalName = llvmName
-  
-let isLocalVar name = String.length name <= 2 || name.[1] <> '$'
   
 let rec llvmTypeName : Lang.typ -> string = function
   | `Void -> "void"
@@ -49,10 +47,12 @@ type resultvar = {
   rvtypename :string;
 }
 
-let resultVar var = {
-  rvname = if var.vglobal then "@" ^ var.vname else "%" ^ var.vname;
-  rvtypename = llvmTypeName var.typ;
-}
+let resultVar var =
+  let name = escapeName var.vname in
+  {
+    rvname = if var.vglobal then "@" ^ name else "%" ^ name;
+    rvtypename = llvmTypeName var.typ;
+  }
   
 let noVar = { rvname = ""; rvtypename = "" }
     
@@ -244,12 +244,12 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   let builtinMacros =
     let macro name doc f = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = f; }) in
-    let delegateMacro macroName funcName =
-      macro macroName ("delegates to " ^ funcName) (fun _ args -> { id = funcName; args = args; })
-    in
-    (*     let templateMacro name params expr = *)
-    (*       macro name (fun _ args -> Ast2.replaceParams params args expr) *)
-    (*     in *)
+    (* let delegateMacro macroName funcName = *)
+    (*   macro macroName ("delegates to " ^ funcName) (fun _ args -> { id = funcName; args = args; }) *)
+    (* in *)
+    (* let templateMacro name params expr = *)
+    (*   macro name (fun _ args -> Ast2.replaceParams params args expr) *)
+    (* in *)
     let quoteMacro =
       macro "quote"
         "ast..."
@@ -270,9 +270,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         )
     in
     [
-      delegateMacro "op+" "int.add";
-      delegateMacro "op+_f" "float.add";
-
       quoteMacro;
       quoteasisMacro;
     ]
@@ -308,7 +305,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     find intrinsicFuncs
   in
   defaultBindings, externalFuncDecls, findIntrinsic
-  
+    
 let gencodeSequence gencode exprs =
   let rec lastVarAndCode var code = function
     | [] -> var, code
@@ -380,7 +377,7 @@ let gencodeDefineVariable gencode var default =
                     | Some zeroElementStr, Some expr ->
                         let initVar, initCode = gencode expr in
                         initCode ^
-                        sprintf "%s = %s %s %s, %s\n\n"
+                          sprintf "%s = %s %s %s, %s\n\n"
                           name
                           (initInstr var.typ)
                           typ
@@ -436,7 +433,6 @@ let gencodeFuncCall gencode call =
             let argTypeNames = List.map paramTypeName call.fcparams in
             combine ", " argTypeNames
           in
-(*           let argString = paramString (List.combine vars call.fcparams) in *)
           let argString =
             let toTypeAndArg name typ =
               llvmTypeName typ ^ " " ^ name
@@ -452,7 +448,7 @@ let gencodeFuncCall gencode call =
            ^ (sprintf "call %s (%s)* @%s(%s)\n\n"
                 (llvmTypeName call.fcrettype)
                 signatureString
-                call.fcname
+                (escapeName call.fcname)
                 argString))
         in
         (resultVar, comment ^ argevalCode ^ funccallCode)
@@ -697,14 +693,14 @@ let gencodeDefineFunc func =
         let paramTypeNames = List.map (fun (_, typ) -> paramTypeName typ) func.fargs in
         let paramString = combine ", " paramTypeNames in
         let decl = sprintf "%s @%s(%s) "
-          (llvmTypeName func.rettype) func.fname paramString
+          (llvmTypeName func.rettype) (escapeName func.fname) paramString
         in
         "declare " ^ decl
     | Some impl ->
         let param2string (name, typ) = (paramTypeName typ) ^ " " ^ (llvmName name) in
         let paramString = combine ", " (List.map param2string func.fargs) in
         let decl = sprintf "%s @%s(%s) "
-          (llvmTypeName func.rettype) func.fname paramString
+          (llvmTypeName func.rettype) (escapeName func.fname) paramString
         in
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
         let lastExpr = function

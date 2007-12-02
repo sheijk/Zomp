@@ -36,7 +36,7 @@ stdlibfuncs_exe.bc: stdlibfuncs.bc
 	@llvm-ld ../stdlib.bc $< -o ${@:.bc=}
 
 clean_tests:
-	@echo Cleaning tests...
+	@echo Cleaning tests ...
 	rm -f *.ll *.bc
 	rm -f compileperf.*
 
