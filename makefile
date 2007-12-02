@@ -3,6 +3,7 @@ OCAMLLEX=$(OCAMLPATH)ocamllex
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
 OCAMLC=$(OCAMLPATH)ocamlc -dtypes -warn-error A
+OCAMLOPT=$(OCAMLPATH)ocamlopt -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep
 UPDATE=cp
@@ -15,11 +16,21 @@ CAML_INCLUDE=
 CAML_PP=
 
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
+CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
+
+# CXX_FLAGS=-pg -g
+CXX_FLAGS=
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
-all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags opengl20.zomp glfw.zomp deps.png
+all: deps byte native stdlib.bc stdlib.ll libbindings tags deps.png
+libbindings: gencode opengl20.zomp glfw.zomp
+byte: deps dllzompvm.so toplevel2 zompc sexprtoplevel
+native: deps dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
+
+# all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags opengl20.zomp glfw.zomp deps.png
+# native: $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
 # ocamlbuild:
 # 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
@@ -28,8 +39,8 @@ SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexp
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	echo Building $@ ...
-	g++ `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
-	gcc -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
+	g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
+	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser`
 
 # opengl.dylib: opengl.c
@@ -39,19 +50,31 @@ dllzompvm.so: zompvm.h zompvm.cpp machine.c
 
 sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
+
+LLVM_LIBS=`llvm-config --libs jit interpreter native x86 asmparser`
+LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
+LANG_CMXS=common.cmx ast2.cmx parser2.cmx lexer2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx expander.cmx parseutils.cmx 
+
+sexprtoplevel.native: $(SEXPR_TL_INPUT:.cmo=.cmx)
+	echo Building $@ ...
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ str.cmxa bigarray.cmxa $(LANG_CMXS) sexprtoplevel.cmx
+
+zompc.native: $(LANG_CMOS:.cmo=.cmx) zompc.cmx
+	echo Building $@ ...
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) zompc.cmx
 
 toplevel2: $(LANG_CMOS) toplevel2.cmo
 	echo Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(LANG_CMOS) toplevel2.cmo
 
 zompc: $(LANG_CMOS) zompc.cmo
 	echo Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) $(LANG_CMOS) dllzompvm.so machine.cmo zompvm.cmo zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(LANG_CMOS) dllzompvm.so machine.cmo zompvm.cmo zompc.cmo
 
 gencode: gencode.cmo gencode.ml
 	echo Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -g -o $@ $(CAML_LIBS) gencode.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) gencode.cmo
 
 machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
@@ -60,7 +83,9 @@ machine.c machine.ml: gencode machine.skel
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
 # 	ocamlrun $(CAML_LIBS) $(LANG_CMOS) expander_tests.cmo
-	cd tests && make clean_tests check
+# 	date +"Starting at %d.%m.20%y %H:%M:%S"
+	cd tests && time make clean_tests check
+# 	date +"Finished at %d.%m.20%y %H:%M:%S"
 
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
@@ -82,7 +107,7 @@ deps.dot deps.png: deps
 	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
 	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
 
-.SUFFIXES: .ml .cmo .mly .mll .cmi
+.SUFFIXES: .ml .cmo .mly .mll .cmi .cmx
 
 .mly.ml:
 	echo Generating parser $< ...
@@ -95,11 +120,15 @@ deps.dot deps.png: deps
 
 .ml.cmi:
 	echo Compiling $< triggered by .cmi ...
-	$(OCAMLC) $(CAML_FLAGS) -g -c $<
+	$(OCAMLC) $(CAML_FLAGS)  -c $<
 
 .ml.cmo:
-	echo Compiling $< ...
-	$(OCAMLC) $(CAML_FLAGS) -g -c $<
+	echo "Compiling (bytecode) $< ..."
+	$(OCAMLC) $(CAML_FLAGS)  -c $<
+
+.ml.cmx:
+	echo "Compilng (native) $< ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
 deps:
 	echo Calculating dependencies ...
@@ -138,6 +167,7 @@ clean:
 	rm -f dllzompvm.so libzompvm.a zompvm.o
 	rm -f testdll.o dlltest.dylib 
 	rm -f *_flymake.*
+	rm -f *.cmx *.native
 
 clean_tags:
 	rm -f *.annot

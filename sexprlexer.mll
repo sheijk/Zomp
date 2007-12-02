@@ -10,7 +10,8 @@ let whitespace = [' ' '\t' '\n']*
 let identifierChar = [':' 'a'-'z' '0'-'9' 'A'-'Z' '_' '.']
 let addOp = ['+' '-']
 let multOp = ['*' '/']
-let compareOp = ("==" | "!=")
+let compareOp = ("=" | "==" | "!=" | "<" | "<=" | ">" | ">=")
+let opPostfix = ('_' identifierChar+)?
   
 rule token = parse
   | whitespace
@@ -19,13 +20,13 @@ rule token = parse
       { PAREN_OPEN }
   | ')'
       { PAREN_CLOSE }
-  | ("op" (addOp | multOp | compareOp)) as funcName
+  | ("op" (addOp | multOp | compareOp) opPostfix) as funcName
       { IDENTIFIER(funcName) }
-  | addOp as op
-      { ADD_OP(String.make 1 op) }
-  | multOp as op
-      { MULT_OP(String.make 1 op) }
-  | compareOp as op
+  | (addOp opPostfix) as op
+      { ADD_OP(op) }
+  | (multOp opPostfix) as op
+      { MULT_OP(op) }
+  | (compareOp opPostfix) as op
       { COMPARE_OP(op) }
   | (("``" | "`" | "#" ) as quoteOp)
       { QUOTE(quoteOp) }

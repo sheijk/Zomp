@@ -5,6 +5,20 @@
 (template op/ l r (int.sdiv #l #r))
 
 (template op== l r (int.equal #l #r))
+(template op!= l r (int.notEqual #l #r))
+
+(template op> l r (int.sgreater #l #r))
+(template op< l r (int.sless #l #r))
+(template op>= l r (int.sgreaterEqual #l #r))
+(template op<= l r (int.slessEqual #l #r))
+
+(template op+_f l r (float.add #l #r))
+(template op-_f l r (float.sub #l #r))
+(template op*_f l r (float.mul #l #r))
+(template op/_f l r (float.sdiv #l #r))
+
+(template op==_f l r (float.equal #l #r))
+(template op!=_f l r (float.notEqual #l #r))
 
 (func int foo () ((ret 20)))
   
@@ -20,13 +34,29 @@
     (int.equal 5 (10 / 2))
     )
 
+  (unittest.assertAll /// comparisons
+    (10 > 9)
+    (10 < 11)
+    (10 >= 10)
+    (9 >= 8)
+    (10 <= 10)
+    (9 <= 10)
+    )
+
   (unittest.assertAll /// combined operators
     (int.equal (10 * 3 + 1) 31)
     (int.equal (10 * 4 / 8) 5)
     (4 == 4)
+    (3 != 4)
     (10 == 3 * 3 + 1)
     )
-  
+
+  (unittest.assertAll /// indexed operators
+    (1.0 ==_f 1.0)
+    (2.0 *_f 2.0 ==_f 1.0 +_f 3.0)
+    )
+
   (ret 5)
   ))
+  
   

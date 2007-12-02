@@ -17,7 +17,7 @@
 (var (ptr char) trueString "true")
 (var (ptr char) falseString "false")
 
-(func void test ((bool b)) (
+(func void testit ((bool b)) (
   (branch b true false)
   
  (label true)
@@ -31,8 +31,8 @@
   ))
   
 (func int main () (seq
-  (test true)
-  (test false)
+  (testit true)
+  (testit false)
   
   (var int one (oneortwo true))
   (var int two (oneortwo false))

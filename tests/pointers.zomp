@@ -32,13 +32,13 @@
   ))
 
 (func void test_mutableptr () (
-  (mvar int i 1)
-  (mvar (ptr int) pi (nullptr int))
+  (var int i 1)
+  (var (ptr int) pi (nullptr int))
   void
   ))
   
 (func void test_load_memstorage () (
-  (mvar (ptr int) pi (nullptr int))
+  (var (ptr int) pi (nullptr int))
   (var int i (load pi))
   void
   ))

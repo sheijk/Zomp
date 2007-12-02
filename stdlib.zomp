@@ -525,8 +525,6 @@
 (float.aliasNoQNAN lessEqual)
 (float.aliasNoQNAN greaterEqual)
 
-
-/* /// default test function
 (func int main ())
 
 (func void runMain () (
@@ -536,6 +534,9 @@
   ))
 
 (testf (runMain))
+
+/* /// default test function
+
 */
 
 /*

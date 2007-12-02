@@ -51,13 +51,37 @@ let parseChannel lexbuf parseF bindings =
           raiseCouldNotCompile
             (sprintf "LLVM error when compiling macro: %s\n%s\n" msg code)
         end
-          
-let readInput channel =
-  let rec worker str = 
-    try worker (str ^ input_line channel ^ "\n")
-    with End_of_file -> str
-  in
-  worker ""
+
+let readInput = Common.readChannel
+  
+(* let readInput channel = *)
+(*   let rec worker lines totalLength = *)
+(*     try *)
+(*       let newline = input_line channel in *)
+(*       let lineLength = String.length newline in *)
+(*       worker ((newline, lineLength) :: lines) (totalLength + lineLength + 1) *)
+(*     with End_of_file -> lines, totalLength *)
+(*   in *)
+(*   let lines, totalLength = worker [] 0 in *)
+(*   let fileContent = String.make totalLength ' ' in *)
+(*   let rec copyLines lines endPos = *)
+(*     match lines with *)
+(*       | [] -> () *)
+(*       | (line, lineLength) :: rem -> *)
+(*           let startPos = endPos - lineLength - 1 in *)
+(*           String.blit fileContent startPos line 0 lineLength; *)
+(*           fileContent.[endPos-1] <- '\n'; *)
+(*           copyLines rem startPos *)
+(*   in *)
+(*   copyLines lines totalLength; *)
+(*   fileContent *)
+  
+(* let readInput channel = *)
+(*   let rec worker str =  *)
+(*     try worker (str ^ input_line channel ^ "\n") *)
+(*     with End_of_file -> str *)
+(*   in *)
+(*   worker "" *)
 
 let printInstructions() =
   printf "zompc -c fileName.zomp\n";

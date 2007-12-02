@@ -38,6 +38,7 @@ and macroPtradd = "ptradd"
 and macroMalloc = "malloc"
 and macroGetaddr = "ptr"
 and macroCast = "cast"
+and macroInclude = "include"
   
 exception IllegalExpression of sexpr * string
   
@@ -788,8 +789,6 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
   | _ ->
       None
 
-let macroInclude = "include"
-  
 let translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) = function
   | { id = id; args = [{ id = fileName; args = []}] } as expr when id = macroInclude ->
       begin

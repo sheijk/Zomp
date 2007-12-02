@@ -45,18 +45,46 @@ let indent string =
   let indentedLines = List.map indentLine lines in
   combine "\n" indentedLines
 
-let readFile filename =
-  let file = open_in filename in
-  let rec read() =
-	try
-	  let line = input_line file in
-	  line ^ "\n" ^ read()
-	with
-		End_of_file -> ""
+let readChannel channel =
+  let rec worker lines totalLength =
+    try
+      let newline = input_line channel in
+      let lineLength = String.length newline in
+      worker ((newline, lineLength) :: lines) (totalLength + lineLength + 1)
+    with End_of_file -> lines, totalLength
   in
-  let content = read() in
-  close_in file;
-  content
+  let lines, totalLength = worker [] 0 in
+  let fileContent = String.make totalLength ' ' in
+  let rec copyLines lines endPos =
+    match lines with
+      | [] -> ()
+      | (line, lineLength) :: rem ->
+          let startPos = endPos - lineLength - 1 in
+          String.blit line 0 fileContent startPos lineLength;
+          fileContent.[endPos-1] <- '\n';
+          copyLines rem startPos
+  in
+  copyLines lines totalLength;
+  fileContent
+
+    
+let readFile fileName =
+  let channel = open_in fileName in
+  readChannel channel
+
+    
+(* let readFile filename = *)
+(*   let file = open_in filename in *)
+(*   let rec read() = *)
+(* 	try *)
+(* 	  let line = input_line file in *)
+(* 	  line ^ "\n" ^ read() *)
+(* 	with *)
+(* 		End_of_file -> "" *)
+(*   in *)
+(*   let content = read() in *)
+(*   close_in file; *)
+(*   content *)
 
     
 let some x = Some x
