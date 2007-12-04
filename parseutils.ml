@@ -71,7 +71,8 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir =
     with
       | Lexer2.Eof | Sexprlexer.Eof -> codeAccum
   in
-  
+
+  let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let llvmPreludeFile = dir ^ "stdlib.ll" in
 (*   printf "Loading LLVM prelude from %s\n" llvmPreludeFile; flush stdout; *)
   Zompvm.loadLLVMFile llvmPreludeFile;

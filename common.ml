@@ -7,6 +7,7 @@ let apply2nd f (fst, snd) = (fst, f snd)
 let (<<=) f g = f g
 let (>>=) x f = f x
 let (++) f g x = f (g x)
+let (|>) x f = f x
   
 let rec combine seperator = function
     [] -> ""
@@ -66,26 +67,10 @@ let readChannel channel =
   in
   copyLines lines totalLength;
   fileContent
-
     
 let readFile fileName =
   let channel = open_in fileName in
   readChannel channel
-
-    
-(* let readFile filename = *)
-(*   let file = open_in filename in *)
-(*   let rec read() = *)
-(* 	try *)
-(* 	  let line = input_line file in *)
-(* 	  line ^ "\n" ^ read() *)
-(* 	with *)
-(* 		End_of_file -> "" *)
-(*   in *)
-(*   let content = read() in *)
-(*   close_in file; *)
-(*   content *)
-
     
 let some x = Some x
 let id x = x

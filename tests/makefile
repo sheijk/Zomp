@@ -38,10 +38,10 @@ stdlibfuncs_exe.bc: stdlibfuncs.bc
 
 clean_tests:
 	@echo Cleaning tests ...
-	rm -f *.ll *.bc
+	rm -f *.ll *.bc *.exe
 	rm -f compileperf.*
 
-.SUFFIXES: .zomp .ll .check .bc .run
+.SUFFIXES: .zomp .ll .check .bc .run .exe
 
 .zomp.check:
 	@echo Checking $<
@@ -63,4 +63,8 @@ clean_tests:
 	@echo Compiling $< to $@
 	@llvm-as -f $< -o $(<:.ll=.o.bc)
 	@llvm-link -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
+
+.bc.exe:
+	@echo Building $@ ...
+	@llvm-ld ../stdlib.bc $< -native -o $@
 

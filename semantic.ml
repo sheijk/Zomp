@@ -1,6 +1,7 @@
 
 open Printf
 open Lang
+open Common
 
 type typecheckResult =
   | TypeOf of composedType
@@ -181,4 +182,48 @@ let typeOfForm ~onError bindings form =
     | TypeOf typ -> typ
     | TypeError (msg, found, expected) ->
         onError ~msg ~found ~expected
-          
+
+let functionIsValid func =
+  match func.impl with
+    | Some funcImpl ->
+        begin
+          let rec collectLabels form =
+            match form with
+              | `Sequence forms ->
+                  let labelsAndTargets = List.map collectLabels forms in
+                  let labels, targets = List.split labelsAndTargets in
+                  List.flatten labels, List.flatten targets
+              | `Label l -> [l.lname], []
+              | `Jump label -> [], [label.lname]
+              | `Branch { trueLabel = t; falseLabel = f } -> [], [t.lname; f.lname]
+              | _ -> [], []
+          in
+          let labels, targets = collectLabels funcImpl in
+          let checkTarget target =
+            if List.mem target labels then `Ok
+            else `Errors [(sprintf "Label %s does not exist" target)]
+          in
+          let jumpChecks = List.map checkTarget targets in
+          let rec lastInstruction = function
+            | `Sequence [] as last -> last
+            | `Sequence [last] -> last
+            | `Sequence (_::tl) -> lastInstruction (`Sequence tl)
+            | _ as last -> last
+          in
+(*           let lastInstrCheck =  *)
+(*             match lastInstruction funcImpl with *)
+(*               | `Jump _ | `Branch _ | `Return _ -> `Ok *)
+(*               | _ -> `Errors ["Last instruction in function must be jumb|branch|ret"] *)
+(*           in *)
+          let lastInstrCheck = `Ok in
+          let collectErrors prevResult nextResult =
+            match prevResult, nextResult with
+              | _, `Ok -> prevResult
+              | `Ok, `Errors _ -> nextResult
+              | `Errors prevErrors, `Errors nextErrors -> `Errors (prevErrors @ nextErrors)
+          in
+          List.fold_left collectErrors lastInstrCheck jumpChecks
+        end
+    | None ->
+        `Ok
+         

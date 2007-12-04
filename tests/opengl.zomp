@@ -16,7 +16,7 @@ Conventions for function names:
 (include "opengl20.zomp")
 (include "glfw.zomp")
 
-(include "tests/glutils.zomp")
+(include "glutils.zomp")
 
 (const int windowWidth 400)
 (const int windowHeight 300)
@@ -45,14 +45,14 @@ Conventions for function names:
   (ret 0)
   ))
 
-(testf (
-  (zompLoadLib "libglfw.dylib")
-  (zompLoadLib "libGLEW.dylib")
+// (testf ( */
+//   (zompLoadLib "libglfw.dylib") */
+//   (zompLoadLib "libGLEW.dylib") */
   
-  (const int retval (main))
-  (printString "Main returned ")
-  (printInt retval)
-  (println)
-  ))
+//   (const int retval (main)) */
+//   (printString "Main returned ") */
+//   (printInt retval) */
+//   (println) */
+//   )) */
 
 

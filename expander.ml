@@ -863,9 +863,13 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
       | None -> [], None
     in
     let f = func name typ params impl in
-    let newBindings = addFunc bindings f in
-    let funcDef = `DefineFunc f in
-    newBindings, nestedTLForms, funcDef
+    match Semantic.functionIsValid f with
+      | `Ok ->
+          let newBindings = addFunc bindings f in
+          let funcDef = `DefineFunc f in
+          newBindings, nestedTLForms, funcDef
+      | `Errors messages -> raiseIllegalExpression
+          expr (Common.combine "\n" ((sprintf "Could not translate function %s:" name)::messages))
   in
   match expr with
     | { id = id; args = [

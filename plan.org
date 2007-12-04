@@ -1,34 +1,31 @@
 
-
 * To be sorted
-** TODO zomp toplevel in emacs: don't switch to buffer on C-c,C-s
-** TODO default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not)
-** TODO check return type in functions!
-** TODO print var/func/macro declaration in toplevel
-** TODO make printing parsed s-expr optional
-** TODO (ret) should behave like (ret void)
-** TODO if should be able to handle only an onTrue block
-** TODO float literals need to be fixed
-** TODO support break in loops
-** TODO global var of type double can have default of 0.0 (float format)
-** TODO add hook to zomp-mode
-** TODO double does not map equal etc. to oequal
-** TODO emit warning on missing ret
-** TODO llvm does not allow to hide global vars by local vars -> rename on nameclashes (also applies to vars in nested scopes)
-** TODO getting addresses of global variables (?)
-** TODO BUG: locals vars defined several times should produce an error in the expander
-** TODO stdlib funktionen in fake-namespaces tun
 
-* Tasks									:zomp:
+* Tasks
 
 ** BUGS
-*** TODO [#A] BUG: (ret (load (ptradd (getField parent childs) index))) 
-in function returning (ptr ast) is not accepted
-*** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily
-*** DONE fix toplevel "!" / abort expr
+*** TODO [#C] default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not) :bug:
+*** DONE [#A] emit warning on missing ret		:bug:
+    CLOSED: [2007-12-04 Tue 02:35] 
+*** TODO [#A] BUG: (ret (load (ptradd (getField parent childs) index))) :bug:
+in function returning (ptr ast) is not accepted 
+*** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily :bug:
+*** DONE fix toplevel "!" / abort expr			:bug:
     CLOSED: [2007-11-04 Sun 19:51]
 
 ** Fix language quirks
+*** TODO linking multiple generated .ll files does not work :bug:
+(wrong linking attributes for function declarations?)
+*** TODO check return type in functions!		:improve:
+*** TODO (ret) should behave like (ret void)	:improve:
+*** TODO 'if' should be able to handle only an onTrue block :improve:
+*** TODO float literals need to be fixed		:bug:
+*** TODO double does not map equal etc. to oequal :improve:
+*** TODO getting addresses of global variables (?)
+*** TODO BUG: locals vars defined several times should produce an error in the expander
+*** TODO llvm does not allow to hide global vars by local vars -> rename on nameclashes :bug:
+(also applies to vars in nested scopes)
+*** TODO stdlib funktionen in fake-namespaces tun
 *** DONE [#A] represent integer constants using Int32 instead of int to avoid overflows
     CLOSED: [2007-11-24 Sat 20:05] 
 *** TODO [#A] macros need a way to signal errors
@@ -36,8 +33,8 @@ in function returning (ptr ast) is not accepted
   (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
   (twice (printInt #i))
 
-*** TODO int representations: 0xff 0b1001 etc.
-*** TODO nested quotes and antiquotes don't work
+*** TODO int representations: 0xff 0b1001 etc.	:features:
+*** TODO nested quotes and antiquotes don't work :bug:
 *** DONE Allow getting pointer to variables
 *** DONE Fix record support: allow writing to record fields
     CLOSED: [2007-10-06 Sat 21:36]
@@ -96,6 +93,11 @@ in function returning (ptr ast) is not accepted
 *** TODO [#C] Bug: some generic intrinsics might return invalid bindings
 
 ** Interactive toplevel
+*** TODO zomp toplevel in emacs: don't switch to buffer on C-c,C-s
+*** DONE print var/func/macro declaration in toplevel
+    CLOSED: [2007-12-03 Mon 01:25] 
+*** DONE make printing parsed s-expr optional
+    CLOSED: [2007-12-03 Mon 01:25] 
 *** DONE Create C interface
     CLOSED: [2007-09-30 Sun 01:53]
     Reuse native function generator from opengl bindings(?)
@@ -117,7 +119,8 @@ in function returning (ptr ast) is not accepted
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]
 *** TODO [#C] Redefine/change variables
-**  Emacs support
+** Emacs support
+**** TODO add hook to zomp-mode
 **** TODO [#B] Flymake support
 **** DONE Start zomp toplevel in emacs
      CLOSED: [2007-10-16 Tue 22:11]
@@ -133,9 +136,12 @@ in function returning (ptr ast) is not accepted
 **** DONE Allow running code inside macros
      CLOSED: [2007-10-29 Mon 15:48] 
 **** DONE Insert astFromInt or astFromString if a var/func returns int/string
-     CLOSED: [2007-11-02 Fri 02:46] **** TODO Put macro functions into seperate module
+     CLOSED: [2007-11-02 Fri 02:46]
+**** TODO Put macro functions into seperate module
 **** DONE Allow macros to call any ordinary function
-     CLOSED: [2007-11-02 Fri 02:50] **** TODO Write "if then else" macro
+     CLOSED: [2007-11-02 Fri 02:50]
+**** DONE Write "if then else" macro
+     CLOSED: [2007-12-04 Tue 00:23] 
 **** DONE Write "for i min max" macro
      CLOSED: [2007-11-02 Fri 02:50]
 **** DONE Query existing functions and variables
@@ -144,7 +150,8 @@ in function returning (ptr ast) is not accepted
 *** DONE [#A] template
     CLOSED: [2007-11-24 Sat 20:12]     
     Implemented as macro
-*** TODO [#A] Allow testing macros 
+*** TODO support break in loops
+*** TODO [#A] Allow testing macros
 (running them on code and printing the resulting AST)
 *** TODO [#A] File I/O
 *** TODO [#A] Regular expressions
@@ -171,7 +178,7 @@ in function returning (ptr ast) is not accepted
 **** Define .zobj format
 
 
-* Notes											:zomp:
+* Notes
 - separated macro expansion / interpretation
 - mutable variables
 - loops
@@ -213,13 +220,9 @@ Then monads are probably possible without expanding the syntax (and possibly eve
 
 See the declare statement in lisp
 
-*** python's doctest clone
-
+** python's doctest clone
 automatically check embedded examples in documentation for correctness
 
-
- LocalWords:  AST IR VM Zomp zomp simpleform expr var boundsCheck alloca SSA
- LocalWords:  bytecode  Ast ast
 ** Type System
 *** Composable type system
 *** Security level
@@ -229,4 +232,7 @@ Might allow to do flow analysis.
 See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
        
 
+
+ LocalWords:  AST IR VM Zomp zomp simpleform expr var boundsCheck alloca SSA
+ LocalWords:  bytecode  Ast ast
 

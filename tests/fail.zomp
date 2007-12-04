@@ -1,0 +1,13 @@
+/**
+ * Demonstrates stuff which should fail (currently not tested automatically
+ */
+
+(func void invalidJumpTarget () (
+  (jump shouldNotExist)
+  (ret void)
+  ))
+
+(func int missingReturn () (
+  (printString "this should be a problem")
+  ))
+  
