@@ -7,27 +7,20 @@
 *** TODO [#C] default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not) :bug:
 *** DONE [#A] emit warning on missing ret		:bug:
     CLOSED: [2007-12-04 Tue 02:35] 
-*** TODO [#A] BUG: (ret (load (ptradd (getField parent childs) index))) :bug:
+*** DONE [#A] BUG: (ret (load (ptradd (getField parent childs) index))) :bug:
 in function returning (ptr ast) is not accepted 
+   CLOSED: [2007-12-05 Wed 20:35]
 *** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily :bug:
 *** DONE fix toplevel "!" / abort expr			:bug:
     CLOSED: [2007-11-04 Sun 19:51]
 
 ** Fix language quirks
-*** TODO linking multiple generated .ll files does not work :bug:
+*** TODO [#A] linking multiple generated .ll files does not work :bug:
 (wrong linking attributes for function declarations?)
-*** TODO check return type in functions!		:improve:
-*** TODO (ret) should behave like (ret void)	:improve:
-*** TODO 'if' should be able to handle only an onTrue block :improve:
-*** TODO float literals need to be fixed		:bug:
-*** TODO double does not map equal etc. to oequal :improve:
-*** TODO getting addresses of global variables (?)
-*** TODO BUG: locals vars defined several times should produce an error in the expander
-*** TODO llvm does not allow to hide global vars by local vars -> rename on nameclashes :bug:
-(also applies to vars in nested scopes)
-*** TODO stdlib funktionen in fake-namespaces tun
-*** DONE [#A] represent integer constants using Int32 instead of int to avoid overflows
-    CLOSED: [2007-11-24 Sat 20:05] 
+more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
+
+*** DONE check return type in functions!		:improve:
+    CLOSED: [2007-12-06 Thu 02:01]
 *** TODO [#A] macros need a way to signal errors
 *** TODO [#B] can't send antiquote to macro
   (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
@@ -186,6 +179,19 @@ in function returning (ptr ast) is not accepted
 - support for operators (+, -, <<, etc.)
 - compiler
 - type system
+
+** Alternative names
+
+There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
+
+baremp - bare metal meta programming / bare metal programming
+bmmp
+llmp - low level meta programming
+lowmp
+zompl - zero overhead meta programming language
+zoml - zero overhead meta language
+0mp
+roomp
 
 ** Type annotations
 Annotate types using meta data?

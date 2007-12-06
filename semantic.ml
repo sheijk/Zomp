@@ -35,129 +35,144 @@ let rec equalTypes bindings ltype rtype =
     | `Pointer l, `Pointer r when equalTypes bindings l r -> true
     | _, _ -> ltype = rtype
       
-let rec typeCheck bindings : form -> typecheckResult =
-  let expectPointerType form =
-    match typeCheck bindings form with
-      | TypeOf (`Pointer _ as pointerType) -> TypeOf pointerType
-      | TypeOf invalidType -> TypeError ("Expected pointer type", invalidType, `Pointer `Void)
-      | _ as e -> e
-  in
-  let expectType form expectType =
-    match typeCheck bindings form with
-      | TypeOf typ when typ = expectType -> TypeOf typ
-      | TypeOf invalidType -> TypeError ("Invalid type in 2nd parameter", invalidType, `Int)
-      | _ as e -> e
-  in
-  let (>>) l r =
-    match l with
-      | TypeError _ as e -> e
-      | TypeOf _ -> r
-  in
-  function
-    | `Sequence [] -> TypeOf `Void
-    | `Sequence [expr] -> typeCheck bindings expr
-    | `Sequence (_ :: tail) -> typeCheck bindings (`Sequence tail)
-    | `DefineVariable (var, expr) -> begin
-        match expr with
-          | Some expr ->
-              begin
-                match typeCheck bindings expr with
-                  | TypeOf exprType when equalTypes bindings exprType var.typ -> TypeOf `Void
-                  | TypeOf wrongType -> TypeError (
-                      "variable definition requires same type for var and default value", wrongType, var.typ)
-                  | TypeError _ as typeError -> typeError
-              end
-          | None -> TypeOf `Void
-      end
-    | `Variable var -> TypeOf var.typ
-    | `Constant value -> TypeOf (typeOf value)
-    | `FuncCall call ->
-        begin
-          let paramCount = List.length call.fcparams
-          and argCount = List.length call.fcargs in
-          if paramCount != argCount then
-            TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
-          else
-            List.fold_left2
-              (fun prevResult typ arg ->
-                 match typeCheck bindings (arg :> form) with
-                   | TypeOf argType when equalTypes bindings typ argType -> prevResult
-                   | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
-                   | TypeError(msg, invalidType, expectedType) ->
-                       TypeError ("Argument type is invalid: " ^ msg, invalidType, expectedType)
-              )
-              (TypeOf (call.fcrettype :> composedType))
-              call.fcparams call.fcargs
-        end
-    | `AssignVar (v, expr) -> begin
-        match typeCheck bindings expr with
-          | TypeOf exprType when equalTypes bindings exprType v.typ -> TypeOf `Void
-          | TypeOf exprType -> TypeError (
-              "Cannot assign result of expression to var because types differ",
-              exprType, v.typ)
-          | _ as typeError -> typeError
-      end
-    | `Return expr -> typeCheck bindings expr
-    | `Label _ -> TypeOf `Void
-    | `Jump _ -> TypeOf `Void
-    | `Branch _ -> TypeOf `Void
-    | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
-    | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
-    | `GetAddrIntrinsic var ->
-        begin
-          match var.vstorage with
-            | MemoryStorage ->
-                TypeOf (`Pointer var.typ)
-            | RegisterStorage ->
-                TypeError ("Cannot get address of variable with register storage",
-                           var.typ, var.typ)
-        end
-    | `StoreIntrinsic (ptrExpr, valueExpr) ->
-        begin
-          match typeCheck bindings ptrExpr, typeCheck bindings valueExpr with
-            | TypeOf `Pointer ptrTargetType, TypeOf valueType
-                when equalTypes bindings ptrTargetType valueType
-                  ->
-                TypeOf `Void
-            | TypeOf (#typ as invalidPointerType), TypeOf valueType ->
-                TypeError ("tried to store value to pointer of mismatching type",
-                           invalidPointerType,
-                           `Pointer valueType)
-            | (_ as l), (_ as r) ->
-                l >> r
-        end
-    | `LoadIntrinsic expr ->
-        begin
-          match typeCheck bindings expr with
-            | TypeOf `Pointer targetType -> TypeOf targetType
-            | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
-            | TypeError _ as t -> t
-        end
-    | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
-        begin
-          match typeCheck bindings recordForm with
-            | TypeOf `Pointer `Record components ->
+let rec typeCheck bindings form : typecheckResult =
+  let result = 
+    let expectPointerType form =
+      match typeCheck bindings form with
+        | TypeOf (`Pointer _ as pointerType) -> TypeOf pointerType
+        | TypeOf invalidType -> TypeError ("Expected pointer type", invalidType, `Pointer `Void)
+        | _ as e -> e
+    in
+    let expectType form expectType =
+      match typeCheck bindings form with
+        | TypeOf typ when typ = expectType -> TypeOf typ
+        | TypeOf invalidType -> TypeError ("Invalid type in 2nd parameter", invalidType, `Int)
+        | _ as e -> e
+    in
+    let (>>) l r =
+      match l with
+        | TypeError _ as e -> e
+        | TypeOf _ -> r
+    in
+    match form with
+      | `Sequence [] -> TypeOf `Void
+      | `Sequence [expr] -> typeCheck bindings expr
+      | `Sequence (_ :: tail) -> typeCheck bindings (`Sequence tail)
+      | `DefineVariable (var, expr) -> begin
+          match expr with
+            | Some expr ->
                 begin
-                  match componentType components fieldName with
-                    | Some t -> TypeOf (`Pointer t)
-                    | None -> TypeError("Component not found", `Void, `Void)
+                  match typeCheck bindings expr with
+                    | TypeOf exprType when equalTypes bindings exprType var.typ -> TypeOf `Void
+                    | TypeOf wrongType -> TypeError (
+                        "variable definition requires same type for var and default value", wrongType, var.typ)
+                    | TypeError _ as typeError -> typeError
                 end
-            | TypeOf nonPtrToRecord ->
-                TypeError
-                  ("Expected pointer to record type", nonPtrToRecord, `Pointer (`Record []))
-            | _ as typeError ->
-                typeError
+            | None -> TypeOf `Void
         end
-    | `PtrAddIntrinsic (ptrExpr, offsetExpr) ->
-        begin
-          expectType offsetExpr `Int
-          >> expectPointerType ptrExpr
+      | `Variable var -> TypeOf var.typ
+      | `Constant value -> TypeOf (typeOf value)
+      | `FuncCall call ->
+          begin
+            let paramCount = List.length call.fcparams
+            and argCount = List.length call.fcargs in
+            if paramCount != argCount then
+              TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
+            else
+              List.fold_left2
+                (fun prevResult typ arg ->
+                   match typeCheck bindings (arg :> form) with
+                     | TypeOf argType when equalTypes bindings typ argType -> prevResult
+                     | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
+                     | TypeError(msg, invalidType, expectedType) ->
+                         TypeError ("Argument type is invalid: " ^ msg, invalidType, expectedType)
+                )
+                (TypeOf (call.fcrettype :> composedType))
+                call.fcparams call.fcargs
+          end
+      | `AssignVar (v, expr) -> begin
+          match typeCheck bindings expr with
+            | TypeOf exprType when equalTypes bindings exprType v.typ -> TypeOf `Void
+            | TypeOf exprType -> TypeError (
+                "Cannot assign result of expression to var because types differ",
+                exprType, v.typ)
+            | _ as typeError -> typeError
         end
-    | `CastIntrinsic (targetType, valueExpr) ->
-        begin
-          TypeOf targetType
+      | `Return expr -> typeCheck bindings expr
+      | `Label _ -> TypeOf `Void
+      | `Jump _ -> TypeOf `Void
+      | `Branch _ -> TypeOf `Void
+      | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
+      | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
+      | `GetAddrIntrinsic var ->
+          begin
+            match var.vstorage with
+              | MemoryStorage ->
+                  TypeOf (`Pointer var.typ)
+              | RegisterStorage ->
+                  TypeError ("Cannot get address of variable with register storage",
+                             var.typ, var.typ)
+          end
+      | `StoreIntrinsic (ptrExpr, valueExpr) ->
+          begin
+            match typeCheck bindings ptrExpr, typeCheck bindings valueExpr with
+              | TypeOf `Pointer ptrTargetType, TypeOf valueType
+                  when equalTypes bindings ptrTargetType valueType
+                    ->
+                  TypeOf `Void
+              | TypeOf (#typ as invalidPointerType), TypeOf valueType ->
+                  TypeError ("tried to store value to pointer of mismatching type",
+                             invalidPointerType,
+                             `Pointer valueType)
+              | (_ as l), (_ as r) ->
+                  l >> r
+          end
+      | `LoadIntrinsic expr ->
+          begin
+            match typeCheck bindings expr with
+              | TypeOf `Pointer targetType -> TypeOf targetType
+              | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
+              | TypeError _ as t -> t
+          end
+      | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
+          begin
+            match typeCheck bindings recordForm with
+              | TypeOf `Pointer `Record components ->
+                  begin
+                    match componentType components fieldName with
+                      | Some t -> TypeOf (`Pointer t)
+                      | None -> TypeError("Component not found", `Void, `Void)
+                  end
+              | TypeOf nonPtrToRecord ->
+                  TypeError
+                    ("Expected pointer to record type", nonPtrToRecord, `Pointer (`Record []))
+              | _ as typeError ->
+                  typeError
+          end
+      | `PtrAddIntrinsic (ptrExpr, offsetExpr) ->
+          begin
+            expectType offsetExpr `Int
+            >> expectPointerType ptrExpr
+          end
+      | `CastIntrinsic (targetType, valueExpr) ->
+          begin
+            TypeOf targetType
+          end
+  in
+  let rec removeTypeRefs bindings = function
+    | `TypeRef name as typeref ->
+        begin match Bindings.lookup bindings name with
+          | Bindings.TypedefSymbol t -> t
+          | _ -> typeref
         end
-        
+    | `Pointer t -> `Pointer (removeTypeRefs bindings t)
+    | `Record _ | #integralType as t -> t
+  in
+  match result with
+    | TypeOf t ->
+        TypeOf (removeTypeRefs bindings t)
+    | _ ->
+        result
   
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ

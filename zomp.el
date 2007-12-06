@@ -138,6 +138,35 @@
  "A face for todo items")
 (defvar todo-face 'todo-face)
 
+(defun zomp-indent-line ()
+  (interactive)
+  (save-excursion
+    (let ((left 0))
+      (when (> (current-line) 1)
+        (save-excursion
+          (let ((dontabort t))
+            (while dontabort
+              (previous-line)
+              (beginning-of-line)
+              (when (not (looking-at " *$"))
+                (setq dontabort nil))))
+          (back-to-indentation)
+          (setq left (current-column))
+          (let ((line-start 0) (line-end 0))
+            (beginning-of-line) (setq line-start (point))
+            (end-of-line) (setq line-end (point))
+            (let ((open-parens 0) (closing-parens 0))
+              (setq open-parens (how-many "(" line-start line-end))
+              (setq closing-parens (how-many ")" line-start line-end))
+              (cond ((> open-parens closing-parens) (setq left (+ left 2)))
+                    ((< open-parens closing-parens) (setq left (- left 2)))
+                    ))
+            (next-line))))
+      (beginning-of-line)
+      (just-one-space)
+      (backward-delete-char 1)
+      (indent-to-column left))))
+
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
   '("{" "}")
@@ -197,6 +226,8 @@
 
            (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
            (eldoc-mode t)
+
+           (setq indent-line-function 'zomp-indent-line)
            
            ; highlight s-expression under cursor
            (hl-sexp-mode t)

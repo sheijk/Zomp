@@ -10,4 +10,11 @@
 (func int missingReturn () (
   (printString "this should be a problem")
   ))
-  
+
+
+(func (ptr ast) getTree () (
+  (var (ptr ast) parent `(this be parent))
+  (const int index 1)
+  (ret (load (ptradd (getField parent childs) index)))
+  ))
+

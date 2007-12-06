@@ -155,9 +155,9 @@ let writeSymbols args bindings =
                                let argToString (name, typ) = sprintf "%s %s" (typeName typ) name in
                                let args = List.map argToString func.fargs in
                                let argString = Common.combine ", " args in
-                               fprintf stream "func(%s) -> %s" argString (typeName func.rettype);
+                               fprintf stream "(%s) -> %s" argString (typeName func.rettype);
                            | MacroSymbol macro ->
-                               fprintf stream "macro %s" macro.mdocstring;
+                               fprintf stream "%s" macro.mdocstring;
                            | LabelSymbol label ->
                                fprintf stream "label %s" label.lname;
                            | TypedefSymbol typ ->
@@ -167,10 +167,10 @@ let writeSymbols args bindings =
                          end;
                          fprintf stream "\n" )
               bindings;
-            let builtinDoc (name, params) = fprintf stream "%s =builtin %s\n" name params in
+            let builtinDoc (name, params) = fprintf stream "%s =%s\n" name params in
             List.iter builtinDoc [
               "var", "type name default";
-              "func", "returnType ((typ0 arg0)...) implExp";
+              "func", "returnType name ((typ0 arg0)...) implExp";
               "assign", "lvar value";
               "seq", "expr...";
               "type", "name typeExpr";
