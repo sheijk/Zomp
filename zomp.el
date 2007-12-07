@@ -176,13 +176,12 @@
   (interactive)
   (save-excursion
     (zomp-mark-current)
-    (indent-region)))
+    (indent-region (region-beginning) (region-end))))
 
 (defun zomp-indent-buffer ()
   (interactive)
   (save-excursion
-    (mark-whole-buffer)
-    (indent-region)))
+    (indent-region 0 (buffer-end 1))))
      
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
