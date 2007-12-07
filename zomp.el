@@ -75,14 +75,19 @@
   (process-send-string (get-buffer-process "*zomp-toplevel*") "")
   )
 
+(defun zomp-mark-current ()
+  "Marks the current toplevel function/(macro/"
+  (interactive)
+  (forward-char)
+  (search-backward-regexp "^(")
+  (push-mark (point) t t)
+  (goto-match-paren 4))
+  
 (defun zomp-tl-eval-current ()
   (interactive)
   (message "Evaluating function at point")
   (save-excursion
-    (forward-char)
-    (search-backward-regexp "^(")
-    (push-mark (point) t t)
-    (goto-match-paren 4)
+    (zomp-mark-current)
     (zomp-tl-eval-region) ))
 
 (defun zomp-next-tl-expr ()
@@ -167,6 +172,18 @@
       (backward-delete-char 1)
       (indent-to-column left))))
 
+(defun zomp-indent-current ()
+  (interactive)
+  (save-excursion
+    (zomp-mark-current)
+    (indent-region)))
+
+(defun zomp-indent-buffer ()
+  (interactive)
+  (save-excursion
+    (mark-whole-buffer)
+    (indent-region)))
+     
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
   '("{" "}")
@@ -237,13 +254,17 @@
 
            (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
            (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
-
+           
            (zomp-add-seperator zomp-sep-3)
            (zomp-add-action zomp-tl-run [(control c)(d)] "Run function...")
            (zomp-add-action zomp-tl-run-test [(control c)(t)] "Run 'void test()'")
            (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
            (zomp-add-action zomp-tl-list-bindings [(control c)(f)] "List bindings...")
            (zomp-add-action zomp-tl-help [(control c)(h)] "Show toplevel help")
+
+           (zomp-add-seperator zomp-sep4)
+           (zomp-add-action zomp-indent-current [(meta q)] "Indent current")
+           (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
 
            (zomp-add-seperator zomp-sep-2)
            (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
