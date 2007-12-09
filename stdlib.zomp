@@ -283,7 +283,7 @@
   (assign lastid (int.add lastid 1))
   (ret lastid) ))
 
-(func cstring appendCStrings ((cstring l) (cstring r)) (
+(func cstring cstrings.append ((cstring l) (cstring r)) (
   (var (ptr string) lstr (makestring l))
   (var (ptr string) rstr (makestring r))
   (var (ptr string) appended (append lstr rstr))
@@ -293,11 +293,11 @@
 (func cstring newUniqueName () (
   (var int id (newUniqueId))
   (var cstring numstr (int2cstring id))
-  (ret (appendCStrings "_tmp_" numstr)) ))
+  (ret (cstrings.append "_tmp_" numstr)) ))
 
 (func cstring newUniqueNameFor ((cstring purpose)) (
   (var cstring name (newUniqueName))
-  (ret (appendCStrings (appendCStrings name "_") purpose)) ))
+  (ret (cstrings.append (cstrings.append name "_") purpose)) ))
 
 (macro macrotst (
   (ret `(3))
@@ -350,7 +350,7 @@
     ))
   ))
 
-(macro while test body (
+(macro while test (rest body) (
   (uniqueId begin "while_begin")
   (uniqueId exit "while_exit")
   (uniqueId goon "while_body")
@@ -469,10 +469,26 @@
     ))
   ))
 
+(macro runOnceFunc rettype name args impl (
+  (uniqueId initialized (cstrings.append (getField name id) "_already_called"))
+
+  (ret `(
+    (var bool #initialized false)
+    (func #rettype #name #args (
+      (if #initialized
+        ((printString (getField `#name id))
+          (printString " was already called before!")
+          (println))
+        ((assign #initialized true)
+          #impl))
+      ))
+    ))
+  ))
+
 /// additional ast functions --------------------------------
 
 (func void ast.setChild
-    (((ptr ast) parent) (int index) ((ptr ast) newChild))
+  (((ptr ast) parent) (int index) ((ptr ast) newChild))
   (
   (assert (int.uless index (getField parent childCount)))
   (var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index))
@@ -480,9 +496,9 @@
   ))
 
 (func void ast.replace (
-    ((ptr ast) tree)
-    (cstring placeholder)
-    ((ptr ast) replacement) )
+  ((ptr ast) tree)
+  (cstring placeholder)
+  ((ptr ast) replacement) )
   (
   (const int count (getField tree childCount))
   (for childNum 0 count (
@@ -507,8 +523,8 @@
 /// floating point support --------------------------------
 
 (macro float.aliasNoQNAN funcName (
-  (var cstring macroName (appendCStrings "float." (getField funcName id)))
-  (var astp orderedName (simpleAst (appendCStrings "float.o" (getField funcName id))))
+  (var cstring macroName (cstrings.append "float." (getField funcName id)))
+  (var astp orderedName (simpleAst (cstrings.append "float.o" (getField funcName id))))
   (addChild orderedName ``#l)
   (addChild orderedName ``#r)
 

@@ -33,6 +33,17 @@ compileperftest:
 	  time ../zomp-check-syntax.sh compileperf.zomp; \
 	done
 
+GLAPP_FLAGS = -framework Carbon -framework CoreFoundation -framework OpenGL -framework AGL ../libglfw.a ../libGLEW.a
+
+gltest_llvm.exe: gltest.bc
+	@echo Building $@ ...
+	llvm-ld -native -o $@ ../stdlib.bc $<
+
+gltest.exe: gltest_converted.c
+	@echo Building $@ ...
+	g++ -o gltest.exe $(GLAPP_FLAGS) gltest_converted.c
+
+
 stdlibfuncs_exe.bc: stdlibfuncs.bc
 	@llvm-ld ../stdlib.bc $< -o ${@:.bc=}
 
@@ -41,7 +52,11 @@ clean_tests:
 	rm -f *.ll *.bc *.exe
 	rm -f compileperf.*
 
-.SUFFIXES: .zomp .ll .check .bc .run .exe
+.SUFFIXES: .zomp .ll .check .bc .run .exe .cbe.c
+
+.bc.cbe.c:
+	@echo Generating $@ ...
+	llc -march=c -f gltest.bc
 
 .zomp.check:
 	@echo Checking $<

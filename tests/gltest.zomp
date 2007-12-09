@@ -16,8 +16,7 @@ Conventions for function names:
 
 (include "opengl20.zomp")
 (include "glfw.zomp")
-
-(include "tests/glutils.zomp")
+(include "glutils.zomp")
 
 (const int windowWidth 400)
 (const int windowHeight 300)
@@ -37,6 +36,7 @@ Conventions for function names:
 
   (assertGLTrue (glfwInit))
   (assertGLTrue (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW))
+  (glewInit)
 
   (assign initialized true)
   (ret true)
@@ -101,7 +101,7 @@ void main(void) {
   (ret (getField fbo colorTexture))
   ))
   
-(var double autoTimeout 1.0)
+(var double autoTimeout 1000.0)
 
 (func GLuint makeMainShader () (
   (createShader
@@ -236,12 +236,12 @@ void main(void) {
   (ret 0)
   ))
 
-(testf (
-  (const int retval (main))
-  (printString "Main returned ")
-  (printInt retval)
-  (println)
-  ))
+// (testf ( */
+//   (const int retval (main)) */
+//   (printString "Main returned ") */
+//   (printInt retval) */
+//   (println) */
+//   )) */
 
 (func void long () ((assign autoTimeout 1000.0d) (test)))
 (func void short () ((assign autoTimeout 1.0d) (test)))

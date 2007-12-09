@@ -1,5 +1,11 @@
 
 * To be sorted
+** TODO performance probleme fixen
+** TODO gltest.cbe.c unter windows testen
+** TODO schnelle navigation im toplevel
+** TODO indent: special treatment for lines containing only closing parentheses?
+** TODO arguments in function don't match: tell which argument(s) failed
+** TODO ast von cstring auf string umstellen
 
 * Tasks
 

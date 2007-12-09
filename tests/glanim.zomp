@@ -27,7 +27,7 @@
   (glLoadIdentity)
   (const double aspect (double.fdiv (int.toDouble windowWidth) (int.toDouble windowHeight)))
   (gluPerspective (int.toDouble 90) aspect 1.0d 100.0d)
-  
+
   (var bool running true)
   (while running (
     (const float time (double.toFloat (glfwGetTime)))
