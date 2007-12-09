@@ -103,7 +103,7 @@ Conventions for function names:
 (func bool isPressed ((int key)) (
   (int.equal (glfwGetKey key) GL_TRUE)
   ))
-
+ 
 // (func bool bool.not ((bool v)) (
 //   (bool.xor v true) ))
 

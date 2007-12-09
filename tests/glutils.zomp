@@ -305,3 +305,7 @@
   (glBindTexture2D 0)
   ))
 
+(func bool isPressed ((int key)) (
+  (int.equal (glfwGetKey key) GL_TRUE)
+  ))
+
