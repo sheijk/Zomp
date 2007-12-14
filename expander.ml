@@ -789,47 +789,23 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
   | _ ->
       None
 
-let translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [{ id = fileName; args = []}] } as expr when id = macroInclude ->
-      begin
-        let fileName = Common.removeQuotes fileName in
-        let parse fileName : sexpr list =
-          try
-            let fileContent = Common.readFile fileName in
-            let lexbuf = Lexing.from_string fileContent in
-            let rec parseExprs lexbuf exprAccum =
-              try
-                let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
-                parseExprs lexbuf (sexpr :: exprAccum)
-              with
-                | Sexprlexer.Eof -> exprAccum
-            in
-            let sexprs = List.rev (parseExprs lexbuf []) in
-            sexprs
-              (*             let sexpr = Sexprparser.main Sexprlexer.token lexbuf in *)
-              (*             match sexpr with *)
-              (*               | { id = id; args = exprs } when id = macroSequence -> exprs *)
-              (*               | expr -> [expr] *)
-          with
-            | Sys_error message -> raiseIllegalExpression expr
-                (sprintf "Could not find file '%s': %s" fileName message)
-        in
-        let sexprs = parse fileName in
-        let newBindings, tlexprsFromFile =
-          List.fold_left
-            (fun (bindings,prevExprs) sexpr ->
-               let newBindings, newExprs = translateF bindings sexpr in
-               newBindings, prevExprs @ newExprs )
-            (bindings, [])
-            sexprs
-        in
-        Some( newBindings, tlexprsFromFile )
-      end
-  | { id = id; args = _ } as invalidExpr when id = macroInclude ->
-      raiseIllegalExpression invalidExpr "Expected one parameter"
-  | _ ->
-      None
-        
+let matchFunc = function
+  | { id = id; args = [
+        typeExpr;
+        { id = name; args = [] };
+        { id = seq1; args = paramExprs };
+        { id = seq2; args = _ } as implExpr;
+      ] } when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
+      `FuncDef (name, typeExpr, paramExprs, implExpr)
+  | { id = id; args = [
+        typeExpr;
+        { id = name; args = [] };
+        { id = seq; args = paramExprs };
+      ] } when id = macroFunc && seq = macroSequence ->
+      `FuncDecl (name, typeExpr, paramExprs)
+  | expr ->
+      `NotAFunc expr
+
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -871,13 +847,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
       | `Errors messages -> raiseIllegalExpression
           expr (Common.combine "\n" ((sprintf "Could not translate function %s:" name)::messages))
   in
-  match expr with
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          { id = seq1; args = paramExprs };
-          { id = seq2; args = _ } as implExpr;
-        ] } when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
+  match matchFunc expr with
+    | `FuncDef (name, typeExpr, paramExprs, implExpr) ->
         begin
           match translateType bindings typeExpr with
             | Some typ -> begin
@@ -897,11 +868,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
               end
             | None -> raiseInvalidType typeExpr
         end
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          { id = seq; args = paramExprs };
-        ] } when id = macroFunc && seq = macroSequence ->
+    | `FuncDecl (name, typeExpr, paramExprs) ->
         begin
           match translateType bindings typeExpr with
             | Some typ ->
@@ -914,7 +881,99 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         end
     | _ ->
         None
+          
+(*   match expr with *)
+(*     | { id = id; args = [ *)
+(*           typeExpr; *)
+(*           { id = name; args = [] }; *)
+(*           { id = seq1; args = paramExprs }; *)
+(*           { id = seq2; args = _ } as implExpr; *)
+(*         ] } when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence -> *)
+(*         begin *)
+(*           match translateType bindings typeExpr with *)
+(*             | Some typ -> begin *)
+(*                 let tempBindings, _, _ = buildFunction bindings typ name paramExprs None in *)
+(*                 let newBindings, toplevelForms, funcDef = *)
+(*                   buildFunction tempBindings typ name paramExprs (Some implExpr) *)
+(*                 in *)
+(*                 match typeCheckTL newBindings funcDef with *)
+(*                   | TypeOf _ -> Some( newBindings, toplevelForms @ [funcDef] ) *)
+(*                   | TypeError (msg, declaredType, returnedType) -> *)
+(*                       raiseIllegalExpression *)
+(*                         expr *)
+(*                         (Printf.sprintf "Function has return type %s but returns %s: %s" *)
+(*                            (Lang.typeName declaredType) *)
+(*                            (Lang.typeName returnedType) *)
+(*                            msg) *)
+(*               end *)
+(*             | None -> raiseInvalidType typeExpr *)
+(*         end *)
+(*     | { id = id; args = [ *)
+(*           typeExpr; *)
+(*           { id = name; args = [] }; *)
+(*           { id = seq; args = paramExprs }; *)
+(*         ] } when id = macroFunc && seq = macroSequence -> *)
+(*         begin *)
+(*           match translateType bindings typeExpr with *)
+(*             | Some typ -> *)
+(*                 begin *)
+(*                   let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs None in *)
+(*                   Some (newBindings, [funcDecl] ) *)
+(*                 end *)
+(*             | None -> *)
+(*                 raiseInvalidType typeExpr *)
+(*         end *)
+(*     | _ -> *)
+(*         None *)
 
+and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
+  let translateDeclarationsOnlyF bindings tlexprs = translateF bindings tlexprs
+  in
+  let importFile fileName impls =
+    let parse fileName : sexpr list =
+      try
+        let fileContent = Common.readFile fileName in
+        let lexbuf = Lexing.from_string fileContent in
+        let rec parseExprs lexbuf exprAccum =
+          try
+            let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
+            parseExprs lexbuf (sexpr :: exprAccum)
+          with
+            | Sexprlexer.Eof -> exprAccum
+        in
+        let sexprs = List.rev (parseExprs lexbuf []) in
+        sexprs
+      with
+        | Sys_error message -> raiseIllegalExpression expr
+            (sprintf "Could not find file '%s': %s" fileName message)
+    in
+    let sexprs = parse fileName in
+    let translateFunc =
+      match impls with
+        | `WithImplementations -> translateF
+        | `DeclarationsOnly -> translateDeclarationsOnlyF
+    in
+    let newBindings, tlexprsFromFile =
+      List.fold_left
+        (fun (bindings,prevExprs) sexpr ->
+           let newBindings, newExprs = translateFunc bindings sexpr in
+           newBindings, prevExprs @ newExprs )
+        (bindings, [])
+        sexprs
+    in
+    Some( newBindings, tlexprsFromFile )
+  in
+  match expr with
+    | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
+        begin
+          let fileName = Common.removeQuotes fileName in
+          importFile fileName `WithImplementations
+        end
+    | { id = id; args = _ } as invalidExpr when id = macroInclude ->
+        raiseIllegalExpression invalidExpr "Expected one parameter"
+    | _ ->
+        None
+          
 and translateTL bindings expr = translate raiseIllegalExpression
   [
     translateGlobalVar;

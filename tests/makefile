@@ -33,7 +33,7 @@ compileperftest:
 	  time ../zomp-check-syntax.sh compileperf.zomp; \
 	done
 
-GLAPP_FLAGS = -framework Carbon -framework CoreFoundation -framework OpenGL -framework AGL ../libglfw.a ../libGLEW.a
+GLAPP_LIBS = -framework Carbon -framework CoreFoundation -framework OpenGL -framework AGL ../libglfw.a ../libGLEW.a
 
 gltest_llvm.exe: gltest.bc
 	@echo Building $@ ...
@@ -41,7 +41,7 @@ gltest_llvm.exe: gltest.bc
 
 gltest.exe: gltest_converted.c
 	@echo Building $@ ...
-	g++ -o gltest.exe $(GLAPP_FLAGS) gltest_converted.c
+	g++ -o gltest.exe $(GLAPP_LIBS) gltest_converted.c
 
 
 stdlibfuncs_exe.bc: stdlibfuncs.bc
