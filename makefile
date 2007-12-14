@@ -87,6 +87,9 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 	cd tests && time make clean_tests check
 # 	date +"Finished at %d.%m.20%y %H:%M:%S"
 
+perftest: zompc.native zompc
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 4000"
+
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
 	llvm-gcc --emit-llvm -c $< -o $@
@@ -127,7 +130,7 @@ deps.dot deps.png: deps
 	$(OCAMLC) $(CAML_FLAGS)  -c $<
 
 .ml.cmx:
-	echo "Compilng (native) $< ..."
+	echo "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
 deps:
@@ -135,8 +138,9 @@ deps:
 	$(OCAMLDEP) $(CAML_PP) *.ml *.mly *.mll > makefile.depends
 
 parser2.cmo: ast2.ml
-sexprparser.cmo: ast2.ml
-sexprlexer.cmo: ast2.ml
+lexer2.cmo: common.ml
+sexprparser.cmo: ast2.ml common.ml
+sexprlexer.cmo: ast2.ml common.ml
 machine.cmo: machine.skel
 zompvm.cmo: machine.cmo
 zompc: dllzompvm.so

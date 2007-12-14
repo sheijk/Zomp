@@ -43,9 +43,15 @@ let catchingErrorsDo f ~onError =
         printf "%s" msg;
         onError()
 
-let compileExpr translateF bindings sexpr = 
-  let newBindings, simpleforms = translateF bindings sexpr in
-  let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
+let compileExpr translateF bindings sexpr =
+  let newBindings, simpleforms =
+    collectTimingInfo "generating ast"
+      (fun () -> translateF bindings sexpr)
+  in
+  let llvmCodes =
+    collectTimingInfo "codegen"
+      (fun () -> List.map Genllvm.gencodeTL simpleforms)
+  in
   let llvmCode = combine "\n" llvmCodes in
   newBindings, simpleforms, llvmCode
 
@@ -74,14 +80,16 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir =
 
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let llvmPreludeFile = dir ^ "stdlib.ll" in
-(*   printf "Loading LLVM prelude from %s\n" llvmPreludeFile; flush stdout; *)
-  Zompvm.loadLLVMFile llvmPreludeFile;
+  (collectTimingInfo "loading .ll file"
+     (fun () -> Zompvm.loadLLVMFile llvmPreludeFile));
   
   let zompPreludeFile = dir ^ "stdlib.zomp" in
-(*   printf "Loading Zomp prelude from %s\n" zompPreludeFile; flush stdout; *)
   let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
   let parseF = Sexprparser.main Sexprlexer.token in
-  let exprs = ref (parse parseF lexbuf []) in
+  let exprs =
+    collectTimingInfo "parsing"
+      (fun () -> ref (parse parseF lexbuf []))
+  in
   let readExpr _ =
     match !exprs with
       | next :: rem ->
@@ -95,18 +103,8 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir =
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
                     processExpr expr oldBindings newBindings simpleforms llvmCode)
-(*       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode -> *)
-(*                     Zompvm.evalLLVMCode oldBindings simpleforms llvmCode *)
-(*                  ) *)
       Genllvm.defaultBindings
   in
   newBindings
-  (*     let newBindings = *)
-  (*       List.fold_left *)
-  (*         (fun bindings expr -> *)
-  (*            let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in *)
-  (*            Zompvm.evalLLVMCode bindings simpleforms llvmCode; *)
-  (*            newBindings) *)
-  (*         Genllvm.defaultBindings *)
-  (*         exprs *)
-  (*     in *)
+
+    

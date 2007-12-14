@@ -730,6 +730,7 @@ let gencodeTL = function
   | `DefineFunc func -> gencodeDefineFunc func
   | `Typedef (name, typ) -> gencodeTypedef name typ
 
+
 let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
   let rec seperateVarsAndFuncs = function
     | [] -> ([], [], [])
@@ -740,19 +741,39 @@ let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
           | `GlobalVar _ as var -> (typedefs, var :: vars, funcs)
           | `DefineFunc _ as func -> (typedefs, vars, func :: funcs)
   in
-  let globalTypedefs, globalVars, globalFuncs = seperateVarsAndFuncs toplevelExprs in
-  let headerCode = ""
-  and typedefCode = List.map gencodeTL globalTypedefs
-  and varCode = List.map gencodeTL globalVars
-  and funcCode = List.map gencodeTL globalFuncs
+  let globalTypedefs, globalVars, globalFuncs =
+    collectTimingInfo "seperating types, globals, funcs"
+      (fun () -> seperateVarsAndFuncs toplevelExprs)
   in
-  "\n\n\n\n;;; header ;;;\n\n\n\n"
-  ^ headerCode ^ "\n\n"
-  ^ "\n\n\n\n;;; typedefs ;;;\n\n\n\n"
-  ^ (combine "\n\n" typedefCode)
-  ^ "\n\n\n\n;;; variables ;;;\n\n\n\n"
-  ^ (combine "\n\n" varCode)
-  ^ "\n\n\n\n;;; implementation ;;;\n\n\n\n"
-  ^ (combine "\n\n" funcCode)
-  ^ "\n\n" ^ externalFuncDecls
-
+  let headerCode = ""
+  and typedefCode =
+    collectTimingInfo "typedefs" (fun () -> List.map gencodeTL globalTypedefs )
+  and varCode =
+    collectTimingInfo "vars" (fun () -> List.map gencodeTL globalVars)
+  and funcCode =
+    collectTimingInfo "funcs" (fun () -> List.map gencodeTL globalFuncs)
+  in
+  collectTimingInfo "concatenating text"
+    (fun () ->
+       combine "" [
+         "\n\n\n\n;;; header ;;;\n\n\n\n";
+         headerCode; "\n\n";
+         (combine "\n\n" typedefCode);
+         "\n\n\n\n;;; variables ;;;\n\n\n\n";
+         (combine "\n\n" varCode);
+         "\n\n\n\n;;; implementation ;;;\n\n\n\n";
+         (combine "\n\n" funcCode);
+         "\n\n" ^ externalFuncDecls;
+       ])
+    
+(*        "\n\n\n\n;;; header ;;;\n\n\n\n" *)
+(*        ^ headerCode ^ "\n\n" *)
+(*        ^ "\n\n\n\n;;; typedefs ;;;\n\n\n\n" *)
+(*        ^ (combine "\n\n" typedefCode) *)
+(*        ^ "\n\n\n\n;;; variables ;;;\n\n\n\n" *)
+(*        ^ (combine "\n\n" varCode) *)
+(*        ^ "\n\n\n\n;;; implementation ;;;\n\n\n\n" *)
+(*        ^ (combine "\n\n" funcCode) *)
+(*        ^ "\n\n" ^ externalFuncDecls *)
+(*     ) *)
+    

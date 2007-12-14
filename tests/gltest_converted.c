@@ -199,8 +199,8 @@ extern unsigned char *tempvar_4580;
 extern unsigned char *tempvar_4908;
 
 /* Function Declarations */
-double fmod(double, double);
-float fmodf(float, float);
+/* double fmod(double, double); */
+/* float fmodf(float, float); */
 void printString(unsigned char *llvm_cbe_str);
 /* unsigned int printf(unsigned char *, ...); */
 void printInt(unsigned int llvm_cbe_i);
@@ -262,8 +262,8 @@ void ast_2E_replace(struct l_ast *llvm_cbe_tree, unsigned char *llvm_cbe_placeho
 int main(void);
 void runMain(void);
 void test(void);
-void gluPerspective(double , double , double , double );
-void gluLookAt(double , double , double , double , double , double , double , double , double );
+/* void gluPerspective(double , double , double , double ); */
+/* void gluLookAt(double , double , double , double , double , double , double , double , double ); */
 void printGLError(void);
 void printGlfwVersion(void);
 bool checkAndReportShaderError(unsigned int llvm_cbe_shader, unsigned char *llvm_cbe_shaderName);
@@ -294,7 +294,7 @@ unsigned int makeMainShader(void);
 unsigned int random(unsigned int llvm_cbe_max);
 void long_(void);
 void short_(void);
-void free(unsigned char *);
+/* void free(unsigned char *); */
 void abort(void);
 
 

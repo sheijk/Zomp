@@ -16,7 +16,7 @@ Conventions for function names:
 
 (include "opengl20.zomp")
 (include "glfw.zomp")
-(include "tests/glutils.zomp")
+(include "glutils.zomp")
 
 (const int windowWidth 400)
 (const int windowHeight 300)
@@ -206,8 +206,8 @@ void main(void) {
     (drawOrientationGrid)
     (const float sunAngle (double.toFloat (glfwGetTime)))
     
-    (glUseProgram sphereShader)
-    (glBindTexture2D billboard)
+//     (glUseProgram sphereShader) */
+//     (glBindTexture2D billboard) */
     (const GLuint lightPosL (glGetUniformLocation sphereShader "lightPos"))
     (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
     (renderQuad 1.0)
@@ -222,8 +222,8 @@ void main(void) {
       (glTranslatef (float.neg x) (float.neg y) (float.neg z))
       ))
     
-    (glBindTexture2D 0)
-    (glUseProgram 0)
+//     (glBindTexture2D 0) */
+//     (glUseProgram 0) */
   
     (glfwSwapBuffers)
     (glfwPollEvents)

@@ -23,6 +23,10 @@ let () =
   writingToFile
     fileName
     ~process:(fun stream ->
+                fprintf stream "%s\n * %d functions\n */\n\n"
+                  "/**\n * Generated test case to measure compile time performance\n"
+                  funcCount;
+(*                 fprintf stream "(include \"opengl20.zomp\")\n\n"; *)
                 for i = 0 to funcCount do
                   writeFunc stream i
                 done;

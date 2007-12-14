@@ -41,7 +41,9 @@ gltest_llvm.exe: gltest.bc
 
 gltest.exe: gltest_converted.c
 	@echo Building $@ ...
-	g++ -o gltest.exe $(GLAPP_LIBS) gltest_converted.c
+	g++ -c -g -o gltest_converted.o gltest_converted.c
+	g++ -g -o gltest.exe $(GLAPP_LIBS) gltest_converted.o
+# 	g++ -o gltest.exe -g $(GLAPP_LIBS) gltest_converted.c
 
 
 stdlibfuncs_exe.bc: stdlibfuncs.bc

@@ -20,8 +20,12 @@ let raiseCouldNotCompile str = raise (CouldNotCompile str)
   
 let parseChannel lexbuf parseF bindings =
   try
-    let newBindings, toplevelExprs = parse parseF lexbuf bindings [] in
-    let llvmSource :string = genmodule toplevelExprs in
+    let newBindings, toplevelExprs =
+      collectTimingInfo "building ast" (fun () -> parse parseF lexbuf bindings [] )
+    in
+    let llvmSource :string =
+      collectTimingInfo "code generation" (fun () -> genmodule toplevelExprs)
+    in
     newBindings, toplevelExprs, llvmSource
   with
     | Parser2.Error
@@ -71,43 +75,61 @@ let getBasename filename =
 
 let compile instream outstream =
   let preludeDir = Filename.dirname Sys.executable_name in
-  let input = readInput instream in
+  let input =
+    collectTimingInfo "reading prelude file content" (fun () -> readInput instream)
+  in
   let printError = function
     | CouldNotParse msg -> eprintf "%s" msg
     | CouldNotCompile msg -> eprintf "%s" msg
     | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError); raise unknownError
   in
   let compileCode bindings input =
-    let parseF lexbuf = parseChannel (Lexing.from_string input) lexbuf bindings in
+    let makeAstF parseF = parseChannel
+      (collectTimingInfo "lexing" (fun () -> Lexing.from_string input))
+      parseF
+      bindings
+    in
     tryAllCollectingErrors
       [
-        lazy (parseF (Parser2.main Lexer2.token));
-        lazy (parseF (Sexprparser.main Sexprlexer.token));
+        lazy (makeAstF (Parser2.main Lexer2.token));
+        lazy (makeAstF (Sexprparser.main Sexprlexer.token));
       ]
       ~onSuccess:(fun (newBindings, toplevelExprs, llvmCode) ->
                     output_string outstream llvmCode;
                     Some newBindings)
       ~ifAllFailed:(fun exceptions -> List.iter printError exceptions; None)
   in
-  if not( Zompvm.zompInit() ) then begin
-    eprintf "Could not init ZompVM\n";
-    exit 3;
-  end;
+  collectTimingInfo "init zompvm"
+    (fun () ->
+       if not( Zompvm.zompInit() ) then begin
+         eprintf "Could not init ZompVM\n";
+         exit 3;
+       end;);
   let exitCode =
-    Parseutils.catchingErrorsDo
+    collectTimingInfo "compiling"
       (fun () ->
-         let bindings = Parseutils.loadPrelude
-           ~dir:preludeDir
-           ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                           output_string outstream llvmCode
-                        )
-         in
-         match compileCode bindings input with
-           | Some _ -> 0
-           | None -> 2)
-      ~onError:(fun () -> 1)
+         Parseutils.catchingErrorsDo
+           (fun () ->
+              let bindings =
+                collectTimingInfo "compiling prelude"
+                  (fun () ->
+                     Parseutils.loadPrelude
+                       ~dir:preludeDir
+                       ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                                       output_string outstream llvmCode
+                                    )
+                  )
+              in
+              collectTimingInfo "compiling program" (fun () ->
+                                                       match compileCode bindings input with
+                                                         | Some _ -> 0
+                                                         | None -> 2)
+           )
+           ~onError:(fun () -> 1)
+      )
   in
-  Zompvm.zompShutdown();
+  collectTimingInfo "shutdown zompvm" (fun () -> Zompvm.zompShutdown(););
+(*   Common.printTimings(); *)
   exit exitCode
 
 let () =

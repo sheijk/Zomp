@@ -8,11 +8,41 @@ let (<<=) f g = f g
 let (>>=) x f = f x
 let (++) f g x = f (g x)
 let (|>) x f = f x
-  
-let rec combine seperator = function
-    [] -> ""
-  | [str] -> str
-  | hd :: tl -> hd ^ seperator ^ (combine seperator tl)
+
+let rec combine seperator strings =
+  match strings with
+    | [] -> ""
+    | strings ->
+        let stringsLength = ref 0 in
+        let measuredStrings = List.map
+          (fun str ->
+             let len = String.length str in
+             stringsLength := !stringsLength + len;
+             str, len)
+          strings
+        in
+        let stringsLength = !stringsLength in
+        let seperatorLength = String.length seperator in
+        let totalLength = stringsLength + ((List.length strings - 1) * seperatorLength) in
+        let buffer = String.make totalLength ' ' in
+        let rec copyStrings strings startPos =
+          match strings with
+            | [] -> ()
+            | (string, stringLength) :: rem ->
+                let stringStartPos = startPos in
+                let seperatorStartPos = startPos + stringLength in
+                String.blit string 0 buffer stringStartPos stringLength;
+                if seperatorStartPos < totalLength then
+                  String.blit seperator 0 buffer seperatorStartPos seperatorLength;
+                copyStrings rem (seperatorStartPos + seperatorLength)
+        in
+        copyStrings measuredStrings 0;
+        buffer
+      
+(* let rec combine seperator = function *)
+(*     [] -> "" *)
+(*   | [str] -> str *)
+(*   | hd :: tl -> hd ^ seperator ^ (combine seperator tl) *)
         
 let rec translate errorF translators bindings expr =
   let rec t = function
@@ -45,6 +75,7 @@ let indent string =
   let lines = Str.split (Str.regexp "\n") string in
   let indentedLines = List.map indentLine lines in
   combine "\n" indentedLines
+
 
 let readChannel channel =
   let rec worker lines totalLength =
@@ -128,11 +159,143 @@ let restrictToSingleprecision double =
   Bigarray.Array1.set array 0 double;
   Bigarray.Array1.get array 0
 
+
+
+
+let dotimes count func =
+  for i = 1 to count do func() done
+
+    
+type timingInfo = {
+  name :string;
+  mutable totalTime :float;
+  mutable childs : timingInfo list
+}
+
+let makeTimingInfo name = {
+  name = name;
+  totalTime = 0.0;
+  childs = [];
+}
+
+let findOrCreate parent name =
+  try List.find (fun ti -> ti.name = name) parent.childs
+  with Not_found ->
+    begin
+      let newTimingInfo = makeTimingInfo name in
+      parent.childs <- newTimingInfo :: parent.childs;
+      newTimingInfo      
+    end
+  
+let toplevelTimingInfos = makeTimingInfo "toplevel"
+
+let rec totalTime timingInfo =
+  let childTimes = List.map totalTime timingInfo.childs in
+  let totalChildTimes = List.fold_left (+.) 0.0 childTimes in
+  totalChildTimes +. timingInfo.totalTime
+  
+let printTimings () =
+  let rec worker prefix timingInfo =
+    printf "%s%f - %s\n" prefix timingInfo.totalTime timingInfo.name;
+    let sortedChilds =
+      List.sort (fun ti1 ti2 -> 1 - compare ti1.totalTime ti2.totalTime) timingInfo.childs
+    in
+    List.iter (worker (prefix ^ "  ")) sortedChilds
+  in
+  worker "" toplevelTimingInfos
+
+let timingStack = ref []
+
+let parentTimingInfo() =
+  match !timingStack with
+    | top :: _ -> top
+    | [] -> toplevelTimingInfos
+
+let guarded f ~finally =
+  try
+    let result = f() in
+    let () = finally() in
+    result      
+  with error ->
+    let () = finally() in
+    raise error
+    
 let collectTimingInfo name f =
-  let startTime = Sys.time() in
-  let result = f() in
-  let duration = Sys.time() -. startTime in
-  printf "Time for %s: %f\n" name duration;
-  result
+  let currentTimingInfo = findOrCreate (parentTimingInfo()) name in
+  timingStack := currentTimingInfo :: !timingStack;
+  guarded (fun () ->
+             let startTime = Sys.time() in
+             let result = f() in
+             let duration = Sys.time() -. startTime in
+             currentTimingInfo.totalTime <- currentTimingInfo.totalTime +. duration;
+             result)
+    ~finally:(fun () ->
+                timingStack := match !timingStack with
+                  | _ :: rem -> rem
+                  | [] -> []
+             )
+
+let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
+let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
+let sampleFunc3 name f arg0 arg1 arg2 = collectTimingInfo name (fun () -> f arg0 arg1 arg2)
+        
+  
+(*   let previousTime = *)
+(*     try Hashtbl.find timingInfos name *)
+(*     with Not_found -> 0.0 *)
+(*   in *)
+(*   let startTime = Sys.time() in *)
+(*   let result = f() in *)
+(*   let duration = Sys.time() -. startTime in *)
+(*   let totalTime = previousTime +. duration in *)
+(*   Hashtbl.replace timingInfos name totalTime; *)
+(*   result *)
+  
+(* let timingInfos : (string, float) Hashtbl.t = *)
+(*   let tbl = Hashtbl.create 100 in *)
+(*   tbl *)
+
+(* let addDummyTimings() = *)
+(*   List.iter (fun (name, time) -> Hashtbl.add timingInfos name time) *)
+(*     ["foo", 1.23; *)
+(*      "bar", 2.4; *)
+(*      "long", 23.2; *)
+(*      "short", 0.03] *)
+
+(* let resetTimings() = Hashtbl.clear timingInfos *)
+
+(* let listFromHashTbl tbl = *)
+(*   Hashtbl.fold (fun name time list -> (name, time) :: list) tbl [] *)
+
+(* let printTimings() = *)
+(*   printf "--- Timings ---\n"; *)
+(*   let samples = listFromHashTbl timingInfos in *)
+(*   let sortedSamples = List.sort (fun (_, ltime) (_, rtime) -> 1 - compare ltime rtime) samples in *)
+(*   let totalTime = *)
+(*     List.fold_left *)
+(*       (fun prevTime (_, thisTime) -> prevTime +. thisTime) *)
+(*       0.0 sortedSamples *)
+(*   in *)
+(*   List.iter (fun (name, time) -> *)
+(*                let percentage =  time /. totalTime *. 100.0 in *)
+(*                printf "%f%% - %s (%fs)\n" percentage name time) *)
+(*     sortedSamples; *)
+(*   printf "---------------\n" *)
+  
+(* let totalTime name = *)
+(*   try Hashtbl.find timingInfos name *)
+(*   with Not_found -> -0.0 *)
+    
+(* let collectTimingInfo name f = *)
+(*   let previousTime = *)
+(*     try Hashtbl.find timingInfos name *)
+(*     with Not_found -> 0.0 *)
+(*   in *)
+(*   let startTime = Sys.time() in *)
+(*   let result = f() in *)
+(*   let duration = Sys.time() -. startTime in *)
+(*   let totalTime = previousTime +. duration in *)
+(*   Hashtbl.replace timingInfos name totalTime; *)
+(*   result *)
     
 

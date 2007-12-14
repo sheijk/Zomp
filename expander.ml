@@ -84,7 +84,8 @@ let rec translateType bindings typeExpr =
         end
     | _ -> None
 
-
+let translateType = Common.sampleFunc2 "translateType" translateType
+  
 type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form]
 
 let formWithTLsEmbeddedToString = function
@@ -113,7 +114,7 @@ let translatelst translateF bindings expr =
         resultingBindings, (sf @ sfuncs)
   in
   worker bindings expr
-    
+
 let translateSeq translateF bindings = function
   | { id = id; args = sequence } when id = macroSequence ->
       Some (translatelst translateF bindings sequence)
@@ -175,7 +176,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
         transform id name typeExpr { id = ""; args = []}
     | _ ->
         None
-          
+
 let expr2VarOrConst (bindings :bindings) = function
   | { id = name; args = [] } -> begin
       match lookup bindings name with
@@ -987,6 +988,8 @@ and translateTL bindings expr = translate raiseIllegalExpression
   ]
   bindings expr
 
+let translateTL = Common.sampleFunc2 "translateTL" translateTL
+    
 (* let makeNested (translateF :toplevelExprTranslateF) (_ :exprTranslateF) (bindings :bindings) expr = *)
 (*   let _, toplevelForms = translateF bindings expr in *)
 (*   let nestedForms = List.map (fun f -> `ToplevelForm f) toplevelForms in *)
