@@ -1,5 +1,6 @@
 
 * To be sorted
+** TODO provide a (semi) public git repo
 ** TODO performance probleme fixen
 ** TODO gltest.cbe.c unter windows testen
 ** TODO schnelle navigation im toplevel
