@@ -21,11 +21,14 @@ let addLabel bindings name = (name, LabelSymbol { lname = name }) :: bindings
 
 let addMacro bindings name doc implF = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = implF }) :: bindings
 
-let rec lookup (bindings :bindings) name =
-  match bindings with
-    | [] -> UndefinedSymbol
-    | (symName, sym) :: tail when symName = name -> sym
-    | _ :: tail -> lookup tail name
+let lookup (bindings :bindings) name =
+  let rec worker bindings = 
+    match bindings with
+      | [] -> UndefinedSymbol
+      | (symName, sym) :: tail when symName = name -> sym
+      | _ :: tail -> worker tail
+  in
+  worker bindings
 
 let isFunction bindings name =
   match lookup bindings name with

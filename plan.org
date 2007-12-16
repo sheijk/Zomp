@@ -1,12 +1,15 @@
 
 * To be sorted
+
 ** TODO provide a (semi) public git repo
-** TODO performance probleme fixen
-** TODO gltest.cbe.c unter windows testen
-** TODO schnelle navigation im toplevel
-** TODO indent: special treatment for lines containing only closing parentheses?
-** TODO arguments in function don't match: tell which argument(s) failed
-** TODO ast von cstring auf string umstellen
+** TODO [#A] locate cause of excessivly slow LLVM IR verification
+** TODO [#A] use llvm ocaml bindings for code generation. check whether this makes IR-verification faster
+** TODO [#A] performance probleme fixen
+** TODO [#A] gltest.cbe.c unter windows testen
+** TODO [#A] schnelle navigation im toplevel
+** TODO [#A] indent: special treatment for lines containing only closing parentheses?
+** TODO [#A] arguments in function don't match: tell which argument(s) failed
+** TODO [#A] ast von cstring auf string umstellen
 
 * Tasks
 

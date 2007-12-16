@@ -18,8 +18,8 @@ CAML_PP=
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
 
-# CXX_FLAGS=-pg -g
-CXX_FLAGS=
+CXX_FLAGS=-pg -g
+# CXX_FLAGS=
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
@@ -190,7 +190,7 @@ cpp_check:
 check-source: $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES)))
 	@cat $(FLYMAKE_LOG)
 
-check-syntax: check-source all
+check-syntax: check-source
 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> $(FLYMAKE_LOG)
 	@rm -f *_flymake.cpp
 

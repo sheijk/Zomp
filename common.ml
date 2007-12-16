@@ -219,83 +219,30 @@ let guarded f ~finally =
   with error ->
     let () = finally() in
     raise error
-    
-let collectTimingInfo name f =
+
+let pushTimingContext name =
   let currentTimingInfo = findOrCreate (parentTimingInfo()) name in
   timingStack := currentTimingInfo :: !timingStack;
+  let startTime = Sys.time() in
+  currentTimingInfo, startTime
+
+let popTimingContext (currentTimingInfo, startTime) =
+  let duration = Sys.time() -. startTime in
+  currentTimingInfo.totalTime <- currentTimingInfo.totalTime +. duration;
+  timingStack := match !timingStack with
+    | _ :: rem -> rem
+    | [] -> []
+
+let collectTimingInfo name f =
+  let currentTimingInfo, startTime = pushTimingContext name in
   guarded (fun () ->
-             let startTime = Sys.time() in
              let result = f() in
-             let duration = Sys.time() -. startTime in
-             currentTimingInfo.totalTime <- currentTimingInfo.totalTime +. duration;
+             popTimingContext (currentTimingInfo, startTime);
              result)
-    ~finally:(fun () ->
-                timingStack := match !timingStack with
-                  | _ :: rem -> rem
-                  | [] -> []
-             )
+    ~finally:(fun () -> popTimingContext (currentTimingInfo, startTime) )
 
 let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
 let sampleFunc3 name f arg0 arg1 arg2 = collectTimingInfo name (fun () -> f arg0 arg1 arg2)
         
   
-(*   let previousTime = *)
-(*     try Hashtbl.find timingInfos name *)
-(*     with Not_found -> 0.0 *)
-(*   in *)
-(*   let startTime = Sys.time() in *)
-(*   let result = f() in *)
-(*   let duration = Sys.time() -. startTime in *)
-(*   let totalTime = previousTime +. duration in *)
-(*   Hashtbl.replace timingInfos name totalTime; *)
-(*   result *)
-  
-(* let timingInfos : (string, float) Hashtbl.t = *)
-(*   let tbl = Hashtbl.create 100 in *)
-(*   tbl *)
-
-(* let addDummyTimings() = *)
-(*   List.iter (fun (name, time) -> Hashtbl.add timingInfos name time) *)
-(*     ["foo", 1.23; *)
-(*      "bar", 2.4; *)
-(*      "long", 23.2; *)
-(*      "short", 0.03] *)
-
-(* let resetTimings() = Hashtbl.clear timingInfos *)
-
-(* let listFromHashTbl tbl = *)
-(*   Hashtbl.fold (fun name time list -> (name, time) :: list) tbl [] *)
-
-(* let printTimings() = *)
-(*   printf "--- Timings ---\n"; *)
-(*   let samples = listFromHashTbl timingInfos in *)
-(*   let sortedSamples = List.sort (fun (_, ltime) (_, rtime) -> 1 - compare ltime rtime) samples in *)
-(*   let totalTime = *)
-(*     List.fold_left *)
-(*       (fun prevTime (_, thisTime) -> prevTime +. thisTime) *)
-(*       0.0 sortedSamples *)
-(*   in *)
-(*   List.iter (fun (name, time) -> *)
-(*                let percentage =  time /. totalTime *. 100.0 in *)
-(*                printf "%f%% - %s (%fs)\n" percentage name time) *)
-(*     sortedSamples; *)
-(*   printf "---------------\n" *)
-  
-(* let totalTime name = *)
-(*   try Hashtbl.find timingInfos name *)
-(*   with Not_found -> -0.0 *)
-    
-(* let collectTimingInfo name f = *)
-(*   let previousTime = *)
-(*     try Hashtbl.find timingInfos name *)
-(*     with Not_found -> 0.0 *)
-(*   in *)
-(*   let startTime = Sys.time() in *)
-(*   let result = f() in *)
-(*   let duration = Sys.time() -. startTime in *)
-(*   let totalTime = previousTime +. duration in *)
-(*   Hashtbl.replace timingInfos name totalTime; *)
-(*   result *)
-    
-

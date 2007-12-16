@@ -122,6 +122,7 @@ extern "C" {
       
       errorsOccurred = true;
     }
+//     else if( true == verifyModule(*parsedModule, PrintMessageAction, &errorMessage) ) {
     else if( true == verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
       printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
       fflush( stdout );
