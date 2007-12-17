@@ -54,7 +54,7 @@ clean_tests:
 	rm -f *.ll *.bc *.exe
 	rm -f compileperf.*
 
-.SUFFIXES: .zomp .ll .check .bc .run .exe .cbe.c
+.SUFFIXES: .zomp .ll .check .bc .run .exe .cbe.c .s .o
 
 .bc.cbe.c:
 	@echo Generating $@ ...
@@ -83,5 +83,14 @@ clean_tests:
 
 .bc.exe:
 	@echo Building $@ ...
-	@llvm-ld ../stdlib.bc $< -native -o $@
+	@llvm-ld $< -native -o $@
+
+.bc.s:
+	@llc $< -f -o $@
+
+.s.o:
+	@as $< -o $@
+
+glanim.glexe: glanim.o
+	@g++ -o $@ -lstdc++ $(GLAPP_LIBS) glanim.o
 

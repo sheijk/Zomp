@@ -7,6 +7,9 @@ http://sheijk.dword.org/zomp
     
 	bool zompInit ()
 	void zompShutdown ()
+
+    void zompVerifyCode (bool doit)
+    bool zompDoesVerifyCode ()
     
     bool zompSendCode (const char* code, const char* moduleName)
     

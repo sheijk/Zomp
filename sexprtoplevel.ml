@@ -39,6 +39,12 @@ let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 
+let toggleVerifyCommand args _ =
+  match args with
+    | ["on"] -> Zompvm.zompVerifyCode true
+    | ["off"] -> Zompvm.zompVerifyCode false
+    | _ -> eprintf "Expected on|off\n"; flush stderr
+        
 let matchAnyRegexp patterns =
   match patterns with
     | [] -> Str.regexp ".*"
@@ -208,6 +214,7 @@ let commands =
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
+    "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
     "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
     "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
     "help", ["h"], printHelp, "List all toplevel commands";

@@ -1,0 +1,24 @@
+
+
+(func bool op== ((int l) (int r)) ((int.equal l r)))
+(func int op+ ((int l) (int r)) ((int.add l r)))
+(template op= l r (assign #l #r))
+  
+(func int main () (
+//   (printString "starting infinity loop...") */
+//   (println) */
+  
+  (var int x 0)
+
+  (label start)
+
+  (if ((int.urem x 10000) == 0)
+    ((printInt x) (println))
+    ())
+  (x = x + 1)
+
+  (branch start)
+
+  (ret 0)
+  ))
+

@@ -622,7 +622,8 @@ let gencodeLabel label =
 let gencodeBranch gencode branch =
   let condVar, preCode = gencode (`Variable (branch.bcondition :> Lang.typ Lang.variable)) in
   let code =
-    sprintf "br i1 %s, label %%%s, label %%%s"
+    sprintf "br %s %s, label %%%s, label %%%s"
+      (llvmTypeName `Bool)
       condVar.rvname
       branch.trueLabel.lname
       branch.falseLabel.lname

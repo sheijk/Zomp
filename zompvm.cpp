@@ -30,6 +30,8 @@ namespace {
   Module* llvmModule = 0;
   Module* macroModule = 0;
   ExistingModuleProvider* moduleProvider = 0;
+
+  bool verifyCode = true;
   
   void assureModuleExists() {
     if (llvmModule == 0) {
@@ -52,6 +54,15 @@ extern "C" {
     printf( "blah( %d, %d, %d )\n", a, b, c );
     return 99;
   }
+
+  void zompVerifyCode(bool doit) {
+    verifyCode = doit;
+  }
+  
+  bool zompDoesVerifyCode() {
+    return verifyCode;
+  }
+  
 }
 
 llvm::GenericValue runFunctionWithArgs(
@@ -123,7 +134,7 @@ extern "C" {
       errorsOccurred = true;
     }
 //     else if( true == verifyModule(*parsedModule, PrintMessageAction, &errorMessage) ) {
-    else if( true == verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
+    else if( verifyCode && true == verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
       printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
       fflush( stdout );
       fflush( stderr );
