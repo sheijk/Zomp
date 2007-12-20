@@ -1,64 +1,92 @@
 
 * To be sorted
 
-** TODO provide a (semi) public git repo
-** TODO [#A] locate cause of excessivly slow LLVM IR verification
-** TODO [#A] use llvm ocaml bindings for code generation. check whether this makes IR-verification faster
-** TODO [#A] performance probleme fixen
-** TODO [#A] gltest.cbe.c unter windows testen
-** TODO [#A] schnelle navigation im toplevel
-** TODO [#A] indent: special treatment for lines containing only closing parentheses?
-** TODO [#A] arguments in function don't match: tell which argument(s) failed
-** TODO [#A] ast von cstring auf string umstellen
-
 * Tasks
 
 ** BUGS
+
+*** TODO [#A] Simple loops results in crash in REPL
+
+(func int main () (
+  (label start)
+  (branch start)
+  (ret 0)
+  ))
+
+*** TODO [#B] Using OpenGL results in crashes
+
+*** TODO [#A] gltest.cbe.c unter windows/linux testen
+
+*** TODO [#B] locate cause of excessivly slow LLVM IR verification
+
 *** TODO [#C] default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not) :bug:
+
 *** DONE [#A] emit warning on missing ret		:bug:
     CLOSED: [2007-12-04 Tue 02:35] 
+
 *** DONE [#A] BUG: (ret (load (ptradd (getField parent childs) index))) :bug:
 in function returning (ptr ast) is not accepted 
    CLOSED: [2007-12-05 Wed 20:35]
+
 *** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily :bug:
+
 *** DONE fix toplevel "!" / abort expr			:bug:
     CLOSED: [2007-11-04 Sun 19:51]
 
 ** Fix language quirks
-*** TODO [#A] linking multiple generated .ll files does not work :bug:
+
+*** TODO [#B] ast von cstring auf string umstellen
+
+*** DONE [#A] linking multiple generated .ll files does not work :bug:
+    CLOSED: [2007-12-20 Thu 02:53]
 (wrong linking attributes for function declarations?)
 more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 *** DONE check return type in functions!		:improve:
     CLOSED: [2007-12-06 Thu 02:01]
+    
 *** TODO [#A] macros need a way to signal errors
+
 *** TODO [#B] can't send antiquote to macro
   (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
   (twice (printInt #i))
 
 *** TODO int representations: 0xff 0b1001 etc.	:features:
+    
 *** TODO nested quotes and antiquotes don't work :bug:
+    
 *** DONE Allow getting pointer to variables
+    
 *** DONE Fix record support: allow writing to record fields
     CLOSED: [2007-10-06 Sat 21:36]
+    
 *** DONE Correctly parse ((ptr int) foo) in arguments/types
     CLOSED: [2007-10-08 Mon 01:45]
+    
 *** DONE Add support for characters
     CLOSED: [2007-10-09 Tue 23:51]
+    
 *** DONE Add support for arrays
     CLOSED: [2007-10-11 Thu 00:29]
+    
 *** DONE Disallow strings as constants in simpleform
     CLOSED: [2007-10-16 Tue 19:04]
     Let the expander turn them into global strings
+    
 *** DONE Use bindings / semantics checking in expander.ml
     CLOSED: [2007-10-16 Tue 19:04]
 
 *** TODO [#A] Support more data types
+
 **** DONE double
      CLOSED: [2007-11-26 Mon 01:26] 
+
 **** TODO unsigned ints
+
 **** TODO int8/16/32
+
 **** TODO c.int, c.short etc.
+
 *** TODO [#B] Add instruction to free memory
 
 *** TODO [#B] Support global pointers
@@ -78,100 +106,171 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
       (var cstring #name (newUniqueNameFor #purpose)) ))
 
 ** Refactorings
+   
 *** TODO [#B] Allow nested expressions in branch instruction
+    
 *** TODO [#C] Turn value type into polymorphic variant type
+    
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
+    
 ** Compiler
-*** TODO compilation needs O(n^2) time
+
+*** TODO [#A] arguments in function don't match: tell which argument(s) failed
+
+*** TODO [#C] use llvm ocaml bindings for code generation. check whether this makes IR-verification faster
+
+*** DONE compilation needs O(n^2) time
+    CLOSED: [2007-12-20 Thu 02:54]
+
+*** DONE [#A] performance probleme fixen
+   CLOSED: [2007-12-20 Thu 02:54]
+
 *** TODO compiling is extremely slow
+
 *** TODO [#C] Generate nice and readable LLVM code
+    
 **** TODO [#C] Let functions in genllvm.ml return a string list instead of strings with newlines
+     
 **** TODO [#C] Add empty line(s) between functions
+     
 **** TODO [#C] Fix useless newlines which appear on some operations
+     
 **** DONE Fix missing line breaks
     CLOSED: [2007-09-28 Fri 23:17]
 
+
 *** TODO [#C] Bug: (func int main () 20) does not compile
     But (func int main () ((ret 20))) does as well as (func int main () ((printInt 10) 20))
+
 *** TODO [#C] Bug: some generic intrinsics might return invalid bindings
 
 ** Interactive toplevel
-*** TODO zomp toplevel in emacs: don't switch to buffer on C-c,C-s
+   
+*** TODO [#B] fast navigation
+    
+*** TODO [#B] zomp toplevel in emacs: don't switch to buffer on C-c,C-s
+    
 *** DONE print var/func/macro declaration in toplevel
-    CLOSED: [2007-12-03 Mon 01:25] 
+    CLOSED: [2007-12-03 Mon 01:25]
+    
 *** DONE make printing parsed s-expr optional
-    CLOSED: [2007-12-03 Mon 01:25] 
+    CLOSED: [2007-12-03 Mon 01:25]
+    
 *** DONE Create C interface
     CLOSED: [2007-09-30 Sun 01:53]
     Reuse native function generator from opengl bindings(?)
+    
 *** DONE Create inferiour llvm machine
     CLOSED: [2007-09-30 Sun 01:53]
     Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
+    
 *** DONE Read-Eval-Print loop
     CLOSED: [2007-09-30 Sun 01:53]
+    
 *** DONE Make it run stable and be usable
     CLOSED: [2007-10-03 Wed 03:33]
+    
 *** TODO Support loading DLLs and calling their functions
+    
 **** DONE Load DLLs
-     CLOSED: [2007-11-04 Sun 03:35] 
+     CLOSED: [2007-11-04 Sun 03:35]
+     
 **** DONE Call functions in them
-     CLOSED: [2007-11-04 Sun 03:35] 
+     CLOSED: [2007-11-04 Sun 03:35]
+     
 **** TODO [#C] Add search paths
+     
 *** TODO [#C] Fork to avoid crashes
+    
 **** TODO [#C] Find a way to keep connection to stdin on crash in other process
+     
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]
+    
 *** TODO [#C] Redefine/change variables
+    
 ** Emacs support
-**** TODO add hook to zomp-mode
-**** TODO [#B] Flymake support
-**** DONE Start zomp toplevel in emacs
-     CLOSED: [2007-10-16 Tue 22:11]
-**** DONE Send current region/buffer to toplevel
-     CLOSED: [2007-10-16 Tue 22:11]
-**** DONE Send current function toplevel
+
+*** TODO [#A] indent: special treatment for lines containing only closing parentheses?
+
+*** TODO add hook to zomp-mode
+
+*** TODO [#B] Flymake support
+
+*** DONE Start zomp toplevel in emacs
      CLOSED: [2007-10-16 Tue 22:11]
 
-**** DONE [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
+*** DONE Send current region/buffer to toplevel
+     CLOSED: [2007-10-16 Tue 22:11]
+
+*** DONE Send current function toplevel
+     CLOSED: [2007-10-16 Tue 22:11]
+
+*** DONE [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
      CLOSED: [2007-11-16 Fri 02:33] 
+
 ** Macros
+   
 **** DONE Allow definition of simple "template" macros
+     
 **** DONE Allow running code inside macros
-     CLOSED: [2007-10-29 Mon 15:48] 
+     CLOSED: [2007-10-29 Mon 15:48]
+     
 **** DONE Insert astFromInt or astFromString if a var/func returns int/string
      CLOSED: [2007-11-02 Fri 02:46]
+     
 **** TODO Put macro functions into seperate module
+     
 **** DONE Allow macros to call any ordinary function
      CLOSED: [2007-11-02 Fri 02:50]
+     
 **** DONE Write "if then else" macro
-     CLOSED: [2007-12-04 Tue 00:23] 
+     CLOSED: [2007-12-04 Tue 00:23]
+     
 **** DONE Write "for i min max" macro
      CLOSED: [2007-11-02 Fri 02:50]
+     
 **** DONE Query existing functions and variables
      CLOSED: [2007-11-16 Fri 02:33]
+     
 ** Language
+   
 *** DONE [#A] template
     CLOSED: [2007-11-24 Sat 20:12]     
     Implemented as macro
+    
 *** TODO support break in loops
+    
 *** TODO [#A] Allow testing macros
 (running them on code and printing the resulting AST)
+
 *** TODO [#A] File I/O
+    
 *** TODO [#A] Regular expressions
+    
 *** DONE [#A] OpenGL support
     CLOSED: [2007-11-25 Sun 00:35] 
 *** TODO [#A] Explicit polymorphism
     Overloading functions should be possible
 
 *** TODO [#A] Generic list / container generation macro
+    
 *** TODO Pattern matching
+    
 *** TODO [#B] Syntax
+    
 *** TODO [#B] Namespaces / Modules
+    
 *** TODO [#B] Object system
+    
 **** vtable calls
+     
 **** Syntax support
+     
 **** Represent them in zomp ast type
+     
 *** TODO [#C] Compile multi file projects
+    
 **** Realize definition of project files
      A central project file which will list all linked in modules,
      settings etc.
@@ -180,6 +279,9 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 **** Define .zobj format
 
+** Public
+
+** TODO [#C] provide a (semi) public git repo
 
 * Notes
 - separated macro expansion / interpretation
@@ -240,7 +342,9 @@ See the declare statement in lisp
 automatically check embedded examples in documentation for correctness
 
 ** Type System
+   
 *** Composable type system
+    
 *** Security level
 A variable a has an associated security level l(a). Writing a := b requires l(b) >= l(a).
 Similarily, the relation of security levels between function's arguments and parameters can be declared.
