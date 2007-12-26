@@ -23,9 +23,9 @@
 %token <string> MULT_OP
 %token <string> COMPARE_OP
 
-%left COMPARE_OP
-%left ADD_OP
-%left MULT_OP
+%right COMPARE_OP
+%right ADD_OP
+%right MULT_OP
   
 %start <Ast2.sexpr> main
 

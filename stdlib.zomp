@@ -86,12 +86,15 @@
   (var (ptr char) ptr s)
   (var int count -1)
 
+  (var char c 'x')
+  (var bool b true)
+  
   (label start)
-  (var char c (load ptr))
+  (assign c (load ptr))
 
   (assign ptr (ptradd ptr 1))
   (assign count (int.add count 1))
-  (var bool b (char.equal c '\0'))
+  (assign b (char.equal c '\0'))
   (branch b end start)
   
   (label end)
@@ -110,10 +113,11 @@
   (var (ptr char) chars (malloc char (int.add 1 length)))
   (store (ptradd chars length) '\0')
   (var int index 0)
+  (var bool reachedEnd false)
   (label start)
   (store (ptradd chars index) init)
   (assign index (int.add index 1))
-  (var bool reachedEnd (int.ugreaterEqual index length))
+  (assign reachedEnd (int.ugreaterEqual index length))
   (branch reachedEnd end start)
   (label end)
   
@@ -339,13 +343,18 @@
 
   (ret `(
     (var int #index #min)
+    (var bool #testResult false)
+    
     (label #startLabel)
-    (var bool #testResult (int.sless #index #max))
+    
+    (assign #testResult (int.sless #index #max))
     (branch #testResult #execLabel #endLabel)
+    
     (label #execLabel)
     #code
     (assign #index (int.add #index 1))
     (branch #startLabel)
+    
     (label #endLabel)
     ))
   ))
@@ -357,8 +366,9 @@
   (uniqueId testVar "while_testvar")
   
   (ret `(
+    (var bool #testVar true)
     (label #begin)
-    (var bool #testVar (#test))
+    (assign #testVar (#test))
     (branch #testVar #goon #exit)
     (label #goon)
     #body
@@ -388,11 +398,14 @@
   
 /// workaround until "const" is properly supported
 (macro const type name default (
-  (ret `(var #type #name #default)) ))
+  (ret `(var #type #name #default))
+  ))
 
-/// A template is similar to a macro but it is not defined by
-/// code producing an ast but by directly specifying an ast with
-/// antiquotes to insert the values of variables
+/// A template is like a macro but is defined in another way.
+/// Instead of writing a function which produces the final ast
+/// you simply write down the produced ast directly. You can
+/// use antiquotes to calculate parts of the ast from arbitrary
+/// code expressions
 (macro template name (rest argsAndImpl) (
   (var (ptr ast) t (simpleAst "macro"))
   (addChild t name)
@@ -442,6 +455,9 @@
   (println)
   ))
 
+/// Executes the given expression and prints an error
+/// message containing the passed ast if it does not
+/// evaluate to true
 (macro unittest.assert testCode (
   (ret `(
     (if #testCode
@@ -454,6 +470,8 @@
      ))
   ))
 
+/// Calls unittest.assert on all childs of the passed
+/// sequence expression
 (macro unittest.assertAll (rest checks) (
   (var (ptr ast) code `())
   (forEachAstChild check checks (
@@ -461,7 +479,10 @@
     ))
   (ret code)
   ))
-  
+
+/// Prints the passed ast to stdout at compile time
+/// and will return it at run time. Can be used to debug
+/// a specific macro using mret instead of ret
 (macro mret code (
   (ret `(
     (printAst #code 0)
@@ -469,6 +490,8 @@
     ))
   ))
 
+/// Will define a function which will be executed only on
+/// the first call and will print a warning on subsequent calls
 (macro runOnceFunc rettype name args impl (
   (uniqueId initialized (cstrings.append (getField name id) "_already_called"))
 

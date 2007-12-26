@@ -1,24 +1,32 @@
 
+// (func int main () ( */
+//   (label start) */
+//   (branch start) */
+//   (ret 0) */
+//   )) */
+
 
 (func bool op== ((int l) (int r)) ((int.equal l r)))
 (func int op+ ((int l) (int r)) ((int.add l r)))
 (template op= l r (assign #l #r))
   
 (func int main () (
-//   (printString "starting infinity loop...") */
-//   (println) */
-  
   (var int x 0)
+  (var bool doprint false)
 
   (label start)
 
-  (if ((int.urem x 10000) == 0)
-    ((printInt x) (println))
-    ())
   (x = x + 1)
+  (doprint = (int.urem x 10000) == 0)
+  (branch doprint printl start)
+  
+  (label printl)
+  (printInt x) (println)
 
   (branch start)
 
   (ret 0)
   ))
+
+(testf (printAst `(a + b + c) 0))
 
