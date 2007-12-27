@@ -245,4 +245,35 @@ let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
 let sampleFunc3 name f arg0 arg1 arg2 = collectTimingInfo name (fun () -> f arg0 arg1 arg2)
         
-  
+let listIteri f list =
+  let rec iterWithIndex index = function
+    | [] -> ()
+    | hd :: tl ->
+        let () = f index hd in
+        iterWithIndex (index+1) tl
+  in
+  iterWithIndex 0 list
+
+let listMap2i f list1 list2 =
+  let rec mapWithIndex index acc list1 list2 =
+    match list1, list2 with
+      | [], [] -> List.rev acc
+      | (head1::tail1), (head2::tail2) ->
+          let mapped = f index head1 head2 in
+          mapWithIndex (index+1) (mapped :: acc) tail1 tail2
+      | _, _ ->
+          raise (Invalid_argument "listMap2i")
+  in
+  mapWithIndex 0 [] list1 list2
+        
+let listFold2i f initial list1 list2 =
+  let rec foldWithIndex index value list1 list2 =
+    match list1, list2 with
+      | [], [] -> value
+      | (head1::tail1), (head2::tail2) ->
+          let newValue = f index value head1 head2 in
+          foldWithIndex (index+1) newValue tail1 tail2
+      | _, _ -> raise (Invalid_argument "listFold2i")
+  in
+  foldWithIndex 0 initial list1 list2
+

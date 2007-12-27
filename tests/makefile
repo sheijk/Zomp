@@ -54,7 +54,7 @@ clean_tests:
 	rm -f *.ll *.bc *.exe
 	rm -f compileperf.*
 
-.SUFFIXES: .zomp .ll .check .bc .run .exe .cbe.c .s .o
+.SUFFIXES: .zomp .ll .check .bc .run .exe .glexe .cbe.c .s .o
 
 .bc.cbe.c:
 	@echo Generating $@ ...
@@ -91,6 +91,9 @@ clean_tests:
 .s.o:
 	@as $< -o $@
 
-glanim.glexe: glanim.o
-	@g++ -o $@ -lstdc++ $(GLAPP_LIBS) glanim.o
+.o.glexe:
+	@g++ -o $@ -lstdc++ $(GLAPP_LIBS) $<
+
+# glanim.glexe: glanim.o
+# 	@g++ -o $@ -lstdc++ $(GLAPP_LIBS) glanim.o
 

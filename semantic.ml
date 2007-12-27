@@ -79,13 +79,38 @@ let rec typeCheck bindings form : typecheckResult =
             if paramCount != argCount then
               TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
             else
-              List.fold_left2
-                (fun prevResult typ arg ->
+              (*               let paramCheckResults = *)
+              (*                 listMap2ai *)
+              (*                   (fun argNum paramType arg -> *)
+              (*                      let argType = typeCheck bindings arg in *)
+              (*                      if paramType = argType then `Ok *)
+              (*                      else `ExpectedButFound (argNum, paramType, argType)) *)
+              (*                   call.fcparams *)
+              (*                   call.fcargs *)
+              (*               in *)
+              (*               let rec collectErrors = function *)
+              (*                 | `Ok :: remaining -> collectErrors remaining *)
+              (*                 | `ExpectedButFound error :: remaining -> error :: collectErrors remaining *)
+              (*               in *)
+              (*               let errors = collectErrors paramCheckResults in *)
+              (*               match errors with *)
+              (*                 | [] -> TypeOf (call.fcrettype :> composedType) *)
+              (*                 | firstError :: _ -> firstError *)
+              listFold2i
+                (fun argNum prevResult typ arg ->
                    match typeCheck bindings (arg :> form) with
-                     | TypeOf argType when equalTypes bindings typ argType -> prevResult
-                     | TypeOf invalidType -> TypeError ("Argument type does not match", invalidType, typ)
+                     | TypeOf argType when equalTypes bindings typ argType ->
+                         prevResult
+                     | TypeOf invalidType ->
+                         TypeError (
+                           sprintf "type for argument %d does not match" argNum,
+                           invalidType,
+                           typ)
                      | TypeError(msg, invalidType, expectedType) ->
-                         TypeError ("Argument type is invalid: " ^ msg, invalidType, expectedType)
+                         TypeError (
+                           sprintf "Argument %d does not typecheck: %s" argNum msg,
+                           invalidType,
+                           expectedType)
                 )
                 (TypeOf (call.fcrettype :> composedType))
                 call.fcparams call.fcargs

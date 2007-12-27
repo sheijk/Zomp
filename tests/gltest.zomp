@@ -18,7 +18,7 @@ Conventions for function names:
 
 (include "opengl20.zomp")
 (include "glfw.zomp")
-(include "tests/glutils.zomp")
+(include "glutils.zomp")
 
 (const int windowWidth 400)
 (const int windowHeight 300)

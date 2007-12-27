@@ -115,9 +115,11 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     
 ** Compiler
 
-*** TODO [#A] arguments in function don't match: tell which argument(s) failed
+*** DONE [#A] arguments in function don't match: tell which argument(s) failed
+    CLOSED: [2007-12-27 Thu 01:45]
 
-*** TODO [#C] use llvm ocaml bindings for code generation. check whether this makes IR-verification faster
+*** TODO [#C] use llvm ocaml bindings for code generation
+check whether this makes IR-verification faster / prevent bugs / ...
 
 *** DONE compilation needs O(n^2) time
     CLOSED: [2007-12-20 Thu 02:54]
@@ -191,7 +193,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     
 ** Emacs support
 
-*** TODO [#A] indent: special treatment for lines containing only closing parentheses?
+*** TODO [#B] indent: special treatment for lines containing only closing parentheses?
 
 *** TODO add hook to zomp-mode
 
@@ -241,7 +243,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     
 *** TODO support break in loops
     
-*** TODO [#A] Allow testing macros
+*** TODO [#B] Allow testing macros
 (running them on code and printing the resulting AST)
 
 *** TODO [#A] File I/O
@@ -250,6 +252,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     
 *** DONE [#A] OpenGL support
     CLOSED: [2007-11-25 Sun 00:35] 
+
 *** TODO [#A] Explicit polymorphism
     Overloading functions should be possible
 
