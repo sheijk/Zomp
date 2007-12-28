@@ -23,12 +23,12 @@
                   ))))))
 
 (defvar zomp-imenu-generic-expression
-  '((nil "^(macro +\\([a-zA-Z0-9]+\\)" 1)
-    (nil "^(func +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\)" 1)
-    (nil "^(var +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\)" 1)
-    (nil "^(const +[a-zA-Z0-9]+ +\\([a-zA-Z0-9]+\\)" 1)
-    (nil "^(type +\\([a-zA-Z0-9]+\\)" 1)
-    (nil "^(template +\\([a-zA-Z0-9]+\\)" 1)
+  '((nil "^(macro +\\([a-zA-Z0-9:.]+\\)" 1)
+    (nil "^(func +[a-zA-Z0-9:.]+ +\\([a-zA-Z0-9:.]+\\)" 1)
+    (nil "^(var +[a-zA-Z0-9:.]+ +\\([a-zA-Z0-9:.]+\\)" 1)
+    (nil "^(const +[a-zA-Z0-9:.]+ +\\([a-zA-Z0-9:.]+\\)" 1)
+    (nil "^(type +\\([a-zA-Z0-9:.]+\\)" 1)
+    (nil "^(template +\\([a-zA-Z0-9:.]+\\)" 1)
     ))
     
 (defun zomp-mark-sexp ()

@@ -79,23 +79,6 @@ let rec typeCheck bindings form : typecheckResult =
             if paramCount != argCount then
               TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
             else
-              (*               let paramCheckResults = *)
-              (*                 listMap2ai *)
-              (*                   (fun argNum paramType arg -> *)
-              (*                      let argType = typeCheck bindings arg in *)
-              (*                      if paramType = argType then `Ok *)
-              (*                      else `ExpectedButFound (argNum, paramType, argType)) *)
-              (*                   call.fcparams *)
-              (*                   call.fcargs *)
-              (*               in *)
-              (*               let rec collectErrors = function *)
-              (*                 | `Ok :: remaining -> collectErrors remaining *)
-              (*                 | `ExpectedButFound error :: remaining -> error :: collectErrors remaining *)
-              (*               in *)
-              (*               let errors = collectErrors paramCheckResults in *)
-              (*               match errors with *)
-              (*                 | [] -> TypeOf (call.fcrettype :> composedType) *)
-              (*                 | firstError :: _ -> firstError *)
               listFold2i
                 (fun argNum prevResult typ arg ->
                    match typeCheck bindings (arg :> form) with
@@ -198,6 +181,136 @@ let rec typeCheck bindings form : typecheckResult =
         TypeOf (removeTypeRefs bindings t)
     | _ ->
         result
+
+
+let rec mapfold f initialValue = function
+  | [] -> [], initialValue
+  | hd :: tl ->
+      let mappedElements, newValue = f initialValue hd in
+      let tlmapped, finalValue = mapfold f newValue tl in
+      mappedElements @ tlmapped, finalValue
+
+        
+let rec collectVars (form :Lang.form) =
+  let returnTransformed form f =
+    let newForm, newVars = collectVars form in
+    f newForm, newVars
+  in
+  let returnTransformed2 form1 form2 f =
+    let newForm1, vars1 = collectVars form1 in
+    let newForm2, vars2 = collectVars form2 in
+    f newForm1 newForm2, vars1 @ vars2
+  in
+  match form with
+    | `Variable _
+    | `Constant _
+    | `NullptrIntrinsic _
+    | `GetAddrIntrinsic _
+    | `Jump _
+    | `Label _
+        as simple ->
+        simple, []
+
+    | `MallocIntrinsic (typ, countForm) ->
+        returnTransformed countForm (fun f -> `MallocIntrinsic(typ, f))
+
+    | `StoreIntrinsic (ptrForm, valueForm) ->
+        returnTransformed2 ptrForm valueForm
+          (fun newPtrForm newValueForm -> `StoreIntrinsic (newPtrForm, newValueForm))
+
+    | `LoadIntrinsic ptrForm ->
+        returnTransformed ptrForm (fun f -> `LoadIntrinsic f)
+
+    | `PtrAddIntrinsic (ptrForm, offsetForm) ->
+        returnTransformed2 ptrForm offsetForm (fun p o -> `PtrAddIntrinsic(p, o))
+
+    | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
+        returnTransformed recordForm (fun r -> `GetFieldPointerIntrinsic(r, fieldName))
+
+    | `CastIntrinsic (targetType, valueForm) ->
+        returnTransformed valueForm (fun v -> `CastIntrinsic(targetType, v))
+
+    | `Sequence forms ->
+        let formsAndVars = List.map collectVars forms in
+        let forms, vars = List.split formsAndVars in
+        `Sequence forms, List.flatten vars
+
+    | `DefineVariable (var, valueFormOption) ->
+        begin match var.typ with
+          | `Void -> `Sequence [], []
+          | _ ->
+              let assignForm =
+                match valueFormOption with
+                  | Some valueForm -> `AssignVar (var, valueForm)
+                  | None -> `Sequence []
+              in
+              assignForm, [var]
+        end
+
+    | `FuncCall call ->
+        let argFormsAndVars = List.map collectVars call.fcargs in
+        let argForms, vars = List.split argFormsAndVars in
+        `FuncCall { call with fcargs = argForms }, List.flatten vars
+
+    | `AssignVar (var, valueForm) ->
+        returnTransformed valueForm (fun f -> `AssignVar(var, f))
+
+    | `Return form ->
+        returnTransformed form (fun f -> `Return f)
+
+    | `Branch branch ->
+        (* when branch.bcondition is changed to a form, this needs to be updated! *)
+        let (_ : [`Bool] variable) = branch.bcondition in
+        `Branch branch, []
+
+let moveLocalVarsToEntryBlock implForm =
+  let formWithoutVars, vars = collectVars implForm in
+  let varDefs = List.map (fun var -> `DefineVariable (var, None)) vars
+  in
+  let forms =
+    match formWithoutVars with
+      | `Sequence forms -> forms
+      | other -> [other]
+  in
+  varDefs @ forms
+
+let test_moveLocalVarsToEntryBlock () =
+  let identityTestCases = [
+    `Sequence [`Return (`Constant VoidVal)];
+    `Sequence [`Return (`Constant (IntVal 100l))];
+    `Sequence [
+      `Constant (IntVal 4l);
+      `Return (`Constant (IntVal 1000l))
+    ];
+  ] in
+  let testCases =
+    List.map (fun form -> (form, [form])) identityTestCases
+  in
+  let results =
+    List.map
+      (fun (input, expected) ->
+         let result = moveLocalVarsToEntryBlock input in
+         if result <> expected then `Error (input, expected, result)
+         else `Ok)
+      testCases
+  in
+  let rec filterErrors acc = function
+    | `Ok :: rem -> filterErrors acc rem
+    | (`Error (_ as e)) :: rem -> filterErrors (e::acc) rem
+    | [] -> acc
+  in
+  let errors = filterErrors [] results in
+  let formsToString forms =
+    let formStrings = List.map Lang.formToString forms in
+    Common.combine "\n" formStrings
+  in
+  List.iter
+    (fun (input, expected, result) ->
+       printf "Error!\n Input %s \n Result %s \n Expected %s \n\n"
+         (Lang.formToString input)
+         (formsToString result)
+         (formsToString expected))
+    errors
   
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ

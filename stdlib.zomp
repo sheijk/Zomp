@@ -1,6 +1,6 @@
 
 
-/// external (C) functions ----------------------------------------
+// /\/\/ external (C) functions ---------------------------------------- */
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
@@ -36,16 +36,14 @@
 
 (func void printBool ((bool b)) (
   (branch b true false)
-  
+   
   (label true)
   (printChar 't')
-//   (printString trueString)
   (printNewline)
   (branch end)
   
   (label false)
   (printChar 'f')
-//   (printString falseString)
   (printNewline)
 
   (label end)

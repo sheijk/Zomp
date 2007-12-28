@@ -129,7 +129,7 @@ let compile instream outstream =
       )
   in
   collectTimingInfo "shutdown zompvm" (fun () -> Zompvm.zompShutdown(););
-  Common.printTimings();
+(*   Common.printTimings(); *)
   exit exitCode
 
 let () =

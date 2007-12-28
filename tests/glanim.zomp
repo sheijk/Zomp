@@ -9,7 +9,7 @@
 
 (include "opengl20.zomp")
 (include "glfw.zomp")
-(include "glutils.zomp")
+(include "tests/glutils.zomp")
 
 (var int windowWidth 400)
 (var int windowHeight 300)

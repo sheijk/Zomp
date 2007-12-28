@@ -836,7 +836,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           let nestedForms = snd (translateNested innerBindings implExpr) in
           let nestedTLForms, implForms = extractToplevelForms nestedForms in
           let nestedTLForms = List.map (fun (`ToplevelForm f) -> f) nestedTLForms in
-          nestedTLForms, Some (`Sequence implForms)
+          let implFormsWithFixedVars = moveLocalVarsToEntryBlock (`Sequence implForms) in
+          nestedTLForms, Some (`Sequence implFormsWithFixedVars)
       | None -> [], None
     in
     let f = func name typ params impl in
@@ -883,49 +884,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     | _ ->
         None
           
-(*   match expr with *)
-(*     | { id = id; args = [ *)
-(*           typeExpr; *)
-(*           { id = name; args = [] }; *)
-(*           { id = seq1; args = paramExprs }; *)
-(*           { id = seq2; args = _ } as implExpr; *)
-(*         ] } when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence -> *)
-(*         begin *)
-(*           match translateType bindings typeExpr with *)
-(*             | Some typ -> begin *)
-(*                 let tempBindings, _, _ = buildFunction bindings typ name paramExprs None in *)
-(*                 let newBindings, toplevelForms, funcDef = *)
-(*                   buildFunction tempBindings typ name paramExprs (Some implExpr) *)
-(*                 in *)
-(*                 match typeCheckTL newBindings funcDef with *)
-(*                   | TypeOf _ -> Some( newBindings, toplevelForms @ [funcDef] ) *)
-(*                   | TypeError (msg, declaredType, returnedType) -> *)
-(*                       raiseIllegalExpression *)
-(*                         expr *)
-(*                         (Printf.sprintf "Function has return type %s but returns %s: %s" *)
-(*                            (Lang.typeName declaredType) *)
-(*                            (Lang.typeName returnedType) *)
-(*                            msg) *)
-(*               end *)
-(*             | None -> raiseInvalidType typeExpr *)
-(*         end *)
-(*     | { id = id; args = [ *)
-(*           typeExpr; *)
-(*           { id = name; args = [] }; *)
-(*           { id = seq; args = paramExprs }; *)
-(*         ] } when id = macroFunc && seq = macroSequence -> *)
-(*         begin *)
-(*           match translateType bindings typeExpr with *)
-(*             | Some typ -> *)
-(*                 begin *)
-(*                   let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs None in *)
-(*                   Some (newBindings, [funcDecl] ) *)
-(*                 end *)
-(*             | None -> *)
-(*                 raiseInvalidType typeExpr *)
-(*         end *)
-(*     | _ -> *)
-(*         None *)
 
 and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let translateDeclarationsOnlyF bindings tlexprs = translateF bindings tlexprs

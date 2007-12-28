@@ -18,7 +18,7 @@ Conventions for function names:
 
 (include "opengl20.zomp")
 (include "glfw.zomp")
-(include "glutils.zomp")
+(include "tests/glutils.zomp")
 
 (const int windowWidth 400)
 (const int windowHeight 300)
@@ -149,7 +149,7 @@ void main(void) {
   (glfwPollEvents)
 
 
-  (const int sphereCount 3)
+  (const int sphereCount 3000)
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
   (template foreachSphere indexVar posVar code (
     (var int #indexVar 0)
@@ -170,19 +170,16 @@ void main(void) {
     (store (ptradd pos 2) (frand))
     ))
 
-//   (foreachSphere i2 p2 ( */
-//     (printFloat (load (ptradd p2 0))) (printString ", ") */
-//     (printFloat (load (ptradd p2 1))) (printString ", ") */
-//     (printFloat (load (ptradd p2 2))) (println) */
-//     )) */
-
   (var bool abort false)
   (var double startTime (glfwGetTime))
 
   (var GLuint billboard (makeBillboard 1024 1024))
   (var GLuint sphereShader (makeMainShader))
-  
+
   (while (bool.not abort) (
+    (const double time (glfwGetTime))
+    (const double frameTime (double.sub time startTime))
+    
     (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
       (assign abort true)
       )())
@@ -211,6 +208,8 @@ void main(void) {
     (glLoadIdentity)
     (glTranslatef -2. -1.5 -20.)
 
+    (glRotated frameTime 0.d 0.d 1.d)
+
 //     (drawOrientationGrid) */
     (const float sunAngle (double.toFloat (glfwGetTime)))
     
@@ -220,33 +219,15 @@ void main(void) {
     (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
     (renderQuad 0.5)
 
-//     (foreachSphere i3 p3 ( */
-//       (var float x (load (ptradd p3 0))) */
-//       (var float y (load (ptradd p3 1))) */
-//       (var float z (load (ptradd p3 2))) */
-
-//       (glTranslatef x y z) */
-
-//       (glBegin GL_QUADS) */
-//       (glColor4f 1. 1. 1. 1.) */
-//       (glTexCoord2f 0. 0.) (glVertex3f -1. -1. 0.) */
-//       (glTexCoord2f 0. 1.) (glVertex3f -1. 1. 0.) */
-//       (glTexCoord2f 1. 1.) (glVertex3f 1. 1. 0.) */
-//       (glTexCoord2f 1. 0.) (glVertex3f 1. -1. 0.) */
-//       (glEnd) */
-
-//       (glTranslatef (float.neg x) (float.neg y) (float.neg z)) */
-//       )) */
-
-    // (foreachSphere index2 pos2 ( */
-//       (var float x (load (ptradd pos2 0))) */
-//       (var float y (load (ptradd pos2 1))) */
-//       (var float z (load (ptradd pos2 2))) */
+    (foreachSphere index2 pos2 (
+      (var float x (load (ptradd pos2 0)))
+      (var float y (load (ptradd pos2 1)))
+      (var float z (load (ptradd pos2 2)))
       
-//       (glTranslatef x y z) */
-//       (renderQuad (float.fdiv 1.0 2.0)) */
-//       (glTranslatef (float.neg x) (float.neg y) (float.neg z)) */
-//       )) */
+      (glTranslatef x y z)
+      (renderQuad (float.fdiv 1.0 2.0))
+      (glTranslatef (float.neg x) (float.neg y) (float.neg z))
+      ))
     
     (glBindTexture2D 0)
     (glUseProgram 0)
