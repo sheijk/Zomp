@@ -3,7 +3,7 @@ Demonstrates using OpenGL.
 
 !verify off
 
-!load libglfw.dylibEnter this into toplevel to load libs:
+Enter this into toplevel to load libs:
 !load libglfw.dylib
 !load libGLEW.dylib
 
@@ -19,6 +19,30 @@ Conventions for function names:
 (include "opengl20.zomp")
 (include "glfw.zomp")
 (include "tests/glutils.zomp")
+
+(template float.neg x (float.sub 0. #x))
+
+(template op+ l r (int.add #l #r))
+(template op- l r (int.sub #l #r))
+(template op* l r (int.mul #l #r))
+(template op/ l r (int.sdiv #l #r))
+
+(template op== l r (int.equal #l #r))
+(template op!= l r (int.notEqual #l #r))
+
+(template op> l r (int.sgreater #l #r))
+(template op< l r (int.sless #l #r))
+(template op>= l r (int.sgreaterEqual #l #r))
+(template op<= l r (int.slessEqual #l #r))
+
+(template op+_f l r (float.add #l #r))
+(template op-_f l r (float.sub #l #r))
+(template op*_f l r (float.mul #l #r))
+(template op/_f l r (float.fdiv #l #r))
+
+(template op==_f l r (float.equal #l #r))
+(template op!=_f l r (float.notEqual #l #r))
+
 
 (const int windowWidth 400)
 (const int windowHeight 300)
@@ -134,14 +158,64 @@ void main(void) {
 ")
   ))
 
+(func float getx (((ptr float) ptr)) (
+  (load (ptradd ptr 0))
+  ))
+(func float gety (((ptr float) ptr)) (
+  (load (ptradd ptr 1))
+  ))
+(func float getz (((ptr float) ptr)) (
+  (load (ptradd ptr 2))
+  ))
+
+
+(type mesh
+  (int size)
+  ((ptr float) vertices)
+  ((ptr float) texcoords)
+  )
+
+(func (ptr mesh) mesh:create ((int size)) (
+  (var (ptr mesh) mesh (malloc mesh))
+  (setField mesh size size)
+  (setField mesh vertices (malloc float (size * 3)))
+  (setField mesh texcoords (malloc float (size * 2)))
+
+  (ret mesh)
+  ))
+
+(func void mesh:setPos (((ptr mesh) mesh) (int index) (float x) (float y) (float z)) (
+  (const (ptr float) posAddr (ptradd (getField mesh vertices) (int.mul 3 index)))
+  (store (ptradd posAddr 0) x)
+  (store (ptradd posAddr 1) y)
+  (store (ptradd posAddr 2) z)
+  ))
+
+(func void mesh:setTexCoord (((ptr mesh) mesh) (int index) (float u) (float v)) (
+  (const (ptr float) texcoords (ptradd (getField mesh texcoords) (int.mul 2 index)))
+  (store (ptradd texcoords 0) u)
+  (store (ptradd texcoords 1) v)    
+  ))
+
+(func void mesh:sendgl (((ptr mesh) m)) (
+  (var (ptr float) pos (getField m vertices))
+  (var (ptr float) tc (getField m texcoords))
+  
+  (for index 0 (getField m size) (
+    (glTexCoord2f (getx tc) (gety tc))
+    (glVertex3f (getx pos) (gety pos) (getz pos))
+    (assign pos (ptradd pos 3))
+    (assign tc (ptradd tc 2))
+    ))
+  ))
+
 (func int rand ())
 
 (func int random ((int max)) (
   (ret (int.srem (rand) max))
   ))
   
-(template float.neg x (float.sub 0. #x))
-  
+
 (func int main () (
   (if (bool.not (init)) (ret 100) ())
 
@@ -149,7 +223,7 @@ void main(void) {
   (glfwPollEvents)
 
 
-  (const int sphereCount 3000)
+  (const int sphereCount 300000)
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
   (template foreachSphere indexVar posVar code (
     (var int #indexVar 0)
@@ -169,6 +243,39 @@ void main(void) {
     (store (ptradd pos 1) (frand))
     (store (ptradd pos 2) (frand))
     ))
+
+  (printlnString "initializing vertices")
+
+  //   (const int vertexCount 4) */
+  //   (const (ptr mesh) sphereMesh (mesh:create vertexCount)) */
+  //   (mesh:setPos sphereMesh 0 -1.0 -1.0 0.0) */
+  //   (mesh:setPos sphereMesh 1 1.0 -1.0 0.0) */
+  //   (mesh:setPos sphereMesh 2 1.0 1.0 0.0) */
+  //   (mesh:setPos sphereMesh 3 -1.0 1.0 0.0) */
+  
+  (const int vertexCount (4 * sphereCount))
+  (const (ptr mesh) sphereMesh (mesh:create vertexCount))
+  (for sphereNum 0 sphereCount (
+    (const (ptr float) p2 (ptradd positions (3 * sphereNum)))
+    (const float sx (getx p2))
+    (const float sy (gety p2))
+    (const float sz (getz p2))
+    (const float bbsize (1.0 /_f 4.0))
+    (const int vertexNum (sphereNum*4))
+    (mesh:setTexCoord sphereMesh (vertexNum+0) 0. 0.)
+    (mesh:setPos sphereMesh (vertexNum+0) (sx -_f bbsize) (sy -_f bbsize) sz)
+    
+    (mesh:setTexCoord sphereMesh (vertexNum+1) 1. 0.)
+    (mesh:setPos sphereMesh (vertexNum+1) (sx +_f bbsize) (sy -_f bbsize) sz)
+    
+    (mesh:setTexCoord sphereMesh (vertexNum+2) 1. 1.)
+    (mesh:setPos sphereMesh (vertexNum+2) (sx +_f bbsize) (sy +_f bbsize) sz)
+    
+    (mesh:setTexCoord sphereMesh (vertexNum+3) 0. 1.)
+    (mesh:setPos sphereMesh (vertexNum+3) (sx -_f bbsize) (sy +_f bbsize) sz)
+    ))
+
+  (printlnString "initalized vertices")
 
   (var bool abort false)
   (var double startTime (glfwGetTime))
@@ -210,7 +317,7 @@ void main(void) {
 
     (glRotated frameTime 0.d 0.d 1.d)
 
-//     (drawOrientationGrid) */
+    //     (drawOrientationGrid) */
     (const float sunAngle (double.toFloat (glfwGetTime)))
     
     (glUseProgram sphereShader)
@@ -219,19 +326,23 @@ void main(void) {
     (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
     (renderQuad 0.5)
 
-    (foreachSphere index2 pos2 (
-      (var float x (load (ptradd pos2 0)))
-      (var float y (load (ptradd pos2 1)))
-      (var float z (load (ptradd pos2 2)))
+    //     (foreachSphere index2 pos2 ( */
+      //       (var float x (load (ptradd pos2 0))) */
+      //       (var float y (load (ptradd pos2 1))) */
+      //       (var float z (load (ptradd pos2 2))) */
       
-      (glTranslatef x y z)
-      (renderQuad (float.fdiv 1.0 2.0))
-      (glTranslatef (float.neg x) (float.neg y) (float.neg z))
-      ))
+      //       (glTranslatef x y z) */
+      //       (renderQuad (float.fdiv 1.0 2.0)) */
+      //       (glTranslatef (float.neg x) (float.neg y) (float.neg z)) */
+      //       )) */
+    
+    (glBegin GL_QUADS)
+    (mesh:sendgl sphereMesh)
+    (glEnd)
     
     (glBindTexture2D 0)
     (glUseProgram 0)
-  
+    
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))
