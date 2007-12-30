@@ -33,6 +33,8 @@ let catchingErrorsDo f ~onError =
           signalError (sprintf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr))
       | Lang.CouldNotParseType descr ->
           signalError (sprintf "Unknown type: %s\n" descr)
+      | Genllvm.CodeGenError msg ->
+          signalError (sprintf "Codegen failed: %s\n" msg)
       | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
           signalError (sprintf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode)
       | Failure msg ->

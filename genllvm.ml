@@ -576,6 +576,7 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
         match valueType, targetType with
           | `Pointer _, `Int -> "ptrtoint"
           | `Int, `Pointer _ -> "inttoptr"
+          | `Pointer _, `Pointer _ -> "bitcast"
           | _, _ ->
               raiseCodeGenError ~msg:(sprintf "Cannot cast from %s to %s"
                                         (typeName valueType) (typeName targetType))

@@ -543,11 +543,11 @@ GL_VERSION_1_1
 
 	void glGetPolygonStipple (GLubyte* mask)
 
-#	void glDrawElements (GLenum mode, GLsizei count, GLenum type, const GLvoid* indices)
+	void glDrawElements (GLenum mode, GLsizei count, GLenum type, const GLvoid* indices)
 
 	const GLubyte*  glGetString (GLenum name)
 
-#	void glGetTexImage (GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels)
+	void glGetTexImage (GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels)
 
 	void glGetTexEnvfv (GLenum target, GLenum pname, GLfloat* params)
 	void glGetTexEnviv (GLenum target, GLenum pname, GLint* params)
@@ -576,7 +576,7 @@ GL_VERSION_1_1
 	void glBegin (GLenum mode)
     void glEnd ()
 
-#	void glTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels)
+	void glTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels)
 
 	void glGetMaterialfv (GLenum face, GLenum pname, GLfloat* params)
 	void glGetMaterialiv (GLenum face, GLenum pname, GLint* params)
@@ -585,7 +585,7 @@ GL_VERSION_1_1
 
 	void glFrontFace (GLenum mode)
 
-#	void glTexImage1D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid* pixels)
+	void glTexImage1D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid* pixels)
 
 	void glTexGend (GLenum coord, GLenum pname, GLdouble param)
 	void glTexGenf (GLenum coord, GLenum pname, GLfloat param)
@@ -613,6 +613,7 @@ GL_VERSION_1_1
     void glEndList ()
 
 	void glEnableClientState (GLenum cap)
+    void glDisableClientState (GLenum cap)
 
 	void glIndexd (GLdouble c)
 	void glIndexf (GLfloat c)
@@ -624,7 +625,7 @@ GL_VERSION_1_1
 
 	void glViewport (GLint x, GLint y, GLsizei width, GLsizei height)
 
-#	void glInterleavedArrays (GLenum format, GLsizei stride, const GLvoid* pointer)
+	void glInterleavedArrays (GLenum format, GLsizei stride, const GLvoid* pointer)
 
 	void glMap2d (GLenum target, GLdouble u1, GLdouble u2, GLint ustride, GLint uorder, GLdouble v1, GLdouble v2, GLint vstride, GLint vorder, const GLdouble* points)
 	void glMap2f (GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder, GLfloat v1, GLfloat v2, GLint vstride, GLint vorder, const GLfloat* points)
@@ -691,12 +692,12 @@ GL_VERSION_1_1
 	void glRasterPos4i (GLint x, GLint y, GLint z, GLint w)
 	void glRasterPos4s (GLshort x, GLshort y, GLshort z, GLshort w)
 
-#	void glNormalPointer (GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glNormalPointer (GLenum type, GLsizei stride, const GLvoid* pointer)
 
 	void glPushAttrib (GLbitfield mask)
     void glPopAttrib ()
 
-#	void glIndexPointer (GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glIndexPointer (GLenum type, GLsizei stride, const GLvoid* pointer)
 
 	void glGetBooleanv (GLenum pname, GLboolean* params)
 	void glGetDoublev (GLenum pname, GLdouble* params)
@@ -719,7 +720,7 @@ GL_VERSION_1_1
 
 	void glCopyTexImage2D (GLenum target, GLint level, GLenum internalFormat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
 
-#	void glEdgeFlagPointer (GLsizei stride, const GLvoid* pointer)
+	void glEdgeFlagPointer (GLsizei stride, const GLvoid* pointer)
 
 	void glClearIndex (GLfloat c)
 
@@ -742,7 +743,7 @@ GL_VERSION_1_1
 	void glTexCoord4i (GLint s, GLint t, GLint r, GLint q)
 	void glTexCoord4s (GLshort s, GLshort t, GLshort r, GLshort q)
 
-#	void glGetPointerv (GLenum pname, GLvoid** params)
+	void glGetPointerv (GLenum pname, GLvoid** params)
 
 	void glPixelZoom (GLfloat xfactor, GLfloat yfactor)
 
@@ -765,7 +766,7 @@ GL_VERSION_1_1
 
 	void glCopyTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
 
-#	void glCallLists (GLsizei n, GLenum type, const GLvoid* lists)
+	void glCallLists (GLsizei n, GLenum type, const GLvoid* lists)
 
 	void glPushClientAttrib (GLbitfield mask)
 
@@ -813,11 +814,11 @@ GL_VERSION_1_1
 
 	void glStencilOp (GLenum fail, GLenum zfail, GLenum zpass)
 
-#	void glDrawPixels (GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels)
+	void glDrawPixels (GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels)
 
 	void glBlendFunc (GLenum sfactor, GLenum dfactor)
 
-#	void glColorPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glColorPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
 
 	void glIndexMask (GLuint mask)
 
@@ -838,7 +839,7 @@ GL_VERSION_1_1
 	void glNormal3i (GLint nx, GLint ny, GLint nz)
 	void glNormal3s (GLshort nx, GLshort ny, GLshort nz)
 
-#	void glTexSubImage1D (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid* pixels)
+	void glTexSubImage1D (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid* pixels)
 
 	void glStencilFunc (GLenum func, GLint ref, GLuint mask)
 
@@ -878,13 +879,13 @@ GL_VERSION_1_1
 
 	void glEvalMesh1 (GLenum mode, GLint i1, GLint i2)
 
-#	void glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* pixels)
+	void glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* pixels)
 
 	void glDrawBuffer (GLenum mode)
 
 	void glCullFace (GLenum mode)
 
-#	void glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
 
 	void glRectd (GLdouble x1, GLdouble y1, GLdouble x2, GLdouble y2)
 	void glRectf (GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
@@ -911,7 +912,7 @@ GL_VERSION_1_1
 
 	void glFeedbackBuffer (GLsizei size, GLenum data, GLfloat* buffer)
 
-#	void glVertexPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glVertexPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
 
 GL_VERSION_1_2
 	GL_UNSIGNED_BYTE_3_3_2 0x8032
@@ -956,9 +957,9 @@ GL_VERSION_1_2
 	GL_MAX_3D_TEXTURE_SIZE 0x8073
 	GL_TEXTURE_BINDING_3D 0x806A
     
-#	void glDrawRangeElements (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices)
-#	void glTexImage3D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid* pixels)
-#	void glTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid* pixels)
+	void glDrawRangeElements (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices)
+	void glTexImage3D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid* pixels)
+	void glTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid* pixels)
 	void glCopyTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height)
 
 GL_VERSION_1_3
@@ -1061,13 +1062,13 @@ GL_VERSION_1_3
 
 	void glActiveTexture (GLenum texture)
 	void glClientActiveTexture (GLenum texture)
-#	void glCompressedTexImage1D (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid* data)
-#	void glCompressedTexImage2D (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data)
-#	void glCompressedTexImage3D (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid* data)
-#	void glCompressedTexSubImage1D (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const GLvoid* data)
-#	void glCompressedTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data)
-#	void glCompressedTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const GLvoid* data)
-#	void glGetCompressedTexImage (GLenum target, GLint lod, GLvoid* img)
+	void glCompressedTexImage1D (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid* data)
+	void glCompressedTexImage2D (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data)
+	void glCompressedTexImage3D (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid* data)
+	void glCompressedTexSubImage1D (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const GLvoid* data)
+	void glCompressedTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data)
+	void glCompressedTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const GLvoid* data)
+	void glGetCompressedTexImage (GLenum target, GLint lod, GLvoid* img)
 	void glLoadTransposeMatrixd (const GLdouble* m)
 	void glLoadTransposeMatrixf (const GLfloat* m)
 	void glMultTransposeMatrixd (const GLdouble* m)
@@ -1152,9 +1153,9 @@ GL_VERSION_1_4
 	void glFogCoordfv (const GLfloat* coord)
 	void glFogCoordd (GLdouble coord)
 	void glFogCoorddv (const GLdouble* coord)
-#	void glFogCoordPointer (GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glFogCoordPointer (GLenum type, GLsizei stride, const GLvoid* pointer)
 	void glMultiDrawArrays (GLenum mode, GLint* first, GLsizei* count, GLsizei primcount)
-#	void glMultiDrawElements (GLenum mode, GLsizei* count, GLenum type, const GLvoid* *indices, GLsizei primcount)
+	void glMultiDrawElements (GLenum mode, GLsizei* count, GLenum type, const GLvoid** indices, GLsizei primcount)
 	void glPointParameterf (GLenum pname, GLfloat param)
 	void glPointParameterfv (GLenum pname, GLfloat* params)
 	void glSecondaryColor3b (GLbyte red, GLbyte green, GLbyte blue)
@@ -1173,7 +1174,7 @@ GL_VERSION_1_4
 	void glSecondaryColor3uiv (const GLuint* v)
 	void glSecondaryColor3us (GLushort red, GLushort green, GLushort blue)
 	void glSecondaryColor3usv (const GLushort* v)
-#	void glSecondaryColorPointer (GLint size, GLenum type, GLsizei stride, GLvoid* pointer)
+	void glSecondaryColorPointer (GLint size, GLenum type, GLsizei stride, GLvoid* pointer)
 	void glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
 	void glWindowPos2d (GLdouble x, GLdouble y)
 	void glWindowPos2f (GLfloat x, GLfloat y)
@@ -1256,15 +1257,15 @@ http://www.opengl.org/documentation/specs/version1.5/glspec15.pdf
 	void glDeleteBuffers (GLsizei n, const GLuint* buffers)
 	void glGenBuffers (GLsizei n, GLuint* buffers)
 	GLboolean glIsBuffer (GLuint buffer)
-#	void glBufferData (GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage)
-#	void glBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid* data)
-#	void glGetBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, GLvoid* data)
-#	GLvoid* glMapBuffer (GLenum target, GLenum access)
+	void glBufferData (GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage)
+	void glBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid* data)
+	void glGetBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size, GLvoid* data)
+	GLvoid* glMapBuffer (GLenum target, GLenum access)
 	GLboolean glUnmapBuffer (GLenum target)
 	void glGetBufferParameteriv (GLenum target, GLenum pname, GLint* params)
-#	void glGetBufferPointerv (GLenum target, GLenum pname, GLvoid** params)
-#	typedef ptrdiff_t GLsizeiptr
-#	typedef ptrdiff_t GLintptr
+	void glGetBufferPointerv (GLenum target, GLenum pname, GLvoid** params)
+# 	typedef ptrdiff_t GLsizeiptr
+# 	typedef ptrdiff_t GLintptr
 	
 GL_VERSION_2_0
 http://www.opengl.org/documentation/specs/version2.0/glspec20.pdf
@@ -1446,7 +1447,7 @@ http://www.opengl.org/documentation/specs/version2.0/glspec20.pdf
 	void glVertexAttrib4ubv (GLuint index, const GLubyte* v)
 	void glVertexAttrib4uiv (GLuint index, const GLuint* v)
 	void glVertexAttrib4usv (GLuint index, const GLushort* v)
-#	void glVertexAttribPointer (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer)
+	void glVertexAttribPointer (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer)
 
 
 GL_EXT_framebuffer_object
@@ -1531,7 +1532,7 @@ GL_EXT_framebuffer_object
 
 	void glFramebufferRenderbufferEXT (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer)
 
-#	void glGetFramebufferAttachmentParameterivEXT (GLenum target, GLenum attachment, GLenum pname, GLint* params)
+	void glGetFramebufferAttachmentParameterivEXT (GLenum target, GLenum attachment, GLenum pname, GLint* params)
 
 	void glGenerateMipmapEXT (GLenum target)
 
@@ -1540,9 +1541,9 @@ GL_EXT_framebuffer_object
 GLEW
 	void glewInit ()
     
-# 	GLuint glcGenTexture ()
+#	GLuint glcGenTexture ()
 # 	void glcDeleteTexture (GLuint texture)
-#     void glcTexImage2D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint # border, GLenum format, GLenum dataType)
+#	void glcTexImage2D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint # border, GLenum format, GLenum dataType)
 # 	void glcShaderSource (GLuint shader, const char* source)
 #     GLint glcGetShaderiv (GLuint obj, GLenum typ)
 #     GLint glcGetProgramiv (GLuint obj, GLenum typ)

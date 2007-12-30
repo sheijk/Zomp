@@ -48,7 +48,6 @@ Conventions for function names:
 (template op= l r (assign #l #r))
 
 
-
 (const int windowWidth 400)
 (const int windowHeight 300)
 
@@ -202,16 +201,32 @@ void main(void) {
   (store (ptradd texcoords 1) v)    
   ))
 
+/// Will send the mesh's geometry using intermediate mode functions
+/// (glVertex, glNormals etc.)
 (func void mesh:sendgl (((ptr mesh) m)) (
   (var (ptr float) pos (getField m vertices))
   (var (ptr float) tc (getField m texcoords))
-  
+
   (for index 0 (getField m size) (
     (glTexCoord2f (getx tc) (gety tc))
     (glVertex3f (getx pos) (gety pos) (getz pos))
     (assign pos (ptradd pos 3))
     (assign tc (ptradd tc 2))
     ))
+  ))
+
+/// Will send the geometry to OpenGL
+(func void mesh:render (((ptr mesh) m)) (
+  (glEnableClientState GL_VERTEX_ARRAY)
+  (glVertexPointer 3 GL_FLOAT 0 (cast (ptr void) (getField m vertices)))
+
+  (glEnableClientState GL_TEXTURE_COORD_ARRAY)
+  (glTexCoordPointer 2 GL_FLOAT 0 (cast (ptr void) (getField m texcoords)))
+
+  (glDrawArrays GL_QUADS 0 (getField m size))
+
+  (glDisableClientState GL_VERTEX_ARRAY)
+  (glDisableClientState GL_TEXTURE_COORD_ARRAY)
   ))
 
 (func int rand ())
@@ -227,7 +242,7 @@ void main(void) {
   (glfwPollEvents)
   (glfwPollEvents)
 
-  (const int sphereCount 300000)
+  (const int sphereCount 30000)
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
   (template foreachSphere indexVar posVar code (
     (var int #indexVar 0)
@@ -282,12 +297,13 @@ void main(void) {
   (printlnString "initalized vertices")
 
   (var bool abort false)
-  (var double startTime (glfwGetTime))
-  (var int frameCount 0)
 
   (var GLuint billboard (makeBillboard 1024 1024))
   (var GLuint sphereShader (makeMainShader))
 
+  (var double startTime (glfwGetTime))
+  (var int frameCount 0)
+  
   (while (bool.not abort) (
     (const double time (glfwGetTime))
     (const double frameTime (double.sub time startTime))
@@ -332,9 +348,10 @@ void main(void) {
     (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
     (renderQuad 0.5)
 
-    (glBegin GL_QUADS)
-    (mesh:sendgl sphereMesh)
-    (glEnd)
+    (mesh:render sphereMesh)
+//     (glBegin GL_QUADS)
+//     (mesh:sendgl sphereMesh)
+//     (glEnd)
     
     (glBindTexture2D 0)
     (glUseProgram 0)
@@ -344,10 +361,14 @@ void main(void) {
     ))
 
   (const double endTime (glfwGetTime))
-  (const float fps ((int.toFloat frameCount) /_f ((double.toFloat endTime) -_f (double.toFloat startTime))))
+  (const float totalTime ((double.toFloat endTime) -_f (double.toFloat startTime)))
+  (const float fps ((int.toFloat frameCount) /_f totalTime))
 
-  (printInt frameCount) (printString " total frames") (println)
-  (printFloat fps) (printString " fps average") (println)
+  (printInt frameCount) (printString " frames, ")
+  (printFloat totalTime) (printString " seconds")
+  (println)
+  (printFloat fps) (printString " fps average")
+  (println)
 
   (glDeleteProgram sphereShader)
   (glDeleteTextures 1 (ptr billboard))
@@ -356,6 +377,11 @@ void main(void) {
   (ret 0)
   ))
 
+(func void zompvm:immediate () (
+  (glfwSetWindowSize 400 300)
+  (glfwPollEvents)
+  ))
+  
 // (testf ( */
 //   (const int retval (main)) */
 //   (printString "Main returned ") */
