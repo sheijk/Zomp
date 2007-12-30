@@ -22,15 +22,20 @@
                          (backward-char 1)))
                   ))))))
 
-(defvar zomp-imenu-generic-expression
-  '((nil "^(macro +\\([a-zA-Z0-9:.]+\\)" 1)
-    (nil "^(func +[a-zA-Z0-9:.]+ +\\([a-zA-Z0-9:.]+\\)" 1)
-    (nil "^(var +[a-zA-Z0-9:.]+ +\\([a-zA-Z0-9:.]+\\)" 1)
-    (nil "^(const +[a-zA-Z0-9:.]+ +\\([a-zA-Z0-9:.]+\\)" 1)
-    (nil "^(type +\\([a-zA-Z0-9:.]+\\)" 1)
-    (nil "^(template +\\([a-zA-Z0-9:.]+\\)" 1)
+(defvar zomp-imenu-generic-expression nil)
+
+(defun zomp-id (str)
+  (replace-regexp-in-string "ID" "[a-zA-Z0-9:*+-/!=><_]+" str t))
+
+(setq zomp-imenu-generic-expression
+  `((nil ,(zomp-id "^(macro +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(func +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(var +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(const +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(type +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(template +\\(ID\\)") 1)
     ))
-    
+
 (defun zomp-mark-sexp ()
   (interactive)
   (cond (mark-active

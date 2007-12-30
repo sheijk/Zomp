@@ -300,11 +300,11 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
 
+zompl - zero overhead meta programming language
 baremp - bare metal meta programming / bare metal programming
 bmmp
 llmp - low level meta programming
 lowmp
-zompl - zero overhead meta programming language
 zoml - zero overhead meta language
 0mp
 roomp
