@@ -11,16 +11,15 @@ let identifierChar = [':' 'a'-'z' '0'-'9' 'A'-'Z' '_' '.']
 let addOp = ['+' '-']
 let multOp = ['*' '/']
 let compareOp = ("=" | "==" | "!=" | "<" | "<=" | ">" | ">=")
+let postOp = "..."
 let opPostfix = ('_' identifierChar+)?
   
 rule token = parse
   | whitespace
       { token lexbuf }
-  | '('
-      { PAREN_OPEN }
-  | ')'
-      { PAREN_CLOSE }
-  | ("op" (addOp | multOp | compareOp) opPostfix) as funcName
+  | "op[]" as funcName
+      { IDENTIFIER(funcName) }
+  | ("op" (addOp | multOp | compareOp | postOp) opPostfix) as funcName
       { IDENTIFIER(funcName) }
   | (addOp opPostfix) as op
       { ADD_OP(op) }
@@ -28,8 +27,18 @@ rule token = parse
       { MULT_OP(op) }
   | (compareOp opPostfix) as op
       { COMPARE_OP(op) }
+  | (postOp opPostfix) as op
+      { POST_OP(op) }
   | (("``" | "`" | "#" ) as quoteOp)
       { QUOTE(quoteOp) }
+  | '('
+      { PAREN_OPEN }
+  | ')'
+      { PAREN_CLOSE }
+  | '['
+      { BRACKET_OPEN }
+  | ']'
+      { BRACKET_CLOSE }
   | (identifierChar+ as id) | (('-' identifierChar+) as id)
       { IDENTIFIER(id) }
   | eof

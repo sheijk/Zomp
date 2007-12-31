@@ -3,7 +3,7 @@
 /// an arbitrary number of parameters stored in a seq expression
 ///
 
-(macro vartest firstArg (rest remArgs) (
+(macro vartest firstArg remArgs ... (
   (const int argCount (getField remArgs childCount))
  
   (printString "Invoked macro ")

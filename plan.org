@@ -14,9 +14,11 @@
   (ret 0)
   ))
 
-*** TODO [#B] Using OpenGL results in crashes
+*** DONE [#B] Using OpenGL results in crashes
+    CLOSED: [2007-12-31 Mon 03:25]
 
-*** TODO [#A] gltest.cbe.c unter windows/linux testen
+*** DONE [#A] gltest.cbe.c unter windows/linux testen
+    CLOSED: [2007-12-31 Mon 03:26]
 
 *** TODO [#B] locate cause of excessivly slow LLVM IR verification
 
@@ -52,9 +54,9 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
   (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
   (twice (printInt #i))
 
-*** TODO int representations: 0xff 0b1001 etc.	:features:
+*** TODO [#B] int representations: 0xff 0b1001 etc.	:features:
     
-*** TODO nested quotes and antiquotes don't work :bug:
+*** TODO [#B] nested quotes and antiquotes don't work :bug:
     
 *** DONE Allow getting pointer to variables
     
@@ -119,7 +121,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** DONE [#A] arguments in function don't match: tell which argument(s) failed
     CLOSED: [2007-12-27 Thu 01:45]
 
-*** TODO [#C] use llvm ocaml bindings for code generation
+*** TODO [#B] use llvm ocaml bindings for code generation
 check whether this makes IR-verification faster / prevent bugs / ...
 
 *** DONE compilation needs O(n^2) time
@@ -128,10 +130,10 @@ check whether this makes IR-verification faster / prevent bugs / ...
 *** DONE [#A] performance probleme fixen
    CLOSED: [2007-12-20 Thu 02:54]
 
-*** TODO compiling is extremely slow
+*** TODO [#B] compiling is extremely slow
 
 *** TODO [#C] Generate nice and readable LLVM code
-    
+
 **** TODO [#C] Let functions in genllvm.ml return a string list instead of strings with newlines
      
 **** TODO [#C] Add empty line(s) between functions
@@ -141,11 +143,12 @@ check whether this makes IR-verification faster / prevent bugs / ...
 **** DONE Fix missing line breaks
     CLOSED: [2007-09-28 Fri 23:17]
 
+*** TODO [#C] Add a c backend which generates nice and readable code
 
-*** TODO [#C] Bug: (func int main () 20) does not compile
+*** TODO [#C] Bug: (func int main () 20) does not compile :bug:
     But (func int main () ((ret 20))) does as well as (func int main () ((printInt 10) 20))
 
-*** TODO [#C] Bug: some generic intrinsics might return invalid bindings
+*** TODO [#C] Bug: some generic intrinsics might return invalid bindings :bug:
 
 ** Interactive toplevel
    
@@ -173,7 +176,7 @@ check whether this makes IR-verification faster / prevent bugs / ...
 *** DONE Make it run stable and be usable
     CLOSED: [2007-10-03 Wed 03:33]
     
-*** TODO Support loading DLLs and calling their functions
+*** [#B] Support loading DLLs and calling their functions
     
 **** DONE Load DLLs
      CLOSED: [2007-11-04 Sun 03:35]
@@ -183,9 +186,9 @@ check whether this makes IR-verification faster / prevent bugs / ...
      
 **** TODO [#C] Add search paths
      
-*** TODO [#C] Fork to avoid crashes
+*** TODO [#B] Fork to avoid crashes
     
-**** TODO [#C] Find a way to keep connection to stdin on crash in other process
+**** TODO [#B] Find a way to keep connection to stdin on crash in other process
      
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]
@@ -196,7 +199,7 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 *** TODO [#B] indent: special treatment for lines containing only closing parentheses?
 
-*** TODO add hook to zomp-mode
+*** TODO [#A] add hook to zomp-mode
 
 *** TODO [#B] Flymake support
 
@@ -236,13 +239,13 @@ check whether this makes IR-verification faster / prevent bugs / ...
 **** DONE Query existing functions and variables
      CLOSED: [2007-11-16 Fri 02:33]
      
-** Language
+** Language / APIs
    
 *** DONE [#A] template
     CLOSED: [2007-11-24 Sat 20:12]     
     Implemented as macro
     
-*** TODO support break in loops
+*** TODO [#C] support break in loops
     
 *** TODO [#B] Allow testing macros
 (running them on code and printing the resulting AST)
@@ -282,6 +285,10 @@ check whether this makes IR-verification faster / prevent bugs / ...
      "zompc project.zomp release" should be enough to build the whole project
 
 **** Define .zobj format
+
+*** TODO [#A] API for code analysis
+Get information about an expression: types etc.
+(can be used for type propagation)
 
 ** Public
 
@@ -356,7 +363,9 @@ Might allow to do flow analysis.
 See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
        
 
+* Footer
 
+** Keep flyspell happy
  LocalWords:  AST IR VM Zomp zomp simpleform expr var boundsCheck alloca SSA
  LocalWords:  bytecode  Ast ast
 

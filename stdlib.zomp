@@ -1,6 +1,6 @@
 
 
-// /\/\/ external (C) functions ---------------------------------------- */
+/// external (C) functions ----------------------------------------
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
@@ -357,7 +357,7 @@
     ))
   ))
 
-(macro while test (rest body) (
+(macro while test body ... (
   (uniqueId begin "while_begin")
   (uniqueId exit "while_exit")
   (uniqueId goon "while_body")
@@ -404,7 +404,7 @@
 /// you simply write down the produced ast directly. You can
 /// use antiquotes to calculate parts of the ast from arbitrary
 /// code expressions
-(macro template name (rest argsAndImpl) (
+(macro template name argsAndImpl ... (
   (var (ptr ast) t (simpleAst "macro"))
   (addChild t name)
 
@@ -425,7 +425,7 @@
   (ret t)
   ))
 
-(macro compilerMessage (rest text) (
+(macro compilerMessage text ... (
   (printString "[message] ")
   (forEachAstChild child text (
     (printString (getField child id))
@@ -470,7 +470,7 @@
 
 /// Calls unittest.assert on all childs of the passed
 /// sequence expression
-(macro unittest.assertAll (rest checks) (
+(macro unittest.assertAll checks ... (
   (var (ptr ast) code `())
   (forEachAstChild check checks (
     (addChild code `(unittest.assert #check))
@@ -533,14 +533,14 @@
     ))
   ))
 
-(macro setFieldsTo value (rest fields) (
+(macro setFieldsTo value fields ... (
   (var (ptr ast) code `())
   (forEachAstChild field fields (
     (addChild code `(setField fbo #field #value))
     ))
   (ret code)
   ))
-  
+
 /// floating point support --------------------------------
 
 (macro float.aliasNoQNAN funcName (

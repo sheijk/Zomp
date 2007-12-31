@@ -82,7 +82,7 @@
 
 //------------------------------------------------------------------------------
 
-(template rendergl primitiveType (rest code) (
+(template rendergl primitiveType code ... (
   (glBegin #primitiveType)
   #code
   (glEnd)
@@ -206,7 +206,7 @@
   (glViewport 0 0 width height)
   ))
 
-(template saveTransforms (rest code) (
+(template saveTransforms code ... (
   (glMatrixMode GL_TEXTURE)
   (glPushMatrix)
   (glMatrixMode GL_PROJECTION)

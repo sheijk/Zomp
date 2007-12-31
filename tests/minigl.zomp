@@ -7,7 +7,7 @@
 (include "opengl20.zomp")
 (include "glfw.zomp")
 
-(template assert_GL_TRUE msg (rest form) (
+(template assert_GL_TRUE msg form ... (
   (if (int.notEqual GL_TRUE #form)
     (printlnString #msg)
     ())
@@ -25,7 +25,7 @@
 //
 // var im loop ein problem? (siehe geinlinetes do/:while)
 
-(macro forever (rest code) (
+(macro forever code ... (
   (uniqueId start "forever_start")
   (uniqueId fakelabel "forever_faking")
   (uniqueId thetruth "forever_trude")
@@ -38,7 +38,7 @@
     ))
   ))
 
-(macro uniqueIds purpose (rest ids) (
+(macro uniqueIds purpose ids ... (
   (var (ptr ast) code (simpleAst "seq"))
   
   (forEachAstChild child ids (

@@ -162,6 +162,8 @@ void main(void) {
 ")
   ))
 
+// (template op[] left right (load (ptradd #left #right)))
+  
 (func float getx (((ptr float) ptr)) (
   (load (ptradd ptr 0))
   ))
@@ -172,6 +174,8 @@ void main(void) {
   (load (ptradd ptr 2))
   ))
 
+///-----------------------------------------------------------------------------
+/// support for simple meshes
 
 (type mesh
   (int size)
@@ -229,6 +233,9 @@ void main(void) {
   (glDisableClientState GL_TEXTURE_COORD_ARRAY)
   ))
 
+
+
+
 (func int rand ())
 
 (func int random ((int max)) (
@@ -236,13 +243,15 @@ void main(void) {
   ))
   
 
+(template array:set array index value (store (ptradd #array #index) #value))
+
 (func int main () (
   (if (bool.not (init)) (ret 100) ())
 
   (glfwPollEvents)
   (glfwPollEvents)
 
-  (const int sphereCount 30000)
+  (const int sphereCount 15000)
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
   (template foreachSphere indexVar posVar code (
     (var int #indexVar 0)
@@ -256,31 +265,44 @@ void main(void) {
     ))
 
   (template frand ((int.toFloat (int.sub (random 30) 15))))
+  (template unitRandf ((int.toFloat (random 1025)) /_f 1024.0))
 
+  (const float turns (8.0 +_f 4.0))
+  (const float dist_max (16.0 +_f 8.0))
+  (const float pi (2.0 *_f acosf 0.0))
+  (const float angle_delta (2.0 *_f pi *_f turns /_f (int.toFloat sphereCount)))
+  (const float diff_delta (dist_max /_f (int.toFloat sphereCount)))
+  (var float angle 0.0)
+  (var float diff 0.0)
   (foreachSphere index pos (
-    (store (ptradd pos 0) (frand))
-    (store (ptradd pos 1) (frand))
-    (store (ptradd pos 2) (frand))
+    (var float diff2 (unitRandf))
+    (diff2 = diff2 *_f diff2)
+    (diff2 = diff2 *_f 2.0 +_f diff)
+    (array:set pos 0 (diff2 *_f sinf angle))
+    (array:set pos 2 (0.5 *_f 0.125 *_f (frand)))
+    (array:set pos 1 (diff2 *_f cosf angle))
+    
+    (diff = diff +_f diff_delta)
+    (angle = angle +_f angle_delta)
     ))
+//   (foreachSphere index pos (
+//     (store (ptradd pos 0) (frand))
+//     (store (ptradd pos 1) (0.5 *_f 0.125 *_f (frand)))
+//     (store (ptradd pos 2) (frand))
+//     ))
 
-  (printlnString "initializing vertices")
-
-  //   (const int vertexCount 4) */
-  //   (const (ptr mesh) sphereMesh (mesh:create vertexCount)) */
-  //   (mesh:setPos sphereMesh 0 -1.0 -1.0 0.0) */
-  //   (mesh:setPos sphereMesh 1 1.0 -1.0 0.0) */
-  //   (mesh:setPos sphereMesh 2 1.0 1.0 0.0) */
-  //   (mesh:setPos sphereMesh 3 -1.0 1.0 0.0) */
-  
   (const int vertexCount (4 * sphereCount))
   (const (ptr mesh) sphereMesh (mesh:create vertexCount))
   (for sphereNum 0 sphereCount (
     (const (ptr float) p2 (ptradd positions (3 * sphereNum)))
+    
     (const float sx (getx p2))
     (const float sy (gety p2))
     (const float sz (getz p2))
+    
     (const float bbsize (1.0 /_f 4.0))
     (const int vertexNum (sphereNum*4))
+    
     (mesh:setTexCoord sphereMesh (vertexNum+0) 0. 0.)
     (mesh:setPos sphereMesh (vertexNum+0) (sx -_f bbsize) (sy -_f bbsize) sz)
     
@@ -293,8 +315,6 @@ void main(void) {
     (mesh:setTexCoord sphereMesh (vertexNum+3) 0. 1.)
     (mesh:setPos sphereMesh (vertexNum+3) (sx -_f bbsize) (sy +_f bbsize) sz)
     ))
-
-  (printlnString "initalized vertices")
 
   (var bool abort false)
 
@@ -337,7 +357,7 @@ void main(void) {
     (glLoadIdentity)
     (glTranslatef -2. -1.5 -20.)
 
-    (glRotated frameTime 0.d 0.d 1.d)
+    (glRotatef (8.0 *_f (double.toFloat frameTime)) 0.0 0.0 1.0)
 
     //     (drawOrientationGrid) */
     (const float sunAngle (double.toFloat (glfwGetTime)))

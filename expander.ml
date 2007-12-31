@@ -39,6 +39,7 @@ and macroMalloc = "malloc"
 and macroGetaddr = "ptr"
 and macroCast = "cast"
 and macroInclude = "include"
+and macroRest = "op..."
   
 exception IllegalExpression of sexpr * string
   
@@ -461,10 +462,14 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
               let args = List.rev args in
               let argNames, isVariadic =
                 let rec worker accum = function
-                  | [] -> accum, false
-                  | [{ id = "rest"; args = [{ id = name; args = [] }] }] -> (name :: accum), true
-                  | { id = name; args = [] } :: rem -> worker (name :: accum) rem
-                  | (_ as arg) :: _ -> raiseIllegalExpression arg "only identifiers allowed as macro parameter"
+                  | [] ->
+                      accum, false
+                  | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
+                      (name :: accum), true
+                  | { id = name; args = [] } :: rem ->
+                      worker (name :: accum) rem
+                  | (_ as arg) :: _ ->
+                      raiseIllegalExpression arg "only identifiers allowed as macro parameter"
                 in
                 let reversed, isVariadic = worker [] args in
                 List.rev reversed, isVariadic
