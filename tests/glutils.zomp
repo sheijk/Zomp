@@ -49,17 +49,21 @@
   (ret false)
   ))
 
-(func GLuint createShader ((cstring vertexSource) (cstring fragmentSource)) (
+(func GLuint createShader (
+  (cstring varyingParams)
+  (cstring vertexSource)
+  (cstring fragmentSource)
+  )(
   (template abortOnCompileError shader name (
     (if (checkAndReportShaderError #shader #name) 
-        ()
-        (ret 0)) 
+      ()
+      (ret 0)) 
     ))
-    
+  
   (var GLuint program (glCreateProgram))
   
-  (var cstring vertexSource_ vertexSource)
-  (var cstring fragmentSource_ fragmentSource)
+  (var cstring vertexSource_ (cstring:concat varyingParams "\n" vertexSource))
+  (var cstring fragmentSource_ (cstring:concat varyingParams "\n" fragmentSource))
   
   (var GLuint vertexShader (glCreateShader GL_VERTEX_SHADER))
   (var GLuint fragmentShader (glCreateShader GL_FRAGMENT_SHADER))
@@ -133,7 +137,7 @@
     (glTexCoord2f 1. 1.) (glVertex3f size size 0.)
     (glTexCoord2f 1. 0.) (glVertex3f size nsize 0.))
   ))
-
+  
 (func void drawCoordSys ((float length)) (
   (template lineTo x y z (
     (glColor4f #x #y #z 1.)
@@ -196,7 +200,7 @@
     (assign fangle (float.add fangle step))
     ))
   ))
-  
+
 //------------------------------------------------------------------------------
 
 (func void autoSetupViewport () (
@@ -221,7 +225,23 @@
   (glMatrixMode GL_MODELVIEW)
   (glPopMatrix)
   ))
-  
+
+(template saveAttribs code ... (
+  (glPushAttrib GL_ALL_ATTRIB_BITS)
+  #code
+  (glPopAttrib)
+  ))
+
+(func void makeGLIdentityTransforms () (
+  (template loadIdentity matrix (
+    (glMatrixMode #matrix)
+    (glLoadIdentity) ))
+
+  (loadIdentity GL_TEXTURE)
+  (loadIdentity GL_PROJECTION)
+  (loadIdentity GL_MODELVIEW)
+  ))
+
 //------------------------------------------------------------------------------
 
 (macro makeGLFactory glgenF factoryName (
@@ -243,6 +263,17 @@
 
 //------------------------------------------------------------------------------
 
+(macro new type params ... (
+  (var cstring factoryName (cstrings.append (getField type id) ":new"))
+  (var (ptr ast) code (simpleAst factoryName))
+  (forEachAstChild child params (
+    (addChild code child)
+    ))
+  (ret code)
+  ))
+
+//------------------------------------------------------------------------------
+
 (type framebuffer
   (int width)
   (int height)
@@ -253,7 +284,7 @@
   (GLuint depthBuffer)
   )
 
-(func (ptr framebuffer) fbo_make ((int width) (int height)) (
+(func (ptr framebuffer) framebuffer:new ((int width) (int height)) (
   (var (ptr framebuffer) fbo (malloc framebuffer))
   (template set field value (setField fbo #field #value))
   (setFieldsTo 0 fbo colorTexture colorBuffer depthTexture depthBuffer)
@@ -262,7 +293,7 @@
   (ret fbo)
   ))
 
-(func void fbo_attachColorTexture (((ptr framebuffer) fbo)) (
+(func void framebuffer:attachColorTexture (((ptr framebuffer) fbo)) (
   (var GLuint texture (makeTexture))
   (glBindTexture2D texture)
   (template texParam param value
@@ -275,7 +306,7 @@
   (setField fbo colorTexture texture)
   ))
 
-(func void fbo_create (((ptr framebuffer) fbo)) (
+(func void framebuffer:create (((ptr framebuffer) fbo)) (
   (var GLuint fboName (makeFramebuffer))
   (glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName)
   
@@ -283,29 +314,63 @@
   (glBindRenderbufferEXT GL_RENDERBUFFER_EXT depthBuffer)
   (glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height))
   (glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT depthBuffer)
-
+  (glBindRenderbufferEXT GL_RENDERBUFFER_EXT 0)
+  
   (glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D (getField fbo colorTexture) 0)
 
+  (glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0)
+  
   (setField fbo fbo fboName)
   (setField fbo depthBuffer depthBuffer)
   ))
 
-(func void fbo_bind (((ptr framebuffer) fbo)) (
+(func void framebuffer:bind (((ptr framebuffer) fbo)) (
   (glBindFramebufferEXT GL_FRAMEBUFFER_EXT (getField fbo fbo))
   (glViewport 0 0 (getField fbo width) (getField fbo height))
   ))
 
-(func void fbo_unbind (((ptr framebuffer) fbo)) (
+(func void framebuffer:unbind (((ptr framebuffer) fbo)) (
   (glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0)
   ))
 
-(func void fbo_makeColorTexture (((ptr framebuffer) fbo)) (
+(func void framebuffer:makeColorTexture (((ptr framebuffer) fbo)) (
   (glBindTexture2D (getField fbo colorTexture))
   (glGenerateMipmapEXT GL_TEXTURE_2D)
   (glBindTexture2D 0)
   ))
 
+
+(template renderToTarget framebuffer code ... (
+  (framebuffer:bind #framebuffer)
+  #code
+  (framebuffer:unbind #framebuffer)
+  ))
+
+//------------------------------------------------------------------------------
+
 (func bool isPressed ((int key)) (
   (int.equal (glfwGetKey key) GL_TRUE)
   ))
 
+
+(func void drawFullscreenQuad () (
+  (saveTransforms
+    (makeGLIdentityTransforms)
+    (glColor4f 1. 1. 1. 1.)
+    (renderQuad 1.0)
+    )))
+
+(func void showTexture ((GLuint textureName)) (
+  (glClearColor 0.125 0.125 0.125 1.0)
+  (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+  (saveTransforms
+    (saveAttribs
+      (makeGLIdentityTransforms)
+      (glScalef (float.add 0.5 0.25) 1.0 1.0)
+      (glEnable GL_TEXTURE_2D)
+      (glBindTexture2D textureName)
+      (glColor4f 1. 1. 1. 1.)
+      (renderQuad (float.sub 1.0 (float.fdiv 1.0 10.0)))
+      (glBindTexture2D 0)
+      ))))
+    

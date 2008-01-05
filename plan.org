@@ -1,5 +1,16 @@
 
 * To be sorted
+** TODO [#A] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
+** TODO [#A] let toplevel send feedback to emacs + handle errors (abort eval etc.)
+** TODO [#A] "" is not parsed as a string
+** TODO [#A] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
+** TODO [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
+** TODO [#A] framebuffer cleanup/releasing code
+** TODO [#A] (op+_d | => zomp eldoc does not work
+** TODO [#A] proper error reporting when function/macro is redefined with different parameter count/types
+** TODO [#A] how to parse "var x = 10"? (op= (var x) 10), (var (op= x 10))? parse (var: x = 10) as (var (op= x 10)) but (var x = 10) as (op= (var x) 10)?
+** TODO [#A] name collisions of macros and functions (?) causes problems
+** TODO [#A] (count-1) is being parsed incorrectly
 ** TODO [#A] check where `DefineVariable for void vars comes from
 
 * Tasks
@@ -290,9 +301,21 @@ check whether this makes IR-verification faster / prevent bugs / ...
 Get information about an expression: types etc.
 (can be used for type propagation)
 
+std:builtin
+        label, branch, usw.
+
+std:ast
+        ast representation
+
+std:ast:reflection
+        type, typeOf(ast)
+        
+std:ast:detect
+        isLabel, isBranch, ...
+
 ** Public
 
-** TODO [#C] provide a (semi) public git repo
+*** TODO [#C] provide a (semi) public git repo
 
 * Notes
 - separated macro expansion / interpretation

@@ -291,7 +291,7 @@
   (var (ptr string) appended (append lstr rstr))
   (ret (getField appended chars))
   ))
-  
+
 (func cstring newUniqueName () (
   (var int id (newUniqueId))
   (var cstring numstr (int2cstring id))
@@ -375,7 +375,7 @@
     ))
   ))
 
-(macro times count code (
+(macro times count code ... (
   (uniqueId counterVar "timesCounter")
   (ret `(for #counterVar 0 #count #code))
   ))
@@ -435,8 +435,8 @@
   ))
   
 /// quickly define a test function to be run with C-c,t in emacs
-(template testf impl
-  (func void test () (#impl)) )
+(template testf impl ...
+  (func void test () #impl) )
 
 (macro assert checkCode (
   (ret `(
@@ -571,6 +571,103 @@
   ))
 
 (testf (runMain))
+
+
+(macro cstring:concat firstString strings ... (
+  (var (ptr ast) code `())
+  (uniqueId resultString "cstring_concat")
+
+  (addChild code `(var cstring #resultString #firstString))
+  
+  (forEachAstChild string strings (
+    (addChild code `(assign #resultString (cstrings.append #resultString #string)))
+    ))
+  
+  (addChild code `(#resultString))
+  
+  (ret code)
+  ))
+
+(template float.neg x (float.sub 0. #x))
+
+(template op+ l r (int.add #l #r))
+(template op- l r (int.sub #l #r))
+(template op* l r (int.mul #l #r))
+(template op/ l r (int.sdiv #l #r))
+
+(template op== l r (int.equal #l #r))
+(template op!= l r (int.notEqual #l #r))
+
+(template op> l r (int.sgreater #l #r))
+(template op< l r (int.sless #l #r))
+(template op>= l r (int.sgreaterEqual #l #r))
+(template op<= l r (int.slessEqual #l #r))
+
+(macro addMappedChilds parent mapf childs ... (
+  (var (ptr ast) code `())
+  (forEachAstChild child childs (
+    (var (ptr ast) map (simpleAst (getField mapf id)))
+    (addChild map child)
+    (addChild code `(addChild #parent #map))
+    ))
+  (ret code)
+  ))
+
+(template static:id foo (#foo))
+  
+(macro addChilds parent childs ... (
+  (var (ptr ast) code `(addMappedChilds #parent static:id))
+  (forEachAstChild child childs (
+    (addChild code child)
+    ))
+  (ret code)
+  ))
+
+(macro defineOp op func (
+  (var (ptr ast) def `(template))
+  (addChild def (simpleAst (getField op id)))
+  (addMappedChilds def simpleAst "l" "r")
+  (var (ptr ast) impl func)
+  (addChild impl ``#l)
+  (addChild impl ``#r)
+  (addChild def impl)
+  (ret def)
+  ))
+
+(macro defineOpNS op postfix func namespace (
+  (template id astx (getField #astx id))
+  
+  (var cstring funcName (cstring:concat (id namespace) "." (id func)))
+  (var cstring opName (cstring:concat (id op) (id postfix)))
+
+  (ret `(defineOp #opName #funcName))
+  ))
+
+(macro defineFloatOps postfix namespace (
+  (var (ptr ast) code `())
+
+  (addChilds code
+    `(defineOpNS op+ #postfix add #namespace)
+    `(defineOpNS op- #postfix sub #namespace)
+    `(defineOpNS op* #postfix mul #namespace)
+    `(defineOpNS op/ #postfix fdiv #namespace)
+
+    `(defineOpNS op== #postfix equal #namespace)
+    `(defineOpNS op!= #postfix notEqual #namespace)
+
+    `(defineOpNS op> #postfix ogreater #namespace)
+    `(defineOpNS op>= #postfix ogreaterEqual #namespace)
+    `(defineOpNS op< #postfix oless #namespace)
+    `(defineOpNS op<= #postfix olessEqual #namespace)
+    )
+
+  (ret code)
+  ))
+
+(defineFloatOps _f float)
+(defineFloatOps _d double)
+
+(template op= l r (assign #l #r))
 
 /* /// default test function
 

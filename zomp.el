@@ -237,11 +237,11 @@
     
     ("\\bmacro\\b" 0 font-lock-keyword-face)
     
-    ("(\\([a-zA-Z][a-zA-Z0-9_]+\\)\\b" 1 font-lock-function-name-face)
+    ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
     ("[()]" 0 font-lock-keyword-face)
     
     ("@[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-variable-name-face)
-    (":[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-type-face)
+    (" :[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-type-face)
     )
   '("\\.zomp")
   (list '(lambda ()

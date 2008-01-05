@@ -20,37 +20,6 @@ Conventions for function names:
 (include "glfw.zomp")
 (include "tests/glutils.zomp")
 
-(template float.neg x (float.sub 0. #x))
-
-(template op+ l r (int.add #l #r))
-(template op- l r (int.sub #l #r))
-(template op* l r (int.mul #l #r))
-(template op/ l r (int.sdiv #l #r))
-
-(template op== l r (int.equal #l #r))
-(template op!= l r (int.notEqual #l #r))
-
-(template op> l r (int.sgreater #l #r))
-(template op< l r (int.sless #l #r))
-(template op>= l r (int.sgreaterEqual #l #r))
-(template op<= l r (int.slessEqual #l #r))
-
-
-(template op+_f l r (float.add #l #r))
-(template op-_f l r (float.sub #l #r))
-(template op*_f l r (float.mul #l #r))
-(template op/_f l r (float.fdiv #l #r))
-
-(template op==_f l r (float.equal #l #r))
-(template op!=_f l r (float.notEqual #l #r))
-
-(template op>_f l r (float.ogreater #l #r))
-(template op<_f l r (float.oless #l #r))
-(template op>=_f l r (float.ogreaterEqual #l #r))
-(template op<=_f l r (float.olessEqual #l #r))
-
-(template op= l r (assign #l #r))
-
 
 (const int windowWidth 400)
 (const int windowHeight 300)
@@ -81,29 +50,30 @@ Conventions for function names:
 
 (func GLuint makeBillboardGShader () (
   (var GLuint shader (createShader
-"
-varying vec3 normal;
-void main(void) {
-  gl_Position = ftransform();
-  normal = normalize( gl_Position.xyz );
-}
-"
+    " "
+    "
+    varying vec3 normal;
+    void main(void) {
+    gl_Position = ftransform();
+    normal = normalize( gl_Position.xyz );
+    }
+    "
 
-"
-varying vec3 normal;
+    "
+    varying vec3 normal;
 
-void main(void) {
-  gl_FragColor = vec4( normal, 1.0 );
-}
-"))
+    void main(void) {
+    gl_FragColor = vec4( normal, 1.0 );
+    }
+    "))
   (ret shader)
   ))
 
 (func GLuint makeBillboard ((int width) (int height)) (
-  (var (ptr framebuffer) fbo (fbo_make width height))
-  (fbo_attachColorTexture fbo)
-  (fbo_create fbo)
-  (fbo_bind fbo)
+  (var (ptr framebuffer) fbo (new framebuffer width height))
+  (framebuffer:attachColorTexture fbo)
+  (framebuffer:create fbo)
+  (framebuffer:bind fbo)
 
   (const GLuint shader (makeBillboardGShader))
   
@@ -132,8 +102,8 @@ void main(void) {
 
   (glDeleteProgram shader)
     
-  (fbo_makeColorTexture fbo)
-  (fbo_unbind fbo)
+  (framebuffer:makeColorTexture fbo)
+  (framebuffer:unbind fbo)
     
   (ret (getField fbo colorTexture))
   ))
@@ -142,31 +112,32 @@ void main(void) {
 
 (func GLuint makeMainShader () (
   (createShader
-"
-varying vec2 texCoord;
+    " "
+    "
+    varying vec2 texCoord;
 
-void main(void) {
-  gl_Position = ftransform();
-  texCoord = gl_MultiTexCoord0.xy;
-}"
+    void main(void) {
+    gl_Position = ftransform();
+    texCoord = gl_MultiTexCoord0.xy;
+    }"
 
-"
-uniform vec4 lightPos;
-uniform sampler2D texture;
-varying vec2 texCoord;
+    "
+    uniform vec4 lightPos;
+    uniform sampler2D texture;
+    varying vec2 texCoord;
 
-void main(void) {
-  vec4 texval = texture2D( texture, texCoord );
-  float alpha = texval.a;
-  vec3 normal = texval.xyz;
+    void main(void) {
+    vec4 texval = texture2D( texture, texCoord );
+    float alpha = texval.a;
+    vec3 normal = texval.xyz;
 
-  vec3 lightDir = normalize( lightPos.xyz );
-  float intensity = dot( lightDir, normal );
-  intensity += 0.3;
+    vec3 lightDir = normalize( lightPos.xyz );
+    float intensity = dot( lightDir, normal );
+    intensity += 0.3;
 
-  gl_FragColor = vec4( intensity, intensity, intensity, alpha );
-}
-")
+    gl_FragColor = vec4( intensity, intensity, intensity, alpha );
+    }
+    ")
   ))
 
 // (template op[] left right (load (ptradd #left #right)))
@@ -411,14 +382,40 @@ void main(void) {
     ))
   ))
 
+(func void adjustViewportToWindowSize () (
+  (var int width 0)
+  (var int height 0)
+  (glfwGetWindowSize (ptr width) (ptr height))
+  (var double aspect (double.fdiv (int.toDouble width) (int.toDouble height)))
+  (glViewport 0 0 width height)
+  ))
+
+(func GLuint makeAOShader () (
+  (var GLuint shader (createShader
+    "varying vec2 texCoord;"
+    "
+    void main(void) {
+    gl_Position = ftransform();
+    texCoord = gl_Position.xy * 0.5 + vec2(0.5);
+    }"
+    
+    "
+    uniform sampler2D texture;
+    void main(void) {
+    gl_FragColor = texture2D( texture, texCoord );
+    }"
+    ))
+  (ret shader)
+  ))
+  
 (func int main () (
   (if (bool.not (init)) (ret 100) ())
 
   (glfwPollEvents)
   (glfwPollEvents)
 
-  (const int galaxySize 6000)
-  (const int ringSize 2000)
+  (const int galaxySize 150000)
+  (const int ringSize 50000)
   
   (const int sphereCount (galaxySize + ringSize))
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
@@ -435,10 +432,10 @@ void main(void) {
 
   (addGalaxy positions galaxySize)
 
-  (const int ringCloneCount 10)
+  (const int ringCloneCount 50)
   (const pathptr ringPath (path:cloneEachVertex
     (makeRingPath (ringSize / ringCloneCount) 10.0) ringCloneCount))
-  (path:offsetVerticesRandomly ringPath 0.5)
+  (path:offsetVerticesRandomly ringPath 1.0)
   (addPath (ptradd positions (3 * galaxySize)) ringPath)
   
   //   (foreachSphere index pos (
@@ -446,6 +443,8 @@ void main(void) {
     //     (store (ptradd pos 1) (0.5 *_f 0.125 *_f (frand)))
     //     (store (ptradd pos 2) (frand))
     //     ))
+
+  (glfwSetWindowSize 800 600)
 
   (const int vertexCount (4 * sphereCount))
   (const (ptr mesh) sphereMesh (mesh:create vertexCount))
@@ -458,79 +457,103 @@ void main(void) {
     
     (const float bbsize (1.0 /_f 4.0))
     (const int vertexNum (sphereNum*4))
-    
-    (mesh:setTexCoord sphereMesh (vertexNum+0) 0. 0.)
-    (mesh:setPos sphereMesh (vertexNum+0) (sx -_f bbsize) (sy -_f bbsize) sz)
-    
-    (mesh:setTexCoord sphereMesh (vertexNum+1) 1. 0.)
-    (mesh:setPos sphereMesh (vertexNum+1) (sx +_f bbsize) (sy -_f bbsize) sz)
-    
-    (mesh:setTexCoord sphereMesh (vertexNum+2) 1. 1.)
-    (mesh:setPos sphereMesh (vertexNum+2) (sx +_f bbsize) (sy +_f bbsize) sz)
-    
-    (mesh:setTexCoord sphereMesh (vertexNum+3) 0. 1.)
-    (mesh:setPos sphereMesh (vertexNum+3) (sx -_f bbsize) (sy +_f bbsize) sz)
+
+    (template vertexx vnum u v posx posy posz (
+      (mesh:setTexCoord sphereMesh #vnum #u #v)
+      (mesh:setPos sphereMesh #vnum #posx #posy #posz)
+      ))
+
+    (vertexx (vertexNum+0) 0. 0. (sx -_f bbsize) (sy -_f bbsize) sz)
+    (vertexx (vertexNum+1) 1. 0. (sx +_f bbsize) (sy -_f bbsize) sz)
+    (vertexx (vertexNum+2) 1. 1. (sx +_f bbsize) (sy +_f bbsize) sz)
+    (vertexx (vertexNum+3) 0. 1. (sx -_f bbsize) (sy +_f bbsize) sz)
     ))
 
   (var bool abort false)
 
-  (var GLuint billboard (makeBillboard 1024 1024))
+  (var GLuint billboard (makeBillboard 32 32))
   (var GLuint sphereShader (makeMainShader))
 
   (var double startTime (glfwGetTime))
   (var int frameCount 0)
 
   (template keyDown key (glfwGetKey #key == GL_TRUE))
+
+  (var (ptr framebuffer) sceneImage (new framebuffer 1024 1024))
+  (framebuffer:attachColorTexture sceneImage)
+  (framebuffer:create sceneImage)
+
+  (var GLuint aoShader (makeAOShader))
   
   (while (bool.not abort) (
     (const double time (glfwGetTime))
     (const double frameTime (double.sub time startTime))
     (frameCount = frameCount + 1)
+
     
     (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
       (assign abort true)
       )())
-
-    (if (double.ogreater (double.sub (glfwGetTime) startTime) autoTimeout)
+    (if ((glfwGetTime) -_d startTime >_d autoTimeout)
       (assign abort true) ())
-
-    (glEnable GL_DEPTH_TEST)
-    (glDepthFunc GL_LEQUAL)
-    (glEnable GL_ALPHA_TEST)
-    (glAlphaFunc GL_NOTEQUAL 0.0)
+    
 
     (var int width 0)
     (var int height 0)
     (glfwGetWindowSize (ptr width) (ptr height))
-    (var double aspect (double.fdiv (int.toDouble width) (int.toDouble height)))
-    (glViewport 0 0 width height)
+    (var double aspect (int.toDouble width /_d int.toDouble height))
+    //     (glViewport 0 0 width height) */
+    
 
-    (glClearColor 0.0 0.0 0.0 1.0)
+
+    (renderToTarget sceneImage
+      (glEnable GL_DEPTH_TEST)
+      (glDepthFunc GL_LEQUAL)
+      (glEnable GL_ALPHA_TEST)
+      (glAlphaFunc GL_NOTEQUAL 0.0)
+
+      (glMatrixMode GL_PROJECTION)
+      (glLoadIdentity)
+      (gluPerspective 90.0d aspect 1.0d 100.0d)
+      (glMatrixMode GL_MODELVIEW)
+      (glLoadIdentity)
+      (glTranslatef -2. -1.5 -20.)
+      (glRotatef (8.0 *_f (double.toFloat frameTime)) 0.0 0.0 1.0)
+      
+      (glClearColor 0.0 0.0 0.0 1.0)
+      (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+      
+      (if (keyDown GLFW_KEY_LSHIFT)
+        (drawOrientationGrid)
+        ())
+      
+      (const float sunAngle (double.toFloat (glfwGetTime)))
+      (glUseProgram sphereShader)
+      (glBindTexture2D billboard)
+      (const GLuint lightPosL (glGetUniformLocation sphereShader "lightPos"))
+      (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
+      
+      (mesh:render sphereMesh)
+      
+      (glBindTexture2D 0)
+      (glUseProgram 0)
+      )
+
+    (autoSetupViewport)
+    (glClearColor 0. 0. 0. 0.)
     (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
     
-    (glMatrixMode GL_PROJECTION)
-    (glLoadIdentity)
-    (gluPerspective 90.0d aspect 1.0d 100.0d)
-    (glMatrixMode GL_MODELVIEW)
-    (glLoadIdentity)
-    (glTranslatef -2. -1.5 -20.)
+    (glUseProgram aoShader)
+    (glBindTexture2D (getField sceneImage colorTexture))
 
-    (glRotatef (8.0 *_f (double.toFloat frameTime)) 0.0 0.0 1.0)
-
-    (if (keyDown GLFW_KEY_LSHIFT)
-      (drawOrientationGrid)
-      ())
+    (makeGLIdentityTransforms)
+    (rendergl GL_TRIANGLE_FAN
+      (glColor4f 1. 1. 1. 1.)
+      (glVertex3f 0. 0. 0.)
+      (sendCircle)
+      )
+    //     (drawFullscreenQuad) */
     
-    (const float sunAngle (double.toFloat (glfwGetTime)))
-    
-    (glUseProgram sphereShader)
-    (glBindTexture2D billboard)
-    (const GLuint lightPosL (glGetUniformLocation sphereShader "lightPos"))
-    (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
-
-    (mesh:render sphereMesh)
-    
-    (glBindTexture2D 0)
     (glUseProgram 0)
     
     (glfwSwapBuffers)
@@ -547,6 +570,9 @@ void main(void) {
   (printFloat fps) (printString " fps average")
   (println)
 
+  
+  (glDeleteProgram aoShader)
+  
   (glDeleteProgram sphereShader)
   (glDeleteTextures 1 (ptr billboard))
 
@@ -556,7 +582,8 @@ void main(void) {
   ))
 
 (func void zompvm:immediate () (
-  (glfwSetWindowSize 400 300)
+  (glfwSetWindowSize 800 600)
+  (glfwSetWindowPos 100 100)
   (glfwPollEvents)
   ))
   
@@ -569,6 +596,7 @@ void main(void) {
 
 (func void long () ((assign autoTimeout 1000.0d) (test)))
 (func void short () ((assign autoTimeout 1.0d) (test)))
+(func void run2s () ((autoTimeout = 2.0d) (test)))
 (func void run5s () ((assign autoTimeout 5.0d) (test)))
 
   

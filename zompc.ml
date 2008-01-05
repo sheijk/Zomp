@@ -105,6 +105,7 @@ let compile instream outstream =
          eprintf "Could not init ZompVM\n";
          exit 3;
        end;);
+  Zompvm.zompVerifyCode false;
   let exitCode =
     collectTimingInfo "compiling"
       (fun () ->
