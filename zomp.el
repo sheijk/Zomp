@@ -170,8 +170,8 @@
           
           (let* ((line-start (progn (beginning-of-line) (point)))
                 (line-end (progn (end-of-line) (point)))
-                (open-parens (how-many "(" line-start line-end))
-                (closing-parens (how-many ")" line-start line-end)))
+                (open-parens (how-many "[({]" line-start line-end))
+                (closing-parens (how-many "[)}]" line-start line-end)))
             (cond ((> open-parens closing-parens) (setq left (+ left 2)))
                   ((< open-parens closing-parens) (setq left (- left 2))))
             (next-line))))

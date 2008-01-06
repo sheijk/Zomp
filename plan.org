@@ -1,5 +1,7 @@
 
 * To be sorted
+** TODO [#A] fix cursor positioning on indent
+** TODO [#A] fix indent of }
 ** TODO [#A] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
 ** TODO [#A] let toplevel send feedback to emacs + handle errors (abort eval etc.)
 ** TODO [#A] "" is not parsed as a string

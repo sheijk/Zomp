@@ -112,36 +112,41 @@ Conventions for function names:
 
 (func GLuint makeMainShader () (
   (createShader
-    " "
     "
     varying vec2 texCoord;
-
+    "
+    
+    "
+    /// the sprites size will be scalingDiff + 1.0
+    uniform float scalingDiff;
+    
     void main(void) {
-    gl_Position = ftransform();
-    texCoord = gl_MultiTexCoord0.xy;
-    }"
+      float  scaling = 1.0 + scalingDiff;
+      vec2 offset  = gl_MultiTexCoord0.xy * scaling - vec2( 0.5 * scaling );
+      vec4 vertex = gl_Vertex + vec4( offset.x, offset.y, 0., 0. );
+      gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vertex;
+      texCoord = gl_MultiTexCoord0.xy;
+      }
+    "
 
     "
     uniform vec4 lightPos;
     uniform sampler2D texture;
-    varying vec2 texCoord;
 
     void main(void) {
-    vec4 texval = texture2D( texture, texCoord );
-    float alpha = texval.a;
-    vec3 normal = texval.xyz;
+      vec4 texval = texture2D( texture, texCoord );
+      float alpha = texval.a;
+      vec3 normal = texval.xyz;
 
-    vec3 lightDir = normalize( lightPos.xyz );
-    float intensity = dot( lightDir, normal );
-    intensity += 0.3;
+      vec3 lightDir = normalize( lightPos.xyz );
+      float intensity = dot( lightDir, normal );
+      intensity += 0.3;
 
-    gl_FragColor = vec4( intensity, intensity, intensity, alpha );
-    }
+      gl_FragColor = vec4( intensity, intensity, intensity, alpha );
+      }
     ")
   ))
 
-// (template op[] left right (load (ptradd #left #right)))
-  
 (func float getx (((ptr float) ptr)) (
   (load (ptradd ptr 0))
   ))
@@ -392,20 +397,39 @@ Conventions for function names:
 
 (func GLuint makeAOShader () (
   (var GLuint shader (createShader
-    "varying vec2 texCoord;"
+    "
+    "
+
+    //     " */
+    //     void main(void) { */
+      //       gl_Position = ftransform(); */
+      //       } */
+    //     " */
     "
     void main(void) {
-    gl_Position = ftransform();
-    texCoord = gl_Position.xy * 0.5 + vec2(0.5);
-    }"
+      float  scaling = 2.0;
+      vec2 offset  = gl_MultiTexCoord0.xy * scaling - vec2( 0.5 * scaling );
+      vec4 vertex = gl_Vertex + vec4( offset.x, offset.y, 0., 0. );
+      gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vertex;
+      }
+    "
     
     "
     uniform sampler2D texture;
+    const vec2 screenSize = vec2( 800.0, 600.0 );
+    
     void main(void) {
-    gl_FragColor = texture2D( texture, texCoord );
-    }"
+      vec2 texCoord = gl_FragCoord.xy / screenSize;
+      gl_FragColor = texture2D( texture, texCoord ) + vec4( 0.1 );
+      }
+    "
     ))
   (ret shader)
+  ))
+
+(func void glsl:param1f ((GLuint program) (cstring name) (float value)) (
+  (var GLuint location (glGetUniformLocation program name))
+  (glUniform1f location value)
   ))
   
 (func int main () (
@@ -414,8 +438,10 @@ Conventions for function names:
   (glfwPollEvents)
   (glfwPollEvents)
 
-  (const int galaxySize 150000)
-  (const int ringSize 50000)
+  //   (const int galaxySize 150000) */
+  //   (const int ringSize 50000) */
+  (const int galaxySize 4000)
+  (const int ringSize 2000)
   
   (const int sphereCount (galaxySize + ringSize))
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
@@ -458,15 +484,24 @@ Conventions for function names:
     (const float bbsize (1.0 /_f 4.0))
     (const int vertexNum (sphereNum*4))
 
-    (template vertexx vnum u v posx posy posz (
+    (template vertexxx vnum u v (
       (mesh:setTexCoord sphereMesh #vnum #u #v)
-      (mesh:setPos sphereMesh #vnum #posx #posy #posz)
+      (mesh:setPos sphereMesh #vnum sx sy sz)
       ))
 
-    (vertexx (vertexNum+0) 0. 0. (sx -_f bbsize) (sy -_f bbsize) sz)
-    (vertexx (vertexNum+1) 1. 0. (sx +_f bbsize) (sy -_f bbsize) sz)
-    (vertexx (vertexNum+2) 1. 1. (sx +_f bbsize) (sy +_f bbsize) sz)
-    (vertexx (vertexNum+3) 0. 1. (sx -_f bbsize) (sy +_f bbsize) sz)
+    (vertexxx (vertexNum+0) 0. 0.)
+    (vertexxx (vertexNum+1) 1. 0.)
+    (vertexxx (vertexNum+2) 1. 1.)
+    (vertexxx (vertexNum+3) 0. 1.)
+    
+    //     (template vertexx vnum u v posx posy posz ( */
+      //       (mesh:setTexCoord sphereMesh #vnum #u #v) */
+      //       (mesh:setPos sphereMesh #vnum #posx #posy #posz) */
+      //       )) */
+    //     (vertexx (vertexNum+0) 0. 0. (sx -_f bbsize) (sy -_f bbsize) sz) */
+    //     (vertexx (vertexNum+1) 1. 0. (sx +_f bbsize) (sy -_f bbsize) sz) */
+    //     (vertexx (vertexNum+2) 1. 1. (sx +_f bbsize) (sy +_f bbsize) sz) */
+    //     (vertexx (vertexNum+3) 0. 1. (sx -_f bbsize) (sy +_f bbsize) sz) */
     ))
 
   (var bool abort false)
@@ -502,16 +537,9 @@ Conventions for function names:
     (var int height 0)
     (glfwGetWindowSize (ptr width) (ptr height))
     (var double aspect (int.toDouble width /_d int.toDouble height))
-    //     (glViewport 0 0 width height) */
-    
+    //     (glViewport 0 0 width height)
 
-
-    (renderToTarget sceneImage
-      (glEnable GL_DEPTH_TEST)
-      (glDepthFunc GL_LEQUAL)
-      (glEnable GL_ALPHA_TEST)
-      (glAlphaFunc GL_NOTEQUAL 0.0)
-
+    (template setupMatrices (
       (glMatrixMode GL_PROJECTION)
       (glLoadIdentity)
       (gluPerspective 90.0d aspect 1.0d 100.0d)
@@ -519,6 +547,15 @@ Conventions for function names:
       (glLoadIdentity)
       (glTranslatef -2. -1.5 -20.)
       (glRotatef (8.0 *_f (double.toFloat frameTime)) 0.0 0.0 1.0)
+      ))
+    
+    (renderToTarget sceneImage
+      (glEnable GL_DEPTH_TEST)
+      (glDepthFunc GL_LEQUAL)
+      (glEnable GL_ALPHA_TEST)
+      (glAlphaFunc GL_NOTEQUAL 0.0)
+
+      (setupMatrices)
       
       (glClearColor 0.0 0.0 0.0 1.0)
       (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
@@ -532,6 +569,8 @@ Conventions for function names:
       (glBindTexture2D billboard)
       (const GLuint lightPosL (glGetUniformLocation sphereShader "lightPos"))
       (glUniform4f lightPosL (sinf sunAngle) (cosf sunAngle) 2.0 1.0)
+
+      (glsl:param1f sphereShader "scalingDiff" -0.5)
       
       (mesh:render sphereMesh)
       
@@ -546,13 +585,19 @@ Conventions for function names:
     (glUseProgram aoShader)
     (glBindTexture2D (getField sceneImage colorTexture))
 
-    (makeGLIdentityTransforms)
-    (rendergl GL_TRIANGLE_FAN
-      (glColor4f 1. 1. 1. 1.)
-      (glVertex3f 0. 0. 0.)
-      (sendCircle)
-      )
-    //     (drawFullscreenQuad) */
+    //     (glUseProgram sphereShader) */
+    //     (glBindTexture2D billboard) */
+
+    // TODO: occluder proxies auf den screen splatten
+    //     (makeGLIdentityTransforms) */
+    (setupMatrices)
+    (glDisable GL_BLEND)
+    (mesh:render sphereMesh)
+    //     (rendergl GL_TRIANGLE_FAN */
+      //       (glColor4f 1. 1. 1. 1.) */
+      //       (glVertex3f 0. 0. 0.) */
+      //       (sendCircle) */
+      //       ) */
     
     (glUseProgram 0)
     
