@@ -398,15 +398,14 @@ Conventions for function names:
 (func GLuint makeAOShader () (
   (var GLuint shader (createShader
     "
+    varying vec2 center;
     "
 
-    //     " */
-    //     void main(void) { */
-      //       gl_Position = ftransform(); */
-      //       } */
-    //     " */
     "
     void main(void) {
+      vec4 c = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
+      center = c.xy / c.w;
+      center = center * 0.5 + vec2( 0.5 );
       float  scaling = 2.0;
       vec2 offset  = gl_MultiTexCoord0.xy * scaling - vec2( 0.5 * scaling );
       vec4 vertex = gl_Vertex + vec4( offset.x, offset.y, 0., 0. );
@@ -420,7 +419,13 @@ Conventions for function names:
     
     void main(void) {
       vec2 texCoord = gl_FragCoord.xy / screenSize;
-      gl_FragColor = texture2D( texture, texCoord ) + vec4( 0.1 );
+      vec2 c = center - texCoord;
+      c *= 10.0;
+      
+      gl_FragColor = vec4( c.x, c.y, 0., 1. );
+//       float dist = length( texCoord - center ); */
+//       gl_FragColor = vec4(1., dist, 0., 0.1); */
+//       gl_FragColor = texture2D( texture, texCoord ) + vec4( 0.1 ); */
       }
     "
     ))
@@ -577,22 +582,29 @@ Conventions for function names:
       (glBindTexture2D 0)
       (glUseProgram 0)
       )
-
+ 
     (autoSetupViewport)
     (glClearColor 0. 0. 0. 0.)
     (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
     
+    // TODO: occluder proxies auf den screen splatten
+    (makeGLIdentityTransforms)
+    (glEnable GL_TEXTURE_2D)
+    (glBindTexture2D (getField sceneImage colorTexture))
+    (drawFullscreenQuad)
+    (glBindTexture2D 0)
+    (glDisable GL_TEXTURE_2D)
+    
     (glUseProgram aoShader)
     (glBindTexture2D (getField sceneImage colorTexture))
 
-    //     (glUseProgram sphereShader) */
-    //     (glBindTexture2D billboard) */
-
-    // TODO: occluder proxies auf den screen splatten
-    //     (makeGLIdentityTransforms) */
     (setupMatrices)
-    (glDisable GL_BLEND)
+    (glEnable GL_BLEND)
+    (glDisable GL_DEPTH_TEST)
+    (glBlendFunc GL_SRC_ALPHA GL_ONE)
+
     (mesh:render sphereMesh)
+
     //     (rendergl GL_TRIANGLE_FAN */
       //       (glColor4f 1. 1. 1. 1.) */
       //       (glVertex3f 0. 0. 0.) */
