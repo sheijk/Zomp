@@ -26,6 +26,22 @@ else
   print "no"
 end if
 
+require terminators for all multi-line expressions?
+
+if a > b
+  print 1
+else
+  print 2
+end if // 'if' cannot be emitted here
+
+let foo =
+  some complex(calculation)
+end
+
+// have some notation to get rid of end-of-block marker?
+let/ foo =
+  some complex(calculation)
+
 /// dot notation
 
 // equivalent
@@ -44,7 +60,7 @@ pow 2 3
 // all common math symbols
 +,-,*,/,...
 
-// custom operators
+// custom operators?
 
 // _id for alternatives (subscript like)
 +_f, *_dot
