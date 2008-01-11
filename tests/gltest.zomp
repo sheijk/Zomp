@@ -28,12 +28,11 @@ Conventions for function names:
 
 (func bool init () (
   (template assertGLTrue code (
-    (if (int.notEqual GL_TRUE #code)
-      ((printlnString "Init failed")
-       (printAst `#code 0)
-       (ret false))
-      ())
-    ))
+    (if (int.notEqual GL_TRUE #code) (
+      (printlnString "Init failed")
+      (printAst `#code 0)
+      (ret false))
+    ())))
   
   (if initialized (ret true) ())
 
@@ -41,8 +40,8 @@ Conventions for function names:
   (assertGLTrue (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW))
   (glewInit)
 
-  (glfwSetWindowPos 300 1300)
   (glfwSetWindowSize 800 600)
+  //   (glfwSetWindowPos 300 1300) */
 
   (assign initialized true)
   (ret true)
@@ -324,7 +323,7 @@ Conventions for function names:
 
 
 (func void addGalaxy (((ptr float) positions) (int sphereCount)) (
-  (const float turns 8.0)
+  (const float turns (4.0 +_f 2.0))
   (const float dist_max (16.0 +_f 8.0))
   (const float pi (2.0 *_f acosf 0.0))
   (const float angle_delta (2.0 *_f pi *_f turns /_f (int.toFloat sphereCount)))
@@ -336,7 +335,7 @@ Conventions for function names:
   (for index 0 sphereCount (
     (var float diff2 (unitRandf))
     (diff2 = diff2 *_f diff2)
-    (diff2 = diff2 *_f 4.0 +_f diff)
+    (diff2 = diff2 *_f 2.0 +_f diff)
     (array:set pos 0 (diff2 *_f sinf angle))
     (array:set pos 2 (0.5 *_f 0.125 *_f (frand)))
     (array:set pos 1 (diff2 *_f cosf angle))
@@ -398,18 +397,16 @@ Conventions for function names:
 (func GLuint makeAOShader () (
   (var GLuint shader (createShader
     "
-    varying vec2 center;
+    varying vec2 centerDiff;
+    const float  scaling = 16.0;
     "
 
     "
     void main(void) {
-      vec4 c = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
-      center = c.xy / c.w;
-      center = center * 0.5 + vec2( 0.5 );
-      float  scaling = 2.0;
       vec2 offset  = gl_MultiTexCoord0.xy * scaling - vec2( 0.5 * scaling );
       vec4 vertex = gl_Vertex + vec4( offset.x, offset.y, 0., 0. );
       gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vertex;
+      centerDiff = offset * 2.0;
       }
     "
     
@@ -419,13 +416,19 @@ Conventions for function names:
     
     void main(void) {
       vec2 texCoord = gl_FragCoord.xy / screenSize;
-      vec2 c = center - texCoord;
-      c *= 10.0;
+      float dist = length( centerDiff );
+
+      float light = (1.0 - smoothstep(1.0, scaling , dist)
+        ) * smoothstep( 0.8, 0.9, dist );
+
+      light = 1.0 - light*0.9;
+      gl_FragColor = vec4( light, light, light, 1.0 );
+      float scale = 1.0;
+      gl_FragColor = vec4( scale, scale, scale, light * 0.1 );
       
-      gl_FragColor = vec4( c.x, c.y, 0., 1. );
-//       float dist = length( texCoord - center ); */
-//       gl_FragColor = vec4(1., dist, 0., 0.1); */
-//       gl_FragColor = texture2D( texture, texCoord ) + vec4( 0.1 ); */
+      //       float dist = length( texCoord - center );
+      //       gl_FragColor = vec4(1., dist, 0., 0.1); */
+      //       gl_FragColor = texture2D( texture, texCoord ) + vec4( 0.1 ); */
       }
     "
     ))
@@ -436,6 +439,14 @@ Conventions for function names:
   (var GLuint location (glGetUniformLocation program name))
   (glUniform1f location value)
   ))
+
+(const GLint GL_FUNC_SUBTRACT 32778)
+(const GLint GL_FUNC_ADD 32774)
+
+(func void gl:clear ((float r) (float g) (float b) (float a)) (
+  (glClearColor r g b a)
+  (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+  ))
   
 (func int main () (
   (if (bool.not (init)) (ret 100) ())
@@ -445,8 +456,8 @@ Conventions for function names:
 
   //   (const int galaxySize 150000) */
   //   (const int ringSize 50000) */
-  (const int galaxySize 4000)
-  (const int ringSize 2000)
+  (const int galaxySize 10000)
+  (const int ringSize 0)
   
   (const int sphereCount (galaxySize + ringSize))
   (var (ptr float) positions (malloc float (int.mul 3 sphereCount)))
@@ -461,13 +472,19 @@ Conventions for function names:
       ))
     ))
 
-  (addGalaxy positions galaxySize)
+  (if (galaxySize > 0)
+    (addGalaxy positions galaxySize)
+    ())
 
-  (const int ringCloneCount 50)
-  (const pathptr ringPath (path:cloneEachVertex
-    (makeRingPath (ringSize / ringCloneCount) 10.0) ringCloneCount))
-  (path:offsetVerticesRandomly ringPath 1.0)
-  (addPath (ptradd positions (3 * galaxySize)) ringPath)
+  (if (ringSize > 0)
+    (
+      (const int ringCloneCount 50)
+      (const pathptr ringPath (path:cloneEachVertex
+        (makeRingPath (ringSize / ringCloneCount) 10.0) ringCloneCount))
+      (path:offsetVerticesRandomly ringPath 4.0)
+      (addPath (ptradd positions (3 * galaxySize)) ringPath)
+      )
+    ())
   
   //   (foreachSphere index pos (
     //     (store (ptradd pos 0) (frand))
@@ -542,7 +559,7 @@ Conventions for function names:
     (var int height 0)
     (glfwGetWindowSize (ptr width) (ptr height))
     (var double aspect (int.toDouble width /_d int.toDouble height))
-    //     (glViewport 0 0 width height)
+    (glViewport 0 0 width height)
 
     (template setupMatrices (
       (glMatrixMode GL_PROJECTION)
@@ -551,10 +568,10 @@ Conventions for function names:
       (glMatrixMode GL_MODELVIEW)
       (glLoadIdentity)
       (glTranslatef -2. -1.5 -20.)
-      (glRotatef (8.0 *_f (double.toFloat frameTime)) 0.0 0.0 1.0)
+      //       (glRotatef (8.0 *_f (double.toFloat frameTime)) 0.0 0.0 1.0) */
       ))
-    
-    (renderToTarget sceneImage
+
+    //     (renderToTarget sceneImage
       (glEnable GL_DEPTH_TEST)
       (glDepthFunc GL_LEQUAL)
       (glEnable GL_ALPHA_TEST)
@@ -565,9 +582,9 @@ Conventions for function names:
       (glClearColor 0.0 0.0 0.0 1.0)
       (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
       
-      (if (keyDown GLFW_KEY_LSHIFT)
-        (drawOrientationGrid)
-        ())
+      //       (if (keyDown GLFW_KEY_LSHIFT) */
+        //         (drawOrientationGrid) */
+        //         ()) */
       
       (const float sunAngle (double.toFloat (glfwGetTime)))
       (glUseProgram sphereShader)
@@ -577,44 +594,52 @@ Conventions for function names:
 
       (glsl:param1f sphereShader "scalingDiff" -0.5)
       
-      (mesh:render sphereMesh)
+//       (mesh:render sphereMesh) */
       
       (glBindTexture2D 0)
       (glUseProgram 0)
-      )
- 
-    (autoSetupViewport)
-    (glClearColor 0. 0. 0. 0.)
-    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+      //       ) */
     
-    // TODO: occluder proxies auf den screen splatten
-    (makeGLIdentityTransforms)
-    (glEnable GL_TEXTURE_2D)
-    (glBindTexture2D (getField sceneImage colorTexture))
-    (drawFullscreenQuad)
-    (glBindTexture2D 0)
-    (glDisable GL_TEXTURE_2D)
+    //     (autoSetupViewport) */
+    //     (glClearColor 0. 0. 0. 0.) */
+    //     (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)) */
+
+    /// splat occluder proxies on screen
+    
+    //     (makeGLIdentityTransforms) */
+    //     (glEnable GL_TEXTURE_2D) */
+    //     (glBindTexture2D (getField sceneImage colorTexture)) */
+    //     (drawFullscreenQuad) */
+    //     (glBindTexture2D 0) */
+    //     (glDisable GL_TEXTURE_2D) */
+
     
     (glUseProgram aoShader)
     (glBindTexture2D (getField sceneImage colorTexture))
-
+    
     (setupMatrices)
+    
     (glEnable GL_BLEND)
+    (glBlendEquation GL_FUNC_SUBTRACT)
+    (glBlendFunc GL_DST_COLOR GL_SRC_ALPHA)
+
     (glDisable GL_DEPTH_TEST)
+
+//     (mesh:render sphereMesh) */
+
+    (glDisable GL_BLEND)
+    (glBlendEquation GL_FUNC_ADD)
     (glBlendFunc GL_SRC_ALPHA GL_ONE)
 
-    (mesh:render sphereMesh)
-
-    //     (rendergl GL_TRIANGLE_FAN */
-      //       (glColor4f 1. 1. 1. 1.) */
-      //       (glVertex3f 0. 0. 0.) */
-      //       (sendCircle) */
-      //       ) */
+    (gl:clear 0. 0. 0. 0.)
+    (glColor4f 1. 0. 0. 1.)
+    (renderQuad 8.0)
     
     (glUseProgram 0)
-    
+
     (glfwSwapBuffers)
     (glfwPollEvents)
+    (printGLError)
     ))
 
   (const double endTime (glfwGetTime))

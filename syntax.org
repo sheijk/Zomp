@@ -1,6 +1,8 @@
 
+* TODO Significant indentation
 
-/// significant indentation
+** Trivial case
+   
 func int foo a b c
   print a
   print b
@@ -12,13 +14,15 @@ func int foo a b c
   (print b)
   (print c) ))
   
-/// expressions spanning multiple rows
+** TODO expressions spanning multiple rows cause problems
 
-if: a > b
-  print "yes"
-else
-  print "no"
-/if
+*** TODO Problem: we want constructs which span multiple lines (if/then/else, ...)
+
+func void foo(a, b, c)
+  some
+  impl
+
+But:
 
 if: a > b
   print "yes"
@@ -26,7 +30,7 @@ else
   print "no"
 end if
 
-require terminators for all multi-line expressions?
+*** require terminators for all multi-line expressions?
 
 if a > b
   print 1
@@ -38,92 +42,198 @@ let foo =
   some complex(calculation)
 end
 
-// have some notation to get rid of end-of-block marker?
+*** Use extra indentation?
+
+if(a > b)
+  print 1
+ else
+  print 2
+
+or
+
+if( a > b )
+  then
+    print 1
+  else
+    print 2
+
+*** Change AST?
+
+(foo a)
+(bar b)
+...
+<=> (foo a (bar b ...))
+
+(oneOfThree a)
+(twoOfThree b)
+(threeOfThree c)
+<=> (oneOfThree a (twoOfThree b (threeOfThree c ()))) 
+
+(let x 10)
+(use x)
+...
+<=> (let x 10 (use x ...))
+
+*** have some notation to get rid of end-of-block marker?
 let/ foo =
   some complex(calculation)
 
-/// dot notation
+** DONE How to handle operators at the end of a line?
+Solution: just add braces "as usual"
 
-// equivalent
-2.pow 3
-pow 2 3
+let foo =
+    some complex calculation
 
-1.upto 10 ...
+(let foo = (
+     (some complex calculation)
+     ))
 
-/// operators
+* TODO operators
 
-// equivalent
-(a + b)
-(op+ a b)
+(a + b) <=> (op+ a b)
 
-// which operators to support?
-// all common math symbols
+** TODO which operators to support?
+
+*** all common math symbols
 +,-,*,/,...
 
-// custom operators?
+*** custom operators?
 
-// _id for alternatives (subscript like)
+*** _id for alternatives (subscript like)
 +_f, *_dot
 
-// any combination?
+*** any combination?
 ++, +-, +*, +'
-// has precedence like the first component (above all have same precedence as '+')
+// has precedence like the first component (above all have same precedence as +)
   // conflicts with expectations of c programmers
   // odd/inconvenient precedences: -> has precedence like '-'
 // or: all non-standard ops have a default precedence?
   // user needs to know standard operators
   // adding operators to the language later on causes problems
 
-// latex style operators?
+*** latex style operators?
 \sum, \concat
 
-// juxtaposition has highest priority  
+*** CAPS operators?
+SUM CONCAT
+
+** DONE juxtaposition has highest priority
+Solution: yes ;)
+
 foo a + bar b
 (op+ (foo a) (bar b))
 
 print 1 + 2
 (op+ (print 1) 2)
 
-/// s-expressions versus m-expressions
+** TODO require white space between operators and symbols?
 
-// s-expression
-call( a, b c )
-// m-expression
-call a b c
+(a b)
 
-// how to allow both?
+foo.(a, b)
+
+(/foo a b/)
+.(foo a b)
+
+[foo a b]
+
+** TODO Special support for first id of expression?
+
+let foo = bar <=> (op= (let foo) bar)
+
+Allow some syntax for..?
+let foo = bar <=> (let (op= foo bar))
+
+*** Where is this needed?
+
+let foo = bar
+let a + b = baz
+
+func x + y : int = ...
+
+**** Solve by lisp-style set/=?
+
+macroOverload (op= l r) ...
+macroOverload (op= (let $foo) $bar) ...
+
+**** Use a postfix for different parsing?
+
+let! x + y = plus( x, y ) <=> (let (op= (op+ x y) (plus x y)))
+
+**** Reuse foo: notation from significant indent?
+
+let: will not start a multi-line block if next line is not indented?
+
+let: foo = 10
+next line
+<=>
+(let (op= foo 10))
+(next line)
+
+problem: ambigous
+
+first: fo bar
+second
+third
+end first
+
+Require
+
+*** Special syntax?
+
+let: foo = bar
+
+*** What about nested expressions?
+
+(foreach (print 10 + 20) ...) <=>
+(foreach (print (op+ 10 20)) ...) vs. (foreach (op+ (print 10) 20))
+
+
+
+** TODO Operators at the beginning/end of expressions?
+
+(10 +)
+(+ 10)
+
+Syntax error?
+(op+ 10)?
+(+ 10)?
+how to differentiate?
+
+** DONE dot notation
+
+// equivalent
+2.pow 3
+pow 2 3
+
+1.upto 10 codeBlock
+
+* TODO s-expressions versus m-expressions
+
+m(expr, es, sion)
+(s expr es sion)
+
+** DONE how to allow both?
+Solution: points below
 
 print( 1+2, pow(2, 3) )
 print( 1+2, 2.pow 3 )
 
-// where do they conflict?
+if (a > 10) then print("biggy")
+
+** DONE where do they conflict?
 foo bar ( 3 + 4 )
 (foo (bar (+ 3 4)))
 (foo bar (+ 3 4))
 
-// no mixing?
-ok:
-foo bar (baz a b c)
-foo( bar, baz a b c )
+(foo bar (x) y)
 
-not ok:
-foo bar baz(a,b,c)
-  (foo bar baz (op, a b c)) ?
-  (foo bar (baz a b c)) ?
+in general:
+(expr+ id (id) expr*)
 
-print a b (c)
-  (print a b (c)) ?
-  (print a (b c)) ?
+** DONE significant white space?
+Solution: Use this to emit warnings
 
-// might work:
-sexpr ::= '('id sexpr*')'
-mexpr ::= id'(' comma-delimited-list(mexprArg) ')'
-mexprArg ::= mexpr | sexpr
-// however this will not be possible:
-foreach i in subdirs(currentDir)
-  ...
-
-// significant white space?
 foreach i in subdirs(pwd)
 (foreach i in (subdirs pwd)
 
@@ -135,27 +245,44 @@ add( "10".parseIntBase 20, pow(1, 3+2) )
 (add ("10".parseIntBase 20) (pow 1 (3+2)) )
 
 
-// different syntax for ambiguous situations?
-// what's ambiguous?
+** DONE different parenthesis?
 
-// different parenthesis?
-<foo arg>
-foo(arg)
-<foo a b c>
-<foo a b c /foo>
-foo(a, b, c)
+**** DONE <Angle brackets>
+Solution: don't use
+
+Bad, conflicts with a < b, might also be used for templates
+
+<foo arg> <=> foo(arg)
+
+<foo a b c> <=> <foo a b c /foo> <=> foo(a, b, c)
 
 if <a > b> then
   ...
 
-foo(arg) <=> (foo arg) <=> foo arg
-foo (a) b <=> (foo a b) <=> foo a b
-foo(a, b) <=> (foo a b) <=> foo a b
-foo(a, b) c <=> error
-foo a (b) <=> foo (a b) <!=> foo a b
-ginge: foo a (id) <=> (foo (a id)); foo a id <=> (foo a id), foo a (b c) <=> (foo a (b c))
-probl: (foo a (+ 3 4)) <=> foo a (3 + 4) <=> foo (a (+ 3 4)), widerspruch
 
+**** DONE {curly braces}
+Solution: use. It's nice for C programmers, doesn't hurt etc.
+foo {a b} <=> (foo (a b))
+
+** DONE Special handling for (singleId)
+Solution: below
+
+Non-ambigous cases:
+
+foo a b <=> (foo a b)
+foo(a, b) <=> (foo a b)
+
+Ambiguous cases:
+
+foo(arg) <=> (foo arg) <=> foo arg
+
+foo bar(arg) <=> (foo (bar arg))
+
+foo (a) b <=> error
+foo(a, b) c <=> error
+
+** TODO A grammar
+Needs work: specify completely, build experimental version in menhir
 
 list<element> ::=
 list<element> ::= element list<element>
@@ -189,32 +316,62 @@ opexpr ::= ...
 factor ::= ...
 sum ::= ...
 
-// open problem: operators
-foo bar (3 + 4) <=> (foo bar (+3 4)) | (foo (bar (+ 3 4))) ?
-// no special handling:
-foo bar (3 + 4) <=> (foo (bar (+ 3 4)))
-foo bar (+ 3 4) <=> (foo bar (+ 3 4))
-// still possible to use infix form for sexpr using (macro id x x):
-foo bar id(3 + 4)
+**** DONE Operators
+Solution: see below
+
+foo bar (3 + 4) <=> (foo bar (+ 3 4)) | (foo (bar (+ 3 4))) ?
+
+Resolution: no special handling:
+  foo bar (3 + 4) <=> (foo (bar (+ 3 4)))
+  foo bar (+ 3 4) <=> (foo bar (+ 3 4))
+
+Prefer m-expr because sexpr can be used by (op+ a b)
+
+  foo bar (3 + 4) <=> (foo (bar (op+ 3 4)))
+  foo bar (op+ 3 4) <=> (foo bar (op+ 3 4))
+  foo bar {3 + 3} <=> (foo bar (op+ 3 4))
+
+Still possible to use infix form for sexpr using (macro id x x):
+  foo bar id(3 + 4)
+
+**** DONE what happens to parentheses explicitly controlling precedence?
+Solution: is part of operator expr
+
+print( 4 * (1+3) )
 
 
-// conflicts with </> (less/greater)
+
+** Abandoned
+*** no mixing?
+
+Solution: see below
+
+ok:
+foo bar (baz a b c)
+foo( bar, baz a b c )
+
+not ok:
+foo bar baz(a,b,c)
+  (foo bar baz (op, a b c)) ?
+  (foo bar (baz a b c)) ?
+
+print a b (c)
+  (print a b (c)) ?
+  (print a (b c)) ?
+
+*** might work:
+sexpr ::= '('id sexpr*')'
+mexpr ::= id'(' comma-delimited-list(mexprArg) ')'
+mexprArg ::= mexpr | sexpr
+
+However this will not be possible:
+foreach i in subdirs(currentDir)
+  block
+
+*** <foo bar> for sexprs conflicts with </> (less/greater)
   // </foo bar/>
   // </foo bar /foo>
   // if <. a > b .>
   // if <. foo bar .foo>
 
-// what happens to parentheses explicitly controlling precedence?
-print( 4 * (1+3) )
-
-// require white space between operators and symbols?
-
-(a b)
-
-foo.(a, b)
-
-(/foo a b/)
-.(foo a b)
-
-[foo a b]
 

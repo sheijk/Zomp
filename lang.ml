@@ -40,7 +40,7 @@ let dequoteEscapeSequence str =
 let string2integralValue str =
   let dequoteString quoteChar str =
     let length = String.length str in
-    if length > 2 && str.[0] = quoteChar && str.[length-1] = quoteChar then
+    if length >= 2 && str.[0] = quoteChar && str.[length-1] = quoteChar then
       String.sub str 1 (length-2)
     else
       raise (Failure (sprintf "dequoteString %c" quoteChar))

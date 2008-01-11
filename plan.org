@@ -1,25 +1,19 @@
 
 * To be sorted
-** TODO [#A] fix cursor positioning on indent
-** TODO [#A] fix indent of }
-** TODO [#A] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
-** TODO [#A] let toplevel send feedback to emacs + handle errors (abort eval etc.)
-** TODO [#A] "" is not parsed as a string
-** TODO [#A] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
-** TODO [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
+** TODO [#A] refactor: make all compiler functionality available from zomp expressions
 ** TODO [#A] framebuffer cleanup/releasing code
-** TODO [#A] (op+_d | => zomp eldoc does not work
-** TODO [#A] proper error reporting when function/macro is redefined with different parameter count/types
-** TODO [#A] how to parse "var x = 10"? (op= (var x) 10), (var (op= x 10))? parse (var: x = 10) as (var (op= x 10)) but (var x = 10) as (op= (var x) 10)?
-** TODO [#A] name collisions of macros and functions (?) causes problems
-** TODO [#A] (count-1) is being parsed incorrectly
-** TODO [#A] check where `DefineVariable for void vars comes from
 
 * Tasks
 
 ** BUGS
 
-*** TODO [#A] Simple loops results in crash in REPL
+*** TODO [#B] check where `DefineVariable for void vars comes from
+*** DONE [#A] "" is not parsed as a string
+    CLOSED: [2008-01-11 Fri 01:28]
+
+*** DONE [#A] Simple loops results in crash in REPL
+    CLOSED: [2008-01-11 Fri 01:40]
+    Cannot be reproduced anymore
 
 (func int main () (
   (label start)
@@ -92,7 +86,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** DONE Use bindings / semantics checking in expander.ml
     CLOSED: [2007-10-16 Tue 19:04]
 
-*** TODO [#A] Support more data types
+*** TODO [#B] Support more data types
 
 **** DONE double
      CLOSED: [2007-11-26 Mon 01:26] 
@@ -165,6 +159,9 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Interactive toplevel
    
+*** TODO [#B] proper error reporting when function/macro is redefined with different parameter count/types
+*** TODO [#B] let toplevel send feedback to emacs + handle errors (abort eval etc.)
+
 *** TODO [#B] fast navigation
     
 *** TODO [#B] zomp toplevel in emacs: don't switch to buffer on C-c,C-s
@@ -210,9 +207,20 @@ check whether this makes IR-verification faster / prevent bugs / ...
     
 ** Emacs support
 
+*** TODO [#B] (op+_d | => zomp eldoc does not work
+
+*** TODO [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
+
+*** TODO [#B] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
+    temporary fix: zomp-mode will now use /* ... */ instead of //
+
+*** TODO [#C] fix indent of }
+
+*** TODO [#C] fix cursor positioning on indent
+
 *** TODO [#B] indent: special treatment for lines containing only closing parentheses?
 
-*** TODO [#A] add hook to zomp-mode
+*** TODO [#B] add hook to zomp-mode
 
 *** TODO [#B] Flymake support
 
@@ -230,26 +238,29 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Macros
    
-**** DONE Allow definition of simple "template" macros
+*** TODO [#B] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
+
+*** TODO [#A] name collisions of macros and functions (?) causes problems
+Put macro functions into seperate module
+
+*** DONE Allow definition of simple "template" macros
      
-**** DONE Allow running code inside macros
+*** DONE Allow running code inside macros
      CLOSED: [2007-10-29 Mon 15:48]
      
-**** DONE Insert astFromInt or astFromString if a var/func returns int/string
+*** DONE Insert astFromInt or astFromString if a var/func returns int/string
      CLOSED: [2007-11-02 Fri 02:46]
      
-**** TODO Put macro functions into seperate module
-     
-**** DONE Allow macros to call any ordinary function
+*** DONE Allow macros to call any ordinary function
      CLOSED: [2007-11-02 Fri 02:50]
      
-**** DONE Write "if then else" macro
+*** DONE Write "if then else" macro
      CLOSED: [2007-12-04 Tue 00:23]
      
-**** DONE Write "for i min max" macro
+*** DONE Write "for i min max" macro
      CLOSED: [2007-11-02 Fri 02:50]
      
-**** DONE Query existing functions and variables
+*** DONE Query existing functions and variables
      CLOSED: [2007-11-16 Fri 02:33]
      
 ** Language / APIs
@@ -275,9 +286,7 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 *** TODO [#A] Generic list / container generation macro
     
-*** TODO Pattern matching
-    
-*** TODO [#B] Syntax
+*** TODO [#A] Pattern matching
     
 *** TODO [#B] Namespaces / Modules
     
@@ -318,6 +327,14 @@ std:ast:detect
 ** Public
 
 *** TODO [#C] provide a (semi) public git repo
+
+** Syntax
+
+*** Issues
+**** TODO [#A] how to parse "var x = 10"? (op= (var x) 10), (var (op= x 10))? parse (var: x = 10) as (var (op= x 10)) but (var x = 10) as (op= (var x) 10)?
+
+
+**** TODO [#A] (count-1) is being parsed incorrectly
 
 * Notes
 - separated macro expansion / interpretation

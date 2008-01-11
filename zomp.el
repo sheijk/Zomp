@@ -245,7 +245,9 @@
     )
   '("\\.zomp")
   (list '(lambda ()
-           (setq comment-start "//")
+           (setq comment-start "/*")
+           (setq comment-end "*/")
+           
            (setq indent-tabs-mode nil)
 
            (setq imenu-generic-expression zomp-imenu-generic-expression)
