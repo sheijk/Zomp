@@ -99,6 +99,21 @@ struct
       
   exception CouldNotParseType of string
 
+  let rec canonicType lookupType = function
+    | `TypeRef typeName ->
+        begin match lookupType typeName with
+          | `Found `TypeRef sameName when sameName = typeName -> `TypeRef typeName
+          | `Found typ -> canonicType lookupType typ
+          | `NotFound -> (failwith "")
+        end
+    | `Pointer targetType -> `Pointer (canonicType lookupType targetType)
+    | `Record components ->
+        (* TODO: apply2nd *)
+        let canonicField (name, fieldType) = (name, canonicType lookupType fieldType) in
+        let canonicFields = List.map canonicField components in
+        `Record canonicFields
+    | t -> t
+    
   (* val typeOf : value -> typ *)
   let rec typeOf = function
     | VoidVal -> `Void

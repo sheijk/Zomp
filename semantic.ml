@@ -311,7 +311,20 @@ let test_moveLocalVarsToEntryBlock () =
          (formsToString result)
          (formsToString expected))
     errors
+
+let lookupTypeInBindings bindings typeName =
+  match Bindings.lookup bindings typeName with
+    | Bindings.TypedefSymbol typ -> `Found typ
+    | _ -> `NotFound
   
+let typesEquivalent bindings type1 type2 =
+  try
+    let canonicType = Lang.canonicType (lookupTypeInBindings bindings) in
+    let canonic1, canonic2 = canonicType type1, canonicType type2 in
+    canonic1 = canonic2
+  with
+    | Failure _ -> false
+        
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ
   | `DefineFunc f ->
@@ -328,8 +341,7 @@ let rec typeCheckTL bindings = function
                     wrongType)
               | TypeError _ as e ->
                   e
-  
-  
+                    
 let typeOfForm ~onError bindings form =
   match typeCheck bindings form with
     | TypeOf typ -> typ
@@ -363,7 +375,7 @@ let functionIsValid func =
             | `Sequence (_::tl) -> lastInstruction (`Sequence tl)
             | _ as last -> last
           in
-(*           let lastInstrCheck =  *)
+          (*           let lastInstrCheck =  *)
 (*             match lastInstruction funcImpl with *)
 (*               | `Jump _ | `Branch _ | `Return _ -> `Ok *)
 (*               | _ -> `Errors ["Last instruction in function must be jumb|branch|ret"] *)

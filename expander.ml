@@ -69,7 +69,7 @@ let rec translateType bindings typeExpr =
     with
       | Typesystems.Zomp.CouldNotParseType _ ->
           match lookup bindings name with
-(*             | TypedefSymbol `Record _ -> Some (`TypeRef name) *)
+              (*             | TypedefSymbol `Record _ -> Some (`TypeRef name) *)
             | TypedefSymbol t -> Some t
             | _ -> None
   in
