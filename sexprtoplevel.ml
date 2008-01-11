@@ -141,7 +141,7 @@ let listCommands commands _ _ =
   in
   List.iter printCommand commands
 
-let writeSymbols args bindings =
+let writeSymbols args (bindings : Bindings.bindings) =
   match args with
     | [fileName] ->
         begin
@@ -150,18 +150,23 @@ let writeSymbols args bindings =
           let stream = open_out fileName in
           try
             let print = fprintf stream in
+            let typeName = Expander.findTypeName bindings in
             print "Symbol table\n";
-            let typeName = Typesystems.Zomp.typeName in
             List.iter (fun (name, symbol) ->
                          fprintf stream "%s =" name;
                          begin match symbol with
                            | VarSymbol var ->
-                               fprintf stream "var of type %s" (typeName var.typ);
+                               fprintf stream "var of type %s"
+                                 (typeName var.typ);
                            | FuncSymbol func ->
-                               let argToString (name, typ) = sprintf "%s %s" (typeName typ) name in
+                               let argToString (name, typ) =
+                                 sprintf "%s %s" (typeName typ) name
+                               in
                                let args = List.map argToString func.fargs in
                                let argString = Common.combine ", " args in
-                               fprintf stream "(%s) -> %s" argString (typeName func.rettype);
+                               fprintf stream "(%s) -> %s"
+                                 argString
+                                 (typeName func.rettype);
                            | MacroSymbol macro ->
                                fprintf stream "%s" macro.mdocstring;
                            | LabelSymbol label ->
@@ -169,7 +174,7 @@ let writeSymbols args bindings =
                            | TypedefSymbol typ ->
                                fprintf stream "type %s" (typeName typ)
                            | UndefinedSymbol ->
-                                 fprintf stream "undefined"
+                               fprintf stream "undefined"
                          end;
                          fprintf stream "\n" )
               bindings;

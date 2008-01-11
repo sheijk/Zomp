@@ -1,5 +1,6 @@
 
 * To be sorted
+** TODO [#A] support paths for include / import / ...
 ** TODO [#A] refactor: make all compiler functionality available from zomp expressions
 ** TODO [#A] framebuffer cleanup/releasing code
 
@@ -128,6 +129,9 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** DONE [#A] arguments in function don't match: tell which argument(s) failed
     CLOSED: [2007-12-27 Thu 01:45]
 
+*** DONE [#A] type errors: show expected and found type
+    CLOSED: [2008-01-11 Fri 19:18]
+
 *** TODO [#B] use llvm ocaml bindings for code generation
 check whether this makes IR-verification faster / prevent bugs / ...
 
@@ -209,8 +213,8 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 *** TODO [#B] (op+_d | => zomp eldoc does not work
 
-*** TODO [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
-
+*** DONE [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
+    CLOSED: [2008-01-11 Fri 17:17]
 *** TODO [#B] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
     temporary fix: zomp-mode will now use /* ... */ instead of //
 

@@ -55,6 +55,33 @@ let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
 let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
 
 
+
+let rec findTypeName bindings = function
+  | #Lang.integralType as integralType -> Lang.typeName integralType
+  | `Pointer targetType -> findTypeName bindings targetType ^ "*"
+  | `TypeRef name -> name
+  | `Record components as typ ->
+      try
+        let name, _ =
+          List.find
+            (function
+               | (_, TypedefSymbol t) when typ = t -> true
+               | _ -> false)
+            bindings
+        in
+        name
+      with Not_found ->
+        Lang.typeName typ
+        
+let typeErrorMessage bindings (msg, foundType, expectedType) =
+  sprintf "Type error: %s, expected %s but found %s"
+    msg
+    (findTypeName bindings expectedType)
+    (findTypeName bindings foundType)
+    
+  
+
+  
 (* TODO: use in translateDefineVar and translateGlobalVar + test *)        
 let determineStorage typ =
   match typ with
@@ -234,7 +261,7 @@ let rec flattenLeft = function
   | (list, x) :: rem ->
       let remList, remX = flattenLeft rem in
       (list @ remList, x :: remX)
-      
+
 let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = name; args = args; } as expr ->
       match lookup bindings name with
@@ -255,8 +282,10 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = functi
               }
               in
               match typeCheck bindings funccall with
-                | TypeOf _ -> Some( bindings, toplevelForms @ [funccall] )
-                | TypeError (msg, _, _) -> raiseIllegalExpression expr ("Type error: " ^ msg)
+                | TypeOf _ ->
+                    Some( bindings, toplevelForms @ [funccall] )
+                | TypeError (msg,f,e) ->
+                    raiseIllegalExpression expr (typeErrorMessage bindings (msg,f,e))
             end
         | _ -> None
 
@@ -869,10 +898,11 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
                   | TypeError (msg, declaredType, returnedType) ->
                       raiseIllegalExpression
                         expr
-                        (Printf.sprintf "Function has return type %s but returns %s: %s"
-                           (Lang.typeName declaredType)
-                           (Lang.typeName returnedType)
-                           msg)
+                        (typeErrorMessage bindings (msg, returnedType, declaredType))
+(*                         (Printf.sprintf "Function has return type %s but returns %s: %s" *)
+(*                            (Lang.typeName declaredType) *)
+(*                            (Lang.typeName returnedType) *)
+(*                            msg) *)
               end
             | None -> raiseInvalidType typeExpr
         end
