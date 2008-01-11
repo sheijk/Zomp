@@ -24,16 +24,10 @@ CXX_FLAGS=-pg -g
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
-all: deps byte native stdlib.bc stdlib.ll libbindings tags deps.png
+all: byte native stdlib.bc stdlib.ll libbindings tags deps.png
 libbindings: gencode opengl20.zomp glfw.zomp
-byte: deps dllzompvm.so toplevel2 zompc sexprtoplevel
-native: deps dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
-
-# all: deps toplevel2 zompc stdlib.bc stdlib.ll sexprtoplevel gencode tags opengl20.zomp glfw.zomp deps.png
-# native: $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
-
-# ocamlbuild:
-# 	ocamlbuild gencode.native libzompvm.a zompc.native sexprtoplevel.native toplevel2.native -lib str -classic-display
+byte: dllzompvm.so toplevel2 zompc sexprtoplevel
+native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
 SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo machine.cmo dllzompvm.so zompvm.cmo expander.cmo parseutils.cmo sexprtoplevel.cmo
 
@@ -105,12 +99,14 @@ opengl20.zomp: opengl20.skel gencode
 
 # generate a file for graphviz which visualizes the dependencies
 # between modules
-deps.dot deps.png: deps
+deps.dot deps.png: makefile.depends
 	echo Generating dependency graph for graphviz ...
 	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
 	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
 
 .SUFFIXES: .ml .cmo .mly .mll .cmi .cmx
+
+.PHONY: clean clean_all
 
 .mly.ml:
 	echo Generating parser $< ...
@@ -133,9 +129,11 @@ deps.dot deps.png: deps
 	echo "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
-deps:
+CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml
+
+makefile.depends: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...
-	$(OCAMLDEP) $(CAML_PP) *.ml *.mly *.mll > makefile.depends
+	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > makefile.depends
 
 parser2.cmo: ast2.ml
 lexer2.cmo: common.ml
@@ -156,6 +154,7 @@ cleanml:
 clean:
 	cd tests && make clean_tests
 	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
+	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) zompc.o sexprtoplevel.o
 	rm -f lexer2.ml
 	rm -f parser2.ml parser2.mli
 	rm -f expander_tests.cm?
@@ -172,6 +171,10 @@ clean:
 	rm -f testdll.o dlltest.dylib 
 	rm -f *_flymake.*
 	rm -f *.cmx *.native
+	rm -f deps.png deps.dot
+	rm -f makefile.depends
+	rm -f stdlib.ll
+	rm -f opengl20.zomp glfw.zomp
 
 clean_tags:
 	rm -f *.annot
