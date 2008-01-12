@@ -179,12 +179,14 @@ clean:
 clean_tags:
 	rm -f *.annot
 	rm -f TAGS
+	rm -f $(FLYMAKE_LOG)
 
 clean_all: clean clean_tags
 
 ml_check:
 	@echo Checking OCaml files $(CHK_SOURCES)
 	@$(OCAMLC) $(CAML_FLAGS) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
+	@perl -pe "s/_flymake//g" < $(CHK_SOURCES:.ml=.annot) > $(CHK_SOURCES:_flymake.ml=.annot)
 
 cpp_check:
 	@echo Checking C++ files $(CHK_SOURCES)

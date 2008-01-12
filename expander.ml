@@ -1,11 +1,14 @@
-(* #directory "../v3";; *)
-(* #load "lexer2.cmo";; *)
-(* #load "parser2.cmo";; *)
-(* #load "lang.cmo";; *)
-(* #load "ast2.cmo";; *)
-(* #load "common.cmo";; *)
-(* #load "bindings.cmo";; *)
+(*
+  
+#directory "../v3";;
+#load "lexer2.cmo";;
+#load "parser2.cmo";;
+#load "lang.cmo";;
+#load "ast2.cmo";;
+#load "common.cmo";;
+#load "bindings.cmo";;
 
+*)
 
 open Lang
 open Semantic
