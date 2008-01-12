@@ -1,0 +1,15 @@
+
+var int x 10
+var int y 20
+var int z 30
+
+func int main ()
+  print "hello"
+  ret 0
+
+class Foo
+  method bar
+    do stuff
+    mode stuff
+end
+
