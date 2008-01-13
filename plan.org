@@ -1,10 +1,10 @@
 
-* To be sorted
-** TODO [#A] support paths for include / import / ...
+* To be sorted									:zomp:
+** TODO [#A] support paths for include / import / etc. :dummy:
 ** TODO [#A] refactor: make all compiler functionality available from zomp expressions
 ** TODO [#A] framebuffer cleanup/releasing code
 
-* Tasks
+* Tasks											:zomp:
 
 ** BUGS
 
@@ -340,7 +340,7 @@ std:ast:detect
 
 **** TODO [#A] (count-1) is being parsed incorrectly
 
-* Notes
+* Notes											:zomp:
 - separated macro expansion / interpretation
 - mutable variables
 - loops

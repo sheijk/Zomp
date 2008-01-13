@@ -13,3 +13,13 @@ class Foo
     mode stuff
 end
 
+if: condition true
+  print 1
+else if cond2
+  print 4
+  print 5
+else
+  print 2
+end if
+foo
+
