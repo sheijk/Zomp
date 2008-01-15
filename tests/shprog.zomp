@@ -1,0 +1,255 @@
+/**
+Generates and shows several SH functions
+
+!verify off
+
+Enter this into toplevel to load libs:
+!load libglfw.dylib
+!load libGLEW.dylib
+!load glut.dylib
+
+You will need to copy the file libglfw.dylib from the lib/macosx dir
+of GLFW 2.6 into the zomp main dir
+
+Conventions for function names:
+  send* - sending vertex data (to be included in glbegin/end)
+  render* - send geometry (outside of glBegin/glEnd)
+  draw* - setup material and render
+*/
+
+(include "opengl20.zomp")
+(include "glfw.zomp")
+(include "tests/glutils.zomp")
+(include "glut.zomp")
+
+(const int windowWidth 800)
+(const int windowHeight 600)
+(const float windowAspect 1.0)
+(var bool initialized false)
+
+(func bool init () (
+  (template assertGLTrue code (
+    (if (int.notEqual GL_TRUE #code) (
+      (printlnString "Init failed")
+      (printAst `#code 0)
+      (ret false))
+    ())))
+  
+  (if initialized (ret true) ())
+
+  (assertGLTrue (glfwInit))
+  (assertGLTrue (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW))
+  (glewInit)
+
+  //   (glfwSetWindowPos 300 1300) */
+
+  (windowAspect = int.toFloat windowWidth /_f int.toFloat windowHeight)
+
+  (assign initialized true)
+  (ret true)
+  ))
+
+(func void clear ((float r) (float g) (float b) (float a)) (
+  (glClearColor r g b a)
+  (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+  ))
+
+(macro compareFunc type name compareF (
+  (var cstring typeName (getField type id))
+
+  (var (ptr ast) compareCode compareF)
+  (addChilds compareCode `l `r)
+
+  (ret `(func #typeName #name ((#typeName l) (#typeName r)) (
+    (var bool cmp #compareCode)
+    (branch cmp lgreater rgreater)
+    (label lgreater)
+    (ret l)
+    (label rgreater)
+    (ret r)
+    )))
+  ))
+
+(compareFunc int int:max op>)
+(compareFunc int int:min op<)
+
+(compareFunc float float:max op>_f)
+(compareFunc float float:min op<_f)
+
+(compareFunc double double:max op>_d)
+(compareFunc double double:min op<_d)
+
+(func float fmodf ((float num) (float divisor)))
+
+(func GLint gluBuild2DMipmaps (
+  (GLenum target)
+  (GLint internalFormat)
+  (GLsizei width)
+  (GLsizei height)
+  (GLenum format)
+  (GLenum type)
+  ((ptr void) data) ))
+
+/// turns 4 colors values in [0, 255] into an RGBA color suitable for OpenGL
+(func int rgbaColor ((int r) (int g) (int b) (int a)) (
+  (ret (a*256*256*256 + b*256*256 + g*256 + r))
+  ))
+
+(func GLuint makeCubemap ((int size)) (
+  (var GLuint texture (makeTexture))
+
+  (glBindTexture GL_TEXTURE_CUBE_MAP texture)
+
+  (var (ptr int) colors (malloc int 6))
+  
+  (store (ptradd colors 0) (rgbaColor 255 0 0 255))
+  (store (ptradd colors 1) (rgbaColor 0 255 0 255))
+  (store (ptradd colors 2) (rgbaColor 0 0 255 255))
+  (store (ptradd colors 3) (rgbaColor 0 255 255 255))
+  (store (ptradd colors 4) (rgbaColor 255 0 255 255))
+  (store (ptradd colors 5) (rgbaColor 255 255 0 255))
+  
+  (var (ptr int) pixels (malloc int (size * size)))
+
+  (for target GL_TEXTURE_CUBE_MAP_POSITIVE_X (GL_TEXTURE_CUBE_MAP_POSITIVE_X+6) (
+    (var int c (load colors))
+    (colors = ptradd colors 1)
+    
+    (for pixelNum 0 (size * size) (
+      (store (ptradd pixels pixelNum) c)
+      ))
+    
+    (gluBuild2DMipmaps target GL_RGBA size size GL_RGBA GL_UNSIGNED_BYTE
+      (cast (ptr void) pixels))
+    ))
+
+  (glBindTexture GL_TEXTURE_CUBE_MAP 0)
+  
+  (ret texture)
+  ))
+  
+(func GLuint makeCubemapShader () (
+  (var GLuint shader (createShader
+    "
+    varying vec3 texCoord;
+    "
+    
+    "void main(void) {
+      gl_Position = ftransform();
+      
+      vec4 dir = normalize( gl_Vertex );
+      texCoord = dir.xyz;
+      }
+    "
+    
+    "
+    uniform samplerCube texture;
+    
+    void main(void) {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0) + textureCube( texture, texCoord );
+      }
+    "))
+  (ret shader)
+  ))
+
+(func int main () (
+  (init)
+
+  (times 10 (glfwPollEvents) )
+
+  (var GLuint cubeShader (makeCubemapShader))
+  (var GLuint cubemap (makeCubemap 512))
+
+  (glMatrixMode GL_PROJECTION)
+  (glLoadIdentity)
+  (gluPerspective 90.0d (float.toDouble windowAspect) 1.0d 500.0d)
+  
+  (glMatrixMode GL_MODELVIEW)
+  (glLoadIdentity)
+  (gluLookAt
+    10.0d 10.0d 10.0d
+    0.0d 0.0d 0.0d
+    0.0d 1.0d 0.0d)
+
+  (glEnable GL_DEPTH_TEST)
+  (glDepthFunc GL_LEQUAL)
+
+  
+  (var bool abort false)
+
+  /// rotation around y axis (in degrees)
+  (var float longitude 45.0)
+  /// rotation around x axis (in degrees)
+  (var float latitude 10.0)
+  (var float distance 10.0)
+
+  (var double startTime (glfwGetTime))
+  (var double lastTime startTime)
+
+  (template onKey key code ...
+    (if (isPressed #key) #code ()))
+  
+  (while (bool.not abort)
+    (if (isPressed GLFW_KEY_ESC)
+      (abort = true) ())
+
+    (var double frameTime (glfwGetTime))
+    (var double frameDur_d (frameTime -_d lastTime))
+    (var float frameDur (double.toFloat frameDur_d))
+    (lastTime = frameTime)
+
+    (var float rotationSpeed 90.0)
+    (if (isPressed GLFW_KEY_LSHIFT)
+      (rotationSpeed = rotationSpeed *_f 3.0) ())
+    
+    (onKey GLFW_KEY_LEFT
+      (longitude = longitude +_f frameDur *_f (float.neg rotationSpeed)))
+    (onKey GLFW_KEY_RIGHT
+      (longitude = longitude +_f frameDur *_f rotationSpeed))
+    (onKey GLFW_KEY_UP
+      (latitude = latitude +_f frameDur *_f rotationSpeed))
+    (onKey GLFW_KEY_DOWN
+      (latitude = latitude -_f frameDur *_f rotationSpeed))
+
+    (longitude = fmodf longitude 360.0)
+    (latitude = float:max -90.0 (float:min 90.0 latitude))
+
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (glTranslatef 0. 0. (float.sub 1.0 distance))
+    (glRotatef latitude 1. 0. 0.)
+    (glRotatef longitude 0. -1. 0.)
+    
+    (clear 0. 0. 0. 1.)
+
+    (drawOrientationGrid)
+
+    (glUseProgram cubeShader)
+    (glBindTexture GL_TEXTURE_CUBE_MAP cubemap)
+    (glutSolidSphere 5.0d 20 20)
+    (glBindTexture GL_TEXTURE_CUBE_MAP 0)
+    (glUseProgram 0)
+
+    (glfwPollEvents)
+    (glfwSwapBuffers)
+    )
+
+  (drawPausedOverlay)
+
+  (glDeleteTextures 1 (ptr cubemap))
+  (glDeleteShader cubeShader)
+
+  (ret 0)
+  ))
+
+(func void makeScreenBlack () (
+  (clear 0. 0. 0. 1.)
+  (glfwSwapBuffers)
+  ))
+
+/* NSBundle* webKitBundle; */
+/*     webKitBundle = [NSBundle bundleWithPath:@"/System/Library/Frameworks/WebKit.framework"]; */
+/*     if (webKitBundle) { */
+/*         _webkitAvailable = [webKitBundle load]; */
+/*     } */
+  
