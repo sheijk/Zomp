@@ -37,6 +37,10 @@ dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser`
 
+glut.dylib:
+	@echo Building $@ ...
+	gcc -dynamiclib -framework GLUT -o $@
+
 # opengl.dylib: opengl.c
 # 	echo Building $@ ...
 # 	gcc -c opengl.c -o opengl.o
@@ -89,13 +93,13 @@ stdlib.bc stdlib.ll: stdlib.c
 	llvm-gcc --emit-llvm -c $< -o $@
 	llvm-dis < stdlib.bc > stdlib.ll
 
-glfw.zomp: glfw.skel gencode
-	echo Generating Zomp bindings for GLFW ...
-	./gencode -lang zomp glfw
+# glfw.zomp: glfw.skel gencode
+# 	echo Generating Zomp bindings for GLFW ...
+# 	./gencode -lang zomp glfw
 
-opengl20.zomp: opengl20.skel gencode
-	echo Generating Zomp bindings for OpenGL 2.0 ...
-	./gencode -lang zomp opengl20
+# opengl20.zomp: opengl20.skel gencode
+# 	echo Generating Zomp bindings for OpenGL 2.0 ...
+# 	./gencode -lang zomp opengl20
 
 # generate a file for graphviz which visualizes the dependencies
 # between modules
@@ -104,7 +108,7 @@ deps.dot deps.png: makefile.depends
 	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
 	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
 
-.SUFFIXES: .ml .cmo .mly .mll .cmi .cmx
+.SUFFIXES: .ml .cmo .mly .mll .cmi .cmx .skel .zomp
 
 .PHONY: clean clean_all
 
@@ -128,6 +132,10 @@ deps.dot deps.png: makefile.depends
 .ml.cmx:
 	echo "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
+
+.skel.zomp: gencode
+	echo Generating Zomp bindings for $(<:.skel=) ...
+	./gencode -lang zomp $(<:.skel=)
 
 CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml
 

@@ -1,6 +1,14 @@
 
 open Printf
 
+type lineNumber = int
+exception WhitespaceError of string * lineNumber
+
+let raiseWSError line message = raise (WhitespaceError (message, line))
+let raiseWSErrorNoLine message = raise (WhitespaceError (message, -1))
+
+(* Utils ---------------------------------------------------------------------*)
+
 let withFileIn fileName func =
   let stream = open_in fileName in
   try
@@ -23,14 +31,14 @@ let splitLine line =
   let indent = leadingSpaces line in
   (indent, String.sub line indent (String.length line - indent))
 
-let classifyLine line =
-  let lineLength = String.length line in
-  let rec check index =
-    if index >= lineLength then `EmptyLine
-    else if line.[index] = ' ' then check (index+1)
-    else `IndentedLine (index, String.sub line index (lineLength-index))
-  in
-  check 0
+(* let classifyLine line = *)
+(*   let lineLength = String.length line in *)
+(*   let rec check index = *)
+(*     if index >= lineLength then `EmptyLine *)
+(*     else if line.[index] = ' ' then check (index+1) *)
+(*     else `IndentedLine (index, String.sub line index (lineLength-index)) *)
+(*   in *)
+(*   check 0 *)
 
 let iterBack f list = List.iter f (List.rev list)
 
@@ -41,67 +49,53 @@ let (=~) string regexp =
 let nthmatch n =
   Str.matched_group n !lastMatchedString
 
-let collectTestErrors f tests =
-  let testF prevErrors (input, expected) =
-    let result = f input in
-    if result = expected then prevErrors
-    else (input, expected, result) :: prevErrors
+(* let collectTestErrors f tests = *)
+(*   let testF prevErrors (input, expected) = *)
+(*     let result = f input in *)
+(*     if result = expected then prevErrors *)
+(*     else (input, expected, result) :: prevErrors *)
+(*   in *)
+(*   let errors = List.fold_left testF [] tests in *)
+(*   errors *)
+
+
+(* let printReport testSets = *)
+(*   let printTestSetReport (testF, inputToString, outputToString) = *)
+(*     let errors = testF() in *)
+(*     let printError (input, expected, result) = *)
+(*       printf "Test case error:\n  Input: %s\n  Found: %s\n  Expected: %s\n" *)
+(*         (inputToString input) (outputToString result) (outputToString expected) *)
+(*     in *)
+(*     List.iter printError errors; *)
+(*     List.length errors *)
+(*   in *)
+(*   let errorCounts = List.map printTestSetReport testSets in *)
+(*   let errorCount = List.fold_left (+) 0 errorCounts in *)
+(*   if errorCount = 0 then printf "No errors\n" *)
+(*   else printf "%d errors\n" errorCount *)
+
+let repeatedList n v =
+  let rec worker n acc =
+    if n <= 0 then acc
+    else worker (n-1) (v :: acc)
   in
-  let errors = List.fold_left testF [] tests in
-  errors
-
-
-let printReport testSets =
-  let printTestSetReport (testF, inputToString, outputToString) =
-    let errors = testF() in
-    let printError (input, expected, result) =
-      printf "Test case error:\n  Input: %s\n  Found: %s\n  Expected: %s\n"
-        (inputToString input) (outputToString result) (outputToString expected)
-    in
-    List.iter printError errors;
-    List.length errors
-  in
-  let errorCounts = List.map printTestSetReport testSets in
-  let errorCount = List.fold_left (+) 0 errorCounts in
-  if errorCount = 0 then printf "No errors\n"
-  else printf "%d errors\n" errorCount
-
-
+  worker n []
     
+
+(* type indentDelta = [`EmptyLine | `LessIndent of int | `MoreIndent | `SameIndent ] *)
+(* type indentF = int -> (indentDelta * int * string) list -> unit *)
+
+(* Program ------------------------------------------------------------------ *)
+  
 let blockEndRE name =
   sprintf "end\\( +%s\\)? *$" name
-(*   sprintf "end\\(\\s+%s\\)?\\s*$" *)
-    
-let () =
-  let testCases = [
-    "iff", "end", true;
-    "iff", "end iff", true;
-    "iff", "end wrong", false;
-    "iff", "end iff  ", true;
-    "iff", "end iff blah", false;
-    "iff", "end   iff", true;
-  ] in
+
+let whitespaceLineRE = "^[ 	]*$"
   
-  printf "\n";
-  let boolToString b = if b then "true" else "false" in
-  let errorOccured = ref false in
-  let testF (blockName, line, shallEnd) =
-    if shallEnd != (line =~ blockEndRE blockName) then begin
-      errorOccured := true;
-      printf "Failure in blockEndRE:\n  Input = %s\n  Expected = %s\n  Found = %s\n"
-        (sprintf "%s, '%s'" blockName line) (boolToString shallEnd) (boolToString (not shallEnd))
-    end
-  in
-  List.iter testF testCases;
-(*   if not !errorOccured then *)
-(*     printf "No errors occured\n" *)
+let multiBlockRE =
+  let idchars = "a-zA-Z0-9_." in
+  sprintf "\\([%s:]*[%s]\\):\\(.*\\)$" idchars idchars
   
-
-
-
-exception WhitespaceError of string
-
-
 let readLines fileName =
   let revLines =
     withFileIn fileName
@@ -118,15 +112,6 @@ let readLines fileName =
            !linesCollected)
   in
   List.rev revLines
-
-let whitespaceLineRE = "^\\s*$"
-  
-let repeatedList n v =
-  let rec worker n acc =
-    if n <= 0 then acc
-    else worker (n-1) (v :: acc)
-  in
-  worker n []
     
 let classifyIndent lines =
   let rec worker acc prevLine activeIndents = function
@@ -147,8 +132,10 @@ let classifyIndent lines =
           end else (* if prevIndent > nextIndent then *) begin
             let rec unindent count = function
               | [] ->
-                  raise (WhitespaceError
-                           "Internal error. Less active indent levels than expected")
+                  raiseWSErrorNoLine
+                    (sprintf "%s. Current line: %s"
+                       "Internal error. Less active indent levels than expected"
+                       nextLine)
               | indent :: rem when nextIndent < indent ->
                   unindent (count+1) rem
               | indents ->
@@ -190,29 +177,26 @@ let printIndentInfo classifiedLines =
     classifiedLines;
   printf "-----------------------\n"
   
-let multiBlockRE =
-  let idchars = "a-zA-Z0-9_." in
-  sprintf "\\([%s:]*[%s]\\):\\(.*\\)$" idchars idchars
-  
 let printLines clines =
+  let result : string list ref = ref [] in
+  let (=<<) result newLine = result := newLine :: !result in
   
   let printSingleLine indent unindentedLine =
-    printf "%s(%s)\n" (String.make indent ' ') unindentedLine
+    result =<< sprintf "%s(%s)\n" (String.make indent ' ') unindentedLine
   in
 
-  
-  let rec printIndentBlock callerF = function
+  let rec printIndentBlock callerF lineNum = function
     | [] -> ()
     | (indentDiff, indent, unindentedLine) :: remLines ->
         let indentString = String.make indent ' ' in
         match indentDiff with
           | `EmptyLine ->
-              printf "\n";
-              printIndentBlock callerF remLines
+              result =<< sprintf "\n";
+              printIndentBlock callerF (lineNum+1) remLines
                 
           | `SameIndent ->
               printSingleLine indent unindentedLine;
-              printIndentBlock callerF remLines
+              printIndentBlock callerF (lineNum+1) remLines
                 
           | `MoreIndent ->
               if unindentedLine =~ multiBlockRE then begin
@@ -221,147 +205,106 @@ let printLines clines =
                 printMultiBlockFirstLine
                   blockName
                   (printIndentBlock callerF)
+                  (lineNum+1)
                   indentString fixedLine
                   remLines
               end else begin
-                printf "%s(%s (\n" indentString unindentedLine;
-                printIndentBlock (printIndentBlock callerF) remLines
+                result =<< sprintf "%s(%s (\n" indentString unindentedLine;
+                printIndentBlock (printIndentBlock callerF) (lineNum+1) remLines
               end
                 
           | `LessIndent (count :int) ->
-              printf "%s(%s) %s\n" indentString unindentedLine (String.make count ')');
-              callerF remLines
+              result =<< sprintf "%s(%s) %s\n" indentString unindentedLine (String.make count ')');
+              callerF (lineNum+1) remLines
 
                 
-  and printMultiBlockFirstLine blockName callerF indentString unindentedLine lines =
-    printf "%s(%s (\n" indentString unindentedLine;
-    printIndentBlock (printMultiBlock blockName callerF) lines
+  and printMultiBlockFirstLine blockName callerF lineNum indentString unindentedLine lines =
+    result =<< sprintf "%s(%s (\n" indentString unindentedLine;
+    printIndentBlock (printMultiBlock blockName callerF) lineNum lines
 
       
-  and printMultiBlock blockName callerF = function
+  and printMultiBlock blockName callerF lineNum = function
     | [] ->
-        raise (WhitespaceError (sprintf "EOF while expecting closing block '%s'" blockName))
+        raiseWSError lineNum (sprintf "EOF while expecting closing block '%s'" blockName)
           
     | (indentDiff, indent, unindentedLine) :: remLines ->
         let indentString = String.make indent ' ' in
         match indentDiff with
             
           | `EmptyLine ->
-              printf "\n";
-              printMultiBlock blockName callerF remLines
+              result =<< sprintf "\n";
+              printMultiBlock blockName callerF (lineNum+1) remLines
                 
           | `MoreIndent ->
-              printf "%s%s (\n" indentString unindentedLine;
-              printIndentBlock (printMultiBlock blockName callerF) remLines
+              if unindentedLine =~ blockEndRE blockName then begin
+                raiseWSError lineNum (sprintf "Indenting after end of block not allowed")
+              end else begin
+                result =<< sprintf "%s%s (\n" indentString unindentedLine;
+                printIndentBlock (printMultiBlock blockName callerF) (lineNum+1) remLines
+              end
                 
           | `LessIndent (count :int) ->
-              raise (WhitespaceError
-                       (sprintf "Reduced indent while expecting closing block '%s'" blockName))
+              raiseWSError lineNum
+                (sprintf "Reduced indent while expecting closing block '%s' at line %d"
+                   blockName lineNum)
                 
           | `SameIndent ->
               if unindentedLine =~ blockEndRE blockName then begin
-                printf "%s)\n" indentString;
-                callerF remLines
+                result =<< sprintf "%s)\n" indentString;
+                callerF (lineNum+1) remLines
               end else begin
                 printSingleLine indent unindentedLine;
-                printMultiBlock blockName callerF remLines
+                printMultiBlock blockName callerF (lineNum+1) remLines
               end
   in
   
-  let returnedToOften remLines =
+  let returnedToOften lineNum remLines =
     printf "\n%s:\n%s\n----\n"
       "Internal error. More unindenting than indenting, remaining lines"
-      (Common.combine "\n" (List.map (fun (_, _, line) -> line) remLines));
+       (Common.combine "\n" (List.map (fun (_, _, line) -> line) remLines));
     flush stdout;
-    raise (WhitespaceError "More unindenting than indenting")
+    raiseWSError lineNum "More unindenting than indenting"
   in
   
-  printIndentBlock returnedToOften clines
+  printIndentBlock returnedToOften 0 clines;
+  List.rev !result
 
-  
+
+(* Main --------------------------------------------------------------------- *)
+    
 let () =
   let sourceFile = "indent.zomp" in
 
   let lines = readLines sourceFile in
   let classifiedLines = classifyIndent lines in
   printIndentInfo classifiedLines;
-  printLines classifiedLines;
-
+  let lines = printLines classifiedLines in
+  List.iter (printf "%s") lines;
+  
   ()
 
 
-    
-(*   let rec bracketLines acc = function *)
-(*     | [] -> *)
-(*         acc *)
-(*     | (indentDiff, indent, unindentedLine) :: rem -> *)
-(*         let indentString = String.make indent ' ' in *)
-(*         let terminator, parseF = *)
-(*           match indentDiff with *)
-(*             | `SameIndent -> ")", bracketLines *)
-(*             | `MoreIndentMulti name -> " (" ^ name ^ ":", bracketLinesBlock *)
-(*             | `MoreIndent -> " (", bracketLines *)
-(*             | `LessIndent count -> ") " ^ String.make (2 * count) ')', bracketLines *)
-(*         in *)
-(*         let line = indentString ^ "(" ^ unindentedLine ^ terminator in *)
-(*         parseF (line :: acc) rem *)
-(*   and bracketLinesBlock acc x = bracketLines acc x *)
-(*   in *)
+(* Tests -------------------------------------------------------------------- *)
 
-
+let () =
+  let testCases = [
+    "iff", "end", true;
+    "iff", "end iff", true;
+    "iff", "end wrong", false;
+    "iff", "end iff  ", true;
+    "iff", "end iff blah", false;
+    "iff", "end   iff", true;
+  ] in
+  
+  printf "\n";
+  let boolToString b = if b then "true" else "false" in
+  let errorOccured = ref false in
+  let testF (blockName, line, shallEnd) =
+    if shallEnd != (line =~ blockEndRE blockName) then begin
+      errorOccured := true;
+      printf "Failure in blockEndRE:\n  Input = %s\n  Expected = %s\n  Found = %s\n"
+        (sprintf "%s, '%s'" blockName line) (boolToString shallEnd) (boolToString (not shallEnd))
+    end
+  in
+  List.iter testF testCases
     
-(*   let rec bracketLines acc = function *)
-(*     | [] -> *)
-(*         [], [] *)
-(*     | (indentDiff, indent, unindentedLine) :: rem -> *)
-(*         let indentString = String.make indent ' ' in *)
-(*         match indentDiff with *)
-(*           | `SameIndent -> *)
-(*               let line = sprintf "%s(%s)\n" indentString unindentedLine in *)
-(*               bracketLines (line :: acc) rem *)
-(*           | `MoreIndent -> *)
-(*               let line = sprintf "%s(%s (\n" indentString unindentedLine in *)
-(*               bracketLines (line :: acc) rem *)
-(*           | `MoreIndentMulti name -> *)
-(*               let line = sprintf "%s(%s (\n" indentString unindentedLine in *)
-(*               bracketLinesMulti name (line :: acc) rem *)
-(*           | `LessIndent count -> *)
-(*               let line = *)
-(*                 sprintf "%s(%s) %s\n" *)
-(*                   indentString *)
-(*                   unindentedLine *)
-(*                   (String.make count ')') *)
-(*               in *)
-(*               (line :: acc), rem *)
-(*   and bracketLinesMulti (name :string) (acc :string list) = function *)
-(*     | [] -> *)
-(*         acc, [] *)
-(*     | (indentDiff, indent, unindentedLine) :: rem -> *)
-(*         let indentString = String.make indent ' ' in *)
-(*         match indentDiff with *)
-(*           | `LessIndent _ -> *)
-(*               raise (WhitespaceError (sprintf "Block %s not terminated" name)) *)
-(*           | `MoreIndentMulti newBlock -> *)
-(*               raise (WhitespaceError *)
-(*                        (sprintf "New block '%s'started before end of block '%s'" *)
-(*                           newBlock name)) *)
-(*           | `MoreIndent -> *)
-(*               let line = sprintf "%s(%s (\n" indentString unindentedLine in *)
-(*               bracketLines (line :: acc) rem *)
-(*           | `SameIndent -> *)
-(*               if unindentedLine =~ blockEndRE name then *)
-(*                 let line = sprintf "%s))\n" indentString in *)
-(*                 (line :: acc), rem *)
-(*               else *)
-(*                 raise (WhitespaceError (sprintf "Expected end of block '%s'" name)) *)
-(*   in *)
-(*   let bracketLines lines = *)
-(*     let bracketed, rem = bracketLines [] lines in *)
-(*     let unhandledLinesCount = List.length rem in *)
-(*     if unhandledLinesCount > 0 then begin *)
-(*       printf "%d lines not handled:\n" unhandledLinesCount; *)
-(*       List.iter (fun (_, indent, line) -> printf "%s%s\n" (String.make indent ' ') line) rem; *)
-(*       printf "-------------------\n"; *)
-(*     end; *)
-(*     bracketed *)
-(*   in *)

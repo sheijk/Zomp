@@ -1,8 +1,8 @@
 
 * To be sorted
-** TODO [#A] iexpr does not ignore empty lines preceeding unindents
-** TODO [#A] iexpr does fail correctly on "class Foo ... end blah" etc.
-** TODO [#A] iexpr schluckt die letzte zeile, wenn keine leerzeile folgt									:zomp:
+** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) )
+** TODO [#A] if is not an expression
+** TODO [#A] parse 1.0f as float
 ** TODO [#A] support paths for include / import / etc. :dummy:
 ** TODO [#A] refactor: make all compiler functionality available from zomp expressions
 ** TODO [#A] framebuffer cleanup/releasing code
@@ -128,6 +128,17 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
     
 ** Compiler
+
+*** TODO Indent-sensitive syntax
+
+**** DONE [#B] iexpr does not ignore empty lines preceeding unindents
+     CLOSED: [2008-01-14 Mon 17:24]
+
+**** TODO [#B] iexpr does not fail correctly on "class Foo ... end blah" etc.
+
+**** TODO [#B] iexpr ignores last line of not followed by a newline char
+
+**** TODO [#B] Comments need to be handled / skipped
 
 *** DONE [#A] arguments in function don't match: tell which argument(s) failed
     CLOSED: [2007-12-27 Thu 01:45]

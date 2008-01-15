@@ -7,6 +7,10 @@ func int main ()
   print "hello"
   ret 0
 
+    
+
+
+
 class Foo
   method bar
     do stuff
@@ -14,6 +18,7 @@ class Foo
 
   method baz
     do things
+
 end
 
 if: condition true
@@ -24,8 +29,7 @@ else if cond2
 else
   print 2
 end if
-foo
-
+  
 let: x + y = plus x y
 let: 10 = 20
 
