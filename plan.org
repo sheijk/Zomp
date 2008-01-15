@@ -1,5 +1,8 @@
 
-* To be sorted									:zomp:
+* To be sorted
+** TODO [#A] iexpr does not ignore empty lines preceeding unindents
+** TODO [#A] iexpr does fail correctly on "class Foo ... end blah" etc.
+** TODO [#A] iexpr schluckt die letzte zeile, wenn keine leerzeile folgt									:zomp:
 ** TODO [#A] support paths for include / import / etc. :dummy:
 ** TODO [#A] refactor: make all compiler functionality available from zomp expressions
 ** TODO [#A] framebuffer cleanup/releasing code

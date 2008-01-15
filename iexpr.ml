@@ -118,29 +118,37 @@ let readLines fileName =
            !linesCollected)
   in
   List.rev revLines
-      
-let classifyIndent lines = 
-  let rec worker acc activeIndents = function
+
+let whitespaceLineRE = "^\\s*$"
+  
+let repeatedList n v =
+  let rec worker n acc =
+    if n <= 0 then acc
+    else worker (n-1) (v :: acc)
+  in
+  worker n []
+    
+let classifyIndent lines =
+  let rec worker acc prevLine activeIndents = function
     | [] ->
         acc
-    | [singleLine] ->
-        (`SameIndent, 0, singleLine) :: acc
-    | prevLine :: nextLine :: rem ->
+    | (_ :: _) as allLines ->
+        let emptyLineCount, nextLine, rem = skipEmptyLines 0 allLines in
         let prevIndent, prevUnindented = splitLine prevLine in
         let nextIndent, nextUnindented = splitLine nextLine in
-        let indentDiff, newActiveIndents = 
-          if prevIndent = nextIndent then begin
+        let indentDiff, newActiveIndents =
+          if prevLine =~ whitespaceLineRE then begin
+            `EmptyLine, activeIndents
+          end else if prevIndent = nextIndent then begin
             `SameIndent, activeIndents
           end else if prevIndent < nextIndent then begin
             let newActiveIndents = nextIndent :: activeIndents in
-            (*             if prevUnindented =~ "\\([a-zA-Z0-9_:.]+\\):.*" then *)
-            (*               `MoreIndentMulti (nthmatch 1), newActiveIndents *)
-            (* else *)
             `MoreIndent, newActiveIndents
           end else (* if prevIndent > nextIndent then *) begin
             let rec unindent count = function
               | [] ->
-                  1000, []
+                  raise (WhitespaceError
+                           "Internal error. Less active indent levels than expected")
               | indent :: rem when nextIndent < indent ->
                   unindent (count+1) rem
               | indents ->
@@ -150,72 +158,106 @@ let classifyIndent lines =
             `LessIndent unindentCount, remainingIndents
           end
         in
+        let emptyLines = repeatedList emptyLineCount (`EmptyLine, 0, "") in
         worker
-          ((indentDiff, prevIndent, prevUnindented) :: acc)
+          (emptyLines @ ((indentDiff, prevIndent, prevUnindented) :: acc))
+          nextLine
           newActiveIndents
-          (nextLine :: rem)
+          rem
+  and skipEmptyLines count = function
+    | [] ->
+        count, "=eof=", []
+    | nextLine :: rem ->
+        if nextLine =~ whitespaceLineRE then
+          skipEmptyLines (count + 1) rem
+        else
+          count, nextLine, rem
   in
-  List.rev (worker [] [0] lines)
-
-let printIndentInfo classifiedLines = 
+  List.rev (worker [] "" [0] lines)
+  
+let printIndentInfo classifiedLines =
+  printf "---- Indent info -----\n";
   List.iter
     (fun (indentDiff, indent, unindentedLine) ->
        printf "%s%s %s\n"
          (String.make indent ' ')
          unindentedLine
          (match indentDiff with
+            | `EmptyLine -> "-x-"
             | `SameIndent -> ""
             | `MoreIndent -> "->"
             | `LessIndent count -> "<- " ^ string_of_int count))
-    classifiedLines
+    classifiedLines;
+  printf "-----------------------\n"
   
-let multiBlockRE = "\\([a-zA-Z0-9_:.]+\\):"
+let multiBlockRE =
+  let idchars = "a-zA-Z0-9_." in
+  sprintf "\\([%s:]*[%s]\\):\\(.*\\)$" idchars idchars
   
 let printLines clines =
+  
   let printSingleLine indent unindentedLine =
     printf "%s(%s)\n" (String.make indent ' ') unindentedLine
   in
+
   
   let rec printIndentBlock callerF = function
     | [] -> ()
     | (indentDiff, indent, unindentedLine) :: remLines ->
         let indentString = String.make indent ' ' in
         match indentDiff with
+          | `EmptyLine ->
+              printf "\n";
+              printIndentBlock callerF remLines
+                
           | `SameIndent ->
               printSingleLine indent unindentedLine;
               printIndentBlock callerF remLines
+                
           | `MoreIndent ->
               if unindentedLine =~ multiBlockRE then begin
                 let blockName = nthmatch 1 in
+                let fixedLine = nthmatch 1 ^ nthmatch 2 in
                 printMultiBlockFirstLine
                   blockName
                   (printIndentBlock callerF)
-                  indentString unindentedLine
+                  indentString fixedLine
                   remLines
               end else begin
                 printf "%s(%s (\n" indentString unindentedLine;
                 printIndentBlock (printIndentBlock callerF) remLines
               end
+                
           | `LessIndent (count :int) ->
               printf "%s(%s) %s\n" indentString unindentedLine (String.make count ')');
               callerF remLines
+
                 
   and printMultiBlockFirstLine blockName callerF indentString unindentedLine lines =
     printf "%s(%s (\n" indentString unindentedLine;
     printIndentBlock (printMultiBlock blockName callerF) lines
+
       
   and printMultiBlock blockName callerF = function
     | [] ->
         raise (WhitespaceError (sprintf "EOF while expecting closing block '%s'" blockName))
+          
     | (indentDiff, indent, unindentedLine) :: remLines ->
         let indentString = String.make indent ' ' in
         match indentDiff with
+            
+          | `EmptyLine ->
+              printf "\n";
+              printMultiBlock blockName callerF remLines
+                
           | `MoreIndent ->
               printf "%s%s (\n" indentString unindentedLine;
               printIndentBlock (printMultiBlock blockName callerF) remLines
+                
           | `LessIndent (count :int) ->
               raise (WhitespaceError
                        (sprintf "Reduced indent while expecting closing block '%s'" blockName))
+                
           | `SameIndent ->
               if unindentedLine =~ blockEndRE blockName then begin
                 printf "%s)\n" indentString;
@@ -242,7 +284,7 @@ let () =
 
   let lines = readLines sourceFile in
   let classifiedLines = classifyIndent lines in
-  (* printIndentInfo classifiedLines; *)
+  printIndentInfo classifiedLines;
   printLines classifiedLines;
 
   ()

@@ -11,6 +11,9 @@ class Foo
   method bar
     do stuff
     mode stuff
+
+  method baz
+    do things
 end
 
 if: condition true
@@ -22,4 +25,7 @@ else
   print 2
 end if
 foo
+
+let: x + y = plus x y
+let: 10 = 20
 
