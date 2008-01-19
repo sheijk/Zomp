@@ -49,10 +49,8 @@ Conventions for function names:
   (ret true)
   ))
 
-(func void clear ((float r) (float g) (float b) (float a)) (
-  (glClearColor r g b a)
-  (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-  ))
+//------------------------------------------------------------------------------
+// utils
 
 (macro compareFunc type name compareF (
   (var cstring typeName (getField type id))
@@ -70,6 +68,7 @@ Conventions for function names:
     )))
   ))
 
+
 (compareFunc int int:max op>)
 (compareFunc int int:min op<)
 
@@ -80,6 +79,38 @@ Conventions for function names:
 (compareFunc double double:min op<_d)
 
 (func float fmodf ((float num) (float divisor)))
+
+
+(macro arrayOf type values ... (
+  (uniqueId array "arrayOf")
+  
+  (var (ptr ast) code `())
+  (var int size (getField values childCount))
+  (addChild code `(var (ptr #type) #array (malloc #type #size)))
+
+  (var int index 0)
+  (forEachAstChild val values (
+    (addChild code `(store (ptradd #array #index) #val))
+    
+    (index = index + 1)
+    ))
+
+  (addChild code `(#array))
+
+  (ret code)
+  ))
+
+(template array:set array index value (store (ptradd #array #index) #value))
+(template array:get array index (load (ptradd #array #index)))
+(template op[] array index (load (ptradd #array #index)))
+
+//------------------------------------------------------------------------------
+// OpenGL utils
+
+(func void clear ((float r) (float g) (float b) (float a)) (
+  (glClearColor r g b a)
+  (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+  ))
 
 (func GLint gluBuild2DMipmaps (
   (GLenum target)
@@ -92,12 +123,16 @@ Conventions for function names:
 
 /// turns 4 colors values in [0, 255] into an RGBA color suitable for OpenGL
 (func int rgbaColor ((int r) (int g) (int b) (int a)) (
-  (ret (a*256*256*256 + b*256*256 + g*256 + r))
+  (template clampToByte x (int:max 0 (int:min 255 #x)))
+  (const int red (clampToByte r))
+  (const int green (clampToByte g))
+  (const int blue (clampToByte b))
+  (const int alpha (clampToByte a))
+  
+  (ret (alpha*256*256*256 + blue*256*256 + green*256 + red))
   ))
 
-(template array:set array index value (store (ptradd #array #index) #value))
-(template array:get array index (load (ptradd #array #index)))
-(template op[] array index (load (ptradd #array #index)))
+
 
 (type float3
   (float x)
@@ -160,39 +195,83 @@ Conventions for function names:
   ))
 
 
-  
+
+
+(type RGBA int)
+
+(func RGBA shbase ((int l) (int m) (float longitude) (float latitude)) (
+  (const float red (longitude /_f 360.0))
+  (const float green (latitude /_f 180.0 +_f 0.5))
+
+  (rgbaColor (float.toInt (red *_f 255.0)) (float.toInt (green *_f 255.0))  0 255)
+  ))
+
+
 (func GLuint makeCubemap ((int size)) (
   (var GLuint texture (makeTexture))
 
   (glBindTexture GL_TEXTURE_CUBE_MAP texture)
 
-  (var (ptr int) colors (malloc int 6))
-  
-  (store (ptradd colors 0) (rgbaColor 255 0 0 255))
-  (store (ptradd colors 1) (rgbaColor 0 255 0 255))
-  (store (ptradd colors 2) (rgbaColor 0 0 255 255))
-  (store (ptradd colors 3) (rgbaColor 0 255 255 255))
-  (store (ptradd colors 4) (rgbaColor 255 0 255 255))
-  (store (ptradd colors 5) (rgbaColor 255 255 0 255))
-  
+  (var (ptr int) colors (arrayOf int
+    (rgbaColor 255 0 0 255)
+    (rgbaColor 0 255 0 255)
+    (rgbaColor 0 0 255 255)
+    (rgbaColor 0 255 255 255)
+    (rgbaColor 255 0 255 255)
+    (rgbaColor 255 255 0 255) ))
+
+  (var (ptr float) longitudes_min (arrayOf float
+    90. 0. 0. 0. 0. 0.
+    ))
+
+  (var (ptr float) longitudes_max (arrayOf float
+    180. 0. 0. 0. 0. 0.
+    ))
+
+  (var (ptr float) latitude_min (arrayOf float
+    -90.0 -90.0 -90.0 -90.0 -90.0 -90.0
+    ))
+
+  (var (ptr float) latitude_max (arrayOf float
+    -90.0 -90.0 -90.0 -90.0 -90.0 -90.0
+    ))
+    
   (var (ptr int) pixels (malloc int (size * size)))
 
   (for sideNum 0 6 (
     (const int target (GL_TEXTURE_CUBE_MAP_POSITIVE_X + sideNum))
     
     (var int c (load colors))
-    (colors = ptradd colors 1)
 
+    (const float minLongitude (longitudes_min[sideNum]))
+    (const float maxLongitude (longitudes_max[sideNum]))
+    (const float minLatitude (latitude_min[sideNum]))
+    (const float maxLatitude (latitude_max[sideNum]))
+
+    (const float size_f (int.toFloat size))
+    
+    (const float longitude_delta ((maxLongitude -_f minLongitude) /_f size_f))
+    (const float latitude_delta ((maxLatitude -_f minLatitude) /_f size_f))
+
+    (var float latitude minLatitude)
     (for y 0 size (
+      (var float longitude minLatitude)
+
       (for x 0 size (
         (const int pixelNum (y * size + x))
+        (c = shbase 0 0 longitude latitude)
         (array:set pixels pixelNum c)
+
+        (longitude = longitude +_f longitude_delta)
         ))
+
+      (latitude = latitude +_f latitude_delta)
       ))
     
     (gluBuild2DMipmaps target GL_RGBA size size GL_RGBA GL_UNSIGNED_BYTE
       (cast (ptr void) pixels))
     
+    (colors = ptradd colors 1)
     ))
 
   (glBindTexture GL_TEXTURE_CUBE_MAP 0)
@@ -383,7 +462,7 @@ Conventions for function names:
       
       (glBegin GL_LINE_STRIP)
       (for i 0 legendreSize (
-        (var float x (-1.0 +_f 2.0 *_f (int.toFloat i /_f int.toFloat legendreSize)))
+        (var float x (-1.0 +_f 2.0 *_f (int.toFloat i /_f int.toFloat (legendreSize - 1))))
         (var float y (legendre l m x))
         (glVertex2f x y)
         ))
@@ -405,7 +484,7 @@ Conventions for function names:
     
     (clear 0. 0. 0. 1.)
 
-    /* (drawOrientationGrid) */
+    (drawOrientationGrid)
 
     (glUseProgram cubeShader)
     (glBindTexture GL_TEXTURE_CUBE_MAP cubemap)

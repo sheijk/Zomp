@@ -1,5 +1,7 @@
 
 * To be sorted
+** TODO [#A] convert char to int / float
+** TODO [#A] add += -= *= /= etc. operators
 ** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:
 ** TODO [#A] / should be left associative: a / b / c => (a / b) / c
 ** TODO [#A] (var (ptr float) foo) => better error message instead of expr: /0/
