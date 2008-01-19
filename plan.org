@@ -1,8 +1,22 @@
 
 * To be sorted
+** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:
+** TODO [#A] / should be left associative: a / b / c => (a / b) / c
+** TODO [#A] (var (ptr float) foo) => better error message instead of expr: /0/
+** TODO [#A] change all types to Capitalized case in stdlib
+** TODO [#A] fix wrong promts in emacs inferior zomp mode
+** TODO [#A] support records as first class var types (allow them to be params, retvals, local vars, global vars)
+** TODO [#A] emacs indenting: ignore parens in comments
+** TODO [#A] allow immediate execution of code
+** TODO [#A] fix initialization of global vars
+** TODO [#A] support global pointers															  :zomp:
+** TODO [#A] generate more realistic compiler performance tests (use macros and functions which are not defined just two lines ago)
+** TODO [#A] remove zompvm.h
+** TODO [#A] change ast representation? need a way to distinguish func and (func)															  :zomp:
+** TODO [#A] support for const, const T* etc.?
+** TODO [#A] Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
 ** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) )
 ** TODO [#A] if is not an expression
-** TODO [#A] parse 1.0f as float
 ** TODO [#A] support paths for include / import / etc. :dummy:
 ** TODO [#A] refactor: make all compiler functionality available from zomp expressions
 ** TODO [#A] framebuffer cleanup/releasing code
@@ -174,6 +188,8 @@ check whether this makes IR-verification faster / prevent bugs / ...
     But (func int main () ((ret 20))) does as well as (func int main () ((printInt 10) 20))
 
 *** TODO [#C] Bug: some generic intrinsics might return invalid bindings :bug:
+*** DONE [#A] parse 1.0f as float
+    CLOSED: [2008-01-16 Wed 01:20]
 
 ** Interactive toplevel
    
@@ -261,6 +277,8 @@ check whether this makes IR-verification faster / prevent bugs / ...
 *** TODO [#A] name collisions of macros and functions (?) causes problems
 Put macro functions into seperate module
 
+*** TODO [#B] Hygienic macro support?
+
 *** DONE Allow definition of simple "template" macros
      
 *** DONE Allow running code inside macros
@@ -282,40 +300,197 @@ Put macro functions into seperate module
      CLOSED: [2007-11-16 Fri 02:33]
      
 ** Language / APIs
-   
-*** DONE [#A] template
-    CLOSED: [2007-11-24 Sat 20:12]     
-    Implemented as macro
-    
-*** TODO [#C] support break in loops
-    
-*** TODO [#B] Allow testing macros
-(running them on code and printing the resulting AST)
 
-*** TODO [#A] File I/O
-    
-*** TODO [#A] Regular expressions
-    
-*** DONE [#A] OpenGL support
-    CLOSED: [2007-11-25 Sun 00:35] 
+*** TODO [#A] API for code analysis
+    Get information about an expression: types etc.
+    (can be used for type propagation)
+
+**** std:kernel
+        Builtin primitives in a seperate module
+        label, branch
+        type
+        var, const
+        func
+        macro
+
+**** std:ast
+        ast representation
+
+        type Type
+          String name
+
+          isIntegerType() -> bool
+          isFloatType() -> bool
+          isString() -> bool
+          isRecordType() -> bool
+
+          isSubType(Type*) -> bool
+
+**** std:ast:reflection
+        type, typeOf(ast)
+        
+**** std:ast:detect
+        isLabel, isBranch, ...
+
+**** std:ast:annotations
+        // Query annotations
+        ast.hasAnnotation name
+
+**** std:bindings
+     // Query for bound names
+
+     type Var
+       String name
+       Type type
+       
+     type Macro
+       String name
+       Array<String> args
+       Bool isVariadic
+
+     type Func
+       String name
+       Type resultType
+       Pair<String, Type> args
+
+     lookupVar(string) -> Option<Var>
+     lookupMacro(string) -> Option<Macro>
+     lookupFunc(string) -> Option<Func>
+     lookupType(string) -> Option<Type>
+     lookup(string) -> Variant<Var(Var), Func(Func), Type(Type), Macro(Macro), Undefined>
 
 *** TODO [#A] Explicit polymorphism
+
     Overloading functions should be possible
 
-*** TODO [#A] Generic list / container generation macro
-    
+    Requires the API for code analysis (see above)
+
+**** API
+
+    overloadable name
+
+    overload name(param*) targetName
+
+    param ::= type typeName
+    param ::= ast
+
+**** Example
+
+    overloadable print
+    overload print(type int) printInt
+    overload print(type string) printString
+
+**** Utils
+
+    overloadable plus
+
+    ofunc int plus(int l, int r) impl
+    =>
+    func int plus_int_int(int l, int r) impl
+    overload plus(type int, type int) plus_int_int
+
+*** TODO [#A] Some simple generic/C++-style-template support
+
+**** std:generic
+  
+  type (param+) name decl
+  => macro name, expanding into expandType
+
+  expandType name (param+)
+  => std:toplevelExpr
+       std:kernel:type name decl'
+  where decl' is decl with substituted type params
+  (only generate type once)
+
+  func (typeParam+) name (param*) impl
+  => macro name (param*), translating into expandFunc
+
+  expandFunc (typeParam+) name
+  => func name (param*) impl
+  with substituted types (and functions?)
+
+**** std:typeclass
+??
+
 *** TODO [#A] Pattern matching
-    
+
+**** On sexpr/ast
+
+ast:match ast matchExpr
+
+matchExpr ::= case matchCase => code
+
+matchCase ::= pattern
+matchCase ::= var = pattern
+matchCase ::= var varName : type
+
+pattern ::= "expectId"
+pattern ::= (matchCase+)
+
+**** Overloaded match macro
+
+match foo matchExprs+
+=> typeOf(foo):match foo matchExprs+
+     
+*** TODO [#B] Regular expressions
+**** TODO [#A] Bindings for PCRE
+**** TODO [#B] Special match syntax
+
+*** TODO [#B] File I/O
+**** TODO [#A] Bindings for C stdlib
+**** TODO [#C] Systems of streams similar to Java/.Net/...
+
 *** TODO [#B] Namespaces / Modules
+
+*** TODO [#B] Allow testing macros
+(running them on code and printing the resulting AST)
     
 *** TODO [#B] Object system
     
 **** vtable calls
-     
+
+class Foo
+  Foo(int arg) / constructor(int arg)
+  var int x
+  method float bar (int y) barImpl
+
+=>
+
+type Foo:vtable
+  (Foo* -> void)* destructor
+  (int -> float)* bar
+
+type Foo
+  Foo:vtable* vtable
+  int x
+  (int -> float)* bar
+
+func float Foo:bar(Foo* this, int y)
+  barImpl
+
+macro bar (var Foo f) y
+  f.vtable.bar( f, y )
+
+func Foo:constructor(Foo* this, int arg)
+  this.vtable = & Foo:vtable
+
+
+new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
+
+**** Interfaces
+
+**** Inheritance
+
 **** Syntax support
+
+Is anything special needed?
      
-**** Represent them in zomp ast type
-     
+**** Represent them in zomp ast type <- what does this mean? :)
+
+**** Message passing (on top of this)
+
+**** Type classes / concepts based on classes? Reusing infrastructure?
+
 *** TODO [#C] Compile multi file projects
     
 **** Realize definition of project files
@@ -325,26 +500,21 @@ Put macro functions into seperate module
      "zompc project.zomp release" should be enough to build the whole project
 
 **** Define .zobj format
+    
+*** TODO [#C] support break in loops
 
-*** TODO [#A] API for code analysis
-Get information about an expression: types etc.
-(can be used for type propagation)
-
-std:builtin
-        label, branch, usw.
-
-std:ast
-        ast representation
-
-std:ast:reflection
-        type, typeOf(ast)
-        
-std:ast:detect
-        isLabel, isBranch, ...
+*** DONE [#A] template
+    CLOSED: [2007-11-24 Sat 20:12]     
+    Implemented as macro
+      
+*** DONE [#A] OpenGL support
+    CLOSED: [2007-11-25 Sun 00:35] 
 
 ** Public
 
 *** TODO [#C] provide a (semi) public git repo
+
+*** TODO Find collaborators
 
 ** Syntax
 
@@ -355,13 +525,6 @@ std:ast:detect
 **** TODO [#A] (count-1) is being parsed incorrectly
 
 * Notes											:zomp:
-- separated macro expansion / interpretation
-- mutable variables
-- loops
-- metadata ( let @mutable x = 10 )
-- support for operators (+, -, <<, etc.)
-- compiler
-- type system
 
 ** Alternative names
 
@@ -409,13 +572,18 @@ Then monads are probably possible without expanding the syntax (and possibly eve
 
 See the declare statement in lisp
 
+Use @attrib( valueExpr ) syntax?
+
 ** python's doctest clone
 automatically check embedded examples in documentation for correctness
 
 ** Type System
-   
-*** Composable type system
-    
+
+*** Composable type system?
+*** Arithmetic types (sum, product types)
+*** Generic types
+*** How much in kernel language, how much as macros?
+     
 *** Security level
 A variable a has an associated security level l(a). Writing a := b requires l(b) >= l(a).
 Similarily, the relation of security levels between function's arguments and parameters can be declared.

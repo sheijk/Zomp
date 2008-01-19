@@ -1,0 +1,23 @@
+
+
+
+Fri Jan 18 01:37:42 CET 2008
+
+make -s runtests
+
+comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp voidvar.zomp ops.zomp typedefs.zomp sexpr.zomp pointers.zomp records.zomp ret.zomp labels.zomp strings.zomp macros.zomp nested.zomp arrays.zomp ast.zomp compiletime.zomp casts.zomp variadicmacro.zomp floats.zomp
+
+real 1m37.285s, user 1m34.697s, sys 0m1.597s
+
+
+make -s perftest
+
+Functions / Lines / Timings
+
+  100 /   413 / real  0m7.957s, user  0m7.776s, sys  0m0.122s
+ 1000 /  4013 / real  0m8.775s, user  0m8.628s, sys  0m0.131s
+ 2000 /  8013 / real 0m11.089s, user 0m10.532s, sys  0m0.267s
+ 4000 / 16013 / real 0m18.716s, user 0m18.060s, sys  0m0.624s
+ 8000 / 32013 / real 0m55.034s, user 0m49.476s, sys  0m2.372s
+16000 / 64013 / real 5m2.090s,  user 4m27.513s, sys 0m13.847s
+

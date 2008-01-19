@@ -24,13 +24,24 @@ func void foo(a, b, c)
 
 But:
 
-if: a > b
+if (a > b)
   print "yes"
 else
   print "no"
 end if
 
-*** require terminators for all multi-line expressions?
+Parsing is ambigous in this case
+
+*** TODO Use a special marker to begin multi-line expressions?
+
+if: foo
+  print 1
+  print 2
+else
+  print 0
+end if
+
+*** TODO require terminators for all multi-line expressions?
 
 if a > b
   print 1
@@ -42,7 +53,18 @@ let foo =
   some complex(calculation)
 end
 
-*** Use extra indentation?
+
+func foo(int a, int b) -> int =
+  let foo = 10
+  let bar =
+    some( long line, in here )
+  end
+
+  more code
+end func
+
+*** DONE Use extra indentation?
+Solution: no
 
 if(a > b)
   print 1
@@ -57,7 +79,9 @@ if( a > b )
   else
     print 2
 
-*** Change AST?
+*** DONE Change AST?
+    CLOSED: [2008-01-16 Wed 01:31]
+Solution: No. Requires to much changes in core language, unclear implications on the toplevel etc.
 
 (foo a)
 (bar b)
@@ -74,9 +98,36 @@ if( a > b )
 ...
 <=> (let x 10 (use x ...))
 
-*** have some notation to get rid of end-of-block marker?
+*** TODO have some notation to get rid of end-of-block marker?
+
 let/ foo =
   some complex(calculation)
+
+Where is this needed?
+What would the advantage be?
+
+*** TODO How to split a line into multiple lines?
+
+Backslash at end of file?
+
+this is some freaking\
+long line
+
+Needs to be indented to same level? Extra level? Ignore indenting?
+
+Allow it to be at beginning of file also?
+
+this is some freaking
+\long line
+
+May be indented, everything in front of \ is ignored (useful for strings)
+
+let longString =
+  "this be some kewl multi-line text
+  \which has a second line
+  \and is indented nicely while not
+  \having any whitespace at the beginning
+  \of it's lines"
 
 ** DONE How to handle operators at the end of a line?
 Solution: just add braces "as usual"
@@ -263,6 +314,21 @@ if <a > b> then
 **** DONE {curly braces}
 Solution: use. It's nice for C programmers, doesn't hurt etc.
 foo {a b} <=> (foo (a b))
+
+**** TODO Use mexp<angle, braces>?
+
+Support angle brackets which are always parsed as m-expressions to complement the always-sexpr-curly-braces.
+
+Can be used for generics (syntax similar to C++ templates)
+
+class Foo<T1, T2>
+  method
+end
+
+***** TODO How to resolve conflict with </> (less/greater) operators?
+
+> is interpreted as closing brace after an opening one, else as less
+< is interpreted as opening brace if a > follows, else as greater
 
 ** DONE Special handling for (singleId)
 Solution: below

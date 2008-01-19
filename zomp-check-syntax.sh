@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-ZOMP_PATH=/Users/sheijk/Documents/Development/Stuff/ocaml/lang/v3/
+ZOMP_PATH=/Users/sheijk/Documents/Development/Stuff/ocaml/lang/git/
 
 basename=${1%.zomp}
 ocamlrun -I ${ZOMP_PATH} -b ${ZOMP_PATH}/zompc -c $1

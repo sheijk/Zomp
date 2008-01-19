@@ -35,7 +35,8 @@ dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	echo Building $@ ...
 	g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser`
+# 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser analysis transformutils`
+	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs all`
 
 glut.dylib:
 	@echo Building $@ ...
@@ -50,7 +51,8 @@ sexprtoplevel: $(SEXPR_TL_INPUT)
 	echo Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
 
-LLVM_LIBS=`llvm-config --libs jit interpreter native x86 asmparser`
+# LLVM_LIBS=`llvm-config --libs jit interpreter native x86 asmparser`
+LLVM_LIBS=`llvm-config --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 LANG_CMXS=common.cmx ast2.cmx parser2.cmx lexer2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx expander.cmx parseutils.cmx 
 
@@ -86,7 +88,7 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 # 	date +"Finished at %d.%m.20%y %H:%M:%S"
 
 perftest: zompc.native zompc
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 4000"
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 4000 8000 16000"
 
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...

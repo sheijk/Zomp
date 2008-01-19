@@ -12,6 +12,10 @@
 #include "llvm/Assembly/Parser.h"
 #include "llvm/Analysis/Verifier.h"
 
+#include "llvm/PassManager.h"
+#include "llvm/Target/TargetData.h"
+#include "llvm/LinkAllPasses.h"
+
 #include <dlfcn.h>
 
 using std::printf;
@@ -30,6 +34,7 @@ namespace {
   Module* llvmModule = 0;
   Module* macroModule = 0;
   ExistingModuleProvider* moduleProvider = 0;
+//   FunctionPassManager* passManager = 0;
 
   bool verifyCode = true;
   
@@ -99,6 +104,20 @@ llvm::GenericValue runFunction(const char* name) {
 extern "C" {
 #include "zompvm.h"
 
+//   void setupOptimizerPasses() {
+//     // Set up the optimizer pipeline.  Start with registering info about how the
+//     // target lays out data structures.
+//     passManager->add(new TargetData( *executionEngine->getTargetData()));
+//     // Do simple "peephole" optimizations and bit-twiddling optzns.
+//     passManager->add(createInstructionCombiningPass());
+//     // Reassociate expressions.
+//     passManager->add(createReassociatePass());
+//     // Eliminate Common SubExpressions.
+//     passManager->add(createGVNPass());
+//     // Simplify the control flow graph (deleting unreachable blocks, etc).
+//     passManager->add(createCFGSimplificationPass());
+//   }
+  
   bool zompInit() {
 //     printf( "Initializing ZompVM\n" );
     fflush( stdout );
@@ -106,6 +125,8 @@ extern "C" {
     assureModuleExists();
     moduleProvider = new ExistingModuleProvider( llvmModule );
     executionEngine = ExecutionEngine::create( moduleProvider, false );
+//     passManager = new FunctionPassManager( moduleProvider );
+//     setupOptimizerPasses();
 
     return true;
   }
@@ -148,6 +169,16 @@ extern "C" {
 
       errorsOccurred = true;
     }
+
+//     // run optimizations
+//     if( ! errorsOccurred && parsedModule ) {
+//       llvm::Module::iterator currentFunc = parsedModule->begin();
+//       const llvm::Module::iterator funcsEnd = parsedModule->end();
+
+//       for( ; currentFunc != funcsEnd; ++currentFunc) {
+//         passManager->run( *currentFunc );
+//       }
+//     }
 
     return !errorsOccurred;
   }

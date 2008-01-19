@@ -61,6 +61,7 @@ let string2integralValue str =
   tryAll
     [
       lazy( IntVal (Int32.of_string str) );
+      lazy( FloatVal (parseWithSuffix float_of_string "f" str) );
       lazy( FloatVal (float_of_string str) );
       lazy( BoolVal (bool_of_string str) );
       lazy( StringLiteral (dequoteString '"' str) );

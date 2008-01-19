@@ -3,6 +3,9 @@
 (func int main () (
   (printlnString "Running floating point tests")
 
+  (var int x 10)
+  (printInt x)
+  
   (unittest.assertAll
     // basic operations
     (float.equal 1.0 1.0)
@@ -14,6 +17,15 @@
     (float.greaterEqual 2.0 2.0)
     (float.greaterEqual 2.0 1.0))
 
+  (unittest.assertAll
+    // parsing
+    (double.oequal 1.0d 1.0d)
+    (1.0f ==_f 1.0)
+    (1. ==_f 1.0)
+    (1.000 ==_f 1.0)
+    (.5 ==_f 0.5)
+    )
+  
 //   (unittest.assertAll */
 //     /\/ parsing numbers which cannot be represented accurately as floats */
 //     (float.equal 3.1415 3.1415)) */
