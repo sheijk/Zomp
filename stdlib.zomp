@@ -30,6 +30,8 @@
 (func float asinf ((float x)))
 (func float acosf ((float x)))
 
+(func float sqrtf ((float x)))
+
 (func int zompLoadLib (((ptr char) dllname)))
 
 /// utility functions ----------------------------------------
@@ -535,6 +537,15 @@
     ))
   ))
 
+(func void ast:replaceId ((astp tree) (cstring placeholder) (cstring newid)) (
+  (if (cstring.equal (getField tree id) placeholder)
+    (setField tree id newid) ())
+
+  (forEachAstChild child tree (
+    (ast:replaceId child placeholder newid)
+    ))
+  ))
+
 (macro setFieldsTo value fields ... (
   (var (ptr ast) code `())
   (forEachAstChild field fields (
@@ -591,6 +602,10 @@
   ))
 
 (template float.neg x (float.sub 0. #x))
+
+(func int int:mod ((int v) (int div)) (
+  (int.urem v div)
+  ))
 
 (template op+ l r (int.add #l #r))
 (template op- l r (int.sub #l #r))

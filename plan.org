@@ -1,5 +1,10 @@
 
 * To be sorted
+** TODO [#A] expander: cause error when local variable is redefined
+** TODO [#A] parser: keep track of line and char number and add this to error messages
+** TODO [#A] emacs: navigate to error caused by evaluating code in toplevel
+** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c) (at least if foo does not have any arguments)
+** TODO [#A] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
 ** TODO [#A] convert char to int / float
 ** TODO [#A] add += -= *= /= etc. operators
 ** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:

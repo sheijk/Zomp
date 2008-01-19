@@ -263,6 +263,7 @@
 
 //------------------------------------------------------------------------------
 
+/// will call type:new params...
 (macro new type params ... (
   (var cstring factoryName (cstrings.append (getField type id) ":new"))
   (var (ptr ast) code (simpleAst factoryName))
