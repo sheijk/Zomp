@@ -167,6 +167,9 @@
           ; get indentation of previous line
           (back-to-indentation)
           (setq left (current-column))
+
+          (when (looking-at "\\*")
+            (setq left (- left 1)))
           
           (let* ((line-start (progn (beginning-of-line) (point)))
                 (line-end (progn (end-of-line) (point)))
@@ -176,6 +179,11 @@
                   ((< open-parens closing-parens) (setq left (- left 2))))
             (next-line))))
       (beginning-of-line)
+
+      ; lines like " * foo" are indented by one more space
+      (when (looking-at " *\\*")
+        (set 'left (+ left 1)))
+      
       (just-one-space)
       (backward-delete-char 1)
       (indent-to-column left))
@@ -193,7 +201,39 @@
   (interactive)
   (save-excursion
     (indent-region 0 (buffer-end 1))))
-     
+
+
+(defun zomp-newline ()
+  (interactive)
+  (let ((isComment nil)
+        (isStar nil) )
+    (save-excursion
+      (move-beginning-of-line 1)
+      ; /// on documentation comment
+      (when (looking-at " *///")
+        (set 'isComment t))
+      ; /*
+      ;  * nice aligned stars
+      ;  */ (but not after this line)
+      (when (and (looking-at " *\\(/\\)?\\*") (not (looking-at ".*\\*/")))
+        (set 'isStar t))
+      )
+    (newline-and-indent)
+    (when isComment
+      (insert "/// "))
+    (when isStar
+      (insert " * ")
+      (indent-for-tab-command) )
+    ))
+
+(defun zomp-electric-slash ()
+  (interactive)
+  (when (and
+         (equal last-command 'zomp-newline)
+         (looking-back "\\* *"))
+    (backward-delete-char 1))
+  (insert "/") )
+   
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
   '("{" "}")
@@ -247,20 +287,35 @@
   (list '(lambda ()
            (setq comment-start "/*")
            (setq comment-end "*/")
-           
            (setq indent-tabs-mode nil)
 
+           ; indexing of current file (control-')
            (setq imenu-generic-expression zomp-imenu-generic-expression)
            (local-set-key [(control ?')] 'imenu)
 
+           ; display documentation for methods/macros/... in status line
            (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
            (eldoc-mode t)
 
+           ; auto indenting
            (setq indent-line-function 'zomp-indent-line)
            
            ; highlight s-expression under cursor
            (hl-sexp-mode t)
 
+           ; quick navigation and marking expressions
+           (local-set-key [(meta n)] 'zomp-next-tl-expr)
+           (local-set-key [(meta p)] 'zomp-prev-tl-expr)
+           (local-set-key [(meta k)] 'zomp-mark-sexp)
+
+           ; expand templates
+           (local-set-key [(control ?.)] 'zomp-complete)
+
+           ; extra comfort (insert ///, * in matching places, * / => */ etc.)
+           (local-set-key "\r" 'zomp-newline)
+           (local-set-key [(control j)] 'zomp-newline)
+           (local-set-key [(?/)] 'zomp-electric-slash)
+           
            ; create zomp menu. order of the zomp-add-action commands is reversed order in menu
            (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
@@ -287,18 +342,13 @@
            (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
            (zomp-add-action zomp-toplevel [(control c)(control s)] "Start toplevel")
 
-           (local-set-key [(meta n)] 'zomp-next-tl-expr)
-           (local-set-key [(meta p)] 'zomp-prev-tl-expr)
-           (local-set-key [(meta k)] 'zomp-mark-sexp)
-
+           ; set additional keys on OS X
            (local-set-key [(alt r)] '(lambda () (interactive)
                                        (zomp-tl-eval-current)
                                        (zomp-tl-run-test) ))
            (local-set-key [(alt e)] 'zomp-tl-eval-current)
            (local-set-key [(alt d)] 'zomp-tl-run)
            (local-set-key [(alt shift d)] 'zomp-tl-run-test)
-           
-           (local-set-key [(control ?.)] 'zomp-complete)
            ))
   "A simple mode for the zomp language")
 
