@@ -277,3 +277,18 @@ let listFold2i f initial list1 list2 =
   in
   foldWithIndex 0 initial list1 list2
 
+(* let dequoteString quoteChar str = *)
+(*   let length = String.length str in *)
+(*   if isQuoted quoteChar str then  *)
+(*     String.sub str 1 (length-2) *)
+(*   else *)
+(*     raise (Failure (sprintf "dequoteString %c" quoteChar)) *)
+
+let dequoteString quoteChar str =
+  let length = String.length str in
+  if length >= 2 && str.[0] = quoteChar && str.[length-1] = quoteChar then
+    `Quoted (String.sub str 1 (length - 2))
+  else
+    `NotQuoted str
+
+  

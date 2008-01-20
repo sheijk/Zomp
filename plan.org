@@ -1,35 +1,15 @@
 
 * To be sorted
-** TODO [#A] expander: cause error when local variable is redefined
-** TODO [#A] parser: keep track of line and char number and add this to error messages
-** TODO [#A] emacs: navigate to error caused by evaluating code in toplevel
-** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c) (at least if foo does not have any arguments)
-** TODO [#A] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
-** TODO [#A] convert char to int / float
-** TODO [#A] add += -= *= /= etc. operators
-** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:
-** TODO [#A] / should be left associative: a / b / c => (a / b) / c
-** TODO [#A] (var (ptr float) foo) => better error message instead of expr: /0/
-** TODO [#A] change all types to Capitalized case in stdlib
-** TODO [#A] fix wrong promts in emacs inferior zomp mode
-** TODO [#A] support records as first class var types (allow them to be params, retvals, local vars, global vars)
-** TODO [#A] emacs indenting: ignore parens in comments
-** TODO [#A] allow immediate execution of code
-** TODO [#A] fix initialization of global vars
-** TODO [#A] support global pointers															  :zomp:
-** TODO [#A] generate more realistic compiler performance tests (use macros and functions which are not defined just two lines ago)
-** TODO [#A] remove zompvm.h
-** TODO [#A] change ast representation? need a way to distinguish func and (func)															  :zomp:
-** TODO [#A] support for const, const T* etc.?
-** TODO [#A] Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
-** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) )
-** TODO [#A] if is not an expression
-** TODO [#A] support paths for include / import / etc. :dummy:
-** TODO [#A] refactor: make all compiler functionality available from zomp expressions
+** TODO [#A] allow record with only 1 field
+** TODO [#A] complete enum.zomp
+** TODO [#A] parse logical ops &, |, &&, ||
+** TODO [#A] better error message on `(ret `(...)) in macro
+** TODO [#A] hightlight '"' correctly in emacs (don't interpret this as the beginning of a string)
+** TODO [#A] support "\"" in strings
 ** TODO [#A] framebuffer cleanup/releasing code
 
 * Tasks											:zomp:
-
+  
 ** BUGS
 
 *** TODO [#B] check where `DefineVariable for void vars comes from
@@ -67,6 +47,13 @@ in function returning (ptr ast) is not accepted
 
 *** DONE fix toplevel "!" / abort expr			:bug:
     CLOSED: [2007-11-04 Sun 19:51]
+
+** Design issues
+*** TODO [#A] change ast representation? need a way to distinguish func and (func)															  :zomp:
+*** TODO [#B] support for const, const T* etc.?
+*** [#B] Turn more things into expressions
+**** TODO if is not an expression
+**** TODO Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
 
 ** Fix language quirks
 
@@ -142,14 +129,40 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 ** Refactorings
    
+*** TODO [#A] change all types to Capitalized case in stdlib
+*** TODO [#A] remove zompvm.h
 *** TODO [#B] Allow nested expressions in branch instruction
     
 *** TODO [#C] Turn value type into polymorphic variant type
     
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
     
+** Testing
+
+*** TODO [#C] generate more realistic compiler performance tests
+    (use macros and functions which are not defined just two lines ago)
+
+*** TODO [#B] check return values of tests/*.zomp
+    Rename files to foo.ret100.zomp, then check whether running foo returns 100
+
+** Parser
+
+*** TODO [#A] add += -= *= /= etc. operators
+*** TODO [#A] / should be left associative: a / b / c => (a / b) / c	   :bug:
+*** TODO [#B] parser: keep track of line and char number and add this to error messages
+
 ** Compiler
 
+*** TODO [#A] convert char to int / float
+*** TODO [#A] (var (ptr float) foo) => better error message instead of expr: /0/ :bug:
+*** TODO [#A] support records as first class var types
+    (allow them to be params, retvals, local vars, global vars)
+*** TODO [#A] fix initialization of global vars
+*** TODO [#A] support global pointers									   :bug:
+*** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) ) :bug:
+*** TODO [#A] support paths for include / import / etc.                 
+*** TODO [#B] refactor: make all compiler functionality available from zomp expressions
+*** TODO [#A] expander: cause error when local variable is redefined
 *** TODO Indent-sensitive syntax
 
 **** DONE [#B] iexpr does not ignore empty lines preceeding unindents
@@ -200,6 +213,9 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Interactive toplevel
    
+*** TODO [#B] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
+*** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:
+*** TODO [#A] allow immediate execution of code
 *** TODO [#B] proper error reporting when function/macro is redefined with different parameter count/types
 *** TODO [#B] let toplevel send feedback to emacs + handle errors (abort eval etc.)
 
@@ -248,6 +264,9 @@ check whether this makes IR-verification faster / prevent bugs / ...
     
 ** Emacs support
 
+*** TODO [#C] emacs: navigate to error caused by evaluating code in toplevel
+*** TODO [#C] fix wrong promts in emacs inferior zomp mode
+*** TODO [#C] emacs indenting: ignore parens in comments
 *** TODO [#B] (op+_d | => zomp eldoc does not work
 
 *** DONE [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
@@ -279,6 +298,8 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Macros
    
+*** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c)
+    (at least if foo does not have any arguments)
 *** TODO [#B] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
 
 *** TODO [#A] name collisions of macros and functions (?) causes problems
@@ -328,7 +349,8 @@ Put macro functions into seperate module
 
           isIntegerType() -> bool
           isFloatType() -> bool
-          isString() -> bool
+          +-isString() -> bool-+
+          isRecordType() -> bool
           isRecordType() -> bool
 
           isSubType(Type*) -> bool

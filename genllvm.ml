@@ -269,9 +269,55 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
              | args -> { id = "quote"; args = args }
         )
     in
+    let bindingsIsNameUsed =
+      macro "std:bindings:isNameUsed" "name"
+        (fun bindings args ->
+           match args with
+             | [{ id = name; args = []}] ->
+                 begin match Bindings.lookup bindings name with
+                   | Bindings.UndefinedSymbol -> idExpr "false"
+                   | _ -> idExpr "true"
+                 end
+             | _ ->
+                 raiseCodeGenError ~msg:("std:bindings:isNameUsed expects exactly one argument")
+        )
+    in
+    let bindingsLookupVar =
+      let syntax = "name ('hasType' typeVar code) ('notFound' code)" in
+      macro "std:bindings:matchVar" syntax
+        (fun bindings args ->
+           match args with
+             | [ {id = name; args = []};
+                 {id = "hasType"; args = {id = typeVar; args = []} :: onFound};
+                 {id = "notFound"; args = onNotFound}] ->
+                 begin match lookup bindings name with
+                   | VarSymbol var ->
+                       { id = "seq"; args =
+                           let varDef =
+                             simpleExpr "var" ["cstring"; typeVar;
+                                               "\"" ^ Lang.typeName var.typ ^ "\""]
+                           in
+                           varDef
+                           :: onFound }
+                   | _ ->
+                       seqExpr onNotFound
+                 end
+             | _ ->
+                 raiseCodeGenError ~msg:(
+                   sprintf "std:bindings:matchVar expects syntax %s" syntax)
+        )
+    in
+(*     let bindingsLookupFunc = *)
+(*       macro "std:bindings:lookupFunc" "name ('notFound' code) ('hasArgs' argVar code)" *)
+(*         (fun bindings args -> *)
+(*         ) *)
+(*     in *)
     [
       quoteMacro;
       quoteasisMacro;
+      bindingsIsNameUsed;
+      bindingsLookupVar;
+(*       bindingsLookupFunc; *)
     ]
   in
   let defaultBindings =
@@ -657,7 +703,7 @@ let llvmStringLength str =
   length - 2 * countChar str '\\'
 
 let gencodeGlobalVar var =
-  let varname = var.vname in
+  let varname = "\"" ^ var.vname ^ "\"" in
   match var.vdefault with
     | StringLiteral value ->
         let contentVar = newGlobalTempVar (`Pointer `Char)

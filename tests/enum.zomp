@@ -1,0 +1,27 @@
+
+
+(macro enum name cases ... (
+  (var astp code `())
+
+  (const cstring nameId (getField name id))
+
+  (var int index 0)
+  (forEachAstChild case cases (
+    (const cstring caseName (cstring:concat nameId ":" (getField case id)))
+    (addChild code `(var int #caseName #index))
+    (index = index + 1)
+    ))
+
+  (addChild code `(type #name int))
+  
+  (printAst code 0)
+  (ret code)
+  ))
+
+(enum TypeCategory
+  Int
+  Float
+  Record
+  Pointer)
+
+

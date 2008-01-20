@@ -1,0 +1,101 @@
+
+
+(macro printNameUsage name (
+  (var cstring messageFound (cstring:quote (cstring:concat (getField name id) " is bound!\n")))
+  (var cstring messageNotFound (cstring:quote (cstring:concat (getField name id) ", where art thou?\n")))
+  
+  (ret
+    `(if (std:bindings:isNameUsed #name)
+      (printString #messageFound)
+      (printString #messageNotFound) )
+    )
+  ))
+
+
+(func void someFuncYes () (
+  (printlnString "foobar!")
+  ))
+
+(type someIntTypeYes int)
+
+(template someMacroYes ())
+
+(var int someVarYes 0)
+
+(func void checkFoobar () (
+  (printNameUsage foobarYes)
+  (printNameUsage isnichdaNo)
+  (printNameUsage someIntTypeYes)
+  (printNameUsage someFloatTypeNo)
+  ))
+
+(func int main () (
+  (template used name (std:bindings:isNameUsed #name))
+  (template notUsed name (bool.not (std:bindings:isNameUsed #name)))
+  
+  (unittest:assertAll
+    (used foobarYes)
+    (used someIntTypeYes)
+    (used someMacroYes)
+    (used someVarYes)
+    
+    (notUsed isnichtdaNo)
+    )
+  
+  (ret 123)
+  ))
+
+(var int foo 0)
+
+(func void checkMatchVar () (
+  (std:bindings:matchVar foox
+    (hasType typeName ((printString "Var foo has type ") (printlnString typeName)) )
+    (notFound (printlnString "var foo not found"))
+    )
+  ))
+
+
+/* Experimental types for std:bindings API
+
+(macro xtype name typeExpr ... (
+  (var (ptr ast) defs (seqAst))
+  
+  (var cstring ptrname (cstrings.append (getField name id) "ptr"))
+  
+  (var (ptr ast) te `(type #name))
+  (forEachAstChild child typeExpr (
+    (addChild te child)
+    ))
+    
+  (addChild defs te)
+  (addChild defs `(type #ptrname (ptr #name)))
+  (ret defs)
+  ))
+  
+(type Type
+  (cstring name)
+  (int dummy)
+  )
+
+(type Var
+  (cstring name)
+  (Type type)
+  )
+
+(type Macro
+  (cstring name)
+  (int argCount)
+  ((ptr cstring) args)
+  (bool isVariadic)
+  )
+
+(type Func
+  (cstring name)
+  (Type resultType)
+  (int argCount)
+  ((ptr cstring) argNames)
+  ((ptr Type) argTypes)
+  )
+
+*/
+

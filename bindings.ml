@@ -9,6 +9,8 @@ type symbol =
   | UndefinedSymbol
 and bindings = (string * symbol) list
 
+type t = bindings
+    
 let defaultBindings : bindings = []
 
 let addVar bindings var : bindings = (var.vname, VarSymbol var) :: bindings

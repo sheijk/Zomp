@@ -36,14 +36,11 @@ let dequoteEscapeSequence str =
   with Not_found ->
     failwith (sprintf "Cannot dequote escape sequence %s" str)
 
-
 let string2integralValue str =
   let dequoteString quoteChar str =
-    let length = String.length str in
-    if length >= 2 && str.[0] = quoteChar && str.[length-1] = quoteChar then
-      String.sub str 1 (length-2)
-    else
-      raise (Failure (sprintf "dequoteString %c" quoteChar))
+    match Common.dequoteString quoteChar str with
+      | `Quoted qstr -> qstr
+      | `NotQuoted _ -> raise (Failure (sprintf "dequoteString %c" quoteChar))
   in
   let dequoteChar str =
     let dequoted = dequoteString '\'' str in

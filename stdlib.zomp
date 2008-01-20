@@ -78,6 +78,9 @@
 
 (type cstring (ptr char))
 
+(func int strcmp ((cstring l) (cstring r)))
+(func cstring strcpy ((cstring dest) (cstring source)))
+
 (type string
   (int length)
   ((ptr char) chars)
@@ -172,12 +175,23 @@
   (label end)
   ))
 
-(func int strcmp ((cstring l) (cstring r)))
-
 (func bool cstring.equal ((cstring l) (cstring r)) (
   (ret (int.equal 0 (strcmp l r)))
   ))
-  
+
+(func cstring cstring:quote ((cstring unquoted)) (
+  (var int unquotedLength (length unquoted))
+  (var cstring quoted (malloc char (int.add unquotedLength 3)))
+
+  (strcpy (ptradd quoted 1) unquoted)
+  (store quoted '"')
+  (store (ptradd quoted (int.add unquotedLength 1)) '"')
+  (store (ptradd quoted (int.add unquotedLength 2)) '\0')
+
+  (ret quoted)
+  ))
+
+
 /// ast ----------------------------------------
 
 (type ast
@@ -437,7 +451,13 @@
   (println)
   (ret `())
   ))
-  
+
+(func void compiler:printWarning ((cstring message)) (
+  (printString "Warning: ")
+  (printString message)
+  (println)
+  ))
+
 /// quickly define a test function to be run with C-c,t in emacs
 (template testf impl ...
   (func void test () #impl) )
@@ -460,7 +480,7 @@
 /// Executes the given expression and prints an error
 /// message containing the passed ast if it does not
 /// evaluate to true
-(macro unittest.assert testCode (
+(macro unittest:assert testCode (
   (ret `(
     (if #testCode
       // then
@@ -474,10 +494,10 @@
 
 /// Calls unittest.assert on all childs of the passed
 /// sequence expression
-(macro unittest.assertAll checks ... (
+(macro unittest:assertAll checks ... (
   (var (ptr ast) code `())
   (forEachAstChild check checks (
-    (addChild code `(unittest.assert #check))
+    (addChild code `(unittest:assert #check))
     ))
   (ret code)
   ))
@@ -685,6 +705,93 @@
 (defineFloatOps _d double)
 
 (template op= l r (assign #l #r))
+
+/// deprecation -------------------------------
+
+(macro deprecatedNoVarArgs name replacementName warning args ... (
+  (var astp code `(macro #name))
+  (forEachAstChild arg args (
+    (addChild code arg)
+    ))
+
+  (var astp impl `())
+  (addChild code impl)
+
+  (addChild impl `(compiler:printWarning #warning))
+
+  (var astp call (astFromString (getField replacementName id)))
+  (forEachAstChild arg2 args (
+    (var astp antiquoteArg ``(antiquote))
+    (addChild antiquoteArg arg2)
+    (addChild call antiquoteArg)
+    ))
+  (addChild impl `(ret `(#call)))
+
+  (ret code)
+  ))
+
+(macro deprecatedVarArgs name replacementName warning (
+  (var astp code `(macro #name args ...))
+
+  (var cstring replName (cstring:quote (getField replacementName id)))
+
+  (var astp impl `())
+  (addChild code impl)
+  (addChild impl `(
+    (compiler:printWarning #warning)
+
+    (var astp call (astFromString #replName))
+    (forEachAstChild child args (
+      (addChild call child)
+      ))
+
+    (ret call)
+    ))
+  
+  (ret code)
+  ))
+
+
+(macro deprecated name replacementName args ... (
+  (var cstring warning (cstring:quote (cstring:concat
+    (getField name id)
+    " is deprecated. Use "
+    (getField replacementName id)
+    " instead."
+    )))
+
+  (var bool isVarArg false)
+
+  (const int argsChildCount (getField args childCount))
+
+  (if (argsChildCount > 0)
+    (if (cstring.equal "op..." (getField (astChild args (argsChildCount - 1)) id))
+      (isVarArg = true)
+      () )
+    () )
+
+  (var astp code (nullptr ast))
+
+  (if isVarArg
+    (
+      (code = `(deprecatedVarArgs #name #replacementName #warning))
+      )
+    (
+      (code = `(deprecatedNoVarArgs #name #replacementName #warning))
+      (forEachAstChild arg args (
+        (addChild code arg)
+        ))
+      )
+    )
+  (ret code)
+  ))
+
+
+/// deprecated functions ------------------------
+
+(deprecated unittest.assert unittest:assert check)
+(deprecated unittest.assertAll unittest:assertAll "blah" check ...)
+
 
 /* /// default test function
 
