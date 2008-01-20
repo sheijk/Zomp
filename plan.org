@@ -1,5 +1,6 @@
 
 * To be sorted
+** TODO [#A] protect against recursive macro invocations
 ** TODO [#A] allow record with only 1 field
 ** TODO [#A] complete enum.zomp
 ** TODO [#A] parse logical ops &, |, &&, ||

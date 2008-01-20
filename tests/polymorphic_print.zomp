@@ -1,0 +1,56 @@
+///
+/// Demonstrates a polymorphic print macro
+///
+/// TODO: currently requires all arguments to be variables
+///
+
+(func void print_int ((int v)) (
+  (printInt v)
+  ))
+
+(func void print_float ((float v)) (
+  (printFloat v)
+  ))
+
+(macro starFunc rettype name args code (
+  (var cstring realName (cstring:concat (getField name id) "*"))
+
+  (ret `(func #rettype #realName #args #code))
+  ))
+
+(starFunc void print_char ((cstring str)) (
+  (printString str)
+  ))
+
+(macro callOverloadedFunc name typeName arg (
+  (var cstring funcName (cstring:concat (getField name id) "_" (getField typeName id)))
+  (var astp call (astFromString funcName))
+  (addChild call arg)
+  (ret call)
+  ))
+
+(macro print1 var (
+  (ret
+    `(std:bindings:matchVar #var
+      (hasType typeName (callOverloadedFunc print typeName #var))
+      (notFound #var))
+    )
+  ))
+
+(macro print vars ... (
+  (var astp code `())
+  (forEachAstChild var vars (
+    (addChild code `(print1 #var))
+    ))
+  
+  (ret code)
+  ))
+    
+(testf
+  (var int x 100)
+  (var float y 4.0)
+  (var cstring nl "\n")
+  
+  (print x nl y)
+  )
+

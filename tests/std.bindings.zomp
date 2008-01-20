@@ -44,17 +44,7 @@
   
   (ret 123)
   ))
-
-(var int foo 0)
-
-(func void checkMatchVar () (
-  (std:bindings:matchVar foox
-    (hasType typeName ((printString "Var foo has type ") (printlnString typeName)) )
-    (notFound (printlnString "var foo not found"))
-    )
-  ))
-
-
+  
 /* Experimental types for std:bindings API
 
 (macro xtype name typeExpr ... (

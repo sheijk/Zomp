@@ -283,7 +283,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         )
     in
     let bindingsLookupVar =
-      let syntax = "name ('hasType' typeVar code) ('notFound' code)" in
+      let syntax = "name ('hasType' typeVar code ...) ('notFound' code ...)" in
       macro "std:bindings:matchVar" syntax
         (fun bindings args ->
            match args with
@@ -292,13 +292,20 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                  {id = "notFound"; args = onNotFound}] ->
                  begin match lookup bindings name with
                    | VarSymbol var ->
-                       { id = "seq"; args =
-                           let varDef =
-                             simpleExpr "var" ["cstring"; typeVar;
-                                               "\"" ^ Lang.typeName var.typ ^ "\""]
-                           in
-                           varDef
-                           :: onFound }
+                       replaceParams [typeVar] [idExpr (Lang.typeName var.typ)]
+                         (seqExpr onFound)
+(*                        { id = "seq"; args = *)
+(*                            let varDef = *)
+(*                              { id = "var"; args = [ *)
+(*                                  idExpr "astp"; *)
+(*                                  idExpr typeVar; *)
+(*                                  simpleExpr "quote" [Lang.typeName var.typ] *)
+(*                                ]} *)
+(* (\*                              simpleExpr "var" ["cstring"; typeVar; Lang.typeName var.typ] *\) *)
+(* (\*                                                "\"" ^ Lang.typeName var.typ ^ "\""] *\) *)
+(*                            in *)
+(*                            varDef *)
+(*                            :: onFound } *)
                    | _ ->
                        seqExpr onNotFound
                  end
