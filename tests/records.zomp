@@ -1,18 +1,11 @@
+/**
+ * Using record/struct types
+ */
 
-/** define a type */
 (type simple
   (int count)
   (float foo)
   )
-
-// (type simpleptr (ptr simple))
-
-// (func int testStack () (
-//   (var simple r)
-//   (setField r count 3)
-//   (setField r foo 1.0)
-//   (field r count)
-//   ))
 
 (func void setCount (((ptr simple) r) (int value)) (
   (var (ptr int) countPtr (fieldptr r count))
@@ -34,11 +27,24 @@
   (load fooPtr)
   ))
 
+(func void printSimple(((ptr simple) this)) (
+  (printString "{ count = ") (printInt (getCount this))
+  (printString ", foo = ") (printFloat (getFoo this))
+  (printString " }") (println)
+  ))
+
+(func (ptr simple) makeSimple((int count) (float foo)) (
+  (var (ptr simple) this (malloc simple))
+  (setCount this count)
+  (setFoo this foo)
+  (ret this)
+  ))
+
 (func (ptr simple) testMalloc () (
   (var (ptr simple) p (malloc simple))
   (setCount p 3)
   (setFoo p 1.0)
-  p
+  (ret p)
   ))
 
 (func void init (((ptr simple) record)) (
@@ -46,6 +52,33 @@
   (setFoo record 1.0)
   (ret void)
   ))
+
+(func void structOnStack() (
+  (var simple s)
+  (printSimple (ptr s))
+  ))
+
+/// causes an llvm assertion failure
+// (func void firstLevelArg ((simple arg)) (
+//   ))
+
+/// structs can't be assigned, yet
+// (func void assignStruct() (
+//   (var simple s)
+//   (setCount (ptr s) 10)
+//   (setFoo (ptr s) 10.0)
+
+//   (var simple copy)
+//   (copy = s)
+//   ))
+
+/// returning structs not handled correctly, yet
+// (func simple returnStruct() (
+//   (var simple r)
+//   (setCount (ptr r) 100)
+//   (setFoo (ptr r) 2.0)
+//   (ret r)
+//   ))
 
 (func int main () (
   (var simple r)

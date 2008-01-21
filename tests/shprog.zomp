@@ -125,6 +125,72 @@ Conventions for function names:
 (template array:get array index (load (ptradd #array #index)))
 (template op[] array index (load (ptradd #array #index)))
 
+
+//------------------------------------------------------------------------------
+
+(macro constructor type fields ... (
+  (var cstring funcName (cstring:concat (getField type id) ":init"))
+  (var (ptr ast) args `(((ptr #type) this)))
+  (var (ptr ast) impl `())
+
+  (forEachAstChild field fields (
+    (const int fieldChildCount (getField field childCount))
+
+    (var (ptr ast) fieldType (nullptr ast))
+    (var cstring fieldName (nullptr char))
+    
+    (if (fieldChildCount == 1)
+      ((fieldType = (simpleAst (getField field id)))
+        (fieldName = getField (astChild field 0) id)
+        )
+      (// else
+        (printlnString "Error: Expected (type name) for fields")
+        (printAst field 2) (println)
+        )
+      )
+    
+    (addChild args field)
+
+    (addChild impl `(setField this #fieldName #fieldName))
+    ))
+  
+  (var (ptr ast) funcDef `(func void #funcName #args #impl))
+
+  (ret funcDef)  
+  ))
+
+(macro xtype name fields ... (
+  (var astp typedef `(type #name))
+  (var astp ctor `(constructor #name))
+  
+  (forEachAstChild field fields (
+    (addChild typedef field)
+    (addChild ctor field)
+    ))
+
+  (var astp code `(#typedef #ctor))
+  //   (printAst code 0)
+  
+  (ret code)
+  ))
+
+(macro new type args ... (
+  (uniqueId name "new")
+
+  (var astp initCall (astFromString (cstring:concat (getField type id) ":init")))
+  (addChild initCall (astFromString name))
+  (forEachAstChild arg args (
+    (addChild initCall arg)
+    ))
+  
+  (var astp code `())
+  (addChild code `(var (ptr #type) #name (malloc #type)))
+  (addChild code initCall)
+  (addChild code (astFromString name))
+
+  (ret code)
+  ))
+
 //------------------------------------------------------------------------------
 // OpenGL utils
 
@@ -166,37 +232,6 @@ Conventions for function names:
   (float y)
   (float z) )
 (type float3p (ptr float3))
-
-(macro constructor type fields ... (
-  (var cstring funcName (cstring:concat (getField type id) ":init"))
-  (var (ptr ast) args `(((ptr #type) this)))
-  (var (ptr ast) impl `())
-
-  (forEachAstChild field fields (
-    (const int fieldChildCount (getField field childCount))
-
-    (var (ptr ast) fieldType (nullptr ast))
-    (var cstring fieldName (nullptr char))
-    
-    (if (fieldChildCount == 1)
-      ((fieldType = (simpleAst (getField field id)))
-        (fieldName = getField (astChild field 0) id)
-        )
-      (// else
-        (printlnString "Error: Expected (type name) for fields")
-        (printAst field 2) (println)
-        )
-      )
-    
-    (addChild args field)
-
-    (addChild impl `(setField this #fieldName #fieldName))
-    ))
-  
-  (var (ptr ast) funcDef `(func void #funcName #args #impl))
-
-  (ret funcDef)  
-  ))
 
 (constructor float3 (float x) (float y) (float z))
 
@@ -272,7 +307,118 @@ Conventions for function names:
 (func float float:interpolate ((float t) (float a) (float b)) (
   (t *_f a  +_f  (1.0 -_f t) *_f b)
   ))
+
+
+(xtype CylindricalCoord
+  (float longitude)
+  (float latitude)
+  (float z)
+  )
+
+/// TODO: testing!
+(func (ptr CylindricalCoord) float3.toCylindricalCoord((float3p v)) (
+  (var float x (getField v x))
+  (var float y (getField v y))
+  (var float z (getField v z))
   
+  (var float p (sqrtf (x *_f x +_f y *_f y)))
+  (var float j 0.0)
+  
+  (if (x >_f 0.0)
+    (j = atanf (y /_f x))
+    ())
+  (if (bool.and (x ==_f 0.0) (y >_f 0.0))
+    (j = p /_f 2.0)
+    ())
+  (if (x <_f 0.0)
+    (j = p +_f atanf (y /_f x))
+    ())
+  (if (bool.and (x ==_f 0.0) (y <_f 0.0))
+    (j = (2.0 +_f 1.0) *_f p /_f 2.0)
+    ())
+
+  (ret (new CylindricalCoord p j z))
+  ))
+
+(func float pi() ((2.0 *_f asinf 1.0)))
+
+(type radian float)
+(type degree float)
+
+(func radian angle ((float x) (float y)) (
+  (const float length (sqrtf (squaref x +_f squaref y)))
+  (var float angle (asinf (y /_f length)))
+
+  (if (x <_f 0.0)
+    (angle = (pi) -_f angle)
+    ())
+
+  (ret angle)
+  ))
+
+(func degree radian:toDegree((radian angle)) (
+  (angle /_f (pi) *_f 180.0)
+  ))
+
+(unittest:testCasesFor radian:toDegree
+  (0.0 ==_f radian:toDegree 0.0)
+  (180.0 ==_f radian:toDegree (pi))
+  // (0.0 ==_f radian:toDegree (2.0 *_f (pi)))
+  )
+
+(func bool float:equalDelta ((float delta) (float l) (float r)) (
+  (const float diff (fabsf (l -_f r)))
+  (ret (diff <=_f delta))
+  ))
+
+(unittest:testCasesFor angle
+  (float:equalDelta (1.0 /_f 100.0) 0.0 (angle 1.0 0.0))
+  (float:equalDelta (1.0 /_f 100.0) ((pi) /_f 4.0) (angle 1.0 1.0))
+  (float:equalDelta (1.0 /_f 100.0) ((pi) /_f 2.0) (angle 0.0 1.0))
+  )
+  
+(xtype PolarCoord
+  (float longitude)
+  (float latitude)
+  (float distance)
+  )
+(type PolarCoord_ptr (ptr PolarCoord))
+
+(func void PolarCoord:print ((PolarCoord_ptr this)) (
+  (printString "{ ")
+    (printString "longitude = ") (printFloat (getField this longitude))
+    (printString ", latitude = ") (printFloat (getField this latitude))
+    (printString ", distance = ") (printFloat (getField this distance))
+  (printString " }")
+  ))
+  
+(func float length2 ((float x) (float y)) (
+  (sqrtf (squaref x +_f squaref y))
+  ))
+(func float length3 ((float x) (float y) (float z)) (
+  (sqrtf (squaref x +_f squaref y +_f squaref z))
+  ))
+
+(func PolarCoord_ptr polarCoord3f ((float x) (float y) (float z)) (
+  (const float radius (length3 x y z))
+  
+  (const float longitude (angle x z))
+  (if (bool.and (x ==_f 0.0) (z ==_f 0.0))
+    (longitude = 0.0) ())
+  
+  (const float latitude (angle (length2 x z) y))
+
+  (new PolarCoord longitude latitude radius)
+  ))
+
+(func PolarCoord_ptr float3:toPolarCoord ((float3p this)) (
+  (var float x (getField this x))
+  (var float y (getField this y))
+  (var float z (getField this z))
+
+  (ret (polarCoord3f x y z))
+  ))
+
 //------------------------------------------------------------------------------
 
 (func void plot ((int size) ((ptr float) values)) (
@@ -293,8 +439,8 @@ Conventions for function names:
 (type RGBA int)
 
 (func RGBA shbase ((int l) (int m) (float longitude) (float latitude)) (
-  (const float red (longitude /_f 360.0))
-  (const float green (latitude /_f 180.0 +_f 0.5))
+  (const float red (longitude /_f (2.0 *_f (pi))))
+  (const float green (latitude /_f (pi) +_f 0.5))
 
   (rgbaColor (float.toInt (red *_f 255.0)) (float.toInt (green *_f 255.0))  0 255)
   ))
@@ -366,8 +512,9 @@ Conventions for function names:
         (float3:normalize dir)
         
         (const int pixelNum (y * size + x))
-        (c = rgbaColor_f (getField dir x) (getField dir y) (getField dir z) 1.0)
-        /*         (c = shbase 0 0 longitude latitude) */
+        (const PolarCoord_ptr polarCoord (float3:toPolarCoord dir))
+        //         (c = rgbaColor_f (getField dir x) (getField dir y) (getField dir z) 1.0)
+        (c = shbase 0 0 (getField polarCoord longitude) (getField polarCoord latitude))
         (array:set pixels pixelNum c)
         ))
       ))
@@ -411,21 +558,13 @@ Conventions for function names:
   (if (isPressed #key) #code ()))
 
 
-(type trackball
+(xtype trackball
   /// rotation around y axis (in degrees)
   (float longitude)
   /// rotation around x axis (in degrees)
   (float latitude)
   (float distance)
   )
-
-(func (ptr trackball) trackball:new ((float longitude) (float latitude) (float distance)) (
-  (var (ptr trackball) this (malloc trackball))
-  (setField this longitude longitude)
-  (setField this latitude latitude)
-  (setField this distance distance)
-  (ret this)
-  ))
 
 (func void trackball:update (((ptr trackball) this) (float seconds)) (
   (var float rotationSpeed 90.0)

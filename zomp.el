@@ -23,10 +23,8 @@
                   ))))))
 
 (defvar zomp-imenu-generic-expression nil)
-
 (defun zomp-id (str)
   (replace-regexp-in-string "ID" "[a-zA-Z0-9:*+-/!=><_]+" str t))
-
 (setq zomp-imenu-generic-expression
   `((nil ,(zomp-id "^(macro +\\(ID\\)") 1)
     (nil ,(zomp-id "^(func +ID +\\(ID\\)") 1)
@@ -233,7 +231,78 @@
          (looking-back "\\* *"))
     (backward-delete-char 1))
   (insert "/") )
-   
+
+(defun zomp-setup ()
+;;   (setq comment-start "/*")
+;;   (setq comment-end "*/")
+  (setq comment-start "//")
+  (setq comment-start-skip "// *")
+  (setq comment-end "")
+  
+  (setq indent-tabs-mode nil)
+
+                                        ; indexing of current file (control-')
+  (setq imenu-generic-expression zomp-imenu-generic-expression)
+  (local-set-key [(control ?')] 'imenu)
+
+                                        ; display documentation for methods/macros/... in status line
+  (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
+  (eldoc-mode t)
+
+                                        ; auto indenting
+  (setq indent-line-function 'zomp-indent-line)
+           
+                                        ; highlight s-expression under cursor
+  (hl-sexp-mode t)
+
+                                        ; quick navigation and marking expressions
+  (local-set-key [(meta n)] 'zomp-next-tl-expr)
+  (local-set-key [(meta p)] 'zomp-prev-tl-expr)
+  (local-set-key [(meta k)] 'zomp-mark-sexp)
+
+                                        ; expand templates
+  (local-set-key [(control ?.)] 'zomp-complete)
+
+                                        ; extra comfort (insert ///, * in matching places, * / => */ etc.)
+  (local-set-key "\r" 'zomp-newline)
+  (local-set-key [(control j)] 'zomp-newline)
+  (local-set-key [(?/)] 'zomp-electric-slash)
+           
+                                        ; create zomp menu. order of the zomp-add-action commands is reversed order in menu
+  (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
+
+  (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
+  (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
+           
+  (zomp-add-seperator zomp-sep-3)
+  (zomp-add-action zomp-tl-run [(control c)(d)] "Run function...")
+  (zomp-add-action zomp-tl-run-test [(control c)(t)] "Run 'void test()'")
+  (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
+  (zomp-add-action zomp-tl-list-bindings [(control c)(f)] "List bindings...")
+  (zomp-add-action zomp-tl-help [(control c)(h)] "Show toplevel help")
+
+  (zomp-add-seperator zomp-sep4)
+  (zomp-add-action zomp-indent-current [(meta q)] "Indent current")
+  (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
+
+  (zomp-add-seperator zomp-sep-2)
+  (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
+  (zomp-add-action zomp-tl-eval-region [(control c)(control r)] "Eval region")
+  (zomp-add-action zomp-tl-eval-current [(control c)(control e)] "Eval function at point")
+
+  (zomp-add-seperator zomp-sep-1)
+  (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
+  (zomp-add-action zomp-toplevel [(control c)(control s)] "Start toplevel")
+
+                                        ; set additional keys on OS X
+  (local-set-key [(alt r)] '(lambda () (interactive)
+                              (zomp-tl-eval-current)
+                              (zomp-tl-run-test) ))
+  (local-set-key [(alt e)] 'zomp-tl-eval-current)
+  (local-set-key [(alt d)] 'zomp-tl-run)
+  (local-set-key [(alt shift d)] 'zomp-tl-run-test)
+  )
+
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
   '("{" "}")
@@ -284,72 +353,7 @@
     (" :[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-type-face)
     )
   '("\\.zomp")
-  (list '(lambda ()
-           (setq comment-start "/*")
-           (setq comment-end "*/")
-           (setq indent-tabs-mode nil)
-
-           ; indexing of current file (control-')
-           (setq imenu-generic-expression zomp-imenu-generic-expression)
-           (local-set-key [(control ?')] 'imenu)
-
-           ; display documentation for methods/macros/... in status line
-           (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
-           (eldoc-mode t)
-
-           ; auto indenting
-           (setq indent-line-function 'zomp-indent-line)
-           
-           ; highlight s-expression under cursor
-           (hl-sexp-mode t)
-
-           ; quick navigation and marking expressions
-           (local-set-key [(meta n)] 'zomp-next-tl-expr)
-           (local-set-key [(meta p)] 'zomp-prev-tl-expr)
-           (local-set-key [(meta k)] 'zomp-mark-sexp)
-
-           ; expand templates
-           (local-set-key [(control ?.)] 'zomp-complete)
-
-           ; extra comfort (insert ///, * in matching places, * / => */ etc.)
-           (local-set-key "\r" 'zomp-newline)
-           (local-set-key [(control j)] 'zomp-newline)
-           (local-set-key [(?/)] 'zomp-electric-slash)
-           
-           ; create zomp menu. order of the zomp-add-action commands is reversed order in menu
-           (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
-
-           (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
-           (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
-           
-           (zomp-add-seperator zomp-sep-3)
-           (zomp-add-action zomp-tl-run [(control c)(d)] "Run function...")
-           (zomp-add-action zomp-tl-run-test [(control c)(t)] "Run 'void test()'")
-           (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
-           (zomp-add-action zomp-tl-list-bindings [(control c)(f)] "List bindings...")
-           (zomp-add-action zomp-tl-help [(control c)(h)] "Show toplevel help")
-
-           (zomp-add-seperator zomp-sep4)
-           (zomp-add-action zomp-indent-current [(meta q)] "Indent current")
-           (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
-
-           (zomp-add-seperator zomp-sep-2)
-           (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
-           (zomp-add-action zomp-tl-eval-region [(control c)(control r)] "Eval region")
-           (zomp-add-action zomp-tl-eval-current [(control c)(control e)] "Eval function at point")
-
-           (zomp-add-seperator zomp-sep-1)
-           (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
-           (zomp-add-action zomp-toplevel [(control c)(control s)] "Start toplevel")
-
-           ; set additional keys on OS X
-           (local-set-key [(alt r)] '(lambda () (interactive)
-                                       (zomp-tl-eval-current)
-                                       (zomp-tl-run-test) ))
-           (local-set-key [(alt e)] 'zomp-tl-eval-current)
-           (local-set-key [(alt d)] 'zomp-tl-run)
-           (local-set-key [(alt shift d)] 'zomp-tl-run-test)
-           ))
+  (list 'zomp-setup)
   "A simple mode for the zomp language")
 
 (defun zomp-complete ()

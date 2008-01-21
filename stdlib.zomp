@@ -30,6 +30,8 @@
 (func float asinf ((float x)))
 (func float acosf ((float x)))
 
+(func float fabsf ((float l)))
+
 (func float sqrtf ((float x)))
 
 (func int zompLoadLib (((ptr char) dllname)))
@@ -37,6 +39,8 @@
 /// utility functions ----------------------------------------
 
 (func bool bool.not ((bool b)) ((bool.xor true b)))
+
+(func float squaref((float x)) ((float.mul x x)))
 
 (func void printBool ((bool b)) (
   (branch b true false)
@@ -65,7 +69,6 @@
 (funcln printlnInt int (printInt v))
 (funcln printlnString (ptr char) (printString v))
 
-
 (macroReplace getField record componentName (
   (load (fieldptr record componentName))
   ))
@@ -80,6 +83,8 @@
 
 (func int strcmp ((cstring l) (cstring r)))
 (func cstring strcpy ((cstring dest) (cstring source)))
+
+(func cstring int:toCString ((int x)) ((int2cstring x) ))
 
 (type string
   (int length)
@@ -477,6 +482,24 @@
   (println)
   ))
 
+(macro cstring:concat firstString strings ... (
+  (var (ptr ast) code `())
+  (uniqueId resultString "cstring_concat")
+
+  (addChild code `(var cstring #resultString #firstString))
+  
+  (forEachAstChild string strings (
+    (addChild code `(assign #resultString (cstrings.append #resultString #string)))
+    ))
+  
+  (addChild code `(#resultString))
+  
+  (ret code)
+  ))
+
+//------------------------------------------------------------------------------
+// unit tests
+
 /// Executes the given expression and prints an error
 /// message containing the passed ast if it does not
 /// evaluate to true
@@ -501,6 +524,32 @@
     ))
   (ret code)
   ))
+
+/// Will define a function name_tests_nr which will
+/// call all unittest:assert on all given testCases
+(macro unittest:testCasesFor name testCases ... (
+  (var cstring testName (cstring:concat "test_" (getField name id) "_" (int:toCString (newUniqueId))))
+  
+  (var astp impl (astFromString "unittest:assertAll"))
+  (forEachAstChild testCase testCases (
+    (addChild impl testCase)
+    ))
+  (var astp funcDecl `(func void #testName () (#impl)))
+
+  (ret funcDecl)
+  ))
+
+(func cstring unittest:newTestFuncNameFor ((cstring funcName)) (
+  (cstring:concat "test_" funcName "_" (int:toCString (newUniqueId)))
+  ))
+
+(macro unittest:testFunc funcName impl (
+  (var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id)))
+  
+  (ret `(func void #testFuncName () #impl))
+  ))
+
+//------------------------------------------------------------------------------
 
 /// Prints the passed ast to stdout at compile time
 /// and will return it at run time. Can be used to debug
@@ -604,22 +653,6 @@
   ))
 
 (testf (runMain))
-
-
-(macro cstring:concat firstString strings ... (
-  (var (ptr ast) code `())
-  (uniqueId resultString "cstring_concat")
-
-  (addChild code `(var cstring #resultString #firstString))
-  
-  (forEachAstChild string strings (
-    (addChild code `(assign #resultString (cstrings.append #resultString #string)))
-    ))
-  
-  (addChild code `(#resultString))
-  
-  (ret code)
-  ))
 
 (template float.neg x (float.sub 0. #x))
 

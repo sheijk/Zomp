@@ -1,5 +1,16 @@
 
 * To be sorted
+** TODO [#A] constants for float nan, pos & neg infinity
+** TODO [#A] better error reporting on immediate code execution in toplevel
+** TODO [#A] emacs: backspace should delete autoinserted text in one step
+** TODO [#A] also auto-insert // on newline
+** TODO [#A] stringlit / op""
+** TODO [#A] macros to get current file/line/column
+** TODO [#A] remove new macro in glutils, replace by new macro from shprog (move it to stdlib)
+** TODO [#A] add (ret void) to end of immediate functions in toplevel
+** TODO [#A] llvm assertion error on record argument
+** TODO [#A] support toplevel/static expressions which will be moved from inside a function to the top level
+** TODO [#A] parse (a b c) int (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
 ** TODO [#A] protect against recursive macro invocations
 ** TODO [#A] allow record with only 1 field
 ** TODO [#A] complete enum.zomp
