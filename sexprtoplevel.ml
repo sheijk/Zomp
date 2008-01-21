@@ -297,28 +297,90 @@ let printWelcomeMessage() =
   printf "\n"
 
 let () =
-  let step bindings () =
-    Parseutils.compile
-      ~readExpr:(fun bindings -> Some (readExpr defaultPrompt "" bindings))
-      ~beforeCompilingExpr:(fun _ -> printf "\n"; flush stdout)
-      ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                    if !printSExpr then begin
-                      let asString = Ast2.expression2string expr in
-                      printf " => %s\n" asString;
-                    end;
-                    if !printLLVMCode then
-                      printf "LLVM code:\n%s\n" llvmCode;
-                    if !llvmEvaluationOn then
-                      Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                    if !printDeclarations then begin
-                      List.iter (fun form ->
-                                   let text = Lang.toplevelFormToString form in
-                                   printf "%s\n" text)
-                        simpleforms;
-                    end;
-                    flush stdout;
-                 )
-      bindings
+  (*   let step bindings () = *)
+  (*     Parseutils.compile *)
+  (*       ~readExpr:(fun bindings -> Some (readExpr defaultPrompt "" bindings)) *)
+  (*       ~beforeCompilingExpr:(fun _ -> printf "\n"; flush stdout) *)
+  (*       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode -> *)
+  (*                     if !printSExpr then begin *)
+  (*                       let asString = Ast2.expression2string expr in *)
+  (*                       printf " => %s\n" asString; *)
+  (*                     end; *)
+  (*                     if !printLLVMCode then *)
+  (*                       printf "LLVM code:\n%s\n" llvmCode; *)
+  (*                     if !llvmEvaluationOn then *)
+  (*                       Zompvm.evalLLVMCode oldBindings simpleforms llvmCode; *)
+  (*                     if !printDeclarations then begin *)
+  (*                       List.iter (fun form -> *)
+  (*                                    let text = Lang.toplevelFormToString form in *)
+  (*                                    printf "%s\n" text) *)
+  (*                         simpleforms; *)
+  (*                     end; *)
+  (*                     flush stdout; *)
+  (*                  ) *)
+  (*       bindings *)
+  (*   in *)
+
+  let rec step bindings () =
+    Parseutils.catchingErrorsDo
+      (fun () -> begin
+         let expr = readExpr defaultPrompt "" bindings in
+
+         let onSuccess newBindings simpleforms llvmCode =
+           if !printSExpr then begin
+             let asString = Ast2.expression2string expr in
+             printf " => %s\n" asString;
+           end;
+           
+           if !printLLVMCode then
+             printf "LLVM code:\n%s\n" llvmCode;
+           
+           if !llvmEvaluationOn then
+             Zompvm.evalLLVMCode bindings simpleforms llvmCode;
+           
+           if !printDeclarations then begin
+             List.iter (fun form ->
+                          let text = Lang.toplevelFormToString form in
+                          printf "%s\n" text)
+               simpleforms;
+           end;
+           flush stdout;
+         in
+         
+         try
+           let newBindings, simpleforms, llvmCode =
+             Parseutils.compileExpr Expander.translateTL bindings expr
+           in
+           onSuccess newBindings simpleforms llvmCode;
+           step newBindings ()
+             
+         with _ as originalException ->
+           printf "Running immediately\n";
+
+           let immediateFuncName = "toplevel:immediate" in
+           
+           let exprInFunc =
+             { id = "func"; args = [
+                 idExpr "void";
+                 idExpr immediateFuncName;
+                 seqExpr [];
+                 seqExpr [expr]
+               ] }
+           in
+           try
+             let newBindings, simpleforms, llvmCode = 
+               Parseutils.compileExpr Expander.translateTL bindings exprInFunc
+             in
+             onSuccess newBindings simpleforms llvmCode;
+             runFunction newBindings immediateFuncName;
+             step newBindings ()
+           with _ ->
+             raise originalException
+       end)
+      ~onError: (fun msg ->
+                   printf "%s" msg;
+                   step bindings ()
+                )
   in
 
   let addToplevelBindings bindings = bindings in
@@ -337,7 +399,8 @@ let () =
          step initialBindings ()
        end)
       ~onError:
-      (fun () -> begin
+      (fun msg -> begin
+         printf "%s" msg;
          eprintf "Could not load stdlib. Aborting\n";
          exit (-1);
        end)

@@ -29,10 +29,13 @@
   (printNameUsage someFloatTypeNo)
   ))
 
+/*
+ *
+ */
 (func int main () (
   (template used name (std:bindings:isNameUsed #name))
   (template notUsed name (bool.not (std:bindings:isNameUsed #name)))
-  
+
   (unittest:assertAll
     (used foobarYes)
     (used someIntTypeYes)

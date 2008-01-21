@@ -42,8 +42,8 @@ let catchingErrorsDo f ~onError =
     end
   with
     | CatchedError msg ->
-        printf "%s" msg;
-        onError()
+(*         printf "%s" msg; *)
+        onError msg
 
 let compileExpr translateF bindings sexpr =
   let newBindings, simpleforms =
@@ -57,7 +57,13 @@ let compileExpr translateF bindings sexpr =
   let llvmCode = combine "\n" llvmCodes in
   newBindings, simpleforms, llvmCode
 
-let rec compile ~readExpr ?(beforeCompilingExpr = fun (_:Ast2.sexpr) -> ()) ~onSuccess bindings =
+let rec compile
+    ~readExpr
+    ?(beforeCompilingExpr = fun (_:Ast2.sexpr) -> ())
+    ~onSuccess
+    ?(onError = fun (_:string) -> ())
+    bindings
+    =
   catchingErrorsDo
     (fun () -> begin
        match readExpr bindings with
@@ -65,13 +71,16 @@ let rec compile ~readExpr ?(beforeCompilingExpr = fun (_:Ast2.sexpr) -> ()) ~onS
              let () = beforeCompilingExpr expr in
              let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
              let () = onSuccess expr bindings newBindings simpleforms llvmCode in
-             compile ~readExpr ~beforeCompilingExpr ~onSuccess newBindings
+             compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onError newBindings
          | None ->
              bindings
      end)
-    ~onError:(fun () -> compile ~readExpr ~beforeCompilingExpr ~onSuccess bindings)
-  
-let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir =
+    ~onError:(fun msg ->
+                printf "%s" msg;
+                let () = onError msg in
+                compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onError bindings)
+
+let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
   let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
     try
       let expr = parseF lexbuf in

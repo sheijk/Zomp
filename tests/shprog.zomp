@@ -472,7 +472,6 @@ Conventions for function names:
 (arrayType float)
 (arrayType array_float)
 
-
 (template mainloop code ... (
   (var bool abort false)
 

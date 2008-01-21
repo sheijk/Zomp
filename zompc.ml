@@ -111,7 +111,7 @@ let compile instream outstream =
       (fun () ->
          Parseutils.catchingErrorsDo
            (fun () ->
-              let bindings =
+              let bindings :Bindings.t =
                 collectTimingInfo "compiling prelude"
                   (fun () ->
                      Parseutils.loadPrelude
@@ -126,7 +126,9 @@ let compile instream outstream =
                                                          | Some _ -> 0
                                                          | None -> 2)
            )
-           ~onError:(fun () -> 1)
+           ~onError:(fun msg ->
+                       printf "%s" msg;
+                       1)
       )
   in
   collectTimingInfo "shutdown zompvm" (fun () -> Zompvm.zompShutdown(););
