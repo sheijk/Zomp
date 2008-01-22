@@ -1,5 +1,6 @@
 
 * To be sorted
+** TODO [#A] smarter ,,: turn (foo bar),, into ((foo bar) 
 ** TODO [#A] constants for float nan, pos & neg infinity
 ** TODO [#A] better error reporting on immediate code execution in toplevel
 ** TODO [#A] emacs: backspace should delete autoinserted text in one step

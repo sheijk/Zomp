@@ -585,24 +585,32 @@ Conventions for function names:
   (const float m_f (int.toFloat m))
   (const float l_f (int.toFloat l))
   (const float temp (
-    ((2.0 *_f l_f +_f 1.0) *_f factorial_f(l_f -_f m_f))
-    /_f (4.0 *_f (pi) *_f factorial_f(l_f +_f m_f)) ))
+    ((2.0 *_f l_f +_f 1.0) *_f int.toFloat (factorial(l - m)))
+    /_f (4.0 *_f (pi) *_f int.toFloat (factorial(l + m))) ))
 
   (sqrtf temp)
   ))
 
-(func float sh:base((int l) (int m) (float longitude) (float latitude)) (
-//   (latitude /_f (pi))
-  (longitude *_f 0.5 /_f (pi))
+(template ift condition onTrue (if #condition #onTrue ()))
+
+(func float sh:base((int l) (int m) (float latitude) (float longitude)) (
+  (const float sqrt2 (sqrtf 2.0))
+  
+  (ift (m == 0)
+    (ret ((sh:k l 0) *_f legendre l m (cosf longitude))) )
+  (ift (m > 0)
+    (ret (sqrt2 *_f sh:k l m *_f cosf (int.toFloat m *_f latitude) *_f legendre l m (cosf longitude))) )
+
+  (ret (sqrt2 *_f sh:k l (int:neg m) *_f sinf (-1.0 *_f int.toFloat m *_f latitude) *_f legendre l (int:neg m) (cosf longitude)))
   ))
 
-(func RGBA shbase((int l) (int m) (float longitude) (float latitude)) (
-  (var float shval (sh:base l m longitude latitude))
+(func RGBA shColor((int l) (int m) (float longitude) (float latitude)) (
+  (var float shval (sh:base 2 -1 longitude latitude))
   (const int shvalByte (float.toInt (shval *_f 255.0)))
   
-  (if (shval >_f 0.0)
-    (ret (rgbaColor shvalByte 0 0 255))
-    (ret (rgbaColor 0 (int:neg shvalByte) 0 255))
+  (if (shval <_f 0.0)
+    (ret (rgbaColor (abs shvalByte) 0 0 255))
+    (ret (rgbaColor 0 (abs shvalByte) 0 255))
     )
 
   (ret (rgbaColor 255 255 255 255))
@@ -684,7 +692,7 @@ Conventions for function names:
         (const int pixelNum (y * size + x))
         (const PolarCoord_ptr polarCoord (float3:toPolarCoord dir))
         //         (c = rgbaColor_f (getField dir x) (getField dir y) (getField dir z) 1.0)
-        (c = shbase 0 0 (getField polarCoord longitude) (getField polarCoord latitude))
+        (c = shColor 0 0 (getField polarCoord longitude) (getField polarCoord latitude))
         (array:set pixels pixelNum c)
         ))
       ))
