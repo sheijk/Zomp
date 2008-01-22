@@ -235,6 +235,21 @@ Conventions for function names:
 
 (constructor float3 (float x) (float y) (float z))
 
+(func void float3:print((float3p this)) (
+  (printString "{ ")
+    (printString "x = ") (printFloat (getField this x))
+    (printString ", y = ") (printFloat (getField this y))
+    (printString ", z = ") (printFloat (getField this z))
+    (printString " }")
+  ))
+
+(func bool float3:equalDelta((float delta) (float3p l) (float3p r)) (
+  (ret (bool.and (float:equalDelta delta (getField l x) (getField r x))
+    (bool.and (float:equalDelta delta (getField l y) (getField r y))
+      (float:equalDelta delta (getField l z) (getField r z))))
+    )
+  ))
+
 (func float3p float3:new ((float x) (float y) (float z)) (
   (var float3p this (malloc float3))
   (float3:init this x y z)
@@ -345,6 +360,20 @@ Conventions for function names:
 (type radian float)
 (type degree float)
 
+(func degree radian:toDegree((radian angle)) (
+  (angle /_f (pi) *_f 180.0)
+  ))
+
+(func radian degree:toRadian((degree angle)) (
+  (angle *_f (pi) /_f 180.0)
+  ))
+
+(unittest:testCasesFor radian:toDegree
+  (0.0 ==_f radian:toDegree 0.0)
+  (180.0 ==_f radian:toDegree (pi))
+  // (0.0 ==_f radian:toDegree (2.0 *_f (pi)))
+  )
+
 (func radian angle ((float x) (float y)) (
   (const float length (sqrtf (squaref x +_f squaref y)))
   (var float angle (asinf (y /_f length)))
@@ -356,16 +385,6 @@ Conventions for function names:
   (ret angle)
   ))
 
-(func degree radian:toDegree((radian angle)) (
-  (angle /_f (pi) *_f 180.0)
-  ))
-
-(unittest:testCasesFor radian:toDegree
-  (0.0 ==_f radian:toDegree 0.0)
-  (180.0 ==_f radian:toDegree (pi))
-  // (0.0 ==_f radian:toDegree (2.0 *_f (pi)))
-  )
-
 (func bool float:equalDelta ((float delta) (float l) (float r)) (
   (const float diff (fabsf (l -_f r)))
   (ret (diff <=_f delta))
@@ -376,13 +395,36 @@ Conventions for function names:
   (float:equalDelta (1.0 /_f 100.0) ((pi) /_f 4.0) (angle 1.0 1.0))
   (float:equalDelta (1.0 /_f 100.0) ((pi) /_f 2.0) (angle 0.0 1.0))
   )
-  
-(xtype PolarCoord
-  (float longitude)
-  (float latitude)
-  (float distance)
+
+(type PolarCoord
+  /// ccw angle between x-axis and dir \in [0, 360)
+  (radian longitude)
+  /// ccw angle between y-axis and dir \in [0, 180]
+  (radian latitude)
+  (radian distance)
   )
 (type PolarCoord_ptr (ptr PolarCoord))
+
+(func float float:modPos((float x) (float div)) (
+  (assert (div >_f 0.0))
+  
+  (var float val x)
+  (while (val <_f 0.0)
+    (val = val +_f div))
+  (while (val >=_f div)
+    (val = val -_f div))
+  (ret val)
+  ))
+
+(func void PolarCoord:makeCanonic((PolarCoord_ptr this)) (
+  (setField this longitude (fmodf (longitude +_f
+  ))
+
+(func void PolarCoord:init((PolarCoord_ptr this) (float longitude) (float latitude) (float distance)) (
+  (setField this longitude (float:modPos longitude (2.0 *_f (pi))))
+  (setField this latitude (float:clamp 0. (pi) latitude))
+  (setField this distance distance)
+  ))
 
 (func void PolarCoord:print ((PolarCoord_ptr this)) (
   (printString "{ ")
@@ -399,14 +441,22 @@ Conventions for function names:
   (sqrtf (squaref x +_f squaref y +_f squaref z))
   ))
 
+(func float float:clamp((float min) (float max) (float x)) (
+  (float:min max (float:max min x))
+  ))
+
+///TODO: fix
 (func PolarCoord_ptr polarCoord3f ((float x) (float y) (float z)) (
   (const float radius (length3 x y z))
   
-  (const float longitude (angle x z))
+  (var float longitude (angle x z))
   (if (bool.and (x ==_f 0.0) (z ==_f 0.0))
     (longitude = 0.0) ())
   
-  (const float latitude (angle (length2 x z) y))
+  (const float latitude (0.5 *_f (pi)  -_f  angle (length2 x z) y))
+
+  (longitude = fmodf longitude (2.0 *_f (pi)))
+  (latitude = (float:clamp 0. (pi) latitude))
 
   (new PolarCoord longitude latitude radius)
   ))
@@ -417,6 +467,88 @@ Conventions for function names:
   (var float z (getField this z))
 
   (ret (polarCoord3f x y z))
+  ))
+
+(func float3p PolarCoord:toFloat3 ((PolarCoord_ptr this)) (
+  (const float d (getField this distance))
+  (const float long (getField this longitude))
+  (const float lat (getField this latitude))
+  
+  (new float3
+    (d *_f cosf long *_f sinf lat)
+    (d *_f cosf lat)
+    (d *_f sinf long *_f sinf lat)
+    )
+  ))
+
+(func bool PolarCoord:equalDelta ((float delta) (PolarCoord_ptr l) (PolarCoord_ptr r)) (
+  (const float pi2 (2.0 *_f (pi)))
+
+  (template fieldsEqD fieldName
+    (float:equalDelta delta (getField l #fieldName) (getField r #fieldName)))
+  
+  (bool.and (float:modPos (getField l longitude -_f getField r longitude) pi2 <=_f delta)
+    (bool.and (fieldsEqD latitude) (fieldsEqD distance)))
+  ))
+
+(template ifnot condition onFalse
+  (if (bool.not #condition) #onFalse ()))
+
+(func void PolarCoord:test () (
+  (const float delta (1.0 /_f 100.0))
+
+  (var float3p foundDir (new float3 0. 0. 0.))
+  
+  (template expectDir x y z pc (
+    (foundDir = PolarCoord:toFloat3 #pc)
+    (ifnot (float3:equalDelta delta (new float3 #x #y #z) foundDir) (
+      (printString "-- Error --\nInput: ")
+      (PolarCoord:print #pc)
+      (printString "\nExpected: ")
+      (float3:print (new float3 #x #y #z))
+      (printString "\nFound: ")
+      (float3:print foundDir)
+      (println)
+      ))
+    ))
+
+  (template d2r degree (degree:toRadian #degree))
+  
+  (expectDir 0. 1. 0. (new PolarCoord 0. 0. 1.))
+  (expectDir 1. 0. 0. (new PolarCoord 0. (d2r 90.0) 1.))
+  (expectDir 0. -1. 0. (new PolarCoord 0. (d2r 180.0) 1.))
+
+  (expectDir 1. 0. 0. (new PolarCoord 0. (d2r 90.) 1.))
+  (expectDir 0. 0. 1. (new PolarCoord (d2r 90.) (d2r 90.) 1.))
+  (expectDir -1. 0. 0. (new PolarCoord (d2r 180.) (d2r 90.) 1.))
+  (expectDir 0. 0. -1. (new PolarCoord (d2r 270.) (d2r 90.) 1.))
+  
+  (const float step_longitude (degree:toRadian 90.0))
+
+  (var PolarCoord_ptr pc (new PolarCoord 0. (d2r 90.) 1.))
+  
+  (while (getField pc longitude <=_f (degree:toRadian 360.0))
+
+    (const float3p dir (PolarCoord:toFloat3 pc))
+    (const PolarCoord_ptr pc2 (float3:toPolarCoord dir))
+
+    (if (bool.not (PolarCoord:equalDelta delta pc pc2))
+      ( (printString "-- Error --\nInput: ")
+        (PolarCoord:print pc)
+        (printString "\nDir: ")
+        (float3:print dir)
+        (printString "\nResult: ")
+        (PolarCoord:print pc2)
+        (println)
+        )
+      ( (printString "-- Success: ")
+        (PolarCoord:print pc)
+        (println)
+        )
+      )
+
+    (setField pc longitude (getField pc longitude +_f step_longitude))
+    )
   ))
 
 //------------------------------------------------------------------------------
@@ -438,12 +570,50 @@ Conventions for function names:
 
 (type RGBA int)
 
-(func RGBA shbase ((int l) (int m) (float longitude) (float latitude)) (
-  (const float red (longitude /_f (2.0 *_f (pi))))
-  (const float green (latitude /_f (pi) +_f 0.5))
-
-  (rgbaColor (float.toInt (red *_f 255.0)) (float.toInt (green *_f 255.0))  0 255)
+(func int factorial((int x)) (
+  (if (x > 0)
+    (ret (factorial (x - 1) * x))
+    ())
+  (ret 1)
   ))
+
+(func float factorial_f((float x)) (
+  (ret (int.toFloat (factorial (float.toInt x))))
+  ))
+
+(func float sh:k((int l) (int m)) (
+  (const float m_f (int.toFloat m))
+  (const float l_f (int.toFloat l))
+  (const float temp (
+    ((2.0 *_f l_f +_f 1.0) *_f factorial_f(l_f -_f m_f))
+    /_f (4.0 *_f (pi) *_f factorial_f(l_f +_f m_f)) ))
+
+  (sqrtf temp)
+  ))
+
+(func float sh:base((int l) (int m) (float longitude) (float latitude)) (
+//   (latitude /_f (pi))
+  (longitude *_f 0.5 /_f (pi))
+  ))
+
+(func RGBA shbase((int l) (int m) (float longitude) (float latitude)) (
+  (var float shval (sh:base l m longitude latitude))
+  (const int shvalByte (float.toInt (shval *_f 255.0)))
+  
+  (if (shval >_f 0.0)
+    (ret (rgbaColor shvalByte 0 0 255))
+    (ret (rgbaColor 0 (int:neg shvalByte) 0 255))
+    )
+
+  (ret (rgbaColor 255 255 255 255))
+  ))
+  
+// (func RGBA shbase ((int l) (int m) (float longitude) (float latitude)) (
+//   (const float red (longitude /_f (2.0 *_f (pi))))
+//   (const float green (latitude /_f (pi) +_f 0.5))
+
+//   (rgbaColor (float.toInt (red *_f 255.0)) (float.toInt (green *_f 255.0))  0 255)
+//   ))
 
 (func GLuint makeCubemap ((int size)) (
   (var GLuint texture (makeTexture))

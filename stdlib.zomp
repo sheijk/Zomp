@@ -30,6 +30,7 @@
 (func float asinf ((float x)))
 (func float acosf ((float x)))
 
+(func int abs ((int x)))
 (func float fabsf ((float l)))
 
 (func float sqrtf ((float x)))
@@ -656,9 +657,12 @@
 
 (template float.neg x (float.sub 0. #x))
 
+/// additional operators and basic math functions
+
 (func int int:mod ((int v) (int div)) (
   (int.urem v div)
   ))
+(macro int:neg x ((ret `(int.sub 0 #x))))
 
 (template op+ l r (int.add #l #r))
 (template op- l r (int.sub #l #r))
