@@ -33,6 +33,8 @@
 (func int abs ((int x)))
 (func float fabsf ((float l)))
 
+(func float fmodf ((float num) (float divisor)))
+
 (func float sqrtf ((float x)))
 
 (func int zompLoadLib (((ptr char) dllname)))
@@ -41,6 +43,7 @@
 
 (func bool bool.not ((bool b)) ((bool.xor true b)))
 
+(func int square((int x)) ((int.mul x x)))
 (func float squaref((float x)) ((float.mul x x)))
 
 (func void printBool ((bool b)) (
@@ -357,6 +360,32 @@
   (ret result)
   ))
 
+///TODO: generalize for arbitrary types once this is possible in zomp
+(macro ifExprInt test onTrue onFalse (
+  (uniqueId trueLabel "iftrue")
+  (uniqueId falseLabel "iffalse")
+  (uniqueId endLabel "ifend")
+  (uniqueId testResult "iftestresult")
+  (uniqueId resultVar "ifResult")
+  
+  (var (ptr ast) result `(
+    (var int #resultVar 0)
+    (var bool #testResult #test)
+    (branch #testResult #trueLabel #falseLabel)
+    
+    (label #trueLabel)
+    (assign #resultVar #onTrue)
+    (branch #endLabel)
+    
+    (label #falseLabel)
+    (assign #resultVar #onFalse)
+    
+    (label #endLabel)
+    #resultVar
+    ))
+  (ret result)
+  ))
+
 (macro for index min max code (
   (uniqueId startLabel "for_start")
   (uniqueId endLabel "for_exit")
@@ -580,6 +609,7 @@
     ))
   ))
 
+
 /// additional ast functions --------------------------------
 
 (func void ast.setChild
@@ -742,6 +772,44 @@
 (defineFloatOps _d double)
 
 (template op= l r (assign #l #r))
+
+(macro compareFunc type name compareF (
+  (var cstring typeName (getField type id))
+
+  (var (ptr ast) compareCode compareF)
+  (addChilds compareCode `l `r)
+
+  (ret `(func #typeName #name ((#typeName l) (#typeName r)) (
+    (var bool cmp #compareCode)
+    (branch cmp lgreater rgreater)
+    (label lgreater)
+    (ret l)
+    (label rgreater)
+    (ret r)
+    )))
+  ))
+
+(compareFunc int int:max op>)
+(compareFunc int int:min op<)
+
+(compareFunc float float:max op>_f)
+(compareFunc float float:min op<_f)
+
+(compareFunc double double:max op>_d)
+(compareFunc double double:min op<_d)
+
+(func float float:clamp((float min) (float max) (float x)) (
+  (float:min max (float:max min x))
+  ))
+
+(func int int:clamp((int min) (int max) (int x)) (
+  (int:min max (int:max min x))
+  ))
+
+(func bool float:equalDelta ((float delta) (float l) (float r)) (
+  (const float diff (fabsf (l -_f r)))
+  (ret (diff <=_f delta))
+  ))
 
 /// deprecation -------------------------------
 

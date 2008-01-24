@@ -52,35 +52,6 @@ Conventions for function names:
 //------------------------------------------------------------------------------
 // utils
 
-(macro compareFunc type name compareF (
-  (var cstring typeName (getField type id))
-
-  (var (ptr ast) compareCode compareF)
-  (addChilds compareCode `l `r)
-
-  (ret `(func #typeName #name ((#typeName l) (#typeName r)) (
-    (var bool cmp #compareCode)
-    (branch cmp lgreater rgreater)
-    (label lgreater)
-    (ret l)
-    (label rgreater)
-    (ret r)
-    )))
-  ))
-
-
-(compareFunc int int:max op>)
-(compareFunc int int:min op<)
-
-(compareFunc float float:max op>_f)
-(compareFunc float float:min op<_f)
-
-(compareFunc double double:max op>_d)
-(compareFunc double double:min op<_d)
-
-(func float fmodf ((float num) (float divisor)))
-
-
 (macro arrayOf type values ... (
   (uniqueId array "arrayOf")
   
@@ -385,11 +356,6 @@ Conventions for function names:
   (ret angle)
   ))
 
-(func bool float:equalDelta ((float delta) (float l) (float r)) (
-  (const float diff (fabsf (l -_f r)))
-  (ret (diff <=_f delta))
-  ))
-
 (unittest:testCasesFor angle
   (float:equalDelta (1.0 /_f 100.0) 0.0 (angle 1.0 0.0))
   (float:equalDelta (1.0 /_f 100.0) ((pi) /_f 4.0) (angle 1.0 1.0))
@@ -439,10 +405,6 @@ Conventions for function names:
   ))
 (func float length3 ((float x) (float y) (float z)) (
   (sqrtf (squaref x +_f squaref y +_f squaref z))
-  ))
-
-(func float float:clamp((float min) (float max) (float x)) (
-  (float:min max (float:max min x))
   ))
 
 ///TODO: fix
@@ -591,6 +553,39 @@ Conventions for function names:
   (sqrtf temp)
   ))
 
+(func float legendre ((int l) (int m) (float x)) (
+  (var float pnm 1.0)
+
+  (if (m > 0)
+    (//then
+      (var float somx2 (sqrtf( (1.0 -_f x) *_f (1.0 +_f x) )))
+      (var float fact 1.0)
+      (for i 1 (m+1) (
+        (pnm = pnm *_f float.neg fact *_f somx2)
+        (fact = fact +_f 2.0)
+        ))
+      )
+    () )
+
+  (if (l == m) (ret pnm) ())
+
+  (var float pnmp1 (x *_f (2.0 *_f int.toFloat m +_f 1.0) *_f pnm))
+
+  (if (l == m + 1) (ret pnmp1) ())
+  
+  (var float pll 0.0)
+
+  (for ll (m+2) (l+1) (
+    (pll = ( (2.0 *_f int.toFloat ll -_f 1.0) *_f x *_f pnmp1
+      -_f (int.toFloat(m+ll) -_f 1.0) *_f pnm ) /_f int.toFloat (ll - m) )
+
+    (pnm = pnmp1)
+    (pnmp1 = pll)
+    ))
+    
+  (ret pll)
+  ))
+
 (template ift condition onTrue (if #condition #onTrue ()))
 
 (func float sh:base((int l) (int m) (float latitude) (float longitude)) (
@@ -605,7 +600,7 @@ Conventions for function names:
   ))
 
 (func RGBA shColor((int l) (int m) (float longitude) (float latitude)) (
-  (var float shval (sh:base 2 -1 longitude latitude))
+  (var float shval (sh:base l m longitude latitude))
   (const int shvalByte (float.toInt (shval *_f 255.0)))
   
   (if (shval <_f 0.0)
@@ -623,7 +618,115 @@ Conventions for function names:
 //   (rgbaColor (float.toInt (red *_f 255.0)) (float.toInt (green *_f 255.0))  0 255)
 //   ))
 
-(func GLuint makeCubemap ((int size)) (
+(func void free(((ptr void) ptr)))
+
+(template c:free ptr (cast (ptr void) #ptr))
+
+(type GLuint_ptr (ptr GLuint))
+
+(func GLuint_ptr shBaseFuncCubeTextures ((int maxL) (int size)) (
+  (const float sizef (int.toFloat size))
+  
+  (var (ptr float3) edges (arrayOfFuncs float3
+    (float3:init this -1. -1. 1.)
+    (float3:init this  1. -1. 1.)
+    (float3:init this  1.  1. 1.)
+    (float3:init this -1.  1. 1.)
+    
+    (float3:init this -1. -1. -1.)
+    (float3:init this  1. -1. -1.)
+    (float3:init this  1.  1. -1.)
+    (float3:init this -1.  1. -1.)
+    ))
+
+  (var (ptr (ptr int)) edgeIndices (arrayOf (ptr int)
+    (arrayOf int 1 5 6 2)
+    (arrayOf int 4 0 3 7)
+    (arrayOf int 3 2 6 7)
+    (arrayOf int 4 5 1 0)
+    (arrayOf int 0 1 2 3)
+    (arrayOf int 5 4 7 6)
+    ))
+
+  (var (ptr float) pixels (malloc float (size * size * 4)))
+//   (var (ptr float) pixels (malloc float (size * size)))
+
+  (const int textureCount (((sh:index maxL maxL + 1) + 3) / 4))
+//   (const int textureCount (sh:index maxL maxL + 1))
+  (var (ptr GLuint) textures (malloc int textureCount))
+  (glGenTextures textureCount textures)
+
+  (var int l 0)
+  (var int m 0)
+
+  (printString "maxL = ") (printInt maxL) (println)
+  (printString "textureCount = ") (printInt textureCount) (println)
+  
+  (for textureNum 0 textureCount (
+    (const int texture (array:get textures textureNum))
+    (glBindTexture GL_TEXTURE_CUBE_MAP texture)
+
+    (for sideNum 0 6 (
+      (const int prevL l)
+      (const int prevM m)
+      
+      (for componentNum 0 4 (
+        (const int target (GL_TEXTURE_CUBE_MAP_POSITIVE_X + sideNum))
+        
+        (var (ptr int) sideEdgeIndices (edgeIndices[sideNum]))
+        
+        (var (ptr float3) lowerLeft (ptradd edges (sideEdgeIndices[0])))
+        (var (ptr float3) lowerRight (ptradd edges (sideEdgeIndices[1])))
+        (var (ptr float3) upperRight (ptradd edges (sideEdgeIndices[2])))
+        (var (ptr float3) upperLeft (ptradd edges (sideEdgeIndices[3])))
+
+        (var float3p left (new float3 0. 0. 0.))
+        (var float3p right (new float3 0. 1. 0.))
+        
+        (var float3p dir (new float3 0. 0. 0.))
+        
+        (for y 0 size (
+          (var float yUnit (int.toFloat y /_f sizef))
+          
+          (float3:interpolate left yUnit lowerLeft upperLeft)
+          (float3:interpolate right yUnit lowerRight upperRight)
+          
+          (for x 0 size (
+            (float3:interpolate dir (int.toFloat x /_f sizef) right left)
+            (float3:normalize dir)
+
+            (const int pixelNum (y * size + x))
+            (const PolarCoord_ptr polarCoord (float3:toPolarCoord dir))
+            
+            (var float shval (sh:base l m (getField polarCoord longitude) (getField polarCoord latitude)))
+            (shval = 0.5 *_f shval +_f 0.5)
+            (array:set pixels (4*pixelNum + componentNum) shval)
+            ))
+          ))
+
+        (m = m + 1)
+        (ift (m > l) (
+          (l = l + 1)
+          (m = int:neg l)
+          ))
+        )) // for componentNum
+      (m = prevM)
+      (l = prevL)
+      
+      (gluBuild2DMipmaps target 4 size size GL_RGBA GL_FLOAT
+        (cast (ptr void) pixels) )
+      (printGLError)
+      )) // for sideNum
+    )) // for textureNum
+
+  (glBindTexture GL_TEXTURE_CUBE_MAP 0)
+
+  (c:free pixels)
+  
+  (ret textures)
+  ))
+
+(func GLuint makeCubemap ((int l) (int m) (int size)) (
   (var GLuint texture (makeTexture))
 
   (const float sizef (int.toFloat size))
@@ -660,7 +763,8 @@ Conventions for function names:
     (arrayOf int 5 4 7 6)
     ))
   
-  (var (ptr int) pixels (malloc int (size * size)))
+  //   (var (ptr int) pixels (malloc int (size * size)))
+  (var (ptr float) pixels (malloc float (size * size)))
 
   (for sideNum 0 6 (
     (const int target (GL_TEXTURE_CUBE_MAP_POSITIVE_X + sideNum))
@@ -688,22 +792,32 @@ Conventions for function names:
       (for x 0 size (
         (float3:interpolate dir (int.toFloat x /_f sizef) right left)
         (float3:normalize dir)
-        
+
         (const int pixelNum (y * size + x))
         (const PolarCoord_ptr polarCoord (float3:toPolarCoord dir))
         //         (c = rgbaColor_f (getField dir x) (getField dir y) (getField dir z) 1.0)
-        (c = shColor 0 0 (getField polarCoord longitude) (getField polarCoord latitude))
-        (array:set pixels pixelNum c)
+        
+        //         (c = shColor l m (getField polarCoord longitude) (getField polarCoord latitude))
+        //         (array:set pixels pixelNum c)
+        (var float shval (sh:base l m (getField polarCoord longitude) (getField polarCoord latitude)))
+        (shval = 0.5 *_f shval +_f 0.5)
+        (array:set pixels pixelNum shval)
         ))
       ))
-    
-    (gluBuild2DMipmaps target GL_RGBA size size GL_RGBA GL_UNSIGNED_BYTE
-      (cast (ptr void) pixels))
+
+    (gluBuild2DMipmaps target 1 size size GL_LUMINANCE GL_FLOAT
+      (cast (ptr void) pixels) )
+    //     (gluBuild2DMipmaps target GL_RGBA size size GL_RGBA GL_UNSIGNED_BYTE
+      //       (cast (ptr void) pixels))
+
+    (printGLError)
     
     (colors = ptradd colors 1)
     ))
 
   (glBindTexture GL_TEXTURE_CUBE_MAP 0)
+
+  (c:free pixels)
   
   (ret texture)
   ))
@@ -723,10 +837,21 @@ Conventions for function names:
     "
     
     "
-    uniform samplerCube texture;
+    uniform samplerCube texture0;
+    uniform vec4 coeffs0;
     
     void main(void) {
-      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0) + textureCube( texture, texCoord );
+      vec4 shvals0 = textureCube( texture0, texCoord );
+      shvals0 = shvals0 * 2.0 - 1.0;
+      vec4 products0 = shvals0 * coeffs0;
+      float shVal = products0.x + products0.y + products0.z + products0.w;
+      //       shVal = 2.0 * shVal - 1.0;
+      if( shVal > 0.0 ) {
+        gl_FragColor = vec4( 0.0, shVal, 0.0, 1.0 );
+        }
+      else {
+        gl_FragColor = vec4( -shVal, 0.0, 0.0, 1.0 );
+        }
       }
     "))
   (ret shader)
@@ -810,68 +935,15 @@ Conventions for function names:
     (glfwSwapBuffers)
     )
   ))
-  
-(func float legendre ((int l) (int m) (float x)) (
-  (var float pnm 1.0)
 
-  (if (m > 0)
-    (//then
-      (var float somx2 (sqrtf( (1.0 -_f x) *_f (1.0 +_f x) )))
-      (var float fact 1.0)
-      (for i 1 (m+1) (
-        (pnm = pnm *_f float.neg fact *_f somx2)
-        (fact = fact +_f 2.0)
-        ))
-      )
-    () )
-
-  (if (l == m) (ret pnm) ())
-
-  (var float pnmp1 (x *_f (2.0 *_f int.toFloat m +_f 1.0) *_f pnm))
-
-  (if (l == m + 1) (ret pnmp1) ())
-  
-  (var float pll 0.0)
-
-  (for ll (m+2) (l+1) (
-    (pll = ( (2.0 *_f int.toFloat ll -_f 1.0) *_f x *_f pnmp1
-      -_f (int.toFloat(m+ll) -_f 1.0) *_f pnm ) /_f int.toFloat (ll - m) )
-
-    (pnm = pnmp1)
-    (pnmp1 = pll)
-    ))
-    
-  (ret pll)
+(func int sh:index((int l) (int m)) (
+  (square(l) + m + l)
   ))
 
-(func int main () (
-  (init)
-
-  (times 10 (glfwPollEvents) )
-
-  (var GLuint cubeShader (makeCubemapShader))
-  (var GLuint cubemap (makeCubemap 512))
-
-  (glMatrixMode GL_PROJECTION)
-  (glLoadIdentity)
-  (gluPerspective 90.0d (float.toDouble windowAspect) 1.0d 500.0d)
-  
-  (glMatrixMode GL_MODELVIEW)
-  (glLoadIdentity)
-  (gluLookAt
-    10.0d 10.0d 10.0d
-    0.0d 0.0d 0.0d
-    0.0d 1.0d 0.0d)
-
-  (glEnable GL_DEPTH_TEST)
-  (glDepthFunc GL_LEQUAL)
-
-
+(func GLuint makeLegendreDL((int legendreSize)) (
   (var GLuint legendreDL (glGenLists 1))
   (glNewList legendreDL GL_COMPILE)
   
-  (const int legendreSize 100)
-
   (for l 0 3 (
     (for m 0 (l+1) (
       
@@ -888,6 +960,73 @@ Conventions for function names:
 
   (glEndList)
 
+  (ret legendreDL)
+  ))
+
+(macro profile:measureAndPrintTime message measuredCode (
+  (uniqueId startTime "profile")
+  (uniqueId stopTime "profile")
+
+  (var astp code `(
+    (var double #startTime (glfwGetTime))
+    #measuredCode
+    (var double #stopTime (glfwGetTime))
+    (printString #message)
+    (printString " took: ")
+    (printDouble (#stopTime -_d #startTime))
+    (printString "s\n")
+    ))
+
+  (ret code)
+  ))
+
+(func void bindTextureCube ((int textureUnit) (GLuint texture)) (
+  (glActiveTexture (GL_TEXTURE0 + textureUnit))
+  (glBindTexture GL_TEXTURE_CUBE_MAP texture)
+  (glActiveTexture GL_TEXTURE0)
+  ))
+
+(func void printGLCaps() (
+  (template capsPrintInt msg enum (
+    (printString #msg) (printInt (gl:getInteger #enum)) (println)
+    ))
+  
+  (printString "OpenGL device caps:\n")
+  (capsPrintInt "max texture units = " GL_MAX_TEXTURE_UNITS)
+  (capsPrintInt "max texture size = " GL_MAX_TEXTURE_SIZE)
+  ))
+
+(func int main () (
+  (init)
+
+  (times 10 (glfwPollEvents) )
+
+  (var GLuint cubeShader (makeCubemapShader))
+
+  (const int maxL 1)
+
+  (var int l (maxL - 1))
+  (var int m 0)
+
+  (const int shbaseCubemapCount (sh:index maxL maxL + 1))
+  (var (ptr GLuint) shbaseCubemaps (shBaseFuncCubeTextures maxL 64))
+
+  (glMatrixMode GL_PROJECTION)
+  (glLoadIdentity)
+  (gluPerspective 90.0d (float.toDouble windowAspect) 1.0d 500.0d)
+  
+  (glMatrixMode GL_MODELVIEW)
+  (glLoadIdentity)
+  (gluLookAt
+    10.0d 10.0d 10.0d
+    0.0d 0.0d 0.0d
+    0.0d 1.0d 0.0d)
+
+  (glEnable GL_DEPTH_TEST)
+  (glDepthFunc GL_LEQUAL)
+
+  (const GLuint legendreDL (makeLegendreDL 100))
+  
   (var (ptr trackball) cam (new trackball 45.0 10.0 10.0))
 
   (mainloop
@@ -896,13 +1035,40 @@ Conventions for function names:
     (glMatrixMode GL_MODELVIEW)
     (glLoadIdentity)
     (trackball:transform cam)
+
+    (for key GLFW_KEY_0 (GLFW_KEY_0 + maxL) (
+      (ift (isPressed key) (
+        (const int oldL l)
+        (const int oldM m)
+        
+        (if (isPressed GLFW_KEY_LSHIFT)
+          (l = key - GLFW_KEY_0)
+          (if (isPressed GLFW_KEY_LALT)
+            (m = GLFW_KEY_0 - key)
+            (m = key - GLFW_KEY_0) )
+          )
+        (l = int:clamp 0 maxL l)
+        (m = int:clamp (int:neg l) l m)
+
+        (ift (l != oldL)
+          ((printString "l = ") (printInt l) (println)) )
+        (ift (m != oldM)
+          ((printString "m = ") (printInt m) (println)) )
+        ))
+      ))
     
     (clear 0. 0. 0. 1.)
 
     (drawOrientationGrid)
 
     (glUseProgram cubeShader)
-    (glBindTexture GL_TEXTURE_CUBE_MAP cubemap)
+    (glBindTexture GL_TEXTURE_CUBE_MAP (array:get shbaseCubemaps 0))
+    (const GLuint cubemapParam (glGetUniformLocation cubeShader "texture0"))
+    (glUniform1i cubemapParam 0)
+
+    (const GLuint coeffs0Loc (glGetUniformLocation cubeShader "coeffs0"))
+    (glUniform4f coeffs0Loc 0. 0. 1. 0.)
+    
     (glutSolidSphere 5.0d 20 20)
     (glBindTexture GL_TEXTURE_CUBE_MAP 0)
     (glUseProgram 0)
@@ -936,7 +1102,8 @@ Conventions for function names:
   (drawPausedOverlay)
 
   (glDeleteLists legendreDL 1)
-  (glDeleteTextures 1 (ptr cubemap))
+  (glDeleteTextures shbaseCubemapCount shbaseCubemaps)
+  //   (glDeleteTextures 1 (ptr cubemap))
   (glDeleteShader cubeShader)
 
   (ret 0)
@@ -947,9 +1114,13 @@ Conventions for function names:
   (glfwSwapBuffers)
   ))
 
-/* NSBundle* webKitBundle; */
-/*     webKitBundle = [NSBundle bundleWithPath:@"/System/Library/Frameworks/WebKit.framework"]; */
-/*     if (webKitBundle) { */
-/*         _webkitAvailable = [webKitBundle load]; */
-/*     } */
+(func void interactivelyMoveWindow() (
+  (times 10 (glfwPollEvents))
+  (while (bool.not (isPressed GLFW_KEY_ESC))
+    (glfwPollEvents)
+    )
+  (drawPausedOverlay)
+  (times 10 (glfwPollEvents))
+  ))
+  
   

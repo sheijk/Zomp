@@ -1,5 +1,14 @@
 
 * To be sorted
+** TODO [#A] check for off-by-one error in shbase function calculation
+** TODO [#A] error on redefining vars
+** TODO [#A] warnings on unused variables
+** TODO [#A] research: composable type systems
+** TODO [#A] research: macros and formal verification
+** TODO [#A] allow uninitialized vars
+** TODO [#A] allow (var foo x) where the type of var is propagated
+** TODO [#A] glfw bindings auf 2.6 updaten
+** TODO [#A] macro/function to check whether running in toplevel
 ** TODO [#A] smarter ,,: turn (foo bar),, into ((foo bar) 
 ** TODO [#A] constants for float nan, pos & neg infinity
 ** TODO [#A] better error reporting on immediate code execution in toplevel

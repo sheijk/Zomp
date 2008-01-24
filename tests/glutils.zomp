@@ -85,6 +85,7 @@
   ))
 
 //------------------------------------------------------------------------------
+// rendering utils
 
 (template rendergl primitiveType code ... (
   (glBegin #primitiveType)
@@ -261,9 +262,22 @@
 
 (func void glBindTexture2D ((GLuint texture)) ((glBindTexture GL_TEXTURE_2D texture)))
 
+(func int gl:getInteger((GLenum param)) (
+  (var int result 0)
+  (glGetIntegerv param (ptr result))
+  (ret result)
+  ))
+
+(func float gl:getFloat((GLenum param)) (
+  (var float result 0.0)
+  (glGetFloatv param (ptr result))
+  (ret result)
+  ))
+
 //------------------------------------------------------------------------------
 
 /// will call type:new params...
+/// TODO: replace all uses with new from shprog
 (macro new type params ... (
   (var cstring factoryName (cstrings.append (getField type id) ":new"))
   (var (ptr ast) code (simpleAst factoryName))

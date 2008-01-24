@@ -47,4 +47,9 @@ char* int2cstring(int i) {
   return result;
 }
 
+/* NSBundle* webKitBundle; */
+/*     webKitBundle = [NSBundle bundleWithPath:@"/System/Library/Frameworks/WebKit.framework"]; */
+/*     if (webKitBundle) { */
+/*         _webkitAvailable = [webKitBundle load]; */
+/*     } */
 
