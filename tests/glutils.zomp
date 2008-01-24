@@ -84,6 +84,35 @@
   (ret program)
   ))
 
+// (macro gl:uniformSetterFunc type funcName setUniform (
+//   (var astp valueArg (astFromString (getFloat type id)))
+//   (addChild valueArg (astFromString "value"))
+
+//   (var astp setUniformCall (astFromString (getFloat setUniform id)))
+//   (addMappedChilds setUniform astFromString "loc" "value")
+  
+//   (printAst `(func void funcName((GLuint shader) (cstring name) #valueArg) (
+//     (const GLuint loc (glGetUniformLocation shader value))
+//     (
+//     )) 0)
+//   (ret `())
+//   ))
+
+(func void gl:uniform1i((GLuint shader) (cstring name) (int value)) (
+  (const GLuint loc (glGetUniformLocation shader name))
+  (glUniform1i loc value)
+  ))
+
+(func void gl:uniform4f((GLuint shader) (cstring name) (float a) (float b) (float c) (float d)) (
+  (const GLuint loc (glGetUniformLocation shader name))
+  (glUniform4f loc a b c d)
+  ))
+
+(func void gl:uniform4fv((GLuint shader) (cstring name) ((ptr float) vals)) (
+  (const GLuint loc (glGetUniformLocation shader name))
+  (glUniform4fv loc 1 vals)
+  ))
+
 //------------------------------------------------------------------------------
 // rendering utils
 
