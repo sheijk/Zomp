@@ -8,7 +8,8 @@ let (<<=) f g = f g
 let (>>=) x f = f x
 let (++) f g x = f (g x)
 let (|>) x f = f x
-
+let (=~) str re = Str.string_match (Str.regexp re) str 0
+  
 let rec fromTo min max =
   if min > max then []
   else min :: fromTo (min+1) max
