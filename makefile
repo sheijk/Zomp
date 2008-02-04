@@ -91,7 +91,7 @@ newparsertest: $(NEWPARSER_CMOS)
 	echo Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(NEWPARSER_CMOS)
 
-testnewparser:
+testnewparser: $(NEWPARSER_CMOS)
 	$(OCAML) str.cma bigarray.cma common.cmo iexpr.cmo iexprtest.ml
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
@@ -119,7 +119,7 @@ stdlib.bc stdlib.ll: stdlib.c
 
 # generate a file for graphviz which visualizes the dependencies
 # between modules
-deps.dot deps.png: makefile.depends
+deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo Generating dependency graph for graphviz ...
 	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
 	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
@@ -156,7 +156,10 @@ deps.dot deps.png: makefile.depends
 glfw.zomp: gencode
 opengl20.zomp: gencode
 
-CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml
+CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml\
+genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll\
+sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml\
+iexpr.ml iexprtest.ml newparsertest.ml
 
 makefile.depends: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...

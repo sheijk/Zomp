@@ -1,5 +1,7 @@
 
 * To be sorted
+** TODO [#A] iexprtest.ml: does worker in token use stringAcc at all?
+** TODO [#A] ' as operator for implicit conversions like: append string1 'char => append string1 (toString char)?
 ** TODO [#A] is ascii enough or should zomp use unicode (more operators etc.)?
 ** TODO [#A] allow replacing parts of libraries
 ** TODO [#A] versioned packages

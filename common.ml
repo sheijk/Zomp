@@ -9,6 +9,12 @@ let (>>=) x f = f x
 let (++) f g x = f (g x)
 let (|>) x f = f x
 
+let rec fromTo min max =
+  if min > max then []
+  else min :: fromTo (min+1) max
+
+        
+    
 let rec combine seperator strings =
   match strings with
     | [] -> ""
@@ -277,12 +283,25 @@ let listFold2i f initial list1 list2 =
   in
   foldWithIndex 0 initial list1 list2
 
-(* let dequoteString quoteChar str = *)
-(*   let length = String.length str in *)
-(*   if isQuoted quoteChar str then  *)
-(*     String.sub str 1 (length-2) *)
-(*   else *)
-(*     raise (Failure (sprintf "dequoteString %c" quoteChar)) *)
+let mapFilter func list =
+  let rec worker acc = function
+    | [] -> List.rev acc
+    | hd :: tail ->
+        match func hd with
+          | Some result -> worker (result :: acc) tail
+          | None -> worker acc tail
+  in
+  worker [] list
+
+let multiMap func list =
+  let nestedResults = List.map func list in
+  List.flatten nestedResults
+
+let rec combineList seperator = function
+  | [] -> []
+  | [last] -> [last]
+  | first :: tail ->
+      first :: seperator :: (combineList seperator tail)
 
 let dequoteString quoteChar str =
   let length = String.length str in

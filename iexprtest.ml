@@ -3,23 +3,6 @@ open Iexpr
 open Printf
 
 
-
-(* let rec addParens ?(prevIndent = 0) (emit : [> `Eof | `End | `Identifier of string] -> unit) lines = *)
-(*   match lines with *)
-(*     | [] -> *)
-(*         if prevIndent != 0 then *)
-(*           failwith (sprintf "non-zero indent (%d) at eof" prevIndent) *)
-(*         else *)
-(*           emit `Eof *)
-(*     | line :: remLines -> *)
-(*         let indent, lineContent = splitLine line in *)
-(*         if indent = prevIndent then begin *)
-(*           emit `End; *)
-(*           emit (`Identifier lineContent) *)
-(*         end else begin *)
-(*         end; *)
-(*         addParens ~prevIndent emit remLines *)
-
 type location = {
   line :int;
   fileName :string;
@@ -65,15 +48,31 @@ let readUntil abortOnChar lexbuf =
     worker()
   with End_of_file -> () end;
   !acc
+
+
+type indentToken = [
+| `BeginBlock
+| `EndBlock of string list
+| `End
+| `Whitespace of int
+]
+
+type userToken = [
+| `Identifier of string
+]
+
+type token = [ indentToken | userToken ]
+    
+let whitespaceRE = Str.regexp " +"
+
+let rules =
+  let re = Str.regexp in
+  [
+    re "[a-zA-Z0-9_.:]+", (fun str -> `Identifier str);
+    whitespaceRE, (fun str -> `Whitespace (String.length str));
+  ]
   
-let token lexbuf =
-  let whitespaceRE = Str.regexp " +" in
-  let rules =
-    let re = Str.regexp in
-    [
-      re "[a-zA-Z0-9_.:]+", (fun str -> `Identifier str);
-      whitespaceRE, (fun str -> `Whitespace (String.length str));
-    ] in
+let token (lexbuf : token lexbuf) : token =
   let ruleMatches string (regexp, _) =
     Str.string_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
@@ -81,24 +80,27 @@ let token lexbuf =
   
   let rec worker stringAcc =
     let currentChar = lexbuf.readChar() in
-    if currentChar = '!' then
+    if currentChar = '!' then (** hack to allow to abort within file *)
       raise End_of_file;
 
     if isNewline currentChar then begin
       let rec consumeWhitespace indent =
-        let nextChar = lexbuf.readChar() in
-        if isWhitespace nextChar then
+        let eof, nextChar =
+          try false, lexbuf.readChar()
+          with End_of_file -> true, '\n'
+        in
+        if eof then
+          indent
+        else if isWhitespace nextChar then
           consumeWhitespace (indent+1)
+        else if isNewline nextChar then
+          consumeWhitespace indent
         else begin
-          if isNewline nextChar then
-            consumeWhitespace indent
-          else begin
-            lexbuf.putbackString (String.make 1 nextChar);
-            indent, nextChar
-          end
+          lexbuf.putbackString (String.make 1 nextChar);
+          indent
         end
       in
-      let indent, nextChar = consumeWhitespace 0 in
+      let indent = consumeWhitespace 0 in
       let prevIndent = lexbuf.prevIndent in
       lexbuf.prevIndent <- indent;
       if indent = prevIndent then begin
@@ -180,21 +182,33 @@ let printToken (lineIndent, indentNext) token =
       
 let makeLexbuf fileName readCharFunc =
   let buffer = ref "" in
+  let eof = ref false in
   let rec lexbuf = 
+    let readCharExtraNewline () =
+      if !eof then
+        raise End_of_file
+      else
+        try
+          readCharFunc()
+        with End_of_file ->
+          eof := true;
+          '\n'
+    in
+    let readCharWithBuffer () =
+      let chr = 
+        if String.length !buffer > 0 then begin
+          let chr = !buffer.[0] in
+          buffer := String.sub !buffer 1 (max (String.length !buffer -1) 0);
+          chr
+        end else
+          readCharExtraNewline()
+      in
+      if isNewline chr then
+        lexbuf.location <- { lexbuf.location with line = lexbuf.location.line + 1 };
+      chr
+    in
     {
-      readChar = (fun () ->
-                    let chr = 
-                      if String.length !buffer > 0 then begin
-                        let chr = !buffer.[0] in
-                        buffer := String.sub !buffer 1 (max (String.length !buffer -1) 0);
-                        chr
-                      end else
-                        readCharFunc()
-                    in
-                    if isNewline chr then
-                      lexbuf.location <- { lexbuf.location with line = lexbuf.location.line + 1 };
-                    chr
-                 );
+      readChar = readCharWithBuffer;
       putbackString = (fun string -> buffer := string ^ !buffer);
       location = { line = 0; fileName = fileName };
       prevIndent = 0;
@@ -204,9 +218,46 @@ let makeLexbuf fileName readCharFunc =
   lexbuf
 
 let lexbufFromChannel fileName channel = makeLexbuf fileName (fun () -> input_char channel)
-  
+
+let lexbufFromString fileName string =
+  let stringLength = String.length string in
+  let position = ref 0 in
+  let readCharFunc() =
+    if !position < stringLength then begin
+      let chr = string.[!position] in
+      incr position;
+      chr
+    end else
+      raise End_of_file
+  in
+  makeLexbuf fileName readCharFunc
+    
 (* Main --------------------------------------------------------------------- *)
 
+let tokenizeString str =
+  let lexbuf = lexbufFromString "dummy.zomp" str in
+  let rec worker acc =
+    let maybeToken = 
+      try Some (token lexbuf)
+      with End_of_file -> None
+    in
+    match maybeToken with
+      | Some t -> worker (t::acc)
+      | None -> List.rev acc
+  in
+  worker []
+
+let printTokens tokens =
+  let rec worker context = function
+    | [] -> ()
+    | t :: remTokens ->
+        let newContext = printToken context t in
+        printf " ";
+        worker newContext remTokens
+  in
+  worker (0, `DontIndent) tokens
+  
+(*
 let () =
   let sourceFile = "indent.zomp" in
   let lexbuf = lexbufFromChannel sourceFile (open_in sourceFile) in
@@ -221,21 +272,117 @@ let () =
     worker (0, `DontIndent)
   with End_of_file ->
     printf "\n--- done ---\n"
-
-(* let () = *)
-(*   let sourceFile = "indent.zomp" in *)
-
-(*   let lines = readLines sourceFile in *)
-(*   let classifiedLines = classifyIndent lines in *)
-(*   printIndentInfo classifiedLines; *)
-(*   let lines = printLines classifiedLines in *)
-(*   List.iter (printf "%s") lines; *)
-  
-(*   () *)
-
+*)
 
 (* Tests -------------------------------------------------------------------- *)
 
+module type CASE_STRUCT = sig
+  type input
+  type output
+
+  val printInput : input -> unit
+  val printOutput : output -> unit
+
+  val outputEqual : output -> output -> bool
+
+  type result = [ `Return of output | `Exception of string ]
+
+  val testedFunc : input -> output
+  val testCases : (input * result) list
+end
+
+module Tester(Cases :CASE_STRUCT) = struct
+  include Cases
+    
+  type error = {
+    input :input;
+    found :result;
+    expected :result;
+  }
+
+  let printResult = function
+    | `Return output -> printOutput output
+    | `Exception msg -> printf "Exception '%s'" msg
+
+  let error ~input ~found ~expected =
+    `Error {
+      input = input;
+      found = found;
+      expected = expected
+    }
+
+  let runTestCase (input, expected) =
+    let found = 
+      try
+        `Return (testedFunc input)
+      with _ as exc ->
+        `Exception (Printexc.to_string exc)
+    in
+    match expected, found with
+      | `Exception _, `Exception _ ->
+          `Ok found
+      | `Return expectedVal, `Return foundVal ->
+          if (outputEqual expectedVal foundVal) then
+            `Ok found
+          else
+            error ~input ~found ~expected
+      | _, _ ->
+          error ~input ~found ~expected
+
+  let runTests () : error list =
+    let results = List.map runTestCase testCases in
+    let errors = Common.mapFilter (function `Error e -> Some e | _ -> None) results in
+    errors
+
+  let runTestsAndPrintErrors() =
+    let printError error =
+      printf "\n--- UnitTest Failure ---\n";
+      printf "Input: '"; printInput error.input; printf "'\n";
+      printf "Expected: '"; printResult error.expected; printf "'\n";
+      printf "Found: '"; printResult error.found; printf "'\n";
+    in
+    List.iter printError (runTests())
+      
+  exception UnitTestFailure of error list
+end
+
+let tokenEqual l r =
+  match l, r with
+    | `Whitespace _, `Whitespace _ -> true
+    | _, _ -> l = r
+  
+module IndentLexerTestCase : CASE_STRUCT =
+struct
+  type input = string
+  type output = token list
+
+  let printInput str = printf "%s" str
+  let printOutput tokens = printTokens tokens 
+  let outputEqual l r =
+    List.length l = List.length r
+    &&
+    List.for_all2 tokenEqual l r
+    
+  type result = [ `Return of output | `Exception of string ]
+
+  let testedFunc = tokenizeString
+
+  let testCases : (input * result) list =
+    let ids stringList =
+      let idTokens = List.map (fun str -> (`Identifier str :> token)) stringList in
+      Common.combineList (`Whitespace 1) idTokens
+    in
+    [
+      "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
+      "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );
+      
+    ]
+end
+
+module IndentLexerTester = Tester(IndentLexerTestCase)
+
+let () = IndentLexerTester.runTestsAndPrintErrors()
+  
 let () =
   let testCases = [
     "iff", "end", true;
@@ -259,7 +406,4 @@ let () =
   List.iter testF testCases
 
     
-(*
-
-  *)
 
