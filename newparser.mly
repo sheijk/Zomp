@@ -16,26 +16,37 @@
     
 %}
 
-%token PAREN_OPEN
-%token PAREN_CLOSE
-%token <string> QUOTE
-%token <string> IDENTIFIER
-%token <string> ADD_OP
-%token <string> MULT_OP
-%token <string> COMPARE_OP
-%token <string> POST_OP
-%token <string> PRE_OP
-%token BRACKET_OPEN
-%token BRACKET_CLOSE
+(* %token PAREN_OPEN *)
+(* %token PAREN_CLOSE *)
+(* %token <string> QUOTE *)
+(* %token <string> IDENTIFIER *)
+(* %token <string> ADD_OP *)
+(* %token <string> MULT_OP *)
+(* %token <string> COMPARE_OP *)
+(* %token <string> POST_OP *)
+(* %token <string> PRE_OP *)
+(* %token BRACKET_OPEN *)
+(* %token BRACKET_CLOSE *)
 
-%right COMPARE_OP
-%right ADD_OP
-%right MULT_OP
+(* %right COMPARE_OP *)
+(* %right ADD_OP *)
+(* %right MULT_OP *)
+  
+%token <string> IDENTIFIER
+%token END
+%token BLOCK_BEGIN
+%token <string list> BLOCK_END
+%token <int> WHITESPACE
 
 %start <Ast2.sexpr> main
 
 %%
 
+main:
+| WHITESPACE? id = IDENTIFIER WHITESPACE? END
+    { Ast2.idExpr id }
+    
+/*
 main:
 | PAREN_OPEN e = sexpr PAREN_CLOSE
     { e }
@@ -75,5 +86,5 @@ operatorArg:
     { e }
 | e = operatorExpr
     { e }
-        
+*/        
 

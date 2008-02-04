@@ -5,6 +5,23 @@
   exception UnknowChar of string
 }
 
+rule token = parse
+  | ['a'-'z' 'A'-'Z' '0'-'9' '.' ':']+ as id
+      { IDENTIFIER(id) }
+  | '\n'
+      { END }
+  | '{'
+      { BLOCK_BEGIN }
+  | '}'
+      { BLOCK_END( [] ) }
+  | eof
+      { raise End_of_file }
+  | [' ' '\t']+ as ws
+      { WHITESPACE (String.length ws) }
+  | _ as chr
+      { raise (UnknowChar (Printf.sprintf "%c" chr)) }
+      
+(*
 let whitespace = [' ' '\t' '\n']*
 
 let identifierChar = [':' 'a'-'z' '0'-'9' 'A'-'Z' '_' '.']
@@ -71,4 +88,5 @@ and mlstring prevString = shortest
       { mlstring (prevString ^ str) lexbuf }
   | eof
       { raise Eof }
-      
+*)
+

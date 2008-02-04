@@ -29,6 +29,9 @@ let isBlockEndLine line =
 exception UnknowToken of location * string
 let raiseUnknownToken loc str = raise (UnknowToken (loc, str))
 
+exception IndentError of location * string
+let raiseIndentError loc str = raise (IndentError (loc, str))
+
 type tokens = [ `Begin | `End ]
 
 let appendChar string char = string ^ String.make 1 char
@@ -107,7 +110,7 @@ let token (lexbuf : token lexbuf) : token =
         `End
       end else if indent > prevIndent then begin
         `BeginBlock
-      end else (* indent < prevIndent *) begin
+      end else if indent = prevIndent - 2 then begin
         let line = readUntil isNewline lexbuf in
         if isBlockEndLine line then begin
           lexbuf.putbackString "\n";
@@ -121,10 +124,13 @@ let token (lexbuf : token lexbuf) : token =
           lexbuf.putbackString (line ^ "\n");
           returnMultipleTokens lexbuf `End [`EndBlock[]; worker stringAcc]
         end
+      end else begin (* indent is more than one level less than in previous line *)
+        raiseIndentError lexbuf.location
+          "Indentation may only be reduced by two spaces at a time"
       end
 
     end else begin (** no whitespace *)
-      let input = stringAcc ^ (String.make 1 currentChar) in
+      let input = stringAcc ^ String.make 1 currentChar in
       let matchingRules = List.filter (ruleMatches input) rules in
       match matchingRules with
         | [regexp, makeToken as rul] ->
@@ -234,7 +240,7 @@ let lexbufFromString fileName string =
     
 (* Main --------------------------------------------------------------------- *)
 
-let tokenizeString str =
+let lexString str =
   let lexbuf = lexbufFromString "dummy.zomp" str in
   let rec worker acc =
     let maybeToken = 
@@ -337,9 +343,9 @@ module Tester(Cases :CASE_STRUCT) = struct
   let runTestsAndPrintErrors() =
     let printError error =
       printf "\n--- UnitTest Failure ---\n";
-      printf "Input: '"; printInput error.input; printf "'\n";
-      printf "Expected: '"; printResult error.expected; printf "'\n";
-      printf "Found: '"; printResult error.found; printf "'\n";
+      printf "Input: '\n"; printInput error.input; printf "'\n";
+      printf "Expected: '\n"; printResult error.expected; printf "'\n";
+      printf "Found: '\n"; printResult error.found; printf "'\n";
     in
     List.iter printError (runTests())
       
@@ -357,7 +363,9 @@ struct
   type output = token list
 
   let printInput str = printf "%s" str
+    
   let printOutput tokens = printTokens tokens 
+
   let outputEqual l r =
     List.length l = List.length r
     &&
@@ -365,7 +373,7 @@ struct
     
   type result = [ `Return of output | `Exception of string ]
 
-  let testedFunc = tokenizeString
+  let testedFunc = lexString
 
   let testCases : (input * result) list =
     let ids stringList =
@@ -373,12 +381,58 @@ struct
       Common.combineList (`Whitespace 1) idTokens
     in
     [
+      (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
       "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );
+
+      "first line\nsecond line\n",
+      `Return( [`Identifier "first"; `Whitespace 1; `Identifier "line"; `End;
+                `Identifier "second"; `Whitespace 1; `Identifier "line"; `End] );
       
+      (* simple multi-line expressions *)
+      "if a then\n\
+      \  foobar\n\
+      end",
+      `Return( ids ["if"; "a"; "then"] @ [`BeginBlock]
+               @ [`Identifier "foobar"; `End]
+               @ [`EndBlock []; `End] );
+      
+      (* block end with tokens *)
+      "foreach num IN primes\n\
+      \  printLine num\n\
+      end foreach num",
+      `Return( ids ["foreach"; "num"; "IN"; "primes"] @ [`BeginBlock]
+               @ ids ["printLine"; "num"] @ [`End]
+               @ [`EndBlock ["foreach"; "num"]; `End] );
+
+      (* multi-part multi-line expressions *)
+      "if cond then\n\
+      \  print 1\n\
+      else\n\
+      \  print 2\n\
+      end",
+      `Return( ids ["if"; "cond"; "then"] @ [`BeginBlock]
+               @ ids ["print"; "1"] @ [`End]
+               @ [`EndBlock []; `Identifier "else"; `BeginBlock]
+               @ ids ["print"; "2"] @ [`End]
+               @ [`EndBlock []; `End] );
+      
+      (* fail if indent level is reduced too much *)
+      "main\n\
+      \  begin foo\n\
+      \    body\n\
+      next\n",
+      `Exception "Should fail because indent level is reduced too much";
+
+      "main blah\n\
+      \  nested\n\
+      \    body\n\
+      \  nested2\n\
+      end main",
+      `Exception "Should fail because \"nested\" has no end terminator";
     ]
 end
-
+  
 module IndentLexerTester = Tester(IndentLexerTestCase)
 
 let () = IndentLexerTester.runTestsAndPrintErrors()
