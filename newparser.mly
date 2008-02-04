@@ -34,8 +34,8 @@
   
 %token <string> IDENTIFIER
 %token END
-%token BLOCK_BEGIN
-%token <string list> BLOCK_END
+%token BEGIN_BLOCK
+%token <string list> END_BLOCK
 %token <int> WHITESPACE
 
 %start <Ast2.sexpr> main
@@ -43,9 +43,20 @@
 %%
 
 main:
-| WHITESPACE? id = IDENTIFIER WHITESPACE? END
+| WHITESPACE? expr = sexpr END
+    { expr }
+
+sexpr:
+| id = IDENTIFIER args = sexprArg*
+    {{ Ast2.id = id; args = args }}
+
+sexprArg:
+| WHITESPACE? id = IDENTIFIER
     { Ast2.idExpr id }
-    
+| BEGIN_BLOCK exprs = main* END_BLOCK
+    {{ Ast2.id = "seq"; args = exprs }}
+
+        
 /*
 main:
 | PAREN_OPEN e = sexpr PAREN_CLOSE

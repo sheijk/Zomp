@@ -7,8 +7,16 @@ type location = {
   line :int;
   fileName :string;
 }
-    
-type 'token lexbuf = {
+
+type token = [
+| `BeginBlock
+| `EndBlock of string list
+| `End
+| `Whitespace of int
+| `Identifier of string
+]
+
+type 'token lexerstate = {
   readChar : unit -> char;
   putbackString : string -> unit;
   mutable location : location;
@@ -16,8 +24,8 @@ type 'token lexbuf = {
   mutable pushedTokens : 'token list;
 }
 
-let returnMultipleTokens lexbuf first remaining =
-  lexbuf.pushedTokens <- remaining;
+let returnMultipleTokens state first remaining =
+  state.pushedTokens <- remaining;
   first
     
 let isNewline chr = chr = '\n'
@@ -32,14 +40,12 @@ let raiseUnknownToken loc str = raise (UnknowToken (loc, str))
 exception IndentError of location * string
 let raiseIndentError loc str = raise (IndentError (loc, str))
 
-type tokens = [ `Begin | `End ]
-
 let appendChar string char = string ^ String.make 1 char
   
-let readUntil abortOnChar lexbuf =
+let readUntil abortOnChar state =
   let acc = ref "" in
   let rec worker () =
-    let nextChar = lexbuf.readChar() in
+    let nextChar = state.readChar() in
     if abortOnChar nextChar then begin
       ()
     end else begin
@@ -53,23 +59,16 @@ let readUntil abortOnChar lexbuf =
   !acc
 
 
-type token =
-| BEGIN_BLOCK
-| END_BLOCK of string list
-| END
-| WHITESPACE of int
-| IDENTIFIER of string
-
 let whitespaceRE = Str.regexp " +"
 
 let rules =
   let re = Str.regexp in
   [
-    re "[a-zA-Z0-9.:]+", (fun str -> IDENTIFIER str);
-    whitespaceRE, (fun str -> WHITESPACE (String.length str));
+    re "[a-zA-Z0-9.:]+", (fun str -> `Identifier str);
+    whitespaceRE, (fun str -> `Whitespace (String.length str));
   ]
 
-let token (lexbuf : token lexbuf) : token =
+let token (lexbuf : token lexerstate) : token =
   let ruleBeginMatches string (regexp, _) =
     Str.string_partial_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
@@ -104,9 +103,9 @@ let token (lexbuf : token lexbuf) : token =
       let prevIndent = lexbuf.prevIndent in
       lexbuf.prevIndent <- indent;
       if indent = prevIndent then begin
-        END
+        `End
       end else if indent > prevIndent then begin
-        BEGIN_BLOCK
+        `BeginBlock
       end else if indent = prevIndent - 2 then begin
         let line = readUntil isNewline lexbuf in
         if isBlockEndLine line then begin
@@ -116,10 +115,10 @@ let token (lexbuf : token lexbuf) : token =
               | "end" :: args -> args
               | _ -> failwith "splitting block end line failed"
           in
-          returnMultipleTokens lexbuf END [END_BLOCK (endArgs line)]
+          returnMultipleTokens lexbuf `End [`EndBlock (endArgs line)]
         end else begin
           lexbuf.putbackString (line ^ "\n");
-          returnMultipleTokens lexbuf END [END_BLOCK []]
+          returnMultipleTokens lexbuf `End [`EndBlock []]
         end
       end else begin (* indent is more than one level less than in previous line *)
         raiseIndentError lexbuf.location
@@ -192,7 +191,7 @@ let printToken (lineIndent, indentNext) token =
       printf "%s" (String.make (4 * indent) ' ')
   in
   match token with
-    | END_BLOCK args ->
+    | `EndBlock args ->
         printIndent (lineIndent - 1);
         begin
           match args with
@@ -203,12 +202,12 @@ let printToken (lineIndent, indentNext) token =
     | _ as t ->
         printIndent lineIndent;
         match t with
-          | BEGIN_BLOCK ->
+          | `BeginBlock ->
               printf "{\n";
               lineIndent + 1, `Indent
-          | END -> printf "END\n"; lineIndent, `Indent
-          | IDENTIFIER str -> printf "%s" str; lineIndent, `DontIndent
-          | WHITESPACE length -> printf "_"; lineIndent, `DontIndent
+          | `End -> printf "`End\n"; lineIndent, `Indent
+          | `Identifier str -> printf "%s" str; lineIndent, `DontIndent
+          | `Whitespace length -> printf "_"; lineIndent, `DontIndent
           | _ -> failwith "match failure"
       
 let makeLexbuf fileName readCharFunc =
@@ -265,6 +264,22 @@ let lexbufFromString fileName string =
     
 (* Main --------------------------------------------------------------------- *)
 
+let dummymllexbuf = 
+  {
+    Lexing.refill_buff = (fun _ -> ());
+    lex_buffer = "";
+    lex_buffer_len = 0;
+    lex_abs_pos = 0;
+    lex_start_pos = 0;
+    lex_curr_pos = 0;
+    lex_last_pos = 0;
+    lex_last_action = 0;
+    lex_eof_reached = false;
+    lex_mem = [| |];
+    lex_start_p = Lexing.dummy_pos;
+    lex_curr_p = Lexing.dummy_pos;
+  }
+  
 let lexString str =
   let lexbuf = lexbufFromString "dummy.zomp" str in
   let rec worker acc =
@@ -379,7 +394,7 @@ end
 
 let tokenEqual l r =
   match l, r with
-    | WHITESPACE _, WHITESPACE _ -> true
+    | `Whitespace _, `Whitespace _ -> true
     | _, _ -> l = r
   
 module IndentLexerTestCase : CASE_STRUCT =
@@ -402,33 +417,33 @@ struct
 
   let testCases : (input * result) list =
     let ids stringList =
-      let idTokens = List.map (fun str -> (IDENTIFIER str :> token)) stringList in
-      Common.combineList (WHITESPACE 1) idTokens
+      let idTokens = List.map (fun str -> (`Identifier str :> token)) stringList in
+      Common.combineList (`Whitespace 1) idTokens
     in
     [
       (* simple one-line expressions *)
-      "var int y\n", `Return( ids ["var"; "int"; "y"] @ [END] );
-      "var int x", `Return( ids ["var"; "int"; "x"] @ [END] );
+      "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
+      "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );
 
       "first line\nsecond line\n",
-      `Return( [IDENTIFIER "first"; WHITESPACE 1; IDENTIFIER "line"; END;
-                IDENTIFIER "second"; WHITESPACE 1; IDENTIFIER "line"; END] );
+      `Return( [`Identifier "first"; `Whitespace 1; `Identifier "line"; `End;
+                `Identifier "second"; `Whitespace 1; `Identifier "line"; `End] );
       
       (* simple multi-line expressions *)
       "if a then\n\
       \  foobar\n\
       end",
-      `Return( ids ["if"; "a"; "then"] @ [BEGIN_BLOCK]
-               @ [IDENTIFIER "foobar"; END]
-               @ [END_BLOCK []; END] );
+      `Return( ids ["if"; "a"; "then"] @ [`BeginBlock]
+               @ [`Identifier "foobar"; `End]
+               @ [`EndBlock []; `End] );
       
       (* block end with tokens *)
       "foreach num IN primes\n\
       \  printLine num\n\
       end foreach num",
-      `Return( ids ["foreach"; "num"; "IN"; "primes"] @ [BEGIN_BLOCK]
-               @ ids ["printLine"; "num"] @ [END]
-               @ [END_BLOCK ["foreach"; "num"]; END] );
+      `Return( ids ["foreach"; "num"; "IN"; "primes"] @ [`BeginBlock]
+               @ ids ["printLine"; "num"] @ [`End]
+               @ [`EndBlock ["foreach"; "num"]; `End] );
 
       (* multi-part multi-line expressions *)
       "if cond then\n\
@@ -436,11 +451,11 @@ struct
       else\n\
       \  print 2\n\
       end",
-      `Return( ids ["if"; "cond"; "then"] @ [BEGIN_BLOCK]
-               @ ids ["print"; "1"] @ [END]
-               @ [END_BLOCK []; IDENTIFIER "else"; BEGIN_BLOCK]
-               @ ids ["print"; "2"] @ [END]
-               @ [END_BLOCK []; END] );
+      `Return( ids ["if"; "cond"; "then"] @ [`BeginBlock]
+               @ ids ["print"; "1"] @ [`End]
+               @ [`EndBlock []; `Identifier "else"; `BeginBlock]
+               @ ids ["print"; "2"] @ [`End]
+               @ [`EndBlock []; `End] );
       
       (* fail if indent level is reduced too much *)
       "main\n\

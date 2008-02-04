@@ -85,7 +85,8 @@ machine.c machine.ml: gencode machine.skel
 newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
 newparser.ml: newparser.mly ast2.cmo
 
-NEWPARSER_CMOS = common.cmo ast2.cmo newlexer.cmo newparser.cmo iexpr.cmo newparsertest.cmo
+NEWPARSER_CMOS = common.cmo ast2.cmo newlexer.cmo newparser.cmo\
+iexpr.cmo iexprtest.cmo newparsertest.cmo
 
 newparsertest: $(NEWPARSER_CMOS)
 	echo Building $@ ...

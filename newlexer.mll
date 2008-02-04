@@ -11,9 +11,9 @@ rule token = parse
   | '\n'
       { END }
   | '{'
-      { BLOCK_BEGIN }
+      { BEGIN_BLOCK }
   | '}'
-      { BLOCK_END( [] ) }
+      { END_BLOCK( [] ) }
   | eof
       { raise End_of_file }
   | [' ' '\t']+ as ws

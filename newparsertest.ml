@@ -21,9 +21,9 @@ let readBlock channel =
 let tokenToString = function
   | Newparser.END -> "`nl"
   | Newparser.IDENTIFIER id -> id
-  | Newparser.BLOCK_BEGIN -> "{"
-  | Newparser.BLOCK_END [] -> "}"
-  | Newparser.BLOCK_END params -> sprintf "}(%s)" (Common.combine ", " params)
+  | Newparser.BEGIN_BLOCK -> "{"
+  | Newparser.END_BLOCK [] -> "}"
+  | Newparser.END_BLOCK params -> sprintf "}(%s)" (Common.combine ", " params)
   | Newparser.WHITESPACE count -> String.make count '_'
       
 let () =
@@ -32,10 +32,20 @@ let () =
     let block = readBlock stdin in
     (* printf "block:\n%s---\n" block; *)
     let lexbuf = Lexing.from_string block in
+    let lexstate = Iexprtest.lexbufFromString "dummy.zomp" block in
+    let lexFunc (_ :Lexing.lexbuf) =
+      let iexprToken = Iexprtest.token lexstate in
+      match iexprToken with
+        | `End -> Newparser.END
+        | `BeginBlock -> Newparser.BEGIN_BLOCK
+        | `EndBlock args -> Newparser.END_BLOCK args
+        | `Whitespace count -> Newparser.WHITESPACE count
+        | `Identifier name -> Newparser.IDENTIFIER name
+    in
     begin try while true do
       (* let t = Newlexer.token lexbuf in *)
       (* printf "%s " (tokenToString t); *)
-      let expr = Newparser.main Newlexer.token lexbuf in
+      let expr = Newparser.main lexFunc lexbuf in
       printf "=>\n%s\n---\n" (Ast2.toString expr)
     done with
       | End_of_file -> ()
