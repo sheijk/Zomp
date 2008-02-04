@@ -1,4 +1,38 @@
 
+* TODO Misc
+
+** (foobar) is not parsed different from foobar
+
+Both will be parsed as { id = "foobar"; args = [] }
+This means calling a function with 0 args can't be distinguished from the function as a value
+
+foo bar <=> (op() foo bar)
+foo <=> (foo)
+
+Require all function calls to follow the form (call func args*)?
+The transform (op() f rest*) into (call f rest*) if f resolves to a function (pointer)
+and transform into (jux f rest*) else?
+
+*** Conflicts
+
+This will conflict with sequences:
+
+func void foo ()
+  f
+  1
+end
+
+would be (func void foo () (jux f 1))
+
+Resolve using {}?
+
+func void foo {
+  f
+  1
+}
+
+<=> (func void foo () {seq f 1})
+
 * TODO Significant indentation
 
 ** Trivial case
@@ -32,7 +66,10 @@ end if
 
 Parsing is ambigous in this case
 
-*** TODO Use a special marker to begin multi-line expressions?
+*** DONE Use a special marker to begin multi-line expressions?
+    CLOSED: [2008-01-28 Mon 02:38]
+
+Solution: rejected. Use end markers instead, see below
 
 if: foo
   print 1
@@ -41,7 +78,10 @@ else
   print 0
 end if
 
-*** TODO require terminators for all multi-line expressions?
+*** DONE require terminators for all multi-line expressions?
+    CLOSED: [2008-01-28 Mon 02:38]
+
+Solution: accepted.
 
 if a > b
   print 1
@@ -64,7 +104,8 @@ func foo(int a, int b) -> int =
 end func
 
 *** DONE Use extra indentation?
-Solution: no
+
+Solution: rejected. Is cumbersome and too far away from other languages
 
 if(a > b)
   print 1
@@ -81,6 +122,7 @@ if( a > b )
 
 *** DONE Change AST?
     CLOSED: [2008-01-16 Wed 01:31]
+
 Solution: No. Requires to much changes in core language, unclear implications on the toplevel etc.
 
 (foo a)
@@ -108,7 +150,7 @@ What would the advantage be?
 
 *** TODO How to split a line into multiple lines?
 
-Backslash at end of file?
+Backslash at end of line?
 
 this is some freaking\
 long line
@@ -145,15 +187,45 @@ let foo =
 
 ** TODO which operators to support?
 
-*** all common math symbols
-+,-,*,/,...
+*** TODO all common math symbols
 
-*** custom operators?
+Solution: accepted. Reasons are obvious ;)
 
-*** _id for alternatives (subscript like)
-+_f, *_dot
++,-,*,/
+a ** b <=> power
 
-*** any combination?
+*** TODO Boolean operators
+
+!, &, |
+&&, ||
+
+xor?
+
+*** TODO Parentheses?
+
+() for grouping / flexible
+{} for s-expressions
+<> for m-expressions
+
+*** DONE custom operators?
+    CLOSED: [2008-01-28 Mon 02:58]
+
+Solution: rejected. Makes parsing and reading source harder because the whole context must be known
+
+Allow definition of new operators by the programmer?
+
+*** DONE _id for alternatives (subscript like)
+    CLOSED: [2008-01-28 Mon 02:58]
+
+Solution: accepted. Extending the set of operators can be useful in many cases (e.g. *_dot, *_cross for vector dot and cross product etc.)
+
+ +_f, *_dot
+
+*** DONE any combination?
+    CLOSED: [2008-01-28 Mon 03:04]
+
+Problem: Will cause conflicts with builtin operators. Consider >> and >* etc. Allowing any operator combination also means no new bultin operators with different precendence can be introduced. Also operator postfixes have similar features without the drawbacks.
+
 ++, +-, +*, +'
 // has precedence like the first component (above all have same precedence as +)
   // conflicts with expectations of c programmers
@@ -162,14 +234,24 @@ let foo =
   // user needs to know standard operators
   // adding operators to the language later on causes problems
 
-*** latex style operators?
+*** DONE latex style operators?
+
+Solution: maybe later
+
 \sum, \concat
 
-*** CAPS operators?
+*** DONE CAPS operators?
+
+Solution: rejected. Constants are often spelled in CAPS (OpenGL enums etc.) and interpreting all CAPS identifiers as operators would cause conflicts here
+
 SUM CONCAT
+Render them using unicode characters when available?
+
+Might conflict with names of user identifiers like vars and functions. Would require handling all CAPS identifiers as operators. Conflicts with common practice of naming constants in CAPS (like OpenGL does).
 
 ** DONE juxtaposition has highest priority
-Solution: yes ;)
+
+Solution: accepted.
 
 foo a + bar b
 (op+ (foo a) (bar b))
@@ -177,16 +259,10 @@ foo a + bar b
 print 1 + 2
 (op+ (print 1) 2)
 
-** TODO require white space between operators and symbols?
+** DONE require white space between operators and symbols?
+   CLOSED: [2008-01-28 Mon 03:09] 
 
-(a b)
-
-foo.(a, b)
-
-(/foo a b/)
-.(foo a b)
-
-[foo a b]
+Solution: rejected. There is no need for it and it interferes with coding styles unnecessarily.
 
 ** TODO Special support for first id of expression?
 
@@ -202,16 +278,23 @@ let a + b = baz
 
 func x + y : int = ...
 
-**** Solve by lisp-style set/=?
+*** Solve by lisp-style set/=?
 
 macroOverload (op= l r) ...
 macroOverload (op= (let $foo) $bar) ...
 
-**** Use a postfix for different parsing?
+*** Use a postfix for different parsing?
 
 let! x + y = plus( x, y ) <=> (let (op= (op+ x y) (plus x y)))
 
-**** Reuse foo: notation from significant indent?
+or
+
+let: x + y = plus( x, y )
+
+*** DONE Reuse foo: notation from significant indent?
+     CLOSED: [2008-01-28 Mon 02:47]
+
+Solution: rejected. foo: notation will not be used for multi line iexprs so this question does not arise anymore
 
 let: will not start a multi-line block if next line is not indented?
 
@@ -241,7 +324,10 @@ let: foo = bar
 
 
 
-** TODO Operators at the beginning/end of expressions?
+** DONE Operators at the beginning/end of expressions?
+   CLOSED: [2008-01-28 Mon 03:11]
+
+Solution: maybe later. The feature can be added later without causing any conflicts
 
 (10 +)
 (+ 10)
@@ -251,13 +337,29 @@ Syntax error?
 (+ 10)?
 how to differentiate?
 
-** DONE dot notation
+** TODO dot notation
 
 // equivalent
 2.pow 3
 pow 2 3
 
 1.upto 10 codeBlock
+
+*** what may be written left and right of dot?
+
+(getPrinter(console)).print(10)
+
+foo.(*funcPtr)(a, b c)
+
+foo.bar.baz(x, y, z)
+
+*** what precedence?
+
+print foo.size 10 <=> (print foo.size 10) | (print (foo.size 10))
+
+Possible solution:
+print foo.size() 10 <=> (print (foo.size) 10)
+print foo.size 10 <=> (print foo.size 10)
 
 * TODO s-expressions versus m-expressions
 

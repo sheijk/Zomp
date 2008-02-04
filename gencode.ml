@@ -704,10 +704,11 @@ struct
     "float", "";
     "double", "";
     "bool", "";
+    "char", "";
   ]
 
   exception TypeNotSupported of string
-
+    
   let rec isSupportedPrimitiveType name =
     try
       ignore( List.assoc name supportedTypes );

@@ -44,7 +44,7 @@ let catchingErrorsDo f ~onError =
     | CatchedError msg ->
 (*         printf "%s" msg; *)
         onError msg
-
+          
 let compileExpr translateF bindings sexpr =
   let newBindings, simpleforms =
     collectTimingInfo "generating ast"

@@ -1,5 +1,10 @@
 
 * To be sorted
+** TODO [#A] is ascii enough or should zomp use unicode (more operators etc.)?
+** TODO [#A] allow replacing parts of libraries
+** TODO [#A] versioned packages
+** TODO [#A] compileperf.zomp  mit 16k funktionen profilen
+** TODO [#A] support abstract types (which may be only used through pointers)
 ** TODO [#A] check for off-by-one error in shbase function calculation
 ** TODO [#A] error on redefining vars
 ** TODO [#A] warnings on unused variables
@@ -26,7 +31,7 @@
 ** TODO [#A] complete enum.zomp
 ** TODO [#A] parse logical ops &, |, &&, ||
 ** TODO [#A] better error message on `(ret `(...)) in macro
-** TODO [#A] hightlight '"' correctly in emacs (don't interpret this as the beginning of a string)
+** TODO [#A] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
 ** TODO [#A] support "\"" in strings
 ** TODO [#A] framebuffer cleanup/releasing code
 
@@ -641,6 +646,23 @@ Similarily, the relation of security levels between function's arguments and par
 Might allow to do flow analysis.
 See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
        
+** Packages / Projects
+*** compilation model
+*** packages
+*** project layout
+one toplevel file, drawing in all libs, settings etc.
+
+project.zomp
+
+  application RadiositySolver
+
+  libpath ./extlib
+  require ./extlib/*
+  replaceLib std.strings with extlib.unicodeStrings
+
+  sourcepath ./src
+  sources
+    src/utils/*.zomp
 
 * Footer
 

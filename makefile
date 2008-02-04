@@ -139,6 +139,9 @@ deps.dot deps.png: makefile.depends
 	echo Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
 
+glfw.zomp: gencode
+opengl20.zomp: gencode
+
 CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml
 
 makefile.depends: $(CAMLDEP_INPUT)

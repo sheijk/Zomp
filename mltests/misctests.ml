@@ -24,4 +24,21 @@ type composed = [
 ]
     
 
-    
+let canBeDivided num div = (num / div) * div = num
+  
+let isPrime num =
+  let rec worker = function
+    | div when div <= 1 -> true
+    | div when canBeDivided num div -> false
+    | div -> worker (div - 1)
+  in
+  if num <= 1 then false
+  else worker (num / 2)
+
+let rec fromto lower upper =
+  if lower <= upper then lower :: fromto (lower+1) upper
+  else []
+
+let (>>>) = fromto
+
+  

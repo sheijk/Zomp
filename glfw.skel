@@ -195,7 +195,7 @@ GLFW_2_5
 	int glfwOpenWindow (int width, int height, int redbits, int greenbits, int bluebits, int alphabits, int depthbits, int stencilbits, int mode)
 	void glfwOpenWindowHint (int target, int hint)
 	void glfwCloseWindow ()
-	void glfwSetWindowTitle (const char* title)
+	void glfwSetWindowTitle (char* title)
 	void glfwGetWindowSize (int* width, int* height)
 	void glfwSetWindowSize (int width, int height)
 	void glfwSetWindowPos (int x, int y)
@@ -232,7 +232,7 @@ GLFW_2_5
 	void glfwSetTime (double time)
 	void glfwSleep (double time)
 
-	int glfwExtensionSupported (const char* extension)
+	int glfwExtensionSupported (char* extension)
 #	void* glfwGetProcAddress (const char* procname)
 	void glfwGetGLVersion (int* major, int* minor, int* rev)
 
@@ -257,7 +257,7 @@ GLFW_2_5
 
 #	int glfwReadImage (const char* name, GLFWimage* img, int flags)
 #	void glfwFreeImage (GLFWimage* img)
-	int glfwLoadTexture2D (const char* name, int flags)
+	int glfwLoadTexture2D (char* name, int flags)
 
-    int glfwcLoadTexture (int target, const char* name, int flags)
+    int glfwcLoadTexture (int target, char* name, int flags)
     
