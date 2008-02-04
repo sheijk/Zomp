@@ -25,6 +25,9 @@ let tokenToString = function
   | Newparser.END_BLOCK [] -> "}"
   | Newparser.END_BLOCK params -> sprintf "}(%s)" (Common.combine ", " params)
   | Newparser.WHITESPACE count -> String.make count '_'
+  | Newparser.OPEN_PAREN -> "("
+  | Newparser.CLOSE_PAREN -> ")"
+  | Newparser.COMMA -> ","
       
 let () =
   let rec parse() =
@@ -41,6 +44,9 @@ let () =
         | `EndBlock args -> Newparser.END_BLOCK args
         | `Whitespace count -> Newparser.WHITESPACE count
         | `Identifier name -> Newparser.IDENTIFIER name
+        | `OpenParen -> Newparser.OPEN_PAREN
+        | `CloseParen -> Newparser.CLOSE_PAREN
+        | `Comma -> Newparser.COMMA
     in
     begin try while true do
       (* let t = Newlexer.token lexbuf in *)

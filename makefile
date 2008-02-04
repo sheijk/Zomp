@@ -23,7 +23,7 @@ CXX_FLAGS=-pg -g
 # CXX_FLAGS=
 
 CAML_LIBS = str.cma bigarray.cma
-LANG_CMOS = common.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
+LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png
 libbindings: gencode opengl20.zomp glfw.zomp
@@ -85,7 +85,7 @@ machine.c machine.ml: gencode machine.skel
 newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
 newparser.ml: newparser.mly ast2.cmo
 
-NEWPARSER_CMOS = common.cmo ast2.cmo newlexer.cmo newparser.cmo\
+NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newlexer.cmo newparser.cmo\
 iexpr.cmo iexprtest.cmo newparsertest.cmo
 
 newparsertest: $(NEWPARSER_CMOS)
@@ -93,7 +93,7 @@ newparsertest: $(NEWPARSER_CMOS)
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(NEWPARSER_CMOS)
 
 testnewparser: $(NEWPARSER_CMOS)
-	$(OCAML) str.cma bigarray.cma common.cmo iexpr.cmo iexprtest.ml
+	$(OCAML) str.cma bigarray.cma common.cmo testing.cmo iexpr.cmo iexprtest.ml
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
@@ -160,7 +160,7 @@ opengl20.zomp: gencode
 CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml\
 genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll\
 sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml\
-iexpr.ml iexprtest.ml newparsertest.ml
+iexpr.ml iexprtest.ml newparsertest.ml testing.ml
 
 makefile.depends: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...

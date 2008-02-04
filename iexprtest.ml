@@ -8,13 +8,20 @@ type location = {
   fileName :string;
 }
 
-type token = [
+type indentToken = [
 | `BeginBlock
 | `EndBlock of string list
 | `End
 | `Whitespace of int
-| `Identifier of string
 ]
+
+type userToken = [
+| `Identifier of string
+| `OpenParen | `CloseParen
+| `Comma
+]
+
+type token = [ indentToken | userToken ]
 
 type 'token lexerstate = {
   readChar : unit -> char;
@@ -63,9 +70,18 @@ let whitespaceRE = Str.regexp " +"
 
 let rules =
   let re = Str.regexp in
+  let stringRule str token = 
+    re str,
+    (fun matchedStr -> 
+       assert( str = matchedStr );
+       token)
+  in
   [
     re "[a-zA-Z0-9.:]+", (fun str -> `Identifier str);
     whitespaceRE, (fun str -> `Whitespace (String.length str));
+    stringRule "(" `OpenParen;
+    stringRule ")" `CloseParen;
+    stringRule "," `Comma;
   ]
 
 let token (lexbuf : token lexerstate) : token =
@@ -322,80 +338,13 @@ let () =
 
 (* Tests -------------------------------------------------------------------- *)
 
-module type CASE_STRUCT = sig
-  type input
-  type output
-
-  val printInput : input -> unit
-  val printOutput : output -> unit
-
-  val outputEqual : output -> output -> bool
-
-  type result = [ `Return of output | `Exception of string ]
-
-  val testedFunc : input -> output
-  val testCases : (input * result) list
-end
-
-module Tester(Cases :CASE_STRUCT) = struct
-  include Cases
-    
-  type error = {
-    input :input;
-    found :result;
-    expected :result;
-  }
-
-  let printResult = function
-    | `Return output -> printOutput output
-    | `Exception msg -> printf "Exception '%s'" msg
-
-  let error ~input ~found ~expected =
-    `Error {
-      input = input;
-      found = found;
-      expected = expected
-    }
-
-  let runTestCase (input, expected) =
-    let found = 
-      try
-        `Return (testedFunc input)
-      with _ as exc ->
-        `Exception (Printexc.to_string exc)
-    in
-    match expected, found with
-      | `Exception _, `Exception _ ->
-          `Ok found
-      | `Return expectedVal, `Return foundVal ->
-          if (outputEqual expectedVal foundVal) then
-            `Ok found
-          else
-            error ~input ~found ~expected
-      | _, _ ->
-          error ~input ~found ~expected
-
-  let runTests () : error list =
-    let results = List.map runTestCase testCases in
-    let errors = Common.mapFilter (function `Error e -> Some e | _ -> None) results in
-    errors
-
-  let runTestsAndPrintErrors() =
-    let printError error =
-      printf "\n--- UnitTest Failure ---\n";
-      printf "Input: '\n"; printInput error.input; printf "'\n";
-      printf "Expected: '\n"; printResult error.expected; printf "'\n";
-      printf "Found: '\n"; printResult error.found; printf "'\n";
-    in
-    List.iter printError (runTests())
-      
-  exception UnitTestFailure of error list
-end
 
 let tokenEqual l r =
   match l, r with
     | `Whitespace _, `Whitespace _ -> true
     | _, _ -> l = r
+
+open Testing
   
 module IndentLexerTestCase : CASE_STRUCT =
 struct

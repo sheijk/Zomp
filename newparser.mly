@@ -38,24 +38,62 @@
 %token <string list> END_BLOCK
 %token <int> WHITESPACE
 
+%token OPEN_PAREN
+%token CLOSE_PAREN
+%token COMMA
+
+
 %start <Ast2.sexpr> main
 
 %%
 
 main:
-| WHITESPACE? expr = sexpr END
+| expr = sexpr END
+    { expr }
+| expr = mexpr END
+    { expr }
+| expr = opexpr END
     { expr }
 
+    
 sexpr:
-| id = IDENTIFIER args = sexprArg*
-    {{ Ast2.id = id; args = args }}
+| WHITESPACE? id = IDENTIFIER
+    { Ast2.idExpr id }
+| WHITESPACE? id = IDENTIFIER args = sexprArg+
+    {{ Ast2.id = "opjux"; args = Ast2.idExpr id :: args }}
 
 sexprArg:
 | WHITESPACE? id = IDENTIFIER
     { Ast2.idExpr id }
-| BEGIN_BLOCK exprs = main* END_BLOCK
-    {{ Ast2.id = "seq"; args = exprs }}
+| WHITESPACE? OPEN_PAREN expr = sexpr CLOSE_PAREN
+    { expr }
+| WHITESPACE? BEGIN_BLOCK exprs = main* END_BLOCK
+    {{ Ast2.id = "opseq"; args = exprs }}
 
+    
+mexpr:
+| WHITESPACE? id = IDENTIFIER OPEN_PAREN args = separated_list(COMMA, mexprArg) CLOSE_PAREN
+    {{ Ast2.id = "opjux"; args = Ast2.idExpr id :: args }}
+
+mexprArg:
+| WHITESPACE? id = IDENTIFIER WHITESPACE?
+    { Ast2.idExpr id }
+
+    
+opexpr:
+| args = seplist2(COMMA, opexprArg)
+    {{ Ast2.id = "op,"; args = args }}
+
+opexprArg:
+| WHITESPACE? id = IDENTIFIER WHITESPACE?
+    { Ast2.idExpr id }
+
+    
+seplist2(SEP, X):
+| l = X SEP r = X
+    { [l; r] }
+| x = X SEP rem = seplist2(SEP, X)
+    { x :: rem }
         
 /*
 main:
