@@ -2,6 +2,7 @@ OCAMLPATH=
 OCAMLLEX=$(OCAMLPATH)ocamllex
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
+OCAML=$(OCAMLPATH)ocaml
 OCAMLC=$(OCAMLPATH)ocamlc -dtypes -warn-error A
 OCAMLOPT=$(OCAMLPATH)ocamlopt -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
@@ -79,6 +80,19 @@ gencode: gencode.cmo gencode.ml
 machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
 	./gencode machine
+
+
+newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
+newparser.ml: newparser.mly ast2.cmo
+
+NEWPARSER_CMOS = common.cmo ast2.cmo newlexer.cmo newparser.cmo iexpr.cmo newparsertest.cmo
+
+newparsertest: $(NEWPARSER_CMOS)
+	echo Building $@ ...
+	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(NEWPARSER_CMOS)
+
+testnewparser:
+	$(OCAML) str.cma bigarray.cma common.cmo iexpr.cmo iexprtest.ml
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...

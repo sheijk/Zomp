@@ -269,42 +269,8 @@ let printLines clines =
   printIndentBlock returnedToOften 0 clines;
   List.rev !result
 
-
-(* Main --------------------------------------------------------------------- *)
-    
-let () =
-  let sourceFile = "indent.zomp" in
-
-  let lines = readLines sourceFile in
+let addParens lines =
   let classifiedLines = classifyIndent lines in
-  printIndentInfo classifiedLines;
   let lines = printLines classifiedLines in
-  List.iter (printf "%s") lines;
+  lines
   
-  ()
-
-
-(* Tests -------------------------------------------------------------------- *)
-
-let () =
-  let testCases = [
-    "iff", "end", true;
-    "iff", "end iff", true;
-    "iff", "end wrong", false;
-    "iff", "end iff  ", true;
-    "iff", "end iff blah", false;
-    "iff", "end   iff", true;
-  ] in
-  
-  printf "\n";
-  let boolToString b = if b then "true" else "false" in
-  let errorOccured = ref false in
-  let testF (blockName, line, shallEnd) =
-    if shallEnd != (line =~ blockEndRE blockName) then begin
-      errorOccured := true;
-      printf "Failure in blockEndRE:\n  Input = %s\n  Expected = %s\n  Found = %s\n"
-        (sprintf "%s, '%s'" blockName line) (boolToString shallEnd) (boolToString (not shallEnd))
-    end
-  in
-  List.iter testF testCases
-    

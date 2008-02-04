@@ -95,6 +95,8 @@ let rec expression2string sexpr =
           ^ Common.combine "\n" (List.map (Common.indent ++ expression2string) seqArgs) ^ " )")
     | `LongExpr childs ->
         "(" ^ Common.combine "\n" (idString :: List.map Common.indent childs) ^ " )"
+
+let toString = expression2string
   
 (* let rec expression2string = function *)
 (*   | { id = ""; args = [] } -> "()" *)

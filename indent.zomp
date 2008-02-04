@@ -1,27 +1,41 @@
+var int   x
+
+
 
 var int x 10
 var int y 20
 var int z 30
 
-func int main ()
-  print "hello"
+func int main
+  print hello
   ret 0
+end
 
-    
+if cond then
+  print 1
+else
+  print 2
+end if
 
-
+outer block
+  first line
+  inner block
+    nested level 2
+  end inner
+end outer
 
 class Foo
   method bar
     do stuff
     mode stuff
+  end
 
   method baz
     do things
-
+  end
 end
 
-if: condition true
+if condition true
   print 1
 else if cond2
   print 4
@@ -29,7 +43,9 @@ else if cond2
 else
   print 2
 end if
-  
+
+!
 let: x + y = plus x y
 let: 10 = 20
+
 
