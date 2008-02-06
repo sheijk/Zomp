@@ -738,7 +738,7 @@ Conventions for function names:
 /// in cube map textures of resolution size
 (func GLuint_ptr shBaseFuncCubeTextures ((int maxL) (int size)) (
   (const float sizef (int.toFloat size))
-  
+
   (var (ptr float3) edges (arrayOfFuncs float3
     (float3:init this -1. -1. 1.)
     (float3:init this  1. -1. 1.)
@@ -750,7 +750,7 @@ Conventions for function names:
     (float3:init this  1.  1. -1.)
     (float3:init this -1.  1. -1.)
     ))
-
+  
   (var (ptr (ptr int)) edgeIndices (arrayOf (ptr int)
     (arrayOf int 1 5 6 2)
     (arrayOf int 4 0 3 7)
@@ -773,10 +773,10 @@ Conventions for function names:
   //   (const int textureCount (sh:index maxL maxL + 1))
   (var (ptr GLuint) textures (malloc int textureCount))
   (glGenTextures textureCount textures)
-
+              
   (var int l 0)
   (var int m 0)
-
+              
   (printString "maxL = ") (printInt maxL) (println)
   (printString "textureCount = ") (printInt textureCount) (println)
 
@@ -814,7 +814,7 @@ Conventions for function names:
             (shval = 0.5 *_f shval +_f 0.5)
             (var (ptr float) sidePixels (ptradd pixels (size * size * sideNum * 4)))
             (const int pixelNum (y * size + x))
-            (shval = array:get colors sideNum)
+            // (shval = array:get colors sideNum)
             (array:set sidePixels (4*pixelNum + componentNum) shval)
             ))
           ))
@@ -987,7 +987,7 @@ Conventions for function names:
       products2.x + products2.y + products2.z + products2.w +
       products3.x + products3.y + products3.z + products3.w;
 
-      //       float shVal = shvals3.g;
+      // shVal = 0.5;
       if( shVal > 0.0 ) {
         gl_FragColor = vec4( 0.0, shVal, 0.0, 1.0 );
         }
@@ -1018,7 +1018,7 @@ Conventions for function names:
 
   (template addToField name value
     (setField this #name (getField this #name +_f #value)) )
-  
+
   (onKey GLFW_KEY_LEFT
     (addToField longitude (seconds *_f float.neg rotationSpeed)) )
   (onKey GLFW_KEY_RIGHT
@@ -1134,6 +1134,16 @@ Conventions for function names:
   (capsPrintInt "max texture size = " GL_MAX_TEXTURE_SIZE)
   ))
 
+(func int rand ())
+
+(func int random ((int max)) (
+  (ret (int.srem (rand) max))
+  ))
+  
+(template frand ((int.toFloat (int.sub (random 30) 15))))
+(template unitRandf ((int.toFloat (random 1025)) /_f 1024.0))
+(template sunitRandf ((int.toFloat (random 2049 - 1024)) /_f 1024.0))
+
 (func int main () (
   (init)
 
@@ -1183,7 +1193,7 @@ Conventions for function names:
       (ift (isPressed key) (
         (const int oldL l)
         (const int oldM m)
-        (array:set coeffs (sh:index oldL oldM) 0.0)
+        // (array:set coeffs (sh:index oldL oldM) 0.0)
         
         (if (isPressed GLFW_KEY_LSHIFT)
           (l = key - GLFW_KEY_0)
@@ -1198,9 +1208,19 @@ Conventions for function names:
           ((printString "l = ") (printInt l) (println)) )
         (ift (m != oldM)
           ((printString "m = ") (printInt m) (println)) )
+
+        (ift (bool.or (l != oldL) (m != oldM)) (
+          (array:set coeffs (sh:index oldL oldM) 0.0)
+          (array:set coeffs (sh:index l m) 1.0)
+          ))
         ))
       ))
-    (array:set coeffs (sh:index l m) 1.0)
+
+    (onKey GLFW_KEY_R
+      (for coeffNum2 0 shbaseCubemapCount (
+        (array:set coeffs coeffNum2 (unitRandf))
+        ))
+      )
     
     (clear 0. 0. 0. 1.)
 
