@@ -108,6 +108,11 @@
   (glUniform4f loc a b c d)
   ))
 
+(func void gl:uniform3f((GLuint shader) (cstring name) (float a) (float b) (float c)) (
+  (const GLuint loc (glGetUniformLocation shader name))
+  (glUniform3f loc a b c)
+  ))
+
 (func void gl:uniform4fv((GLuint shader) (cstring name) ((ptr float) vals)) (
   (const GLuint loc (glGetUniformLocation shader name))
   (glUniform4fv loc 1 vals)

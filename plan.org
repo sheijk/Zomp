@@ -1,42 +1,7 @@
+#+SEQ_TODO: TODO DONE
 
 * To be sorted
-** TODO [#A] support for GL_RGBA32F_ARB etc.
-** TODO [#A] iexprtest.ml: does worker in token use stringAcc at all?
-** TODO [#A] ' as operator for implicit conversions like: append string1 'char => append string1 (toString char)?
-** TODO [#A] is ascii enough or should zomp use unicode (more operators etc.)?
-** TODO [#A] allow replacing parts of libraries
-** TODO [#A] versioned packages
-** TODO [#A] compileperf.zomp  mit 16k funktionen profilen
-** TODO [#A] support abstract types (which may be only used through pointers)
-** TODO [#A] check for off-by-one error in shbase function calculation
-** TODO [#A] error on redefining vars
-** TODO [#A] warnings on unused variables
-** TODO [#A] research: composable type systems
-** TODO [#A] research: macros and formal verification
-** TODO [#A] allow uninitialized vars
-** TODO [#A] allow (var foo x) where the type of var is propagated
-** TODO [#A] glfw bindings auf 2.6 updaten
-** TODO [#A] macro/function to check whether running in toplevel
-** TODO [#A] smarter ,,: turn (foo bar),, into ((foo bar) 
-** TODO [#A] constants for float nan, pos & neg infinity
-** TODO [#A] better error reporting on immediate code execution in toplevel
-** TODO [#A] emacs: backspace should delete autoinserted text in one step
-** TODO [#A] also auto-insert // on newline
-** TODO [#A] stringlit / op""
-** TODO [#A] macros to get current file/line/column
-** TODO [#A] remove new macro in glutils, replace by new macro from shprog (move it to stdlib)
-** TODO [#A] add (ret void) to end of immediate functions in toplevel
-** TODO [#A] llvm assertion error on record argument
-** TODO [#A] support toplevel/static expressions which will be moved from inside a function to the top level
-** TODO [#A] parse (a b c) int (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
-** TODO [#A] protect against recursive macro invocations
-** TODO [#A] allow record with only 1 field
-** TODO [#A] complete enum.zomp
-** TODO [#A] parse logical ops &, |, &&, ||
-** TODO [#A] better error message on `(ret `(...)) in macro
-** TODO [#A] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
-** TODO [#A] support "\"" in strings
-** TODO [#A] framebuffer cleanup/releasing code
+** TODO [#A] implicit arguments for macros (source location from where it was invoked etc.)
 
 * Tasks											:zomp:
   
@@ -79,11 +44,20 @@ in function returning (ptr ast) is not accepted
     CLOSED: [2007-11-04 Sun 19:51]
 
 ** Design issues
-*** TODO [#A] change ast representation? need a way to distinguish func and (func)															  :zomp:
+*** DONE [#A] change ast representation? need a way to distinguish func and (func) :zomp:
+    CLOSED: [2008-02-16 Sat 18:36]
+    (foo bar) => (jux foo bar)
+    Will be part of new parser
+
 *** TODO [#B] support for const, const T* etc.?
-*** [#B] Turn more things into expressions
+
+*** TODO [#B] Turn more things into expressions
 **** TODO if is not an expression
 **** TODO Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
+
+*** TODO [#C] place all external c functions in 'c' namespace
+   Export only functions defined in c namespace?
+   Rename all other functions(?) like zomp_${name}
 
 ** Fix language quirks
 
@@ -98,6 +72,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     CLOSED: [2007-12-06 Thu 02:01]
     
 *** TODO [#A] macros need a way to signal errors
+    Repeat (compiler:error ...)?
 
 *** TODO [#B] can't send antiquote to macro
   (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
@@ -177,12 +152,33 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 ** Parser
 
+*** TODO [#B] iexprtest.ml: does worker in token use stringAcc at all?
+*** TODO [#A] parse (a b c) int (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
+*** TODO [#B] support "\"" in strings
 *** TODO [#A] add += -= *= /= etc. operators
+*** TODO [#A] parse logical ops &, |, &&, ||
 *** TODO [#A] / should be left associative: a / b / c => (a / b) / c	   :bug:
 *** TODO [#B] parser: keep track of line and char number and add this to error messages
 
 ** Compiler
 
+*** TODO [#A] allow uninitialized vars
+*** TODO [#A] allow (var foo x) where the type of var is propagated
+*** TODO [#A] error on redefining vars
+*** TODO [#A] warnings on unused variables
+*** TODO [#B] compileperf.zomp  mit 16k funktionen profilen
+*** TODO [#A] support abstract types (which may be only used through pointers)
+*** TODO [#A] rename local macros
+*** TODO [#A] constants for float nan, pos & neg infinity
+*** TODO [#A] stringlit / op""
+
+    macro stringlit string
+      static var (ptr char) stringStorage string
+      stringStorage
+
+*** TODO [#B] llvm assertion error on record argument
+*** TODO [#A] support toplevel/static expressions which will be moved from inside a function to the top level
+*** TODO [#B] allow record with only 1 field
 *** TODO [#A] convert char to int / float
 *** TODO [#A] (var (ptr float) foo) => better error message instead of expr: /0/ :bug:
 *** TODO [#A] support records as first class var types
@@ -243,9 +239,14 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Interactive toplevel
    
+*** TODO [#A] better error reporting on immediate code execution in toplevel
+*** TODO [#A] macro/function to check whether running in toplevel
+*** TODO [#A] add (ret void) to end of immediate functions in toplevel
 *** TODO [#B] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
 *** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:
-*** TODO [#A] allow immediate execution of code
+*** DONE [#A] allow immediate execution of code
+    CLOSED: [2008-02-12 Tue 02:52]
+
 *** TODO [#B] proper error reporting when function/macro is redefined with different parameter count/types
 *** TODO [#B] let toplevel send feedback to emacs + handle errors (abort eval etc.)
 
@@ -294,6 +295,14 @@ check whether this makes IR-verification faster / prevent bugs / ...
     
 ** Emacs support
 
+*** TODO [#A] correctly indent }
+*** TODO [#B] zomp: fast doc lookup
+*** TODO [#B] emacs: backspace should delete autoinserted text in one step
+*** TODO [#B] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
+*** TODO [#B] also auto-insert // on newline
+*** TODO [#B] /// <enter> <backspace> -> remove inserted ///
+*** TODO [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
+*** TODO [#C] alt-k => mark current word first, then sexpr
 *** TODO [#C] emacs: navigate to error caused by evaluating code in toplevel
 *** TODO [#C] fix wrong promts in emacs inferior zomp mode
 *** TODO [#C] emacs indenting: ignore parens in comments
@@ -328,6 +337,9 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Macros
    
+*** TODO [#C] hygienic macros: ast* qualify(ast*, bindings) will fully qualify all identifiers in the given ast
+*** TODO [#A] better error message on `(ret `(...)) in macro
+*** TODO [#A] protect against recursive macro invocations
 *** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c)
     (at least if foo does not have any arguments)
 *** TODO [#B] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
@@ -359,6 +371,14 @@ Put macro functions into seperate module
      
 ** Language / APIs
 
+*** TODO [#B] framebuffer cleanup/releasing code
+*** TODO [#C] check for off-by-one error in shbase function calculation
+*** TODO [#A] rename "template" to "rewrite"
+*** TODO [#C] glfw bindings auf 2.6 updaten
+*** TODO [#A] support for GL_RGBA32F_ARB etc.
+*** TODO [#A] remove new macro in glutils, replace by new macro from shprog (move it to stdlib)
+*** TODO [#A] complete enum.zomp
+*** TODO [#B] macros to get current file/line/column
 *** TODO [#A] API for code analysis
     Get information about an expression: types etc.
     (can be used for type propagation)
@@ -562,6 +582,13 @@ Is anything special needed?
     
 *** TODO [#C] support break in loops
 
+*** TODO [#C] Specify exceptions using attributes?
+
+    file = @(cfa:disable fileIsOpen) openFile "foo"
+
+*** TODO [#A] allow replacing parts of libraries
+*** TODO [#A] versioned packages
+
 *** DONE [#A] template
     CLOSED: [2007-11-24 Sat 20:12]     
     Implemented as macro
@@ -597,6 +624,7 @@ lowmp
 zoml - zero overhead meta language
 0mp
 roomp
+zump
 
 ** Type annotations
 Annotate types using meta data?
@@ -643,11 +671,37 @@ automatically check embedded examples in documentation for correctness
 *** Generic types
 *** How much in kernel language, how much as macros?
      
+*** research: macros and formal verification
+
 *** Security level
 A variable a has an associated security level l(a). Writing a := b requires l(b) >= l(a).
 Similarily, the relation of security levels between function's arguments and parameters can be declared.
 Might allow to do flow analysis.
 See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
+
+*** linear types?
+
+*** control flow analysis
+
+cfa:invariant bool fileIsOpen
+  require false on: ret message: "File should be closed"
+  set true on io:openFile
+  set false on io:closeFile
+end
+
+func foo()
+  file = openFile "blah" (1)
+  if( cond )
+    closeFile
+  else
+    do stuff // (2)
+  end
+end func
+
+=>
+
+Error:dummy.zomp:(2): File should be closed
+  cfa:invariant fileIsOpen set to true on line (1), expected to be false on ret
        
 ** Packages / Projects
 *** compilation model

@@ -1,7 +1,9 @@
 
 * TODO Misc
-
-** (foobar) is not parsed different from foobar
+ 
+** DONE (foobar) is not parsed different from foobar
+   CLOSED: [2008-02-17 Sun 01:23]
+See 3rd paragraph
 
 Both will be parsed as { id = "foobar"; args = [] }
 This means calling a function with 0 args can't be distinguished from the function as a value
@@ -9,9 +11,9 @@ This means calling a function with 0 args can't be distinguished from the functi
 foo bar <=> (op() foo bar)
 foo <=> (foo)
 
-Require all function calls to follow the form (call func args*)?
-The transform (op() f rest*) into (call f rest*) if f resolves to a function (pointer)
-and transform into (jux f rest*) else?
+Require all function calls to follow the form (call func args*)
+Then transform (op() f rest*) into (call f rest*) if f resolves to a function (pointer)
+and transform into (jux f rest*) otherwise. Sequences are transformed into (seq a b ...)
 
 *** Conflicts
 
@@ -187,6 +189,13 @@ let foo =
 
 ** TODO which operators to support?
 
+*** TODO ' as operator for implicit conversions like?
+    append string1 'char => append string1 (toString char)?
+
+    i + 'f -> i + toInt f ?
+    i +' f -> i + toInt f ?
+
+*** TODO is ascii enough or should zomp use unicode (more operators etc.)?
 *** TODO all common math symbols
 
 Solution: accepted. Reasons are obvious ;)
@@ -265,31 +274,69 @@ print 1 + 2
 Solution: rejected. There is no need for it and it interferes with coding styles unnecessarily.
 
 ** TODO Special support for first id of expression?
-
 let foo = bar <=> (op= (let foo) bar)
 
 Allow some syntax for..?
 let foo = bar <=> (let (op= foo bar))
 
-*** Where is this needed?
+*** TODO Where is this needed?
 
 let foo = bar
 let a + b = baz
 
 func x + y : int = ...
 
-*** Solve by lisp-style set/=?
+*** TODO Solve by lisp-style set/=?
 
 macroOverload (op= l r) ...
 macroOverload (op= (let $foo) $bar) ...
 
-*** Use a postfix for different parsing?
+*** TODO Use a postfix for different parsing?
 
 let! x + y = plus( x, y ) <=> (let (op= (op+ x y) (plus x y)))
 
 or
 
 let: x + y = plus( x, y )
+
+Can also be used in nested expressions.
+
+(foreach i in foo (print: i + 1))
+
+*** TODO What about nested expressions?
+See above
+
+(foreach (print 10 + 20) ...) <=>
+(foreach (print (op+ 10 20)) ...) vs. (foreach (op+ (print 10) 20))
+
+*** TODO Generalize this?
+
+Support Smalltalk style keyword arguments? (in sexprs?)
+
+if: a > 10 then: print yay else: print nay
+
+*** DONE Always give first id extra priority?
+Rejected: see list of problems below
+
+    a b + c => (a (op+ b c))
+
+**** Will this cause problems?
+
+Requires using parentheses when it is not needed.
+
+sqrt(5) + sqrt 20
+
+**** Might result in unexpected ASTs
+
+sqr 3 + 4 <=> (sqr (op+ 3 4))
+
+**** Results in different behaviour of left and right expr on operators
+
+sqrt 10 * 2 <=> (sqrt (op* 10 2))
+
+but
+
+10 * sqrt 2 <=> (op* 10 (sqrt 2))
 
 *** DONE Reuse foo: notation from significant indent?
      CLOSED: [2008-01-28 Mon 02:47]
@@ -312,16 +359,6 @@ third
 end first
 
 Require
-
-*** Special syntax?
-
-let: foo = bar
-
-*** What about nested expressions?
-
-(foreach (print 10 + 20) ...) <=>
-(foreach (print (op+ 10 20)) ...) vs. (foreach (op+ (print 10) 20))
-
 
 
 ** DONE Operators at the beginning/end of expressions?

@@ -26,7 +26,7 @@ Conventions for function names:
 (const int windowHeight 600)
 (const float windowAspect 1.0)
 (var bool initialized false)
-
+  
 (func bool init () (
   (template assertGLTrue code (
     (if (int.notEqual GL_TRUE #code) (
@@ -611,128 +611,20 @@ Conventions for function names:
   (ret (rgbaColor 255 255 255 255))
   ))
   
-// (func RGBA shbase ((int l) (int m) (float longitude) (float latitude)) (
-//   (const float red (longitude /_f (2.0 *_f (pi))))
-//   (const float green (latitude /_f (pi) +_f 0.5))
-
-//   (rgbaColor (float.toInt (red *_f 255.0)) (float.toInt (green *_f 255.0))  0 255)
-//   ))
-
 (func void free(((ptr void) ptr)))
 
 (template c:free ptr (cast (ptr void) #ptr))
 
 (type GLuint_ptr (ptr GLuint))
 
-// (func GLuint_ptr shBaseFuncCubeTextures ((int maxL) (int size)) (
-//   (const float sizef (int.toFloat size))
-  
-//   (var (ptr float3) edges (arrayOfFuncs float3
-//     (float3:init this -1. -1. 1.)
-//     (float3:init this  1. -1. 1.)
-//     (float3:init this  1.  1. 1.)
-//     (float3:init this -1.  1. 1.)
-    
-//     (float3:init this -1. -1. -1.)
-//     (float3:init this  1. -1. -1.)
-//     (float3:init this  1.  1. -1.)
-//     (float3:init this -1.  1. -1.)
-//     ))
-
-//   (var (ptr (ptr int)) edgeIndices (arrayOf (ptr int)
-//     (arrayOf int 1 5 6 2)
-//     (arrayOf int 4 0 3 7)
-//     (arrayOf int 3 2 6 7)
-//     (arrayOf int 4 5 1 0)
-//     (arrayOf int 0 1 2 3)
-//     (arrayOf int 5 4 7 6)
-//     ))
-
-//   (var (ptr float) pixels (malloc float (size * size * 4)))
-
-//   (const int textureCount (((sh:index maxL maxL + 1) + 3) / 4))
-//   //   (const int textureCount (sh:index maxL maxL + 1))
-//   (var (ptr GLuint) textures (malloc int textureCount))
-//   (glGenTextures textureCount textures)
-
-//   (var int l 0)
-//   (var int m 0)
-
-//   (printString "maxL = ") (printInt maxL) (println)
-//   (printString "textureCount = ") (printInt textureCount) (println)
-  
-//   (for textureNum 0 textureCount (
-//     (const int texture (array:get textures textureNum))
-//     (glBindTexture GL_TEXTURE_CUBE_MAP texture)
-
-//     (for sideNum 0 6 (
-//       (const int prevL l)
-//       (const int prevM m)
-      
-//       (for componentNum 0 4 (
-//         (const int target (GL_TEXTURE_CUBE_MAP_POSITIVE_X + sideNum))
-        
-//         (var (ptr int) sideEdgeIndices (edgeIndices[sideNum]))
-        
-//         (var (ptr float3) lowerLeft (ptradd edges (sideEdgeIndices[0])))
-//         (var (ptr float3) lowerRight (ptradd edges (sideEdgeIndices[1])))
-//         (var (ptr float3) upperRight (ptradd edges (sideEdgeIndices[2])))
-//         (var (ptr float3) upperLeft (ptradd edges (sideEdgeIndices[3])))
-
-//         (var float3p left (new float3 0. 0. 0.))
-//         (var float3p right (new float3 0. 1. 0.))
-        
-//         (var float3p dir (new float3 0. 0. 0.))
-        
-//         (for y 0 size (
-//           (var float yUnit (int.toFloat y /_f sizef))
-          
-//           (float3:interpolate left yUnit lowerLeft upperLeft)
-//           (float3:interpolate right yUnit lowerRight upperRight)
-          
-//           (for x 0 size (
-//             (float3:interpolate dir (int.toFloat x /_f sizef) right left)
-//             (float3:normalize dir)
-
-//             (const int pixelNum (y * size + x))
-//             (const PolarCoord_ptr polarCoord (float3:toPolarCoord dir))
-            
-//             (var float shval (sh:base l m (getField polarCoord longitude) (getField polarCoord latitude)))
-//             (shval = 0.5 *_f shval +_f 0.5)
-//             (if (l == 3)
-//               (shval = 1.0)
-//               (shval = 0.0))
-//             (array:set pixels (4*pixelNum + componentNum) shval)
-//             ))
-//           ))
-
-//         (m = m + 1)
-//         (ift (m > l) (
-//           (l = l + 1)
-//           (m = int:neg l)
-//           ))
-//         )) // for componentNum
-//       (m = prevM)
-//       (l = prevL)
-      
-//       (gluBuild2DMipmaps target 4 size size GL_RGBA GL_FLOAT
-//         (cast (ptr void) pixels) )
-//       (printGLError)
-//       )) // for sideNum
-//     )) // for textureNum
-
-//   (glBindTexture GL_TEXTURE_CUBE_MAP 0)
-
-//   (c:free pixels)
-  
-//   (ret textures)
-//   ))
-
 (func int sh:index((int l) (int m)) (
   (square(l) + m + l)
   ))
 
 (template onDebugBuild code ... #code)
+
+(const GLint GL_RGBA32F_ARB 34836)
+// #define GL_RGBA32F_ARB                      0x8814
 
 /// will calculate the SH base functions up to level maxL and store them
 /// in cube map textures of resolution size
@@ -773,10 +665,10 @@ Conventions for function names:
   //   (const int textureCount (sh:index maxL maxL + 1))
   (var (ptr GLuint) textures (malloc int textureCount))
   (glGenTextures textureCount textures)
-              
+  
   (var int l 0)
   (var int m 0)
-              
+  
   (printString "maxL = ") (printInt maxL) (println)
   (printString "textureCount = ") (printInt textureCount) (println)
 
@@ -830,7 +722,8 @@ Conventions for function names:
     (for sideNum2 0 6 (
       (var (ptr float) sidePixels2 (ptradd pixels (size * size * sideNum2 * 4)))
       (const int target (GL_TEXTURE_CUBE_MAP_POSITIVE_X + sideNum2))
-      
+
+      // (glTexImage2D target 0 GL_RGBA size size 0 GL_RGBA GL_FLOAT)
       (gluBuild2DMipmaps target 4 size size GL_RGBA GL_FLOAT
         (cast (ptr void) sidePixels2) )
       (printGLError)
@@ -940,17 +833,94 @@ Conventions for function names:
   (ret texture)
   ))
   
-(func GLuint makeCubemapShader () (
+(func GLuint makeShowRotatedSHShader () (
   (var GLuint shader (createShader
     "
-    varying vec3 texCoord;
+    #version 120
+    varying vec3 dir;
+    uniform vec3 occluderDir;
     "
     
-    "void main(void) {
+    "
+    void main(void) {
       gl_Position = ftransform();
       
-      vec4 dir = normalize( gl_Vertex );
-      texCoord = dir.xyz;
+      vec4 vertexDir = normalize( gl_Vertex );
+      dir = vertexDir.xyz;
+      }
+    "
+    
+    "
+    uniform samplerCube texture0;
+    uniform samplerCube texture1;
+    uniform samplerCube texture2;
+    uniform samplerCube texture3;
+
+    float shprod(vec3 dir, samplerCube texture, vec4 coeffs) {
+      vec4 shvals = textureCube( texture, dir );
+      shvals = shvals * 2.0 - 1.0;
+      vec4 products = shvals * coeffs;
+      return products.x + products.y + products.z + products.w;
+      }
+
+    float gstar( float g, int l ) {
+      return sqrt( 4 * 3.1415 / (2*l+1)) * g;
+      }
+
+    float sum( vec4 v ) {
+      return v.x + v.y + v.z + v.w;
+      }
+    
+    void main(void) {
+      float[4] zonalCoeffs;
+      zonalCoeffs[0] = 0.0;
+      zonalCoeffs[1] = 1.0;
+      zonalCoeffs[2] = 0.0;
+      zonalCoeffs[3] = 0.0;
+
+      vec4 coeffs0 = textureCube( texture0, occluderDir );
+      vec4 coeffs1 = textureCube( texture1, occluderDir );
+      vec4 coeffs2 = textureCube( texture2, occluderDir );
+      vec4 coeffs3 = textureCube( texture3, occluderDir );
+
+      coeffs0.x *= gstar( zonalCoeffs[0], 0 );
+      coeffs0.yzw *= gstar( zonalCoeffs[1], 1 );
+      coeffs1.xyzw *= gstar( zonalCoeffs[2], 2 );
+      coeffs2.x *= gstar( zonalCoeffs[2], 2 );
+      coeffs2.yzw *= gstar( zonalCoeffs[3], 3 );
+      coeffs3.xyzw *= gstar( zonalCoeffs[3], 3 );
+
+      float shval =
+      shprod(dir, texture0, coeffs0) +
+      shprod(dir, texture1, coeffs1) +
+      shprod(dir, texture2, coeffs2) +
+      shprod(dir, texture3, coeffs3);
+
+      if( shval > 0.0 ) {
+        gl_FragColor = vec4( 0.0, shval, 0.0, 1.0 );
+        }
+      else {
+        gl_FragColor = vec4( -shval, 0.0, 0.0, 1.0 );
+        }
+      }
+    "))
+  (ret shader)
+  ))
+
+
+(func GLuint makeShowSHShader () (
+  (var GLuint shader (createShader
+    "
+    #version 120
+    varying vec3 dir;
+    "
+    
+    "
+    void main(void) {
+      gl_Position = ftransform();
+      
+      vec4 vertexDir = normalize( gl_Vertex );
+      dir = vertexDir.xyz;
       }
     "
     
@@ -963,36 +933,28 @@ Conventions for function names:
     uniform vec4 coeffs2;
     uniform samplerCube texture3;
     uniform vec4 coeffs3;
+
+    float shprod(vec3 dir, samplerCube texture, vec4 coeffs) {
+      vec4 shvals = textureCube( texture, dir );
+      shvals = shvals * 2.0 - 1.0;
+      vec4 products = shvals * coeffs;
+      return products.x + products.y + products.z + products.w;
+      }
     
     void main(void) {
-      vec4 shvals0 = textureCube( texture0, texCoord );
-      shvals0 = shvals0 * 2.0 - 1.0;
-      vec4 products0 = shvals0 * coeffs0;
+      vec3 occluderDir = vec3( 0.0, 0.0, -1.0 );
       
-      vec4 shvals1 = textureCube( texture1, texCoord );
-      shvals1 = shvals1 * 2.0 - 1.0;
-      vec4 products1 = shvals1 * coeffs1;
-      
-      vec4 shvals2 = textureCube( texture2, texCoord );
-      shvals2 = shvals2 * 2.0 - 1.0;
-      vec4 products2 = shvals2 * coeffs2;
-      
-      vec4 shvals3 = textureCube( texture3, texCoord );
-      shvals3 = shvals3 * 2.0 - 1.0;
-      vec4 products3 = shvals3 * coeffs3;
+      float shval =
+      shprod(dir, texture0, coeffs0) +
+      shprod(dir, texture1, coeffs1) +
+      shprod(dir, texture2, coeffs2) +
+      shprod(dir, texture3, coeffs3);
 
-      float shVal =
-      products0.x + products0.y + products0.z + products0.w +
-      products1.x + products1.y + products1.z + products1.w +
-      products2.x + products2.y + products2.z + products2.w +
-      products3.x + products3.y + products3.z + products3.w;
-
-      // shVal = 0.5;
-      if( shVal > 0.0 ) {
-        gl_FragColor = vec4( 0.0, shVal, 0.0, 1.0 );
+      if( shval > 0.0 ) {
+        gl_FragColor = vec4( 0.0, shval, 0.0, 1.0 );
         }
       else {
-        gl_FragColor = vec4( -shVal, 0.0, 0.0, 1.0 );
+        gl_FragColor = vec4( -shval, 0.0, 0.0, 1.0 );
         }
       }
     "))
@@ -1149,7 +1111,8 @@ Conventions for function names:
 
   (times 10 (glfwPollEvents) )
 
-  (var GLuint cubeShader (makeCubemapShader))
+  (var GLuint cubeShader (makeShowRotatedSHShader))
+  //   (var GLuint cubeShader (makeShowSHShader))
 
   (const int maxL 4)
 
@@ -1226,6 +1189,23 @@ Conventions for function names:
 
     (drawOrientationGrid)
 
+    (var (ptr float3) occluderDir (malloc float3))
+    (float3:init
+      occluderDir
+      (cosf (double.toFloat frameTime))
+      (sinf (double.toFloat frameTime))
+      0.0)
+
+    (const float dirLength 20.0)
+    (rendergl GL_LINES
+      (glColor4f 1. 1. 1. 1.)
+      (glVertex3f 0. 0. 0.)
+      (glVertex3f
+        (dirLength *_f getField occluderDir x)
+        (dirLength *_f getField occluderDir y)
+        (dirLength *_f getField occluderDir z))
+      )
+
     (glUseProgram cubeShader)
     (bindTextureCube 0 (array:get shbaseCubemaps 0))
     (bindTextureCube 1 (array:get shbaseCubemaps 1))
@@ -1241,10 +1221,15 @@ Conventions for function names:
     (gl:uniform4fv cubeShader "coeffs1" (ptradd coeffs 4))
     (gl:uniform4fv cubeShader "coeffs2" (ptradd coeffs 8))
     (gl:uniform4fv cubeShader "coeffs3" (ptradd coeffs 12))
+    
     //     (gl:uniform4f cubeShader "coeffs0" 0. 0. 0. 0.)
     //     (gl:uniform4f cubeShader "coeffs1" 0. 0. 0. 0.)
     //     (gl:uniform4f cubeShader "coeffs2" 0. 0. 0. 0.)
     //     (gl:uniform4f cubeShader "coeffs3" 0. 0. 0. 0.)
+
+    (gl:uniform3f cubeShader "occluderDir"
+      (getField occluderDir x) (getField occluderDir y) (getField occluderDir z))
+    
     
     (glutSolidSphere 5.0d 20 20)
     (glBindTexture GL_TEXTURE_CUBE_MAP 0)

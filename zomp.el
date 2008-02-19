@@ -1,6 +1,5 @@
 
-
-;; (defvar zomp-basedir "/Users/sheijk/Documents/Development/Stuff/ocaml/lang/v3/")
+(defvar zomp-mode-hook nil)
 
 (defun goto-match-paren (arg)
   "Go to the matching parenthesis if on paranthesis. Else go to the
@@ -186,7 +185,8 @@
       (backward-delete-char 1)
       (indent-to-column left))
     ; place cursor correctly on newline-and-indent
-    (when (= oldindent 0) (back-to-indentation))
+    (when (< (current-column) oldindent)
+      (back-to-indentation))
     ))
 
 (defun zomp-indent-current ()
@@ -225,6 +225,8 @@
     ))
 
 (defun zomp-electric-slash ()
+  "Will change '* ' to '*/' when a newline was inserted
+   previously, insert '/' otherwise"
   (interactive)
   (when (and
          (equal last-command 'zomp-newline)
@@ -261,7 +263,7 @@
   (local-set-key [(meta k)] 'zomp-mark-sexp)
 
                                         ; expand templates
-  (local-set-key [(control ?.)] 'zomp-complete)
+  (local-set-key [(control ?.)] 'snippetio-complete)
 
                                         ; extra comfort (insert ///, * in matching places, * / => */ etc.)
   (local-set-key "\r" 'zomp-newline)
@@ -301,6 +303,8 @@
   (local-set-key [(alt e)] 'zomp-tl-eval-current)
   (local-set-key [(alt d)] 'zomp-tl-run)
   (local-set-key [(alt shift d)] 'zomp-tl-run-test)
+
+  (run-mode-hooks 'zomp-mode-hook)
   )
 
 (define-generic-mode zomp-mode
@@ -356,31 +360,11 @@
   (list 'zomp-setup)
   "A simple mode for the zomp language")
 
-(defun zomp-complete ()
-  (interactive)
-  (let* ((word (current-word)) (expansion (cdr (assoc word zomp-snippets))))
-    (if (null expansion)
-        (message (concat "Could not find a snippet named " word))
-      (progn
-        (backward-kill-word 1)
-        (snippet-insert expansion))
-      )))
 
-(setq zomp-snippets
-  '(("func" .  "(func $${retval} $${name} ($${args}) (\n  $.\n  ))\n")
-    ("macro" . "(macro $${name} $${args} (\n  $.\n  ))\n")
-    ("template" . "(template $${name} $${args} (\n  $.\n  ))\n")
-    ("main" . "(func int main () (\n  $.\n  ret 0\n  ))\n")
-    ("hline" . "//------------------------------------------------------------------------------")
-    ("if" . "(if $${cond}\n  ($${onTrue})\n  ($${onFalse}))\n")
-    ("for" . "(for $${var} $${min} $${max} (\n  $.\n  ))")
-    ("while" . "(while $${cond} (\n  $.\n  ))")
-    ))
-
-(defun zomp-add-snippet (name expansion)
-  "Adds a snippet for zomp. The snippet will not be saved on exit!"
-  (interactive "MName for macro? \nMExpansion? ")
-  (setq zomp-snippets (cons `(,name . ,expansion) zomp-snippets)))
+;; (defun zomp-add-snippet (name expansion)
+;;   "Adds a snippet for zomp. The snippet will not be saved on exit!"
+;;   (interactive "MName for macro? \nMExpansion? ")
+;;   (setq zomp-snippets (cons `(,name . ,expansion) zomp-snippets)))
 
 (defvar zomp-symbol-file "/tmp/zomp-symbols")
 (defvar zomp-symbol-buffer "*zomp-symbols*")
@@ -423,3 +407,4 @@
       (error nil))))
 
 
+  
