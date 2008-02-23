@@ -1,7 +1,42 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
-** TODO [#A] implicit arguments for macros (source location from where it was invoked etc.)
+
+* Use Cases
+
+** .obj Loader [0/2]
+   
+   - [ ] parsing strings (regexp?)
+   - [ ] reading from a file
+
+** shader system [1/2]
+   
+   Turn a shader description into a class:
+   
+   shader Phong
+     uniform float exponent
+
+     output
+       vec4 gl_FragColor
+       float gl_Depth
+
+     vertex(vec3 pos, vec3 normal)
+       out.pos = ftransform()
+
+     fragment(vec3 normal) => gl_FragColor, gl_Depth
+       gl_FragColor = ...
+   end shader Phong
+
+
+   - [ ] classes
+   - [ ] function pointers
+   - [X] opengl bindings
+
+** persistent camera in toplevel [0/1]
+
+   It should be possible to store the camera pos after main() returned
+   
+   - [ ] global pointers
 
 * Tasks											:zomp:
   
@@ -53,9 +88,12 @@ in function returning (ptr ast) is not accepted
 
 *** TODO [#B] Turn more things into expressions
 **** TODO if is not an expression
-**** TODO Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
-
-*** TODO [#C] place all external c functions in 'c' namespace
+**** DONE Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
+     CLOSED: [2008-02-23 Sat 03:48]      
+     
+     Local labels are not needed to turn if/for/.. into expressions
+     
+*** TODO [#C] place all external c functions in 'c' namespace?
    Export only functions defined in c namespace?
    Rename all other functions(?) like zomp_${name}
 
@@ -152,8 +190,9 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 ** Parser
 
+*** TODO [#B] only allow one dot in ids (and none at a later point)
 *** TODO [#B] iexprtest.ml: does worker in token use stringAcc at all?
-*** TODO [#A] parse (a b c) int (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
+*** TODO [#A] parse (a b c) into (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
 *** TODO [#B] support "\"" in strings
 *** TODO [#A] add += -= *= /= etc. operators
 *** TODO [#A] parse logical ops &, |, &&, ||
@@ -203,6 +242,13 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** DONE [#A] arguments in function don't match: tell which argument(s) failed
     CLOSED: [2007-12-27 Thu 01:45]
 
+*** TODO Codegen in zomp
+
+**** TODO Bindings for LLVM IR
+**** TODO Define base language (from current definition)
+**** TODO Base lang -> LLVM IR translation
+**** TODO ast type system?
+
 *** DONE [#A] type errors: show expected and found type
     CLOSED: [2008-01-11 Fri 19:18]
 
@@ -243,7 +289,7 @@ check whether this makes IR-verification faster / prevent bugs / ...
 *** TODO [#A] macro/function to check whether running in toplevel
 *** TODO [#A] add (ret void) to end of immediate functions in toplevel
 *** TODO [#B] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
-*** TODO [#A] use invalid floating point constant will screw up LLVM for whole session :bug:
+*** TODO [#A] using invalid floating point constant will screw up LLVM for whole session :bug:
 *** DONE [#A] allow immediate execution of code
     CLOSED: [2008-02-12 Tue 02:52]
 
@@ -301,7 +347,8 @@ check whether this makes IR-verification faster / prevent bugs / ...
 *** TODO [#B] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
 *** TODO [#B] also auto-insert // on newline
 *** TODO [#B] /// <enter> <backspace> -> remove inserted ///
-*** TODO [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
+*** DONE [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
+    CLOSED: [2008-02-21 Thu 14:24] 
 *** TODO [#C] alt-k => mark current word first, then sexpr
 *** TODO [#C] emacs: navigate to error caused by evaluating code in toplevel
 *** TODO [#C] fix wrong promts in emacs inferior zomp mode
@@ -337,6 +384,7 @@ check whether this makes IR-verification faster / prevent bugs / ...
 
 ** Macros
    
+*** TODO [#B] implicit arguments for macros (source location from where it was invoked etc.)
 *** TODO [#C] hygienic macros: ast* qualify(ast*, bindings) will fully qualify all identifiers in the given ast
 *** TODO [#A] better error message on `(ret `(...)) in macro
 *** TODO [#A] protect against recursive macro invocations

@@ -1,4 +1,54 @@
 
+* Desired syntax
+  
+This section lists use cases. Each one should demonstrate how the
+language might be used. Should guide the syntax related decisions.
+
+** for loop
+
+   for i = 10 to 100
+     print i
+
+   for( list* current = begin(); current != nullptr; current = current->next )
+     current->doStuff()
+
+** if/then/else
+   
+   if i > 10 then
+     handleI()
+   else if i < 5 then
+     small()
+   else
+     error()
+
+** Classes
+
+   class Point
+     attrib x = 0
+     attrib y = x
+    
+     void print(Stream s)
+       s.print "(#{x}, #{y})"
+    
+   class ColoredPoint extends Point, implements Paintable
+     attrib color = red
+    
+     void print(Stream s)
+       s.setColor color
+       super.print
+
+** Keyword arguments
+
+   select( from: list, where: pred, sortBy: desc )
+   
+   select from: list where: pred sortBy: desc
+   
+** Smalltalk style?
+
+   tree
+     onLeaf: print leaf
+     onBranch: print branch
+
 * TODO Misc
  
 ** DONE (foobar) is not parsed different from foobar
@@ -205,10 +255,18 @@ a ** b <=> power
 
 *** TODO Boolean operators
 
-!, &, |
-&&, ||
+    !, &, |
+    &&, ||
 
-xor?
+    xor? ^?
+
+*** TODO Regular expressions?
+    
+    Support /foo/ as a regular expression.
+
+    Could an ambiguity with division arise?
+    a/b/c -> division
+    /a/ -> regexp
 
 *** TODO Parentheses?
 
@@ -258,9 +316,57 @@ Render them using unicode characters when available?
 
 Might conflict with names of user identifiers like vars and functions. Would require handling all CAPS identifiers as operators. Conflicts with common practice of naming constants in CAPS (like OpenGL does).
 
-** DONE juxtaposition has highest priority
+** DONE require white space between operators and symbols?
+   CLOSED: [2008-01-28 Mon 03:09] 
 
-Solution: accepted.
+Solution: rejected. There is no need for it and it interferes with coding styles unnecessarily.
+
+** TODO Consider whitespace when parsing?
+
+   // pointers
+   foo* blah <=> (jux (postfixop* foo) blah)
+
+   // multiplication
+   foo * blah
+   foo*blah
+   <=> (op* foo blah)
+
+   // deref
+   foo *blah 
+   <=> 
+   (jux foo (prefixop* blah))
+
+   Rule of thumb: allow to resolve disambiguities by whitespace
+   if parens would be nesseccary otherwise
+
+** TODO Special support for first id of expression?
+let foo = bar <=> (op= (let foo) bar)
+
+Allow some syntax for..?
+let foo = bar <=> (let (op= foo bar))
+
+*** Is it okay to require parenthesis on method calls when used as arguments of operators?
+
+if a > 10 && b < 20 then
+<=>
+(jux if (op&& (op> a 10) (op< b 20)) then)
+
+3 * sin x <=> (jux (op* 3 sin) x)
+3 * sin(x) <=> (op* 3 (op() sin x))
+
+let x + y = add x y
+<=>
+(jux let (op= (op+ x y) add) x y)
+
+let x + y = add(x, y)
+(jux (op= (op+ x y) (op() call x y)))
+
+let x + y =
+  add x y
+<=>
+(jux (op= (op+ x y) (seq (op() add x y))))
+
+*** TODO juxtaposition has highest or lowest priority?
 
 foo a + bar b
 (op+ (foo a) (bar b))
@@ -268,16 +374,7 @@ foo a + bar b
 print 1 + 2
 (op+ (print 1) 2)
 
-** DONE require white space between operators and symbols?
-   CLOSED: [2008-01-28 Mon 03:09] 
 
-Solution: rejected. There is no need for it and it interferes with coding styles unnecessarily.
-
-** TODO Special support for first id of expression?
-let foo = bar <=> (op= (let foo) bar)
-
-Allow some syntax for..?
-let foo = bar <=> (let (op= foo bar))
 
 *** TODO Where is this needed?
 

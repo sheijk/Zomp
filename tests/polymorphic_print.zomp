@@ -1,8 +1,9 @@
-///
-/// Demonstrates a polymorphic print macro
-///
-/// TODO: currently requires all arguments to be variables
-///
+/**
+ * Demonstrates a polymorphic print macro
+ * TODO: currently requires all arguments to be variables
+
+!verify off
+ */
 
 (func void print_int ((int v)) (
   (printInt v)

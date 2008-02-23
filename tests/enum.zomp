@@ -1,5 +1,4 @@
 
-
 (macro enum name cases ... (
   (var astp code `())
 
@@ -19,9 +18,9 @@
   ))
 
 (enum TypeCategory
-  Int
-  Float
-  Record
-  Pointer)
+  int
+  float
+  record
+  pointer)
 
 

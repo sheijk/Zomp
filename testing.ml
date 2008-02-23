@@ -1,3 +1,7 @@
+(*
+ * Provides a simple unit testing framework
+ *)
+
 open Printf
   
 module type CASE_STRUCT = sig
@@ -65,7 +69,12 @@ module Tester(Cases :CASE_STRUCT) = struct
       printf "Expected: '\n"; printResult error.expected; printf "'\n";
       printf "Found: '\n"; printResult error.found; printf "'\n";
     in
-    List.iter printError (runTests())
+    let errors = runTests() in
+    List.iter printError errors;
+    let errorCount = List.length errors in
+    let testCount = List.length testCases in
+    if errorCount > 0 then      
+      printf "%d/%d tests failed" errorCount testCount;
       
   exception UnitTestFailure of error list
 end

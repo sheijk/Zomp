@@ -42,6 +42,11 @@
 %token CLOSE_PAREN
 %token COMMA
 
+%token <string> ADD_OP
+%token <string> SUB_OP
+%token <string> MULT_OP
+%token <string> DIV_OP
+
 
 %start <Ast2.sexpr> main
 
@@ -73,7 +78,7 @@ sexprArg:
     
 mexpr:
 | WHITESPACE? id = IDENTIFIER OPEN_PAREN args = separated_list(COMMA, mexprArg) CLOSE_PAREN
-    {{ Ast2.id = "opjux"; args = Ast2.idExpr id :: args }}
+    {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: args }}
 
 mexprArg:
 | WHITESPACE? id = IDENTIFIER WHITESPACE?
@@ -84,6 +89,19 @@ opexpr:
 | args = seplist2(COMMA, opexprArg)
     {{ Ast2.id = "op,"; args = args }}
 
+| l = opexprArg op = ADD_OP r = opexprArg
+    {{ Ast2.id = operatorName op; args = [l; r] }}
+    
+| l = opexprArg op = SUB_OP r = opexprArg
+    {{ Ast2.id = operatorName op; args = [l; r] }}
+    
+| l = opexprArg op = MULT_OP r = opexprArg
+    {{ Ast2.id = operatorName op; args = [l; r] }}
+    
+| l = opexprArg op = DIV_OP r = opexprArg
+    {{ Ast2.id = operatorName op; args = [l; r] }}
+
+    
 opexprArg:
 | WHITESPACE? id = IDENTIFIER WHITESPACE?
     { Ast2.idExpr id }

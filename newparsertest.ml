@@ -1,6 +1,10 @@
+(*
+ * Simple program parsing code from stdin using the indentation based
+ * lexer and parser
+ *)
 
 open Printf
-
+open Common
 
 let readBlock channel =
   let rec readLine lineAcc =
@@ -18,93 +22,129 @@ let readBlock channel =
   in
   Common.combine "\n" (List.rev (readLine []))
 
-let tokenToString = function
-  | Newparser.END -> "`nl"
-  | Newparser.IDENTIFIER id -> id
-  | Newparser.BEGIN_BLOCK -> "{"
-  | Newparser.END_BLOCK [] -> "}"
-  | Newparser.END_BLOCK params -> sprintf "}(%s)" (Common.combine ", " params)
-  | Newparser.WHITESPACE count -> String.make count '_'
-  | Newparser.OPEN_PAREN -> "("
-  | Newparser.CLOSE_PAREN -> ")"
-  | Newparser.COMMA -> ","
-      
-let () =
-  let rec parse() =
-    flush stdout;
-    let block = readBlock stdin in
-    (* printf "block:\n%s---\n" block; *)
-    let lexbuf = Lexing.from_string block in
-    let lexstate = Iexprtest.lexbufFromString "dummy.zomp" block in
-    let lexFunc (_ :Lexing.lexbuf) =
-      let iexprToken = Iexprtest.token lexstate in
-      match iexprToken with
-        | `End -> Newparser.END
-        | `BeginBlock -> Newparser.BEGIN_BLOCK
-        | `EndBlock args -> Newparser.END_BLOCK args
-        | `Whitespace count -> Newparser.WHITESPACE count
-        | `Identifier name -> Newparser.IDENTIFIER name
-        | `OpenParen -> Newparser.OPEN_PAREN
-        | `CloseParen -> Newparser.CLOSE_PAREN
-        | `Comma -> Newparser.COMMA
-    in
-    begin try while true do
-      (* let t = Newlexer.token lexbuf in *)
-      (* printf "%s " (tokenToString t); *)
-      let expr = Newparser.main lexFunc lexbuf in
-      printf "=>\n%s\n---\n" (Ast2.toString expr)
-    done with
-      | End_of_file -> ()
-      | Newparser.Error -> printf "Parser error\n"
-    end;
-    parse()
+let tokenToString =
+  let os symbol arg =
+    if String.length arg > 0 then
+      symbol
+    else
+      symbol ^ "_" ^ arg
   in
-  parse()
+  function
+    | Newparser.END -> "`nl"
+    | Newparser.IDENTIFIER id -> id
+    | Newparser.BEGIN_BLOCK -> "{"
+    | Newparser.END_BLOCK [] -> "}"
+    | Newparser.END_BLOCK params -> sprintf "}(%s)" (Common.combine ", " params)
+    | Newparser.WHITESPACE count -> String.make count '_'
+    | Newparser.OPEN_PAREN -> "("
+    | Newparser.CLOSE_PAREN -> ")"
+    | Newparser.COMMA -> ","
+    | Newparser.ADD_OP arg -> os "+" arg
+    | Newparser.SUB_OP arg -> os "-" arg
+    | Newparser.MULT_OP arg -> os "*" arg
+    | Newparser.DIV_OP arg -> os "/" arg
       
-      
-(* let recreateLines fromPos text = *)
-(*   let textLength = String.length text in *)
-(*   let rec worker pos currentLine = *)
-(*     if pos >= textLength then *)
-(*       [currentLine] *)
-(*     else if text.[pos] = '\n' then *)
-(*       currentLine :: worker (pos+1) "" *)
-(*     else *)
-(*       worker (pos+1) (currentLine ^ String.make 1 text.[pos]) *)
-(*   in *)
-(*   worker fromPos "" *)
-  
-(* let () = *)
-(*   try *)
-(*     let rec parse prevLines = *)
-(*       flush stdout; *)
-(*       let line = input_line stdin in *)
-(*       let lines = prevLines @ [line] in *)
-(*       let parentedLines = Iexpr.addParens (lines @ [""]) in *)
-(*       let input = Common.combine "\n" parentedLines in *)
-(*       let lexbuf = Lexing.from_string input in *)
-      
-(*       printf "lines ->\n"; *)
-(*       List.iter (fun line -> printf "%s\n" line) lines; *)
-(*       printf "parented ->\n%s\n---\n" input; flush stdout; *)
-      
-(*       try *)
-(*         let expr = Newparser.main Newlexer.token lexbuf in *)
-(*         printf "=> %s\n" (Ast2.toString expr); flush stdout; *)
-(*         (\* let pos = lexbuf.Lexing.lex_curr_p.Lexing.pos_cnum in *\) *)
-(*         (\* let inputLength = String.length input in *\) *)
-(*         (\* if pos < inputLength then *\) *)
-(*         (\* printf "Warning: ignored %d chars\n" (inputLength - pos); *\) *)
-(*         parse [] *)
-(*             (\* parse (recreateLines pos (Common.combine "\n" lines)) *\) *)
-(*       with *)
-(*         | Newlexer.Eof -> *)
-(*             parse (prevLines @ lines) *)
-(*         | _ as e -> *)
-(*             raise e *)
-(*     in *)
-(*     parse [] *)
-(*   with Newlexer.Eof -> *)
-(*     printf "Eof\n" *)
+let lexFunc lexstate (_ :Lexing.lexbuf) =
+  let iexprToken = Iexprtest.token lexstate in
+  match iexprToken with
+    | `End -> Newparser.END
+    | `BeginBlock -> Newparser.BEGIN_BLOCK
+    | `EndBlock args -> Newparser.END_BLOCK args
+    | `Whitespace count -> Newparser.WHITESPACE count
+    | `Identifier name -> Newparser.IDENTIFIER name
+    | `OpenParen -> Newparser.OPEN_PAREN
+    | `CloseParen -> Newparser.CLOSE_PAREN
+    | `Comma -> Newparser.COMMA
+    | `Add arg -> Newparser.ADD_OP arg
+    | `Sub arg -> Newparser.SUB_OP arg
+    | `Mult arg -> Newparser.MULT_OP arg
+    | `Div arg -> Newparser.DIV_OP arg
 
-      
+let parseSExpr source =
+  let lexbuf = Lexing.from_string source in
+  let lexstate = Iexprtest.lexbufFromString "dummy.zomp" source in
+  let lexFunc = lexFunc lexstate in
+  let rec read acc =
+    try
+      let expr = Newparser.main lexFunc lexbuf in
+      read (expr :: acc)
+    with
+      | End_of_file -> acc
+  in
+  List.rev (read [])
+  
+let () =
+  if Array.length Sys.argv > 1 && Sys.argv.(1) = "-i" then
+    let rec parse() =
+      flush stdout;
+      let block = readBlock stdin in
+      begin try
+        let exprs = parseSExpr block in
+        List.iter (fun expr -> printf "=>\n%s\n---\n" (Ast2.toString expr)) exprs
+      with
+        | Newparser.Error -> printf "Parser error\n"
+      end;
+      parse()
+    in
+    parse()
+  else ()
+
+let printEachOnLine printF list =
+  List.iter (fun x -> printF x; print_newline()) list
+    
+module IndentParserTestCase : Testing.CASE_STRUCT =
+struct
+  type input = string
+  type output = Ast2.sexpr list
+
+  let printInput = print_string
+  let printOutput = printEachOnLine (printf "%s" ++ Ast2.toString)
+
+  let outputEqual = List.for_all2 Ast2.equals
+
+  type result = [ `Return of output | `Exception of string ]
+
+  let testedFunc = parseSExpr
+    
+  let testCases : (input * result) list =
+    let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in
+    let se = Ast2.simpleExpr
+    and se2 f l r = Ast2.simpleExpr f [l; r]
+    and id = Ast2.idExpr
+    in [
+      (** juxtaposition *)
+      "var int x", `Return [ se "opjux" ["var"; "int"; "x"] ];
+      "var int x\nvar int y", `Return [intVar "x"; intVar "y"];
+      "foo", `Return [id "foo"];
+
+      (** basic operators *)
+      "x + y", `Return [se "op+" ["x"; "y"]];
+      "a - b", `Return [se "op-" ["a"; "b"]];
+      "foo * bar", `Return [se "op*" ["foo"; "bar"]];
+      "p/q", `Return [se2 "op/" "p" "q"];
+      "a, b", `Return [se2 "op," "a" "b"];
+      "a, b, c", `Return [se "op," ["a"; "b"; "c"]];
+
+      (** indexed operators *)
+      "x +_f y", `Return [se2 "op+_f" "x" "y"];
+      (* todo *)
+
+      (** operator precedence *)
+      "x + y * 10", `Return [{ Ast2.id = "op+"; args = [id "x"; se2 "op*" "y" "10"]}];
+
+      (** invalid cases *)
+      "§", `Exception "Invalid char";
+
+      (** m-expressions *)
+      "func(arg)", `Return [se2 "opcall" "func" "arg"];
+      "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]];
+    ]
+end
+
+let () =
+  let module M = Testing.Tester(IndentParserTestCase) in
+  M.runTestsAndPrintErrors()
+
+
+
+  

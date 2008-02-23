@@ -1,5 +1,8 @@
+(*
+ * Indentation based lexer and tests
+ *)
 
-open Iexpr
+(* open Iexpr *)
 open Printf
 
 
@@ -19,7 +22,48 @@ type userToken = [
 | `Identifier of string
 | `OpenParen | `CloseParen
 | `Comma
+| `Add of string
+| `Sub of string
+| `Mult of string
+| `Div of string
 ]
+
+let lastMatchedString = ref ""
+let (=~) string regexp =
+  lastMatchedString := string;
+  Str.string_match (Str.regexp regexp) string  0
+let nthmatch n =
+  Str.matched_group n !lastMatchedString
+    
+let whitespaceRE = Str.regexp " +"
+
+let rules =
+  let re = Str.regexp in
+  let stringRule str token = 
+    re str,
+    (fun matchedStr -> 
+       assert( str = matchedStr );
+       token)
+  in
+  let opRule symbol tokenF =
+    re (sprintf "%s" symbol),
+    (fun matchedStr ->
+       if matchedStr =~ (sprintf "%s" symbol) then
+         tokenF matchedStr
+       else
+         assert false)
+  in
+  [
+    re "[a-zA-Z0-9.:]+", (fun str -> `Identifier str);
+    whitespaceRE, (fun str -> `Whitespace (String.length str));
+    stringRule "(" `OpenParen;
+    stringRule ")" `CloseParen;
+    stringRule "," `Comma;
+    opRule "+" (fun s -> `Add s);
+    opRule "-" (fun s -> `Sub s);
+    opRule "*" (fun s -> `Mult s);
+    opRule "/" (fun s -> `Div s);
+  ]
 
 type token = [ indentToken | userToken ]
 
@@ -65,24 +109,6 @@ let readUntil abortOnChar state =
   with End_of_file -> () end;
   !acc
 
-
-let whitespaceRE = Str.regexp " +"
-
-let rules =
-  let re = Str.regexp in
-  let stringRule str token = 
-    re str,
-    (fun matchedStr -> 
-       assert( str = matchedStr );
-       token)
-  in
-  [
-    re "[a-zA-Z0-9.:]+", (fun str -> `Identifier str);
-    whitespaceRE, (fun str -> `Whitespace (String.length str));
-    stringRule "(" `OpenParen;
-    stringRule ")" `CloseParen;
-    stringRule "," `Comma;
-  ]
 
 let token (lexbuf : token lexerstate) : token =
   let ruleBeginMatches string (regexp, _) =
@@ -177,29 +203,6 @@ let token (lexbuf : token lexerstate) : token =
     | firstToken :: remainingTokens ->
         lexbuf.pushedTokens <- remainingTokens;
         firstToken
-
-(*       let input = stringAcc ^ String.make 1 currentChar in *)
-(*       let matchingRules = List.filter (ruleMatches input) rules in *)
-(*       match matchingRules with *)
-(*         | [regexp, makeToken as rul] -> *)
-(*             let input = ref input in *)
-(*             begin try *)
-(*               while true do *)
-(*                 let nextChar = lexbuf.readChar() in *)
-(*                 let nextInput = !input ^ String.make 1 nextChar in *)
-(*                 if ruleMatches nextInput rul then *)
-(*                   input := nextInput *)
-(*                 else begin *)
-(*                   lexbuf.putbackString (String.make 1 nextChar); *)
-(*                   raise End_of_file *)
-(*                 end *)
-(*               done; *)
-(*             with End_of_file -> (); end; *)
-(*             makeToken !input *)
-(*         | [] -> *)
-(*             raiseUnknownToken lexbuf.location input *)
-(*         | _ -> *)
-(*             worker input *)
 
 let printToken (lineIndent, indentNext) token =
   let printIndent indent =
@@ -319,26 +322,8 @@ let printTokens tokens =
   in
   worker (0, `DontIndent) tokens
   
-(*
-let () =
-  let sourceFile = "indent.zomp" in
-  let lexbuf = lexbufFromChannel sourceFile (open_in sourceFile) in
-  let rec worker indent =
-    let t = token lexbuf in
-    let newIndent = printToken indent t in
-    printf " ";
-    worker newIndent
-  in
-  try
-    printf " ";
-    worker (0, `DontIndent)
-  with End_of_file ->
-    printf "\n--- done ---\n"
-*)
-
 (* Tests -------------------------------------------------------------------- *)
-
-
+    
 let tokenEqual l r =
   match l, r with
     | `Whitespace _, `Whitespace _ -> true
@@ -425,6 +410,10 @@ end
 module IndentLexerTester = Tester(IndentLexerTestCase)
 
 let () = IndentLexerTester.runTestsAndPrintErrors()
+
+let blockEndRE name =
+  sprintf "end\\( +%s\\)? *$" name
+
   
 let () =
   let testCases = [

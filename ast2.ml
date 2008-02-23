@@ -97,24 +97,10 @@ let rec expression2string sexpr =
         "(" ^ Common.combine "\n" (idString :: List.map Common.indent childs) ^ " )"
 
 let toString = expression2string
+
+let rec equals l r =
+  l.id = r.id && List.for_all2 equals l.args r.args
   
-(* let rec expression2string = function *)
-(*   | { id = ""; args = [] } -> "()" *)
-(*   | { id = id; args = args; } -> *)
-(*       begin *)
-(*         let argStrings = List.map expression2string args in *)
-(*         let id = if id == "" then "\"\"" else id in *)
-(*         let inOneLine = Common.combine " " (id::argStrings) in *)
-(*         if String.length inOneLine <= 60 then *)
-(*           if String.contains inOneLine ' ' then *)
-(*             "(" ^ inOneLine ^ ")" *)
-(*           else *)
-(*             inOneLine *)
-(*         else *)
-(*           "(" ^ Common.combine "\n  " (id::argStrings) ^ " )" *)
-(*       end     *)
-
-
 let rec replaceParams params args expr =
   let argCount = List.length args
   and paramCount = List.length params

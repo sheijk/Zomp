@@ -17,7 +17,7 @@ let raiseCouldNotParse str = raise (CouldNotParse str)
 
 exception CouldNotCompile of string
 let raiseCouldNotCompile str = raise (CouldNotCompile str)
-  
+
 let parseChannel lexbuf parseF bindings =
   try
     let newBindings, toplevelExprs =

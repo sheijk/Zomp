@@ -86,14 +86,15 @@ newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
 newparser.ml: newparser.mly ast2.cmo
 
 NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newlexer.cmo newparser.cmo\
-iexpr.cmo iexprtest.cmo newparsertest.cmo
+ iexprtest.cmo newparsertest.cmo
 
 newparsertest: $(NEWPARSER_CMOS)
 	echo Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(NEWPARSER_CMOS)
 
-testnewparser: $(NEWPARSER_CMOS)
-	$(OCAML) str.cma bigarray.cma common.cmo testing.cmo iexpr.cmo iexprtest.ml
+testnewparser: $(NEWPARSER_CMOS) newparsertest
+	./newparsertest
+# 	$(OCAML) str.cma bigarray.cma common.cmo testing.cmo iexprtest.ml
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
@@ -206,6 +207,8 @@ clean:
 	rm -f makefile.depends
 	rm -f stdlib.ll
 	rm -f opengl20.zomp glfw.zomp
+	rm -f iexpr.cm? iexprtest.cm? newparser.cm? newlexer.cm?
+	rm -f newparsertest.cmi newparsertest.cmo
 
 clean_tags:
 	rm -f *.annot

@@ -1,3 +1,6 @@
+(*
+ * Probably not needed anymore
+ *)
 
 open Printf
 
@@ -31,15 +34,6 @@ let splitLine line =
   let indent = leadingSpaces line in
   (indent, String.sub line indent (String.length line - indent))
 
-(* let classifyLine line = *)
-(*   let lineLength = String.length line in *)
-(*   let rec check index = *)
-(*     if index >= lineLength then `EmptyLine *)
-(*     else if line.[index] = ' ' then check (index+1) *)
-(*     else `IndentedLine (index, String.sub line index (lineLength-index)) *)
-(*   in *)
-(*   check 0 *)
-
 let iterBack f list = List.iter f (List.rev list)
 
 let lastMatchedString = ref ""
@@ -49,30 +43,6 @@ let (=~) string regexp =
 let nthmatch n =
   Str.matched_group n !lastMatchedString
 
-(* let collectTestErrors f tests = *)
-(*   let testF prevErrors (input, expected) = *)
-(*     let result = f input in *)
-(*     if result = expected then prevErrors *)
-(*     else (input, expected, result) :: prevErrors *)
-(*   in *)
-(*   let errors = List.fold_left testF [] tests in *)
-(*   errors *)
-
-
-(* let printReport testSets = *)
-(*   let printTestSetReport (testF, inputToString, outputToString) = *)
-(*     let errors = testF() in *)
-(*     let printError (input, expected, result) = *)
-(*       printf "Test case error:\n  Input: %s\n  Found: %s\n  Expected: %s\n" *)
-(*         (inputToString input) (outputToString result) (outputToString expected) *)
-(*     in *)
-(*     List.iter printError errors; *)
-(*     List.length errors *)
-(*   in *)
-(*   let errorCounts = List.map printTestSetReport testSets in *)
-(*   let errorCount = List.fold_left (+) 0 errorCounts in *)
-(*   if errorCount = 0 then printf "No errors\n" *)
-(*   else printf "%d errors\n" errorCount *)
 
 let repeatedList n v =
   let rec worker n acc =
@@ -81,10 +51,6 @@ let repeatedList n v =
   in
   worker n []
     
-
-(* type indentDelta = [`EmptyLine | `LessIndent of int | `MoreIndent | `SameIndent ] *)
-(* type indentF = int -> (indentDelta * int * string) list -> unit *)
-
 (* Program ------------------------------------------------------------------ *)
   
 let blockEndRE name =
