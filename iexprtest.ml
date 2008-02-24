@@ -23,11 +23,14 @@ type userToken = [
 | `OpenParen | `CloseParen
 | `Comma
 | `Add of string
-| `Sub of string
 | `Mult of string
-| `Div of string
+| `StrictBoolOp of string
+| `LazyBoolOp of string
 | `Assign of string
 | `Compare of string
+| `Dot
+| `Prefix of string
+| `Postfix of string
 ]
 
 let lastMatchedString = ref ""
@@ -46,7 +49,7 @@ let rules =
     (fun matchedStr -> 
        token)
   in
-  let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" symbol) in
+  let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let opRule symbol tokenF =
     re (opre symbol),
     tokenF
@@ -63,20 +66,29 @@ let rules =
     let rules = List.map (fun symbol -> opRules symbol tokenF) symbols in
     List.flatten rules
   in
+  let postfixRule symbol =
+    re (sprintf "%s +" (Str.quote symbol)),
+    (fun s -> `Postfix (trim s))
+  in
   [
     re "[a-zA-Z0-9]+", (fun str -> `Identifier str);
     whitespaceRE, (fun str -> `Whitespace (String.length str));
     stringRule "(" `OpenParen;
     stringRule ")" `CloseParen;
     stringRule " *, *" `Comma;
+    stringRule "\\." `Dot;
+    postfixRule "...";
   ]
-  @ opRules "\\+" (fun s -> `Add s)
-  @ opRules "-" (fun s -> `Sub s)
-  @ opRules "\\*" (fun s -> `Mult s)
-  @ opRules "/" (fun s -> `Div s)
+  @ opRules "+" (fun s -> `Add s)
+  @ opRules "-" (fun s -> `Add s)
+  @ opRules "*" (fun s -> `Mult s)
+  @ opRules "/" (fun s -> `Mult s)
+  @ opRules "**" (fun s -> `Mult s)
   @ opRulesMultiSym ["="; ":="] (fun s -> `Assign s)
   @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> `Compare s)
-
+  @ opRulesMultiSym ["&"; "|"] (fun s -> `StrictBoolOp s)
+  @ opRulesMultiSym ["&&"; "||"] (fun s -> `LazyBoolOp s)
+    
 type token = [ indentToken | userToken ]
 
 type 'token lexerstate = {
@@ -206,33 +218,6 @@ let token (lexbuf : token lexerstate) : token =
       in
       lexbuf.putbackString (String.make 1 currentChar);
       findToken stringAcc []
-(*       let input = ref( stringAcc ^ String.make 1 currentChar ) in *)
-(*       let rec findToken () =  *)
-(*         match List.filter (ruleBeginMatches !input) rules with *)
-(*           | [] -> *)
-(*               raiseUnknownToken lexbuf.location !input *)
-(*           | [_, makeToken as rul] -> *)
-(*               begin try *)
-(*                 while true do *)
-(*                   let nextChar = lexbuf.readChar() in *)
-(*                   let nextInput = !input ^ String.make 1 nextChar in *)
-(*                   if ruleBeginMatches nextInput rul then *)
-(*                     input := nextInput *)
-(*                   else begin *)
-(*                     lexbuf.putbackString (String.make 1 nextChar); *)
-(*                     raise End_of_file *)
-(*                   end *)
-(*                 done; *)
-(*               with End_of_file -> (); end; *)
-(*               if ruleMatches !input rul then  *)
-(*                 makeToken !input *)
-(*               else ( *)
-(*                 raiseUnknownToken lexbuf.location !input ) *)
-(*           | matchingRules -> *)
-(*               input := !input ^ String.make 1 (lexbuf.readChar()); *)
-(*               findToken() *)
-(*       in *)
-(*       findToken () *)
     end
   in
   match lexbuf.pushedTokens with
@@ -270,14 +255,17 @@ let printToken (lineIndent, indentNext) (token :token) =
           | `Whitespace length -> printf "_"; noind
           | `Comma -> printf ","; noind
           | `Add arg
-          | `Sub arg
           | `Mult arg
-          | `Div arg
           | `Assign arg
           | `Compare arg
+          | `Postfix arg
+          | `Prefix arg
+          | `LazyBoolOp arg
+          | `StrictBoolOp arg
             -> printf "%s" arg; noind
           | `OpenParen -> printf "("; noind
           | `CloseParen -> printf ")"; noind
+          | `Dot -> printf "."; noind
       
 let makeLexbuf fileName readCharFunc =
   let buffer = ref "" in
@@ -421,6 +409,8 @@ struct
       "foo , bar", `Return [id "foo"; `Comma; id "bar"; `End];
 
       "a +_f b", `Return [id "a"; `Add "+_f"; id "b"; `End];
+
+      "foo... ", `Return [id "foo"; `Postfix "..."; `End];
       
       (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );

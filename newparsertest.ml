@@ -40,11 +40,14 @@ let tokenToString =
     | Newparser.CLOSE_PAREN -> ")"
     | Newparser.COMMA -> ","
     | Newparser.ADD_OP arg -> os "+" arg
-    | Newparser.SUB_OP arg -> os "-" arg
     | Newparser.MULT_OP arg -> os "*" arg
-    | Newparser.DIV_OP arg -> os "/" arg
     | Newparser.ASSIGN_OP arg -> os "=" arg
     | Newparser.COMPARE_OP arg -> os "==" arg
+    | Newparser.DOT -> "."
+    | Newparser.POSTFIX_OP arg -> os "post" arg
+    | Newparser.PREFIX_OP arg -> os "pre" arg
+    | Newparser.LAZY_BOOL_OP arg -> os "lb" arg
+    | Newparser.STRICT_BOOL_OP arg -> os "sb" arg
       
 let lexFunc lexstate (_ :Lexing.lexbuf) =
   let iexprToken = Iexprtest.token lexstate in
@@ -58,11 +61,14 @@ let lexFunc lexstate (_ :Lexing.lexbuf) =
     | `CloseParen -> Newparser.CLOSE_PAREN
     | `Comma -> Newparser.COMMA
     | `Add arg -> Newparser.ADD_OP arg
-    | `Sub arg -> Newparser.SUB_OP arg
     | `Mult arg -> Newparser.MULT_OP arg
-    | `Div arg -> Newparser.DIV_OP arg
     | `Assign arg -> Newparser.ASSIGN_OP arg
     | `Compare arg -> Newparser.COMPARE_OP arg
+    | `Dot -> Newparser.DOT
+    | `Postfix arg -> Newparser.POSTFIX_OP arg
+    | `Prefix arg -> Newparser.PREFIX_OP arg
+    | `LazyBoolOp arg -> Newparser.LAZY_BOOL_OP arg
+    | `StrictBoolOp arg -> Newparser.STRICT_BOOL_OP arg
 
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
@@ -143,15 +149,15 @@ struct
 (*                    id "foo"; *)
 (*                    jux ["nested"; "bar"]; *)
 (*                  ]} ]; *)
-      
+
       (** basic operators *)
       "x + y", `Return [se "op+" ["x"; "y"]];
       "x+y", `Return [se "op+" ["x"; "y"]];
       "a - b", `Return [se "op-" ["a"; "b"]];
       "foo * bar", `Return [se "op*" ["foo"; "bar"]];
       "p/q", `Return [se2 "op/" "p" "q"];
-(*       "a, b", `Return [se2 "op," "a" "b"]; *)
-(*       "a, b, c", `Return [se "op," ["a"; "b"; "c"]]; *)
+      (* "a, b", `Return [se2 "op," "a" "b"]; *)
+      (* "a, b, c", `Return [se "op," ["a"; "b"; "c"]]; *)
       "x = 1", `Return [se2 "op=" "x" "1"];
       "foo := 20", `Return [se2 "op:=" "foo" "20"];
       "0 == blah", `Return [se2 "op==" "0" "blah"];
@@ -160,6 +166,16 @@ struct
       "foo <= bar", `Return [se2 "op<=" "foo" "bar"];
       "c > d", `Return [se2 "op>" "c" "d"];
       "x >= y", `Return [se2 "op>=" "x" "y"];
+      "base ** exp", `Return [se2 "op**" "base" "exp"];
+      
+      "true & false", `Return [se2 "op&" "true" "false"];
+      "a|b", `Return [se2 "op|" "a" "b"];
+      "a&&b", `Return [se2 "op&&" "a" "b"];
+      "c || d", `Return [se2 "op||" "c" "d"];
+
+      (** pre/postfix operators *)
+      "foo... ", `Return [se1 "postop..." "foo"];
+      (* todo post/prefix ops which work without additional whitespace *)
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
@@ -213,16 +229,13 @@ struct
         ]];
 
       (** dot notation *)
-(*       "foo.print(1, 2)", *)
-(*       `Return [ *)
-(*         { Ast2.id = "op."; *)
-(*           args = [ *)
-(*             id "foo"; *)
-(*             call ["print"; "1"; "2"]; *)
-(*           ]}]; *)
-
-      (* "x.add( 2 * 3 )", *)
-      (* `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]]; *)
+      "foo.print(1, 2)",
+      `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]];
+      
+      "foo.print()", `Return [expr "op." [id "foo"; call ["print"]]];
+      "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]];
+      "x.add(2 * 3)",
+      `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]];
 
       (* "(\*foo).print()", *)
       (* `Return [expr "op." [se1 "op*" "foo"; call ["print"]]]; *)
@@ -244,8 +257,8 @@ struct
       "add(1, 2) + add(3, 4)",
       `Return [expr "op+" [call ["add"; "1"; "2"]; call ["add"; "3"; "4"]]];
 
-      (* "if 2 > 3 then", *)
-      (* `Return [juxExpr [id "if"; se2 "op>" "2" "3"; id "then"]]; *)
+      "if 2 > 3 then",
+      `Return [juxExpr [id "if"; se2 "op>" "2" "3"; id "then"]];
 
       (* "for i = 0 .. 100", *)
       (* `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
