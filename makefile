@@ -3,7 +3,7 @@ OCAMLLEX=$(OCAMLPATH)ocamllex
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
 OCAML=$(OCAMLPATH)ocaml
-OCAMLC=$(OCAMLPATH)ocamlc -dtypes -warn-error A
+OCAMLC=$(OCAMLPATH)ocamlc -dtypes -warn-error A -g
 OCAMLOPT=$(OCAMLPATH)ocamlopt -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep
@@ -93,7 +93,7 @@ newparsertest: $(NEWPARSER_CMOS)
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(NEWPARSER_CMOS)
 
 testnewparser: $(NEWPARSER_CMOS) newparsertest
-	./newparsertest
+	ocamlrun -b ./newparsertest
 # 	$(OCAML) str.cma bigarray.cma common.cmo testing.cmo iexprtest.ml
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
@@ -132,7 +132,7 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 
 .mly.ml:
 	echo Generating parser $< ...
-	$(MENHIR) $<
+	$(MENHIR) --explain --infer $<
 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
 .mll.ml:

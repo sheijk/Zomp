@@ -99,7 +99,9 @@ let rec expression2string sexpr =
 let toString = expression2string
 
 let rec equals l r =
-  l.id = r.id && List.for_all2 equals l.args r.args
+  l.id = r.id
+  && List.length l.args = List.length r.args
+  && List.for_all2 equals l.args r.args
   
 let rec replaceParams params args expr =
   let argCount = List.length args

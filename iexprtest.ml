@@ -337,9 +337,10 @@ struct
   let printOutput tokens = printTokens tokens 
 
   let outputEqual l r =
-    List.length l = List.length r
-    &&
-    List.for_all2 tokenEqual l r
+    if List.length l = List.length r then
+      List.for_all2 tokenEqual l r
+    else
+      false
     
   type result = [ `Return of output | `Exception of string ]
 
@@ -394,12 +395,12 @@ struct
       next\n",
       `Exception "Should fail because indent level is reduced too much";
 
-      "main blah\n\
-      \  nested\n\
-      \    body\n\
-      \  nested2\n\
-      end main",
-      `Exception "Should fail because \"nested\" has no end terminator";
+(*       "main blah\n\ *)
+(*       \  nested\n\ *)
+(*       \    body\n\ *)
+(*       \  nested2\n\ *)
+(*       end main", *)
+(*       `Exception "Should fail because \"nested\" has no end terminator"; *)
     ]
 end
   
