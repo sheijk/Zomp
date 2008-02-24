@@ -26,6 +26,8 @@ type userToken = [
 | `Sub of string
 | `Mult of string
 | `Div of string
+| `Assign of string
+| `Compare of string
 ]
 
 let lastMatchedString = ref ""
@@ -37,21 +39,6 @@ let nthmatch n =
     
 let whitespaceRE = Str.regexp " +"
 
-
-let trim str =
-  let rec findFirstNonWS str index succ =
-    if index < String.length str && index >= 0 && str.[index] = ' ' then
-      findFirstNonWS str (succ index) succ
-    else
-      index
-  in
-  let frontSpaces = findFirstNonWS str 0 ((+) 1) in
-  let frontTrimmed = String.sub str frontSpaces (String.length str - frontSpaces)
-  in
-  let frontTrimmedLength = String.length frontTrimmed in
-  let backSpaces = frontTrimmedLength - 1 - findFirstNonWS frontTrimmed (frontTrimmedLength-1) (fun x -> x - 1) in
-  String.sub frontTrimmed 0 (frontTrimmedLength - backSpaces)
-    
 let rules =
   let re = Str.regexp in
   let stringRule str token = 
@@ -72,18 +59,23 @@ let rules =
     [opRule symbol tokenF;
      opRuleWS symbol tokenF]
   in
+  let opRulesMultiSym symbols tokenF =
+    let rules = List.map (fun symbol -> opRules symbol tokenF) symbols in
+    List.flatten rules
+  in
   [
     re "[a-zA-Z0-9]+", (fun str -> `Identifier str);
     whitespaceRE, (fun str -> `Whitespace (String.length str));
-    stringRule " *( *" `OpenParen;
-    stringRule " *) *" `CloseParen;
+    stringRule "(" `OpenParen;
+    stringRule ")" `CloseParen;
     stringRule " *, *" `Comma;
   ]
   @ opRules "\\+" (fun s -> `Add s)
   @ opRules "-" (fun s -> `Sub s)
   @ opRules "\\*" (fun s -> `Mult s)
   @ opRules "/" (fun s -> `Div s)
-
+  @ opRulesMultiSym ["="; ":="] (fun s -> `Assign s)
+  @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> `Compare s)
 
 type token = [ indentToken | userToken ]
 
@@ -281,6 +273,8 @@ let printToken (lineIndent, indentNext) (token :token) =
           | `Sub arg
           | `Mult arg
           | `Div arg
+          | `Assign arg
+          | `Compare arg
             -> printf "%s" arg; noind
           | `OpenParen -> printf "("; noind
           | `CloseParen -> printf ")"; noind
@@ -415,6 +409,8 @@ struct
     [
       "single", `Return [id "single"; `End];
 
+      "foo(3) + 1", `Return [id "foo"; `OpenParen; id "3"; `CloseParen; `Add "+"; id "1"; `End];
+      
       "foo bar", `Return [id "foo"; `Whitespace 1; id "bar"; `End];
 
       "a+b", `Return [id "a"; `Add "+"; id "b"; `End];

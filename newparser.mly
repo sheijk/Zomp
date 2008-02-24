@@ -14,13 +14,6 @@
 
   let opName opSymbol = "op" ^ opSymbol
 
-(*   let mergeJux l r = *)
-(*     match r with *)
-(*       | {Ast2.id = "opjux"; args = rargs } -> *)
-(*           {Ast2.id = "opjux"; args = l :: rargs} *)
-(*       | _ -> *)
-(*           {Ast2.id = "opjux"; args = [l;r]} *)
-
   let mergeJux l r =
     match l, r with
       | {Ast2.id = "opjux"; args = largs }, _ ->
@@ -46,11 +39,14 @@
 %token <string> SUB_OP
 %token <string> MULT_OP
 %token <string> DIV_OP
+%token <string> ASSIGN_OP
+%token <string> COMPARE_OP
 
 %left WHITESPACE BEGIN_BLOCK
+%nonassoc COMPARE_OP
+%nonassoc ASSIGN_OP
 %left ADD_OP SUB_OP
 %left MULT_OP DIV_OP
-(* %left CALL *)
   
 %start <Ast2.sexpr> main
 
@@ -81,5 +77,7 @@ expr:
 | o = SUB_OP
 | o = MULT_OP
 | o = DIV_OP
+| o = ASSIGN_OP
+| o = COMPARE_OP
     { o }
     

@@ -311,4 +311,19 @@ let dequoteString quoteChar str =
   else
     `NotQuoted str
 
-  
+ 
+let trim str =
+  let rec findFirstNonWS str index succ =
+    if index < String.length str && index >= 0 && str.[index] = ' ' then
+      findFirstNonWS str (succ index) succ
+    else
+      index
+  in
+  let frontSpaces = findFirstNonWS str 0 ((+) 1) in
+  let frontTrimmed = String.sub str frontSpaces (String.length str - frontSpaces)
+  in
+  let frontTrimmedLength = String.length frontTrimmed in
+  let backSpaces = frontTrimmedLength - 1 - findFirstNonWS frontTrimmed (frontTrimmedLength-1) (fun x -> x - 1) in
+  String.sub frontTrimmed 0 (frontTrimmedLength - backSpaces)
+
+    

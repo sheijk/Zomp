@@ -43,6 +43,8 @@ let tokenToString =
     | Newparser.SUB_OP arg -> os "-" arg
     | Newparser.MULT_OP arg -> os "*" arg
     | Newparser.DIV_OP arg -> os "/" arg
+    | Newparser.ASSIGN_OP arg -> os "=" arg
+    | Newparser.COMPARE_OP arg -> os "==" arg
       
 let lexFunc lexstate (_ :Lexing.lexbuf) =
   let iexprToken = Iexprtest.token lexstate in
@@ -59,6 +61,8 @@ let lexFunc lexstate (_ :Lexing.lexbuf) =
     | `Sub arg -> Newparser.SUB_OP arg
     | `Mult arg -> Newparser.MULT_OP arg
     | `Div arg -> Newparser.DIV_OP arg
+    | `Assign arg -> Newparser.ASSIGN_OP arg
+    | `Compare arg -> Newparser.COMPARE_OP arg
 
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
@@ -148,9 +152,14 @@ struct
       "p/q", `Return [se2 "op/" "p" "q"];
 (*       "a, b", `Return [se2 "op," "a" "b"]; *)
 (*       "a, b, c", `Return [se "op," ["a"; "b"; "c"]]; *)
-      (* "x = 1", `Return [se2 "op=" "x" "1"]; *)
-      (*todo: why does this trigger a unit test bug? "1 != 2", `Return [se2 "op!=" "1" "2"]; *)
-      (* "0 == blah", `Return [se2 "op==" "0" "blah"]; *)
+      "x = 1", `Return [se2 "op=" "x" "1"];
+      "foo := 20", `Return [se2 "op:=" "foo" "20"];
+      "0 == blah", `Return [se2 "op==" "0" "blah"];
+      "1 != 2", `Return [se2 "op!=" "1" "2"];
+      "a < b", `Return [se2 "op<" "a" "b"];
+      "foo <= bar", `Return [se2 "op<=" "foo" "bar"];
+      "c > d", `Return [se2 "op>" "c" "d"];
+      "x >= y", `Return [se2 "op>=" "x" "y"];
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
@@ -163,6 +172,12 @@ struct
       "x*y+10", `Return [expr "op+" [se2 "op*" "x" "y"; id "10"]];
       "a / b / c", `Return [expr "op/" [se2 "op/" "a" "b"; id "c"]];
 
+      "a + 1 > 10", `Return [expr "op>" [se2 "op+" "a" "1"; id "10"]];
+      "a + 1 < 10", `Return [expr "op<" [se2 "op+" "a" "1"; id "10"]];
+      "a + 1 >= 10", `Return [expr "op>=" [se2 "op+" "a" "1"; id "10"]];
+      "a + 1 <= 10", `Return [expr "op<=" [se2 "op+" "a" "1"; id "10"]];
+      (* todo *)
+      
       (** invalid cases *)
       "§", `Exception "Invalid char";
 
@@ -213,15 +228,21 @@ struct
       (* `Return [expr "op." [se1 "op*" "foo"; call ["print"]]]; *)
 
       (** special handling for first token *)
-      (* "print: 10 + 20", *)
-      (* `Return [juxExpr [id "print"; expr "op+" [id "10"; id "20"]]]; *)
+      "print 10 + 20",
+      `Return [juxExpr [id "print"; expr "op+" [id "10"; id "20"]]];
       
-      (* "let: x + y = 20", *)
-      (* `Return [juxExpr [id "let"; expr "op=" [se2 "op+" "x" "y"; id "20"]]]; *)
+      "let x + y = 20",
+      `Return [juxExpr [id "let"; expr "op=" [se2 "op+" "x" "y"; id "20"]]];
 
       (** precedence for s/m-expressions *)
-      (* "add(1, 2) + add(3, 4)", *)
-      (* `Return [expr "op+" [call ["add"; "1"; "2"]; call ["add"; "3"; "4"]]]; *)
+      "x + add(1, 2)",
+      `Return[ expr "op+" [id "x"; call ["add"; "1"; "2"]] ];
+
+      "sqrt(1) * 10",
+      `Return[ expr "op*" [call ["sqrt"; "1"]; id "10"] ];
+
+      "add(1, 2) + add(3, 4)",
+      `Return [expr "op+" [call ["add"; "1"; "2"]; call ["add"; "3"; "4"]]];
 
       (* "if 2 > 3 then", *)
       (* `Return [juxExpr [id "if"; se2 "op>" "2" "3"; id "then"]]; *)
