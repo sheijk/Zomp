@@ -62,9 +62,9 @@ main:
 
     
 sexpr:
-| WHITESPACE? id = IDENTIFIER
+| WHITESPACE? id = IDENTIFIER WHITESPACE?
     { Ast2.idExpr id }
-| WHITESPACE? id = IDENTIFIER args = sexprArg+
+| WHITESPACE? id = IDENTIFIER args = sexprArg+ WHITESPACE?
     {{ Ast2.id = "opjux"; args = Ast2.idExpr id :: args }}
 
 sexprArg:

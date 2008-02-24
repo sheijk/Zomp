@@ -461,15 +461,15 @@ Require
 ** DONE Operators at the beginning/end of expressions?
    CLOSED: [2008-01-28 Mon 03:11]
 
-Solution: maybe later. The feature can be added later without causing any conflicts
+   Solution: maybe later. The feature can be added later without causing any conflicts
 
-(10 +)
-(+ 10)
+   (10 +)
+   (+ 10)
 
-Syntax error?
-(op+ 10)?
-(+ 10)?
-how to differentiate?
+   Syntax error?
+   (op+ 10)?
+   (+ 10)?
+   how to differentiate?
 
 ** TODO dot notation
 

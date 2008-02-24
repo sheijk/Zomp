@@ -46,15 +46,11 @@ let rules =
        token)
   in
   let opRule symbol tokenF =
-    re (sprintf "%s" symbol),
-    (fun matchedStr ->
-       if matchedStr =~ (sprintf "%s" symbol) then
-         tokenF matchedStr
-       else
-         assert false)
+    re (sprintf "%s\\(_[a-zA-Z]+\\)?" symbol),
+    tokenF
   in
   [
-    re "[a-zA-Z0-9.:]+", (fun str -> `Identifier str);
+    re "[a-zA-Z0-9]+", (fun str -> `Identifier str);
     whitespaceRE, (fun str -> `Whitespace (String.length str));
     stringRule "(" `OpenParen;
     stringRule ")" `CloseParen;
