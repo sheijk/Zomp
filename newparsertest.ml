@@ -189,6 +189,14 @@ struct
             seq [jux ["int"; "x"]; jux ["int"; "y"]];
           ]}];
 
+      "let x + y\n  plus(x, y)\nend",
+      `Return [
+        juxExpr [
+          id "let";
+          se2 "op+" "x" "y";
+          seq [call ["plus"; "x"; "y"]]
+        ]];
+
       (** dot notation *)
 (*       "foo.print(1, 2)", *)
 (*       `Return [ *)

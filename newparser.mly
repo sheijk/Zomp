@@ -13,7 +13,23 @@
                     invalidString))
 
   let opName opSymbol = "op" ^ opSymbol
-    
+
+(*   let mergeJux l r = *)
+(*     match r with *)
+(*       | {Ast2.id = "opjux"; args = rargs } -> *)
+(*           {Ast2.id = "opjux"; args = l :: rargs} *)
+(*       | _ -> *)
+(*           {Ast2.id = "opjux"; args = [l;r]} *)
+
+  let mergeJux l r =
+    match l, r with
+      | {Ast2.id = "opjux"; args = largs }, _ ->
+          {Ast2.id = "opjux"; args = largs @ [r]}
+      | _, {Ast2.id = "opjux"; args = rargs } ->
+          {Ast2.id = "opjux"; args = l :: rargs}
+      | _ ->
+          {Ast2.id = "opjux"; args = [l;r]}
+
 %}
 
 %token <string> IDENTIFIER
@@ -31,7 +47,7 @@
 %token <string> MULT_OP
 %token <string> DIV_OP
 
-%left WHITESPACE
+%left WHITESPACE BEGIN_BLOCK
 %left ADD_OP SUB_OP
 %left MULT_OP DIV_OP
 (* %left CALL *)
@@ -43,16 +59,10 @@
 main:
 | WHITESPACE? e = expr WHITESPACE? END
     { e }
-
+    
 expr:
 | id = IDENTIFIER;
   { Ast2.idExpr id }
-
-| l = expr; WHITESPACE; r = expr;
-  { match l with
-      | {Ast2.id = "opjux"; args = largs } -> {Ast2.id = "opjux"; args = largs @ [r] }
-      | _ -> { Ast2.id = "opjux"; args = [l; r] }
-  }
 
 | l = expr; op = opsymbol; r = expr;
   {{ Ast2.id = opName op; args = [l; r] }}
@@ -60,6 +70,12 @@ expr:
 | id = IDENTIFIER; OPEN_PAREN; args = separated_list(COMMA, expr); CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: args }}
 
+| l = expr; WHITESPACE; r = expr;
+  { mergeJux l r }
+    
+| l = expr; BEGIN_BLOCK; args = main*; END_BLOCK;
+  { mergeJux l { Ast2.id = "opseq"; args = args }}
+    
 %inline opsymbol:
 | o = ADD_OP
 | o = SUB_OP
