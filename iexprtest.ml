@@ -4,7 +4,7 @@
 
 (* open Iexpr *)
 open Printf
-
+open Common
 
 type location = {
   line :int;
@@ -37,29 +37,53 @@ let nthmatch n =
     
 let whitespaceRE = Str.regexp " +"
 
+
+let trim str =
+  let rec findFirstNonWS str index succ =
+    if index < String.length str && index >= 0 && str.[index] = ' ' then
+      findFirstNonWS str (succ index) succ
+    else
+      index
+  in
+  let frontSpaces = findFirstNonWS str 0 ((+) 1) in
+  let frontTrimmed = String.sub str frontSpaces (String.length str - frontSpaces)
+  in
+  let frontTrimmedLength = String.length frontTrimmed in
+  let backSpaces = frontTrimmedLength - 1 - findFirstNonWS frontTrimmed (frontTrimmedLength-1) (fun x -> x - 1) in
+  String.sub frontTrimmed 0 (frontTrimmedLength - backSpaces)
+    
 let rules =
   let re = Str.regexp in
   let stringRule str token = 
     re str,
     (fun matchedStr -> 
-       assert( str = matchedStr );
        token)
   in
+  let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" symbol) in
   let opRule symbol tokenF =
-    re (sprintf "%s\\(_[a-zA-Z]+\\)?" symbol),
+    re (opre symbol),
     tokenF
+  in
+  let opRuleWS symbol tokenF =
+    re (sprintf " +%s +" (opre symbol)),
+    (fun str -> tokenF (trim str))
+  in
+  let opRules symbol tokenF =
+    [opRule symbol tokenF;
+     opRuleWS symbol tokenF]
   in
   [
     re "[a-zA-Z0-9]+", (fun str -> `Identifier str);
     whitespaceRE, (fun str -> `Whitespace (String.length str));
-    stringRule "(" `OpenParen;
-    stringRule ")" `CloseParen;
-    stringRule "," `Comma;
-    opRule "+" (fun s -> `Add s);
-    opRule "-" (fun s -> `Sub s);
-    opRule "*" (fun s -> `Mult s);
-    opRule "/" (fun s -> `Div s);
+    stringRule " *( *" `OpenParen;
+    stringRule " *) *" `CloseParen;
+    stringRule " *, *" `Comma;
   ]
+  @ opRules "\\+" (fun s -> `Add s)
+  @ opRules "-" (fun s -> `Sub s)
+  @ opRules "\\*" (fun s -> `Mult s)
+  @ opRules "/" (fun s -> `Div s)
+
 
 type token = [ indentToken | userToken ]
 
@@ -163,35 +187,60 @@ let token (lexbuf : token lexerstate) : token =
           "Indentation may only be reduced by two spaces at a time"
       end
 
-    end else begin (** no whitespace *)
-      let input = ref( stringAcc ^ String.make 1 currentChar ) in
-      let rec findToken() = 
-        match List.filter (ruleBeginMatches !input) rules with
-          | [] -> 
-              raiseUnknownToken lexbuf.location !input
-          | [_, makeToken as rul] ->
-              begin try
-                while true do
-                  let nextChar = lexbuf.readChar() in
-                  let nextInput = !input ^ String.make 1 nextChar in
-                  if ruleBeginMatches nextInput rul then
-                    input := nextInput
-                  else begin
-                    lexbuf.putbackString (String.make 1 nextChar);
-                    raise End_of_file
-                  end
-                done;
-              with End_of_file -> (); end;
-              if ruleMatches !input rul then 
-                makeToken !input
-              else
-                raiseUnknownToken lexbuf.location !input
-          | matchingRules ->
-              printf "multiple rules\n"; flush stdout;
-              input := !input ^ String.make 1 (lexbuf.readChar());
-              findToken()
+    end else begin (** no newline *)
+      let rec findToken prevInput prevFullMatches =
+        let input = prevInput ^ String.make 1 (lexbuf.readChar()) in
+        let beginMatches = List.filter (ruleBeginMatches input) rules in
+        let fullMatches =
+          match List.filter (ruleMatches input) rules with
+            | [] -> prevFullMatches
+            | fullMatches ->
+                let inputLength = String.length input in
+                List.map (fun m -> inputLength, m) fullMatches
+        in
+        match beginMatches with
+          | [] ->
+              begin match fullMatches with
+                | [] -> raiseUnknownToken lexbuf.location input
+                | [length, (_, makeToken)] ->
+                    let spareInput = Str.string_after input (length) in
+                    let consumedInput = Str.string_before input (length) in
+                    lexbuf.putbackString spareInput;
+                    makeToken consumedInput
+                | multi -> raiseUnknownToken lexbuf.location input
+              end
+          | multi ->
+              findToken input fullMatches
       in
-      findToken()
+      lexbuf.putbackString (String.make 1 currentChar);
+      findToken stringAcc []
+(*       let input = ref( stringAcc ^ String.make 1 currentChar ) in *)
+(*       let rec findToken () =  *)
+(*         match List.filter (ruleBeginMatches !input) rules with *)
+(*           | [] -> *)
+(*               raiseUnknownToken lexbuf.location !input *)
+(*           | [_, makeToken as rul] -> *)
+(*               begin try *)
+(*                 while true do *)
+(*                   let nextChar = lexbuf.readChar() in *)
+(*                   let nextInput = !input ^ String.make 1 nextChar in *)
+(*                   if ruleBeginMatches nextInput rul then *)
+(*                     input := nextInput *)
+(*                   else begin *)
+(*                     lexbuf.putbackString (String.make 1 nextChar); *)
+(*                     raise End_of_file *)
+(*                   end *)
+(*                 done; *)
+(*               with End_of_file -> (); end; *)
+(*               if ruleMatches !input rul then  *)
+(*                 makeToken !input *)
+(*               else ( *)
+(*                 raiseUnknownToken lexbuf.location !input ) *)
+(*           | matchingRules -> *)
+(*               input := !input ^ String.make 1 (lexbuf.readChar()); *)
+(*               findToken() *)
+(*       in *)
+(*       findToken () *)
     end
   in
   match lexbuf.pushedTokens with
@@ -200,7 +249,7 @@ let token (lexbuf : token lexerstate) : token =
         lexbuf.pushedTokens <- remainingTokens;
         firstToken
 
-let printToken (lineIndent, indentNext) token =
+let printToken (lineIndent, indentNext) (token :token) =
   let printIndent indent =
     if indentNext = `Indent then
       printf "%s" (String.make (4 * indent) ' ')
@@ -215,15 +264,26 @@ let printToken (lineIndent, indentNext) token =
         end;
         lineIndent - 1, `Indent
     | _ as t ->
+        let noind = lineIndent, `DontIndent
+        and ind = lineIndent, `Indent
+        in
         printIndent lineIndent;
         match t with
           | `BeginBlock ->
               printf "{\n";
               lineIndent + 1, `Indent
-          | `End -> printf "`End\n"; lineIndent, `Indent
-          | `Identifier str -> printf "%s" str; lineIndent, `DontIndent
-          | `Whitespace length -> printf "_"; lineIndent, `DontIndent
-          | _ -> failwith "match failure"
+          | `EndBlock _ -> failwith "match failure"
+          | `End -> printf "`End\n"; ind
+          | `Identifier str -> printf "%s" str; noind
+          | `Whitespace length -> printf "_"; noind
+          | `Comma -> printf ","; noind
+          | `Add arg
+          | `Sub arg
+          | `Mult arg
+          | `Div arg
+            -> printf "%s" arg; noind
+          | `OpenParen -> printf "("; noind
+          | `CloseParen -> printf ")"; noind
       
 let makeLexbuf fileName readCharFunc =
   let buffer = ref "" in
@@ -347,25 +407,39 @@ struct
   let testedFunc = lexString
 
   let testCases : (input * result) list =
+    let id x = `Identifier x in
     let ids stringList =
       let idTokens = List.map (fun str -> (`Identifier str :> token)) stringList in
       Common.combineList (`Whitespace 1) idTokens
     in
     [
+      "single", `Return [id "single"; `End];
+
+      "foo bar", `Return [id "foo"; `Whitespace 1; id "bar"; `End];
+
+      "a+b", `Return [id "a"; `Add "+"; id "b"; `End];
+      "a   + b", `Return [id "a"; `Add "+"; id "b"; `End];
+
+      "a,b", `Return [id "a"; `Comma; id "b"; `End];
+      "x, y", `Return [id "x"; `Comma; id "y"; `End];
+      "foo , bar", `Return [id "foo"; `Comma; id "bar"; `End];
+
+      "a +_f b", `Return [id "a"; `Add "+_f"; id "b"; `End];
+      
       (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
       "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );
 
       "first line\nsecond line\n",
-      `Return( [`Identifier "first"; `Whitespace 1; `Identifier "line"; `End;
-                `Identifier "second"; `Whitespace 1; `Identifier "line"; `End] );
+      `Return( [id "first"; `Whitespace 1; id "line"; `End;
+                id "second"; `Whitespace 1; id "line"; `End] );
       
       (* simple multi-line expressions *)
       "if a then\n\
       \  foobar\n\
       end",
       `Return( ids ["if"; "a"; "then"] @ [`BeginBlock]
-               @ [`Identifier "foobar"; `End]
+               @ [id "foobar"; `End]
                @ [`EndBlock []; `End] );
       
       (* block end with tokens *)
@@ -384,7 +458,7 @@ struct
       end",
       `Return( ids ["if"; "cond"; "then"] @ [`BeginBlock]
                @ ids ["print"; "1"] @ [`End]
-               @ [`EndBlock []; `Identifier "else"; `BeginBlock]
+               @ [`EndBlock []; id "else"; `BeginBlock]
                @ ids ["print"; "2"] @ [`End]
                @ [`EndBlock []; `End] );
       
@@ -403,10 +477,10 @@ struct
 (*       `Exception "Should fail because \"nested\" has no end terminator"; *)
     ]
 end
-  
-module IndentLexerTester = Tester(IndentLexerTestCase)
 
-let () = IndentLexerTester.runTestsAndPrintErrors()
+let () =
+  let module M = Tester(IndentLexerTestCase) in
+  M.runTestsAndPrintErrors()
 
 let blockEndRE name =
   sprintf "end\\( +%s\\)? *$" name

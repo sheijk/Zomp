@@ -16,22 +16,6 @@
     
 %}
 
-(* %token PAREN_OPEN *)
-(* %token PAREN_CLOSE *)
-(* %token <string> QUOTE *)
-(* %token <string> IDENTIFIER *)
-(* %token <string> ADD_OP *)
-(* %token <string> MULT_OP *)
-(* %token <string> COMPARE_OP *)
-(* %token <string> POST_OP *)
-(* %token <string> PRE_OP *)
-(* %token BRACKET_OPEN *)
-(* %token BRACKET_CLOSE *)
-
-(* %right COMPARE_OP *)
-(* %right ADD_OP *)
-(* %right MULT_OP *)
-  
 %token <string> IDENTIFIER
 %token END
 %token BEGIN_BLOCK
@@ -47,22 +31,39 @@
 %token <string> MULT_OP
 %token <string> DIV_OP
 
-%left ADD_OP
-%left MULT_OP
+%left WHITESPACE
+%left ADD_OP SUB_OP
+%left MULT_OP DIV_OP
+(* %left CALL *)
   
 %start <Ast2.sexpr> main
 
 %%
 
 main:
-| e = expr END
+| WHITESPACE? e = expr WHITESPACE? END
     { e }
 
 expr:
-| id = IDENTIFIER
-    { Ast2.idExpr id }
-| l = expr; op = ADD_OP; r = expr;
-    {{ Ast2.id = opName op; args = [l; r] }}
-| l = expr; op = MULT_OP; r = expr;
-    {{ Ast2.id = opName op; args = [l; r] }}
+| id = IDENTIFIER;
+  { Ast2.idExpr id }
 
+| l = expr; WHITESPACE; r = expr;
+  { match l with
+      | {Ast2.id = "opjux"; args = largs } -> {Ast2.id = "opjux"; args = largs @ [r] }
+      | _ -> { Ast2.id = "opjux"; args = [l; r] }
+  }
+
+| l = expr; op = opsymbol; r = expr;
+  {{ Ast2.id = opName op; args = [l; r] }}
+
+| id = IDENTIFIER; OPEN_PAREN; args = separated_list(COMMA, expr); CLOSE_PAREN;
+  {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: args }}
+
+%inline opsymbol:
+| o = ADD_OP
+| o = SUB_OP
+| o = MULT_OP
+| o = DIV_OP
+    { o }
+    

@@ -109,25 +109,31 @@ struct
   let testedFunc = parseSExpr
     
   let testCases : (input * result) list =
-(*     let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in *)
+    let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in
     let se = Ast2.simpleExpr
-(*     and jux args = { Ast2.id = "opjux"; args = List.map Ast2.idExpr args } *)
-(*     and call args = { Ast2.id = "opcall"; args = List.map Ast2.idExpr args } *)
-(*     and seq args = { Ast2.id = "opseq"; args = args } *)
+    and jux args = { Ast2.id = "opjux"; args = List.map Ast2.idExpr args }
+    and call args = { Ast2.id = "opcall"; args = List.map Ast2.idExpr args }
+    and seq args = { Ast2.id = "opseq"; args = args }
     and se2 f l r = Ast2.simpleExpr f [l; r]
-(*     and se1 f arg = Ast2.simpleExpr f [arg] *)
+    and se1 f arg = Ast2.simpleExpr f [arg]
     and id = Ast2.idExpr
     in
+    ignore(se1 "" "");
+    ignore(call []);
+    ignore(seq []);
     let expr id args = {Ast2.id = id; args =  args} in
-(*     let juxExpr = expr "opjux" in *)
-    (* let callExpr = expr "opcall" in *)
+    let juxExpr = expr "opjux" in
+    let callExpr = expr "opcall" in
+    ignore(juxExpr []);
+    ignore(callExpr []);
     [
       (** juxtaposition *)
-(*       "var int x", `Return [ se "opjux" ["var"; "int"; "x"] ]; *)
-(*       "var int x\nvar int y", `Return [intVar "x"; intVar "y"]; *)
-(*       "foo", `Return [id "foo"]; *)
+      "var int x", `Return [ se "opjux" ["var"; "int"; "x"] ];
+      "var int x\nvar int y", `Return [intVar "x"; intVar "y"];
+      "foo", `Return [id "foo"];
+      "foo bar", `Return [jux ["foo"; "bar"]];
 
-      (** s-expressions *)
+      (** s-expressions todo: support this at all? *)
 (*       "foo (nested bar)", *)
 (*       `Return [ {Ast2.id = "opjux"; args = [ *)
 (*                    id "foo"; *)
@@ -137,9 +143,9 @@ struct
       (** basic operators *)
       "x + y", `Return [se "op+" ["x"; "y"]];
       "x+y", `Return [se "op+" ["x"; "y"]];
-(*       "a - b", `Return [se "op-" ["a"; "b"]]; *)
+      "a - b", `Return [se "op-" ["a"; "b"]];
       "foo * bar", `Return [se "op*" ["foo"; "bar"]];
-(*       "p/q", `Return [se2 "op/" "p" "q"]; *)
+      "p/q", `Return [se2 "op/" "p" "q"];
 (*       "a, b", `Return [se2 "op," "a" "b"]; *)
 (*       "a, b, c", `Return [se "op," ["a"; "b"; "c"]]; *)
       (* "x = 1", `Return [se2 "op=" "x" "1"]; *)
@@ -147,39 +153,41 @@ struct
       (* "0 == blah", `Return [se2 "op==" "0" "blah"]; *)
 
       (** indexed operators *)
-(*       "x +_f y", `Return [se2 "op+_f" "x" "y"]; *)
+      "x +_f y", `Return [se2 "op+_f" "x" "y"];
       (* todo *)
 
       (** operator precedence *)
+      "x + y * 10", `Return [expr "op+" [id "x"; se2 "op*" "y" "10"]];
       "x+y*10", `Return [expr "op+" [id "x"; se2 "op*" "y" "10"]];
+      "x * y + 10", `Return [expr "op+" [se2 "op*" "x" "y"; id "10"]];
       "x*y+10", `Return [expr "op+" [se2 "op*" "x" "y"; id "10"]];
-      (* "a / b / c", `Return [expr "op/" [se2 "op/" "a" "b"; id "c"]]; *)
+      "a / b / c", `Return [expr "op/" [se2 "op/" "a" "b"; id "c"]];
 
       (** invalid cases *)
       "§", `Exception "Invalid char";
 
       (** m-expressions *)
-(*       "print()", `Return [se1 "opcall" "print"]; *)
-(*       "func(arg)", `Return [se2 "opcall" "func" "arg"]; *)
-(*       "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]]; *)
+      "print()", `Return [se1 "opcall" "print"];
+      "func(arg)", `Return [se2 "opcall" "func" "arg"];
+      "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]];
 
-(*       "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]]; *)
-(*       "while empty(list)", `Return [juxExpr [id "while"; call ["empty"; "list"]]]; *)
+      "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]];
+      "while empty(list)", `Return [juxExpr [id "while"; call ["empty"; "list"]]];
       
-(*       "while equal(a, b)", `Return [juxExpr [id "while"; call ["equal"; "a"; "b"]]]; *)
+      "while equal(a, b)", `Return [juxExpr [id "while"; call ["equal"; "a"; "b"]]];
 
-      (* "sqrt(2 + 3)", *)
-      (* `Return [callExpr [id "sqrt"; se2 "op+" "2" "3"]]; *)
+      "sqrt(2 + 3)",
+      `Return [callExpr [id "sqrt"; se2 "op+" "2" "3"]];
 
       (** indenting *)
-(*       "type point\n  int x\n  int y\nend", *)
-(*       `Return [ *)
-(*         { Ast2.id = "opjux"; *)
-(*           args = [ *)
-(*             id "type"; *)
-(*             id "point"; *)
-(*             seq [jux ["int"; "x"]; jux ["int"; "y"]]; *)
-(*           ]}]; *)
+      "type point\n  int x\n  int y\nend",
+      `Return [
+        { Ast2.id = "opjux";
+          args = [
+            id "type";
+            id "point";
+            seq [jux ["int"; "x"]; jux ["int"; "y"]];
+          ]}];
 
       (** dot notation *)
 (*       "foo.print(1, 2)", *)
@@ -214,12 +222,12 @@ struct
       (* `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
 
       (** test whitespace tolerance *)
-(*       "int x ", `Return [jux ["int"; "x"]]; *)
-(*       "a   b  c", `Return [jux ["a"; "b"; "c"]]; *)
-(*       "  foo bar", `Return [jux ["foo"; "bar"]]; *)
+      "int x ", `Return [jux ["int"; "x"]];
+      "a   b  c", `Return [jux ["a"; "b"; "c"]];
+      "  foo bar", `Return [jux ["foo"; "bar"]];
     ]
 end
-
+  
 let () =
   let module M = Testing.Tester(IndentParserTestCase) in
   M.runTestsAndPrintErrors()
