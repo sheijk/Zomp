@@ -20,9 +20,16 @@ end
 
 module Zomp =
 struct
+  type intType = [
+  | `Int8
+  | `Int16
+  | `Int32
+  | `Int64
+  ]
+      
   type integralType = [
   | `Void
-  | `Int
+  | intType
   | `Float
   | `Double
   | `Bool
@@ -39,7 +46,10 @@ struct
      
   type value =
     | VoidVal
-    | IntVal of Int32.t
+    | Int8Val of Int32.t
+    | Int16Val of Int32.t
+    | Int32Val of Int32.t
+    | Int64Val of Int64.t
     | FloatVal of float
     | DoubleVal of float
     | StringLiteral of string
@@ -68,7 +78,10 @@ struct
   (* val typeOf : value -> typ *)
   let rec typeOf = function
     | VoidVal -> `Void
-    | IntVal _ -> `Int
+    | Int8Val _ -> `Int8
+    | Int16Val _ -> `Int16
+    | Int32Val _ -> `Int32
+    | Int64Val _ -> `Int64
     | FloatVal _ -> `Float
     | DoubleVal _ -> `Double
     | StringLiteral _ -> (`Pointer `Char)
@@ -82,7 +95,10 @@ struct
   (* val typeName : typ -> string *)
   let rec typeName : typ -> string = function
     | `Void -> "void"
-    | `Int -> "int"
+    | `Int8 -> "u8"
+    | `Int16 -> "u16"
+    | `Int32 -> "u32"
+    | `Int64 -> "u64"
     | `Float -> "float"
     | `Double -> "double"
     | `Bool -> "bool"
@@ -97,7 +113,10 @@ struct
   (* val valueString : value -> string *)
   let rec valueString : value -> string = function
     | VoidVal -> raise (Failure "no values of void allowed")
-    | IntVal i -> Int32.to_string i
+    | Int8Val i -> Int32.to_string i
+    | Int16Val i -> Int32.to_string i
+    | Int32Val i -> Int32.to_string i
+    | Int64Val i -> Int64.to_string i
     | FloatVal f -> string_of_float f
     | DoubleVal f -> string_of_float f
     | StringLiteral s -> "\"" ^ s ^ "\""
@@ -124,7 +143,10 @@ struct
       `Pointer (parseType (Str.string_before str (len - 1)))
     else
       match str with
-        | "int" -> `Int
+        | "u8" -> `Int8
+        | "u16" -> `Int16
+        | "u32" -> `Int32
+        | "u64" -> `Int64
         | "float" -> `Float
         | "double" -> `Double
         | "bool" -> `Bool
@@ -149,7 +171,10 @@ struct
     match typ with
       | `TypeRef name -> failwith (sprintf "Cannot parse value of type %s referred by name" name)
       | `Void -> failwith "no values of void allowed"
-      | `Int -> IntVal (Int32.of_string str)
+      | `Int8 -> Int8Val (Int32.of_string str)
+      | `Int16 -> Int16Val (Int32.of_string str)
+      | `Int32 -> Int32Val (Int32.of_string str)
+      | `Int64 -> Int64Val (Int64.of_string str)
       | `Float -> FloatVal (Common.restrictToSingleprecision (float_of_string str))
       | `Double -> DoubleVal (float_of_string str)
       | `Bool -> BoolVal (bool_of_string str)
@@ -163,7 +188,10 @@ struct
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
     | `TypeRef name -> failwith (sprintf "No default value for type %s referred by name" name)
-    | `Int -> IntVal 0l
+    | `Int8 -> Int8Val 0l
+    | `Int16 -> Int16Val 0l
+    | `Int32 -> Int32Val 0l
+    | `Int64 -> Int64Val 0L
     | `Float -> FloatVal 0.0
     | `Double -> DoubleVal 0.0
     | `Bool -> BoolVal false

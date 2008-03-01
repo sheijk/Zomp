@@ -1,0 +1,38 @@
+/**
+ * Test file I/O
+
+!verify off
+ */
+
+(include "tests/stdio.zomp")
+
+(template op==_ptr l r
+  ((cast int #l) == (cast int #r)))
+(template op!=_ptr l r
+  ((cast int #l) != (cast int #r)))
+
+(func void test() (
+  (const int size 10)
+  (var cstring buffer (malloc char (size + 1)))
+  (store (ptradd buffer size) '\0')
+  (for pos 0 size (store (ptradd buffer pos) 'x'))
+
+  (var filep file (fopen "./tests/foo.txt" "r"))
+  (if (file !=_ptr (nullptr FILE))
+    (
+      (printString "Error status: ") (printlnInt (ferror file))
+      
+      (var size_t result (fread (cast (ptr void) buffer) 1 size file))
+      (fclose file)
+      (printString "Buffer = '")      
+      (printString buffer)
+      (printString "', read ")
+      (printInt result)
+      (printString " bytes")
+      )
+    (
+      (printlnString "Could not open file")
+      )
+    )    
+  ))
+

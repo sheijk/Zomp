@@ -30,7 +30,7 @@ libbindings: gencode opengl20.zomp glfw.zomp
 byte: dllzompvm.so toplevel2 zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
-SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo machine.cmo dllzompvm.so zompvm.cmo expander.cmo parseutils.cmo sexprtoplevel.cmo
+SEXPR_TL_INPUT = common.cmo ast2.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo machine.cmo dllzompvm.so zompvm.cmo expander.cmo parseutils.cmo testing.cmo newparser.cmo iexprtest.cmo newparsertest.cmo sexprtoplevel.cmo
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	echo Building $@ ...
@@ -57,9 +57,11 @@ LLVM_LIBS=`llvm-config --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 LANG_CMXS=common.cmx ast2.cmx parser2.cmx lexer2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx expander.cmx parseutils.cmx 
 
-sexprtoplevel.native: $(SEXPR_TL_INPUT:.cmo=.cmx)
+TL_CMXS=testing.cmx newparser.cmx iexprtest.cmx newparsertest.cmx
+
+sexprtoplevel.native: $(SEXPR_TL_INPUT:.cmo=.cmx) $(TL_CMXS)
 	echo Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ str.cmxa bigarray.cmxa $(LANG_CMXS) sexprtoplevel.cmx
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ str.cmxa bigarray.cmxa $(LANG_CMXS) $(TL_CMXS) sexprtoplevel.cmx
 
 zompc.native: $(LANG_CMOS:.cmo=.cmx) zompc.cmx
 	echo Building $@ ...

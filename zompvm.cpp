@@ -355,7 +355,8 @@ extern "C" {
   bool zompCheckNativeSymbol(const char* name) {
     return dlsym( NULL, name ) != NULL ? true : false;
   }
-  
+
+
 } // extern "C"
 
 

@@ -39,6 +39,44 @@ let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 
+let parseSExpr input =
+  try
+    let lexbuf = Lexing.from_string input in
+    Some( Sexprparser.main Sexprlexer.token lexbuf )
+  with Sexprlexer.Eof ->
+    None
+
+let parseIExpr source =
+  if String.length source >= 3 && Str.last_chars source 3 = "\n\n\n" then
+    try
+      let lexbuf = Lexing.from_string source in
+      let lexstate = Iexprtest.lexbufFromString "dummy.zomp" source in
+      let lexFunc = Newparsertest.lexFunc lexstate in
+      let rec read acc =
+        try
+          let expr = Newparser.main lexFunc lexbuf in
+          read (expr :: acc)
+        with
+          | End_of_file -> acc
+      in
+      match List.rev (read []) with
+        | [singleExpr] ->
+            Some singleExpr
+        | multipleExprs ->
+            Some { Ast2.id = "opseq"; args = multipleExprs }
+    with _ ->
+      None
+  else (
+    None)
+
+let parseFunc = ref parseSExpr
+
+let toggleParseFunc args _ =
+  match args with
+    | ["sexpr"] -> parseFunc := parseSExpr
+    | ["indent"] -> parseFunc := parseIExpr
+    | _ -> printf "Invalid option. Use sexpr or indent\n"
+  
 let toggleVerifyCommand args _ =
   match args with
     | ["on"] -> Zompvm.zompVerifyCode true
@@ -86,7 +124,7 @@ let runFunction bindings funcname =
             | `Void ->
                 Machine.zompRunFunction funcname;
                 printf " => void\n";
-            | `Int ->
+            | `Int32 ->
                 let retval = Machine.zompRunFunctionInt funcname in
                 printf " => %d\n" retval
             | `Bool ->
@@ -222,6 +260,7 @@ let commands =
     "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
     "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
     "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
+    "syntax", [], toggleParseFunc, "Choose a syntax";
     "help", ["h"], printHelp, "List all toplevel commands";
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
@@ -262,31 +301,35 @@ let removeBeginning text count =
   let textLength = String.length text in
   let count = min textLength count in
   String.sub text count (textLength - count)
-    
+
 let rec readExpr prompt previousLines bindings =
   printf "%s" prompt;
   flush stdout;
   let line = read_line() in
-  if String.length line = 0 then begin
-    readExpr prompt previousLines bindings
-  end else if beginsWith line hiddenCommandPrefix then begin
+  (*   if String.length line = 0 then begin *)
+  (*     readExpr prompt previousLines bindings *)
+  (*   end else *)
+  if beginsWith line hiddenCommandPrefix then begin
     let command = removeBeginning line (String.length hiddenCommandPrefix + 1) in
     handleCommand command bindings;
     readExpr "" previousLines bindings
   end else if line = toplevelCommandString then begin
     printf "Aborted input, cleared \"%s\"\n" previousLines;
     readExpr defaultPrompt "" bindings
-  end else if line.[0] = toplevelCommandChar then begin
+  end else if String.length line > 0 && line.[0] = toplevelCommandChar then begin
     handleCommand line bindings;
     readExpr prompt previousLines bindings
   end else begin
     let expr =
       let input = previousLines ^ line ^ "\n" in
-      try
-        let lexbuf = Lexing.from_string input in
-        Sexprparser.main Sexprlexer.token lexbuf
-      with Sexprlexer.Eof ->
-        readExpr continuedPrompt input bindings
+      match !parseFunc input with
+        | Some expr -> expr
+        | None -> readExpr continuedPrompt input bindings
+            (*       try *)
+            (*         let lexbuf = Lexing.from_string input in *)
+            (*         Sexprparser.main Sexprlexer.token lexbuf *)
+            (*       with Sexprlexer.Eof -> *)
+            (*         readExpr continuedPrompt input bindings *)
     in
     expr
   end
@@ -297,30 +340,6 @@ let printWelcomeMessage() =
   printf "\n"
 
 let () =
-  (*   let step bindings () = *)
-  (*     Parseutils.compile *)
-  (*       ~readExpr:(fun bindings -> Some (readExpr defaultPrompt "" bindings)) *)
-  (*       ~beforeCompilingExpr:(fun _ -> printf "\n"; flush stdout) *)
-  (*       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode -> *)
-  (*                     if !printSExpr then begin *)
-  (*                       let asString = Ast2.expression2string expr in *)
-  (*                       printf " => %s\n" asString; *)
-  (*                     end; *)
-  (*                     if !printLLVMCode then *)
-  (*                       printf "LLVM code:\n%s\n" llvmCode; *)
-  (*                     if !llvmEvaluationOn then *)
-  (*                       Zompvm.evalLLVMCode oldBindings simpleforms llvmCode; *)
-  (*                     if !printDeclarations then begin *)
-  (*                       List.iter (fun form -> *)
-  (*                                    let text = Lang.toplevelFormToString form in *)
-  (*                                    printf "%s\n" text) *)
-  (*                         simpleforms; *)
-  (*                     end; *)
-  (*                     flush stdout; *)
-  (*                  ) *)
-  (*       bindings *)
-  (*   in *)
-
   let rec step bindings () =
     Parseutils.catchingErrorsDo
       (fun () -> begin
@@ -406,4 +425,6 @@ let () =
        end)
   in
   ignore finalBindings
-  
+
+
+    

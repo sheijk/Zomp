@@ -46,7 +46,7 @@ let rec typeCheck bindings form : typecheckResult =
     let expectType form expectType =
       match typeCheck bindings form with
         | TypeOf typ when typ = expectType -> TypeOf typ
-        | TypeOf invalidType -> TypeError ("Invalid type in 2nd parameter", invalidType, `Int)
+        | TypeOf invalidType -> TypeError ("Invalid type in 2nd parameter", invalidType, `Int32)
         | _ as e -> e
     in
     let (>>) l r =
@@ -159,7 +159,7 @@ let rec typeCheck bindings form : typecheckResult =
           end
       | `PtrAddIntrinsic (ptrExpr, offsetExpr) ->
           begin
-            expectType offsetExpr `Int
+            expectType offsetExpr `Int32
             >> expectPointerType ptrExpr
           end
       | `CastIntrinsic (targetType, valueExpr) ->
@@ -277,10 +277,10 @@ let moveLocalVarsToEntryBlock implForm =
 let test_moveLocalVarsToEntryBlock () =
   let identityTestCases = [
     `Sequence [`Return (`Constant VoidVal)];
-    `Sequence [`Return (`Constant (IntVal 100l))];
+    `Sequence [`Return (`Constant (Int32Val 100l))];
     `Sequence [
-      `Constant (IntVal 4l);
-      `Return (`Constant (IntVal 1000l))
+      `Constant (Int32Val 4l);
+      `Return (`Constant (Int32Val 1000l))
     ];
   ] in
   let testCases =

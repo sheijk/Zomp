@@ -26,7 +26,10 @@ let llvmName name =
   
 let rec llvmTypeName : Lang.typ -> string = function
   | `Void -> "void"
-  | `Int -> "i32"
+  | `Int8 -> "i8"
+  | `Int16 -> "i16"
+  | `Int32 -> "i32"
+  | `Int64 -> "i64"
   | `Bool -> "i1"
   | `Char -> "i8"
   | `Float -> "float"
@@ -146,14 +149,15 @@ let insertAstConstructors bindings =
     match args with
       | [] ->
           begin match lookup bindings id with
-            | VarSymbol { typ = `Int } ->
+            | VarSymbol { typ = `Int32 } ->
                 { id = "astFromInt"; args = [idExpr id] }
             | VarSymbol { typ = `Pointer `Char } ->
                 { id = "astFromString"; args = [idExpr id] }
             | _ -> default
           end
       | _ -> default
-        
+
+       
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -177,8 +181,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     List.map (fun name -> twoArgIntrinsic (sprintf "%s.%s" namespace name) name typ) names
   in
   
-  let compareIntrinsics typ =
-    let typeName = typeName typ in
+  let compareIntrinsics typ typeName =
     let functionMapping =
       [
         "equal", "eq";
@@ -214,33 +217,52 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     List.map (makeIntrinsic "o") functionMappings
     @ simpleTwoArgIntrinsincs typ typeName ["add"; "sub"; "mul"; "fdiv"; "frem"];
   in
+  let oneArgFunc name f = function
+    | [arg] -> f arg
+    | _ -> raiseCodeGenError ~msg:(sprintf "Only one argument expected by %s" name)
+  in
   let convertIntr funcName intrName fromType toType = 
-    let convertIntrF intrName = function
-      | [arg] -> sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType)
-      | _ -> raiseCodeGenError ~msg:(sprintf "Only one argument expected by %s" intrName)
+    let convertIntrF intrName = oneArgFunc intrName
+      (fun arg ->
+         sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType))
     in
     funcName, `Intrinsic (convertIntrF intrName), toType, ["v", fromType]
   in
+  let truncIntIntr fromType toType =
+    let name = sprintf "%s:to%s" (typeName fromType) (String.capitalize (typeName toType)) in
+    let func = oneArgFunc name
+      (fun arg -> sprintf "trunc %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
+    name, `Intrinsic func, toType, ["v", fromType]
+  in
+  let zextIntr fromType toType =
+    let name = sprintf "%s:zextTo%s" (typeName fromType) (String.capitalize (typeName toType)) in
+    let func = oneArgFunc name
+      (fun arg -> sprintf "zext %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
+    name, `Intrinsic func, toType, ["v", fromType]
+  in
   let intrinsicFuncs =
-    [
+     [
       (*     twoArgIntrinsic "int.shl" "shl" `Int; *)
       (*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
       (*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
       "void", `Intrinsic void, `Void, [];
 
-      convertIntr "float.toInt" "fptosi" `Float `Int;
-      convertIntr "int.toFloat" "sitofp" `Int `Float;
-      convertIntr "int.toDouble" "sitofp" `Int `Double;
-      convertIntr "double.toInt" "fptosi" `Double `Int;
+      convertIntr "float.toInt" "fptosi" `Float `Int32;
+      convertIntr "int.toFloat" "sitofp" `Int32 `Float;
+      convertIntr "int.toDouble" "sitofp" `Int32 `Double;
+      convertIntr "double.toInt" "fptosi" `Double `Int32;
       convertIntr "float.toDouble" "fpext" `Float `Double;
       convertIntr "double.toFloat" "fptrunc" `Double `Float;
+
+      truncIntIntr `Int64 `Int32;
+      zextIntr `Int32 `Int64;
     ]
-    @ simpleTwoArgIntrinsincs `Int "int" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    @ simpleTwoArgIntrinsincs `Int32 "int" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
     @ floatIntrinsics `Float
     @ floatIntrinsics `Double
-    @ compareIntrinsics `Int
-    @ compareIntrinsics `Char
+    @ compareIntrinsics `Int32 "int"
+    @ compareIntrinsics `Char (typeName `Char)
   in
   let builtinMacros =
     let macro name doc f = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = f; }) in
@@ -411,7 +433,7 @@ let gencodeDefineVariable gencode var default =
             | #integralType as t -> Some (Lang.valueString (defaultValue t))
           in
           let initInstr = function
-            | `Int | `Float | `Pointer _ -> "add"
+            | `Int8 | `Int16 | `Int32 | `Int64 | `Float | `Pointer _ -> "add"
             | `Bool -> "or"
             | _ as t -> raiseCodeGenError
                 ~msg:(sprintf "no init instruction implemented for %s" (Lang.typeName t))
@@ -514,7 +536,7 @@ let gencodeFuncCall gencode call =
 
 let offsetStringAndCode gencode countForm =
   match countForm with
-    | `Constant IntVal count ->
+    | `Constant Int32Val count ->
         (Int32.to_string count), ""
     | `Variable var ->
         let valueVar, valueAccessCode = gencode (`Variable (var :> composedType variable)) in
@@ -539,7 +561,7 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
   | `MallocIntrinsic (typ, countForm) ->
       begin
         let countVar, preCode = gencode countForm in
-        checkType countVar `Int;
+        checkType countVar `Int32;
         let var = newLocalTempVar (`Pointer typ) in
         let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) countVar.rvname in
         (var, preCode ^ code)
@@ -627,8 +649,8 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
       let comment = sprintf "; casting to %s\n\n" resultVar.rvtypename in
       let instructionName = 
         match valueType, targetType with
-          | `Pointer _, `Int -> "ptrtoint"
-          | `Int, `Pointer _ -> "inttoptr"
+          | `Pointer _, `Int32 -> "ptrtoint"
+          | `Int32, `Pointer _ -> "inttoptr"
           | `Pointer _, `Pointer _ -> "bitcast"
           | _, _ ->
               raiseCodeGenError ~msg:(sprintf "Cannot cast from %s to %s"
@@ -730,7 +752,7 @@ let gencodeGlobalVar var =
             contentVar.rvname
         in
         stringStorageSrc ^ stringPointerSrc
-    | IntVal _ | BoolVal _ | FloatVal _ | DoubleVal _ | CharVal _ ->
+    | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | FloatVal _ | DoubleVal _ | CharVal _ ->
         sprintf "@%s = constant %s %s"
           varname
           (llvmTypeName var.typ)

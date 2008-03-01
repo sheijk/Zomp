@@ -185,8 +185,10 @@
       (backward-delete-char 1)
       (indent-to-column left))
     ; place cursor correctly on newline-and-indent
-    (when (< (current-column) oldindent)
+    (when (equal (current-column) 0)
       (back-to-indentation))
+;;     (when (equal (+ 2 (point)) (save-excursion (end-of-line) (point)))
+;;       (forward-char 2))
     ))
 
 (defun zomp-indent-current ()

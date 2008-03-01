@@ -326,4 +326,5 @@ let trim str =
   let backSpaces = frontTrimmedLength - 1 - findFirstNonWS frontTrimmed (frontTrimmedLength-1) (fun x -> x - 1) in
   String.sub frontTrimmed 0 (frontTrimmedLength - backSpaces)
 
-    
+
+

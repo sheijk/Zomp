@@ -1,0 +1,94 @@
+/**
+
+!verify off
+
+* A simple .obj loader
+
+!load libglfw.dylib
+!load libGLEW.dylib
+*/
+
+(include "opengl20.zomp")
+(include "glfw.zomp")
+(include "tests/glutils.zomp")
+(include "tests/stdio.zomp")
+  
+(var int windowWidth 400)
+(var int windowHeight 300)
+  
+(runOnceFunc void init () (
+  (glfwInit)
+  (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW)
+  (glewInit)
+  (times 2 (glfwPollEvents))
+  ))
+
+
+(type vertexStream
+  (int size)
+  ((ptr float) data)
+  )
+
+(func void  vertexStream:init (((ptr vertexStream) this) (int size)) (
+  (setField this size size)
+  (setField this data (malloc float size))
+  ))
+
+(type mesh
+  (int size)
+  (vertexStream positions)
+  )
+
+(func (ptr mesh) makeMesh ((int size)) (
+  (var (ptr mesh) m (malloc mesh))
+  (setField m size size)
+  (vertexStream:init (fieldptr m positions) size)
+  (ret m)
+  ))
+
+
+
+(var float angle 0.0)
+
+(func int main () (
+  (init)
+  
+  (glMatrixMode GL_PROJECTION)
+  (glLoadIdentity)
+  (const double aspect (double.fdiv (int.toDouble windowWidth) (int.toDouble windowHeight)))
+  (gluPerspective (int.toDouble 90) aspect 1.0d 100.0d)
+
+  (var float time 0.0)
+  
+  (var bool running true)
+  (while running (
+    (assign time  (double.toFloat (glfwGetTime)))
+    (assign angle (time *_f 128.0))
+    
+    (glClearColor 0. 0. 0. 1.)
+    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+
+    (glMatrixMode GL_MODELVIEW)
+    (glLoadIdentity)
+    (glTranslatef 0. 1. -4.)
+    (glRotatef angle 0. 1. 0.)
+
+    (drawCoordSys 8.0)
+
+    (glfwSwapBuffers)
+    (glfwPollEvents)
+    (assign running (bool.not (isPressed GLFW_KEY_ESC)))
+    ))
+
+  (drawPausedOverlay)
+  (glfwSwapBuffers)
+
+  (glfwPollEvents)
+  (ret 0)
+  ))
+
+
+
+  
+
+

@@ -47,6 +47,11 @@ char* int2cstring(int i) {
   return result;
 }
 
+size_t testAdd(size_t l, size_t r) {
+  printf( "%l + %l = %l", l, r, l+r );
+  return l + r;
+}
+
 /* NSBundle* webKitBundle; */
 /*     webKitBundle = [NSBundle bundleWithPath:@"/System/Library/Frameworks/WebKit.framework"]; */
 /*     if (webKitBundle) { */

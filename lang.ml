@@ -57,7 +57,10 @@ let string2integralValue str =
   in
   tryAll
     [
-      lazy( IntVal (Int32.of_string str) );
+      lazy( Int32Val (Int32.of_string str) );
+      lazy( Int64Val (Int64.of_string str) );
+(*       lazy( Int8Val (Int32.of_string str) ); *)
+(*       lazy( Int16Val (Int32.of_string str) ); *)
       lazy( FloatVal (parseWithSuffix float_of_string "f" str) );
       lazy( FloatVal (float_of_string str) );
       lazy( BoolVal (bool_of_string str) );
@@ -82,7 +85,9 @@ type 'typ variable = {
 }
 
 let rec validateValue = function
-  | VoidVal | IntVal _ | CharVal _ | BoolVal _ | PointerVal _ | StringLiteral _ as value -> value
+  | VoidVal | CharVal _ | BoolVal _
+  | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _
+  | PointerVal _ | StringLiteral _ as value -> value
   | FloatVal _ | DoubleVal _ as value ->
       let valueString = Typesystems.Zomp.valueString value in
       Typesystems.Zomp.parseValue (Typesystems.Zomp.typeOf value) valueString

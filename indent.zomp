@@ -1,3 +1,44 @@
+/**
+!verify off
+ */
+!syntax indent
+
+/// testing whether expressions produced by the indent parser will be correctly compiled
+
+(opjux var int x 10)
+
+(opjux ifunc int (opcall hello2) (opseq
+  (printlnString "hello")
+  (ret 10)  
+  ))
+
+(opjux ifunc int (opcall hello1 (opjux int x)) (opseq
+  (printlnInt x)
+  (ret 123)
+  ))
+
+(opjux ifunc int (opcall add (opjux int l) (opjux int r)) (opseq
+  (ret (l + r))
+  ))
+
+
+!syntax indent
+
+func void welcome()
+  printlnInt 100
+end
+
+func int mul(int l, int r)
+  ret l * r
+end
+
+func void printmul(int l, int r)
+  var int x mul(l,r)
+  printlnInt(x)
+end
+
+---
+
 var int   x
 
 
@@ -5,7 +46,8 @@ var int x 10
 var int y 20
 var int z 30
 
-func int main
+  
+func int main()
   print hello
   ret 0
 end

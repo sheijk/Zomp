@@ -83,21 +83,21 @@ let parseSExpr source =
   in
   List.rev (read [])
   
-let () =
-  if Array.length Sys.argv > 1 && Sys.argv.(1) = "-i" then
-    let rec parse() =
-      flush stdout;
-      let block = readBlock stdin in
-      begin try
-        let exprs = parseSExpr block in
-        List.iter (fun expr -> printf "=>\n%s\n---\n" (Ast2.toString expr)) exprs
-      with
-        | Newparser.Error -> printf "Parser error\n"
-      end;
-      parse()
-    in
-    parse()
-  else ()
+(* let () = *)
+(*   if Array.length Sys.argv > 1 && Sys.argv.(1) = "-i" then *)
+(*     let rec parse() = *)
+(*       flush stdout; *)
+(*       let block = readBlock stdin in *)
+(*       begin try *)
+(*         let exprs = parseSExpr block in *)
+(*         List.iter (fun expr -> printf "=>\n%s\n---\n" (Ast2.toString expr)) exprs *)
+(*       with *)
+(*         | Newparser.Error -> printf "Parser error\n" *)
+(*       end; *)
+(*       parse() *)
+(*     in *)
+(*     parse() *)
+(*   else () *)
 
 let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
@@ -167,7 +167,7 @@ struct
       "c > d", `Return [se2 "op>" "c" "d"];
       "x >= y", `Return [se2 "op>=" "x" "y"];
       "base ** exp", `Return [se2 "op**" "base" "exp"];
-      
+
       "true & false", `Return [se2 "op&" "true" "false"];
       "a|b", `Return [se2 "op|" "a" "b"];
       "a&&b", `Return [se2 "op&&" "a" "b"];

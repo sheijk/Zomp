@@ -1,6 +1,13 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] examples which can be browsed directly in emacs
+** TODO [#A] error when local var is redefined
+** TODO [#A] no segfaults when redefining local variables
+** TODO [#A] indent parser: skip comments
+** TODO [#A] indent parser: strings
+** TODO [#A] zomp-newline: problem with indent (resetting pos)
+** TODO [#A] fix zomp-newline
 
 * Use Cases
 
@@ -28,15 +35,16 @@
    end shader Phong
 
 
-   - [ ] classes
-   - [ ] function pointers
    - [X] opengl bindings
+   - [ ] function pointers
+   - [ ] classes
 
-** persistent camera in toplevel [0/1]
+** persistent camera in toplevel [0/2]
 
    It should be possible to store the camera pos after main() returned
    
    - [ ] global pointers
+   - [ ] module level init code (run on load)
 
 * Tasks											:zomp:
   

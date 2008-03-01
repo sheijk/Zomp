@@ -43,6 +43,9 @@ and macroGetaddr = "ptr"
 and macroCast = "cast"
 and macroInclude = "include"
 and macroRest = "op..."
+and macroJuxOp = "opjux"
+and macroSeqOp = "opseq"
+and macroCallOp = "opcall"
   
 exception IllegalExpression of sexpr * string
   
@@ -148,7 +151,7 @@ let translatelst translateF bindings expr =
   worker bindings expr
 
 let translateSeq translateF bindings = function
-  | { id = id; args = sequence } when id = macroSequence ->
+  | { id = id; args = sequence } when id = macroSequence || id = macroSeqOp ->
       Some (translatelst translateF bindings sequence)
   | _ ->
       None
@@ -308,7 +311,7 @@ let translateMacro translateF (bindings :bindings) = function
 
 let astType = `Record [
   "id", `Pointer `Char;
-  "childCount", `Int;
+  "childCount", `Int32;
   "childs", `Pointer (`Pointer (`TypeRef "ast")) ]
 (* let astType = `TypeRef "ast" *)
 let astPtrType = `Pointer astType
@@ -323,7 +326,6 @@ let rec listContains element = function
   | _ :: rem -> listContains element rem
 
 let createNativeMacro translateF bindings macroName argNames impl =
-(*   let sexprImpl = Genllvm.sexpr2code ~antiquoteF:(insertAstConstructors bindings) impl in *)
   let sexprImpl = impl in
   let bindings =
     List.fold_left
@@ -347,12 +349,8 @@ let createNativeMacro translateF bindings macroName argNames impl =
     impl = Some (toSingleForm implforms);
   } in
   let tlforms = initForms @ [`DefineFunc macroFunc] in
-  (*   printf "Def of macro %s yielded the following definitions:\n" macroName; *)
-  (*   List.iter (fun f -> printf "\t=>> %s\n" (Lang.toplevelFormToString f)) tlforms; *)
   let llvmCodes = List.map Genllvm.gencodeTL tlforms in
   let llvmCode = Common.combine "\n" llvmCodes in
-  (*   printf "Impl:\n%s\n------------------------------\n" (Lang.formToString (toSingleForm implforms)); *)
-  (*   printf "LLVM code:\n%s\n------------------------------\n" llvmCode; *)
   Zompvm.evalLLVMCodeB
     ~targetModule:Zompvm.Runtime
     (if listContains macroName !macroFuncs then
@@ -408,12 +406,12 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
                                         fcrettype = astPtrType;
                                         fcparams = repeatedList astPtrType (List.length argAstForms);
                                         fcargs = argAstForms; }) );
-      `CastIntrinsic (`Int, `Variable resultVar);
+      `CastIntrinsic (`Int32, `Variable resultVar);
     ]
     in
     let func = `DefineFunc {
       Lang.fname = "macroExec";
-      rettype = `Int;
+      rettype = `Int32;
       fargs = [];
       impl = Some (`Sequence implForms);
     } in
@@ -548,44 +546,58 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
     end
   | _ -> None
 
-let translateTypedef translateF (bindings :bindings) = function
-  | { id = id; args = [
-        { id = newTypeName; args = [] };
-        targetTypeExpr;
-      ] }
-      when id = macroTypedef ->
-      (** type foo typeExpr *)
-      begin
-        match translateType bindings targetTypeExpr with
-          | None -> raiseInvalidType targetTypeExpr
-          | Some t -> Some (addTypedef bindings newTypeName t, [`Typedef (newTypeName, t)] )
-      end
-  | { id = id; args =
-        { id = typeName; args = [] }
-        :: componentExprs
-    } as expr
-      when id = macroTypedef ->
-      (** record typedef *)
-      begin
-        let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
-        let expr2component =
-          let translate name typeExpr = 
-            match translateType tempBindings typeExpr with
-              | Some typ -> name, typ
-              | None -> raise (CouldNotParseType typeName)
-          in
-          function
-            | { id = typeName; args = [{ id = componentName; args = []}] } ->
-                translate componentName { id = typeName; args = [] }
-            | { id = seq; args = [typeExpr; { id = componentName; args = [] }] } when seq = macroSequence ->
-                translate componentName typeExpr
-            | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
-        in
-        let components = List.map expr2component componentExprs in
-        let recordType = `Record components in
-        Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
-      end
-  | _ -> None
+let translateTypedef translateF (bindings :bindings) =
+  let translateRecordTypedef typeName componentExprs expr =
+    let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
+    let expr2component =
+      let translate name typeExpr = 
+        match translateType tempBindings typeExpr with
+          | Some typ -> name, typ
+          | None -> raise (CouldNotParseType typeName)
+      in
+      function
+        | { id = typeName; args = [{ id = componentName; args = []}] } ->
+            translate componentName { id = typeName; args = [] }
+        | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
+            when seq = macroSequence || seq = macroJuxOp ->
+            translate componentName typeExpr
+        | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
+    in
+    let components = List.map expr2component componentExprs in
+    let recordType = `Record components in
+    Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
+  in
+  function
+    | { id = id; args = [
+          { id = typeName; args = [] };
+          { id = opseq; args = componentExprs }
+        ] } as expr
+        when id = macroTypedef && opseq = macroSeqOp ->
+        translateRecordTypedef typeName componentExprs expr
+          (*     | { id = "itype"; args = [ *)
+          (*           { id = typeName; args = [] }; *)
+          (*           { id = "opseq"; args = componentExprs } *)
+          (*         ]} as expr -> *)
+          (*         translateRecordTypedef "foo" [Ast2.simpleExpr "u32" ["x"]; Ast2.simpleExpr "u32" ["y"]] expr *)
+    | { id = id; args = [
+          { id = newTypeName; args = [] };
+          targetTypeExpr;
+        ] }
+        when id = macroTypedef ->
+        (** type foo typeExpr *)
+        begin
+          match translateType bindings targetTypeExpr with
+            | None -> raiseInvalidType targetTypeExpr
+            | Some t -> Some (addTypedef bindings newTypeName t, [`Typedef (newTypeName, t)] )
+        end
+    | { id = id; args =
+          { id = typeName; args = [] }
+          :: componentExprs
+      } as expr
+        when id = macroTypedef ->
+        (** record typedef *)
+        translateRecordTypedef typeName componentExprs expr
+    | _ -> None
 
 let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args =
@@ -828,23 +840,64 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
   | _ ->
       None
 
-let matchFunc = function
-  | { id = id; args = [
-        typeExpr;
-        { id = name; args = [] };
-        { id = seq1; args = paramExprs };
-        { id = seq2; args = _ } as implExpr;
-      ] } when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
-      `FuncDef (name, typeExpr, paramExprs, implExpr)
-  | { id = id; args = [
-        typeExpr;
-        { id = name; args = [] };
-        { id = seq; args = paramExprs };
-      ] } when id = macroFunc && seq = macroSequence ->
-      `FuncDecl (name, typeExpr, paramExprs)
-  | expr ->
-      `NotAFunc expr
+let shiftLeft = function
+  | { id = id; args = [] } :: args -> { id = id; args = args }
+  | args -> { id = "seq"; args = args }
+      
+let matchFunc =
+  let convertParam = function
+    | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param }
+        when opjux = macroJuxOp ->
+        shiftLeft param
+    | _ -> failwith ""
+  in
+  function
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          { id = seq1; args = paramExprs };
+          { id = seq2; args = _ } as implExpr;
+        ] }
+        when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
+        `FuncDef (name, typeExpr, paramExprs, implExpr)
+          
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          { id = seq; args = paramExprs };
+        ] }
+        when id = macroFunc && seq = macroSequence ->
+        `FuncDecl (name, typeExpr, paramExprs)
+          
+    | { id = id; args = [
+          typeExpr;
+          { id = opcall; args = { id = name; args = [] } :: paramExprs }
+        ] } as expr
+        when id = macroFunc && opcall = macroCallOp ->
+        begin try
+          `FuncDecl (name, typeExpr, List.map convertParam paramExprs)
+        with Failure _ ->
+          `NotAFunc expr
+        end
 
+    | { id = id; args = [
+          typeExpr;
+          { id = opcall; args =
+              { id = name; args = [] }
+              :: paramExprs };
+          { id = opseq; args = _ } as implExpr
+        ] } as expr
+        when id = macroFunc && opcall = macroCallOp && opseq = macroSeqOp ->
+        begin try
+          `FuncDef (name, typeExpr, List.map convertParam paramExprs, implExpr)
+        with Failure _ ->
+          `NotAFunc expr
+        end
+          
+    | expr ->
+        `NotAFunc expr
+
+  
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -902,10 +955,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
                       raiseIllegalExpression
                         expr
                         (typeErrorMessage bindings (msg, returnedType, declaredType))
-(*                         (Printf.sprintf "Function has return type %s but returns %s: %s" *)
-(*                            (Lang.typeName declaredType) *)
-(*                            (Lang.typeName returnedType) *)
-(*                            msg) *)
               end
             | None -> raiseInvalidType typeExpr
         end
@@ -982,6 +1031,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateCompileTimeVar;
     translateSeq;
     translateInclude;
+(*     translateJuxtaposition; *)
   ]
   bindings expr
 

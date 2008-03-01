@@ -1,0 +1,23 @@
+/**
+ * Tests whether base language can be represented using indent syntax
+
+!verify off
+!syntax indent
+ */
+
+var int x 10
+
+func int plus(int a, int b)
+  ret a + b
+end
+
+type short u16
+
+macro printAndEval expr
+  printAst(expr, 0)
+  ret expr
+end
+
+
+
+

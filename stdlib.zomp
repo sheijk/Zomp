@@ -1,8 +1,11 @@
+
 /*
 !verify off
 */
 
 /// external (C) functions ----------------------------------------
+
+(type int u32)
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
@@ -207,6 +210,7 @@
   (cstring id)
   (int childCount)
   ((ptr (ptr ast)) childs) )
+(type astp (ptr ast))
 
 (func (ptr ast) simpleAst ((cstring name)) (
   (var (ptr ast) a (malloc ast))
@@ -229,7 +233,7 @@
   (var cstring asString (int2cstring i))
   (simpleAst asString) ))
 
-(func void printAst (((ptr ast) a) (int indent)) (
+(func void ast:print (((ptr ast) a) (int indent)) (
   (printIndent indent)
   (printString (load (fieldptr a id)))
   (printString " [")
@@ -243,7 +247,7 @@
   (branch t goon end)
   (label goon)
   (var (ptr ast) child (load (ptradd (getField a childs) index)))
-  (printAst child (int.add indent 1))
+  (ast:print child (int.add indent 1))
   (assign index (int.add index 1))
   (branch start)
   (label end)
@@ -271,7 +275,7 @@
   ))
 
 /// get pointer to index-th child of parent
-(func (ptr ast) astChild (((ptr ast) parent) (int index)) (
+(func astp ast:child (((ptr ast) parent) (int index)) (
   (var (ptr ast) child (load (ptradd (getField parent childs) index)))
   (ret child) ))
 
@@ -289,8 +293,6 @@
   (var int i (cast int child))
   (ret i)
   ))
-
-(type astp (ptr ast))
 
 (func astp testMacro2 ((astp lastArg)) (
   (ret `(native (nested tree) (with (args a b c #lastArg))))
@@ -359,6 +361,11 @@
     ))
   (ret result)
   ))
+
+(macro ift condition onTrue `(if #condition #onTrue ()))
+
+(macro ifnot condition onFalse
+  `(if (bool.not #condition) #onFalse ()))
 
 ///TODO: generalize for arbitrary types once this is possible in zomp
 (macro ifExprInt test onTrue onFalse (
@@ -441,7 +448,7 @@
   (ret `(
     (const int #count (getField #tree childCount))
     (for #index 0 #count (
-      (const (ptr ast) #childVar (astChild #tree #index))
+      (const (ptr ast) #childVar (ast:child #tree #index))
       #code
       ))
     ))
@@ -463,7 +470,7 @@
 
   (const int argCount (getField argsAndImpl childCount))
   (for argnum 0 argCount (
-    (const (ptr ast) arg (astChild argsAndImpl argnum))
+    (const (ptr ast) arg (ast:child argsAndImpl argnum))
     (if (int.uless argnum (int.sub argCount 1))
       (addChild t arg)
       (addChild t (
@@ -477,6 +484,9 @@
 
   (ret t)
   ))
+
+(template when cond onTrue (if #cond #onTrue ()))
+(template unless cond onFalse (if #cond () #onFalse))
 
 (macro compilerMessage text ... (
   (printString "[message] ")
@@ -501,7 +511,7 @@
   (ret `(
     (if (bool.not (#checkCode))
       ((printlnString "Assertion failed")
-       (printAst `#checkCode 0)
+       (ast:print `#checkCode 0)
        (exit 1))
       ())
     ))
@@ -541,7 +551,7 @@
       // else
       ((printHLine '-' 40)
        (printlnString "Assertion failed")
-       (printAst `#testCode 0)))
+       (ast:print `#testCode 0)))
      ))
   ))
 
@@ -586,7 +596,7 @@
 /// a specific macro using mret instead of ret
 (macro mret code (
   (ret `(
-    (printAst #code 0)
+    (ast:print #code 0)
     (ret #code)
     ))
   ))
@@ -627,7 +637,7 @@
   (
   (const int count (getField tree childCount))
   (for childNum 0 count (
-    (var (ptr ast) child (astChild tree childNum))
+    (var (ptr ast) child (ast:child tree childNum))
     (if (cstring.equal placeholder (getField child id))
       ( (ast.setChild tree childNum replacement) )
       ())
@@ -870,7 +880,7 @@
   (const int argsChildCount (getField args childCount))
 
   (if (argsChildCount > 0)
-    (if (cstring.equal "op..." (getField (astChild args (argsChildCount - 1)) id))
+    (if (cstring.equal "op..." (getField (ast:child args (argsChildCount - 1)) id))
       (isVarArg = true)
       () )
     () )
@@ -891,11 +901,35 @@
   (ret code)
   ))
 
+/// support for indent based syntax --------------
+
+(macro opseq args ... (
+  args
+  ))
+
+(macro opjux first args ... (
+  (var astp code first)
+  (forEachAstChild child args (
+    (addChild code child)
+    ))
+
+  (ret code)
+  ))
+
+(macro opcall first args ... (
+  (var astp code first)
+  (forEachAstChild child args (
+    (addChild code child)))
+  (ret code)
+  ))
 
 /// deprecated functions ------------------------
 
 (deprecated unittest.assert unittest:assert check)
 (deprecated unittest.assertAll unittest:assertAll "blah" check ...)
+
+(deprecated astChild ast:child parent index)
+(deprecated printAst ast:print t indent)
 
 
 /* /// default test function
