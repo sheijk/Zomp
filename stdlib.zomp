@@ -281,6 +281,8 @@
 
 /// macro support ----------------------------------------
 
+(var cstring macroRest "postop...")
+
 (func cstring macroAstId ((int macroCurrentAst)) (
   (getField (cast (ptr ast) macroCurrentAst) id) ))
 
@@ -880,7 +882,7 @@
   (const int argsChildCount (getField args childCount))
 
   (if (argsChildCount > 0)
-    (if (cstring.equal "op..." (getField (ast:child args (argsChildCount - 1)) id))
+    (if (cstring.equal macroRest (getField (ast:child args (argsChildCount - 1)) id))
       (isVarArg = true)
       () )
     () )

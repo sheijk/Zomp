@@ -47,9 +47,9 @@ main:
 | q = QUOTE e = IDENTIFIER
     {{ Ast2.id = quoteId q; args = [{Ast2.id = e; args = []}] }}
 | id = IDENTIFIER op = POST_OP
-    { Ast2.simpleExpr (operatorName op) [id] }
+    { Ast2.simpleExpr ("post" ^ operatorName op) [id] }
 | op = PRE_OP id = IDENTIFIER
-    { Ast2.simpleExpr (operatorName op) [id] }
+    { Ast2.simpleExpr ("pre" ^ operatorName op) [id] }
 sexpr:
 | id = IDENTIFIER args = sexprArg*
     {{ Ast2.id = id; args = args }}

@@ -116,21 +116,27 @@ struct
 
   type result = [ `Return of output | `Exception of string ]
 
-  let testedFunc = parseSExpr
+  let testedFunc str =
+    try
+      parseSExpr str
+    with error ->
+      let tokens = Iexprtest.lexString str in
+      Iexprtest.printTokens tokens;
+      raise error
     
   let testCases : (input * result) list =
     let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in
     let se = Ast2.simpleExpr
     and jux args = { Ast2.id = "opjux"; args = List.map Ast2.idExpr args }
     and call args = { Ast2.id = "opcall"; args = List.map Ast2.idExpr args }
-    and seq args = { Ast2.id = "opseq"; args = args }
+    and seqExpr args = { Ast2.id = "opseq"; args = args }
     and se2 f l r = Ast2.simpleExpr f [l; r]
     and se1 f arg = Ast2.simpleExpr f [arg]
     and id = Ast2.idExpr
     in
     ignore(se1 "" "");
     ignore(call []);
-    ignore(seq []);
+    ignore(seqExpr []);
     let expr id args = {Ast2.id = id; args =  args} in
     let juxExpr = expr "opjux" in
     let callExpr = expr "opcall" in
@@ -175,6 +181,16 @@ struct
 
       (** pre/postfix operators *)
       "foo... ", `Return [se1 "postop..." "foo"];
+      "bar...", `Return [se1 "postop..." "bar"];
+      "main...\n  child\nend",
+      `Return [juxExpr [
+                 se1 "postop..." "main";
+                 seqExpr [
+                   id "child";
+                 ];
+               ]];
+      "int*", `Return [se1 "postop*" "int"];
+      "*ptr", `Return [se1 "preop*" "ptr"];
       (* todo post/prefix ops which work without additional whitespace *)
 
       (** indexed operators *)
@@ -217,7 +233,7 @@ struct
           args = [
             id "type";
             id "point";
-            seq [jux ["int"; "x"]; jux ["int"; "y"]];
+            seqExpr [jux ["int"; "x"]; jux ["int"; "y"]];
           ]}];
 
       "let x + y\n  plus(x, y)\nend",
@@ -225,7 +241,7 @@ struct
         juxExpr [
           id "let";
           se2 "op+" "x" "y";
-          seq [call ["plus"; "x"; "y"]]
+          seqExpr [call ["plus"; "x"; "y"]]
         ]];
 
       (** dot notation *)

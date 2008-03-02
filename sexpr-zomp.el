@@ -25,47 +25,13 @@
 (defun zomp-id (str)
   (replace-regexp-in-string "ID" "[a-zA-Z0-9:*+-/!=><_]+" str t))
 (setq zomp-imenu-generic-expression
-      `((nil ,(zomp-id "^(macro +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(func +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(var +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(const +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(type +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(template +\\(ID\\)") 1)
-        ))
-
-
-(defun zomp-for-indent ()
-  (interactive)
-  
-  (defun zomp-mark-current ()
-    "Marks the current toplevel function/(macro/"
-    (interactive)
-    (forward-char)
-    (search-backward-regexp "^\\([a-df-z]\\|e[a-z]\\)")
-    (push-mark (point) t t)
-    (next-line)
-    (search-forward-regexp "^end"))
-
-  (defun zomp-next-tl-expr ()
-    (interactive)
-    (forward-char)
-    (search-forward-regexp "^[a-z]")
-    (backward-char) )
-
-  (defun zomp-prev-tl-expr ()
-    (interactive)
-    (backward-char)
-    (search-backward-regexp "^[a-z]") )
-
-  (setq zomp-imenu-generic-expression
-        `((nil ,(zomp-id "^macro +\\(ID\\)") 1)
-          (nil ,(zomp-id "^func +ID +\\(ID\\)") 1)
-          (nil ,(zomp-id "^var +ID +\\(ID\\)") 1)
-          (nil ,(zomp-id "^const +ID +\\(ID\\)") 1)
-          (nil ,(zomp-id "^type +\\(ID\\)") 1)
-          (nil ,(zomp-id "^template +\\(ID\\)") 1)
-          ))
-  )
+  `((nil ,(zomp-id "^(macro +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(func +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(var +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(const +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(type +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(template +\\(ID\\)") 1)
+    ))
 
 (defun zomp-mark-sexp ()
   (interactive)
@@ -108,7 +74,7 @@
   (interactive)
   (message "Evaluating region")
   (process-send-region (get-buffer-process "*zomp-toplevel*") (region-beginning) (region-end))
-  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
+  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
   )
 
 (defun zomp-mark-current ()
@@ -365,7 +331,6 @@
     ("\\bseq\\b" 0 font-lock-keyword-face)
     ("\\bassign\\b" 0 font-lock-keyword-face)
     ("\\btype\\b" 0 font-lock-keyword-face)
-    ("\\bend\\b" 0 font-lock-keyword-face)
 
     ("\\btrue\\b" 0 font-lock-keyword-face)
     ("\\bfalse\\b" 0 font-lock-keyword-face)

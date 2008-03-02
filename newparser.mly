@@ -60,8 +60,8 @@
 %%
 
 main:
-| WHITESPACE? e = expr WHITESPACE? END
-    { e }
+| WHITESPACE?; e = expr; WHITESPACE?; END;
+  { e }
     
 expr:
 | id = IDENTIFIER;

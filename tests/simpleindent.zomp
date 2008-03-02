@@ -18,6 +18,23 @@ macro printAndEval expr
   ret expr
 end
 
+endoscope...
+  dasds
+end
 
+macro dual a b
+  ret a
+end
 
+macro multiarg args...
+  mret args
+end
+
+macro multiarg2 fst args...
+  mret fst
+end
+
+macro printAll args
+  printAst(args, 0)
+end
 

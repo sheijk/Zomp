@@ -21,6 +21,11 @@
   (ret (l + r))
   ))
 
+(func void dasdsfs () (
+  (when (10 > 1) (
+    (printlnString "math just works.")
+    ))
+  ))
 
 !syntax indent
 

@@ -42,7 +42,9 @@ let nthmatch n =
     
 let whitespaceRE = Str.regexp " +"
 
-let rules =
+type token = [ indentToken | userToken ]
+
+let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) list =
   let re = Str.regexp in
   let stringRule str token = 
     re str,
@@ -67,8 +69,14 @@ let rules =
     List.flatten rules
   in
   let postfixRule symbol =
-    re (sprintf "%s +" (Str.quote symbol)),
-    (fun s -> `Postfix (trim s))
+(*     re (sprintf "%s +" (Str.quote symbol)), *)
+(*     (fun s -> `Postfix (trim s)) *)
+    re (sprintf "\\(%s +\\|%s\n\\)" (Str.quote symbol) (Str.quote symbol)),
+    (fun s ->
+       if Str.last_chars s 1 = "\n" then
+         `PutBack (`Postfix (trim (Str.first_chars s (String.length s - 1))), "\n")
+       else
+         `Postfix (trim s))
   in
   [
     re "[a-zA-Z0-9]+", (fun str -> `Identifier str);
@@ -78,6 +86,7 @@ let rules =
     stringRule " *, *" `Comma;
     stringRule "\\." `Dot;
     postfixRule "...";
+    postfixRule "*";
   ]
   @ opRules "+" (fun s -> `Add s)
   @ opRules "-" (fun s -> `Add s)
@@ -89,8 +98,6 @@ let rules =
   @ opRulesMultiSym ["&"; "|"] (fun s -> `StrictBoolOp s)
   @ opRulesMultiSym ["&&"; "||"] (fun s -> `LazyBoolOp s)
     
-type token = [ indentToken | userToken ]
-
 type 'token lexerstate = {
   readChar : unit -> char;
   putbackString : string -> unit;
@@ -109,8 +116,8 @@ let isWhitespace chr = chr = ' '
 let isBlockEndLine line =
   Str.string_match (Str.regexp "^end.*$") line 0
     
-exception UnknowToken of location * string
-let raiseUnknownToken loc str = raise (UnknowToken (loc, str))
+exception UnknowToken of location * string * string
+let raiseUnknownToken loc str reason = raise (UnknowToken (loc, str, reason))
 
 exception IndentError of location * string
 let raiseIndentError loc str = raise (IndentError (loc, str))
@@ -193,27 +200,47 @@ let token (lexbuf : token lexerstate) : token =
 
     end else begin (** no newline *)
       let rec findToken prevInput prevFullMatches =
-        let input = prevInput ^ String.make 1 (lexbuf.readChar()) in
+        let actualChar = lexbuf.readChar() in
+        let input = prevInput ^ String.make 1 actualChar in
         let beginMatches = List.filter (ruleBeginMatches input) rules in
         let fullMatches =
           match List.filter (ruleMatches input) rules with
             | [] -> prevFullMatches
-            | fullMatches ->
+            | fullMatches -> 
                 let inputLength = String.length input in
                 List.map (fun m -> inputLength, m) fullMatches
+        in
+        let tokenFromRule length makeToken =
+          let spareInput = Str.string_after input (length) in
+          let consumedInput = Str.string_before input (length) in
+          lexbuf.putbackString spareInput;
+          let token =
+            match makeToken consumedInput with
+              | `PutBack(token, prefetched) ->
+                  lexbuf.putbackString prefetched;
+                  token
+              | #token as token -> token
+          in
+          token
         in
         match beginMatches with
           | [] ->
               begin match fullMatches with
-                | [] -> raiseUnknownToken lexbuf.location input
+                | [] -> raiseUnknownToken lexbuf.location input "no matching rule"
                 | [length, (_, makeToken)] ->
-                    let spareInput = Str.string_after input (length) in
-                    let consumedInput = Str.string_before input (length) in
-                    lexbuf.putbackString spareInput;
-                    makeToken consumedInput
-                | multi -> raiseUnknownToken lexbuf.location input
+                    tokenFromRule length makeToken
+                | multi ->
+                    begin
+                      match List.filter (ruleMatches (prevInput ^ " ")) rules with
+                        | [_, makeToken] ->
+                            tokenFromRule (String.length input + 1) makeToken
+                        | [] ->
+                            raiseUnknownToken lexbuf.location input "no matching rules at end of line"
+                        | multi ->
+                            raiseUnknownToken lexbuf.location input "multiple rules matching"
+                    end
               end
-          | multi ->
+          | oneOrMoreBeginMatches ->
               findToken input fullMatches
       in
       lexbuf.putbackString (String.make 1 currentChar);
@@ -307,18 +334,29 @@ let makeLexbuf fileName readCharFunc =
 let lexbufFromChannel fileName channel = makeLexbuf fileName (fun () -> input_char channel)
 
 let lexbufFromString fileName string =
-  let stringLength = String.length string in
+  let endlineString = string ^ "\n" in
+  let stringLength = String.length endlineString in
   let position = ref 0 in
   let readCharFunc() =
     if !position < stringLength then begin
-      let chr = string.[!position] in
+      let chr = endlineString.[!position] in
       incr position;
       chr
     end else
       raise End_of_file
   in
   makeLexbuf fileName readCharFunc
-    
+
+let () =
+  let l = lexbufFromString "d.zomp" "abcde" in
+  let expectChar chr = assert( chr = l.readChar() ) in
+  expectChar 'a';
+  expectChar 'b';
+  l.putbackString "x";
+  l.putbackString "y";
+  expectChar 'y';
+  expectChar 'x'
+  
 (* Main --------------------------------------------------------------------- *)
 
 let dummymllexbuf = 
@@ -411,6 +449,7 @@ struct
       "a +_f b", `Return [id "a"; `Add "+_f"; id "b"; `End];
 
       "foo... ", `Return [id "foo"; `Postfix "..."; `End];
+      "rest...", `Return [id "rest"; `Postfix "..."; `End];
       
       (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );

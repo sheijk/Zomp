@@ -95,6 +95,7 @@ newparsertest: $(NEWPARSER_CMOS)
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(NEWPARSER_CMOS)
 
 testnewparser: $(NEWPARSER_CMOS) newparsertest
+	echo Running newparser tests ...
 	ocamlrun -b ./newparsertest
 # 	$(OCAML) str.cma bigarray.cma common.cmo testing.cmo iexprtest.ml
 
