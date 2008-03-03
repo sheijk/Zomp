@@ -46,9 +46,10 @@ type token = [ indentToken | userToken ]
 
 let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) list =
   let re = Str.regexp in
-  let stringRule str token = 
+  let idFunc s = `Identifier s in
+  let regexpRule str token = 
     re str,
-    (fun matchedStr -> 
+    (fun matchedStr ->
        token)
   in
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
@@ -69,8 +70,6 @@ let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) li
     List.flatten rules
   in
   let postfixRule symbol =
-(*     re (sprintf "%s +" (Str.quote symbol)), *)
-(*     (fun s -> `Postfix (trim s)) *)
     re (sprintf "\\(%s +\\|%s\n\\)" (Str.quote symbol) (Str.quote symbol)),
     (fun s ->
        if Str.last_chars s 1 = "\n" then
@@ -78,15 +77,28 @@ let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) li
        else
          `Postfix (trim s))
   in
+  let prefixRule symbol =
+    re (sprintf " +%s" (Str.quote symbol)),
+    (fun s -> `Prefix (trim s))
+  in
+  let stringRule = re "\"[^\"]*\"", idFunc in
+  let charRule = re "'[^']+'", idFunc in
+  let intRule = re "[0-9]+", idFunc in
+  let floatRule = re "\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)", idFunc in
   [
-    re "[a-zA-Z0-9]+", (fun str -> `Identifier str);
+    re "[a-zA-Z][a-zA-Z0-9_:]*", (fun str -> `Identifier str);
     whitespaceRE, (fun str -> `Whitespace (String.length str));
-    stringRule "(" `OpenParen;
-    stringRule ")" `CloseParen;
-    stringRule " *, *" `Comma;
-    stringRule "\\." `Dot;
+    regexpRule "(" `OpenParen;
+    regexpRule ")" `CloseParen;
+    regexpRule " *, *" `Comma;
+    regexpRule "\\." `Dot;
     postfixRule "...";
     postfixRule "*";
+    prefixRule "&";
+    stringRule;
+    charRule;
+    intRule;
+    floatRule;
   ]
   @ opRules "+" (fun s -> `Add s)
   @ opRules "-" (fun s -> `Add s)
@@ -104,6 +116,7 @@ type 'token lexerstate = {
   mutable location : location;
   mutable prevIndent : int;
   mutable pushedTokens : 'token list;
+  mutable readTokenBefore : bool;
 }
 
 let returnMultipleTokens state first remaining =
@@ -175,27 +188,35 @@ let token (lexbuf : token lexerstate) : token =
       let indent = consumeWhitespace 0 in
       let prevIndent = lexbuf.prevIndent in
       lexbuf.prevIndent <- indent;
-      if indent = prevIndent then begin
-        `End
-      end else if indent > prevIndent then begin
-        `BeginBlock
-      end else if indent = prevIndent - 2 then begin
-        let line = readUntil isNewline lexbuf in
-        if isBlockEndLine line then begin
-          lexbuf.putbackString "\n";
-          let endArgs line =
-            match Str.split whitespaceRE line with
-              | "end" :: args -> args
-              | _ -> failwith "splitting block end line failed"
-          in
-          returnMultipleTokens lexbuf `End [`EndBlock (endArgs line)]
-        end else begin
-          lexbuf.putbackString (line ^ "\n");
-          returnMultipleTokens lexbuf `End [`EndBlock []]
+      if lexbuf.readTokenBefore = false then begin
+        if indent = prevIndent then
+          worker ""
+        else
+          raiseIndentError lexbuf.location
+            "First line needs to be indented at column 0"
+      end else begin
+        if indent = prevIndent then begin
+          `End
+        end else if indent > prevIndent then begin
+          `BeginBlock
+        end else if indent = prevIndent - 2 then begin
+          let line = readUntil isNewline lexbuf in
+          if isBlockEndLine line then begin
+            lexbuf.putbackString "\n";
+            let endArgs line =
+              match Str.split whitespaceRE line with
+                | "end" :: args -> args
+                | _ -> failwith "splitting block end line failed"
+            in
+            returnMultipleTokens lexbuf `End [`EndBlock (endArgs line)]
+          end else begin
+            lexbuf.putbackString (line ^ "\n");
+            returnMultipleTokens lexbuf `End [`EndBlock []]
+          end
+        end else begin (* indent is more than one level less than in previous line *)
+          raiseIndentError lexbuf.location
+            "Indentation may only be reduced by two spaces at a time"
         end
-      end else begin (* indent is more than one level less than in previous line *)
-        raiseIndentError lexbuf.location
-          "Indentation may only be reduced by two spaces at a time"
       end
 
     end else begin (** no newline *)
@@ -247,52 +268,59 @@ let token (lexbuf : token lexerstate) : token =
       findToken stringAcc []
     end
   in
-  match lexbuf.pushedTokens with
-    | [] -> worker ""
-    | firstToken :: remainingTokens ->
-        lexbuf.pushedTokens <- remainingTokens;
-        firstToken
+  let token =
+    match lexbuf.pushedTokens with
+      | [] -> worker ""
+      | firstToken :: remainingTokens ->
+          lexbuf.pushedTokens <- remainingTokens;
+          firstToken
+  in
+  lexbuf.readTokenBefore <- true;
+  token
 
-let printToken (lineIndent, indentNext) (token :token) =
-  let printIndent indent =
+let tokenToString (lineIndent, indentNext) (token :token) =
+  let indentString indent =
     if indentNext = `Indent then
-      printf "%s" (String.make (4 * indent) ' ')
+      sprintf "%s" (String.make (4 * indent) ' ')
+    else
+      ""
   in
   match token with
     | `EndBlock args ->
-        printIndent (lineIndent - 1);
-        begin
-          match args with
-            | [] -> printf "}"
-            | _ -> printf "}(%s)" (Common.combine ", " args)
-        end;
-        lineIndent - 1, `Indent
+        indentString (lineIndent - 1) ^
+          begin
+            match args with
+              | [] -> "}"
+              | _ -> sprintf "}(%s)" (Common.combine ", " args)
+          end,
+        (lineIndent - 1, `Indent)
     | _ as t ->
         let noind = lineIndent, `DontIndent
         and ind = lineIndent, `Indent
         in
-        printIndent lineIndent;
+        let str, (indent, doindent) =
         match t with
           | `BeginBlock ->
-              printf "{\n";
-              lineIndent + 1, `Indent
+              "{\n", (lineIndent + 1, `Indent)
           | `EndBlock _ -> failwith "match failure"
-          | `End -> printf "`End\n"; ind
-          | `Identifier str -> printf "%s" str; noind
-          | `Whitespace length -> printf "_"; noind
-          | `Comma -> printf ","; noind
+          | `End -> "`End\n", ind
+          | `Identifier str -> str, noind
+          | `Whitespace length -> "_", noind
+          | `Comma -> ",", noind
           | `Add arg
           | `Mult arg
           | `Assign arg
           | `Compare arg
-          | `Postfix arg
-          | `Prefix arg
           | `LazyBoolOp arg
           | `StrictBoolOp arg
-            -> printf "%s" arg; noind
-          | `OpenParen -> printf "("; noind
-          | `CloseParen -> printf ")"; noind
-          | `Dot -> printf "."; noind
+            -> "op" ^ arg, noind
+          | `Postfix arg -> "post" ^ arg, noind
+          | `Prefix arg -> "pre" ^ arg, noind
+          | `OpenParen -> "(", noind
+          | `CloseParen -> ")", noind
+          | `Dot -> ".", noind
+        in
+        indentString lineIndent ^ str, (indent, doindent)
       
 let makeLexbuf fileName readCharFunc =
   let buffer = ref "" in
@@ -327,6 +355,7 @@ let makeLexbuf fileName readCharFunc =
       location = { line = 0; fileName = fileName };
       prevIndent = 0;
       pushedTokens = [];
+      readTokenBefore = false;
     }
   in
   lexbuf
@@ -388,16 +417,26 @@ let lexString str =
   in
   worker []
 
+let tokensToString tokens =
+  let rec worker context acc = function
+    | [] -> acc
+    | t :: remTokens ->
+        let str, newContext = tokenToString context t in
+        worker newContext (str::acc) remTokens
+  in
+  let revLines = worker (0, `DontIndent) [] tokens in
+  Common.combine " " (List.rev revLines)
+
 let printTokens tokens =
   let rec worker context = function
     | [] -> ()
     | t :: remTokens ->
-        let newContext = printToken context t in
-        printf " ";
+        let str, newContext = tokenToString context t in
+        printf "%s " str;
         worker newContext remTokens
   in
   worker (0, `DontIndent) tokens
-  
+
 (* Tests -------------------------------------------------------------------- *)
     
 let tokenEqual l r =
@@ -424,7 +463,11 @@ struct
     
   type result = [ `Return of output | `Exception of string ]
 
-  let testedFunc = lexString
+  let testedFunc str =
+    if str.[0] = '\n' then
+      lexString str
+    else
+      lexString str
 
   let testCases : (input * result) list =
     let id x = `Identifier x in
@@ -448,8 +491,19 @@ struct
 
       "a +_f b", `Return [id "a"; `Add "+_f"; id "b"; `End];
 
-      "foo... ", `Return [id "foo"; `Postfix "..."; `End];
-      "rest...", `Return [id "rest"; `Postfix "..."; `End];
+      "space... ", `Return [id "space"; `Postfix "..."; `End];
+      "lineend...", `Return [id "lineend"; `Postfix "..."; `End];
+
+      (* strings and numbers *)
+      "1337", `Return [id "1337"; `End];
+      "10.3", `Return [id "10.3"; `End];
+      "100.", `Return [id "100."; `End];
+      ".01", `Return [id ".01"; `End];
+      "\"foobar\"", `Return [id "\"foobar\""; `End];
+      "\"windows\\\\path\"", `Return [id "\"windows\\\\path\""; `End];
+      "'x'", `Return [id "'x'"; `End];
+      "'\\n'", `Return [id "'\\n'"; `End];
+      "'\\\\'", `Return [id "'\\\\'"; `End];
       
       (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
@@ -458,7 +512,7 @@ struct
       "first line\nsecond line\n",
       `Return( [id "first"; `Whitespace 1; id "line"; `End;
                 id "second"; `Whitespace 1; id "line"; `End] );
-      
+
       (* simple multi-line expressions *)
       "if a then\n\
       \  foobar\n\
@@ -486,7 +540,12 @@ struct
                @ [`EndBlock []; id "else"; `BeginBlock]
                @ ids ["print"; "2"] @ [`End]
                @ [`EndBlock []; `End] );
-      
+
+      (* leading whitespace/newlines *)
+      "   a b c", `Return (`Whitespace 1 :: ids ["a"; "b"; "c"] @ [`End]);
+      "first\n\n\nsecond", `Return [id "first"; `End; id "second"; `End];
+      "\n\n\n\nfirst\n\n\n", `Return [id "first"; `End];
+  
       (* fail if indent level is reduced too much *)
       "main\n\
       \  begin foo\n\

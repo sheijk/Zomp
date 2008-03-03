@@ -3,6 +3,7 @@
 void foo(int x) {}
 
 char* dasfas = "\"foo\"";
+char* backspace = "\\";
 
 int f = 1;
 char* blub = "blubblubh";

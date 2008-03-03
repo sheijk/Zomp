@@ -1,6 +1,7 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] emacs/toplevel: C-c C-s abfangen wenn toplevel schon laeuft
 ** TODO [#A] examples which can be browsed directly in emacs
 ** TODO [#A] error when local var is redefined
 ** TODO [#A] no segfaults when redefining local variables

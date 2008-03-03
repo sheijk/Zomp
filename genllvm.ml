@@ -100,6 +100,7 @@ let llvmEscapedString str =
   str
   >>= replace "\\\\n" "\\\\0A"
   >>= replace "\"" "\\\\22"
+  >>= replace "\\\\\\\\" "\\\\5C"
                              
 let lastUniqueId = ref 0
 let newUniqueId() =

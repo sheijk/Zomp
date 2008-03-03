@@ -25,6 +25,7 @@ CXX_FLAGS=-pg -g
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo parser2.cmo lexer2.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo expander.cmo parseutils.cmo
 
+# Combined targets
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png
 libbindings: gencode opengl20.zomp glfw.zomp
 byte: dllzompvm.so toplevel2 zompc sexprtoplevel
@@ -82,10 +83,6 @@ gencode: gencode.cmo gencode.ml
 machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
 	./gencode machine
-
-
-newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
-newparser.ml: newparser.mly ast2.cmo
 
 NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newlexer.cmo newparser.cmo\
  iexprtest.cmo newparsertest.cmo
@@ -165,6 +162,10 @@ CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml\
 genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll\
 sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml\
 iexpr.ml iexprtest.ml newparsertest.ml testing.ml
+
+# Additional dependencies
+newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
+newparser.ml: newparser.mly ast2.cmo
 
 makefile.depends: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...

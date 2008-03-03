@@ -7,15 +7,16 @@
 !load libglfw.dylib
 !load libGLEW.dylib
 */
+!syntax indent
 
-(include "opengl20.zomp")
-(include "glfw.zomp")
-(include "tests/glutils.zomp")
-(include "tests/stdio.zomp")
-  
-(var int windowWidth 400)
-(var int windowHeight 300)
-  
+include "opengl20.zomp"
+include "glfw.zomp"
+include "tests/glutils.zomp"
+include "tests/stdio.zomp"
+
+var int windowWidth 400
+var int windowHeight 300
+
 (runOnceFunc void init () (
   (glfwInit)
   (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW)

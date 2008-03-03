@@ -101,7 +101,9 @@ let parseSExpr source =
 
 let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
-    
+
+exception ParsingFailure of exn * string
+  
 module IndentParserTestCase : Testing.CASE_STRUCT =
 struct
   type input = string
@@ -121,9 +123,9 @@ struct
       parseSExpr str
     with error ->
       let tokens = Iexprtest.lexString str in
-      Iexprtest.printTokens tokens;
-      raise error
-    
+      let str = Iexprtest.tokensToString tokens in
+      raise (ParsingFailure(error, "Tokens: " ^ str ^ "; caused error: " ^ Printexc.to_string error))
+
   let testCases : (input * result) list =
     let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in
     let se = Ast2.simpleExpr
@@ -191,6 +193,7 @@ struct
                ]];
       "int*", `Return [se1 "postop*" "int"];
       "*ptr", `Return [se1 "preop*" "ptr"];
+      "handlePtr &var", `Return [jux ["handlePtr"; "preop&"; "ptr"]];
       (* todo post/prefix ops which work without additional whitespace *)
 
       (** indexed operators *)
@@ -283,6 +286,7 @@ struct
       "int x ", `Return [jux ["int"; "x"]];
       "a   b  c", `Return [jux ["a"; "b"; "c"]];
       "  foo bar", `Return [jux ["foo"; "bar"]];
+      "\n\nabc def\n\n", `Return [jux ["abc"; "def"]];
     ]
 end
   
