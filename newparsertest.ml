@@ -193,7 +193,7 @@ struct
                ]];
       "int*", `Return [se1 "postop*" "int"];
       "*ptr", `Return [se1 "preop*" "ptr"];
-      "handlePtr &var", `Return [jux ["handlePtr"; "preop&"; "ptr"]];
+      "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       (* todo post/prefix ops which work without additional whitespace *)
 
       (** indexed operators *)

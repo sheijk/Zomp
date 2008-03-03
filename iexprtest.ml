@@ -44,8 +44,9 @@ let whitespaceRE = Str.regexp " +"
 
 type token = [ indentToken | userToken ]
 
-let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) list =
-  let re = Str.regexp in
+let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token * string])) list =
+  (*   let re = Str.regexp in *)
+  let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
   let idFunc s = `Identifier s in
   let regexpRule str token = 
     re str,
@@ -53,8 +54,11 @@ let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) li
        token)
   in
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
+  let validIdentifierChars = "a-zA-Z0-9:_" in
+  let validIdentifierFirstChar = "a-zA-Z" in
   let opRule symbol tokenF =
-    re (opre symbol),
+    (Str.regexp "[a-z)]",
+     Str.regexp (opre symbol)),
     tokenF
   in
   let opRuleWS symbol tokenF =
@@ -75,19 +79,25 @@ let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) li
        if Str.last_chars s 1 = "\n" then
          `PutBack (`Postfix (trim (Str.first_chars s (String.length s - 1))), "\n")
        else
-         `Postfix (trim s))
+         let trimmed = trim s in
+         let removedWhitespace = String.length s - String.length trimmed in
+         `PutBack( `Postfix (trim s), String.make removedWhitespace ' ' ) )
   in
   let prefixRule symbol =
-    re (sprintf " +%s" (Str.quote symbol)),
+    (Str.regexp "\\(\n\\| +\\)", Str.regexp (sprintf "%s" (Str.quote symbol))),
     (fun s -> `Prefix (trim s))
   in
   let stringRule = re "\"[^\"]*\"", idFunc in
   let charRule = re "'[^']+'", idFunc in
   let intRule = re "[0-9]+", idFunc in
   let floatRule = re "\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)", idFunc in
+  let identifierRule =
+    re (sprintf "[%s][%s]*" validIdentifierFirstChar validIdentifierChars),
+    (fun str -> `Identifier str);
+  in
   [
-    re "[a-zA-Z][a-zA-Z0-9_:]*", (fun str -> `Identifier str);
-    whitespaceRE, (fun str -> `Whitespace (String.length str));
+    identifierRule;
+    (Str.regexp ".*", whitespaceRE), (fun str -> `Whitespace (String.length str));
     regexpRule "(" `OpenParen;
     regexpRule ")" `CloseParen;
     regexpRule " *, *" `Comma;
@@ -95,6 +105,7 @@ let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) li
     postfixRule "...";
     postfixRule "*";
     prefixRule "&";
+    prefixRule "*";
     stringRule;
     charRule;
     intRule;
@@ -112,11 +123,14 @@ let rules : (Str.regexp * (string -> [< token | `PutBack of token * string])) li
     
 type 'token lexerstate = {
   readChar : unit -> char;
-  putbackString : string -> unit;
+  backTrack : int -> unit;
+(*   putbackString : string -> unit; *)
   mutable location : location;
   mutable prevIndent : int;
   mutable pushedTokens : 'token list;
   mutable readTokenBefore : bool;
+  mutable lastReadChars :string;
+  mutable endOfLastToken :char;
 }
 
 let returnMultipleTokens state first remaining =
@@ -155,10 +169,21 @@ let readUntil abortOnChar state =
 
 
 let token (lexbuf : token lexerstate) : token =
-  let ruleBeginMatches string (regexp, _) =
+  let putback lexbuf string =
+    let len = String.length string in
+    if Str.last_chars lexbuf.lastReadChars len <> string then begin
+      printf "Assertion failure";
+      assert false;
+    end;
+    lexbuf.backTrack len
+  in
+  
+  let ruleBeginMatches prevChar string ((prevCharRE, regexp), _) =
+    Str.string_match prevCharRE prevChar 0 &&
     Str.string_partial_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
-  and ruleMatches string (regexp, _) =
+  and ruleMatches prevChar string ((prevCharRE, regexp), _) =
+    Str.string_match prevCharRE prevChar 0 &&
     Str.string_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
   in
@@ -181,7 +206,7 @@ let token (lexbuf : token lexerstate) : token =
         else if isNewline nextChar then
           consumeWhitespace indent
         else begin
-          lexbuf.putbackString (String.make 1 nextChar);
+          lexbuf.backTrack 1;
           indent
         end
       in
@@ -202,7 +227,7 @@ let token (lexbuf : token lexerstate) : token =
         end else if indent = prevIndent - 2 then begin
           let line = readUntil isNewline lexbuf in
           if isBlockEndLine line then begin
-            lexbuf.putbackString "\n";
+            putback lexbuf "\n";
             let endArgs line =
               match Str.split whitespaceRE line with
                 | "end" :: args -> args
@@ -210,7 +235,7 @@ let token (lexbuf : token lexerstate) : token =
             in
             returnMultipleTokens lexbuf `End [`EndBlock (endArgs line)]
           end else begin
-            lexbuf.putbackString (line ^ "\n");
+            putback lexbuf (line ^ "\n");
             returnMultipleTokens lexbuf `End [`EndBlock []]
           end
         end else begin (* indent is more than one level less than in previous line *)
@@ -223,9 +248,11 @@ let token (lexbuf : token lexerstate) : token =
       let rec findToken prevInput prevFullMatches =
         let actualChar = lexbuf.readChar() in
         let input = prevInput ^ String.make 1 actualChar in
-        let beginMatches = List.filter (ruleBeginMatches input) rules in
+        let prevChar = String.make 1 lexbuf.endOfLastToken in
+        assert( String.length prevChar = 1);
+        let beginMatches = List.filter (ruleBeginMatches prevChar input) rules in
         let fullMatches =
-          match List.filter (ruleMatches input) rules with
+          match List.filter (ruleMatches prevChar input) rules with
             | [] -> prevFullMatches
             | fullMatches -> 
                 let inputLength = String.length input in
@@ -234,11 +261,11 @@ let token (lexbuf : token lexerstate) : token =
         let tokenFromRule length makeToken =
           let spareInput = Str.string_after input (length) in
           let consumedInput = Str.string_before input (length) in
-          lexbuf.putbackString spareInput;
+          putback lexbuf spareInput;
           let token =
             match makeToken consumedInput with
               | `PutBack(token, prefetched) ->
-                  lexbuf.putbackString prefetched;
+                  putback lexbuf prefetched;
                   token
               | #token as token -> token
           in
@@ -247,24 +274,27 @@ let token (lexbuf : token lexerstate) : token =
         match beginMatches with
           | [] ->
               begin match fullMatches with
-                | [] -> raiseUnknownToken lexbuf.location input "no matching rule"
+                | [] -> raiseUnknownToken lexbuf.location input
+                    (sprintf "no matching rule (after '%s')" prevChar)
                 | [length, (_, makeToken)] ->
                     tokenFromRule length makeToken
                 | multi ->
                     begin
-                      match List.filter (ruleMatches (prevInput ^ " ")) rules with
+                      match List.filter (ruleMatches prevChar (prevInput ^ " ")) rules with
                         | [_, makeToken] ->
                             tokenFromRule (String.length input + 1) makeToken
                         | [] ->
-                            raiseUnknownToken lexbuf.location input "no matching rules at end of line"
+                            raiseUnknownToken lexbuf.location input
+                              (sprintf "no matching rules at end of line (after '%s')" prevChar)
                         | multi ->
-                            raiseUnknownToken lexbuf.location input "multiple rules matching"
+                            raiseUnknownToken lexbuf.location input
+                              (sprintf "multiple rules matching (after '%s')" prevChar)
                     end
               end
           | oneOrMoreBeginMatches ->
               findToken input fullMatches
       in
-      lexbuf.putbackString (String.make 1 currentChar);
+      lexbuf.backTrack 1;
       findToken stringAcc []
     end
   in
@@ -276,6 +306,8 @@ let token (lexbuf : token lexerstate) : token =
           firstToken
   in
   lexbuf.readTokenBefore <- true;
+  lexbuf.endOfLastToken <- (Str.last_chars lexbuf.lastReadChars 1).[0];
+  lexbuf.lastReadChars <- Str.last_chars lexbuf.lastReadChars 1;
   token
 
 let tokenToString (lineIndent, indentNext) (token :token) =
@@ -347,15 +379,24 @@ let makeLexbuf fileName readCharFunc =
       in
       if isNewline chr then
         lexbuf.location <- { lexbuf.location with line = lexbuf.location.line + 1 };
+      lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
       chr
+    in
+    let backTrack count =
+      buffer := Str.last_chars lexbuf.lastReadChars count ^ !buffer;
+      lexbuf.lastReadChars <- Str.first_chars lexbuf.lastReadChars
+        (String.length lexbuf.lastReadChars - count);
     in
     {
       readChar = readCharWithBuffer;
-      putbackString = (fun string -> buffer := string ^ !buffer);
+      backTrack = backTrack;
+(*       putbackString = (fun string -> buffer := string ^ !buffer); *)
       location = { line = 0; fileName = fileName };
       prevIndent = 0;
       pushedTokens = [];
       readTokenBefore = false;
+      lastReadChars = "\n";
+      endOfLastToken = '\n';
     }
   in
   lexbuf
@@ -381,10 +422,11 @@ let () =
   let expectChar chr = assert( chr = l.readChar() ) in
   expectChar 'a';
   expectChar 'b';
-  l.putbackString "x";
-  l.putbackString "y";
-  expectChar 'y';
-  expectChar 'x'
+  l.backTrack 2;
+(*   l.putbackString "x"; *)
+(*   l.putbackString "y"; *)
+  expectChar 'a';
+  expectChar 'b'
   
 (* Main --------------------------------------------------------------------- *)
 
@@ -491,8 +533,16 @@ struct
 
       "a +_f b", `Return [id "a"; `Add "+_f"; id "b"; `End];
 
-      "space... ", `Return [id "space"; `Postfix "..."; `End];
+      "(a + b)*c", `Return [`OpenParen; id "a"; `Add "+"; id "b"; `CloseParen; `Mult "*"; id "c"; `End];
+
+      "space... ", `Return [id "space"; `Postfix "..."; `Whitespace 1; `End];
       "lineend...", `Return [id "lineend"; `Postfix "..."; `End];
+
+      "&blah", `Return [`Prefix "&"; id "blah"; `End];
+      "*deref", `Return [`Prefix "*"; id "deref"; `End];
+      "foo *ptr", `Return [id "foo"; `Whitespace 1; `Prefix "*"; id "ptr"; `End];
+      "float*", `Return [id "float"; `Postfix "*"; `End];
+      "float* var", `Return [id "float"; `Postfix "*"; `Whitespace 1; id "var"; `End];
 
       (* strings and numbers *)
       "1337", `Return [id "1337"; `End];
