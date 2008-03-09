@@ -39,6 +39,8 @@ let tokenToString =
     | Newparser.OPEN_PAREN -> "("
     | Newparser.CLOSE_PAREN -> ")"
     | Newparser.COMMA -> ","
+    | Newparser.OPEN_CURLY  -> "{"
+    | Newparser.CLOSE_CURLY -> "}"
     | Newparser.ADD_OP arg -> os "+" arg
     | Newparser.MULT_OP arg -> os "*" arg
     | Newparser.ASSIGN_OP arg -> os "=" arg
@@ -59,6 +61,8 @@ let lexFunc lexstate (_ :Lexing.lexbuf) =
     | `Identifier name -> Newparser.IDENTIFIER name
     | `OpenParen -> Newparser.OPEN_PAREN
     | `CloseParen -> Newparser.CLOSE_PAREN
+    | `OpenCurlyBrackets -> Newparser.OPEN_CURLY
+    | `CloseCurlyBrackets -> Newparser.CLOSE_CURLY
     | `Comma -> Newparser.COMMA
     | `Add arg -> Newparser.ADD_OP arg
     | `Mult arg -> Newparser.MULT_OP arg
@@ -180,6 +184,7 @@ struct
       "a|b", `Return [se2 "op|" "a" "b"];
       "a&&b", `Return [se2 "op&&" "a" "b"];
       "c || d", `Return [se2 "op||" "c" "d"];
+      "a^b", `Return [se2 "op^" "a" "b"];
 
       (** pre/postfix operators *)
       "foo... ", `Return [se1 "postop..." "foo"];
@@ -208,8 +213,8 @@ struct
       "a / b / c", `Return [expr "op/" [se2 "op/" "a" "b"; id "c"]];
 
       "a + 1 > 10", `Return [expr "op>" [se2 "op+" "a" "1"; id "10"]];
-      "a + 1 < 10", `Return [expr "op<" [se2 "op+" "a" "1"; id "10"]];
       "a + 1 >= 10", `Return [expr "op>=" [se2 "op+" "a" "1"; id "10"]];
+      "a + 1 < 10", `Return [expr "op<" [se2 "op+" "a" "1"; id "10"]];
       "a + 1 <= 10", `Return [expr "op<=" [se2 "op+" "a" "1"; id "10"]];
       (* todo *)
       
@@ -229,6 +234,10 @@ struct
       "sqrt(2 + 3)",
       `Return [callExpr [id "sqrt"; se2 "op+" "2" "3"]];
 
+      (** s-expressions *)
+      "quote {foo bar}", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]];
+      "printAst({foo bar})", `Return [callExpr [id "printAst"; jux ["foo"; "bar"]]];
+      
       (** indenting *)
       "type point\n  int x\n  int y\nend",
       `Return [
@@ -256,8 +265,8 @@ struct
       "x.add(2 * 3)",
       `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]];
 
-      (* "(\*foo).print()", *)
-      (* `Return [expr "op." [se1 "op*" "foo"; call ["print"]]]; *)
+      "*foo.print()",
+      `Return [expr "op." [se1 "preop*" "foo"; call ["print"]]];
 
       (** special handling for first token *)
       "print 10 + 20",

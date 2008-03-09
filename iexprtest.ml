@@ -21,6 +21,7 @@ type indentToken = [
 type userToken = [
 | `Identifier of string
 | `OpenParen | `CloseParen
+| `OpenCurlyBrackets | `CloseCurlyBrackets
 | `Comma
 | `Add of string
 | `Mult of string
@@ -100,12 +101,14 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token
     (Str.regexp ".*", whitespaceRE), (fun str -> `Whitespace (String.length str));
     regexpRule "(" `OpenParen;
     regexpRule ")" `CloseParen;
+    regexpRule "{" `OpenCurlyBrackets;
+    regexpRule "}" `CloseCurlyBrackets;
     regexpRule " *, *" `Comma;
     regexpRule "\\." `Dot;
     postfixRule "...";
     postfixRule "*";
-    prefixRule "&";
     prefixRule "*";
+    prefixRule "&";
     stringRule;
     charRule;
     intRule;
@@ -118,7 +121,7 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token
   @ opRules "**" (fun s -> `Mult s)
   @ opRulesMultiSym ["="; ":="] (fun s -> `Assign s)
   @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> `Compare s)
-  @ opRulesMultiSym ["&"; "|"] (fun s -> `StrictBoolOp s)
+  @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> `StrictBoolOp s)
   @ opRulesMultiSym ["&&"; "||"] (fun s -> `LazyBoolOp s)
     
 type 'token lexerstate = {
@@ -350,6 +353,8 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | `Prefix arg -> "pre" ^ arg, noind
           | `OpenParen -> "(", noind
           | `CloseParen -> ")", noind
+          | `OpenCurlyBrackets -> "{", noind
+          | `CloseCurlyBrackets -> "}", noind
           | `Dot -> ".", noind
         in
         indentString lineIndent ^ str, (indent, doindent)

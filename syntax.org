@@ -49,7 +49,7 @@ language might be used. Should guide the syntax related decisions.
      onLeaf: print leaf
      onBranch: print branch
 
-* TODO Misc
+* DONE Misc
  
 ** DONE (foobar) is not parsed different from foobar
    CLOSED: [2008-02-17 Sun 01:23]
@@ -85,7 +85,17 @@ func void foo {
 
 <=> (func void foo () {seq f 1})
 
-* TODO Significant indentation
+Resolved:
+a b <=> (jux a b)
+
+while
+
+parent
+  a
+  b
+<=> (jux parent (seq a b))
+
+* DONE Significant indentation
 
 ** Trivial case
    
@@ -100,9 +110,9 @@ func int foo a b c
   (print b)
   (print c) ))
   
-** TODO expressions spanning multiple rows cause problems
+** DONE expressions spanning multiple rows cause problems
 
-*** TODO Problem: we want constructs which span multiple lines (if/then/else, ...)
+*** DONE Problem: we want constructs which span multiple lines (if/then/else, ...)
 
 func void foo(a, b, c)
   some
@@ -192,24 +202,27 @@ Solution: No. Requires to much changes in core language, unclear implications on
 ...
 <=> (let x 10 (use x ...))
 
-*** TODO have some notation to get rid of end-of-block marker?
+*** DONE have some notation to get rid of end-of-block marker?
+Resolved: yes, like this:
 
-let/ foo =
-  some complex(calculation)
+    let: foo =
+      some complex(calculation)
 
-Where is this needed?
-What would the advantage be?
+**** Where is this needed? What would the advantage be?
 
-*** TODO How to split a line into multiple lines?
+     Getting the syntax more lightweight, especially on expression
+     which are only a few lines long
+     
 
-Backslash at end of line?
+*** DONE How to split a line into multiple lines?
+    Resolved: allow backslash at end of line or at beginning of next line.
+    When at beginning of next line, ignore any whitespace in front of \
+
 
 this is some freaking\
 long line
 
-Needs to be indented to same level? Extra level? Ignore indenting?
-
-Allow it to be at beginning of file also?
+Needs to be indented to same level.
 
 this is some freaking
 \long line
@@ -239,26 +252,65 @@ let foo =
 
 ** TODO which operators to support?
 
-*** TODO ' as operator for implicit conversions like?
-    append string1 'char => append string1 (toString char)?
 
-    i + 'f -> i + toInt f ?
-    i +' f -> i + toInt f ?
-
-*** TODO is ascii enough or should zomp use unicode (more operators etc.)?
-*** TODO all common math symbols
-
-Solution: accepted. Reasons are obvious ;)
+*** DONE all common math symbols
+    Solution: accepted. Reasons are obvious ;)
 
 +,-,*,/
 a ** b <=> power
+*** TODO !/? postfix operators
 
-*** TODO Boolean operators
+    Motivation:
 
-    !, &, |
-    &&, ||
+    - Regular expressions/grammars: T ::= "let" "rec"? "=" expr
 
-    xor? ^?
+    - Ruby and scheme allow ! and ? in identifiers to get names like
+    color.red? or string.replace!
+
+    Support both as postfix operators whose default definition will be
+    macros turning their argument into isRed / doReplace. Then ruby
+    like variable names can be faked in a clean way while it is still
+    possible to use the operators for pattern matching, grammar
+    specification etc.
+    
+*** TODO (anti)quoting operator
+
+    ` and # don't work well with indent based syntax
+
+**** Use ${} and #{}?
+
+    ${foo bar} <=> (quote (opjux foo bar))
+    ${class Blah
+        member x
+        member y
+      end}
+    <=> 
+    (quote (opjux class Blah (opseq 
+      (opjux member x)
+      (opjux member y) )))
+
+   Extra indentation for better alignment?
+   ${foo
+     child
+   end}
+
+   vs.
+
+   ${foo
+       child
+     end}
+
+   #foo works symmetrically
+
+   Also allow string antiquoting like "The successor of x is #{x + 1}"
+
+*** TODO is ascii enough or should zomp use unicode (more operators etc.)?
+
+*** TODO Parentheses?
+
+() for grouping / flexible
+{} for s-expressions
+<> for m-expressions
 
 *** TODO Regular expressions?
     
@@ -268,11 +320,18 @@ a ** b <=> power
     a/b/c -> division
     /a/ -> regexp
 
-*** TODO Parentheses?
+*** DONE Boolean operators
 
-() for grouping / flexible
-{} for s-expressions
-<> for m-expressions
+    !, &, |
+    &&, ||
+
+    xor? ^?
+
+*** TODO ' as operator for implicit conversions like?
+    append string1 'char => append string1 (toString char)?
+
+    i + 'f -> i + toInt f ?
+    i +' f -> i + toInt f ?
 
 *** DONE custom operators?
     CLOSED: [2008-01-28 Mon 02:58]
@@ -320,9 +379,12 @@ Might conflict with names of user identifiers like vars and functions. Would req
    CLOSED: [2008-01-28 Mon 03:09] 
 
 Solution: rejected. There is no need for it and it interferes with coding styles unnecessarily.
+However some operators require the lack of whitespace on one side:
+float* vs. *ptr vs. a * b aka. a*b
 
-** TODO Consider whitespace when parsing?
-
+** DONE Consider whitespace when parsing?
+   Solution: is important to distinguish prefix/postfix/infix operators
+   
    // pointers
    foo* blah <=> (jux (postfixop* foo) blah)
 
@@ -339,13 +401,17 @@ Solution: rejected. There is no need for it and it interferes with coding styles
    Rule of thumb: allow to resolve disambiguities by whitespace
    if parens would be nesseccary otherwise
 
-** TODO Special support for first id of expression?
+** DONE Special support for first id of expression?
+   Rejected, not needed due to jux with low priority
+
 let foo = bar <=> (op= (let foo) bar)
 
 Allow some syntax for..?
 let foo = bar <=> (let (op= foo bar))
 
-*** Is it okay to require parenthesis on method calls when used as arguments of operators?
+*** DONE Is it okay to require parenthesis on method calls when used as arguments of operators?
+    Resolved: it is ok. C-style notation is used for function calls
+    and m-exprs for structure defining macros (class, for, ...)
 
 if a > 10 && b < 20 then
 <=>
@@ -366,7 +432,8 @@ let x + y =
 <=>
 (jux (op= (op+ x y) (seq (op() add x y))))
 
-*** TODO juxtaposition has highest or lowest priority?
+*** DONE juxtaposition has highest or lowest priority?
+    Resolved: lowest priority
 
 foo a + bar b
 (op+ (foo a) (bar b))
@@ -376,20 +443,23 @@ print 1 + 2
 
 
 
-*** TODO Where is this needed?
+*** DONE Where is this needed?
+    Nowhere due to jux having lowest priority
 
 let foo = bar
 let a + b = baz
 
 func x + y : int = ...
 
-*** TODO Solve by lisp-style set/=?
+*** DONE Solve by lisp-style set/=?
+    Rejected: see above
 
 macroOverload (op= l r) ...
 macroOverload (op= (let $foo) $bar) ...
 
-*** TODO Use a postfix for different parsing?
-
+*** DONE Use a postfix for different parsing?
+    Rejected: see above
+    
 let! x + y = plus( x, y ) <=> (let (op= (op+ x y) (plus x y)))
 
 or
@@ -400,7 +470,7 @@ Can also be used in nested expressions.
 
 (foreach i in foo (print: i + 1))
 
-*** TODO What about nested expressions?
+*** DONE What about nested expressions?
 See above
 
 (foreach (print 10 + 20) ...) <=>
@@ -471,7 +541,8 @@ Require
    (+ 10)?
    how to differentiate?
 
-** TODO dot notation
+** DONE dot notation
+   Support it using op. operator
 
 // equivalent
 2.pow 3

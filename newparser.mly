@@ -16,6 +16,8 @@
 
   let mergeJux l r =
     match l, r with
+(*       | _, {Ast2.id = "opjuxNOMERGE"; args = [r]} -> *)
+(*           {Ast2.id = "opjux"; args = [l; r] } *)
       | {Ast2.id = "opjux"; args = largs }, _ ->
           {Ast2.id = "opjux"; args = largs @ [r]}
       | _, {Ast2.id = "opjux"; args = rargs } ->
@@ -34,7 +36,9 @@
 %token OPEN_PAREN
 %token CLOSE_PAREN
 %token COMMA
-
+%token OPEN_CURLY
+%token CLOSE_CURLY
+  
 %token <string> ADD_OP
 %token <string> MULT_OP
 %token <string> ASSIGN_OP
@@ -69,7 +73,10 @@ expr:
 
 | id = IDENTIFIER; OPEN_PAREN; args = separated_list(COMMA, expr); CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: args }}
-    
+
+| OPEN_CURLY; e = expr; CLOSE_CURLY;
+  {{ Ast2.id = "op{}"; args = [e] }}
+  
 | l = expr; op = opsymbol; r = expr;
   {{ Ast2.id = opName op; args = [l; r] }}
 

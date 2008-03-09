@@ -1,14 +1,6 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
-** TODO [#A] emacs/toplevel: C-c C-s abfangen wenn toplevel schon laeuft
-** TODO [#A] examples which can be browsed directly in emacs
-** TODO [#A] error when local var is redefined
-** TODO [#A] no segfaults when redefining local variables
-** TODO [#A] indent parser: skip comments
-** TODO [#A] indent parser: strings
-** TODO [#A] zomp-newline: problem with indent (resetting pos)
-** TODO [#A] fix zomp-newline
 
 * Use Cases
 
@@ -182,7 +174,6 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 ** Refactorings
    
 *** TODO [#A] change all types to Capitalized case in stdlib
-*** TODO [#A] remove zompvm.h
 *** TODO [#B] Allow nested expressions in branch instruction
     
 *** TODO [#C] Turn value type into polymorphic variant type
@@ -199,9 +190,12 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 ** Parser
 
+*** TODO [#A] indent parser: support escaped linebreaks (\ at beginning/end of line)
+*** TODO [#A] indent parser: skip comments
+*** TODO [#A] indent parser: strings
 *** TODO [#B] only allow one dot in ids (and none at a later point)
 *** TODO [#B] iexprtest.ml: does worker in token use stringAcc at all?
-*** TODO [#A] parse (a b c) into (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
+*** TODO [#C] parse (a b c) into (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
 *** TODO [#B] support "\"" in strings
 *** TODO [#A] add += -= *= /= etc. operators
 *** TODO [#A] parse logical ops &, |, &&, ||
@@ -210,6 +204,8 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 ** Compiler
 
+*** TODO [#A] error when local var is redefined
+*** TODO [#A] no segfaults when redefining local variables
 *** TODO [#A] allow uninitialized vars
 *** TODO [#A] allow (var foo x) where the type of var is propagated
 *** TODO [#A] error on redefining vars
@@ -350,8 +346,11 @@ check whether this makes IR-verification faster / prevent bugs / ...
     
 ** Emacs support
 
-*** TODO [#A] correctly indent }
-*** TODO [#B] zomp: fast doc lookup
+*** TODO [#B] zomp-newline: problem with indent (resetting pos)
+*** TODO [#B] emacs/toplevel: C-c C-s abfangen wenn toplevel schon laeuft
+*** TODO [#C] examples which can be browsed directly in emacs
+*** TODO [#B] correctly indent }
+*** TODO [#C] zomp: fast doc lookup
 *** TODO [#B] emacs: backspace should delete autoinserted text in one step
 *** TODO [#B] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
 *** TODO [#B] also auto-insert // on newline
@@ -673,6 +672,7 @@ Is anything special needed?
 
 There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
 
+zump - only name which sounds more stupid than zump :)
 zompl - zero overhead meta programming language
 baremp - bare metal meta programming / bare metal programming
 bmmp
@@ -681,7 +681,6 @@ lowmp
 zoml - zero overhead meta language
 0mp
 roomp
-zump
 
 ** Type annotations
 Annotate types using meta data?
@@ -762,6 +761,10 @@ Error:dummy.zomp:(2): File should be closed
        
 ** Packages / Projects
 *** compilation model
+**** Use an VM-only approach?
+     Only operation mode is having a VM which can load and execute code
+     Compiling static executables works by "dumping" code
+     
 *** packages
 *** project layout
 one toplevel file, drawing in all libs, settings etc.

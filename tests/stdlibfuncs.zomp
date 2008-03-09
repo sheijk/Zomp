@@ -1,14 +1,33 @@
+/**
+ * Testing functions in the ../stdlib.zomp
 
-
-(var int four 4)
-(var (ptr char) x "x")
+!verify off
+ */
 
 (func int main () (
-  (printInt 1)
-  (printString x)
-  (printFloat 2.0)
-  (printNewline)
+  /// testing ast:matchesShape
+  (unittest:assertAll
+    (ast:matchesShape `(foo) `(foo))
+    (bool.not (ast:matchesShape `(foo) `(bar)))
 
-  four
+    (bool.not (ast:matchesShape `(foo) `(foo args)))
+
+    (ast:matchesShape `(a b c) `(a b c))
+    (bool.not (ast:matchesShape `(a b c) `(a b x)))
+
+    (ast:matchesShape `(var (ptr int) x (10 + 20 * 30)) `(var (ptr int) x (10 + 20 * 30)))
+    (bool.not (ast:matchesShape `(var (ptr int) (10 + xxx * 30)) `(var (ptr int) (10 + 20 * 30))))
+
+    (ast:matchesShape `(int x) `(int _))
+
+    (ast:matchesShape
+      `(if (a > b) then (printString "gt") else (printString "lt"))
+      `(if _ then _ else _))
+    )
+
+  0
   ))
+
+
+
 

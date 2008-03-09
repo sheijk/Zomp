@@ -4,56 +4,6 @@
 !verify off
  */
 
-/// Given an ast and an ast containing placeholders (astFromString "_") the shapes of both
-/// ast's are matched against each other. They match if they have the same name, same number
-/// of children and all their children are matching. A placeholder is considered to match
-/// any other ast
-///
-/// Examples:
-///   ast:matchesShape `(foo bar) `(foo bar) => true
-///   ast:matchesShape `(a b c) `(_) => true
-///   ast:matchesShape `(foo (some child) bar) `(foo _ bar) => true
-///   ast:matchesShape `(a b) `(a) => false
-///   ast:matchesShape `(a b c) `(a b) => false
-///   ast:matchesShape `(a b) `(a b _) => false
-(func bool ast:matchesShape ((astp code) (astp template)) (
-  (if (bool.and (cstring.equal (getField template id) "_") (0 == getField code childCount))
-    (ret true) ())
-  
-  (if
-    (bool.and
-      (getField code childCount == getField template childCount)
-      (cstring.equal (getField code id) (getField template id)))
-    (
-      (const int childCount (getField code childCount))
-      (for childNum 0 childCount (
-        (if (ast:matchesShape (astChild code childNum) (astChild template childNum))
-          () // else
-          (ret false)
-          )
-        ))
-      (ret true)      
-      )      
-    ())
-  (ret false)
-  ))
-  
-(unittest:assertAll
-  (ast:matchesShape `(foo) `(foo))
-  (bool.not (ast:matchesShape `(foo) `(bar)))
-
-  (bool.not (ast:matchesShape `(foo) `(foo args)))
-
-  (ast:matchesShape `(a b c) `(a b c))
-  (bool.not (ast:matchesShape `(a b c) `(a b x)))
-
-  (ast:matchesShape `(var (ptr int) x (10 + 20 * 30)) `(var (ptr int) x (10 + 20 * 30)))
-  (bool.not (ast:matchesShape `(var (ptr int) (10 + xxx * 30)) `(var (ptr int) (10 + 20 * 30))))
-
-  (ast:matchesShape `(int x) `(int _))
-  )
-
-
 
 (macro ifunc type nameAndArgs impl (
   (if (bool.not (cstring.equal (getField nameAndArgs id) "opcall"))

@@ -19,14 +19,25 @@ var int windowHeight 300
 
 var bool initCalled false
 
+macro if2 cond args...
+  quote hello there
+end
+
+
+macro ifi cond onTrue else onFalse
+  
+end
+
+
 func void init()
   if initCalled
-  
+
   glfwInit()
   glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
   glewInit()
   times 2 glfwPollEvents()
 end
+
 
 (type vertexStream
   (int size)

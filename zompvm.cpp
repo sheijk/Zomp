@@ -102,7 +102,6 @@ llvm::GenericValue runFunction(const char* name) {
 }
 
 extern "C" {
-#include "zompvm.h"
 
 //   void setupOptimizerPasses() {
 //     // Set up the optimizer pipeline.  Start with registering info about how the
@@ -356,6 +355,53 @@ extern "C" {
     return dlsym( NULL, name ) != NULL ? true : false;
   }
 
+
+//   struct Ast
+//   {
+//     char* id;
+//     int childCount;
+//     Ast** childs;
+//   };
+
+//   char* macroAstId(int ast) {
+//     if( ast != 0 ) {
+//       return (reinterpret_cast<Ast*>(ast))->id;
+//     }
+//     else {
+//       return "NULL";
+//     }
+//   }
+
+//   int macroAstChildCount(int ast) {
+//     if( ast != 0 ) {
+//       return (reinterpret_cast<Ast*>(ast))->childCount;
+//     }
+//     else {
+//       return 0;
+//     }
+//   }
+
+//   int macroAstChild(int ast, int num) {
+//     if( ast != 0 && num < macroAstChildCount(ast) ) {
+//       return reinterpret_cast<int>( (reinterpret_cast<Ast*>(ast))->childs + num );
+//     }
+//     else {
+//       return 0;
+//     }
+//   }
+  
+// (func cstring macroAstId ((int macroCurrentAst)) (
+//   (getField (cast (ptr ast) macroCurrentAst) id) ))
+
+// (func int macroAstChildCount ((int macroCurrentAst)) (
+//   (getField (cast (ptr ast) macroCurrentAst) childCount) ))
+
+// (func int macroAstChild ((int treeaddr) (int num)) (
+//   (var (ptr ast) tree (cast (ptr ast) treeaddr))
+//   (var (ptr ast) child (load (ptradd (getField tree childs) num)))
+//   (var int i (cast int child))
+//   (ret i)
+//   ))
 
 } // extern "C"
 
