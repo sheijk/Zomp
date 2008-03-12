@@ -723,6 +723,14 @@ automatically check embedded examples in documentation for correctness
 ** Type System
 
 *** Composable type system?
+    
+**** multiple lanes/rails/...
+
+     - independent from each other
+     - type checking done on each of them
+
+     - default property: shape (binary representation)
+       
 *** Arithmetic types (sum, product types)
 *** Generic types
 *** How much in kernel language, how much as macros?

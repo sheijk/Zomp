@@ -1,6 +1,7 @@
 
 %{
   exception ParseError of string
+  let raiseParseError str = raise (ParseError str)
 
   let quoteId = function
     | "`" -> "quote"
@@ -25,6 +26,19 @@
       | _ ->
           {Ast2.id = "opjux"; args = [l;r]}
 
+  let checkTerminators expr terminators =
+    let rec checkAll = function
+      | _, [] ->
+          ()
+      | { Ast2.id = exprId; args = [] } :: remExprs, firstTerm :: remTerms when exprId = firstTerm ->
+          checkAll (remExprs, remTerms)
+      | _, _ ->
+          raiseParseError (Printf.sprintf "Invalid terminators: %s for %s"
+                             (Common.combine " " terminators)
+                             (Ast2.toString expr) )
+    in
+    checkAll (Ast2.idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
+      
 %}
 
 %token <string> IDENTIFIER
@@ -45,10 +59,10 @@
 %token <string> COMPARE_OP
 %token <string> LAZY_BOOL_OP
 %token <string> STRICT_BOOL_OP
-
 %token DOT
 %token <string> PREFIX_OP
 %token <string> POSTFIX_OP
+%token <string> QUOTE
 
 %left WHITESPACE BEGIN_BLOCK
 %nonassoc COMPARE_OP
@@ -63,20 +77,23 @@
 
 %%
 
-main:
+  main:
 | WHITESPACE?; e = expr; WHITESPACE?; END;
   { e }
     
-expr:
+    expr:
 | id = IDENTIFIER;
   { Ast2.idExpr id }
 
 | id = IDENTIFIER; OPEN_PAREN; args = separated_list(COMMA, expr); CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: args }}
 
-| OPEN_CURLY; e = expr; CLOSE_CURLY;
-  {{ Ast2.id = "op{}"; args = [e] }}
-  
+(* | OPEN_CURLY; e = expr; CLOSE_CURLY; *)
+(*   {{ Ast2.id = "op{}"; args = [e] }} *)
+
+| q = QUOTE; OPEN_CURLY; e = expr; END?; CLOSE_CURLY;
+  {{ Ast2.id = q; args = [e] }}
+    
 | l = expr; op = opsymbol; r = expr;
   {{ Ast2.id = opName op; args = [l; r] }}
 
@@ -89,8 +106,9 @@ expr:
 | l = expr; WHITESPACE; r = expr;
   { mergeJux l r }
     
-| l = expr; BEGIN_BLOCK; args = main*; END_BLOCK;
-  { mergeJux l { Ast2.id = "opseq"; args = args }}
+| l = expr; BEGIN_BLOCK; args = main*; terminators = END_BLOCK;
+  { checkTerminators l terminators;
+    mergeJux l { Ast2.id = "opseq"; args = args }}
 
 | l = expr; DOT; r = expr;
   {{ Ast2.id = "op."; args = [l; r] }}

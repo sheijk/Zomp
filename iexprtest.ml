@@ -32,6 +32,7 @@ type userToken = [
 | `Dot
 | `Prefix of string
 | `Postfix of string
+| `Quote of string
 ]
 
 let lastMatchedString = ref ""
@@ -96,6 +97,12 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token
     re (sprintf "[%s][%s]*" validIdentifierFirstChar validIdentifierChars),
     (fun str -> `Identifier str);
   in
+  let quoteRule str name =
+    re (Str.quote str),
+    (fun foundStr ->
+       assert( str = foundStr );
+       `Quote name)
+  in
   [
     identifierRule;
     (Str.regexp ".*", whitespaceRE), (fun str -> `Whitespace (String.length str));
@@ -105,6 +112,8 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token
     regexpRule "}" `CloseCurlyBrackets;
     regexpRule " *, *" `Comma;
     regexpRule "\\." `Dot;
+    quoteRule "$" "quote";
+    quoteRule "#" "antiquote";
     postfixRule "...";
     postfixRule "*";
     prefixRule "*";
@@ -183,11 +192,11 @@ let token (lexbuf : token lexerstate) : token =
   
   let ruleBeginMatches prevChar string ((prevCharRE, regexp), _) =
     Str.string_match prevCharRE prevChar 0 &&
-    Str.string_partial_match regexp string 0 &&
+      Str.string_partial_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
   and ruleMatches prevChar string ((prevCharRE, regexp), _) =
     Str.string_match prevCharRE prevChar 0 &&
-    Str.string_match regexp string 0 &&
+      Str.string_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
   in
   
@@ -231,12 +240,14 @@ let token (lexbuf : token lexerstate) : token =
           let line = readUntil isNewline lexbuf in
           if isBlockEndLine line then begin
             putback lexbuf "\n";
-            let endArgs line =
-              match Str.split whitespaceRE line with
-                | "end" :: args -> args
-                | _ -> failwith "splitting block end line failed"
-            in
-            returnMultipleTokens lexbuf `End [`EndBlock (endArgs line)]
+            if line =~ "^end\\(.*\\)$" then
+              match List.rev (Str.split whitespaceRE (nthmatch 1)) with
+                | "}" :: args ->
+                    returnMultipleTokens lexbuf `End [`EndBlock (List.rev args); `CloseCurlyBrackets]
+                | args ->
+                    returnMultipleTokens lexbuf `End [`EndBlock (List.rev args)]
+            else
+              failwith "splitting block end line failed"
           end else begin
             putback lexbuf (line ^ "\n");
             returnMultipleTokens lexbuf `End [`EndBlock []]
@@ -325,8 +336,8 @@ let tokenToString (lineIndent, indentNext) (token :token) =
         indentString (lineIndent - 1) ^
           begin
             match args with
-              | [] -> "}"
-              | _ -> sprintf "}(%s)" (Common.combine ", " args)
+              | [] -> "`EndBlock"
+              | _ -> sprintf "`EndBlock(%s)" (Common.combine ", " args)
           end,
         (lineIndent - 1, `Indent)
     | _ as t ->
@@ -336,7 +347,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
         let str, (indent, doindent) =
         match t with
           | `BeginBlock ->
-              "{\n", (lineIndent + 1, `Indent)
+              "`BeginBlock\n", (lineIndent + 1, `Indent)
           | `EndBlock _ -> failwith "match failure"
           | `End -> "`End\n", ind
           | `Identifier str -> str, noind
@@ -356,6 +367,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | `OpenCurlyBrackets -> "{", noind
           | `CloseCurlyBrackets -> "}", noind
           | `Dot -> ".", noind
+          | `Quote str -> "$" ^ str, noind
         in
         indentString lineIndent ^ str, (indent, doindent)
       
@@ -559,7 +571,18 @@ struct
       "'x'", `Return [id "'x'"; `End];
       "'\\n'", `Return [id "'\\n'"; `End];
       "'\\\\'", `Return [id "'\\\\'"; `End];
-      
+
+      (* quotes *)
+      "$", `Return [`Quote "quote"; `End];
+      "#", `Return [`Quote "antiquote"; `End];
+
+      "${foo}", `Return [`Quote "quote"; `OpenCurlyBrackets; id "foo"; `CloseCurlyBrackets; `End];
+      "${class\n  child1\nend}",
+      `Return [`Quote "quote";
+               `OpenCurlyBrackets;
+               id "class"; `BeginBlock; id "child1"; `End; `EndBlock [];
+               `CloseCurlyBrackets; `End];
+
       (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
       "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );

@@ -32,9 +32,9 @@ let tokenToString =
   function
     | Newparser.END -> "`nl"
     | Newparser.IDENTIFIER id -> id
-    | Newparser.BEGIN_BLOCK -> "{"
-    | Newparser.END_BLOCK [] -> "}"
-    | Newparser.END_BLOCK params -> sprintf "}(%s)" (Common.combine ", " params)
+    | Newparser.BEGIN_BLOCK -> "BEGIN_BLOCK"
+    | Newparser.END_BLOCK [] -> "END_BLOCK"
+    | Newparser.END_BLOCK params -> sprintf "END_BLOCK(%s)" (Common.combine ", " params)
     | Newparser.WHITESPACE count -> String.make count '_'
     | Newparser.OPEN_PAREN -> "("
     | Newparser.CLOSE_PAREN -> ")"
@@ -50,6 +50,7 @@ let tokenToString =
     | Newparser.PREFIX_OP arg -> os "pre" arg
     | Newparser.LAZY_BOOL_OP arg -> os "lb" arg
     | Newparser.STRICT_BOOL_OP arg -> os "sb" arg
+    | Newparser.QUOTE arg -> os "$" arg
       
 let lexFunc lexstate (_ :Lexing.lexbuf) =
   let iexprToken = Iexprtest.token lexstate in
@@ -73,6 +74,7 @@ let lexFunc lexstate (_ :Lexing.lexbuf) =
     | `Prefix arg -> Newparser.PREFIX_OP arg
     | `LazyBoolOp arg -> Newparser.LAZY_BOOL_OP arg
     | `StrictBoolOp arg -> Newparser.STRICT_BOOL_OP arg
+    | `Quote arg -> Newparser.QUOTE arg
 
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
@@ -85,7 +87,12 @@ let parseSExpr source =
     with
       | End_of_file -> acc
   in
-  List.rev (read [])
+  let revExprs = read [] in
+  try
+    let invalidChar = lexstate.Iexprtest.readChar() in
+    failwith (sprintf "Not at end of input, read %c" invalidChar)
+  with End_of_file ->
+    List.rev revExprs
   
 (* let () = *)
 (*   if Array.length Sys.argv > 1 && Sys.argv.(1) = "-i" then *)
@@ -156,11 +163,11 @@ struct
       "foo bar", `Return [jux ["foo"; "bar"]];
 
       (** s-expressions todo: support this at all? *)
-(*       "foo (nested bar)", *)
-(*       `Return [ {Ast2.id = "opjux"; args = [ *)
-(*                    id "foo"; *)
-(*                    jux ["nested"; "bar"]; *)
-(*                  ]} ]; *)
+      (*       "foo (nested bar)", *)
+      (*       `Return [ {Ast2.id = "opjux"; args = [ *)
+      (*                    id "foo"; *)
+      (*                    jux ["nested"; "bar"]; *)
+      (*                  ]} ]; *)
 
       (** basic operators *)
       "x + y", `Return [se "op+" ["x"; "y"]];
@@ -234,9 +241,9 @@ struct
       "sqrt(2 + 3)",
       `Return [callExpr [id "sqrt"; se2 "op+" "2" "3"]];
 
-      (** s-expressions *)
-      "quote {foo bar}", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]];
-      "printAst({foo bar})", `Return [callExpr [id "printAst"; jux ["foo"; "bar"]]];
+      (** s-expressions (currently not supported) *)
+      (*       "quote {foo bar}", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]]; *)
+      (*       "printAst({foo bar})", `Return [callExpr [id "printAst"; jux ["foo"; "bar"]]]; *)
       
       (** indenting *)
       "type point\n  int x\n  int y\nend",
@@ -255,6 +262,22 @@ struct
           se2 "op+" "x" "y";
           seqExpr [call ["plus"; "x"; "y"]]
         ]];
+
+      "if 10 > 20 then\n\
+      \  print 1\n\
+      else\n\
+      \  print 2\n\
+      end\n",
+      `Return [
+        juxExpr [
+          id "if";
+          se2 "op>" "10" "20";
+          id "then";
+          seqExpr [jux ["print"; "1"]];
+          id "else";
+          seqExpr [jux ["print"; "2"]];
+        ]
+      ];
 
       (** dot notation *)
       "foo.print(1, 2)",
@@ -291,11 +314,22 @@ struct
       (* "for i = 0 .. 100", *)
       (* `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
 
+      (** quotations *)
+      "${foo}", `Return [se1 "quote" "foo"];
+      "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];
+      "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]];
+      "${class\n  child1\nend}",
+      `Return [expr "quote" [juxExpr [id "class"; seqExpr [id "child1"]]]];
+
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];
       "a   b  c", `Return [jux ["a"; "b"; "c"]];
       "  foo bar", `Return [jux ["foo"; "bar"]];
       "\n\nabc def\n\n", `Return [jux ["abc"; "def"]];
+
+      (** misc *)
+      "", `Return [];
+      "foo\n  bar\nend wrong", `Exception "'end wrong' should be 'end foo' or 'end'";        
     ]
 end
   

@@ -23,11 +23,39 @@ macro if2 cond args...
   quote hello there
 end
 
-
-macro ifi cond onTrue else onFalse
-  
+macro doStuff
+  uniqueId foo "foo"
+  mret ${seq
+    var int #{foo} 100
+    printInt #{foo}
+    println()
+  end}
 end
 
+macro ifi cond onTrue else onFalse
+  uniqueId testVar "ifi"
+  uniqueId trueLabel "ifi_true"
+  uniqueId falseLabel "ifi_false"
+  uniqueId continueLabel "ifi_end"
+
+  ret ${seq
+    var bool #{testVar} #{cond}
+    branch #{testVar} #{trueLabel} #{falseLabel}
+    label #{trueLabel}
+    #{onTrue}
+    branch #{continueLabel}
+    label #{falseLabel}
+    #{onFalse}
+    branch #{continueLabel}
+    label #{continueLabel}
+  end}
+end
+
+ifi true
+  printlnInt 100
+else
+  printlnInt 200
+end
 
 func void init()
   if initCalled
