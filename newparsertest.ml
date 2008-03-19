@@ -198,20 +198,20 @@ struct
       "a^b", `Return [se2 "op^" "a" "b"];
 
       (** pre/postfix operators *)
-(*       "foo... ", `Return [se1 "postop..." "foo"]; *)
-(*       "bar...", `Return [se1 "postop..." "bar"]; *)
-(*       "main...\n\ *)
-(*       \  child\n\ *)
-(*       end", *)
-(*       `Return [juxExpr [ *)
-(*                  se1 "postop..." "main"; *)
-(*                  seqExpr [ *)
-(*                    id "child"; *)
-(*                  ]; *)
-(*                ]]; *)
-(*       "int*", `Return [se1 "postop*" "int"]; *)
-(*       "*ptr", `Return [se1 "preop*" "ptr"]; *)
-(*       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]]; *)
+      "foo... ", `Return [se1 "postop..." "foo"];
+      "bar...", `Return [se1 "postop..." "bar"];
+      "main...\n\
+      \  child\n\
+      end",
+      `Return [juxExpr [
+                 se1 "postop..." "main";
+                 seqExpr [
+                   id "child";
+                 ];
+               ]];
+      "int*", `Return [se1 "postop*" "int"];
+      "*ptr", `Return [se1 "preop*" "ptr"];
+      "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       (* todo post/prefix ops which work without additional whitespace *)
 
       (** indexed operators *)
@@ -230,6 +230,8 @@ struct
       "a + 1 < 10", `Return [expr "op<" [se2 "op+" "a" "1"; id "10"]];
       "a + 1 <= 10", `Return [expr "op<=" [se2 "op+" "a" "1"; id "10"]];
       (* todo *)
+
+      "a +5", `Exception "Unbalanced whitespace";
       
       (** invalid cases *)
       "§", `Exception "Invalid char";

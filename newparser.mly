@@ -151,6 +151,10 @@
   opexpr:
 | l = opexprArg; s = opsymbol; r = opexprArg;
   { expr (opName s) [l; r] }
+| e = opexprArg; s = POSTFIX_OP;
+  { expr ("post" ^ opName s) [e] }
+| s = PREFIX_OP; e = opexprArg;
+  { expr ("pre" ^ opName s) [e] }
     
   opexprArg:
 | e = opexpr;
