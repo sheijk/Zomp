@@ -44,6 +44,7 @@
   let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
   let idExpr = Ast2.idExpr
   let seqExpr args = { Ast2.id = "opseq"; args = args }
+  let expr id args = { Ast2.id = id; args = args }
 %}
 
 %token <string> IDENTIFIER
@@ -68,9 +69,9 @@
 %token <string> POSTFIX_OP
 %token <string> QUOTE
 
-%left BEGIN_BLOCK
 %nonassoc COMPARE_OP
 %nonassoc ASSIGN_OP
+%nonassoc STRICT_BOOL_OP LAZY_BOOL_OP
 %left ADD_OP
 %left MULT_OP
 %nonassoc DOT
@@ -81,28 +82,6 @@
 
 %%
 
-
-(*   main: *)
-(* | e = expr END; *)
-(*   { e } *)
-
-(*   expr: *)
-(* | id = IDENTIFIER; *)
-(*   { Ast2.idExpr id } *)
-
-(* | id = IDENTIFIER; args = sexprArg+; *)
-(*   { juxExpr (idExpr id) args } *)
-
-(* | id = IDENTIFIER; OPEN_PAREN; CLOSE_PAREN; *)
-(*   { callExpr (idExpr id) [] } *)
-
-(*   sexprArg: *)
-(* | id = IDENTIFIER; *)
-(*   { idExpr id } *)
-(* | OPEN_PAREN; e = expr; CLOSE_PAREN; *)
-(*   { e } *)
-    
-  
   main:
 | id = IDENTIFIER; END;
   { Ast2.idExpr id }
@@ -110,32 +89,41 @@
   { e }
 | e = mexpr; END;
   { e }
-
+| e = opexpr; END;
+  { e }
+    
   sexpr:
-| head = sexprArg; args = sexprArg+;
-  {{ Ast2.id = "opjux"; args = head :: args }}
-
-| head = sexprArg; args = sexprArg*; BEGIN_BLOCK; e = main+; terminators = END_BLOCK;
-  { checkTerminators head terminators;
-    juxExpr head (args @ [seqExpr e]) }
+| head = sexprArg; argsAndTerminators = sexprArg+;
+  {
+    let rec checkArgTerms = function
+      | [] -> ()
+      | [_, terminators] -> checkTerminators (fst head) terminators
+      | (_, []) :: rem -> checkArgTerms rem
+      | (_, invalidTerms) :: _ ->
+          raiseParseError (Printf.sprintf "Expected no terminators but found %s"
+                             (Common.combine " " invalidTerms))
+    in
+    checkArgTerms argsAndTerminators;
+    let args = List.map fst argsAndTerminators in
+    { Ast2.id = "opjux"; args = (fst head) :: args }}
 
 %inline sexprArg:
 | id = IDENTIFIER;
-  { Ast2.idExpr id }
-
+  { Ast2.idExpr id, [] }
 | OPEN_PAREN; e = sexpr; CLOSE_PAREN;
-  { e }
-    
+  { e, [] }
 | e = mexpr;
-  { e }
+| e = opexpr;
+  { e, [] }
+| BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
+  { seqExpr exprs, terminators }
 
-    
   mexpr:
 | id = IDENTIFIER; OPEN_PAREN; CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = [Ast2.idExpr id] }}
 
-| id = IDENTIFIER; OPEN_PAREN; argId = IDENTIFIER; CLOSE_PAREN;
-  {{ Ast2.id = "opcall"; args = [Ast2.idExpr id; Ast2.idExpr argId] }}
+| id = IDENTIFIER; OPEN_PAREN; arg = mexprArg; CLOSE_PAREN;
+  {{ Ast2.id = "opcall"; args = [Ast2.idExpr id; arg] }}
 
 | id = IDENTIFIER; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
   { callExpr (idExpr id) (arg1 :: arg2 :: remArgs) }
@@ -147,8 +135,31 @@
 %inline mexprArg:
 | id = IDENTIFIER;
   { Ast2.idExpr id }
+| e = opexpr;
+  { e }
 
-  
+  opexpr:
+| l = opexprArg; s = opsymbol; r = opexprArg;
+  { expr (opName s) [l; r] }
+    
+  opexprArg:
+| e = opexpr;
+  { e }
+| e = mexpr;
+  { e }
+| id = IDENTIFIER;
+  { idExpr id }
+
+%inline opsymbol:
+| o = ADD_OP
+| o = MULT_OP
+| o = ASSIGN_OP
+| o = COMPARE_OP
+| o = LAZY_BOOL_OP
+| o = STRICT_BOOL_OP
+  { o }
+
+    
 /*  
 main:
 | WHITESPACE?; e = expr; WHITESPACE?; END;
