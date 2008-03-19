@@ -376,15 +376,18 @@ struct
       "if 2 > 3 then",
       `Return [juxExpr [id "if"; se2 "op>" "2" "3"; id "then"]];
 
-      (* "for i = 0 .. 100", *)
-      (* `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
+(*       "for i = 0 .. 100", *)
+(*       `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
 
-(*       (\** quotations *\) *)
-(*       "${foo}", `Return [se1 "quote" "foo"]; *)
-(*       "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]]; *)
-(*       "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]]; *)
-(*       "${class\n  child1\nend}", *)
-(*       `Return [expr "quote" [juxExpr [id "class"; seqExpr [id "child1"]]]]; *)
+      (** quotations *)
+      "${foo}", `Return [se1 "quote" "foo"];
+      "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];
+      "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]];
+      "${class\n\
+      \  child1\n\
+      end}",
+      `Return [expr "quote" [juxExpr [id "class"; seqExpr [id "child1"]]]];
+      "${10 + 20}", `Return [expr "quote" [se2 "op+" "10" "20"]];
 
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];

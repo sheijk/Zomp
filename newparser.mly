@@ -5,6 +5,7 @@
 
   let quoteId = function
     | "`" -> "quote"
+    | "$" -> "quote"
     | "``" -> "quoteasis"
     | "#" -> "antiquote"
     | invalidString ->
@@ -91,6 +92,8 @@
   { e }
 | e = opexpr; END;
   { e }
+| e = quoteexpr; END;
+  { e }
     
   sexpr:
 | head = sexprArg; argsAndTerminators = sexprArg+;
@@ -159,7 +162,18 @@
 | o = STRICT_BOOL_OP
   { o }
 
+  quoteexpr:
+| q = QUOTE; OPEN_CURLY; e = quotable; CLOSE_CURLY;
+  { expr (quoteId q) [e] }
     
+%inline quotable:
+| e = sexpr;
+| e = mexpr;
+| e = opexpr;
+  { e }
+| id = IDENTIFIER;
+  { idExpr id }
+
 /*  
 main:
 | WHITESPACE?; e = expr; WHITESPACE?; END;

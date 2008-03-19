@@ -97,11 +97,11 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
     re (sprintf "[%s][%s]*" validIdentifierFirstChar validIdentifierChars),
     (fun str -> `Identifier str);
   in
-  let quoteRule str name =
+  let quoteRule str =
     re (Str.quote str),
     (fun foundStr ->
        assert( str = foundStr );
-       `Quote name)
+       `Quote str)
   in
   [
     identifierRule;
@@ -113,8 +113,8 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
     regexpRule "}" `CloseCurlyBrackets;
     regexpRule " *, *" `Comma;
     regexpRule "\\." `Dot;
-    quoteRule "$" "quote";
-    quoteRule "#" "antiquote";
+    quoteRule "$";
+    quoteRule "#";
     postfixRule "...";
     postfixRule "*";
     prefixRule "*";
@@ -577,12 +577,12 @@ struct
       "'\\\\'", `Return [id "'\\\\'"; `End];
 
       (* quotes *)
-      "$", `Return [`Quote "quote"; `End];
-      "#", `Return [`Quote "antiquote"; `End];
+      "$", `Return [`Quote "$"; `End];
+      "#", `Return [`Quote "#"; `End];
 
-      "${foo}", `Return [`Quote "quote"; `OpenCurlyBrackets; id "foo"; `CloseCurlyBrackets; `End];
+      "${foo}", `Return [`Quote "$"; `OpenCurlyBrackets; id "foo"; `CloseCurlyBrackets; `End];
       "${class\n  child1\nend}",
-      `Return [`Quote "quote";
+      `Return [`Quote "$";
                `OpenCurlyBrackets;
                id "class"; `BeginBlock; id "child1"; `End; `EndBlock [];
                `CloseCurlyBrackets; `End];
