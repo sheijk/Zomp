@@ -94,6 +94,8 @@
   { e }
 | e = quoteexpr; END;
   { e }
+| e = dotexpr; END;
+  { e }
     
   sexpr:
 | head = sexprArg; argsAndTerminators = sexprArg+;
@@ -117,19 +119,24 @@
   { e, [] }
 | e = mexpr;
 | e = opexpr;
+| e = dotexpr;
   { e, [] }
 | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
 
   mexpr:
-| id = IDENTIFIER; OPEN_PAREN; CLOSE_PAREN;
-  {{ Ast2.id = "opcall"; args = [Ast2.idExpr id] }}
+| hd = mexprHead; OPEN_PAREN; CLOSE_PAREN;
+  {{ Ast2.id = "opcall"; args = [hd] }}
 
-| id = IDENTIFIER; OPEN_PAREN; arg = mexprArg; CLOSE_PAREN;
-  {{ Ast2.id = "opcall"; args = [Ast2.idExpr id; arg] }}
+| hd = mexprHead; OPEN_PAREN; arg = mexprArg; CLOSE_PAREN;
+  {{ Ast2.id = "opcall"; args = [hd; arg] }}
 
-| id = IDENTIFIER; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
-  { callExpr (idExpr id) (arg1 :: arg2 :: remArgs) }
+| hd = mexprHead; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
+  { callExpr hd (arg1 :: arg2 :: remArgs) }
+
+%inline mexprHead:
+| id = IDENTIFIER;
+  { idExpr id }
     
 %inline mexprArgSep:
 | COMMA; arg = mexprArg;
@@ -140,7 +147,7 @@
   { Ast2.idExpr id }
 | e = opexpr;
   { e }
-
+      
   opexpr:
 | l = opexprArg; s = opsymbol; r = opexprArg;
   { expr (opName s) [l; r] }
@@ -170,7 +177,18 @@
 | e = sexpr;
 | e = mexpr;
 | e = opexpr;
+| e = dotexpr;
   { e }
+| id = IDENTIFIER;
+  { idExpr id }
+
+%inline dotexpr:
+| l = dotexprFront; DOT; r = IDENTIFIER;
+  { expr "op." [l; idExpr r] }
+| l = dotexprFront; DOT; r = mexpr;
+  { expr "op." [l; r] }
+    
+%inline dotexprFront:
 | id = IDENTIFIER;
   { idExpr id }
 

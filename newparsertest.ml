@@ -197,10 +197,12 @@ struct
       "c || d", `Return [se2 "op||" "c" "d"];
       "a^b", `Return [se2 "op^" "a" "b"];
 
-(*       (\** pre/postfix operators *\) *)
+      (** pre/postfix operators *)
 (*       "foo... ", `Return [se1 "postop..." "foo"]; *)
 (*       "bar...", `Return [se1 "postop..." "bar"]; *)
-(*       "main...\n  child\nend", *)
+(*       "main...\n\ *)
+(*       \  child\n\ *)
+(*       end", *)
 (*       `Return [juxExpr [ *)
 (*                  se1 "postop..." "main"; *)
 (*                  seqExpr [ *)
@@ -210,7 +212,7 @@ struct
 (*       "int*", `Return [se1 "postop*" "int"]; *)
 (*       "*ptr", `Return [se1 "preop*" "ptr"]; *)
 (*       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]]; *)
-(*       (\* todo post/prefix ops which work without additional whitespace *\) *)
+      (* todo post/prefix ops which work without additional whitespace *)
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
@@ -344,14 +346,19 @@ struct
 (*                    jux ["log"; "p"]; *)
 (*                  ]]]; *)
 
-(*       (\** dot notation *\) *)
-(*       "foo.print(1, 2)", *)
-(*       `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]]; *)
+      (** dot notation *)
+      "foo.bar", `Return [se2 "op." "foo" "bar"];
       
-(*       "foo.print()", `Return [expr "op." [id "foo"; call ["print"]]]; *)
-(*       "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]]; *)
-(*       "x.add(2 * 3)", *)
-(*       `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]]; *)
+      "foo.print(1, 2)",
+      `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]];
+
+      "while cond.true do",
+      `Return [juxExpr [id "while"; expr "op." [id "cond"; id "true"]; id "do"]];
+      
+      "item.print()", `Return [expr "op." [id "item"; call ["print"]]];
+      "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]];
+      "x.add(2 * 3)",
+      `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]];
 
 (*       "*foo.print()", *)
 (*       `Return [expr "op." [se1 "preop*" "foo"; call ["print"]]]; *)
@@ -388,7 +395,14 @@ struct
       end}",
       `Return [expr "quote" [juxExpr [id "class"; seqExpr [id "child1"]]]];
       "${10 + 20}", `Return [expr "quote" [se2 "op+" "10" "20"]];
-
+      "${try foo.bar()}",
+      `Return [
+        expr "quote" [
+          juxExpr [
+            id "try";
+            expr "op." [id "foo"; call ["bar"]];
+          ]]];
+        
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];
       "a   b  c", `Return [jux ["a"; "b"; "c"]];
