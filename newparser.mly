@@ -38,14 +38,17 @@
                              (Ast2.toString expr) )
     in
     checkAll (Ast2.idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
-      
+
+
+  let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
+  let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
+  let idExpr = Ast2.idExpr
 %}
 
 %token <string> IDENTIFIER
 %token END
 %token BEGIN_BLOCK
 %token <string list> END_BLOCK
-%token <int> WHITESPACE
 
 %token OPEN_PAREN
 %token CLOSE_PAREN
@@ -64,7 +67,7 @@
 %token <string> POSTFIX_OP
 %token <string> QUOTE
 
-%left WHITESPACE BEGIN_BLOCK
+%left BEGIN_BLOCK
 %nonassoc COMPARE_OP
 %nonassoc ASSIGN_OP
 %left ADD_OP
@@ -77,11 +80,80 @@
 
 %%
 
+
+(*   main: *)
+(* | e = expr END; *)
+(*   { e } *)
+
+(*   expr: *)
+(* | id = IDENTIFIER; *)
+(*   { Ast2.idExpr id } *)
+
+(* | id = IDENTIFIER; args = sexprArg+; *)
+(*   { juxExpr (idExpr id) args } *)
+
+(* | id = IDENTIFIER; OPEN_PAREN; CLOSE_PAREN; *)
+(*   { callExpr (idExpr id) [] } *)
+
+(*   sexprArg: *)
+(* | id = IDENTIFIER; *)
+(*   { idExpr id } *)
+(* | OPEN_PAREN; e = expr; CLOSE_PAREN; *)
+(*   { e } *)
+    
+  
   main:
+| id = IDENTIFIER; END;
+  { Ast2.idExpr id }
+| e = sexpr; END;
+  { e }
+| e = mexpr; END;
+  { e }
+
+  sexpr:
+| head = sexprArg; args = sexprArg+;
+  {{ Ast2.id = "opjux"; args = head :: args }}
+
+
+%inline sexprArg:
+| id = IDENTIFIER;
+  { Ast2.idExpr id }
+
+| OPEN_PAREN; e = sexpr; CLOSE_PAREN;
+  { e }
+    
+| e = mexpr;
+  { e }
+
+    
+  mexpr:
+| id = IDENTIFIER; OPEN_PAREN; CLOSE_PAREN;
+  {{ Ast2.id = "opcall"; args = [Ast2.idExpr id] }}
+
+| id = IDENTIFIER; OPEN_PAREN; argId = IDENTIFIER; CLOSE_PAREN;
+  {{ Ast2.id = "opcall"; args = [Ast2.idExpr id; Ast2.idExpr argId] }}
+
+(* | id = IDENTIFIER; OPEN_PAREN; firstArgs = mexprArg+; lastArg = mexprArg; CLOSE_PAREN; *)
+(*   {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: firstArgs @ [lastArg] }} *)
+
+| id = IDENTIFIER; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
+  { callExpr (idExpr id) (arg1 :: arg2 :: remArgs) }
+
+%inline mexprArgSep:
+| COMMA; arg = mexprArg;
+  { arg }
+    
+%inline mexprArg:
+| id = IDENTIFIER;
+  { Ast2.idExpr id }
+
+  
+/*  
+main:
 | WHITESPACE?; e = expr; WHITESPACE?; END;
   { e }
     
-    expr:
+expr:
 | id = IDENTIFIER;
   { Ast2.idExpr id }
 
@@ -121,4 +193,5 @@
 | o = LAZY_BOOL_OP
 | o = STRICT_BOOL_OP
     { o }
+*/
     

@@ -110,7 +110,8 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** DONE check return type in functions!		:improve:
     CLOSED: [2007-12-06 Thu 02:01]
     
-*** TODO [#A] macros need a way to signal errors
+*** DONE [#A] macros need a way to signal errors
+    CLOSED: [2008-03-15 Sat 14:45]
     Repeat (compiler:error ...)?
 
 *** TODO [#B] can't send antiquote to macro
@@ -735,6 +736,7 @@ automatically check embedded examples in documentation for correctness
 *** Generic types
 *** How much in kernel language, how much as macros?
      
+*** refinement types?
 *** research: macros and formal verification
 
 *** Security level
@@ -772,7 +774,13 @@ Error:dummy.zomp:(2): File should be closed
 **** Use an VM-only approach?
      Only operation mode is having a VM which can load and execute code
      Compiling static executables works by "dumping" code
-     
+**** Distinguish imports for runtime functions from those for macros?
+     "import FunctionProvider" will import functions from FunctionProvider
+     "usesyntax MacroProvider" will import macros and functions for compile time, only?
+
+     - Does this work? Is it neccessary at all?
+     - Is it possible simply to strip unneeded functions on link-time?
+
 *** packages
 *** project layout
 one toplevel file, drawing in all libs, settings etc.

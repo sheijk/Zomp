@@ -505,6 +505,8 @@
   (println)
   ))
 
+(template compiler:error message ... ((ret `(error #message))))
+
 /// quickly define a test function to be run with C-c,t in emacs
 (template testf impl ...
   (func void test () #impl) )

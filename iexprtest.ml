@@ -15,7 +15,7 @@ type indentToken = [
 | `BeginBlock
 | `EndBlock of string list
 | `End
-| `Whitespace of int
+(* | `Whitespace of int *)
 ]
 
 type userToken = [
@@ -46,7 +46,7 @@ let whitespaceRE = Str.regexp " +"
 
 type token = [ indentToken | userToken ]
 
-let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token * string])) list =
+let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBack of token * string])) list =
   (*   let re = Str.regexp in *)
   let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
   let idFunc s = `Identifier s in
@@ -105,7 +105,8 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `PutBack of token
   in
   [
     identifierRule;
-    (Str.regexp ".*", whitespaceRE), (fun str -> `Whitespace (String.length str));
+    (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore);
+(*     (Str.regexp ".*", whitespaceRE), (fun str -> `Whitespace (String.length str)); *)
     regexpRule "(" `OpenParen;
     regexpRule ")" `CloseParen;
     regexpRule "{" `OpenCurlyBrackets;
@@ -200,7 +201,7 @@ let token (lexbuf : token lexerstate) : token =
       String.length (Str.matched_group 0 string) = String.length string
   in
   
-  let rec worker stringAcc =
+  let rec worker () =
     let currentChar = lexbuf.readChar() in
     if currentChar = '!' then (** hack to allow to abort within file *)
       raise End_of_file;
@@ -227,7 +228,7 @@ let token (lexbuf : token lexerstate) : token =
       lexbuf.prevIndent <- indent;
       if lexbuf.readTokenBefore = false then begin
         if indent = prevIndent then
-          worker ""
+          worker ()
         else
           raiseIndentError lexbuf.location
             "First line needs to be indented at column 0"
@@ -273,14 +274,16 @@ let token (lexbuf : token lexerstate) : token =
                 List.map (fun m -> inputLength, m) fullMatches
         in
         let tokenFromRule length makeToken =
-          let spareInput = Str.string_after input (length) in
-          let consumedInput = Str.string_before input (length) in
+          let spareInput = Str.string_after input length in
+          let consumedInput = Str.string_before input length in
           putback lexbuf spareInput;
           let token =
             match makeToken consumedInput with
               | `PutBack(token, prefetched) ->
                   putback lexbuf prefetched;
                   token
+              | `Ignore ->
+                  worker ()
               | #token as token -> token
           in
           token
@@ -309,12 +312,12 @@ let token (lexbuf : token lexerstate) : token =
               findToken input fullMatches
       in
       lexbuf.backTrack 1;
-      findToken stringAcc []
+      findToken "" []
     end
   in
   let token =
     match lexbuf.pushedTokens with
-      | [] -> worker ""
+      | [] -> worker ()
       | firstToken :: remainingTokens ->
           lexbuf.pushedTokens <- remainingTokens;
           firstToken
@@ -351,7 +354,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | `EndBlock _ -> failwith "match failure"
           | `End -> "`End\n", ind
           | `Identifier str -> str, noind
-          | `Whitespace length -> "_", noind
+(*           | `Whitespace length -> "_", noind *)
           | `Comma -> ",", noind
           | `Add arg
           | `Mult arg
@@ -500,7 +503,7 @@ let printTokens tokens =
     
 let tokenEqual l r =
   match l, r with
-    | `Whitespace _, `Whitespace _ -> true
+(*     | `Whitespace _, `Whitespace _ -> true *)
     | _, _ -> l = r
 
 open Testing
@@ -532,14 +535,15 @@ struct
     let id x = `Identifier x in
     let ids stringList =
       let idTokens = List.map (fun str -> (`Identifier str :> token)) stringList in
-      Common.combineList (`Whitespace 1) idTokens
+      idTokens
+(*       Common.combineList (`Whitespace 1) idTokens *)
     in
     [
       "single", `Return [id "single"; `End];
 
       "foo(3) + 1", `Return [id "foo"; `OpenParen; id "3"; `CloseParen; `Add "+"; id "1"; `End];
       
-      "foo bar", `Return [id "foo"; `Whitespace 1; id "bar"; `End];
+      "foo bar", `Return [id "foo"; id "bar"; `End];
 
       "a+b", `Return [id "a"; `Add "+"; id "b"; `End];
       "a   + b", `Return [id "a"; `Add "+"; id "b"; `End];
@@ -552,14 +556,14 @@ struct
 
       "(a + b)*c", `Return [`OpenParen; id "a"; `Add "+"; id "b"; `CloseParen; `Mult "*"; id "c"; `End];
 
-      "space... ", `Return [id "space"; `Postfix "..."; `Whitespace 1; `End];
+      "space... ", `Return [id "space"; `Postfix "..."; `End];
       "lineend...", `Return [id "lineend"; `Postfix "..."; `End];
 
       "&blah", `Return [`Prefix "&"; id "blah"; `End];
       "*deref", `Return [`Prefix "*"; id "deref"; `End];
-      "foo *ptr", `Return [id "foo"; `Whitespace 1; `Prefix "*"; id "ptr"; `End];
+      "foo *ptr", `Return [id "foo"; `Prefix "*"; id "ptr"; `End];
       "float*", `Return [id "float"; `Postfix "*"; `End];
-      "float* var", `Return [id "float"; `Postfix "*"; `Whitespace 1; id "var"; `End];
+      "float* var", `Return [id "float"; `Postfix "*"; id "var"; `End];
 
       (* strings and numbers *)
       "1337", `Return [id "1337"; `End];
@@ -588,8 +592,8 @@ struct
       "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );
 
       "first line\nsecond line\n",
-      `Return( [id "first"; `Whitespace 1; id "line"; `End;
-                id "second"; `Whitespace 1; id "line"; `End] );
+      `Return( [id "first"; id "line"; `End;
+                id "second"; id "line"; `End] );
 
       (* simple multi-line expressions *)
       "if a then\n\
@@ -620,7 +624,7 @@ struct
                @ [`EndBlock []; `End] );
 
       (* leading whitespace/newlines *)
-      "   a b c", `Return (`Whitespace 1 :: ids ["a"; "b"; "c"] @ [`End]);
+      "   a b c", `Return (ids ["a"; "b"; "c"] @ [`End]);
       "first\n\n\nsecond", `Return [id "first"; `End; id "second"; `End];
       "\n\n\n\nfirst\n\n\n", `Return [id "first"; `End];
   

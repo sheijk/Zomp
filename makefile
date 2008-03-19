@@ -1,12 +1,12 @@
 OCAMLPATH=
-OCAMLLEX=$(OCAMLPATH)ocamllex
+OCAMLLEX=$(OCAMLPATH)ocamllex.opt
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
 OCAML=$(OCAMLPATH)ocaml
-OCAMLC=$(OCAMLPATH)ocamlc -dtypes -warn-error A -g
-OCAMLOPT=$(OCAMLPATH)ocamlopt -dtypes -warn-error A
+OCAMLC=$(OCAMLPATH)ocamlc.opt -dtypes -warn-error A -g
+OCAMLOPT=$(OCAMLPATH)ocamlopt.opt -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
-OCAMLDEP=$(OCAMLPATH)ocamldep
+OCAMLDEP=$(OCAMLPATH)ocamldep.opt
 UPDATE=cp
 
 FLYMAKE_LOG=flymake-log.temp
@@ -84,7 +84,7 @@ machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
 	./gencode machine
 
-NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newlexer.cmo newparser.cmo\
+NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo\
  iexprtest.cmo newparsertest.cmo
 
 newparsertest: $(NEWPARSER_CMOS)
@@ -164,7 +164,6 @@ sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml\
 iexpr.ml iexprtest.ml newparsertest.ml testing.ml
 
 # Additional dependencies
-newlexer.ml: newlexer.mll newparser.cmo ast2.cmo
 newparser.ml: newparser.mly ast2.cmo
 
 makefile.depends: $(CAMLDEP_INPUT)
@@ -211,7 +210,7 @@ clean:
 	rm -f makefile.depends
 	rm -f stdlib.ll
 	rm -f opengl20.zomp glfw.zomp
-	rm -f iexpr.cm? iexprtest.cm? newparser.cm? newlexer.cm?
+	rm -f iexpr.cm? iexprtest.cm? newparser.cm?
 	rm -f newparsertest.cmi newparsertest.cmo
 
 clean_tags:

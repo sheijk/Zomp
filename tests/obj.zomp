@@ -131,7 +131,12 @@ end
   ))
 
 
-
+(macro dummy foo (
+  (if (cstring.equal (getField foo id) "foo")
+    (ret `(thanks for all the foo))
+    (compiler:error Expected a foo))
+  (ret `())
+  ))
   
 
 
