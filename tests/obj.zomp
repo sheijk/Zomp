@@ -16,11 +16,14 @@ include "tests/stdio.zomp"
 
 var int windowWidth 400
 var int windowHeight 300
-
 var bool initCalled false
 
+macro foo1 a b
+  ret ${foo bar}
+end
+
 macro if2 cond args...
-  quote hello there
+  ret ${hello #{cond} #{args}}
 end
 
 macro doStuff

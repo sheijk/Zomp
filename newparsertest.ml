@@ -389,6 +389,7 @@ struct
 (*       `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
 
       (** quotations *)
+      "$foo", `Return [se1 "quote" "foo"];
       "${foo}", `Return [se1 "quote" "foo"];
       "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];
       "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]];
@@ -404,6 +405,16 @@ struct
             id "try";
             expr "op." [id "foo"; call ["bar"]];
           ]]];
+
+      "ret ${foo bar}", `Return [juxExpr [id "ret"; expr "quote" [jux ["foo"; "bar"]]]];
+      "ast:print ${\n\
+      \  foo bar\n\
+      end}",
+      `Return [juxExpr [
+                 id "ast:print";
+                 expr "quote" [
+                   seqExpr [jux ["foo"; "bar"]]
+                 ]]];
         
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];

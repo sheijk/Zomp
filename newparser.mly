@@ -75,7 +75,7 @@
 %nonassoc STRICT_BOOL_OP LAZY_BOOL_OP
 %left ADD_OP
 %left MULT_OP
-%nonassoc DOT
+(* %nonassoc DOT *)
 %left POSTFIX_OP
 %right PREFIX_OP
   
@@ -123,6 +123,8 @@
   { e, [] }
 | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
+| e = quoteexpr;
+  { e, [] }
 
   mexpr:
 | hd = mexprHead; OPEN_PAREN; CLOSE_PAREN;
@@ -176,6 +178,8 @@
   quoteexpr:
 | q = QUOTE; OPEN_CURLY; e = quotable; CLOSE_CURLY;
   { expr (quoteId q) [e] }
+| q = QUOTE; id = IDENTIFIER;
+  { expr (quoteId q) [idExpr id] }
     
 %inline quotable:
 | e = sexpr;
@@ -185,7 +189,11 @@
   { e }
 | id = IDENTIFIER;
   { idExpr id }
+| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
+  { assert( List.length terminators = 0 );
+    seqExpr exprs }
 
+    
 %inline dotexpr:
 | l = dotexprFront; DOT; r = IDENTIFIER;
   { expr "op." [l; idExpr r] }
@@ -196,50 +204,5 @@
 | id = IDENTIFIER;
   { idExpr id }
 
-/*  
-main:
-| WHITESPACE?; e = expr; WHITESPACE?; END;
-  { e }
-    
-expr:
-| id = IDENTIFIER;
-  { Ast2.idExpr id }
 
-| id = IDENTIFIER; OPEN_PAREN; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: args }}
-
-(* | OPEN_CURLY; e = expr; CLOSE_CURLY; *)
-(*   {{ Ast2.id = "op{}"; args = [e] }} *)
-
-| q = QUOTE; OPEN_CURLY; e = expr; END?; CLOSE_CURLY;
-  {{ Ast2.id = q; args = [e] }}
-    
-| l = expr; op = opsymbol; r = expr;
-  {{ Ast2.id = opName op; args = [l; r] }}
-
-| op = PREFIX_OP; r = expr;
-  {{ Ast2.id = "pre" ^ opName op; args = [r] }}
-
-| l = expr; op = POSTFIX_OP;
-  {{ Ast2.id = "post" ^ opName op; args = [l] }}
-    
-| l = expr; WHITESPACE; r = expr;
-  { mergeJux l r }
-    
-| l = expr; BEGIN_BLOCK; args = main*; terminators = END_BLOCK;
-  { checkTerminators l terminators;
-    mergeJux l { Ast2.id = "opseq"; args = args }}
-
-| l = expr; DOT; r = expr;
-  {{ Ast2.id = "op."; args = [l; r] }}
-    
-%inline opsymbol:
-| o = ADD_OP
-| o = MULT_OP
-| o = ASSIGN_OP
-| o = COMPARE_OP
-| o = LAZY_BOOL_OP
-| o = STRICT_BOOL_OP
-    { o }
-*/
     
