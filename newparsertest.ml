@@ -270,6 +270,30 @@ struct
             seqExpr [jux ["int"; "x"]; jux ["int"; "y"]];
           ]}];
 
+      "simple\n\
+      \  single sexpr child\n\
+      end",
+      `Return [
+        juxExpr [id "simple"; seqExpr [jux ["single"; "sexpr"; "child"]]]
+      ];
+
+      "simple2\n\
+      \  single(mexpr, child)\n\
+      end",
+      `Return [
+        juxExpr [id "simple2"; seqExpr [callExpr [id "single"; id "mexpr"; id "child"]]]
+      ];
+
+      "forEachLine(line, file)\n\
+      \  print line\n\
+      end",
+      `Return [
+        juxExpr [
+          call ["forEachLine"; "line"; "file"];
+          seqExpr [
+            jux ["print"; "line"];
+          ]]];
+      
 (*       "let x + y\n\ *)
 (*       \  plus(x, y)\n\ *)
 (*       end", *)

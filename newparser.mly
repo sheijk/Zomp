@@ -43,6 +43,7 @@
   let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
   let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
   let idExpr = Ast2.idExpr
+  let seqExpr args = { Ast2.id = "opseq"; args = args }
 %}
 
 %token <string> IDENTIFIER
@@ -114,6 +115,9 @@
 | head = sexprArg; args = sexprArg+;
   {{ Ast2.id = "opjux"; args = head :: args }}
 
+| head = sexprArg; args = sexprArg*; BEGIN_BLOCK; e = main+; terminators = END_BLOCK;
+  { checkTerminators head terminators;
+    juxExpr head (args @ [seqExpr e]) }
 
 %inline sexprArg:
 | id = IDENTIFIER;
@@ -133,12 +137,9 @@
 | id = IDENTIFIER; OPEN_PAREN; argId = IDENTIFIER; CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = [Ast2.idExpr id; Ast2.idExpr argId] }}
 
-(* | id = IDENTIFIER; OPEN_PAREN; firstArgs = mexprArg+; lastArg = mexprArg; CLOSE_PAREN; *)
-(*   {{ Ast2.id = "opcall"; args = Ast2.idExpr id :: firstArgs @ [lastArg] }} *)
-
 | id = IDENTIFIER; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
   { callExpr (idExpr id) (arg1 :: arg2 :: remArgs) }
-
+    
 %inline mexprArgSep:
 | COMMA; arg = mexprArg;
   { arg }
