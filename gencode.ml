@@ -1,6 +1,9 @@
 open Str
 open Printf
 
+exception Type_not_found of string
+exception Compile_error of string
+  
 module Utils =
 struct
   (* the ocaml toplevel ignores prints newlines as \n, fix this *)
@@ -72,12 +75,24 @@ struct
       (Str.matched_group 1 fileName) ^ newExt
     else
       fileName
+
+  let intToDecimal hexNumber constants =
+    try
+      let i64 = Int64.of_string hexNumber in
+      Int64.to_string i64
+    with _ ->
+      (* some constant's values are names of other constants and
+         thus cannot be converted to decimals *)
+      let valueConstantName = String.uppercase hexNumber in
+      begin try
+        List.assoc valueConstantName !constants
+      with Not_found ->
+        raise (Compile_error (sprintf "Could not find constant '%s'" valueConstantName))
+      end
+
 end
 
 open Utils
-
-exception Type_not_found of string
-exception Compile_error of string
 
 module BindingExpressions =
 struct
@@ -679,39 +694,104 @@ struct
   let nextString name = incr counter; sprintf "%s%d" name !counter
 end
 
-module ZompCodegen : CODEGEN =
+module type ZOMP_CODE_PRINTER =
+sig
+  val langExtension : string
+  val printHeader : unit -> string
+  val printError : decl:string -> msg:string -> string
+  val printConstant : name:string -> typ:string -> default:string -> string
+  val printFunction : name:string -> rettype:string ->
+    params:([`Name of string] * [`Type of string]) list -> string
+  val printUnknown : text:string -> string
+  val printTypedef : name:string -> typ:string -> string
+end
+  
+module ZompSExprPrinter : ZOMP_CODE_PRINTER =
+struct
+  let langExtension = "zomp"
+    
+  let printHeader () =
+    "/// zomp definitions\n\n"
+
+  let printError ~decl ~msg =
+    sprintf "// %s\n// failed: %s\n" decl msg
+    
+  let printConstant ~name ~typ ~default =
+    sprintf "(const %s %s %s)" typ name default
+
+  let printUnknown ~text =
+    if String.length text > 0 then 
+      sprintf "// %s\n" text
+    else
+      "\n"
+
+  let printFunction ~name ~rettype ~params =
+    let paramStrings =
+      List.map (fun (`Name name, `Type typ) -> sprintf "(%s %s)" typ name) params
+    in
+    sprintf "(func %s %s (%s))"
+      rettype name (Utils.concat paramStrings " ")
+
+  let printTypedef ~name ~typ = sprintf "(type %s %s)" name typ
+   
+end
+
+module ZompIndentPrinter : ZOMP_CODE_PRINTER =
+struct
+  let langExtension = "izomp"
+  let printHeader () = ""
+  let printError ~decl ~msg = ""
+  let printConstant ~name ~typ ~default =
+    sprintf "const %s %s %s" typ name default
+
+  let printFunction ~name ~rettype ~params =
+    let paramStrings =
+      Utils.concat
+        (List.map (fun (`Name name, `Type typ) -> sprintf "%s %s" typ name) params)
+        ", "
+    in
+    sprintf "func %s %s(%s)" rettype name paramStrings
+
+  let printUnknown ~text = ""
+
+  let printTypedef ~name ~typ = sprintf "type %s %s" name typ
+end
+    
+module ZompCodegen(CodePrinter : ZOMP_CODE_PRINTER) : CODEGEN =
 struct
   let transform (exprs :BindingExpressions.expr list) = exprs
   let generate_c_code (_ :BindingExpressions.expr list) = ""
 
   open BindingExpressions
 
-  let supportedTypes = [
-    "GLenum", "int";
-    "GLuint", "int";
-    "GLbitfield", "int";
-    (* previous types should be unsigned! *)
-    "GLint", "int";
-    "GLboolean", "bool";
-    "GLfloat", "float";
-    "GLdouble", "double";
-    "GLclampf", "float";
-    "GLsizei", "int";
-    "GLchar", "char";
-    (* native c/zomp types *)
-    "void", "";
-    "int", "";
-    "float", "";
-    "double", "";
-    "bool", "";
-    "char", "";
-  ]
+  let supportedTypes =
+    List.map (fun (name, typ) -> (`Name name, `Type typ))
+      [
+        "GLenum", "int";
+        "GLuint", "int";
+        "GLbitfield", "int";
+        (* previous types should be unsigned! *)
+        "GLint", "int";
+        "GLboolean", "bool";
+        "GLfloat", "float";
+        "GLdouble", "double";
+        "GLclampf", "float";
+        "GLsizei", "int";
+        "GLchar", "char";
+        (* native c/zomp types *)
+        "void", "";
+        "int", "";
+        "float", "";
+        "double", "";
+        "bool", "";
+        "char", "";
+      ]
 
   exception TypeNotSupported of string
     
   let rec isSupportedPrimitiveType name =
     try
-      ignore( List.assoc name supportedTypes );
+      ignore( List.assoc (`Name name) supportedTypes );
       true
     with _ ->
       false
@@ -741,23 +821,9 @@ struct
   let generate_zomp_code = function
     | Include fileName -> sprintf "/// include %s\n" fileName
     | Constant c ->
-        let intToDecimal hexNumber =
-          try
-            let i64 = Int64.of_string hexNumber in
-            Int64.to_string i64
-          with _ ->
-            (* some constant's values are names of other constants and
-               thus cannot be converted to decimals *)
-            let valueConstantName = String.uppercase hexNumber in
-            begin try
-              List.assoc valueConstantName !previousConstants
-            with Not_found ->
-              raise (Compile_error (sprintf "Could not find constant '%s'" valueConstantName))
-            end
-        in
-        let value = intToDecimal c.value in
+        let value = intToDecimal c.value previousConstants in
         previousConstants := (c.name, value) :: !previousConstants;
-        sprintf "(const GLint %s %s)\n" c.name value
+        CodePrinter.printConstant ~typ:"GLint" ~name:c.name ~default:value
     | Function f ->
         begin
           let error = ref None in
@@ -767,58 +833,54 @@ struct
               | None ->
                   let newMessage = (sprintf "type %s not supported" ctype) in
                   error := (match !error with
-                    | None -> Some newMessage
-                    | Some oldMessage -> Some (oldMessage ^ ", " ^ newMessage));
+                              | None -> Some newMessage
+                              | Some oldMessage -> Some (oldMessage ^ ", " ^ newMessage));
                   ctype
           in
-          let zompRetType = translateType f.retval in
-          let paramString =
+          let params =
             let toString param =
               let zompParamType = translateType param.ptype in
-              sprintf "(%s %s)"
-                zompParamType
-                (match param.pname with
-                   | Some name -> name
-                   | None -> UniqueId.nextString "arg")
+              `Name (match param.pname with
+                       | Some name -> name
+                       | None -> UniqueId.nextString "arg"),
+              `Type zompParamType
             in
-            let paramStrings = List.map toString f.params in
-            Utils.concat paramStrings " "
+            List.map toString f.params
           in
-          let declaration = 
-            sprintf "(func %s %s (%s))"
-              zompRetType f.fname paramString
+          let zompRetType = translateType f.retval in
+          let declaration = CodePrinter.printFunction
+            ~rettype:zompRetType ~name:f.fname ~params
           in
           match !error with
-            | None -> declaration ^ "\n"
-            | Some errorMessage -> sprintf "// %s\n// failed: %s\n" declaration errorMessage
+            | None -> declaration
+            | Some errorMessage ->
+                CodePrinter.printError ~decl:declaration ~msg:errorMessage
         end
     | Unknown text ->
-        if String.length text > 0 then 
-          sprintf "// %s\n" text
-        else
-          "\n"
+        CodePrinter.printUnknown ~text
 
   let generate_lang_code (exprs :BindingExpressions.expr list) =
     let lines = List.map generate_zomp_code exprs in
     let typeDecls =
-      List.map (fun (name, typ) ->
-                  if String.length typ > 0 then 
-                    sprintf "(type %s %s)\n" name typ
-                  else
-                    "")
-        supportedTypes
+      Utils.concat (List.map
+                      (fun (`Name name, `Type typ) ->
+                         if String.length typ > 0 then
+                           CodePrinter.printTypedef ~name ~typ
+                         else "")
+                      supportedTypes) "\n"
     in
-    "/// zomp definitions\n\n" ^
-      (Utils.concat typeDecls "") ^
-      Utils.concat lines ""
+    CodePrinter.printHeader() ^
+      typeDecls ^
+      Utils.concat lines "\n"
 
-  let lang_extension = "zomp"
+  let lang_extension = CodePrinter.langExtension
 end
 
 
 module CamlbindingsGen = Processor(GlewParser)(Camlcodegen)
-module ZompbindingsGen = Processor(GlewParser)(ZompCodegen)
-
+module ZompbindingsSExprGen = Processor(GlewParser)(ZompCodegen(ZompSExprPrinter))
+module ZompbindingsIndentGen = Processor(GlewParser)(ZompCodegen(ZompIndentPrinter))
+  
 let errorInvalidLanguage = 1
 and errorInvalidParams = 2
 and errorSystemError = 3
@@ -832,7 +894,9 @@ let _ =
       | [| _; "-lang"; "ml"; moduleName |] ->
           CamlbindingsGen.process_file, moduleName
       | [| _; "-lang"; "zomp"; moduleName |] ->
-          ZompbindingsGen.process_file, moduleName
+          ZompbindingsSExprGen.process_file, moduleName
+      | [| _; "-lang"; "izomp"; moduleName |] ->
+          ZompbindingsIndentGen.process_file, moduleName
       | [| _; "-lang"; invalidLanguage; _ |] ->
           eprintf "Language %s is not supported. Try ml or zomp\n" invalidLanguage;
           exit errorInvalidLanguage;
