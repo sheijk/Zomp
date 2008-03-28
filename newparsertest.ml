@@ -172,6 +172,8 @@ struct
                    id "foo";
                    jux ["nested"; "bar"];
                  ]} ];
+      "(ptr float) x",
+      `Return [juxExpr [jux ["ptr"; "float"]; id "x"]];
 
       (** basic operators *)
       "x + y", `Return [se "op+" ["x"; "y"]];
@@ -260,6 +262,17 @@ struct
       "print (foo bar baz)", `Return [juxExpr [id "print"; jux ["foo"; "bar"; "baz"]]];
       "print sin(10)", `Return [juxExpr [id "print"; call ["sin"; "10"]]];
       "while equal(l, r)", `Return [juxExpr [id "while"; call ["equal"; "l"; "r"]]];
+
+      "func int foo(int x, int y)",
+      `Return [
+        juxExpr [
+          id "func";
+          id "int";
+          callExpr [id "foo"; jux ["int"; "x"]; jux ["int"; "y"]];
+        ]];
+
+      "sqrt(sin(x))",
+      `Return [callExpr [id "sqrt"; callExpr [id "sin"; id "x"]]];
       
       (** indenting *)
       "type point\n\
@@ -390,6 +403,7 @@ struct
 
       (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];
+      "${}", `Return [expr "quote" []];
       "${foo}", `Return [se1 "quote" "foo"];
       "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];
       "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]];

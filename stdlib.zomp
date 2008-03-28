@@ -441,7 +441,7 @@
   (uniqueId counterVar "timesCounter")
   (ret `(for #counterVar 0 #count #code))
   ))
-  
+
 /// execute code for each node of ast
 (macro forEachAstChild childVar tree code (
   (uniqueId count "count")

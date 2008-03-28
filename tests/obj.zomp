@@ -7,95 +7,19 @@
 !load libglfw.dylib
 !load libGLEW.dylib
 */
+
+(include "opengl20.zomp")
+(include "glfw.zomp")
+(include "tests/glutils.zomp")
+(include "tests/stdio.zomp")
+(include "tests/indentstdlib.zomp")
+
 !syntax indent
-
-include "opengl20.zomp"
-include "glfw.zomp"
-include "tests/glutils.zomp"
-include "tests/stdio.zomp"
-
-var int windowWidth 400
-var int windowHeight 300
-var bool initCalled false
-
-macro foo1 a b
-  ret ${foo bar}
-end
-
-macro if2 cond args...
-  ret ${hello #{cond} #{args}}
-end
 
 template macro:failUnless cond
   unless #{cond}
     ret ${error expression is false #{cond}}
   end
-end
-
-(func void test() (
-  (var bool foo true)
-  (branch foo a a)
-  (label a)
-  ))
-
-// macro if2 args...
-
-
-// [else] if condN then blockN
-var bool testN #condN
-branch testN trueN falseN
-label trueN
-#blockN
-label falseN
-
-when cond
-  onTrue
-
-foreach N:
-when #condN
-  #blockN
-  branch end
-
-label end
-
-macro if2 cond then onTrue remArgs...
-  println()
-
-  uniqueId endLabel "if_end"
-
-  var astp code ${seq}
-
-  addChild code ${when #cond
-    #onTrue
-    branch #endLabel
-  end}
-
-  var int currentArg 0
-  const int argCount getField(remArgs, childCount)
-
-  while currentArg+3 <= argCount
-    var astp econd ast:child(remArgs, currentArg+1)
-    var astp eexpr ast:child(remArgs, currentArg+2)
-
-    addChild code ${seq
-      when #econd
-        #eexpr
-        branch #endLabel
-      end
-    end}
-
-    currentArg = currentArg + 3
-  end
-
-  when currentArg+1 < argCount
-    var astp elseCode ast:child(remArgs, currentArg+1)
-
-    addChild code elseCode
-  end
-
-  addChild code ${label #endLabel}
-
-  ret code
 end
 
 func void test()
@@ -110,98 +34,40 @@ func void test()
   end
 end
 
-func void test()
-  var astp args ${seq
-    a > b then
-      print true
-    else
-      print false
-    end
-  }
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
 
-  macro:failUnless getField(args, childCount) > 1
-
-  var astp code ${seq}
-  var int currentArg 0
-
-  label nextArg
-
-  addChild code ${seq
-  }
-
-  addChild code ${label endLabel}
-
-  mret code
-end
-
-func void test()
-  var int count 0
-
-  ifi count > 10 then
-    printlnString "true"
-  else
-    printlnString "false"
+func void init()
+  if2 initCalled then
+    glfwInit()
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
   end
 end
 
-macro doStuff
-  uniqueId foo "foo"
-  mret ${seq
-    var int #{foo} 100
-    printInt #{foo}
-    println()
-  end}
+type VertexStream
+  int size
+  float* data
 end
 
-macro ifi cond onTrue else onFalse
-  uniqueId testVar "ifi"
-  uniqueId trueLabel "ifi_true"
-  uniqueId falseLabel "ifi_false"
-  uniqueId continueLabel "ifi_end"
-
-  ret ${seq
-    var bool #{testVar} #{cond}
-    branch #{testVar} #{trueLabel} #{falseLabel}
-    label #{trueLabel}
-    #{onTrue}
-    branch #{continueLabel}
-    label #{falseLabel}
-    #{onFalse}
-    branch #{continueLabel}
-    label #{continueLabel}
-  end}
+func void VertexStream:init(VertexStream* this, int size)
+  setField this size size
+  setField this data (malloc float size)
 end
 
-ifi true
-  printlnInt 100
-else
-  printlnInt 200
+type Mesh
+  int size
+  VertexStream positions
 end
 
-func void init()
-  if initCalled
-
-  glfwInit()
-  glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-  glewInit()
-  times 2 glfwPollEvents()
+func Mesh* makeMesh(int size)
+  var Mesh* m (malloc mesh)
+  setField m size size
+  VertexStream:init(fieldptr m positions, size)
+  ret m
 end
-
-
-(type vertexStream
-  (int size)
-  ((ptr float) data)
-  )
-
-(func void  vertexStream:init (((ptr vertexStream) this) (int size)) (
-  (setField this size size)
-  (setField this data (malloc float size))
-  ))
-
-(type mesh
-  (int size)
-  (vertexStream positions)
-  )
 
 (func (ptr mesh) makeMesh ((int size)) (
   (var (ptr mesh) m (malloc mesh))

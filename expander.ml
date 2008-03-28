@@ -106,13 +106,18 @@ let rec translateType bindings typeExpr =
             | TypedefSymbol t -> Some t
             | _ -> None
   in
+  let translatePtr targetTypeExpr =
+    match translateType bindings targetTypeExpr with
+      | Some t -> Some (`Pointer t)
+      | None -> None
+  in  
   match typeExpr with
+    | { id = jux; args = args } when jux = macroJuxOp ->
+        translateType bindings (shiftId args)
+    | { id = "postop*"; args = [targetTypeExpr] } ->
+        translatePtr targetTypeExpr
     | { id = id; args = [targetTypeExpr]; } when id = macroPtr ->
-        begin
-          match translateType bindings targetTypeExpr with
-            | Some t -> Some (`Pointer t)
-            | None -> None
-        end
+        translatePtr targetTypeExpr
     | { id = name; args = [] } ->
         begin
           lookupType bindings name
@@ -574,11 +579,6 @@ let translateTypedef translateF (bindings :bindings) =
         ] } as expr
         when id = macroTypedef && opseq = macroSeqOp ->
         translateRecordTypedef typeName componentExprs expr
-          (*     | { id = "itype"; args = [ *)
-          (*           { id = typeName; args = [] }; *)
-          (*           { id = "opseq"; args = componentExprs } *)
-          (*         ]} as expr -> *)
-          (*         translateRecordTypedef "foo" [Ast2.simpleExpr "u32" ["x"]; Ast2.simpleExpr "u32" ["y"]] expr *)
     | { id = id; args = [
           { id = newTypeName; args = [] };
           targetTypeExpr;

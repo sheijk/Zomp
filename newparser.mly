@@ -130,7 +130,7 @@
 | hd = mexprHead; OPEN_PAREN; CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = [hd] }}
 
-| hd = mexprHead; OPEN_PAREN; arg = mexprArg; CLOSE_PAREN;
+| hd = mexprHead; OPEN_PAREN; arg = singleMexprArg; CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = [hd; arg] }}
 
 | hd = mexprHead; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
@@ -143,13 +143,21 @@
 %inline mexprArgSep:
 | COMMA; arg = mexprArg;
   { arg }
-    
+
 %inline mexprArg:
+| arg = singleMexprArg;
+  { arg }
+| arg = sexpr;
+  { arg }
+    
+%inline singleMexprArg:
 | id = IDENTIFIER;
   { Ast2.idExpr id }
 | e = opexpr;
   { e }
-      
+| e = mexpr;
+  { e }
+    
   opexpr:
 | l = opexprArg; s = opsymbol; r = opexprArg;
   { expr (opName s) [l; r] }
@@ -163,7 +171,7 @@
   { e }
 | e = mexpr;
   { e }
-| id = IDENTIFIER;
+| id = IDENTIFIER; (* causes shift/reduce conflict *)
   { idExpr id }
 
 %inline opsymbol:
@@ -180,6 +188,8 @@
   { expr (quoteId q) [e] }
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id] }
+| q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
+  { expr (quoteId q) [] }
     
 %inline quotable:
 | e = sexpr;
@@ -189,7 +199,7 @@
   { e }
 | id = IDENTIFIER;
   { idExpr id }
-| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
+| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK; (* causes reduce/reduce conflict *)
   { assert( List.length terminators = 0 );
     seqExpr exprs }
 

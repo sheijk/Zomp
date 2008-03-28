@@ -1,6 +1,7 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] better error message on invalid typedef
 ** TODO [#A] empty lines containing spaces let the parser fail
 
 * Use Cases
@@ -28,6 +29,25 @@
        gl_FragColor = ...
    end shader Phong
 
+class Phong extends Shader
+{
+	float exponent
+
+	void vertex(Vertex v, out bla)
+
+	void Pass0()
+	{
+		state.blendenble = true
+		state.vs = vertex;
+		if ()
+	}
+
+float bla[32];
+Texture t;
+Sampler1D blaSampler = {mode = Sampler.Mode.WRAP, filter = POINT, texure = t}
+
+void Simulate
+void Render(float t)
 
    - [X] opengl bindings
    - [ ] function pointers
