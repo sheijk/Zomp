@@ -25,6 +25,7 @@ let dequoteEscapeSequence str =
     [
       "\\n", '\n';
       "\\t", '\t';
+      "\\0", '!';
     ]
   in
   if Str.string_match numRE str 0 then
@@ -59,13 +60,13 @@ let string2integralValue str =
     [
       lazy( Int32Val (Int32.of_string str) );
       lazy( Int64Val (Int64.of_string str) );
-(*       lazy( Int8Val (Int32.of_string str) ); *)
-(*       lazy( Int16Val (Int32.of_string str) ); *)
+      (* lazy( Int8Val (Int32.of_string str) ); *)
+      (* lazy( Int16Val (Int32.of_string str) ); *)
       lazy( FloatVal (parseWithSuffix float_of_string "f" str) );
       lazy( FloatVal (float_of_string str) );
       lazy( BoolVal (bool_of_string str) );
-      lazy( StringLiteral (dequoteString '"' str) );
       lazy( CharVal (dequoteChar str) );
+      lazy( StringLiteral (dequoteString '"' str) );
       lazy( DoubleVal (parseWithSuffix float_of_string "d" str) );
     ]
     ~onSuccess:some
@@ -74,7 +75,7 @@ let string2integralValue str =
 type varStorage =
   | RegisterStorage
   | MemoryStorage
-    
+      
 type 'typ variable = {
   vname :string;
   typ :'typ;
@@ -96,7 +97,7 @@ let rec validateValue = function
         name, validateValue value
       in
       RecordVal (List.map validateComponent components)
-      
+        
 let variable ~name ~typ ~default ~storage ~global = {
   vname = name;
   typ = typ;

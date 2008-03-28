@@ -12,9 +12,10 @@
 (include "glfw.zomp")
 (include "tests/glutils.zomp")
 (include "tests/stdio.zomp")
-(include "tests/indentstdlib.zomp")
 
 !syntax indent
+
+//------------------------------------------------------------------------------
 
 template macro:failUnless cond
   unless #{cond}
@@ -22,30 +23,76 @@ template macro:failUnless cond
   end
 end
 
-func void test()
-  if2 4 == 3 then
-    printlnString "ok"
-  elseif 2 > 3
-    printlnString "oh nose!"
-  elseif 2 > 1
-    printlnString "one more"
-  else
-    printlnString "teh else"
+macro if2 cond then onTrue remArgs...
+  println()
+
+  macro:failUnless cstring:equal(getField(then, id), "then")
+
+  uniqueId endLabel "if_end"
+
+  var astp code ${seq}
+
+  addChild code ${when #cond
+    #onTrue
+    branch #endLabel
+  end}
+
+  var int currentArg 0
+  const int argCount getField(remArgs, childCount)
+
+  while currentArg+3 <= argCount
+    var astp econd ast:child(remArgs, currentArg+1)
+    var astp eexpr ast:child(remArgs, currentArg+2)
+
+    addChild code ${seq
+      when #econd
+        #eexpr
+        branch #endLabel
+      end
+    end}
+
+    currentArg = currentArg + 3
   end
+
+  when currentArg+1 < argCount
+    var astp elseCode ast:child(remArgs, currentArg+1)
+
+    addChild code elseCode
+  end
+
+  addChild code ${label #endLabel}
+
+  ret code
 end
 
-var int windowWidth 400
-var int windowHeight 300
-var bool initCalled false
+macro new type args...
+  uniqueId name "new"
 
-func void init()
-  if2 initCalled then
-    glfwInit()
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
+  var ast* initCall astFromString(cstring:concat(getField(type, id), ":init"))
+  addChild initCall astFromString(name)
+  forEachAstChild arg args
+    addChild initCall arg
   end
+
+  var ast* code ${seq}
+  addChild code ${var (ptr #type) #name (malloc #type)}
+  addChild code initCall
+  addChild code astFromString(name)
+
+  ret code
 end
+
+type IntArray
+  int size
+  int* elements
+end
+
+func void IntArray:init(IntArray* this, int size)
+  setField this size size
+  setField this elements malloc(int, size)
+end
+
+//------------------------------------------------------------------------------
 
 type VertexStream
   int size
@@ -60,70 +107,217 @@ end
 type Mesh
   int size
   VertexStream positions
+  IntArray indices
 end
 
-func Mesh* makeMesh(int size)
-  var Mesh* m (malloc mesh)
-  setField m size size
-  VertexStream:init(fieldptr m positions, size)
+func Mesh* makeMesh(int vertexCount, int indexCount)
+  var Mesh* m (malloc Mesh)
+
+  setField m size vertexCount
+  VertexStream:init(fieldptr m positions, vertexCount)
+  IntArray:init(fieldptr m indices, indexCount)
+
   ret m
 end
 
-(func (ptr mesh) makeMesh ((int size)) (
-  (var (ptr mesh) m (malloc mesh))
-  (setField m size size)
-  (vertexStream:init (fieldptr m positions) size)
-  (ret m)
+func void Mesh:setVertex(Mesh* this, int num, float x, float y, float z)
+  var VertexStream* vertices fieldptr(this, positions)
+  var float* vertArray getField(vertices, data)
+
+  store ptradd(vertArray, 3 * num + 0) x
+  store ptradd(vertArray, 3 * num + 1) y
+  store ptradd(vertArray, 3 * num + 2) z
+end
+
+func void Mesh:clear(Mesh* this)
+  var int* indices getField(fieldptr this indices, elements)
+  var int indexCount getField(fieldptr this indices, size)
+
+  for indexNum 0 indexCount
+    store ptradd(indices, indexNum) 0
+  end
+
+  var int vertexCount getField(this, size)
+  for vertexNum 0 vertexCount
+    Mesh:setVertex(this, vertexNum, 0., 0., 0.)
+  end
+end
+
+func void Mesh:print(Mesh* this)
+  var int indexCount getField(fieldptr(this, indices), size)
+
+  printInt indexCount
+  printString " indices"
+
+  var int* indices getField(fieldptr(this, indices), elements)
+
+  for indexNum 0 indexCount
+    if2 int:mod(indexNum, 4) == 0 then
+      println()
+    else
+      printString " "
+    end
+    var int index load(ptradd(indices, indexNum))
+    printInt index
+  end
+
+  println()
+
+  var float* vertex getField(fieldptr(this, positions), data)
+  var int vertexCount getField(this, size)
+
+  printInt vertexCount
+  printlnString " vertices"
+
+  for vertexNum 0 vertexCount
+    printString "("
+    printFloat load(ptradd(vertex, 0))
+    printString ", "
+    printFloat load(ptradd(vertex, 1))
+    printString ", "
+    printFloat load(ptradd(vertex, 2))
+    printString ")"
+    println()
+    vertex = ptradd(vertex, 3)
+  end
+
+  println()
+end
+
+func Mesh* makeCube(float size)
+  var Mesh* cube makeMesh(8, 4 * 6)
+
+  Mesh:setVertex(cube, 0, float:neg 1., float:neg 1., float:neg 1.)
+  Mesh:setVertex(cube, 1, float:neg 1., float:neg 1.,  1.)
+  Mesh:setVertex(cube, 2, float:neg 1.,  1., float:neg 1.)
+  Mesh:setVertex(cube, 3, float:neg 1.,  1.,  1.)
+  Mesh:setVertex(cube, 4,  1., float:neg 1., float:neg 1.)
+  Mesh:setVertex(cube, 5,  1., float:neg 1.,  1.)
+  Mesh:setVertex(cube, 6,  1.,  1., float:neg 1.)
+  Mesh:setVertex(cube, 7,  1.,  1.,  1.)
+
+  var int* indices getField(fieldptr(cube, indices), elements)
+
+  ret cube
+end
+
+    store ptradd(indices, 4 * #num + 0) #a
+    store ptradd(indices, 4 * #num + 1) #b
+    store ptradd(indices, 4 * #num + 2) #b
+    store ptradd(indices, 4 * #num + 3) #d
+
+func void test()
+  var Mesh* mesh makeCube(2.0)
+
+  Mesh:print mesh
+end
+
+(func void test() (
+  (printString "\0")
   ))
 
 
-
-(var float angle 0.0)
-
-(func int main () (
-  (init)
-  
-  (glMatrixMode GL_PROJECTION)
-  (glLoadIdentity)
-  (const double aspect (double.fdiv (int.toDouble windowWidth) (int.toDouble windowHeight)))
-  (gluPerspective (int.toDouble 90) aspect 1.0d 100.0d)
-
-  (var float time 0.0)
-  
-  (var bool running true)
-  (while running (
-    (assign time  (double.toFloat (glfwGetTime)))
-    (assign angle (time *_f 128.0))
-    
-    (glClearColor 0. 0. 0. 1.)
-    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
-
-    (glMatrixMode GL_MODELVIEW)
-    (glLoadIdentity)
-    (glTranslatef 0. 1. -4.)
-    (glRotatef angle 0. 1. 0.)
-
-    (drawCoordSys 8.0)
-
-    (glfwSwapBuffers)
-    (glfwPollEvents)
-    (assign running (bool.not (isPressed GLFW_KEY_ESC)))
-    ))
-
-  (drawPausedOverlay)
-  (glfwSwapBuffers)
-
-  (glfwPollEvents)
-  (ret 0)
+(func void test() (
+  (opjux printChar '\0')
   ))
 
-
-(macro dummy foo (
-  (if (cstring.equal (getField foo id) "foo")
-    (ret `(thanks for all the foo))
-    (compiler:error Expected a foo))
-  (ret `())
+(func void test() (
+  (opjux printString "\0")
   ))
-  
+
+=>
+will be run throgh macro expansion
+which will create code ala astFromString("'ASCIINULL'") where ASCIINULL is a null char inside the string
+which will be interpreted as end of string by astFromString
+
+func void test()
+  var char zero '\0'
+  printChar(zero)
+end
+
+func Mesh* Mesh:loadPly(cstring fileName)
+  var FILE* file fopen(fileName, "r")
+  var char* buffer malloc(char, 100)
+
+  var bool eof false
+
+  while bool:not(eof)
+    var size_t readBytes fread(cast void* buffer, 1, 100, file)
+
+    store ptradd(buffer, 99) '\0'
+
+    var bool nothingRead readBytes == 0
+    eof = nothingRead
+  end
+
+  fclose(file)
+
+  ret nullptr(Mesh)
+end
+
+//------------------------------------------------------------------------------
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if2 bool:not(initCalled) then
+    glfwInit()
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    assign initCalled true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+var float angle 0.0
+
+func int main()
+  init()
+
+  glMatrixMode( GL_PROJECTION )
+  glLoadIdentity()
+  const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+  gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
+
+  var float time 0.0
+
+  var bool running true
+
+  while running
+    assign time double:toFloat(glfwGetTime())
+    assign angle time *_f 128.0
+
+    glClearColor(0.0, 0.0, 0.0, 1.0)
+    glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef( 0., 1., float:neg(4.) )
+    glRotatef( angle, 0., 1., 0. )
+
+    drawCoordSys( 8.0 )
+
+    glfwSwapBuffers()
+    glfwPollEvents()
+    assign running bool:not( isPressed(GLFW_KEY_ESC) )
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+  glfwPollEvents()
+
+  printlnString "cu"
+
+  ret 0
+end
 
 

@@ -1,0 +1,28 @@
+
+
+-> obj.zomp
+
+func void test()
+  if2 4 == 4 then
+    printlnString "ok"
+  elseif 2 > 3
+    printlnString "oh nose!"
+  elseif 2 > 1
+    printlnString "one more"
+  else
+    printlnString "teh else"
+  end
+end
+
+func void test()
+  macro func2 rettype name args impl
+    var ast* argsSexpr ${seq}
+    ast:print ${func #rettype #name #argsSexpr #impl} 0
+
+    mret ${seq}
+  end
+  func2 int foo(int x, int)
+    ret x + y
+  end func2
+end
+

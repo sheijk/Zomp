@@ -156,9 +156,16 @@ struct
     let callExpr = expr "opcall" in
     ignore(juxExpr []);
     ignore(callExpr []);
+    let expectValidId name = name, `Return [id name] in
     [
       (** simple expression *)
-      "blargh", `Return [id "blargh"];
+      expectValidId "blargh";
+      expectValidId "1.0";
+      expectValidId "1.0f";
+      expectValidId "200.33435d";
+      expectValidId "-9";
+      expectValidId "-20.3";
+      expectValidId "-30.2d";
       
       (** juxtaposition *)
       "var int x", `Return [ se "opjux" ["var"; "int"; "x"] ];
@@ -234,6 +241,8 @@ struct
       (* todo *)
 
       "a +5", `Exception "Unbalanced whitespace";
+
+      "(sin 10) / (cos 20)", `Return [expr "op/" [jux ["sin"; "10"]; jux ["cos"; "20"]]];
       
       (** invalid cases *)
       "§", `Exception "Invalid char";

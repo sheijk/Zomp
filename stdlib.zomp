@@ -44,10 +44,10 @@
 
 /// utility functions ----------------------------------------
 
-(func bool bool.not ((bool b)) ((bool.xor true b)))
+(func bool bool:not ((bool b)) ((bool:xor true b)))
 
-(func int square((int x)) ((int.mul x x)))
-(func float squaref((float x)) ((float.mul x x)))
+(func int square((int x)) ((int:mul x x)))
+(func float squaref((float x)) ((float:mul x x)))
 
 (func void printBool ((bool b)) (
   (branch b true false)
@@ -110,8 +110,8 @@
   (assign c (load ptr))
 
   (assign ptr (ptradd ptr 1))
-  (assign count (int.add count 1))
-  (assign b (char.equal c '\0'))
+  (assign count (int:add count 1))
+  (assign b (char:equal c '\0'))
   (branch b end start)
   
   (label end)
@@ -127,14 +127,14 @@
   ))
 
 (func (ptr string) newString ((int length) (char init)) (
-  (var (ptr char) chars (malloc char (int.add 1 length)))
+  (var (ptr char) chars (malloc char (int:add 1 length)))
   (store (ptradd chars length) '\0')
   (var int index 0)
   (var bool reachedEnd false)
   (label start)
   (store (ptradd chars index) init)
-  (assign index (int.add index 1))
-  (assign reachedEnd (int.ugreaterEqual index length))
+  (assign index (int:add index 1))
+  (assign reachedEnd (int:ugreaterEqual index length))
   (branch reachedEnd end start)
   (label end)
   
@@ -145,7 +145,7 @@
   ))
 
 (func (ptr string) append (((ptr string) l) ((ptr string) r)) (
-  (var int length (int.add (getField l length) (getField r length)))
+  (var int length (int:add (getField l length) (getField r length)))
   (var (ptr string) result (newString length 'x'))
   (var (ptr char) chars (getField result chars))
   (var (ptr char) leftChars (getField l chars))
@@ -157,16 +157,16 @@
   
   (label lbegin)
   (store (ptradd chars index) (load (ptradd leftChars index)))
-  (assign index (int.add index 1))
-  (var bool test (int.uless index leftLength))
+  (assign index (int:add index 1))
+  (var bool test (int:uless index leftLength))
   (branch test lbegin lend)
   (label lend)
 
   (assign index 0)
   (label rbegin)
-  (store (ptradd chars (int.add leftLength index)) (load (ptradd rightChars index)))
-  (assign index (int.add index 1))
-  (var bool test2 (int.uless index rightLength))
+  (store (ptradd chars (int:add leftLength index)) (load (ptradd rightChars index)))
+  (assign index (int:add index 1))
+  (var bool test2 (int:uless index rightLength))
   (branch test2 rbegin rend)
   (label rend)
   
@@ -178,27 +178,27 @@
 (func void printIndent ((int count)) (
   (var int counter count)
   (label start)
-  (var bool t (int.ugreater counter 0))
+  (var bool t (int:ugreater counter 0))
   (branch t goon end)
   (label goon)
   (printChar ' ') (printChar ' ')
-  (assign counter (int.sub counter 1))
+  (assign counter (int:sub counter 1))
   (branch start)
   (label end)
   ))
 
-(func bool cstring.equal ((cstring l) (cstring r)) (
-  (ret (int.equal 0 (strcmp l r)))
+(func bool cstring:equal ((cstring l) (cstring r)) (
+  (ret (int:equal 0 (strcmp l r)))
   ))
 
 (func cstring cstring:quote ((cstring unquoted)) (
   (var int unquotedLength (length unquoted))
-  (var cstring quoted (malloc char (int.add unquotedLength 3)))
+  (var cstring quoted (malloc char (int:add unquotedLength 3)))
 
   (strcpy (ptradd quoted 1) unquoted)
   (store quoted '"')
-  (store (ptradd quoted (int.add unquotedLength 1)) '"')
-  (store (ptradd quoted (int.add unquotedLength 2)) '\0')
+  (store (ptradd quoted (int:add unquotedLength 1)) '"')
+  (store (ptradd quoted (int:add unquotedLength 2)) '\0')
 
   (ret quoted)
   ))
@@ -243,28 +243,28 @@
 
   (var int index 0)
   (label start)
-  (var bool t (int.uless index (getField a childCount)))
+  (var bool t (int:uless index (getField a childCount)))
   (branch t goon end)
   (label goon)
   (var (ptr ast) child (load (ptradd (getField a childs) index)))
-  (ast:print child (int.add indent 1))
-  (assign index (int.add index 1))
+  (ast:print child (int:add indent 1))
+  (assign index (int:add index 1))
   (branch start)
   (label end)
   ))
 
 (func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
   (var int oldChildCount (getField tree childCount))
-  (var int newChildCount (int.add 1 oldChildCount))
+  (var int newChildCount (int:add 1 oldChildCount))
   (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
 
   (var int index 0)
   (label start)
-  (var bool t (int.uless index oldChildCount))
+  (var bool t (int:uless index oldChildCount))
   (branch t goon end)
   (label goon)
   (store (ptradd newChilds index) (load (ptradd (getField tree childs) index)))
-  (assign index (int.add index 1))
+  (assign index (int:add index 1))
   (branch start)
   (label end)
 
@@ -313,10 +313,10 @@
 (var int lastid 0)
 
 (func int newUniqueId () (
-  (assign lastid (int.add lastid 1))
+  (assign lastid (int:add lastid 1))
   (ret lastid) ))
 
-(func cstring cstrings.append ((cstring l) (cstring r)) (
+(func cstring cstrings:append ((cstring l) (cstring r)) (
   (var (ptr string) lstr (makestring l))
   (var (ptr string) rstr (makestring r))
   (var (ptr string) appended (append lstr rstr))
@@ -326,11 +326,11 @@
 (func cstring newUniqueName () (
   (var int id (newUniqueId))
   (var cstring numstr (int2cstring id))
-  (ret (cstrings.append "_tmp_" numstr)) ))
+  (ret (cstrings:append "_tmp_" numstr)) ))
 
 (func cstring newUniqueNameFor ((cstring purpose)) (
   (var cstring name (newUniqueName))
-  (ret (cstrings.append (cstrings.append name "_") purpose)) ))
+  (ret (cstrings:append (cstrings:append name "_") purpose)) ))
 
 (macro macrotst (
   (ret `(3))
@@ -367,7 +367,7 @@
 (macro ift condition onTrue `(if #condition #onTrue ()))
 
 (macro ifnot condition onFalse
-  `(if (bool.not #condition) #onFalse ()))
+  `(if (bool:not #condition) #onFalse ()))
 
 ///TODO: generalize for arbitrary types once this is possible in zomp
 (macro ifExprInt test onTrue onFalse (
@@ -407,12 +407,12 @@
     
     (label #startLabel)
     
-    (assign #testResult (int.sless #index #max))
+    (assign #testResult (int:sless #index #max))
     (branch #testResult #execLabel #endLabel)
     
     (label #execLabel)
     #code
-    (assign #index (int.add #index 1))
+    (assign #index (int:add #index 1))
     (branch #startLabel)
     
     (label #endLabel)
@@ -473,7 +473,7 @@
   (const int argCount (getField argsAndImpl childCount))
   (for argnum 0 argCount (
     (const (ptr ast) arg (ast:child argsAndImpl argnum))
-    (if (int.uless argnum (int.sub argCount 1))
+    (if (int:uless argnum (int:sub argCount 1))
       (addChild t arg)
       (addChild t (
         (var (ptr ast) foo (simpleAst "quote"))
@@ -513,7 +513,7 @@
 
 (macro assert checkCode (
   (ret `(
-    (if (bool.not (#checkCode))
+    (if (bool:not (#checkCode))
       ((printlnString "Assertion failed")
        (ast:print `#checkCode 0)
        (exit 1))
@@ -533,7 +533,7 @@
   (addChild code `(var cstring #resultString #firstString))
   
   (forEachAstChild string strings (
-    (addChild code `(assign #resultString (cstrings.append #resultString #string)))
+    (addChild code `(assign #resultString (cstrings:append #resultString #string)))
     ))
   
   (addChild code `(#resultString))
@@ -559,7 +559,7 @@
      ))
   ))
 
-/// Calls unittest.assert on all childs of the passed
+/// Calls unittest:assert on all childs of the passed
 /// sequence expression
 (macro unittest:assertAll checks ... (
   (var (ptr ast) code `())
@@ -608,7 +608,7 @@
 /// Will define a function which will be executed only on
 /// the first call and will print a warning on subsequent calls
 (macro runOnceFunc rettype name args impl (
-  (uniqueId initialized (cstrings.append (getField name id) "_already_called"))
+  (uniqueId initialized (cstrings:append (getField name id) "_already_called"))
 
   (ret `(
     (var bool #initialized false)
@@ -626,15 +626,15 @@
 
 /// additional ast functions --------------------------------
 
-(func void ast.setChild
+(func void ast:setChild
   (((ptr ast) parent) (int index) ((ptr ast) newChild))
   (
-  (assert (int.uless index (getField parent childCount)))
+  (assert (int:uless index (getField parent childCount)))
   (var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index))
   (store childptrAddr newChild)
   ))
 
-(func void ast.replace (
+(func void ast:replace (
   ((ptr ast) tree)
   (cstring placeholder)
   ((ptr ast) replacement) )
@@ -642,17 +642,17 @@
   (const int count (getField tree childCount))
   (for childNum 0 count (
     (var (ptr ast) child (ast:child tree childNum))
-    (if (cstring.equal placeholder (getField child id))
-      ( (ast.setChild tree childNum replacement) )
+    (if (cstring:equal placeholder (getField child id))
+      ( (ast:setChild tree childNum replacement) )
       ())
     ))
   (forEachAstChild c tree (
-    (ast.replace c placeholder replacement)
+    (ast:replace c placeholder replacement)
     ))
   ))
 
 (func void ast:replaceId ((astp tree) (cstring placeholder) (cstring newid)) (
-  (if (cstring.equal (getField tree id) placeholder)
+  (if (cstring:equal (getField tree id) placeholder)
     (setField tree id newid) ())
 
   (forEachAstChild child tree (
@@ -670,24 +670,24 @@
 
 /// floating point support --------------------------------
 
-(macro float.aliasNoQNAN funcName (
-  (var cstring macroName (cstrings.append "float." (getField funcName id)))
-  (var astp orderedName (simpleAst (cstrings.append "float.o" (getField funcName id))))
+(macro float:aliasNoQNAN funcName (
+  (var cstring macroName (cstrings:append "float:" (getField funcName id)))
+  (var astp orderedName (simpleAst (cstrings:append "float:o" (getField funcName id))))
   (addChild orderedName ``#l)
   (addChild orderedName ``#r)
 
   (var astp macroDef `(macro #macroName l r (
                         (ret `(orderedName)))) )
-  (ast.replace macroDef "orderedName" orderedName)
+  (ast:replace macroDef "orderedName" orderedName)
   (ret macroDef)
   ))
 
-(float.aliasNoQNAN equal)
-(float.aliasNoQNAN notEqual)
-(float.aliasNoQNAN less)
-(float.aliasNoQNAN greater)
-(float.aliasNoQNAN lessEqual)
-(float.aliasNoQNAN greaterEqual)
+(float:aliasNoQNAN equal)
+(float:aliasNoQNAN notEqual)
+(float:aliasNoQNAN less)
+(float:aliasNoQNAN greater)
+(float:aliasNoQNAN lessEqual)
+(float:aliasNoQNAN greaterEqual)
 
 (func int main ())
 
@@ -699,27 +699,27 @@
 
 (testf (runMain))
 
-(template float.neg x (float.sub 0. #x))
+(template float:neg x (float:sub 0. #x))
 
 /// additional operators and basic math functions
 
 (func int int:mod ((int v) (int div)) (
-  (int.urem v div)
+  (int:urem v div)
   ))
-(macro int:neg x ((ret `(int.sub 0 #x))))
+(macro int:neg x ((ret `(int:sub 0 #x))))
 
-(template op+ l r (int.add #l #r))
-(template op- l r (int.sub #l #r))
-(template op* l r (int.mul #l #r))
-(template op/ l r (int.sdiv #l #r))
+(template op+ l r (int:add #l #r))
+(template op- l r (int:sub #l #r))
+(template op* l r (int:mul #l #r))
+(template op/ l r (int:sdiv #l #r))
 
-(template op== l r (int.equal #l #r))
-(template op!= l r (int.notEqual #l #r))
+(template op== l r (int:equal #l #r))
+(template op!= l r (int:notEqual #l #r))
 
-(template op> l r (int.sgreater #l #r))
-(template op< l r (int.sless #l #r))
-(template op>= l r (int.sgreaterEqual #l #r))
-(template op<= l r (int.slessEqual #l #r))
+(template op> l r (int:sgreater #l #r))
+(template op< l r (int:sless #l #r))
+(template op>= l r (int:sgreaterEqual #l #r))
+(template op<= l r (int:slessEqual #l #r))
 
 (macro addMappedChilds parent mapf childs ... (
   (var (ptr ast) code `())
@@ -755,7 +755,7 @@
 (macro defineOpNS op postfix func namespace (
   (template id astx (getField #astx id))
   
-  (var cstring funcName (cstring:concat (id namespace) "." (id func)))
+  (var cstring funcName (cstring:concat (id namespace) ":" (id func)))
   (var cstring opName (cstring:concat (id op) (id postfix)))
 
   (ret `(defineOp #opName #funcName))
@@ -884,7 +884,7 @@
   (const int argsChildCount (getField args childCount))
 
   (if (argsChildCount > 0)
-    (if (cstring.equal macroRest (getField (ast:child args (argsChildCount - 1)) id))
+    (if (cstring:equal macroRest (getField (ast:child args (argsChildCount - 1)) id))
       (isVarArg = true)
       () )
     () )
@@ -920,6 +920,18 @@
   (ret code)
   ))
 
+(macro opjux first args ... (
+  (ast:print first 8)
+  (ast:print args 12)
+  (var astp code first)
+  (forEachAstChild child args (
+    (addChild code child)
+    ))
+
+  (ast:print code 0)
+  (ret code)
+  ))
+
 (macro opcall first args ... (
   (var astp code first)
   (forEachAstChild child args (
@@ -929,12 +941,47 @@
 
 /// deprecated functions ------------------------
 
-(deprecated unittest.assert unittest:assert check)
-(deprecated unittest.assertAll unittest:assertAll "blah" check ...)
+// (deprecated unittest.assert unittest:assert check)
+// (deprecated unittest.assertAll unittest:assertAll "blah" check ...)
 
 (deprecated astChild ast:child parent index)
 (deprecated printAst ast:print t indent)
 
+
+
+/// Given an ast and an ast containing placeholders (astFromString "_") the shapes of both
+/// ast's are matched against each other. They match if they have the same name, same number
+/// of children and all their children are matching. A placeholder is considered to match
+/// any other ast
+///
+/// Examples:
+///	  ast:matchesShape `(foo bar) `(foo bar) => true
+///	  ast:matchesShape `(a b c) `(_) => true
+///	  ast:matchesShape `(foo (some child) bar) `(foo _ bar) => true
+///	  ast:matchesShape `(a b) `(a) => false
+///	  ast:matchesShape `(a b c) `(a b) => false
+///	  ast:matchesShape `(a b) `(a b _) => false
+(func bool ast:matchesShape ((astp code) (astp template)) (
+  (if (bool:and (cstring:equal (getField template id) "_") (0 == getField code childCount))
+	(ret true) ())
+ 
+  (if
+	(bool:and
+	  (getField code childCount == getField template childCount)
+	  (cstring:equal (getField code id) (getField template id)))
+	(
+	  (const int childCount (getField code childCount))
+	  (for childNum 0 childCount (
+		(if (ast:matchesShape (astChild code childNum) (astChild template childNum))
+		  () // else
+		  (ret false)
+		  )
+		))
+	  (ret true)	 
+	  )		
+	())
+  (ret false)
+  ))
 
 /* /// default test function
 
@@ -946,7 +993,7 @@
 
 (func void test () (
   (println)
-  (if (int.uless 2 4)
+  (if (int:uless 2 4)
     (printlnString "yippieh!")
     (printlnString "wtf?")
     )

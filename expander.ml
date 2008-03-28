@@ -367,9 +367,9 @@ let createNativeMacro translateF bindings macroName argNames impl =
     (tlforms @ [`DefineFunc macroFunc])
     llvmCode
 
-let log message = ()
-(*   eprintf "%s\n" message; *)
-(*   flush stderr *)
+let log message =
+  eprintf "%s\n" message;
+  flush stderr
     
 let trace message f =
   log ("-> " ^ message);
@@ -384,11 +384,17 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
     raiseIllegalExpression
       { id = name; args = args }
       (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
+  
   let rec repeatedList element count =
     if count > 0 then element :: repeatedList element (count-1)
     else []
   in
+  
   let constructCallerFunction args =
+    if name = "opjux" then begin
+      printf "fdasdsa";
+      printf "blah";
+    end;
     log "building arg expr";
     let argAstExprs = List.map Genllvm.sexpr2codeasis args in
     List.iter (fun expr -> log (Ast2.expression2string expr)) argAstExprs;
@@ -430,6 +436,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       alltlforms
       llvmCode
   in
+  
   let callMacro() =
     trace "calling macro"
       (fun () -> Zompvm.zompRunFunctionInt "macroExec")
@@ -450,6 +457,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
     Zompvm.zompAddIntArg arg1;
     Zompvm.zompRunFunctionIntWithArgs functionName
   in
+  
   let rec extractSExprFromNativeAst astAddress =
     if astAddress = 0 then
       Ast2.idExpr "error, macro returned NULL"
@@ -469,11 +477,16 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       in
       { id = name; args = childs }
   in
+  
   log "constructing caller function";
   constructCallerFunction args;
   log "running macro";
   let astAddress = callMacro() in
   log "extracting result";
+  if name = "opjux" then begin
+    printf "dasdasfsaf";
+    printf "dasdsad";
+  end;
   let sexpr = extractSExprFromNativeAst astAddress in
   log "done";
   sexpr
@@ -852,6 +865,7 @@ let matchFunc =
     | _ -> failwith ""
   in
   function
+      (** func def from sexpr **)
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
@@ -860,7 +874,8 @@ let matchFunc =
         ] }
         when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
         `FuncDef (name, typeExpr, paramExprs, implExpr)
-          
+
+    (** func decl from sexpr **)
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
@@ -868,7 +883,8 @@ let matchFunc =
         ] }
         when id = macroFunc && seq = macroSequence ->
         `FuncDecl (name, typeExpr, paramExprs)
-          
+
+    (** func decl from iexpr with multiple/0 arguments **)
     | { id = id; args = [
           typeExpr;
           { id = opcall; args = { id = name; args = [] } :: paramExprs }
@@ -880,6 +896,20 @@ let matchFunc =
           `NotAFunc expr
         end
 
+    (** func decl from iexpr with one argumet **)
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          { id = jux; args = _ } as paramExpr;
+        ] } as expr
+        when id = macroFunc && jux = macroJuxOp ->
+        begin try
+          `FuncDecl (name, typeExpr, List.map convertParam [paramExpr])
+        with Failure _ ->
+          `NotAFunc expr
+        end
+
+    (** func def from iexpr with multiple/0 arguments **)
     | { id = id; args = [
           typeExpr;
           { id = opcall; args =
@@ -893,11 +923,25 @@ let matchFunc =
         with Failure _ ->
           `NotAFunc expr
         end
+
+    (** func def from iexpr with one argument **)
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          { id = jux; args = _ } as paramExpr;
+          { id = seq; args = _ } as implExpr
+        ] } as expr
+        when id = macroFunc && jux = macroJuxOp && seq = macroSeqOp ->
+        begin try
+          `FuncDef (name, typeExpr, List.map convertParam [paramExpr], implExpr)
+        with Failure _ ->
+          `NotAFunc expr
+        end
           
     | expr ->
         `NotAFunc expr
 
-  
+          
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -1031,7 +1075,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateCompileTimeVar;
     translateSeq;
     translateInclude;
-(*     translateJuxtaposition; *)
+    (*     translateJuxtaposition; *)
   ]
   bindings expr
 

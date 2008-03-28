@@ -301,7 +301,14 @@
 
   (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
   (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
-           
+
+  (local-set-key [(control c) (?.) (?s)] '(lambda () (interactive)
+                                            (zomp-tl-do "!")
+                                            (zomp-tl-do "!syntax sexpr")))
+  (local-set-key [(control c) (?.) (?i)] (lambda () (interactive)
+                                           (zomp-tl-do "!")
+                                           (zomp-tl-do "!syntax indent")))
+
   (zomp-add-seperator zomp-sep-3)
   (zomp-add-action zomp-tl-run [(control c)(d)] "Run function...")
   (zomp-add-action zomp-tl-run-test [(control c)(t)] "Run 'void test()'")
@@ -376,6 +383,8 @@
     ("\\bchar\\b" 0 font-lock-type-face)
     
     ("\\bmacro\\b" 0 font-lock-keyword-face)
+
+    ("^ +$" 0 compilation-error-face)
     
     ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
     ("[()]" 0 font-lock-keyword-face)

@@ -101,7 +101,31 @@ let llvmEscapedString str =
   >>= replace "\\\\n" "\\\\0A"
   >>= replace "\"" "\\\\22"
   >>= replace "\\\\\\\\" "\\\\5C"
-                             
+  >>= replace "\\\\0" "\\\\00"
+
+let isValidLlvmString str =
+  try
+    let isHexDigit chr =
+      let isInRange min max = chr >= min && chr <= max in
+      isInRange '0' '9' || isInRange 'a' 'f' || isInRange 'A' 'F'
+    in
+    let strLength = String.length str in     
+    let rec checkFrom start =
+      if start >= strLength then
+        true
+      else
+        let backslashPos = String.index_from str start '\\' in
+        if strLength > backslashPos + 2
+          && isHexDigit str.[backslashPos+1]
+          && isHexDigit str.[backslashPos+2] then
+            checkFrom (backslashPos + 1)
+        else
+          false
+    in
+    checkFrom 0
+  with Not_found ->
+    true
+  
 let lastUniqueId = ref 0
 let newUniqueId() =
   incr lastUniqueId;
@@ -110,7 +134,11 @@ let newUniqueName() =
   "__temp_" ^ string_of_int (newUniqueId())
 
 let sexpr2codeNoAntiquotes recursion = function
-  | { id = id; args = [] } -> simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
+  | { id = id; args = [] } ->
+      if id = "'\\0'" then
+        simpleExpr "simpleAst" ["\"'!'\""]
+      else
+        simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
   | sexprWithArgs ->
       let tempVarName = newUniqueName() in
       let defVarExpr =
@@ -179,7 +207,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
   in
   let simpleTwoArgIntrinsincs typ namespace names =
-    List.map (fun name -> twoArgIntrinsic (sprintf "%s.%s" namespace name) name typ) names
+    List.map (fun name -> twoArgIntrinsic (sprintf "%s:%s" namespace name) name typ) names
   in
   
   let compareIntrinsics typ typeName =
@@ -198,7 +226,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       ]
     in
     List.map (fun (zompName, llvmName) ->
-                compareIntrinsic typ (typeName ^ "." ^ zompName) llvmName)
+                compareIntrinsic typ (typeName ^ ":" ^ zompName) llvmName)
       functionMapping
   in
   let floatIntrinsics typ =
@@ -213,7 +241,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     ]
     in
     let makeIntrinsic prefix (zompName, llvmName) =
-      compareIntrinsic typ (typeName ^ "." ^ prefix ^ zompName) (prefix ^ llvmName)
+      compareIntrinsic typ (typeName ^ ":" ^ prefix ^ zompName) (prefix ^ llvmName)
     in
     List.map (makeIntrinsic "o") functionMappings
     @ simpleTwoArgIntrinsincs typ typeName ["add"; "sub"; "mul"; "fdiv"; "frem"];
@@ -243,18 +271,18 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   let intrinsicFuncs =
      [
-      (*     twoArgIntrinsic "int.shl" "shl" `Int; *)
-      (*     twoArgIntrinsic "int.lshr" "lshr" `Int; *)
-      (*     twoArgIntrinsic "int.ashr" "ashr" `Int; *)
+      (*     twoArgIntrinsic "int:shl" "shl" `Int; *)
+      (*     twoArgIntrinsic "int:lshr" "lshr" `Int; *)
+      (*     twoArgIntrinsic "int:ashr" "ashr" `Int; *)
       "void", `Intrinsic void, `Void, [];
 
-      convertIntr "float.toInt" "fptosi" `Float `Int32;
-      convertIntr "int.toFloat" "sitofp" `Int32 `Float;
-      convertIntr "int.toDouble" "sitofp" `Int32 `Double;
-      convertIntr "double.toInt" "fptosi" `Double `Int32;
-      convertIntr "float.toDouble" "fpext" `Float `Double;
-      convertIntr "double.toFloat" "fptrunc" `Double `Float;
-
+      convertIntr "float:toInt" "fptosi" `Float `Int32;
+      convertIntr "int:toFloat" "sitofp" `Int32 `Float;
+      convertIntr "int:toDouble" "sitofp" `Int32 `Double;
+      convertIntr "double:toInt" "fptosi" `Double `Int32;
+      convertIntr "float:toDouble" "fpext" `Float `Double;
+      convertIntr "double:toFloat" "fptrunc" `Double `Float;
+      
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
@@ -267,12 +295,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   let builtinMacros =
     let macro name doc f = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = f; }) in
-    (* let delegateMacro macroName funcName = *)
-    (*   macro macroName ("delegates to " ^ funcName) (fun _ args -> { id = funcName; args = args; }) *)
-    (* in *)
-    (* let templateMacro name params expr = *)
-    (*   macro name (fun _ args -> Ast2.replaceParams params args expr) *)
-    (* in *)
     let quoteMacro =
       macro "quote"
         "ast..."
@@ -317,18 +339,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                    | VarSymbol var ->
                        replaceParams [typeVar] [idExpr (Lang.typeName var.typ)]
                          (seqExpr onFound)
-(*                        { id = "seq"; args = *)
-(*                            let varDef = *)
-(*                              { id = "var"; args = [ *)
-(*                                  idExpr "astp"; *)
-(*                                  idExpr typeVar; *)
-(*                                  simpleExpr "quote" [Lang.typeName var.typ] *)
-(*                                ]} *)
-(* (\*                              simpleExpr "var" ["cstring"; typeVar; Lang.typeName var.typ] *\) *)
-(* (\*                                                "\"" ^ Lang.typeName var.typ ^ "\""] *\) *)
-(*                            in *)
-(*                            varDef *)
-(*                            :: onFound } *)
                    | _ ->
                        seqExpr onNotFound
                  end
@@ -337,17 +347,11 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                    sprintf "std:bindings:matchVar expects syntax %s" syntax)
         )
     in
-(*     let bindingsLookupFunc = *)
-(*       macro "std:bindings:lookupFunc" "name ('notFound' code) ('hasArgs' argVar code)" *)
-(*         (fun bindings args -> *)
-(*         ) *)
-(*     in *)
     [
       quoteMacro;
       quoteasisMacro;
       bindingsIsNameUsed;
       bindingsLookupVar;
-(*       bindingsLookupFunc; *)
     ]
   in
   let defaultBindings =
@@ -739,6 +743,10 @@ let gencodeGlobalVar var =
         let contentVar = newGlobalTempVar (`Pointer `Char)
         and escapedValue = llvmEscapedString value
         in
+        if not (isValidLlvmString escapedValue) then begin
+          printf "blahblubber\n";
+          raiseCodeGenError ~msg:(sprintf "%s is not a valid llvm string" escapedValue);
+        end;
         let length = llvmStringLength escapedValue + 1 in
         let stringStorageSrc =
           sprintf "%s = internal constant [%d x i8] c\"%s\\00\"\n\n"

@@ -1,6 +1,15 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] int to char conversion
+** TODO [#A]     store ptradd(buffer, 99) '\0' => llvm failure
+** TODO [#A] ast:print( ${foo bar}, 0 ) => fails
+** TODO [#A]     store ptradd(indices, 4 * #num + 0) #a => fails to parse
+** TODO [#A]   store ptradd(vertArray, 3*num + 0) x => error (see below)
+** TODO [#A] give additional info if a name resolves to something of the wrong type (expected type but found function etc.)
+** TODO [#A] parse ${} correctly as (seq)
+** TODO [#A] evaluating multipe expressions will ignore all but the last (iexpr) (sometimes)
+** TODO [#A] (include ..) should support iexpr syntax
 ** TODO [#A] better error message on invalid typedef
 ** TODO [#A] empty lines containing spaces let the parser fail
 
