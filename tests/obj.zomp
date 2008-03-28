@@ -26,6 +26,124 @@ macro if2 cond args...
   ret ${hello #{cond} #{args}}
 end
 
+template macro:failUnless cond
+  unless #{cond}
+    ret ${error expression is false #{cond}}
+  end
+end
+
+(func void test() (
+  (var bool foo true)
+  (branch foo a a)
+  (label a)
+  ))
+
+// macro if2 args...
+
+
+// [else] if condN then blockN
+var bool testN #condN
+branch testN trueN falseN
+label trueN
+#blockN
+label falseN
+
+when cond
+  onTrue
+
+foreach N:
+when #condN
+  #blockN
+  branch end
+
+label end
+
+macro if2 cond then onTrue remArgs...
+  println()
+
+  uniqueId endLabel "if_end"
+
+  var astp code ${seq}
+
+  addChild code ${when #cond
+    #onTrue
+    branch #endLabel
+  end}
+
+  var int currentArg 0
+  const int argCount getField(remArgs, childCount)
+
+  while currentArg+3 <= argCount
+    var astp econd ast:child(remArgs, currentArg+1)
+    var astp eexpr ast:child(remArgs, currentArg+2)
+
+    addChild code ${seq
+      when #econd
+        #eexpr
+        branch #endLabel
+      end
+    end}
+
+    currentArg = currentArg + 3
+  end
+
+  when currentArg+1 < argCount
+    var astp elseCode ast:child(remArgs, currentArg+1)
+
+    addChild code elseCode
+  end
+
+  addChild code ${label #endLabel}
+
+  ret code
+end
+
+func void test()
+  if2 4 == 3 then
+    printlnString "ok"
+  elseif 2 > 3
+    printlnString "oh nose!"
+  elseif 2 > 1
+    printlnString "one more"
+  else
+    printlnString "teh else"
+  end
+end
+
+func void test()
+  var astp args ${seq
+    a > b then
+      print true
+    else
+      print false
+    end
+  }
+
+  macro:failUnless getField(args, childCount) > 1
+
+  var astp code ${seq}
+  var int currentArg 0
+
+  label nextArg
+
+  addChild code ${seq
+  }
+
+  addChild code ${label endLabel}
+
+  mret code
+end
+
+func void test()
+  var int count 0
+
+  ifi count > 10 then
+    printlnString "true"
+  else
+    printlnString "false"
+  end
+end
+
 macro doStuff
   uniqueId foo "foo"
   mret ${seq

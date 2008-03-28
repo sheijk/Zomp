@@ -1,6 +1,7 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] empty lines containing spaces let the parser fail
 
 * Use Cases
 

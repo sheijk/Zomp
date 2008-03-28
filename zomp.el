@@ -292,6 +292,9 @@
   (local-set-key "\r" 'zomp-newline)
   (local-set-key [(control j)] 'zomp-newline)
   (local-set-key [(?/)] 'zomp-electric-slash)
+
+  (local-set-key [(control c)(control k)] '(lambda () (interactive)
+                                             (zomp-tl-do "!")))
            
                                         ; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
