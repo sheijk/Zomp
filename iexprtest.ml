@@ -91,8 +91,8 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
   in
   let stringRule = re "\"[^\"]*\"", idFunc in
   let charRule = re "'[^']+'", idFunc in
-  let intRule = re "[0-9]+[a-zA-Z]*", idFunc in
-  let floatRule = re "\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
+  let intRule = re "-?[0-9]+[a-zA-Z]*", idFunc in
+  let floatRule = re "-?\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
   let identifierRule =
     re (sprintf "[%s][%s]*" validIdentifierFirstChar validIdentifierChars),
     (fun str -> `Identifier str);

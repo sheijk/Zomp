@@ -157,7 +157,9 @@
   { e }
 | e = mexpr;
   { e }
-    
+| e = quoteexpr;
+  { e }
+
   opexpr:
 | l = opexprArg; s = opsymbol; r = opexprArg;
   { expr (opName s) [l; r] }
@@ -173,6 +175,8 @@
   { e }
 | id = IDENTIFIER; (* causes shift/reduce conflict *)
   { idExpr id }
+| e = quoteexpr;
+  { e }
 
 %inline opsymbol:
 | o = ADD_OP

@@ -438,6 +438,10 @@ struct
                  expr "quote" [
                    seqExpr [jux ["foo"; "bar"]]
                  ]]];
+
+      "callFunc(#insert)", `Return [callExpr [id "callFunc"; se1 "antiquote" "insert"]];
+
+      "left + $right", `Return [expr "op+" [id "left"; se1 "quote" "right"]];
         
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];
