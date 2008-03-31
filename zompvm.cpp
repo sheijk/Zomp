@@ -11,6 +11,7 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/Assembly/Parser.h"
 #include "llvm/Analysis/Verifier.h"
+#include "llvm/CallingConv.h"
 
 #include "llvm/PassManager.h"
 #include "llvm/Target/TargetData.h"
@@ -29,23 +30,120 @@ namespace {
 
 namespace {
   // will run the code
-  ExecutionEngine* executionEngine = 0;
+  static ExecutionEngine* executionEngine = 0;
 
-  Module* llvmModule = 0;
-  Module* macroModule = 0;
-  ExistingModuleProvider* moduleProvider = 0;
-//   FunctionPassManager* passManager = 0;
+  static Module* llvmModule = 0;
+  static Module* macroModule = 0;
+  static ExistingModuleProvider* moduleProvider = 0;
+  //   FunctionPassManager* passManager = 0;
 
-  bool verifyCode = true;
+  static bool verifyCode = true;
+
+  static Function* simpleAst = NULL;
+  static Function* addChild = NULL;
+
+  static void loadLLVMFunctions()
+  {
+    PointerType* PointerTy_cstring = PointerType::get(IntegerType::get(8));
+
+    std::vector<const Type*>StructTy_ast_fields;
+    llvmModule->addTypeName("cstring", PointerTy_cstring);
   
-  void assureModuleExists() {
+    StructTy_ast_fields.push_back(PointerTy_cstring);
+    StructTy_ast_fields.push_back(IntegerType::get(32));
+    PATypeHolder StructTy_ast_fwd = OpaqueType::get();
+    PointerType* PointerTy_astp = PointerType::get(StructTy_ast_fwd);
+    llvmModule->addTypeName("astp", PointerTy_astp);
+  
+    PointerType* PointerTy_0 = PointerType::get(PointerTy_astp);
+    StructTy_ast_fields.push_back(PointerTy_0);
+    StructType* StructTy_ast = StructType::get(StructTy_ast_fields, /*isPacked=*/false);
+    llvmModule->addTypeName("ast", StructTy_ast);
+    cast<OpaqueType>(StructTy_ast_fwd.get())->refineAbstractTypeTo(StructTy_ast);
+    StructTy_ast = cast<StructType>(StructTy_ast_fwd.get());
+
+    std::vector<const Type*>FuncTy_80_args;
+    FuncTy_80_args.push_back(PointerTy_astp);
+    FuncTy_80_args.push_back(PointerTy_astp);
+    ParamAttrsList *FuncTy_80_PAL = 0;
+    FunctionType* FuncTy_80 = FunctionType::get(
+      Type::VoidTy,
+      FuncTy_80_args,
+      false,
+      FuncTy_80_PAL);
+
+    { // simpleAst decl
+      std::vector<const Type*>FuncTy_73_args;
+      FuncTy_73_args.push_back(PointerTy_cstring);
+      ParamAttrsList *FuncTy_73_PAL = 0;
+      FunctionType* FuncTy_73 = FunctionType::get(
+        PointerTy_astp, FuncTy_73_args, false, FuncTy_73_PAL);
+  
+      simpleAst = new Function(
+        FuncTy_73,
+        GlobalValue::ExternalLinkage,
+        "simpleAst", llvmModule); 
+      simpleAst->setCallingConv(CallingConv::C);
+    }
+
+    { // addChild decl
+      addChild = new Function(
+        FuncTy_80, GlobalValue::ExternalLinkage, "addChild", llvmModule); 
+      addChild->setCallingConv(CallingConv::C);
+    }
+    
+//     { // simpleAst def
+//       Constant* const_int32_117 = Constant::getNullValue(IntegerType::get(32));
+//       ConstantInt* const_int32_174 = ConstantInt::get(APInt(32,  "1", 10));
+//       ConstantInt* const_int32_187 = ConstantInt::get(APInt(32,  "2", 10));
+//       Constant* const_ptr_188 = Constant::getNullValue(PointerTy_cstring);
+      
+//       Function::arg_iterator args = simpleAst->arg_begin();
+//       Value* ptr_name = args++;
+//       ptr_name->setName("name");
+    
+//       BasicBlock* label_404 = new BasicBlock("",simpleAst,0);
+    
+//       // Block  (label_404)
+//       AllocaInst* ptr_a = new AllocaInst(PointerTy_astp, "a", label_404);
+//       MallocInst* ptr_temp123 = new MallocInst(StructTy_ast, "temp123", label_404);
+//       StoreInst* void_405 = new StoreInst(ptr_temp123, ptr_a, false, label_404);
+//       LoadInst* ptr_temp125 = new LoadInst(ptr_a, "temp125", false, label_404);
+//       std::vector<Value*> ptr_temp124_indices;
+//       ptr_temp124_indices.push_back(const_int32_117);
+//       ptr_temp124_indices.push_back(const_int32_117);
+//       Instruction* ptr_temp124 = new GetElementPtrInst(ptr_temp125, ptr_temp124_indices.begin(), ptr_temp124_indices.end(), "temp124", label_404);
+//       StoreInst* void_406 = new StoreInst(ptr_name, ptr_temp124, false, label_404);
+//       LoadInst* ptr_temp127 = new LoadInst(ptr_a, "temp127", false, label_404);
+//       std::vector<Value*> ptr_temp126_indices;
+//       ptr_temp126_indices.push_back(const_int32_117);
+//       ptr_temp126_indices.push_back(const_int32_174);
+//       Instruction* ptr_temp126 = new GetElementPtrInst(ptr_temp127, ptr_temp126_indices.begin(), ptr_temp126_indices.end(), "temp126", label_404);
+//       StoreInst* void_407 = new StoreInst(const_int32_117, ptr_temp126, false, label_404);
+//       LoadInst* ptr_temp129 = new LoadInst(ptr_a, "temp129", false, label_404);
+//       std::vector<Value*> ptr_temp128_indices;
+//       ptr_temp128_indices.push_back(const_int32_117);
+//       ptr_temp128_indices.push_back(const_int32_187);
+//       Instruction* ptr_temp128 = new GetElementPtrInst(ptr_temp129, ptr_temp128_indices.begin(), ptr_temp128_indices.end(), "temp128", label_404);
+//       CastInst* ptr_temp130 = new BitCastInst(const_ptr_188, PointerTy_0, "temp130", label_404);
+//       StoreInst* void_408 = new StoreInst(ptr_temp130, ptr_temp128, false, label_404);
+//       LoadInst* ptr_temp131 = new LoadInst(ptr_a, "temp131", false, label_404);
+//       new ReturnInst(ptr_temp131, label_404);
+    
+//     }
+  }
+  
+  static void assureModuleExists() {
     if (llvmModule == 0) {
-//       debugMessage("Creating new llvm module\n");
       llvmModule = new Module("llvm_module.bc");
     }
 
     if( macroModule == 0 ) {
       macroModule = new Module("llvm_macro_module.bc");
+    }
+
+    if( simpleAst == 0 ) {
+      loadLLVMFunctions();
     }
   }
 }
@@ -69,6 +167,7 @@ extern "C" {
   }
   
 }
+
 
 llvm::GenericValue runFunctionWithArgs(
   const char* name,
@@ -99,6 +198,36 @@ llvm::GenericValue runFunction(const char* name) {
   std::vector<const Type*> noparams;
   std::vector<GenericValue> noargs;
   return runFunctionWithArgs( name, noparams, noargs );
+}
+
+namespace
+{
+  template<typename Target, typename Source>
+  union CastUnion
+  {
+    Target target;
+    Source source;
+  };
+
+  template<typename Target, typename Source>
+  static Target bitcast(Source source)
+  {
+    CastUnion<Target, Source> u;
+    u.source = source;
+    return u.target;
+  }
+
+  static GenericValue ptrValue(void* p) {
+    GenericValue v;
+    v.PointerVal = p;
+    return v;
+  }
+
+  static GenericValue ptrValue(int i) {
+    GenericValue v;
+    v.PointerVal = bitcast<void*>(i);
+    return v;
+  }
 }
 
 extern "C" {
@@ -277,9 +406,31 @@ extern "C" {
     argValues.push_back( intval );
   }
 
+  void zompAddPointerArg(int ptr) {
+    argTypes.push_back( PointerType::get(OpaqueType::get()) );
+    argValues.push_back( ptrValue(ptr) );
+  }
+
   int zompRunFunctionIntWithArgs(const char* functionName) {
     GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
     return result.IntVal.getLimitedValue();
+  }
+
+  int ptrToCamlInt(void* ptr) {
+    int addr = bitcast<int>( ptr );
+
+    if( addr & 0x8000 != 0 ) {
+      printf( "Warning: address has highest bit set, replaced with 0" );
+      fflush( stdout );
+      exit( 123 );
+    }
+
+    return addr;
+  }
+  
+  int zompRunFunctionPointerWithArgs(const char* functionName) {
+    GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
+    return ptrToCamlInt( result.PointerVal );
   }
 
   const char* zompRunFunctionStringWithArgs(const char* functionName) {
@@ -402,7 +553,31 @@ extern "C" {
 //   (var int i (cast int child))
 //   (ret i)
 //   ))
+  
+  int zompSimpleAst(char* name) {
+    std::vector<GenericValue> args;
+    
+    args.push_back( ptrValue(name) );
 
+    GenericValue retval = executionEngine->runFunction( simpleAst, args );
+
+    return ptrToCamlInt( retval.PointerVal );
+  }
+
+  void zompAddChild(int parent, int child) {
+    std::vector<GenericValue> args;
+
+    args.push_back( ptrValue(parent) );
+    args.push_back( ptrValue(child) );
+
+    executionEngine->runFunction( addChild, args );
+  }
+
+  void zompRunMacro() {
+  }
+  
 } // extern "C"
+
+
 
 

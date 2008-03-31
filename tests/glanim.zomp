@@ -9,11 +9,11 @@
 
 (include "opengl20.zomp")
 (include "glfw.zomp")
-(include "glutils.zomp")
+(include "tests/glutils.zomp")
 
 (var int windowWidth 400)
 (var int windowHeight 300)
-  
+
 (runOnceFunc void init () (
   (glfwInit)
   (glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW)
@@ -25,21 +25,21 @@
 
 (func int main () (
   (init)
-  
+
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)
-  (const double aspect (double.fdiv (int.toDouble windowWidth) (int.toDouble windowHeight)))
-  (gluPerspective (int.toDouble 90) aspect 1.0d 100.0d)
+  (const double aspect (double:fdiv (int:toDouble windowWidth) (int:toDouble windowHeight)))
+  (gluPerspective (int:toDouble 90) aspect 1.0d 100.0d)
 
   (var float time 0.0)
-  
+
   (var bool running true)
   (while running (
-    (assign time  (double.toFloat (glfwGetTime)))
-    (assign angle (float.mul time 128.0))
-    
+    (assign time  (double:toFloat (glfwGetTime)))
+    (assign angle (float:mul time 128.0))
+
     (glClearColor 0. 0. 0. 1.)
-    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    (glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
 
     (glMatrixMode GL_MODELVIEW)
     (glLoadIdentity)
@@ -50,7 +50,7 @@
 
     (glfwSwapBuffers)
     (glfwPollEvents)
-    (assign running (bool.not (isPressed GLFW_KEY_ESC)))
+    (assign running (bool:not (isPressed GLFW_KEY_ESC)))
     ))
 
   (drawPausedOverlay)

@@ -347,7 +347,34 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                    sprintf "std:bindings:matchVar expects syntax %s" syntax)
         )
     in
+    let testMacro =
+      let calls1i functionName arg =
+        Zompvm.zompResetArgs();
+        Zompvm.zompAddIntArg arg;
+        Zompvm.zompRunFunctionStringWithArgs functionName
+      in
+      let calli1i functionName arg =
+        Zompvm.zompResetArgs();
+        Zompvm.zompAddIntArg arg;
+        Zompvm.zompRunFunctionIntWithArgs functionName
+      in
+      macro "std:test" "()"
+        (fun bindings args ->
+           let sexprAddress = Zompvm.zompSimpleAst "foobar" in
+           printf "ast has address %d\n" sexprAddress;
+           flush stdout;
+           if sexprAddress <> 0 then begin
+             Zompvm.zompAddChild sexprAddress (Zompvm.zompSimpleAst "child");
+             let name = calls1i "macroAstId" sexprAddress in
+             let childCount = calli1i "macroAstChildCount" sexprAddress in
+             Ast2.simpleExpr "was" [name; string_of_int childCount]
+           end else begin
+             Ast2.simpleExpr "returned 0" []
+           end
+        )
+    in
     [
+      testMacro;
       quoteMacro;
       quoteasisMacro;
       bindingsIsNameUsed;

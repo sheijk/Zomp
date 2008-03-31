@@ -51,12 +51,12 @@
 
 (func void printBool ((bool b)) (
   (branch b true false)
-   
+
   (label true)
   (printChar 't')
   (printNewline)
   (branch end)
-  
+
   (label false)
   (printChar 'f')
   (printNewline)
@@ -83,7 +83,7 @@
 (macroReplace setField record componentName value (
   (store (fieldptr record componentName) value)
   ))
-  
+
 /// string functions ----------------------------------------
 
 (type cstring (ptr char))
@@ -105,7 +105,7 @@
 
   (var char c 'x')
   (var bool b true)
-  
+
   (label start)
   (assign c (load ptr))
 
@@ -113,9 +113,9 @@
   (assign count (int:add count 1))
   (assign b (char:equal c '\0'))
   (branch b end start)
-  
+
   (label end)
-  
+
   (ret count)
   ))
 
@@ -137,7 +137,7 @@
   (assign reachedEnd (int:ugreaterEqual index length))
   (branch reachedEnd end start)
   (label end)
-  
+
   (var (ptr string) result (malloc string))
   (store (fieldptr result length) length)
   (store (fieldptr result chars) chars)
@@ -154,7 +154,7 @@
   (var int rightLength (getField r length))
 
   (var int index 0)
-  
+
   (label lbegin)
   (store (ptradd chars index) (load (ptradd leftChars index)))
   (assign index (int:add index 1))
@@ -169,7 +169,7 @@
   (var bool test2 (int:uless index rightLength))
   (branch test2 rbegin rend)
   (label rend)
-  
+
   (ret result)
   ))
 
@@ -212,13 +212,14 @@
   ((ptr (ptr ast)) childs) )
 (type astp (ptr ast))
 
+// (func (ptr ast) simpleAst ((cstring name)))
 (func (ptr ast) simpleAst ((cstring name)) (
   (var (ptr ast) a (malloc ast))
 
   (store (fieldptr a id) name)
   (store (fieldptr a childCount) 0)
   (store (fieldptr a childs) (nullptr (ptr ast)))
-  
+
   (ret a)
 
   ))
@@ -332,15 +333,56 @@
   (var cstring name (newUniqueName))
   (ret (cstrings:append (cstrings:append name "_") purpose)) ))
 
-(macro macrotst (
-  (ret `(3))
+
+
+(macro testmacro args ... (
+  (var astp code `(was))
+
+  (var int count (getField args childCount))
+  (var int index 0)
+  (label start)
+
+  (var (ptr ast) child (ast:child args index))
+  (addChild code child)
+
+  (assign index (int:add index 1))
+  (var bool test (int:uless index count))
+  (branch test start end)
+  (label end)
+
+  (ret code)
+  ))
+
+(macro testmacro0 (
+  (ret `(foo bar))
+  ))
+
+(macro testmacro1 arg (
+  (var astp code `(foo bar))
+  (printInt (cast int arg))
+
+  (var bool test (int:equal 0 (cast int arg)))
+  (branch test error continue)
+
+  (label error)
+  (ret `(arg is 0))
+
+  (label continue)
+  (println)
+  (addChild code arg)
+  (ast:print code 4)
+  (ret code)
+  ))
+
+// (macro macrotst (
+//   (ret `(3))
 //   (printlnString "Applying macro macrotst")
 //   (ret `(printlnString "Running code"))
-  ))
-(macro ymacrotst (
-  (ret `(printInt 999))
-  ))
-  
+//   ))
+// (macro ymacrotst (
+//   (ret `(printInt 999))
+//   ))
+
 (macro uniqueId name purpose (
   (ret `(var cstring #name (newUniqueNameFor #purpose)))
   ))
@@ -350,7 +392,7 @@
   (uniqueId falseLabel "iffalse")
   (uniqueId endLabel "ifend")
   (uniqueId testResult "iftestresult")
-  
+
   (var (ptr ast) result `(
     (var bool #testResult #test)
     (branch #testResult #trueLabel #falseLabel)
@@ -376,19 +418,19 @@
   (uniqueId endLabel "ifend")
   (uniqueId testResult "iftestresult")
   (uniqueId resultVar "ifResult")
-  
+
   (var (ptr ast) result `(
     (var int #resultVar 0)
     (var bool #testResult #test)
     (branch #testResult #trueLabel #falseLabel)
-    
+
     (label #trueLabel)
     (assign #resultVar #onTrue)
     (branch #endLabel)
-    
+
     (label #falseLabel)
     (assign #resultVar #onFalse)
-    
+
     (label #endLabel)
     #resultVar
     ))
@@ -404,17 +446,17 @@
   (ret `(
     (var int #index #min)
     (var bool #testResult false)
-    
+
     (label #startLabel)
-    
+
     (assign #testResult (int:sless #index #max))
     (branch #testResult #execLabel #endLabel)
-    
+
     (label #execLabel)
     #code
     (assign #index (int:add #index 1))
     (branch #startLabel)
-    
+
     (label #endLabel)
     ))
   ))
@@ -424,7 +466,7 @@
   (uniqueId exit "while_exit")
   (uniqueId goon "while_body")
   (uniqueId testVar "while_testvar")
-  
+
   (ret `(
     (var bool #testVar true)
     (label #begin)
@@ -446,7 +488,7 @@
 (macro forEachAstChild childVar tree code (
   (uniqueId count "count")
   (uniqueId index "index")
-  
+
   (ret `(
     (const int #count (getField #tree childCount))
     (for #index 0 #count (
@@ -455,7 +497,7 @@
       ))
     ))
   ))
-  
+
 /// workaround until "const" is properly supported
 (macro const type name default (
   (ret `(var #type #name #default))
@@ -531,13 +573,13 @@
   (uniqueId resultString "cstring_concat")
 
   (addChild code `(var cstring #resultString #firstString))
-  
+
   (forEachAstChild string strings (
     (addChild code `(assign #resultString (cstrings:append #resultString #string)))
     ))
-  
+
   (addChild code `(#resultString))
-  
+
   (ret code)
   ))
 
@@ -573,7 +615,7 @@
 /// call all unittest:assert on all given testCases
 (macro unittest:testCasesFor name testCases ... (
   (var cstring testName (cstring:concat "test_" (getField name id) "_" (int:toCString (newUniqueId))))
-  
+
   (var astp impl (astFromString "unittest:assertAll"))
   (forEachAstChild testCase testCases (
     (addChild impl testCase)
@@ -589,7 +631,7 @@
 
 (macro unittest:testFunc funcName impl (
   (var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id)))
-  
+
   (ret `(func void #testFuncName () #impl))
   ))
 
@@ -732,7 +774,7 @@
   ))
 
 (template static:id foo (#foo))
-  
+
 (macro addChilds parent childs ... (
   (var (ptr ast) code `(addMappedChilds #parent static:id))
   (forEachAstChild child childs (
@@ -754,7 +796,7 @@
 
 (macro defineOpNS op postfix func namespace (
   (template id astx (getField #astx id))
-  
+
   (var cstring funcName (cstring:concat (id namespace) ":" (id func)))
   (var cstring opName (cstring:concat (id op) (id postfix)))
 
@@ -866,7 +908,7 @@
 
     (ret call)
     ))
-  
+
   (ret code)
   ))
 
@@ -920,17 +962,17 @@
   (ret code)
   ))
 
-(macro opjux first args ... (
-  (ast:print first 8)
-  (ast:print args 12)
-  (var astp code first)
-  (forEachAstChild child args (
-    (addChild code child)
-    ))
+// (macro opjux first args ... (
+//   (ast:print first 8)
+//   (ast:print args 12)
+//   (var astp code first)
+//   (forEachAstChild child args (
+//     (addChild code child)
+//     ))
 
-  (ast:print code 0)
-  (ret code)
-  ))
+//   (ast:print code 0)
+//   (ret code)
+//   ))
 
 (macro opcall first args ... (
   (var astp code first)
@@ -964,7 +1006,7 @@
 (func bool ast:matchesShape ((astp code) (astp template)) (
   (if (bool:and (cstring:equal (getField template id) "_") (0 == getField code childCount))
 	(ret true) ())
- 
+
   (if
 	(bool:and
 	  (getField code childCount == getField template childCount)
@@ -983,55 +1025,55 @@
   (ret false)
   ))
 
-/* /// default test function
+// /* /// default test function
 
-*/
+// */
 
-/*
+// /*
 
-!load libglfw.dylib dlltest.dylib
+// !load libglfw.dylib dlltest.dylib
 
-(func void test () (
-  (println)
-  (if (int:uless 2 4)
-    (printlnString "yippieh!")
-    (printlnString "wtf?")
-    )
-  ))
+// (func void test () (
+//   (println)
+//   (if (int:uless 2 4)
+//     (printlnString "yippieh!")
+//     (printlnString "wtf?")
+//     )
+//   ))
 
-(macro inline3 code (
-  (var (ptr ast) tree (simpleAst "seq"))
-  (printlnString "Warning: you suck!")
-  (addChild tree code)
-  (addChild tree code)
-  (addChild tree code)
-  (ret `(
-    (printlnString "doing it three times!")
-    #tree ))
-  ))
+// (macro inline3 code (
+//   (var (ptr ast) tree (simpleAst "seq"))
+//   (printlnString "Warning: you suck!")
+//   (addChild tree code)
+//   (addChild tree code)
+//   (addChild tree code)
+//   (ret `(
+//     (printlnString "doing it three times!")
+//     #tree ))
+//   ))
 
-(var cstring yippieh "yippieh!")
-  
-(macro tmacro2 arg
-  (insert macro #arg) )
+// (var cstring yippieh "yippieh!")
 
-(macro tmacro3 arg0 arg1
-  (foo bar #arg0 #arg1) )
-*/
+// (macro tmacro2 arg
+//   (insert macro #arg) )
 
-/*
-(func int testast2 () (
-  (var (ptr ast) tree `(this is a (simple ast) (for testing purposes)))
-  (ret (cast int tree))
-  ))
+// (macro tmacro3 arg0 arg1
+//   (foo bar #arg0 #arg1) )
+// */
 
-(func void test () (
-  (var int t (testast2))
-  
-  (println)
-  (printString (macroAstId t)) (printInt (macroAstChildCount t)) (println)
-  (printlnString (macroAstId (macroAstChild t 2)))
-))
-*/
+// /*
+// (func int testast2 () (
+//   (var (ptr ast) tree `(this is a (simple ast) (for testing purposes)))
+//   (ret (cast int tree))
+//   ))
+
+// (func void test () (
+//   (var int t (testast2))
+
+//   (println)
+//   (printString (macroAstId t)) (printInt (macroAstChildCount t)) (println)
+//   (printlnString (macroAstId (macroAstChild t 2)))
+// ))
+// */
 
 

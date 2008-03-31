@@ -367,9 +367,9 @@ let createNativeMacro translateF bindings macroName argNames impl =
     (tlforms @ [`DefineFunc macroFunc])
     llvmCode
 
-let log message =
-  eprintf "%s\n" message;
-  flush stderr
+let log message = ()
+(*   eprintf "%s\n" message; *)
+(*   flush stderr *)
     
 let trace message f =
   log ("-> " ^ message);
@@ -391,10 +391,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   in
   
   let constructCallerFunction args =
-    if name = "opjux" then begin
-      printf "fdasdsa";
-      printf "blah";
-    end;
     log "building arg expr";
     let argAstExprs = List.map Genllvm.sexpr2codeasis args in
     List.iter (fun expr -> log (Ast2.expression2string expr)) argAstExprs;
@@ -436,11 +432,14 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       alltlforms
       llvmCode
   in
+
+  if false then constructCallerFunction [];
   
-  let callMacro() =
-    trace "calling macro"
-      (fun () -> Zompvm.zompRunFunctionInt "macroExec")
-  in
+(*   let callMacro() = *)
+(*     trace "calling macro" *)
+(*       (fun () -> Zompvm.zompRunFunctionInt "macroExec") *)
+(*   in *)
+  
   let calli1i functionName arg =
     Zompvm.zompResetArgs();
     Zompvm.zompAddIntArg arg;
@@ -478,17 +477,48 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       { id = name; args = childs }
   in
   
-  log "constructing caller function";
-  constructCallerFunction args;
-  log "running macro";
-  let astAddress = callMacro() in
-  log "extracting result";
-  if name = "opjux" then begin
-    printf "dasdasfsaf";
-    printf "dasdsad";
-  end;
+(*   log "constructing caller function"; *)
+(*   constructCallerFunction args; *)
+(*   log "running macro"; *)
+(*   let astAddress = callMacro() in *)
+
+(*   let log msg = *)
+(*     printf "[msg] %s\n" msg; *)
+(*     flush stdout *)
+(*   in *)
+
+  let createArgs() =
+    let rec buildNativeAst = function
+      | {id = id; args = []} ->
+          Zompvm.zompSimpleAst id
+      | ast ->
+          let childs = List.map buildNativeAst ast.args in
+          let nativeAst = Zompvm.zompSimpleAst ast.id in
+          List.iter (fun child -> Zompvm.zompAddChild ~parent:nativeAst ~child) childs;
+          nativeAst
+    in
+    List.map buildNativeAst args;
+  in
+
+  let callMacro args =
+    Zompvm.zompResetArgs();
+    List.iter (fun astAddr -> Zompvm.zompAddPointerArg astAddr) args;
+    Zompvm.zompRunFunctionPointerWithArgs name
+  in
+
+  log "Creating args";
+  let argsAddresses = createArgs() in
+(*   printf "Args = \n"; *)
+(*   List.iter (fun argAddr -> *)
+(*                let arg = extractSExprFromNativeAst argAddr in *)
+(*                printf "%s\n" (Ast2.toString arg)) *)
+(*     argsAddresses; *)
+  log "Calling macro";
+  let astAddress = callMacro argsAddresses in
+  
+  log (sprintf "extracting result from address %d" astAddress);
   let sexpr = extractSExprFromNativeAst astAddress in
-  log "done";
+  log (sprintf "extracted:\n%s" (Ast2.toString sexpr));
   sexpr
 
 let translateVariadicFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =

@@ -22,13 +22,18 @@ http://sheijk.dword.org/zomp
 
     void zompResetArgs ()
     void zompAddIntArg (int arg)
+    void zompAddPointerArg (int ptr)
     
     void zompRunFunction (const char* name)
     int zompRunFunctionInt (const char* name)
     int zompRunFunctionIntWithArgs (const char* name)
+    int zompRunFunctionPointerWithArgs (const char* name)
     const char* zompRunFunctionString (const char* name)
     const char* zompRunFunctionStringWithArgs (const char* name)
     bool zompRunFunctionBool (const char* name)
     
     int zompLoadLib (const char* name)
+
+    int zompSimpleAst (const char* name)
+    void zompAddChild (int parent, int child)
     

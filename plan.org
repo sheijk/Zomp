@@ -1,6 +1,9 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] scheint in der stdlib zu sein
+** TODO [#A] koennte daran liegen dass redefinitionen im compiler anders behandelt werden
+** TODO [#A] macro expansion failures in compiler but not toplevel (comments.zomp), getting weird characters
 ** TODO [#A] int to char conversion
 ** TODO [#A]     store ptradd(buffer, 99) '\0' => llvm failure
 ** TODO [#A] ast:print( ${foo bar}, 0 ) => fails

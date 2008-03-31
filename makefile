@@ -217,11 +217,12 @@ clean:
 	rm -f stdlib.ll
 	rm -f opengl20.zomp glfw.zomp
 	rm -f opengl20.izomp glfw.izomp
-	rm -f iexpr.cm? iexprtest.cm? newparser.cm?
-	rm -f newparsertest.cmi newparsertest.cmo
+	rm -f iexpr.cm? iexprtest.cm? newparser.cm? newparser.o iexprtest.o newparser.ml newparser.mli
+	rm -f newparsertest.cmi newparsertest.cmo newparsertest newparsertest.o
 
 clean_tags:
 	rm -f *.annot
+	rm -f *.conflicts
 	rm -f TAGS
 	rm -f $(FLYMAKE_LOG)
 
