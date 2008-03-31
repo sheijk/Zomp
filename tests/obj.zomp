@@ -201,58 +201,97 @@ func Mesh* makeCube(float size)
   ret cube
 end
 
-    store ptradd(indices, 4 * #num + 0) #a
-    store ptradd(indices, 4 * #num + 1) #b
-    store ptradd(indices, 4 * #num + 2) #b
-    store ptradd(indices, 4 * #num + 3) #d
-
-func void test()
-  var Mesh* mesh makeCube(2.0)
-
-  Mesh:print mesh
-end
-
-(func void test() (
-  (printString "\0")
-  ))
-
-
-(func void test() (
-  (opjux printChar '\0')
-  ))
-
-(func void test() (
-  (opjux printString "\0")
-  ))
-
-=>
-will be run throgh macro expansion
-which will create code ala astFromString("'ASCIINULL'") where ASCIINULL is a null char inside the string
-which will be interpreted as end of string by astFromString
+//   template setCubeSide num a b c d
+//     store ptradd(indices, 4 * #num + 0) #a
+//     store ptradd(indices, 4 * #num + 1) #b
+//     store ptradd(indices, 4 * #num + 2) #b
+//     store ptradd(indices, 4 * #num + 3) #d
+//   end
 
 func void test()
   var char zero '\0'
   printChar(zero)
 end
 
-func Mesh* Mesh:loadPly(cstring fileName)
-  var FILE* file fopen(fileName, "r")
-  var char* buffer malloc(char, 100)
+macro uniqueIds purpose ids...
+  var ast* code ${seq}
 
-  var bool eof false
-
-  while bool:not(eof)
-    var size_t readBytes fread(cast void* buffer, 1, 100, file)
-
-    store ptradd(buffer, 99) '\0'
-
-    var bool nothingRead readBytes == 0
-    eof = nothingRead
+  forEachAstChild child ids
+    addChild code ${uniqueIds #child #purpose}
   end
 
-  fclose(file)
+  ret code
+end
+
+macro File:forEachLine fileName lineVar onLine
+  uniqueId fileVar "file"
+  uniqueId bufferSize "file"
+  uniqueId eof "file"
+  uniqueId result "file"
+  uniqueId nothingRead "file"
+
+  var ast* code ${
+    var FILE* #fileVar fopen(#fileName, "r")
+    var int #bufferSize 1000
+    var char* #lineVar malloc(char, #bufferSize)
+
+    var bool #eof false
+
+    while bool:not(#eof)
+      var char* #result fgets(#lineVar, #bufferSize, #fileVar)
+
+      #onLine
+
+      var bool #nothingRead #result ==_ptr nullptr(char)
+      #eof = #nothingRead
+    end
+
+    fclose(#fileVar)
+  end}
+
+  ret code
+end
+
+// func void test()
+//   var char* chr malloc(char)
+//   store chr 'x'
+//
+//   printChar load(chr)
+//   println()
+// end
+
+macro Cstring:forEachChar3 string char onChar
+  uniqueId ptr "forEachChar"
+
+  mret ${
+    var char* #ptr #string
+    while bool:not( char:equal(load(#ptr), '\0') )
+      var char #char load(#ptr)
+      #onChar
+      #ptr = ptradd(#ptr, 1)
+    end
+  end}
+end macro
+
+func void printLine(char* line)
+  Cstring:forEachChar3 line chr
+    var int x 0
+  end
+end
+
+func Mesh* Mesh:loadPly(cstring fileName)
+
+  File:forEachLine fileName buffer
+    printString("=> ")
+
+    printLine(buffer)
+  end
 
   ret nullptr(Mesh)
+end
+
+func void test()
+  var Mesh* mesh Mesh:loadPly("data/test.ply")
 end
 
 //------------------------------------------------------------------------------

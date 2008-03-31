@@ -1,6 +1,7 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] bugs wenn innerhalb eines macros andere macros getriggert werden?
 ** TODO [#A] scheint in der stdlib zu sein
 ** TODO [#A] koennte daran liegen dass redefinitionen im compiler anders behandelt werden
 ** TODO [#A] macro expansion failures in compiler but not toplevel (comments.zomp), getting weird characters

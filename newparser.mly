@@ -193,7 +193,7 @@
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id] }
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
-  { expr (quoteId q) [] }
+  {{ Ast2.id = quoteId q; args = [{Ast2.id = "seq"; args = []}] }}
     
 %inline quotable:
 | e = sexpr;

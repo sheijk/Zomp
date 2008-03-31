@@ -14,4 +14,5 @@
 
 (func size_t fread(((ptr void) ptr) (size_t size) (size_t nitems) (filep file)))
 (func int getc ((filep f)))
+(func (ptr char) fgets(((ptr char) s) (int n) (filep stream)))
 

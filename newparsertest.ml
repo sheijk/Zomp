@@ -114,6 +114,9 @@ let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
 
 exception ParsingFailure of exn * string
+
+let rec ast2SimpleString ast =
+  "(" ^ ast.Ast2.id ^ " " ^ Common.combine " " (List.map ast2SimpleString ast.Ast2.args) ^ ")"
   
 module IndentParserTestCase : Testing.CASE_STRUCT =
 struct
@@ -131,7 +134,12 @@ struct
 
   let testedFunc str =
     try
-      parseSExpr str
+      if str = "${}" then begin
+        printf "foo";
+        parseSExpr str
+      end
+      else
+        parseSExpr str
     with error ->
       let tokens = Iexprtest.lexString str in
       let str = Iexprtest.tokensToString tokens in
@@ -412,7 +420,7 @@ struct
 
       (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];
-      "${}", `Return [expr "quote" []];
+      "${}", `Return [se1 "quote" "seq"];
       "${foo}", `Return [se1 "quote" "foo"];
       "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];
       "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]];
@@ -442,7 +450,7 @@ struct
       "callFunc(#insert)", `Return [callExpr [id "callFunc"; se1 "antiquote" "insert"]];
 
       "left + $right", `Return [expr "op+" [id "left"; se1 "quote" "right"]];
-        
+      
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];
       "a   b  c", `Return [jux ["a"; "b"; "c"]];
