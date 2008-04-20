@@ -166,6 +166,12 @@
  "A face for todo items")
 (defvar todo-face 'todo-face)
 
+(unless (boundp 'current-line)
+  (defun current-line ()
+    "Return number of current line in current buffer
+    (provided by `zomp.el` because it was not defined)"
+    (count-lines (point-min) (if (eobp) (point) (1+ (point))))) )
+
 (defun zomp-indent-line ()
   (interactive)
   (let ((left 0) (oldindent 0))

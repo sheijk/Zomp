@@ -114,10 +114,10 @@ let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
 
 exception ParsingFailure of exn * string
-
+  
 let rec ast2SimpleString ast =
   "(" ^ ast.Ast2.id ^ " " ^ Common.combine " " (List.map ast2SimpleString ast.Ast2.args) ^ ")"
-  
+    
 module IndentParserTestCase : Testing.CASE_STRUCT =
 struct
   type input = string
@@ -233,7 +233,7 @@ struct
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
-(*       (\* todo *\) *)
+      (* todo *)
 
       (** operator precedence *)
       "x + y * 10", `Return [expr "op+" [id "x"; se2 "op*" "y" "10"]];
@@ -459,7 +459,13 @@ struct
 
       (** misc *)
       "", `Return [];
-      "foo\n  bar\nend wrong", `Exception "'end wrong' should be 'end foo' or 'end'";        
+      "foo\n  bar\nend wrong", `Exception "'end wrong' should be 'end foo' or 'end'";
+
+      (** string and char parsing *)
+      expectValidId "\"foo\"";
+      expectValidId "'x'";
+      expectValidId "'\\n'";
+      expectValidId "'\\0'";
     ]
 end
   

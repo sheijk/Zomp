@@ -3,6 +3,7 @@ OCAMLLEX=$(OCAMLPATH)ocamllex.opt
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
 OCAML=$(OCAMLPATH)ocaml
+OCAMLRUN=$(OCAMLPATH)ocamlrun
 OCAMLC=$(OCAMLPATH)ocamlc.opt -dtypes -warn-error A -g
 OCAMLOPT=$(OCAMLPATH)ocamlopt.opt -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
@@ -93,8 +94,15 @@ newparsertest: $(NEWPARSER_CMOS)
 
 testnewparser: $(NEWPARSER_CMOS) newparsertest
 	echo Running newparser tests ...
-	ocamlrun -b ./newparsertest
+	$(OCAMLRUN) -b ./newparsertest
 # 	$(OCAML) str.cma bigarray.cma common.cmo testing.cmo iexprtest.ml
+
+alltests: testing.cmo alltests.cmo expandertests.cmo $(LANG_CMOS) $(NEWPARSER_CMOS)
+	echo Building $@ ...
+	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) expandertests.cmo alltests.cmo
+
+runmltests: alltests
+	$(OCAMLRUN) -b ./alltests
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
@@ -159,22 +167,28 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo Generating Zomp bindings using indent syntax for $(<:.skel=) ...
 	./gencode -lang izomp $(<:.skel=)
 
+# CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml\
+# genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll\
+# sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml\
+# iexpr.ml iexprtest.ml newparsertest.ml testing.ml\
+
+CAMLDEP_INPUT= alltests.ml ast2.ml bindings.ml common.ml expander.ml	\
+expandertests.ml gencode.ml genllvm.ml iexpr.ml iexprtest.ml lang.ml	\
+machine.ml newparsertest.ml parseutils.ml semantic.ml sexprtoplevel.ml	\
+testing.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml
+
+# Additional dependencies
+makefile.depends: $(CAMLDEP_INPUT)
+	echo Calculating dependencies ...
+	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > makefile.depends
+
 glfw.zomp: gencode
 opengl20.zomp: gencode
 opengl20.izomp: gencode
 glfw.izomp: gencode
 
-CAMLDEP_INPUT=ast2.ml bindings.ml common.ml expander.ml gencode.ml\
-genllvm.ml lang.ml parseutils.ml semantic.ml sexprparser.mly sexprlexer.mll\
-sexprtoplevel.ml toplevel2.ml typesystems.ml zompc.ml zompvm.ml\
-iexpr.ml iexprtest.ml newparsertest.ml testing.ml
-
-# Additional dependencies
 newparser.ml: newparser.mly ast2.cmo
-
-makefile.depends: $(CAMLDEP_INPUT)
-	echo Calculating dependencies ...
-	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > makefile.depends
+newparsertest.cmo: newparser.cmo
 
 parser2.cmo: ast2.ml
 lexer2.cmo: common.ml
@@ -219,6 +233,7 @@ clean:
 	rm -f opengl20.izomp glfw.izomp
 	rm -f iexpr.cm? iexprtest.cm? newparser.cm? newparser.o iexprtest.o newparser.ml newparser.mli
 	rm -f newparsertest.cmi newparsertest.cmo newparsertest newparsertest.o
+	rm -f expandertests.cm? alltests.cm? alltests
 
 clean_tags:
 	rm -f *.annot

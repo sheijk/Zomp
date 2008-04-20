@@ -72,9 +72,10 @@ let parseIExpr source =
 let parseFunc = ref parseSExpr
 
 let toggleParseFunc args _ =
+  let confirm syntax = printf "Changed syntax to %s\n" syntax in
   match args with
-    | ["sexpr"] -> parseFunc := parseSExpr
-    | ["indent"] -> parseFunc := parseIExpr
+    | ["sexpr"] -> parseFunc := parseSExpr; confirm "sexpr"
+    | ["indent"] -> parseFunc := parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
   
 let toggleVerifyCommand args _ =
@@ -334,11 +335,6 @@ let rec readExpr prompt previousLines bindings =
     expr
   end
     
-let printWelcomeMessage() = 
-  printf "Welcome to the Zomp toplevel.\n";
-  printf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar;
-  printf "\n"
-
 let () =
   let rec step bindings () =
     Parseutils.catchingErrorsDo
@@ -404,27 +400,51 @@ let () =
 
   let addToplevelBindings bindings = bindings in
 
-  if not (Machine.zompInit()) then begin
-    eprintf "Could not initialize ZompVM\n";
-    exit(-1);
-  end;
-  at_exit Machine.zompShutdown;
-  printWelcomeMessage();
-  let finalBindings = 
+  let init() =
+    if not (Machine.zompInit()) then begin
+      eprintf "Could not initialize ZompVM\n";
+      exit(-1);
+    end;
+    at_exit Machine.zompShutdown;
+  in
+  
+  let loadPrelude() = 
     Parseutils.catchingErrorsDo
       (fun () -> begin
          let preludeBindings = Parseutils.loadPrelude "./" in
          let initialBindings = addToplevelBindings preludeBindings in
-         step initialBindings ()
+         initialBindings
        end)
       ~onError:
       (fun msg -> begin
          printf "%s" msg;
          eprintf "Could not load stdlib. Aborting\n";
-         exit (-1);
+         exit (-2);
        end)
   in
-  ignore finalBindings
+
+  let run bindings = step bindings () in
+
+  let message msg = printf "%s\n" msg; flush stdout; in
+
+  message "Welcome to the interactive ZompVM";
+  
+  message "Initializing...";
+  init();
+
+  let recordTiming name f =
+    let startTime = Sys.time() in
+    let result = f() in
+    let endTime = Sys.time() in
+    printf "%s took %fs\n" name (endTime -. startTime);
+    result
+  in
+
+  message "Loading prelude...";
+  let initialBindings = recordTiming "Loading prelude" loadPrelude in
+
+  message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
+  run initialBindings
 
 
     

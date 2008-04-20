@@ -36,4 +36,7 @@ http://sheijk.dword.org/zomp
 
     int zompSimpleAst (const char* name)
     void zompAddChild (int parent, int child)
+#    const char* zompAstId (int ast)
+#    int zompAstChildCount (int ast)
+#    int zompAstChild (int ast, int num)
     

@@ -8,12 +8,12 @@
 !load libGLEW.dylib
 */
 
-(include "opengl20.zomp")
-(include "glfw.zomp")
-(include "tests/glutils.zomp")
-(include "tests/stdio.zomp")
-
 !syntax indent
+
+include "opengl20.zomp"
+include "glfw.zomp"
+include "tests/glutils.zomp"
+include "tests/stdio.zomp"
 
 //------------------------------------------------------------------------------
 
@@ -260,7 +260,7 @@ end
 //   println()
 // end
 
-macro Cstring:forEachChar3 string char onChar
+macro Cstring:forEachChar string char onChar
   uniqueId ptr "forEachChar"
 
   mret ${
@@ -274,9 +274,37 @@ macro Cstring:forEachChar3 string char onChar
 end macro
 
 func void printLine(char* line)
-  Cstring:forEachChar3 line chr
-    var int x 0
+  var char* ptr line
+  while bool:not( char:equal(load(ptr), '\0') )
+    var char chr load(ptr)
+    printChar chr
+    ptr = ptradd(ptr, 1)
   end
+end
+
+macro Cstring:forEachChar string char onChar
+  uniqueId ptr "forEachChar"
+
+  mret ${
+    var char* ptr line
+    while bool:not( char:equal(load(ptr), zero) )
+      var char chr load(ptr)
+      printChar chr
+      ptr = ptradd(ptr, 1)
+    end
+  end}
+end macro
+
+func void printLine(char* line)
+  var char zero '\0'
+
+  Cstring:forEachChar line chr
+    printChar chr
+  end
+end
+
+func void test()
+  printLine "abc"
 end
 
 func Mesh* Mesh:loadPly(cstring fileName)

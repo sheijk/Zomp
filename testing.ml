@@ -74,7 +74,7 @@ module Tester(Cases :CASE_STRUCT) = struct
     let errorCount = List.length errors in
     let testCount = List.length testCases in
     if errorCount > 0 then      
-      printf "%d/%d tests failed" errorCount testCount;
+      printf "%d/%d tests failed\n" errorCount testCount;
       
   exception UnitTestFailure of error list
 end

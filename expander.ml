@@ -435,11 +435,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
 
   if false then constructCallerFunction [];
   
-(*   let callMacro() = *)
-(*     trace "calling macro" *)
-(*       (fun () -> Zompvm.zompRunFunctionInt "macroExec") *)
-(*   in *)
-  
   let calli1i functionName arg =
     Zompvm.zompResetArgs();
     Zompvm.zompAddIntArg arg;
@@ -456,12 +451,19 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
     Zompvm.zompAddIntArg arg1;
     Zompvm.zompRunFunctionIntWithArgs functionName
   in
+
+  let validIdRE = Str.regexp "[a-zA-Z0-9_:\"']+" in
+  let isValidId name = Str.string_match validIdRE name 0 in
   
   let rec extractSExprFromNativeAst astAddress =
     if astAddress = 0 then
       Ast2.idExpr "error, macro returned NULL"
     else
-      let name = calls1i "macroAstId" astAddress in
+      let name =
+        let extracted = calls1i "macroAstId" astAddress in
+        if isValidId extracted then extracted
+        else sprintf "compiler:error:invalidId '%s'" extracted
+      in
       let childCount = calli1i "macroAstChildCount" astAddress in
       let childs =
         let rec getChilds num =

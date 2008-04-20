@@ -1,60 +1,23 @@
 
-// (type cstring (ptr char))
+compilerMessage "Starting compilation of strings.zomp"
 
-// (type string
-//   (int length)
-//  ((ptr char) chars)
-//   )
-// (type pstring (ptr string))
+func bool cstring:notEqual(cstring l, cstring r)
+  ret bool:not(cstring:equal(l, r))
+end
 
-// (func int length ((cstring s)) (
-//   (var (ptr char) ptr s)
-//   (var int count -1)
+func int main()
+  unittest:assertAll
+    char:equal 'x' 'x'
+    char:equal '\n' '\n'
+    cstring:equal "foo" "foo"
+    cstring:notEqual "blah" "blub"
+    length("0123456789") == 10
+  end
 
-//   (label start)
-//   (var char c (load ptr))
+  printChar '\n'
+  println()
 
-//   (assign ptr (ptradd ptr 1))
-//   (assign count (int.add count 1))
-//   (var bool b (char.equal c '\0'))
-//   (branch b end start)
-  
-//   (label end)
-  
-//   (ret count)
-//   ))
+  ret 0
+end
 
-// (func (ptr string) makestring ((cstring cstr)) (
-//   (var (ptr string) pstr (malloc string))
-//   (store (fieldptr pstr length) (length cstr))
-//   (store (fieldptr pstr chars) cstr)
-//   (ret pstr)
-//   ))
 
-(var cstring text "this be text\n")
-
-(func (ptr char) gettext () (seq
-  (text)
-  ))
-
-(func void printstr ((pstring str)) (
-  (printString (getField str chars))
-  ))
-  
-(func int main () (seq
-  (var char c 'x')
-  (printChar c)
-  (printNewline)
-  (printString (gettext))
-  (printInt (length text)) (println)
-  (var pstring left (newString 40 '-'))
-  (printstr left)
-  (var pstring right (newString 40 '='))
-  (printstr right)
-  (println)
-  (var pstring hline (append right left))
-  (printstr hline)
-  (println)
-  111
-  ))
-  

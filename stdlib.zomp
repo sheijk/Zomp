@@ -212,16 +212,23 @@
   ((ptr (ptr ast)) childs) )
 (type astp (ptr ast))
 
-// (func (ptr ast) simpleAst ((cstring name)))
+(func void checkId ((cstring id) (cstring func)))
+(func void checkAst ((astp ast) (cstring func)))
+(func void registerAst ((astp ast)))
+
+(func cstring cstrings:append ((cstring l) (cstring r)))
+
 (func (ptr ast) simpleAst ((cstring name)) (
+  (checkId name "simpleAst")
+
   (var (ptr ast) a (malloc ast))
 
-  (store (fieldptr a id) name)
+  (store (fieldptr a id) (cstrings:append name ""))
   (store (fieldptr a childCount) 0)
   (store (fieldptr a childs) (nullptr (ptr ast)))
 
+  (registerAst a)
   (ret a)
-
   ))
 
 (func (ptr ast) astFromString ((cstring name)) (
@@ -255,6 +262,9 @@
   ))
 
 (func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
+  (checkAst tree "addChild")
+  (checkAst child "addChild")
+
   (var int oldChildCount (getField tree childCount))
   (var int newChildCount (int:add 1 oldChildCount))
   (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
@@ -275,6 +285,18 @@
   (setField tree childCount newChildCount)
   ))
 
+// (func cstring astId (((ptr ast) t)) (
+//   (ret (getField t id))
+//   ))
+
+// (func int astChildCount (((ptr ast) t)) (
+//   (ret (getField t childCount))
+//   ))
+
+// (func astp getChild (((ptr ast) parent) (int index)) (
+//   (var (ptr ast) child (load (ptradd (getField parent childs) index)))
+//   (ret child) ))
+
 /// get pointer to index-th child of parent
 (func astp ast:child (((ptr ast) parent) (int index)) (
   (var (ptr ast) child (load (ptradd (getField parent childs) index)))
@@ -285,12 +307,18 @@
 (var cstring macroRest "postop...")
 
 (func cstring macroAstId ((int macroCurrentAst)) (
-  (getField (cast (ptr ast) macroCurrentAst) id) ))
+  (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
+  (var cstring name (getField (cast (ptr ast) macroCurrentAst) id))
+  (checkId name "macroAstId")
+  (ret name)
+  ))
 
 (func int macroAstChildCount ((int macroCurrentAst)) (
+  (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
   (getField (cast (ptr ast) macroCurrentAst) childCount) ))
 
 (func int macroAstChild ((int treeaddr) (int num)) (
+  (checkAst (cast (ptr ast) treeaddr) "macroAstId")
   (var (ptr ast) tree (cast (ptr ast) treeaddr))
   (var (ptr ast) child (load (ptradd (getField tree childs) num)))
   (var int i (cast int child))

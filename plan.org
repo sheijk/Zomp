@@ -1,17 +1,51 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
-** TODO [#A] bugs wenn innerhalb eines macros andere macros getriggert werden?
-** TODO [#A] scheint in der stdlib zu sein
-** TODO [#A] koennte daran liegen dass redefinitionen im compiler anders behandelt werden
+** TODO [#A] speichermanagement fixen!!! (ast.id wird manchmal geloescht.. im ocaml ffi?)
+** TODO [#A] keine fehler ausgabe im prelude?
+** TODO [#A] define operator funcs in indent syntax (func l == r ...)
+** TODO [#A] unit tests still use identifiers with dots (line 'int.add') - change this to colon (int:add)
+** TODO [#A] toplevel: run expr through macro expansion. if it consists only of toplevel exprs evaluate, otherwise run immediate
+** TODO [#A] char handling in macro expansion fucked up?
+macro Cstring:forEachChar string char onChar
+  uniqueId ptr "forEachChar"
+
+  mret ${
+    var char* ptr line
+    while bool:not( char:equal(load(ptr), '\0') )
+      var char chr load(ptr)
+      printChar chr
+      ptr = ptradd(ptr, 1)
+    end
+  end}
+end macro
+
+In macro expansion the \0 will be replaced by an !
+   
+** TODO [#A] sometimes macros can't be parsed at the toplevel (might be related to the macro expansion string fuckup)
+** TODO [#A] todos nach features ordnen + mit tags versehen
+** TODO [#A] unique/linear types
+   - nach erzeugung linear, bis das erste mal eine zuweisung passiert
+   - mit pattern matching bzw. on-the-fly typanpassung?
+   - funktionen beeinflussen linear eigenschaft?
+     
+** TODO [#A] prio fuer call(a,b,c) analog zu operator precedence loesen? (ala multExpr, addExpr)
+** TODO [#A] reduce to llvm bindings and macros (mixed ocaml/zomp macro system for now)
+** TODO [#A] subseq "foo" -2 => "oo", subseq "foo" 2 => "fo" etc.
+** TODO [#A] proper support for compile time variables
+** TODO [#A] simplify all base language forms so only one syntax is allowed and support variants using macros
+** TODO [#A] move all builtin forms into zomp namespace (e.g. zmp:base:var etc.)
+** TODO [#A] disallow identifiers which only differ in capitalization (unless for type/function, e.g. if they denote different kinds of elements?)
+** TODO [#A] bugs wenn innerhalb eines makros andere makros getriggert werden?
 ** TODO [#A] macro expansion failures in compiler but not toplevel (comments.zomp), getting weird characters
+   scheint in der stdlib zu sein
+   koennte daran liegen dass redefinitionen im compiler anders behandelt werden
 ** TODO [#A] int to char conversion
 ** TODO [#A]     store ptradd(buffer, 99) '\0' => llvm failure
 ** TODO [#A] ast:print( ${foo bar}, 0 ) => fails
 ** TODO [#A]     store ptradd(indices, 4 * #num + 0) #a => fails to parse
 ** TODO [#A]   store ptradd(vertArray, 3*num + 0) x => error (see below)
 ** TODO [#A] give additional info if a name resolves to something of the wrong type (expected type but found function etc.)
-** TODO [#A] parse ${} correctly as (seq)
 ** TODO [#A] evaluating multipe expressions will ignore all but the last (iexpr) (sometimes)
 ** TODO [#A] (include ..) should support iexpr syntax
 ** TODO [#A] better error message on invalid typedef
@@ -72,9 +106,16 @@ void Render(float t)
    
    - [ ] global pointers
    - [ ] module level init code (run on load)
+         
+** overloaded functions
+   It should be possible to supply support for overloaded functions as macros
+
+   - [ ] get the type of variables
+         (possibly trigger macro expansion of an ast from within macros)
+   - [ ] compile time global variables
 
 * Tasks											:zomp:
-  
+
 ** BUGS
 
 *** TODO [#B] check where `DefineVariable for void vars comes from
@@ -214,6 +255,9 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** TODO [#C] Turn value type into polymorphic variant type
     
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
+
+*** TODO [#A] Change expander.ml: dispatching only done by the expression's id
+    Then make all operations available as fake-macros (zmp:compiler:macroExpand etc.)
     
 ** Testing
 
@@ -233,18 +277,19 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** TODO [#C] parse (a b c) into (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
 *** TODO [#B] support "\"" in strings
 *** TODO [#A] add += -= *= /= etc. operators
-*** TODO [#A] parse logical ops &, |, &&, ||
+*** DONE [#A] parse logical ops &, |, &&, ||
+    CLOSED: [2008-04-14 Mon 01:17]
 *** TODO [#A] / should be left associative: a / b / c => (a / b) / c	   :bug:
 *** TODO [#B] parser: keep track of line and char number and add this to error messages
 
 ** Compiler
 
+*** TODO [#A] error on redefining vars
 *** TODO [#A] error when local var is redefined
 *** TODO [#A] no segfaults when redefining local variables
 *** TODO [#A] allow uninitialized vars
 *** TODO [#A] allow (var foo x) where the type of var is propagated
-*** TODO [#A] error on redefining vars
-*** TODO [#A] warnings on unused variables
+*** TODO [#B] warnings on unused variables
 *** TODO [#B] compileperf.zomp  mit 16k funktionen profilen
 *** TODO [#A] support abstract types (which may be only used through pointers)
 *** TODO [#A] rename local macros
@@ -267,7 +312,6 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) ) :bug:
 *** TODO [#A] support paths for include / import / etc.                 
 *** TODO [#B] refactor: make all compiler functionality available from zomp expressions
-*** TODO [#A] expander: cause error when local variable is redefined
 *** TODO Indent-sensitive syntax
 
 **** DONE [#B] iexpr does not ignore empty lines preceeding unindents
@@ -432,34 +476,56 @@ check whether this makes IR-verification faster / prevent bugs / ...
 *** TODO [#A] better error message on `(ret `(...)) in macro
 *** TODO [#A] protect against recursive macro invocations
 *** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c)
+    Reevaluate!
     (at least if foo does not have any arguments)
+    
 *** TODO [#B] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
 
 *** TODO [#A] name collisions of macros and functions (?) causes problems
 Put macro functions into seperate module
 
 *** TODO [#B] Hygienic macro support?
-
-*** DONE Allow definition of simple "template" macros
+*** Archive                                                            :ARCHIVE:
+**** DONE Allow definition of simple "template" macros
+     :PROPERTIES:
+     :ARCHIVE_TIME: 2008-04-14 Mon 01:34
+     :END:
      
-*** DONE Allow running code inside macros
-     CLOSED: [2007-10-29 Mon 15:48]
+**** DONE Allow running code inside macros
+      CLOSED: [2007-10-29 Mon 15:48]
+     :PROPERTIES:
+      :ARCHIVE_TIME: 2008-04-14 Mon 01:35
+     :END:
      
-*** DONE Insert astFromInt or astFromString if a var/func returns int/string
-     CLOSED: [2007-11-02 Fri 02:46]
+**** DONE Query existing functions and variables
+      CLOSED: [2007-11-16 Fri 02:33]
+     :PROPERTIES:
+      :ARCHIVE_TIME: 2008-04-14 Mon 01:35
+     :END:
      
-*** DONE Allow macros to call any ordinary function
-     CLOSED: [2007-11-02 Fri 02:50]
+**** DONE Write "for i min max" macro
+      CLOSED: [2007-11-02 Fri 02:50]
+     :PROPERTIES:
+      :ARCHIVE_TIME: 2008-04-14 Mon 01:35
+     :END:
      
-*** DONE Write "if then else" macro
-     CLOSED: [2007-12-04 Tue 00:23]
+**** DONE Write "if then else" macro
+      CLOSED: [2007-12-04 Tue 00:23]
+     :PROPERTIES:
+      :ARCHIVE_TIME: 2008-04-14 Mon 01:35
+     :END:
      
-*** DONE Write "for i min max" macro
-     CLOSED: [2007-11-02 Fri 02:50]
+**** DONE Allow macros to call any ordinary function
+      CLOSED: [2007-11-02 Fri 02:50]
+     :PROPERTIES:
+      :ARCHIVE_TIME: 2008-04-14 Mon 01:35
+     :END:
      
-*** DONE Query existing functions and variables
-     CLOSED: [2007-11-16 Fri 02:33]
-     
+**** DONE Insert astFromInt or astFromString if a var/func returns int/string
+      CLOSED: [2007-11-02 Fri 02:46]
+     :PROPERTIES:
+      :ARCHIVE_TIME: 2008-04-14 Mon 01:35
+     :END:
 ** Language / APIs
 
 *** TODO [#B] framebuffer cleanup/releasing code

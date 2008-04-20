@@ -41,6 +41,9 @@ namespace {
 
   static Function* simpleAst = NULL;
   static Function* addChild = NULL;
+  static Function* astId = NULL;
+  static Function* astChildCount = NULL;
+  static Function* getChild = NULL;
 
   static void loadLLVMFunctions()
   {
@@ -90,6 +93,15 @@ namespace {
       addChild = new Function(
         FuncTy_80, GlobalValue::ExternalLinkage, "addChild", llvmModule); 
       addChild->setCallingConv(CallingConv::C);
+    }
+
+    { // astId decl
+    }
+
+    { // astChildCount decl
+    }
+
+    { // getChild decl
     }
     
 //     { // simpleAst def
@@ -226,6 +238,12 @@ namespace
   static GenericValue ptrValue(int i) {
     GenericValue v;
     v.PointerVal = bitcast<void*>(i);
+    return v;
+  }
+
+  static GenericValue intValue(int i) {
+    GenericValue v;
+    v.IntVal = i;
     return v;
   }
 }
@@ -553,8 +571,45 @@ extern "C" {
 //   (var int i (cast int child))
 //   (ret i)
 //   ))
+
+
+  static bool validIdChar(char c) {
+    return (c >= 'a' && c <= 'z')
+      || (c >= '0' && c <= '9')
+      || (c >= 'A' && c <= 'Z')
+      || (c == '_')
+      || (c == ':')
+      || (c == '=')
+      || (c == '!')
+      || (c == '<')
+      || (c == '>')
+      || (c == '*')
+      || (c == '/')
+      || (c == '+')
+      || (c == '-')
+      || (c == '"')
+      || (c == '.')
+      || (c == ' ')
+      || (c == '\\')
+      || (c == '\'');
+  }
   
+  void checkId(const char* id, const char* func) {
+    bool valid = true;
+
+    const char* ptr = id;
+    while( *ptr != '\0' ) {
+      valid &= validIdChar(*ptr++);
+    }
+
+    if( ! valid ) {
+      printf("Found invalid id '%s' in '%s'\n", id, func);
+    }
+  }
+
   int zompSimpleAst(char* name) {
+    checkId(name, "zompSimpleAst");
+    
     std::vector<GenericValue> args;
     
     args.push_back( ptrValue(name) );
@@ -572,6 +627,134 @@ extern "C" {
 
     executionEngine->runFunction( addChild, args );
   }
+
+  static std::set<void*> registeredAsts;
+
+  void registerAst(void* ast) {
+    registeredAsts.insert(ast);
+  }
+
+  void checkAst(void* ast, const char* func) {
+    if( registeredAsts.find(ast) == registeredAsts.end() ) {
+      printf( "Warning: found unregistered ast in %s\n", func );
+    }
+  }
+  
+  
+//   typedef std::map<int, void*> IdToAstMapping;
+//   IdToAstMapping astIdTable;
+//   typedef std::map<void*, int> AstToIdMapping;
+//   AstToIdMapping idAstTable;
+//   static int lastAstId = 0;
+
+//   int addAstToTable(void* ast) {
+//     ++lastAstId;
+    
+//     astIdTable.insert( std::make_pair(lastAstId, ast) );
+//     idAstTable.insert( std::make_pair(ast, lastAstId) );
+//     return lastAstId;
+//   }
+
+//   int findAstId(void* ast) {
+//     AstToIdMapping::iterator iter = idAstTable.find(ast);
+//     if( iter != idAstTable.end() ) {
+//       return iter->second;
+//     }
+//     else {
+//       return 0;
+//     }
+//   }
+
+//   void* findAstById(int id) {
+//     IdToAstMapping::iterator iter = astIdTable.find(id);
+//     if( iter != astIdTable.end() ) {
+//       return iter->second;
+//     }
+//     else {
+//       return NULL;
+//     }
+//   }
+
+//   int zompSimpleAst(char* name) {
+//     std::vector<GenericValue> args;
+    
+//     args.push_back( ptrValue(name) );
+
+//     GenericValue retval = executionEngine->runFunction( simpleAst, args );
+
+//     return addAstToTable(retval.PointerVal);
+//   }
+
+//   void zompAddChild(int parent, int child) {
+//     void* parentPtr = findAstById(parent);
+//     void* childPtr = findAstById(child);
+
+//     if( parentPtr != NULL && childPtr != NULL ) {
+//       std::vector<GenericValue> args;
+
+//       args.push_back( ptrValue(parentPtr) );
+//       args.push_back( ptrValue(childPtr) );
+    
+//       executionEngine->runFunction( addChild, args );
+//     }
+//     else {
+//       printf( "Warning: zompAddChild invoked with invalid ast ids" );
+//       fflush(stdout);
+//     }
+//   }
+
+//   GenericValue call1(Function* func, void* arg0) {
+//     std::vector<GenericValue> args;
+//     args.push_back( ptrValue(arg0) );
+//     return executionEngine->runFunction(func, args);
+//   }
+
+//   GenericValue call2(Function* func, void* arg0, int arg1) {
+//     std::vector<GenericValue> args;
+//     args.push_back( ptrValue(arg0) );
+//     args.push_back( intValue(arg1) );
+//     return executionEngine->runFunction(func, args);
+//   }
+
+//   const char* zompAstId (int ast) {
+//     void* astPtr = findAstById(ast);
+
+//     if( astPtr != NULL ) {
+//       return (const char*) call1(astId, astPtr).PointerVal;
+//     }
+//     else {
+//       printf( "Warning: zompAstId called with invalid ast id" );
+//       fflush( stdout );
+//       return "compiler:error:invalidAstId(zompAstId)";
+//     }
+//   }
+  
+//   const int zompAstChildCount (int ast) {
+//     void* astPtr = findAstById(ast);
+
+//     if( astPtr != NULL ) {
+//       return call1(astChildCount, astPtr).IntVal.getLimitedValue();
+//     }
+//     else {
+//       printf( "Warning: zompAstChildCount called with invalid ast id" );
+//       fflush( stdout );
+//       return 0;
+//     }
+//   }
+  
+//   int zompAstChild (int ast, int num) {
+//     void* astPtr = findAstById(ast);
+//     if( astPtr != NULL ) {
+//       void* childId = call2(getChild, astPtr, num).PointerVal;
+//       return findAstId( childId );
+//     }
+//     else {
+//       printf( "Warning: zompAstChild called with invalid ast id" );
+//       fflush( stdout );
+//       return 0;
+//     }
+//   }
+    
 
   void zompRunMacro() {
   }
