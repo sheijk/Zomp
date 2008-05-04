@@ -48,14 +48,16 @@ let whitespaceRE = Str.regexp " +"
 
 type token = [ indentToken | userToken ]
 
+(**
+ * each rule contains of two regexps (one for the string allowed to precede the expression
+ * and one which matches the token) and a function turning the matched string into a token
+ *)
 let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBack of token * string])) list =
-  (*   let re = Str.regexp in *)
   let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
   let idFunc s = `Identifier s in
   let regexpRule str token = 
     re str,
-    (fun matchedStr ->
-       token)
+    (fun matchedStr -> token)
   in
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let validIdentifierChars = "a-zA-Z0-9:_" in
@@ -105,9 +107,12 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
        assert( str = foundStr );
        `Quote str)
   in
+  let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
+  let singleLineCommentRule = (Str.regexp ".*", Str.regexp "//[^\n]*\n"), (fun _ -> `Ignore) in
   [
     identifierRule;
-    (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore);
+    whitespaceRule;
+    singleLineCommentRule;
     regexpRule "(" `OpenParen;
     regexpRule ")" `CloseParen;
     regexpRule "{" `OpenCurlyBrackets;
@@ -208,7 +213,7 @@ let token (lexbuf : token lexerstate) : token =
       raise Eof;
 
     if isNewline currentChar then begin
-      let rec consumeWhitespace indent =
+      let rec consumeWhitespaceAndReturnIndent indent =
         let eof, nextChar =
           try false, lexbuf.readChar()
           with Eof -> true, '\n'
@@ -216,28 +221,32 @@ let token (lexbuf : token lexerstate) : token =
         if eof then
           indent
         else if isWhitespace nextChar then
-          consumeWhitespace (indent+1)
+          consumeWhitespaceAndReturnIndent (indent+1)
         else if isNewline nextChar then
-          consumeWhitespace indent
+          consumeWhitespaceAndReturnIndent 0
         else begin
           lexbuf.backTrack 1;
           indent
         end
       in
-      let indent = consumeWhitespace 0 in
+      let indent = consumeWhitespaceAndReturnIndent 0 in
       let prevIndent = lexbuf.prevIndent in
       lexbuf.prevIndent <- indent;
+      
       if lexbuf.readTokenBefore = false then begin
-        if indent = prevIndent then
-          worker ()
-        else
-          raiseIndentError lexbuf.location
-            "First line needs to be indented at column 0"
+        if indent = prevIndent then worker ()
+        else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
+          
       end else begin
+TODO:        realize comments using preprocessor!
+        (* lookup forward for `Ignore and possibly reset indent? *)
         if indent = prevIndent then begin
           `End
-        end else if indent > prevIndent then begin
+        end else if indent = prevIndent + 2 then begin
           `BeginBlock
+        end else if indent > prevIndent then begin
+          raiseIndentError lexbuf.location
+            (sprintf "Indentation was increased by %d spaces but only 2 are legal" (indent - prevIndent))
         end else if indent = prevIndent - 2 then begin
           let line = readUntil isNewline lexbuf in
           if isBlockEndLine line then begin
@@ -256,11 +265,12 @@ let token (lexbuf : token lexerstate) : token =
           end
         end else begin (* indent is more than one level less than in previous line *)
           raiseIndentError lexbuf.location
-            "Indentation may only be reduced by two spaces at a time"
+            (sprintf "Indentation was reduced by %d spaces but only steps of 2 are legal" (prevIndent - indent))
         end
       end
 
-    end else begin (** no newline *)
+    (** no newline *)
+    end else begin
       let rec findToken prevInput prevFullMatches =
         let actualChar = lexbuf.readChar() in
         let input = prevInput ^ String.make 1 actualChar in
@@ -278,20 +288,21 @@ let token (lexbuf : token lexerstate) : token =
           let spareInput = Str.string_after input length in
           let consumedInput = Str.string_before input length in
           putback lexbuf spareInput;
-          let token =
-            match makeToken consumedInput with
+          let token : [`Ignore | token] =
+            match (makeToken consumedInput : [`Ignore | `PutBack of token * string | token]) with
               | `PutBack(token, prefetched) ->
                   putback lexbuf prefetched;
-                  token
-              | `Ignore ->
-                  let lastReadChar =
-                    let len = String.length lexbuf.lastReadChars in
-                    if len >= 1 then lexbuf.lastReadChars.[len-1]
-                    else '\n'
-                  in
-                  lexbuf.endOfLastToken <- lastReadChar;
-                  worker ()
-              | #token as token -> token
+                  (token :> [`Ignore|token])
+                    (*               | `Ignore -> *)
+                    (*                   let lastReadChar = *)
+                    (*                     let len = String.length lexbuf.lastReadChars in *)
+                    (*                     if len >= 1 then lexbuf.lastReadChars.[len-1] *)
+                    (*                     else '\n' *)
+                    (*                   in *)
+                    (*                   lexbuf.endOfLastToken <- lastReadChar; *)
+                    (*                   worker () *)
+              | `Ignore -> `Ignore
+              | #token as token -> (token :> [`Ignore|token])
           in
           token
         in
@@ -322,9 +333,21 @@ let token (lexbuf : token lexerstate) : token =
       findToken "" []
     end
   in
+  let rec getNextToken() =
+    match worker() with
+      | `Ignore ->
+          let lastReadChar =
+            let len = String.length lexbuf.lastReadChars in
+            if len >= 1 then lexbuf.lastReadChars.[len-1]
+            else '\n'
+          in
+          lexbuf.endOfLastToken <- lastReadChar;
+          getNextToken()
+      | #token as token -> token
+  in
   let token =
     match lexbuf.pushedTokens with
-      | [] -> worker ()
+      | [] -> getNextToken()
       | firstToken :: remainingTokens ->
           lexbuf.pushedTokens <- remainingTokens;
           firstToken

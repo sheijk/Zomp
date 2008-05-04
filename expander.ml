@@ -377,6 +377,14 @@ let trace message f =
   log ("<- " ^ message);
   result
 
+let foldString str f init =
+  let strLength = String.length str in
+  let rec worker index v =
+    if index >= strLength then v
+    else worker (index+1) (f v str.[index])
+  in
+  worker 0 init
+    
 let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
   let expectedArgCount = List.length argNames in
   let foundArgCount = List.length args in
@@ -452,8 +460,9 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
     Zompvm.zompRunFunctionIntWithArgs functionName
   in
 
-  let validIdRE = Str.regexp "[a-zA-Z0-9_:\"']+" in
-  let isValidId name = Str.string_match validIdRE name 0 in
+(*   let validIdRE = Str.regexp "[a-zA-Z0-9_:\"']+" in *)
+(*   let isValidId name = Str.string_match validIdRE name 0 in *)
+  let isValidId name = foldString name (fun wasValid chr -> wasValid && Char.code chr < 128) true in
   
   let rec extractSExprFromNativeAst astAddress =
     if astAddress = 0 then
@@ -479,16 +488,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       { id = name; args = childs }
   in
   
-(*   log "constructing caller function"; *)
-(*   constructCallerFunction args; *)
-(*   log "running macro"; *)
-(*   let astAddress = callMacro() in *)
-
-(*   let log msg = *)
-(*     printf "[msg] %s\n" msg; *)
-(*     flush stdout *)
-(*   in *)
-
   let createArgs() =
     let rec buildNativeAst = function
       | {id = id; args = []} ->
@@ -510,11 +509,6 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
 
   log "Creating args";
   let argsAddresses = createArgs() in
-(*   printf "Args = \n"; *)
-(*   List.iter (fun argAddr -> *)
-(*                let arg = extractSExprFromNativeAst argAddr in *)
-(*                printf "%s\n" (Ast2.toString arg)) *)
-(*     argsAddresses; *)
   log "Calling macro";
   let astAddress = callMacro argsAddresses in
   

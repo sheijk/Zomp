@@ -13,7 +13,6 @@
 include "opengl20.zomp"
 include "glfw.zomp"
 include "tests/glutils.zomp"
-include "tests/stdio.zomp"
 
 //------------------------------------------------------------------------------
 
@@ -23,6 +22,17 @@ template macro:failUnless cond
   end
 end
 
+/// if statement
+///
+/// Usage example:
+/// 
+/// if a > 10 then
+///   print "It's bigger!"
+/// else if a < 5 then
+///   print "It's smaller!"
+/// else
+///   print "Neither to big nor to small. Purrfect"
+/// end
 macro if2 cond then onTrue remArgs...
   println()
 
@@ -65,6 +75,8 @@ macro if2 cond then onTrue remArgs...
   ret code
 end
 
+/// Allocate storage and initialize variable
+/// `new Foo a b c' does the same as `var Foo* this (malloc Foo); Foo:init(this,a,b,c); this'
 macro new type args...
   uniqueId name "new"
 
@@ -223,34 +235,34 @@ macro uniqueIds purpose ids...
   ret code
 end
 
-macro File:forEachLine fileName lineVar onLine
-  uniqueId fileVar "file"
-  uniqueId bufferSize "file"
-  uniqueId eof "file"
-  uniqueId result "file"
-  uniqueId nothingRead "file"
+// macro File:forEachLine fileName lineVar onLine
+//   uniqueId fileVar "file"
+//   uniqueId bufferSize "file"
+//   uniqueId eof "file"
+//   uniqueId result "file"
+//   uniqueId nothingRead "file"
 
-  var ast* code ${
-    var FILE* #fileVar fopen(#fileName, "r")
-    var int #bufferSize 1000
-    var char* #lineVar malloc(char, #bufferSize)
+//   var ast* code ${
+//     var FILE* #fileVar fopen(#fileName, "r")
+//     var int #bufferSize 1000
+//     var char* #lineVar malloc(char, #bufferSize)
 
-    var bool #eof false
+//     var bool #eof false
 
-    while bool:not(#eof)
-      var char* #result fgets(#lineVar, #bufferSize, #fileVar)
+//     while bool:not(#eof)
+//       var char* #result fgets(#lineVar, #bufferSize, #fileVar)
 
-      #onLine
+//       #onLine
 
-      var bool #nothingRead #result ==_ptr nullptr(char)
-      #eof = #nothingRead
-    end
+//       var bool #nothingRead #result ==_ptr nullptr(char)
+//       #eof = #nothingRead
+//     end
 
-    fclose(#fileVar)
-  end}
+//     fclose(#fileVar)
+//   end}
 
-  ret code
-end
+//   ret code
+// end
 
 // func void test()
 //   var char* chr malloc(char)
@@ -260,63 +272,63 @@ end
 //   println()
 // end
 
-macro Cstring:forEachChar string char onChar
-  uniqueId ptr "forEachChar"
+// macro Cstring:forEachChar string char onChar
+//   uniqueId ptr "forEachChar"
 
-  mret ${
-    var char* #ptr #string
-    while bool:not( char:equal(load(#ptr), '\0') )
-      var char #char load(#ptr)
-      #onChar
-      #ptr = ptradd(#ptr, 1)
-    end
-  end}
-end macro
+//   mret ${
+//     var char* #ptr #string
+//     while bool:not( char:equal(load(#ptr), '\0') )
+//       var char #char load(#ptr)
+//       #onChar
+//       #ptr = ptradd(#ptr, 1)
+//     end
+//   end}
+// end macro
 
-func void printLine(char* line)
-  var char* ptr line
-  while bool:not( char:equal(load(ptr), '\0') )
-    var char chr load(ptr)
-    printChar chr
-    ptr = ptradd(ptr, 1)
-  end
-end
+// func void printLine(char* line)
+//   var char* ptr line
+//   while bool:not( char:equal(load(ptr), '\0') )
+//     var char chr load(ptr)
+//     printChar chr
+//     ptr = ptradd(ptr, 1)
+//   end
+// end
 
-macro Cstring:forEachChar string char onChar
-  uniqueId ptr "forEachChar"
+// macro Cstring:forEachChar string char onChar
+//   uniqueId ptr "forEachChar"
 
-  mret ${
-    var char* ptr line
-    while bool:not( char:equal(load(ptr), zero) )
-      var char chr load(ptr)
-      printChar chr
-      ptr = ptradd(ptr, 1)
-    end
-  end}
-end macro
+//   mret ${
+//     var char* ptr line
+//     while bool:not( char:equal(load(ptr), zero) )
+//       var char chr load(ptr)
+//       printChar chr
+//       ptr = ptradd(ptr, 1)
+//     end
+//   end}
+// end macro
 
-func void printLine(char* line)
-  var char zero '\0'
+// func void printLine(char* line)
+//   var char zero '\0'
 
-  Cstring:forEachChar line chr
-    printChar chr
-  end
-end
+//   Cstring:forEachChar line chr
+//     printChar chr
+//   end
+// end
 
-func void test()
-  printLine "abc"
-end
+// func void test()
+//   printLine "abc"
+// end
 
-func Mesh* Mesh:loadPly(cstring fileName)
+// func Mesh* Mesh:loadPly(cstring fileName)
 
-  File:forEachLine fileName buffer
-    printString("=> ")
+//   File:forEachLine fileName buffer
+//     printString("=> ")
 
-    printLine(buffer)
-  end
+//     printLine(buffer)
+//   end
 
-  ret nullptr(Mesh)
-end
+//   ret nullptr(Mesh)
+// end
 
 func void test()
   var Mesh* mesh Mesh:loadPly("data/test.ply")
@@ -355,8 +367,10 @@ func int main()
   const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
-  var float time 0.0
+  var Mesh* mesh makeCube(1.0)
+  Mesh:print(mesh)
 
+  var float time 0.0
   var bool running true
 
   while running

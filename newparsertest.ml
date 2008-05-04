@@ -134,12 +134,7 @@ struct
 
   let testedFunc str =
     try
-      if str = "${}" then begin
-        printf "foo";
-        parseSExpr str
-      end
-      else
-        parseSExpr str
+      parseSExpr str
     with error ->
       let tokens = Iexprtest.lexString str in
       let str = Iexprtest.tokensToString tokens in
@@ -250,7 +245,7 @@ struct
 
       "a +5", `Exception "Unbalanced whitespace";
 
-      "(sin 10) / (cos 20)", `Return [expr "op/" [jux ["sin"; "10"]; jux ["cos"; "20"]]];
+      (* "(sin 10) / (cos 20)", `Return [expr "op/" [jux ["sin"; "10"]; jux ["cos"; "20"]]]; *)
       
       (** invalid cases *)
       "§", `Exception "Invalid char";
@@ -273,8 +268,8 @@ struct
       "sqrt(2 + 3)", `Return [callExpr [id "sqrt"; se2 "op+" "2" "3"]];
 
       (** s-expressions (currently not supported) *)
-(*       "quote {foo bar}", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]]; *)
-(*       "printAst({foo bar})", `Return [callExpr [id "printAst"; jux ["foo"; "bar"]]]; *)
+      (*       "quote {foo bar}", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]]; *)
+      (*       "printAst({foo bar})", `Return [callExpr [id "printAst"; jux ["foo"; "bar"]]]; *)
 
       "print (foo bar baz)", `Return [juxExpr [id "print"; jux ["foo"; "bar"; "baz"]]];
       "print sin(10)", `Return [juxExpr [id "print"; call ["sin"; "10"]]];
@@ -368,15 +363,39 @@ struct
         ]
       ];
 
-(*       "for: p in primes\n\ *)
-(*       \  print p\n\ *)
-(*       \  log p", *)
-(*       `Return [juxExpr [ *)
-(*                  id "for"; id "p"; id "in"; id "primes"; *)
-(*                  seqExpr [ *)
-(*                    jux ["print"; "p"]; *)
-(*                    jux ["log"; "p"]; *)
-(*                  ]]]; *)
+      "if foo\n" ^
+        "  ontrue\n" ^
+        "else\n" ^
+        "  onfalse\n",
+      `Return [juxExpr [id "if"; id "foo";
+                        seqExpr[id "ontrue";];
+                        id "else";
+                        seqExpr[id "onfalse"]]];
+      
+      "main blah\n" ^
+        "  nested\n" ^
+        "    body\n" ^
+        "  nested2\n" ^
+        "end main\n",
+      `Return [juxExpr [id "main"; id "blah"; seqExpr [
+                          juxExpr [id "nested";
+                                   seqExpr [id "body"];
+                                   id "nested2"]]]];
+
+      "main foo\n" ^
+        "  nested\n" ^
+        "end wrong",
+      `Exception "Should fail because 'wrong' would need to be 'main' or be omitted";
+
+      (*       "for: p in primes\n\ *)
+      (*       \  print p\n\ *)
+      (*       \  log p", *)
+      (*       `Return [juxExpr [ *)
+      (*                  id "for"; id "p"; id "in"; id "primes"; *)
+      (*                  seqExpr [ *)
+      (*                    jux ["print"; "p"]; *)
+      (*                    jux ["log"; "p"]; *)
+      (*                  ]]]; *)
 
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];
@@ -392,8 +411,8 @@ struct
       "x.add(2 * 3)",
       `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]];
 
-(*       "*foo.print()", *)
-(*       `Return [expr "op." [se1 "preop*" "foo"; call ["print"]]]; *)
+      (*       "*foo.print()", *)
+      (*       `Return [expr "op." [se1 "preop*" "foo"; call ["print"]]]; *)
 
       (** juxtaposition has lowest priority *)
       "print 10 + 20",
@@ -415,8 +434,8 @@ struct
       "if 2 > 3 then",
       `Return [juxExpr [id "if"; se2 "op>" "2" "3"; id "then"]];
 
-(*       "for i = 0 .. 100", *)
-(*       `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
+      (*       "for i = 0 .. 100", *)
+      (*       `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *)
 
       (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];
@@ -466,6 +485,32 @@ struct
       expectValidId "'x'";
       expectValidId "'\\n'";
       expectValidId "'\\0'";
+      
+      (** comments *)
+      "// single line comment\n" ^
+        "var int x",
+      `Return [jux ["var"; "int"; "x"]];
+      
+      "// comment only", `Return [];
+
+      "whitespace(atEOF)\n ", `Return [call ["whitespace"; "atEOF"]];
+      "nonempty whitespace lines\n   \ninbetween",
+      `Return [jux ["nonempty"; "whitespace"; "lines"]; id "inbetween"];
+      
+      "foo(bar)\n" ^
+        "// comment at end of file",
+      `Return [call ["foo"; "bar"]];
+
+      "first line\n" ^
+        "// comment inbetween\n" ^
+        "second line", `Return [jux ["first"; "line"]; jux ["second"; "line"]];
+      
+      "first line\n" ^
+        "    // comment inbetween indented\n" ^
+        "second line", `Return [jux ["first"; "line"]; jux ["second"; "line"]];
+      
+      "var int x // the x variable\n",
+      `Return [jux ["var"; "int"; "x"]];
     ]
 end
   

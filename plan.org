@@ -1,6 +1,32 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
+** TODO [#A] `undefine name' => name kann nicht mehr verwendet werden
+** TODO [#A] runtime checks generieren
+** TODO [#A] if (*addF)(3, 4) > 10
+   => jux (preop* addF) (op> (op, 3 4) 10)
+   Sollte aber jux if (op> (opcall (preop* addF) 3 4) 10) sein
+
+   Regeln fuer jux/call aendern? Doch jux hoechste Prioritaet geben und Klammern verwenden?
+   Oder {} fuer Prioritaet?
+
+*** Zu Bedenken:
+   
+   let x + y = ...
+   if cond(arg) then ...
+
+   sin x + cos y
+   
+*** Evtl
+    if: expr* then: expr*
+
+    visitTree: tree onLeaf: leafF onNode: nodeF
+
+    for: i in: 10 .. 20 do: print i; println()
+    
+** TODO [#A] foo(bar baz) auch als call parsen? foo {bar baz} dann um jux zu bekommen
+** TODO [#A] rename modules of indent based parser and seperate them from the unit tests
 ** TODO [#A] printString "foo\n" ignored newline on both sexpr and indent syntax
 ** TODO [#A] stack basiertes system fuer settings/bindings im macro expander
 ** TODO [#A] haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
@@ -55,6 +81,13 @@ In macro expansion the \0 will be replaced by an !
 ** TODO [#A] empty lines containing spaces let the parser fail
 
 * Use Cases
+
+** Indent based syntax [1/3]
+   - [ ] support for comments
+   - [ ] code cleanup
+         correctly named modules, remove junk etc.,
+         seperate unit tests
+   - [X] support in toplevel and compiler
 
 ** .obj Loader [0/2]
    
