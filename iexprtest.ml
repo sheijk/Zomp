@@ -6,6 +6,8 @@
 open Printf
 open Common
 
+exception Eof
+  
 type location = {
   line :int;
   fileName :string;
@@ -176,7 +178,7 @@ let readUntil abortOnChar state =
   in
   begin try
     worker()
-  with End_of_file -> () end;
+  with Eof -> () end;
   !acc
 
 
@@ -203,13 +205,13 @@ let token (lexbuf : token lexerstate) : token =
   let rec worker () =
     let currentChar = lexbuf.readChar() in
     if currentChar = '!' then (** hack to allow to abort within file *)
-      raise End_of_file;
+      raise Eof;
 
     if isNewline currentChar then begin
       let rec consumeWhitespace indent =
         let eof, nextChar =
           try false, lexbuf.readChar()
-          with End_of_file -> true, '\n'
+          with Eof -> true, '\n'
         in
         if eof then
           indent
@@ -385,11 +387,11 @@ let makeLexbuf fileName readCharFunc =
   let rec lexbuf = 
     let readCharExtraNewline () =
       if !eof then
-        raise End_of_file
+        raise Eof
       else
         try
           readCharFunc()
-        with End_of_file ->
+        with Eof ->
           eof := true;
           '\n'
     in
@@ -438,7 +440,7 @@ let lexbufFromString fileName string =
       incr position;
       chr
     end else
-      raise End_of_file
+      raise Eof
   in
   makeLexbuf fileName readCharFunc
 
@@ -476,7 +478,7 @@ let lexString str =
   let rec worker acc =
     let maybeToken = 
       try Some (token lexbuf)
-      with End_of_file -> None
+      with Eof -> None
     in
     match maybeToken with
       | Some t -> worker (t::acc)

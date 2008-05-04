@@ -1,6 +1,9 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] printString "foo\n" ignored newline on both sexpr and indent syntax
+** TODO [#A] stack basiertes system fuer settings/bindings im macro expander
+** TODO [#A] haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
 ** TODO [#A] speichermanagement fixen!!! (ast.id wird manchmal geloescht.. im ocaml ffi?)
 ** TODO [#A] keine fehler ausgabe im prelude?
 ** TODO [#A] define operator funcs in indent syntax (func l == r ...)

@@ -45,8 +45,6 @@ rule token = parse
       { raise Eof }
   | "!!!"
       { raise AbortInput }
-(*   | (('"' [^'\"']* '"') as str) *)
-(*       { IDENTIFIER(str) } *)
   | '"'
       { IDENTIFIER (mlstring "\"" lexbuf) }
   | (('\'' [^'\'']* '\'') as chr)

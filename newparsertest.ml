@@ -85,13 +85,13 @@ let parseSExpr source =
       let expr = Newparser.main lexFunc lexbuf in
       read (expr :: acc)
     with
-      | End_of_file -> acc
+      | Iexprtest.Eof -> acc
   in
   let revExprs = read [] in
   try
     let invalidChar = lexstate.Iexprtest.readChar() in
     failwith (sprintf "Not at end of input, read %c" invalidChar)
-  with End_of_file ->
+  with Iexprtest.Eof ->
     List.rev revExprs
   
 (* let () = *)

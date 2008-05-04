@@ -57,7 +57,7 @@ let parseIExpr source =
           let expr = Newparser.main lexFunc lexbuf in
           read (expr :: acc)
         with
-          | End_of_file -> acc
+          | Iexprtest.Eof -> acc
       in
       match List.rev (read []) with
         | [singleExpr] ->
@@ -289,9 +289,9 @@ let handleCommand commandLine bindings =
   else
     printf "Not a command string: '%s'\n" commandLine
 
-let hiddenCommandPrefix = "!silent"
+let silentPrefix = "!silent"
 
-let beginsWith line word =
+let beginsWith word line =
   let wordLength = String.length word
   and lineLength = String.length line
   in
@@ -303,34 +303,36 @@ let removeBeginning text count =
   let count = min textLength count in
   String.sub text count (textLength - count)
 
+let nthChar num string =
+  if String.length string > num then
+    Some string.[num]
+  else
+    None
+  
 let rec readExpr prompt previousLines bindings =
-  printf "%s" prompt;
-  flush stdout;
+  printf "%s" prompt; flush stdout;
+  
   let line = read_line() in
-  (*   if String.length line = 0 then begin *)
-  (*     readExpr prompt previousLines bindings *)
-  (*   end else *)
-  if beginsWith line hiddenCommandPrefix then begin
-    let command = removeBeginning line (String.length hiddenCommandPrefix + 1) in
+  
+  if line |> beginsWith silentPrefix then begin
+    let command = removeBeginning line (String.length silentPrefix + 1) in
     handleCommand command bindings;
     readExpr "" previousLines bindings
+      
   end else if line = toplevelCommandString then begin
     printf "Aborted input, cleared \"%s\"\n" previousLines;
     readExpr defaultPrompt "" bindings
-  end else if String.length line > 0 && line.[0] = toplevelCommandChar then begin
+      
+  end else if nthChar 0 line = Some toplevelCommandChar then begin
     handleCommand line bindings;
     readExpr prompt previousLines bindings
+
   end else begin
     let expr =
       let input = previousLines ^ line ^ "\n" in
       match !parseFunc input with
         | Some expr -> expr
         | None -> readExpr continuedPrompt input bindings
-            (*       try *)
-            (*         let lexbuf = Lexing.from_string input in *)
-            (*         Sexprparser.main Sexprlexer.token lexbuf *)
-            (*       with Sexprlexer.Eof -> *)
-            (*         readExpr continuedPrompt input bindings *)
     in
     expr
   end
@@ -369,7 +371,7 @@ let () =
            onSuccess newBindings simpleforms llvmCode;
            step newBindings ()
              
-         with _ as originalException ->
+         with originalException ->
            printf "Running immediately\n";
 
            let immediateFuncName = "toplevel:immediate" in

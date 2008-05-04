@@ -18,7 +18,31 @@ let raiseCouldNotParse str = raise (CouldNotParse str)
 exception CouldNotCompile of string
 let raiseCouldNotCompile str = raise (CouldNotCompile str)
 
-let parseChannel lexbuf parseF bindings =
+type sourceloc = {
+  fileName :string;
+  line :int;
+  column :int;
+  charsFromBeginning: int;
+}
+
+let locationFromLexbuf lexbuf =
+  let {
+    Lexing.pos_fname = fileName;
+    Lexing.pos_lnum = lineNum;
+    Lexing.pos_bol = columNum;
+    Lexing.pos_cnum = totalChars
+  } = lexbuf.Lexing.lex_curr_p
+  in
+  let fileName = if String.length fileName > 0 then fileName else "dummy.zomp" in
+  (* TODO: update pos_lnum (and pos_fname) in lexer *)
+  {
+    fileName = fileName;
+    line = lineNum;
+    column = columNum;
+    charsFromBeginning = totalChars;
+  }
+    
+let parseChannel lexbuf errorLocationF parseF bindings =
   try
     let newBindings, toplevelExprs =
       collectTimingInfo "building ast" (fun () -> parse parseF lexbuf bindings [] )
@@ -28,21 +52,12 @@ let parseChannel lexbuf parseF bindings =
     in
     newBindings, toplevelExprs, llvmSource
   with
-    | Parser2.Error
     | Sexprparser.Error ->
         begin
-          let {
-            Lexing.pos_fname = fileName;
-            Lexing.pos_lnum = lineNum;
-            Lexing.pos_bol = columNum;
-            Lexing.pos_cnum = totalChars
-          } = lexbuf.Lexing.lex_curr_p
-          in
-          let fileName = if String.length fileName > 0 then fileName else "dummy.zomp" in
+          let loc = errorLocationF lexbuf in
           raiseCouldNotParse
             (sprintf "%s:%d:%d: error: could not parse %d chars from beginning of file\n"
-               fileName lineNum columNum totalChars)
-            (* TODO: update pos_lnum (and pos_fname) in lexer *)
+               loc.fileName loc.line loc.column loc.charsFromBeginning)
         end
     | Expander.IllegalExpression (expr, msg) ->
         begin
@@ -78,61 +93,74 @@ let compile instream outstream =
   let input =
     collectTimingInfo "reading prelude file content" (fun () -> readInput instream)
   in
+
   let printError = function
     | CouldNotParse msg -> eprintf "%s" msg
     | CouldNotCompile msg -> eprintf "%s" msg
     | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError); raise unknownError
   in
   let compileCode bindings input =
-    let makeAstF parseF = parseChannel
-      (collectTimingInfo "lexing" (fun () -> Lexing.from_string input))
-      parseF
-      bindings
-    in
+    (*     let makeAstF parseF = parseChannel *)
+    (*       (collectTimingInfo "lexing" (fun () -> Lexing.from_string input)) *)
+    (*       parseF *)
+    (*       bindings *)
+    (*     in *)
     tryAllCollectingErrors
       [
-        lazy (makeAstF (Parser2.main Lexer2.token));
-        lazy (makeAstF (Sexprparser.main Sexprlexer.token));
+        lazy( parseChannel (Lexing.from_string input) locationFromLexbuf (Sexprparser.main Sexprlexer.token) bindings );
+        lazy( parseChannel
+                (Lexing.from_string input, Iexprtest.lexbufFromString "dummy.zomp" input)
+                (locationFromLexbuf ++ fst)
+                (fun (lexbuf, lexstate) ->
+                   Newparser.main (fun lexbuf ->
+                                     try
+                                       Newparsertest.lexFunc lexstate lexbuf
+                                     with End_of_file -> printf "arschkack\n"; exit 123)
+                     lexbuf)
+                bindings )
       ]
       ~onSuccess:(fun (newBindings, toplevelExprs, llvmCode) ->
                     output_string outstream llvmCode;
                     Some newBindings)
       ~ifAllFailed:(fun exceptions -> List.iter printError exceptions; None)
+      
+  (*     tryAllCollectingErrors *)
+  (*       [ *)
+  (*         lazy (makeAstF (Parser2.main Lexer2.token)); *)
+  (*         lazy (makeAstF (Sexprparser.main Sexprlexer.token)); *)
+  (*       ] *)
+  (*       ~onSuccess:(fun (newBindings, toplevelExprs, llvmCode) -> *)
+  (*                     output_string outstream llvmCode; *)
+  (*                     Some newBindings) *)
+  (*       ~ifAllFailed:(fun exceptions -> List.iter printError exceptions; None) *)
   in
-  collectTimingInfo "init zompvm"
-    (fun () ->
-       if not( Zompvm.zompInit() ) then begin
-         eprintf "Could not init ZompVM\n";
-         exit 3;
-       end;);
+  if not( Zompvm.zompInit() ) then begin
+    eprintf "Could not init ZompVM\n";
+    exit 3;
+  end;
   Zompvm.zompVerifyCode false;
   let exitCode =
-    collectTimingInfo "compiling"
-      (fun () ->
-         Parseutils.catchingErrorsDo
-           (fun () ->
-              let bindings :Bindings.t =
-                collectTimingInfo "compiling prelude"
-                  (fun () ->
-                     Parseutils.loadPrelude
-                       ~dir:preludeDir
-                       ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                                       output_string outstream llvmCode
-                                    )
-                  )
-              in
-              collectTimingInfo "compiling program" (fun () ->
-                                                       match compileCode bindings input with
-                                                         | Some _ -> 0
-                                                         | None -> 2)
-           )
-           ~onError:(fun msg ->
-                       printf "%s" msg;
-                       1)
-      )
+    Parseutils.catchingErrorsDo
+      (fun () -> begin
+         let bindings :Bindings.t =
+           Parseutils.loadPrelude
+             ~dir:preludeDir
+             ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                             output_string outstream llvmCode)
+         in
+         match compileCode bindings input with
+           | Some _ -> 0
+           | None -> 2
+       end)
+      ~onError:(fun msg ->
+                  printf "Failed compilation: %s" msg;
+                  1)
   in
-  collectTimingInfo "shutdown zompvm" (fun () -> Zompvm.zompShutdown(););
-(*   Common.printTimings(); *)
+  Zompvm.zompShutdown();
+  if exitCode <> 0 then
+    eprintf "Failed to compile"
+  else
+    printf "Compilation done\n";
   exit exitCode
 
 let () =

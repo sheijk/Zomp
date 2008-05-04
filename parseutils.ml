@@ -2,16 +2,13 @@
 open Common
 open Printf
   
-let rec parse parseF (lexbuf :Lexing.lexbuf) bindings codeAccum =
+let rec parse parseF lexbuf bindings codeAccum =
   try
     let expr = parseF lexbuf in
-(*     let exprString = Ast2.expression2string expr in *)
-(*     let exprComment = commentOut "; " exprString in *)
-(*     printf "%s\n" exprComment; *)
     let newBindings, simpleforms = Expander.translateTL bindings expr in
     parse parseF lexbuf newBindings (codeAccum @ simpleforms)
   with
-    | Lexer2.Eof | Sexprlexer.Eof -> bindings, codeAccum
+    | Sexprlexer.Eof | Iexprtest.Eof -> bindings, codeAccum
 
 exception CatchedError of string
 let signalError msg = raise (CatchedError msg)
@@ -25,10 +22,6 @@ let catchingErrorsDo f ~onError =
           signalError (sprintf "parsing error (sexpr).\n")
       | Sexprlexer.UnknowChar c ->
           signalError (sprintf "Lexer error: encountered unknown character %s.\n" c)
-      | Parser2.Error ->
-          signalError (sprintf "Parsing error (cexpr).\n")
-            (*     | AbortExpr -> *)
-            (*         printf "Aborted expression, restarting with next line.\n" *)
       | Expander.IllegalExpression (expr, msg) ->
           signalError (sprintf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr))
       | Lang.CouldNotParseType descr ->
@@ -86,7 +79,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
       let expr = parseF lexbuf in
       parse parseF lexbuf (codeAccum @ [expr])
     with
-      | Lexer2.Eof | Sexprlexer.Eof -> codeAccum
+        Sexprlexer.Eof | Iexprtest.Eof -> codeAccum
   in
 
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in

@@ -41,9 +41,9 @@ namespace {
 
   static Function* simpleAst = NULL;
   static Function* addChild = NULL;
-  static Function* astId = NULL;
-  static Function* astChildCount = NULL;
-  static Function* getChild = NULL;
+//   static Function* astId = NULL;
+//   static Function* astChildCount = NULL;
+//   static Function* getChild = NULL;
 
   static void loadLLVMFunctions()
   {
@@ -241,11 +241,11 @@ namespace
     return v;
   }
 
-  static GenericValue intValue(int i) {
-    GenericValue v;
-    v.IntVal = i;
-    return v;
-  }
+//   static GenericValue intValue(int i) {
+//     GenericValue v;
+//     v.IntVal = i;
+//     return v;
+//   }
 }
 
 extern "C" {
@@ -587,9 +587,7 @@ extern "C" {
       || (c == '/')
       || (c == '+')
       || (c == '-')
-      || (c == '"')
       || (c == '.')
-      || (c == ' ')
       || (c == '\\')
       || (c == '\'');
   }
@@ -597,11 +595,23 @@ extern "C" {
   void checkId(const char* id, const char* func) {
     bool valid = true;
 
-    const char* ptr = id;
-    while( *ptr != '\0' ) {
-      valid &= validIdChar(*ptr++);
-    }
+    const int length = strlen(id);
 
+    if( length >= 2 && ((id[0] == '"' && id[length-1] == '"') || (id[0] == '\'' && id[length-1] == '\'')) ) {
+      const unsigned char* ptr = (unsigned char*)id;
+      while( *ptr != '\0' ) {
+        if( *ptr++ > 127 ) {
+          valid = false;
+        }
+      }
+    }
+    else {
+      const char* ptr = id;
+      while( *ptr != '\0' ) {
+        valid &= validIdChar(*ptr++);
+      }
+    }
+      
     if( ! valid ) {
       printf("Found invalid id '%s' in '%s'\n", id, func);
     }
