@@ -108,11 +108,11 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
        `Quote str)
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
-  let singleLineCommentRule = (Str.regexp ".*", Str.regexp "//[^\n]*\n"), (fun _ -> `Ignore) in
+  (* let singleLineCommentRule = (Str.regexp ".*", Str.regexp "//[^\n]*\n"), (fun _ -> `Ignore) in *)
   [
     identifierRule;
     whitespaceRule;
-    singleLineCommentRule;
+    (* singleLineCommentRule; *)
     regexpRule "(" `OpenParen;
     regexpRule ")" `CloseParen;
     regexpRule "{" `OpenCurlyBrackets;
@@ -185,8 +185,7 @@ let readUntil abortOnChar state =
     worker()
   with Eof -> () end;
   !acc
-
-
+      
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
     let len = String.length string in
@@ -238,7 +237,6 @@ let token (lexbuf : token lexerstate) : token =
         else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
           
       end else begin
-TODO:        realize comments using preprocessor!
         (* lookup forward for `Ignore and possibly reset indent? *)
         if indent = prevIndent then begin
           `End
@@ -403,11 +401,17 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | `Quote str -> "$" ^ str, noind
         in
         indentString lineIndent ^ str, (indent, doindent)
-      
+
+type preprocessorState =
+  | Source
+  | OneLineComment
+  | MultiLineComment
+          
 let makeLexbuf fileName readCharFunc =
   let buffer = ref "" in
   let eof = ref false in
-  let rec lexbuf = 
+  
+  let rec lexbuf =
     let readCharExtraNewline () =
       if !eof then
         raise Eof
@@ -419,7 +423,7 @@ let makeLexbuf fileName readCharFunc =
           '\n'
     in
     let readCharWithBuffer () =
-      let chr = 
+      let chr =
         if String.length !buffer > 0 then begin
           let chr = !buffer.[0] in
           buffer := String.sub !buffer 1 (max (String.length !buffer -1) 0);
@@ -437,10 +441,32 @@ let makeLexbuf fileName readCharFunc =
       lexbuf.lastReadChars <- Str.first_chars lexbuf.lastReadChars
         (String.length lexbuf.lastReadChars - count);
     in
+    let preprocessedRead () =
+      let rec readSource() =
+        (* let readNextTwoChars() = readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) in *)
+        match readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
+        (* match readNextTwoChars() with *)
+          | '/', Some '/' -> readSingleLineComment()
+          | '/', Some '*' -> readMultiLineComment()
+          | lastCharInFile, None -> lastCharInFile
+          | char, Some _ ->
+              backTrack 1;
+              char
+      and readSingleLineComment() =
+        match readCharWithBuffer() with
+          | '\n' -> '\n'
+          | _ -> readSingleLineComment()
+      and readMultiLineComment() =
+        match  readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
+          | '*', Some '/' -> readSource()
+          | lastCharInFile, None -> lastCharInFile
+          | _, Some _ -> readMultiLineComment()
+      in
+      readSource()
+    in
     {
-      readChar = readCharWithBuffer;
+      readChar = preprocessedRead;
       backTrack = backTrack;
-(*       putbackString = (fun string -> buffer := string ^ !buffer); *)
       location = { line = 0; fileName = fileName };
       prevIndent = 0;
       pushedTokens = [];
@@ -531,11 +557,6 @@ let printTokens tokens =
 
 (* Tests -------------------------------------------------------------------- *)
     
-let tokenEqual l r =
-  match l, r with
-(*     | `Whitespace _, `Whitespace _ -> true *)
-    | _, _ -> l = r
-
 open Testing
   
 module IndentLexerTestCase : CASE_STRUCT =
@@ -549,7 +570,7 @@ struct
 
   let outputEqual l r =
     if List.length l = List.length r then
-      List.for_all2 tokenEqual l r
+      List.for_all2 (=) l r
     else
       false
     
@@ -679,9 +700,6 @@ let () =
   let module M = Tester(IndentLexerTestCase) in
   M.runTestsAndPrintErrors()
 
-let blockEndRE name =
-  sprintf "end\\( +%s\\)? *$" name
-
   
 let () =
   let testCases = [
@@ -693,6 +711,8 @@ let () =
     "iff", "end   iff", true;
   ] in
   
+  let blockEndRE name = sprintf "end\\( +%s\\)? *$" name in
+
   printf "\n";
   let boolToString b = if b then "true" else "false" in
   let errorOccured = ref false in

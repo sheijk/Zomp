@@ -13,8 +13,6 @@ let (=~) str re = Str.string_match (Str.regexp re) str 0
 let rec fromTo min max =
   if min > max then []
   else min :: fromTo (min+1) max
-
-        
     
 let rec combine seperator strings =
   match strings with

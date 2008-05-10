@@ -582,7 +582,7 @@ let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = funct
         { id = varName; args = [] };
         rightHandExpr;
       ] } when id = macroAssign -> begin
-      let _, rightHandForm, toplevelForms = translateToForms translateF bindings rightHandExpr in      
+      let _, rightHandForm, toplevelForms = translateToForms translateF bindings rightHandExpr in
       match lookup bindings varName with
         | VarSymbol v ->
             Some (bindings, toplevelForms @ [`AssignVar (v, rightHandForm)] )

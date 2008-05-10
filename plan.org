@@ -11,6 +11,8 @@
    Regeln fuer jux/call aendern? Doch jux hoechste Prioritaet geben und Klammern verwenden?
    Oder {} fuer Prioritaet?
 
+   Oder einfach addF(3,4) in einen function call umwandeln wenn addF ein function pointer ist
+
 *** Zu Bedenken:
    
    let x + y = ...

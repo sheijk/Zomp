@@ -161,6 +161,8 @@ struct
     ignore(callExpr []);
     let expectValidId name = name, `Return [id name] in
     [
+      "", `Return [];
+      
       (** simple expression *)
       expectValidId "blargh";
       expectValidId "1.0";
@@ -511,6 +513,22 @@ struct
       
       "var int x // the x variable\n",
       `Return [jux ["var"; "int"; "x"]];
+
+      "/* multiline comment in a single line */", `Return [];
+      ("/* multi" ^
+         "line" ^
+         "comment */"),
+      `Return [];
+
+      "var int /* blah */ y", `Return [jux ["var"; "int"; "y"]];
+
+      "/* comment*/var int x", `Return [jux ["var"; "int"; "x"]];
+
+      "line one\n" ^
+        "/* comment line */\n" ^
+        "line two",
+      `Return [jux ["line"; "one"]; jux ["line"; "two"]];
+
     ]
 end
   
