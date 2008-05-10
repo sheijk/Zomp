@@ -1,0 +1,10 @@
+
+// single line comment
+
+var int x 10
+
+func int main()
+  printString("hello, i-expression\n")
+  ret 0
+end
+
