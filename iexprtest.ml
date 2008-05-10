@@ -460,6 +460,7 @@ let makeLexbuf fileName readCharFunc =
         match  readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
           | '*', Some '/' -> readSource()
           | lastCharInFile, None -> lastCharInFile
+          | _, Some '*' -> backTrack 1; readMultiLineComment();
           | _, Some _ -> readMultiLineComment()
       in
       readSource()

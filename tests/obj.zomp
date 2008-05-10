@@ -350,7 +350,7 @@ func void init()
     printString "Initialized"
     println()
 
-    assign initCalled true
+    initCalled = true
   else
     printString "Already initialized"
     println()
@@ -374,8 +374,8 @@ func int main()
   var bool running true
 
   while running
-    assign time double:toFloat(glfwGetTime())
-    assign angle time *_f 128.0
+    time = double:toFloat(glfwGetTime())
+    angle = time *_f 128.0
 
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
@@ -389,7 +389,7 @@ func int main()
 
     glfwSwapBuffers()
     glfwPollEvents()
-    assign running bool:not( isPressed(GLFW_KEY_ESC) )
+    running = bool:not( isPressed(GLFW_KEY_ESC) )
   end
 
   drawPausedOverlay()

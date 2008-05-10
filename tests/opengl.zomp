@@ -2,7 +2,7 @@
 Demonstrates using OpenGL.
 
 Enter this into toplevel to load libs:
-x!load libglfw.dylib
+!load libglfw.dylib
 
 You will need to copy the file libglfw.dylib from the lib/macosx dir
 of GLFW 2.6 into the zomp main dir
@@ -16,13 +16,13 @@ Conventions for function names:
 (include "opengl20.zomp")
 (include "glfw.zomp")
 
-(include "glutils.zomp")
+(include "tests/glutils.zomp")
 
 (const int windowWidth 400)
 (const int windowHeight 300)
 
 (func int main () (
-  (if (int.notEqual (glfwInit) GL_TRUE) (
+  (if (int:notEqual (glfwInit) GL_TRUE) (
     (printlnString "glfw initialization failed")
     (ret 1))
     ())
@@ -31,13 +31,13 @@ Conventions for function names:
 
   (var bool abort false)
   
-  (while (bool.not abort) (
-    (if (int.equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
+  (while (bool:not abort) (
+    (if (int:equal (glfwGetKey GLFW_KEY_ESC) GL_TRUE) (
       (assign abort true)
       )())
   
     (glClearColor 1. 0. 0. 1.)
-    (glClear (int.or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+    (glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
     (glfwSwapBuffers)
     (glfwPollEvents)
     ))

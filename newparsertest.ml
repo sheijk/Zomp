@@ -546,6 +546,9 @@ struct
         "/* comment followed by whitespace */    \n" ^
         "second",
       `Return [id "first"; id "second"];
+
+      "/*012*/odd length", `Return [jux ["odd"; "length"]];
+      "/*0123*/even length", `Return [jux ["even"; "length"]];
     ]
 end
   

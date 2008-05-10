@@ -1,0 +1,15 @@
+
+// single line comment
+
+/**
+ * Beautiful documentation. This should be green!
+ */
+func int main()
+  // delete(theInternet) <- commented out
+
+  /* foo */
+
+  /// this single line doc tells you the function will return 123. It's a lie
+  ret 100
+end
+
