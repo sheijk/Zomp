@@ -161,8 +161,6 @@ struct
     ignore(callExpr []);
     let expectValidId name = name, `Return [id name] in
     [
-      "", `Return [];
-      
       (** simple expression *)
       expectValidId "blargh";
       expectValidId "1.0";
@@ -478,6 +476,16 @@ struct
       "  foo bar", `Return [jux ["foo"; "bar"]];
       "\n\nabc def\n\n", `Return [jux ["abc"; "def"]];
 
+      "first line\n" ^
+        "\n" ^
+        "second line",
+      `Return [jux ["first"; "line"]; jux ["second"; "line"]];
+
+      "first line\n" ^
+        "   \n" ^
+        "after spaces line",
+      `Return [jux ["first"; "line"]; jux ["after"; "spaces"; "line"]];
+
       (** misc *)
       "", `Return [];
       "foo\n  bar\nend wrong", `Exception "'end wrong' should be 'end foo' or 'end'";
@@ -529,6 +537,15 @@ struct
         "line two",
       `Return [jux ["line"; "one"]; jux ["line"; "two"]];
 
+      "line one\n" ^
+        "  /*indented comment only */\n" ^
+        "last line",
+      `Return [jux ["line"; "one"]; jux ["last"; "line"]];
+
+      "first\n" ^
+        "/* comment followed by whitespace */    \n" ^
+        "second",
+      `Return [id "first"; id "second"];
     ]
 end
   
