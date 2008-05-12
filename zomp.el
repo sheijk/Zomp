@@ -353,9 +353,7 @@
     ("//.*" 0 font-lock-comment-face t t)
     ("///.*" 0 font-lock-doc-face t t)
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
-;;     ("/\\*[^\\*]*\\*/" 0 font-lock-comment-face)
     ("'[^']'" 0 font-lock-string-face)
-;;     ("'\[0-9]+'" 0 font-lock-string-face)
 
     ("// *\\(TODO\\)" 1 todo-face t t)
      
@@ -392,7 +390,8 @@
 
     ("^ +$" 0 compilation-error-face)
     
-    ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
+    ;; ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
+    ("\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b(" 1 font-lock-function-name-face)
     ("[()]" 0 font-lock-keyword-face)
     
     ("@[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-variable-name-face)
@@ -420,17 +419,48 @@
     (zomp-tl-do (concat "!silent !writeSymbols " zomp-symbol-file))
     ))
 
+;; (defun zomp-symbol-at-point ()
+;;   (interactive)
+;;   (save-excursion
+;;     (goto-match-paren 0)
+;;     (forward-char)
+;;     (let ((startpos (point)))
+;;       (search-forward-regexp "[ )\n]")
+;;       (backward-char)
+;;       (buffer-substring startpos (point))
+;;       )))
+
+(defconst zomp-identifier-chars "a-zA-Z0-9:*")
+(defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*]*")
+  
 (defun zomp-symbol-at-point ()
   (interactive)
-  (save-excursion
-    (goto-match-paren 0)
-    (forward-char)
-    (let ((startpos (point)))
-      (search-forward-regexp "[ )\n]")
-      (backward-char)
-      (buffer-substring startpos (point))
-      )))
-    
+  (let (linestart funcend linesym funcsym)
+    (setq linesym
+          (save-excursion
+            (back-to-indentation)
+            (setq linestart (point))
+            ;; (forward-word)
+            (search-forward-regexp zomp-identifier-regexp)
+            (buffer-substring linestart (point))))
+    (setq funcsym
+          (save-excursion
+            (condition-case nil
+                (progn
+                  (goto-match-paren 0)
+                  (when (> (point) 0)
+                    (setq funcend (point))
+                    (search-backward-regexp (format "[^%s]" zomp-identifier-chars))
+                    ;; (search-backward-regexp "[^a-zA-Z]")
+                    (forward-char)
+                    (buffer-substring (point) funcend)))
+              (error nil))))
+    (or funcsym linesym "nothing found")))
+
+(defun zomp-symbol-at-point ()
+   (interactive)
+   "xxx")
+
 (defun zomp-get-eldoc-string ()
   (let ((symbol "unknown"))
     (condition-case nil

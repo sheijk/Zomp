@@ -15,11 +15,22 @@ include "glfw.zomp"
 include "tests/glutils.zomp"
 
 //------------------------------------------------------------------------------
+// base lib
 
 template macro:failUnless cond
   unless #{cond}
     ret ${error expression is false #{cond}}
   end
+end
+
+macro uniqueIds purpose ids...
+  var ast* code ${seq}
+
+  forEachAstChild child ids
+    addChild code ${uniqueIds #child #purpose}
+  end
+
+  ret code
 end
 
 /// if statement
@@ -104,7 +115,18 @@ func void IntArray:init(IntArray* this, int size)
   setField this elements malloc(int, size)
 end
 
+func void IntArray:set(IntArray* array, int index, int value)
+  assert value < getField(array, size)
+  store ptradd(getField(array, elements), index) value
+end
+
+func void test()
+  var IntArray* arr new(IntArray, 10)
+  IntArray:set arr 0 123
+end
+
 //------------------------------------------------------------------------------
+// mesh utils
 
 type VertexStream
   int size
@@ -213,6 +235,7 @@ func Mesh* makeCube(float size)
   ret cube
 end
 
+
 //   template setCubeSide num a b c d
 //     store ptradd(indices, 4 * #num + 0) #a
 //     store ptradd(indices, 4 * #num + 1) #b
@@ -223,16 +246,6 @@ end
 func void test()
   var char zero '\0'
   printChar(zero)
-end
-
-macro uniqueIds purpose ids...
-  var ast* code ${seq}
-
-  forEachAstChild child ids
-    addChild code ${uniqueIds #child #purpose}
-  end
-
-  ret code
 end
 
 // macro File:forEachLine fileName lineVar onLine
@@ -330,9 +343,9 @@ end
 //   ret nullptr(Mesh)
 // end
 
-func void test()
-  var Mesh* mesh Mesh:loadPly("data/test.ply")
-end
+// func void test()
+//   var Mesh* mesh Mesh:loadPly("data/test.ply")
+// end
 
 //------------------------------------------------------------------------------
 
