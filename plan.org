@@ -1,6 +1,17 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] extended var
+   - should be able to create multiple variables like 'var int x, y = 10, z'
+   - should return the variable's value so it can be better used inside control structures
+     while (var int x = foo())
+       println(x)
+
+** TODO allow variable definitions within expressions?
+
+   while (var int x = foo()) > 10
+     print(x)
+
 ** TODO [#A] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
 ** TODO [#A] `undefine name' => name kann nicht mehr verwendet werden
 ** TODO [#A] runtime checks generieren
