@@ -116,14 +116,20 @@ func void IntArray:init(IntArray* this, int size)
 end
 
 func void IntArray:set(IntArray* array, int index, int value)
-  assert value < getField(array, size)
+  assert index < getField(array, size)
   store ptradd(getField(array, elements), index) value
 end
 
-func void test()
-  var IntArray* arr new(IntArray, 10)
-  IntArray:set arr 0 123
-end
+// func void test()
+//   var IntArray* arr new(IntArray, 10)
+//   IntArray:set arr 0 123
+// end
+
+// func void test()
+//   var int result main()
+//   printString "main() returned "
+//   printlnInt result
+// end
 
 //------------------------------------------------------------------------------
 // mesh utils
@@ -243,10 +249,10 @@ end
 //     store ptradd(indices, 4 * #num + 3) #d
 //   end
 
-func void test()
-  var char zero '\0'
-  printChar(zero)
-end
+// func void test()
+//   var char zero '\0'
+//   printChar(zero)
+// end
 
 // macro File:forEachLine fileName lineVar onLine
 //   uniqueId fileVar "file"
@@ -372,6 +378,12 @@ end
 
 var float angle 0.0
 
+template coloredLine r g b
+  glColor4f #r #g #b 1.
+  glVertex3f 0. 0. 0.
+  glVertex3f #r #g #b
+end
+
 func int main()
   init()
 
@@ -398,7 +410,13 @@ func int main()
     glTranslatef( 0., 1., float:neg(4.) )
     glRotatef( angle, 0., 1., 0. )
 
-    drawCoordSys( 8.0 )
+    rendergl GL_LINES
+      coloredLine 1. 0. 0.
+      coloredLine 0. 1. 0.
+      coloredLine 0. 0. 1.
+    end
+
+    // drawCoordSys( 8.0 )
 
     glfwSwapBuffers()
     glfwPollEvents()

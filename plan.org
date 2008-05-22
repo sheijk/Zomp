@@ -1,6 +1,51 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] motivation: mixins
+** TODO [#A] motivation: automatische printer
+   type Point:
+     float x, y
+
+   => print Methode mitgenerieren
+   (analog fuer andere methoden)
+    
+** TODO [#A] motivation: powerful asserts
+   assert x < 10
+   => Fehlermeldung mit Wert von x
+
+** TODO [#A] array/list comprehensions
+** TODO [#A] (siehe cyclone, ada)
+** TODO [#A] pointer + vars mit scope level parametrisieren, dann bei ptr = &foo nur erlauben wenn scopelevel von ptr <= scopelevel(foo)
+** TODO [#A] finally
+   begin
+     code
+   finally
+     code
+   end
+
+** TODO [#A] tuples: var (int, float) x => x.0 : int, x.1 : float
+** TODO [#A] clisp artiges destructuring
+** TODO [#A] error when redefining symbol with different number of arguments
+** TODO konfigurierbare base language
+
+macroExpand :: [AST], Bindings -> [Instruction]
+
+enum Symbol:
+  Instruction :AstPattern
+  Variable :Type
+  Function :Args * Type
+  Macro :MacroFunc
+
+type Bindings:
+  Id => Symbol
+
+Gibt am Ende AST zurueck der nur noch aus Instructions besteht
+Kann dann auch zum kompilieren von Shadern benutzt werden
+
+** TODO ruby syntax, fortress syntax fuer nested function calls
+** TODO gencode in zomp umstellen
+   (zeiger durch abstrakten typ darstellen)
+   http://www.linux-nantes.org/~fmonnier/OCaml/ocaml-wrapping-c.php#ref_ptr
 ** TODO [#A] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
 ** TODO [#A] `undefine name' => name kann nicht mehr verwendet werden
 ** TODO [#A] runtime checks generieren
