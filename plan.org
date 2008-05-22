@@ -9,9 +9,19 @@
    => print Methode mitgenerieren
    (analog fuer andere methoden)
     
+** TODO [#A] extended var
+   - should be able to create multiple variables like 'var int x, y = 10, z'
+   - should return the variable's value so it can be better used inside control structures
+     while (var int x = foo())
+       println(x)
+
 ** TODO [#A] motivation: powerful asserts
    assert x < 10
    => Fehlermeldung mit Wert von x
+
+** TODO allow variable definitions within expressions?
+   while (var int x = foo()) > 10
+     print(x)
 
 ** TODO [#A] array/list comprehensions
 ** TODO [#A] (siehe cyclone, ada)
@@ -46,6 +56,7 @@ Kann dann auch zum kompilieren von Shadern benutzt werden
 ** TODO gencode in zomp umstellen
    (zeiger durch abstrakten typ darstellen)
    http://www.linux-nantes.org/~fmonnier/OCaml/ocaml-wrapping-c.php#ref_ptr
+
 ** TODO [#A] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
 ** TODO [#A] `undefine name' => name kann nicht mehr verwendet werden
 ** TODO [#A] runtime checks generieren
