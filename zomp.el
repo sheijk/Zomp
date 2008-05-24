@@ -388,7 +388,7 @@
     
     ("\\bmacro\\b" 0 font-lock-keyword-face)
 
-    ("^ +$" 0 compilation-error-face)
+    ;; ("^ +$" 0 compilation-error-face)
     
     ;; ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
     ("\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b(" 1 font-lock-function-name-face)

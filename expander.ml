@@ -176,29 +176,60 @@ let rec expr2value typ expr =
         
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
   let transform id name typeExpr valueExpr =
-    match translateType bindings typeExpr with
-      | Some (#integralType as typ)
-      | Some (`Pointer _ as typ) ->
+    let declaredType = match typeExpr with
+      | Some e ->
           begin
-            let _, simpleform = translateF bindings valueExpr in
+            match translateType bindings e with
+              | Some t -> Some t
+              | None -> raise (CouldNotParseType (Ast2.expression2string e))
+          end
+      | None -> None
+    in
+    let valueType, toplevelForms, implForms =
+      match valueExpr with
+        | Some valueExpr ->
+            begin
+              let _, simpleform = translateF bindings valueExpr in
+              let toplevelForms, implForms = extractToplevelForms simpleform in
+              match typeCheck bindings (`Sequence implForms) with
+                | TypeOf t -> Some t, toplevelForms, implForms
+                | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (m,f,e)
+            end
+        | None -> None, [], []
+    in
+    let varType =
+      match declaredType, valueType with
+        | Some declaredType, Some valueType when equalTypes bindings declaredType valueType -> declaredType
+        | Some declaredType, Some valueType ->
+            raiseIllegalExpressionFromTypeError expr ("Types do not match",declaredType,valueType)
+        | None, Some valueType -> valueType
+        | Some declaredType, None -> declaredType
+        | None, None -> raiseIllegalExpression expr "var needs either a default value or declare a type"
+    in
+    match varType with
+      | (#integralType as typ)
+      | (`Pointer _ as typ) ->
+          begin
             let value = defaultValue typ in
             let storage = MemoryStorage
             in
             let var = variable name typ value storage false in
-            let toplevelForms, implForms = extractToplevelForms simpleform in
             let defvar = `DefineVariable (var, Some (`Sequence implForms))
             in
             match typeCheck bindings defvar with
               | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
               | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
           end
-      | Some (`Record _ as typ) ->
+      | (`Record _ as typ) ->
           begin
-            let var = variable name typ (defaultValue typ) MemoryStorage false in
-            Some( addVar bindings var, [ `DefineVariable (var, None) ] )
+            match valueExpr with
+              | None ->
+                  let var = variable name typ (defaultValue typ) MemoryStorage false in
+                  Some( addVar bindings var, [ `DefineVariable (var, None) ] )
+              | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
           end
-      | _ ->
-          raise (CouldNotParseType (Ast2.expression2string typeExpr))
+      | `TypeRef _ ->
+          raiseIllegalExpression expr "Internal error: received unexpected type ref"
   in
   match expr with
     | { id = id; args = [
@@ -207,13 +238,22 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
           valueExpr
         ] }
         when (id = macroVar) ->
-        transform id name typeExpr valueExpr
+        transform id name (Some typeExpr) (Some valueExpr)
+          
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
         ] }
         when (id = macroVar) ->
-        transform id name typeExpr { id = ""; args = []}
+        transform id name (Some typeExpr) None
+
+    | { id = id; args = [
+          { id = name; args = [] };
+          valueExpr
+        ] }
+        when id = "var2" ->
+        transform id name None (Some valueExpr)
+          
     | _ ->
         None
 
