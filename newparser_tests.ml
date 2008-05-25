@@ -5,6 +5,8 @@
 
 open Printf
 open Common
+open Newparser
+open Newparserutils
 
 let readBlock channel =
   let rec readLine lineAcc =
@@ -35,7 +37,6 @@ let tokenToString =
     | Newparser.BEGIN_BLOCK -> "BEGIN_BLOCK"
     | Newparser.END_BLOCK [] -> "END_BLOCK"
     | Newparser.END_BLOCK params -> sprintf "END_BLOCK(%s)" (Common.combine ", " params)
-(*     | Newparser.WHITESPACE count -> String.make count '_' *)
     | Newparser.OPEN_PAREN -> "("
     | Newparser.CLOSE_PAREN -> ")"
     | Newparser.COMMA -> ","
@@ -52,63 +53,23 @@ let tokenToString =
     | Newparser.STRICT_BOOL_OP arg -> os "sb" arg
     | Newparser.QUOTE arg -> os "$" arg
       
-let lexFunc lexstate (_ :Lexing.lexbuf) =
-  let iexprToken = Iexprtest.token lexstate in
-  match iexprToken with
-    | `End -> Newparser.END
-    | `BeginBlock -> Newparser.BEGIN_BLOCK
-    | `EndBlock args -> Newparser.END_BLOCK args
-(*     | `Whitespace count -> Newparser.WHITESPACE count *)
-    | `Identifier name -> Newparser.IDENTIFIER name
-    | `OpenParen -> Newparser.OPEN_PAREN
-    | `CloseParen -> Newparser.CLOSE_PAREN
-    | `OpenCurlyBrackets -> Newparser.OPEN_CURLY
-    | `CloseCurlyBrackets -> Newparser.CLOSE_CURLY
-    | `Comma -> Newparser.COMMA
-    | `Add arg -> Newparser.ADD_OP arg
-    | `Mult arg -> Newparser.MULT_OP arg
-    | `Assign arg -> Newparser.ASSIGN_OP arg
-    | `Compare arg -> Newparser.COMPARE_OP arg
-    | `Dot -> Newparser.DOT
-    | `Postfix arg -> Newparser.POSTFIX_OP arg
-    | `Prefix arg -> Newparser.PREFIX_OP arg
-    | `LazyBoolOp arg -> Newparser.LAZY_BOOL_OP arg
-    | `StrictBoolOp arg -> Newparser.STRICT_BOOL_OP arg
-    | `Quote arg -> Newparser.QUOTE arg
-
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
-  let lexstate = Iexprtest.lexbufFromString "dummy.zomp" source in
+  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   let lexFunc = lexFunc lexstate in
   let rec read acc =
     try
       let expr = Newparser.main lexFunc lexbuf in
       read (expr :: acc)
     with
-      | Iexprtest.Eof -> acc
+      | Indentlexer.Eof -> acc
   in
   let revExprs = read [] in
   try
-    let invalidChar = lexstate.Iexprtest.readChar() in
+    let invalidChar = lexstate.Indentlexer.readChar() in
     failwith (sprintf "Not at end of input, read %c" invalidChar)
-  with Iexprtest.Eof ->
+  with Indentlexer.Eof ->
     List.rev revExprs
-  
-(* let () = *)
-(*   if Array.length Sys.argv > 1 && Sys.argv.(1) = "-i" then *)
-(*     let rec parse() = *)
-(*       flush stdout; *)
-(*       let block = readBlock stdin in *)
-(*       begin try *)
-(*         let exprs = parseSExpr block in *)
-(*         List.iter (fun expr -> printf "=>\n%s\n---\n" (Ast2.toString expr)) exprs *)
-(*       with *)
-(*         | Newparser.Error -> printf "Parser error\n" *)
-(*       end; *)
-(*       parse() *)
-(*     in *)
-(*     parse() *)
-(*   else () *)
 
 let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
@@ -136,8 +97,8 @@ struct
     try
       parseSExpr str
     with error ->
-      let tokens = Iexprtest.lexString str in
-      let str = Iexprtest.tokensToString tokens in
+      let tokens = Indentlexer.lexString str in
+      let str = Indentlexer.tokensToString tokens in
       raise (ParsingFailure(error, "Tokens: " ^ str ^ "; caused error: " ^ Printexc.to_string error))
 
   let testCases : (input * result) list =
@@ -560,7 +521,7 @@ end
   
 let () =
   let module M = Testing.Tester(IndentParserTestCase) in
-  M.runTestsAndPrintErrors()
+  M.runTestsAndReport "indentparser"
 
 
 

@@ -62,7 +62,7 @@ module Tester(Cases :CASE_STRUCT) = struct
     let errors = Common.mapFilter (function `Error e -> Some e | _ -> None) results in
     errors
 
-  let runTestsAndPrintErrors() =
+  let runTestsAndReport name =
     let printError error =
       printf "\n--- UnitTest Failure ---\n";
       printf "Input: '\n"; printInput error.input; printf "'\n";
@@ -73,8 +73,11 @@ module Tester(Cases :CASE_STRUCT) = struct
     List.iter printError errors;
     let errorCount = List.length errors in
     let testCount = List.length testCases in
-    if errorCount > 0 then      
-      printf "%d/%d tests failed\n" errorCount testCount;
+    if errorCount > 0 then
+      printf "%d/%d %s tests failed\n" errorCount testCount name
+    else
+      printf "All %d %s tests succeeded\n" testCount name
+  
       
   exception UnitTestFailure of error list
 end

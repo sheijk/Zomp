@@ -74,14 +74,14 @@ let parseIExpr source =
   if String.length source >= 3 && Str.last_chars source 3 = "\n\n\n" then
     try
       let lexbuf = Lexing.from_string source in
-      let lexstate = Iexprtest.lexbufFromString "dummy.zomp" source in
-      let lexFunc = Newparsertest.lexFunc lexstate in
+      let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+      let lexFunc = Newparserutils.lexFunc lexstate in
       let rec read acc =
         try
           let expr = Newparser.main lexFunc lexbuf in
           read (expr :: acc)
         with
-          | Iexprtest.Eof -> acc
+          | Indentlexer.Eof -> acc
       in
       match List.rev (read []) with
         | [singleExpr] ->

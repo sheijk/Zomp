@@ -109,12 +109,12 @@ let compile instream outstream =
       [
         lazy( parseChannel (Lexing.from_string input) locationFromLexbuf (Sexprparser.main Sexprlexer.token) bindings );
         lazy( parseChannel
-                (Lexing.from_string input, Iexprtest.lexbufFromString "dummy.zomp" input)
+                (Lexing.from_string input, Indentlexer.lexbufFromString "dummy.zomp" input)
                 (locationFromLexbuf ++ fst)
                 (fun (lexbuf, lexstate) ->
                    Newparser.main (fun lexbuf ->
                                      try
-                                       Newparsertest.lexFunc lexstate lexbuf
+                                       Newparserutils.lexFunc lexstate lexbuf
                                      with End_of_file -> printf "arschkack\n"; exit 123)
                      lexbuf)
                 bindings )

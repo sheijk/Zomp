@@ -115,10 +115,10 @@ template op:= name value
   var2 #name #value
 end
 
-func void test()
-  i := 0
-  printlnInt i
-end
+// func void test()
+//   i := 0
+//   printlnInt i
+// end
 
 func void IntArray:init(IntArray* this, int size)
   setField this size size

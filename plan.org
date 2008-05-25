@@ -1,15 +1,51 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
-** TODO [#A] einheitliches system fuer tests
+** TODO [#A] GC using macros
+   Support classes to be GC-collected
 
+   gcclass Foo
+     ...
+
+   gcclass Bar
+     int x
+     Foo* target
+
+   =>
+
+   class PointerInfo:
+     list<offset> pointers
+     
+   class GarbageCollected:
+     PointerInfo* pointerInfo
+     static list<GarbageCollected> roots
+   
+   class Bar extends GarbageCollected:
+     int x
+     Foo* target
+     Bar* other
+
+     static PointerInfo classPointerInfo
+       pointers = [offset(target), offset(other)]
+
+     constructor():
+       pointerInfo = &classPointerInfo
+
+   void garbageCollection()
+     // mark+sweep all roots and their target pointers
+
+** TODO [#A] einheitliches system fuer tests
 ** TODO [#A] motivation: mixins
 ** TODO [#A] motivation: automatische printer
+
    type Point:
      float x, y
+     
+   Point.derive Printer, XMLSerializer
 
-   => print Methode mitgenerieren
-   (analog fuer andere methoden)
+   => print, toXML, fromXML Methoden generieren
+
+   codeDeriver = Type -> [toplevelExpr]
 
 ** TODO [#A] extended var
    - should be able to create multiple variables like 'var int x, y = 10, z'
@@ -20,52 +56,16 @@
 ** TODO [#A] motivation: powerful asserts
    assert x < 10
    => Fehlermeldung mit Wert von x
-
-** TODO allow variable definitions within expressions?
-** TODO [#A] array/list comprehensions
-** TODO [#A] (siehe cyclone, ada)
-** TODO [#A] pointer + vars mit scope level parametrisieren, dann bei ptr = &foo nur erlauben wenn scopelevel von ptr <= scopelevel(foo)
-** TODO [#A] finally
-   begin
-     code
-   finally
-     code
-   end
-
-** TODO [#A] tuples: var (int, float) x => x.0 : int, x.1 : float
-** TODO [#A] clisp artiges destructuring
-** TODO [#A] error when redefining symbol with different number of arguments
-** TODO konfigurierbare base language
-macroExpand :: [AST], Bindings -> [Instruction]
-
-enum Symbol:
-  Instruction :AstPattern
-  Variable :Type
-  Function :Args * Type
-  Macro :MacroFunc
-
-** TODO [#A] motivation: powerful asserts
-   assert x < 10
-   => Fehlermeldung mit Wert von x
-
-type Bindings:
-  Id => Symbol
-
-Gibt am Ende AST zurueck der nur noch aus Instructions besteht
-Kann dann auch zum kompilieren von Shadern benutzt werden
-
-** TODO ruby syntax, fortress syntax fuer nested function calls
-** TODO gencode in zomp umstellen
-   (zeiger durch abstrakten typ darstellen)
-   http://www.linux-nantes.org/~fmonnier/OCaml/ocaml-wrapping-c.php#ref_ptr
+   "Assertion 'x < 10' failed, x = 11 @file.zomp:101"
 
 ** TODO allow variable definitions within expressions?
    while (var int x = foo()) > 10
      print(x)
 
 ** TODO [#A] array/list comprehensions
-** TODO [#A] (siehe cyclone, ada)
 ** TODO [#A] pointer + vars mit scope level parametrisieren, dann bei ptr = &foo nur erlauben wenn scopelevel von ptr <= scopelevel(foo)
+   (siehe cyclone, ada)
+
 ** TODO [#A] finally
    begin
      code
@@ -77,7 +77,6 @@ Kann dann auch zum kompilieren von Shadern benutzt werden
 ** TODO [#A] clisp artiges destructuring
 ** TODO [#A] error when redefining symbol with different number of arguments
 ** TODO konfigurierbare base language
-
 macroExpand :: [AST], Bindings -> [Instruction]
 
 enum Symbol:
@@ -123,7 +122,16 @@ Kann dann auch zum kompilieren von Shadern benutzt werden
 
     for: i in: 10 .. 20 do: print i; println()
     
-** TODO [#A] foo(bar baz) auch als call parsen? foo {bar baz} dann um jux zu bekommen
+** TODO [#A] foo(bar baz) auch als call parsen? 
+
+*** foo {bar baz} dann um jux zu bekommen?
+*** Neues Token fuer calls einfuehren?
+    foo bar (a b) => ID(foo) ID(BAR) OPEN_PAREN ID(a) ID(b) CLOSE_PAREN
+    foo bar(a b) => ID(foo) ID(bar) ARGS_BEGIN ID(a) ID(b) CLOSE_PAREN
+
+    foo bar (a b) => jux (id foo) (id bar) (jux a b)
+    foo bar(a b) => jux (id foo) (call bar (jux a b))
+
 ** TODO [#A] rename modules of indent based parser and seperate them from the unit tests
 ** TODO [#A] printString "foo\n" ignored newline on both sexpr and indent syntax
 ** TODO [#A] stack basiertes system fuer settings/bindings im macro expander

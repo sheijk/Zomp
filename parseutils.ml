@@ -8,7 +8,7 @@ let rec parse parseF lexbuf bindings codeAccum =
     let newBindings, simpleforms = Expander.translateTL bindings expr in
     parse parseF lexbuf newBindings (codeAccum @ simpleforms)
   with
-    | Sexprlexer.Eof | Iexprtest.Eof -> bindings, codeAccum
+    | Sexprlexer.Eof | Indentlexer.Eof -> bindings, codeAccum
 
 exception CatchedError of string
 let signalError msg = raise (CatchedError msg)
@@ -79,7 +79,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
       let expr = parseF lexbuf in
       parse parseF lexbuf (codeAccum @ [expr])
     with
-        Sexprlexer.Eof | Iexprtest.Eof -> codeAccum
+        Sexprlexer.Eof | Indentlexer.Eof -> codeAccum
   in
 
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
