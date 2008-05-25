@@ -8,8 +8,8 @@ open Bindings
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
   
-let defaultPrompt = "  # "
-and continuedPrompt = "..# "
+let defaultPrompt = ref "  # "
+and continuedPrompt = ref "..# "
   
 let printLLVMCode = ref false
 and printSExpr = ref false
@@ -25,6 +25,30 @@ type commandFunc = string list -> Bindings.bindings -> unit
 let exitCommand _ _  =
   printf "Exiting.\n";
   exit 0
+
+let promptCommand args _ =
+  let report() =
+    printf "Set prompt to '%s' and cont. prompt to '%s'\n" !defaultPrompt !continuedPrompt
+  in
+  let removeQuotes quoteChar str =
+    match dequoteString quoteChar str with | `NotQuoted str | `Quoted str -> str
+  in
+  match List.map (removeQuotes '\'' ++ removeQuotes '"') args with
+    | [] ->
+        defaultPrompt := "";
+        continuedPrompt := "";
+        report()
+    | [newPrompt] ->
+        defaultPrompt := "  " ^ newPrompt ^ " ";
+        continuedPrompt := ".." ^ newPrompt ^ " ";
+        report()
+    | [newDefault; newContinued] ->
+        defaultPrompt := newDefault;
+        continuedPrompt := newContinued;
+        report()
+    | args ->
+        printf "Expected 0-2 arguments instead of %d\n" (List.length args)
+  
 
 let boolString = function
   | true -> "yes"
@@ -263,6 +287,7 @@ let commands =
     "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
     "syntax", [], toggleParseFunc, "Choose a syntax";
     "help", ["h"], printHelp, "List all toplevel commands";
+    "prompt", [], promptCommand, "Set prompt";
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
   in
@@ -321,7 +346,7 @@ let rec readExpr prompt previousLines bindings =
       
   end else if line = toplevelCommandString then begin
     printf "Aborted input, cleared \"%s\"\n" previousLines;
-    readExpr defaultPrompt "" bindings
+    readExpr !defaultPrompt "" bindings
       
   end else if nthChar 0 line = Some toplevelCommandChar then begin
     handleCommand line bindings;
@@ -332,7 +357,7 @@ let rec readExpr prompt previousLines bindings =
       let input = previousLines ^ line ^ "\n" in
       match !parseFunc input with
         | Some expr -> expr
-        | None -> readExpr continuedPrompt input bindings
+        | None -> readExpr !continuedPrompt input bindings
     in
     expr
   end
@@ -341,7 +366,7 @@ let () =
   let rec step bindings () =
     Parseutils.catchingErrorsDo
       (fun () -> begin
-         let expr = readExpr defaultPrompt "" bindings in
+         let expr = readExpr !defaultPrompt "" bindings in
 
          let onSuccess newBindings simpleforms llvmCode =
            if !printSExpr then begin

@@ -1,0 +1,247 @@
+
+* What is it
+
+Zomp is a programming language which I designed and wrote a compiler for as a spare time project. It is currently a one man project. Most of the basic compiler is implemented and I have written a few small OpenGL test programs with it. Releasing it under an Open Source licence is intended for some time in the future. A version running on OS X is available on request, compiling and using it on Linux should be possible.
+
+* Features
+
+- Lisp-like macro system to extend the language in libraries
+- Full hardware access through vector instructions, pointers etc.
+- Interactive shell for rapid prototyping (similar to irb, python)
+- Powerful and friendly syntax which allows to express new language constructs without changing the grammar
+
+* Motivation
+
+Zomp's fundamental concept is to create a language which gives much more power to library developers than most existing languages do. It is intended to provide much of the expressiveness and extensibility of higher level languages for those application domains where C and C++ still dominate like graphics programming and embedded/real-time systems. 
+
+Languages like C, Pascal and C++ provide a fixed set of constructs like loops, classes etc. from which programs can be composed. Even though these constructs are sufficient to write large programs many applications can benefit from the possibility to extend the language with custom constructs. There have been languages which allow this for a long time, like Lisp, Smalltalk, Ruby, Python etc.
+
+The goal of Zomp is to create a programming language in which libraries cannot only provide new data types and functions but also new programming language constructs and which on the same time allows the user full access to the underlying hardware.
+
+It's indented target audience is currently only myself - getting a new programming language to be adapted is a task better suited to large companies than small developer teams so I will stick to a reasonable objective: building a language of my taste to use for my spare time projects.
+
+The Zomp language consists of a minimal RISC like instruction set and a macro system which will transform the source code into the instruction set. Like other compilers Zomp will first parse the source code and store it in a data structure called abstract syntax tree. Instead of directly running semantic analysis and code generation on the AST it will first pass it to the macro system. Then the returned AST will be compiled. The macro system will examine each expression of the AST. A Zomp expression consists of an identifier and an arbitrary number of argument expressions. For example "print(somevar)" will have the identifier 'print' and one argument which is an expression consisting of the identifier 'somevar' and no arguments. A name look-up will be performed on the identifier of the given expression. If it resolves to an identifier of the instruction set the expression will be returned as is. If it resolves to the name of a function all arguments will be macro expanded and the resulting function call will be returned. If the identifier resolves to the name of a macro the expression will be passed to it. It then will return a new AST on which macro expansion will be run again. After macro expansion only instructions of the base instruction set will remain which will be compiled into LLVM bytecode first and then native code.
+
+The macro system allows libraries and applications to define new macros and to provide new control structures and extensions to the object system etc. to the language. Even built-in control structures like for/if/while are realized using macros which will map them to labels and conditional branches. Similarly an object system will be mapped to structs and functions taking an explicit this argument. The user is able to control every detail of this mapping and thus influence the implementation of the object system as well as extending it.
+
+Let's look at an examples how this works out in practice:
+
+for i in 10 to 20
+  printInt(i)
+  println()
+end
+
+Macro expansion will turn this into:
+
+var int i 10 
+label __158_for_start 
+var bool __161_for_testVar i <= 20 
+branch __161_for_testVar __159_for_continue __160_for_exit 
+label __159_for_continue
+seq
+  printInt(i)
+  println()
+end
+i = i + 1
+branch __158_for_start
+label __160_for_exit 
+
+The source of the 'for' macro:
+
+macro for2 counter in first to last body...
+  // generate some fresh, unused, unique identifiers
+  uniqueIds "for" start continue exit testVar
+
+  // the in and to parameters should also be checked
+  // to be "in" and "to" identifiers which is omitted here
+
+  // $ is quotation syntax to create an AST representing the given source
+  // # is antiquotation, inserting a variable's value into the source
+  ret ${
+    var int #counter #first
+    label #start
+    var bool #testVar #counter <= #last
+    branch #testVar #continue #exit
+    label #continue
+    #body
+    #counter = #counter + 1
+    branch #start
+    label #exit
+  end}
+end
+
+Previously it was said that the base instruction set will be compiled into LLVM bytecode. This will be changed in the future: The base level instructions like label, branch etc. will be implemented as macros which will transform the instructions into calls to the LLVM API constructing the bytecode. Thus macro expansion will turn a module into a function which constructs the module's code and meta information. Thus it will even be possible to extend the base instruction set to use new LLVM functionality or replace it completely to use a different code generation backend - this can be done by library and application developers without touching the compiler.
+
+* Use Cases
+
+Now you might probably wonder what all this power and adaptability is good for. Apart from implementing all the features which are already common in C++ the macro system can be used for more enhanced and application specific features. This section will provide a few possible use cases. Note: currently most of them are not implemented because I'm still working on the compiler.
+                                   
+** Integrated shaders
+
+Currently when one is using programmable graphics hardware using GLSL, Cg oder HLSL shaders are programmed in a separate language and shader parameters are set using their name as a string or even their position as a number. This is error prone because the compiler cannot check the validity of variable names making programs brittle. This problem could be overcome by better integration between the shader and the application's programming language. The basic idea is to transform a shader into the shader language's source code to be sent to the GPU and into a class with setter and getter methods for each uniform parameter. Thus accesses to these parameters can be checked for misspelled names. It might also be possible to reuse simple functions written in Zomp in shaders as long as they don't use functionality not available on the GPU. It might even be possible to generate source for different shader languages from the same source.
+
+Example:
+
+shader Phong
+  uniform float exponent
+  uniform color diffuse
+
+  vertex(vec3 pos, vec3 normal)
+    out.pos = ...
+    out.normal = ...
+  end
+
+  fragment(vertout v)
+    out.color = ...
+  end
+end shader Phong
+
+// using it
+var Phong phongShader
+phongShader.bind()
+phongShader.setExponent( 50.0 )
+phongShader.setDifuse( 0.1, 0.1, 0.1, 1.0 ) <- Error: no member setDifuse, maybe you meant setDiffuse?
+
+The shader will be expanded into:
+
+class Phong extends Shader
+public:
+  void setExponent(float)
+  void setDiffuse(float, float, float, float)
+  void setDiffuse(Color)
+
+  void create()
+  void release()
+
+  void bind()
+  void unbind()
+
+private:
+  string vertexSource, fragmentSource
+end
+
+** Message passing, Reflection
+
+Language like Python, Ruby or Smalltalk use a concept called Message Passing to implement member methods. A message is an object which describes a function call. When an expression like "obj.printTo(stderr)" is executed a message with the name printTo and parameter stderr is sent to the object obj. When an object receives a message it looks up whether it has a member method with a matching name and arguments and if found calls it. If no method can be found a special method (called method_missing in Ruby) is called with an object describing the message. Then the message can be processed in any way. An error can be triggered, the message can be serialized, sent over the network etc. By repyling to the message the object will pretend to have a matching method.
+Example use cases for this would be serialization (simply send messages for each found property so the serializer does not need to know anything about the loaded object) or faking the existence of method or properties so that the data structure of a system can be loaded from a configuration file (like it is done in Apples Core Data API). Implementing this in C++ can be done but is inconvenient and inefficient because methods have to be identified using strings instead of hashes and message dispatching has to be done manually.
+
+msgclass Foo
+  method printTo(Stream stream)
+    ...
+  end
+end
+
+Will be converted into
+
+class Foo extends MessageReceiver
+  Map<MethodHash, Method*> methods
+
+  void printTo(Stream stream)
+    ...
+  end
+end
+
+onModuleLoad
+  Foo.methods.add( calcHash("printTo"), &Foo.printTo )
+  ...
+end
+
+class MessageReceiver
+  void send(Message* msg)
+    Method* m = methods.lookup(msg.hash)
+    if m != NULL
+      m->call(msg.args)
+    else
+      methodMissing(msg)
+  end
+end
+
+** More
+
+There are lots of other things which I will only mention here briefly. Think of everything other languages provide - lazy evaluation, pattern matching, enums with additional parameters per case (variant data types), SQL like queries on arbitrary data types like in Microsoft's LINQ, directly expressing scene graphs, all kinds of Domain Specific Languages, conditional compilation, type classes, making masses, units of length, etc. distinct types to get rid of conversion errors and much more. Thanks to the macro system most of it should be possible to be implemented as a library in Zomp.
+
+** Drawbacks and possible problems
+
+Even though the macro system can be very powerful it won't magically bring the perfect language to life. Adding lots of language features will not automatically create a great programming language: the features will have to supplement each other in order to avoid complications when combining them. Even though it is to early to know where problems will occur there are already some possible problems visible. Especially overlapping functionality might cause problems because parts of the library might be needed twice - once in each overlapping part of the library (think of different object systems etc.). Runtimes for various features might conflict. Also the low level access to pointers might cause troubles if one intends to create a language which is safe from crashes. Many advances in language technology have been adding restrictions like getting rid of multiple entry points per function, access rights, replacing frequent gotos with structured programming or prohibiting side effects and mutable variables in Haskell. Adding such restrictions in a language featuring a Lisp like macro system might require significant research. I will only be able to implement a small fraction of those ideas myself. The bright side of this is that the project promises to keep challenging for a while :)
+
+
+* A simple OpenGL example
+
+This is the source code of a simple OpenGl program showing what already is implemented.
+
+
+include "opengl20.zomp"
+include "glfw.zomp"
+include "tests/glutils.zomp"
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if bool:not(initCalled) then
+    glfwInit()
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+var float angle 0.0
+
+// avoid writing it over and over, part of utils lib
+macro mainloop body...
+  ret ${
+    var float time 0.0
+    var bool running true
+    while running
+      time = double:toFloat(glfwGetTime())
+      angle = time *_f 128.0
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = bool:not( isPressed(GLFW_KEY_ESC) )
+    end
+  end}
+end
+
+func int main()
+  init()
+
+  glMatrixMode( GL_PROJECTION )
+  glLoadIdentity()
+  const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+  gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
+
+  mainloop
+    glClearColor(0.0, 0.0, 0.0, 1.0)
+    glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef( 0., 1., float:neg(4.) )
+    glRotatef( angle, 0., 1., 0. )
+
+    drawCoordSys( 8.0 )
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+  glfwPollEvents()
+
+  printlnString "cu"
+
+  ret 0
+end
+
+

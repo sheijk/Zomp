@@ -392,6 +392,7 @@
     
     ;; ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
     ("\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b(" 1 font-lock-function-name-face)
+    ("^ *\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-variable-name-face)
     ("[()]" 0 font-lock-keyword-face)
     
     ("@[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-variable-name-face)
@@ -435,7 +436,7 @@
   
 (defun zomp-symbol-at-point ()
   (interactive)
-  (let (linestart funcend linesym funcsym)
+  (let ((linestart 0) (parenopen 0) funcend linesym funcsym)
     (setq linesym
           (save-excursion
             (back-to-indentation)
@@ -448,6 +449,7 @@
             (condition-case nil
                 (progn
                   (goto-match-paren 0)
+                  (setq parenopen (point))
                   (when (> (point) 0)
                     (setq funcend (point))
                     (search-backward-regexp (format "[^%s]" zomp-identifier-chars))
@@ -455,11 +457,13 @@
                     (forward-char)
                     (buffer-substring (point) funcend)))
               (error nil))))
+    (when (and (> linestart parenopen) linesym funcsym)
+      (setq funcsym nil))
     (or funcsym linesym "nothing found")))
 
-(defun zomp-symbol-at-point ()
-   (interactive)
-   "xxx")
+;; (defun zomp-symbol-at-point ()
+;;    (interactive)
+;;    "xxx")
 
 (defun zomp-get-eldoc-string ()
   (let ((symbol "unknown"))

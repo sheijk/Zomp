@@ -1,0 +1,40 @@
+/**
+ * for loops (for indent syntax)
+
+!verify off
+ */
+!syntax indent
+
+macro uniqueIds purpose ids...
+  var ast* code ${seq}
+
+  forEachAstChild child ids
+    addChild code ${uniqueId #child #purpose}
+  end
+
+  ret code
+end
+
+macro for2 counter in first to last body...
+  uniqueIds "for" start continue exit testVar
+
+  mret ${
+    var int #counter #first
+    label #start
+    var bool #testVar #counter <= #last
+    branch #testVar #continue #exit
+    label #continue
+    #body
+    #counter = #counter + 1
+    branch #start
+    label #exit
+  end}
+end
+
+func void test()
+  for2 i in 10 to 20
+    printInt(i)
+    println()
+  end
+end
+
