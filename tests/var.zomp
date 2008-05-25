@@ -1,49 +1,57 @@
+/**
+ * Shows several uses of variables
 
-// std lib functions
-func void printInt {int i;};
-// func void printString {string s;};
-func void printFloat {float f;};
-func void printNewline {};
+!verify off
+ */
+!syntax indent
 
-func void nl {} { printNewline; };
+func void nl()
+  printNewline()
+end
 
-var int gInt 10;
-// var string gString "message";
-var float gFloat 1.0;
+var int gInt 10
+// var string gString "message"
+var float gFloat 1.0
 // broken due to changed format of llvm floats:
 // var float gFloat 1.1;
-var bool gBool true;
-var float gmFloat 1.0; // 0.3
+var bool gBool true
+var float gmFloat 1.0
 
-func int plus2 {int i;} { i; };
+func int plus2(int i)
+  ret i + 2
+end
 
-func int main {} {
-  var int f { plus2 3; };
+template op:= name value
+  var2 #name #value
+end
 
-  printInt f; nl;
+func int main()
+  f := plus2(3)
+
+  printInt f
+  nl()
   
-  printInt gInt; nl;
-//   printString gString; nl;
-  printFloat gFloat; nl;
+  printlnInt gInt
+  // printlnString gString
+  printFloat gFloat
+  nl()
 
-  var int lInt 11;
-  printInt lInt; nl;
+  lInt := 11
+  printlnInt lInt
   
-  var float lFloat 1.0; // 2.0
-  printFloat lFloat; nl;
+  lFloat := 1.0
+  printFloat lFloat
+  nl()
 
-  var int mInt 9;
-  assign mInt 11;
-  printInt mInt; nl;
+  mInt := 9
+  mInt = 11
+  printlnInt mInt
 
-  assign gmFloat 1.0; // 3.0
-  printFloat gmFloat; nl;
-  
-// TODO
-//   var string lString \"local\";
-//   printString lString; nl;
-  
-  printNewline;
-  ret 0;
-};
+  gmFloat = 1.0
+  printFloat gmFloat
+  nl()
+
+  printNewline()
+  ret 0
+end
 

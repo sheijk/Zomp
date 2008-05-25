@@ -48,11 +48,13 @@ let whitespaceRE = Str.regexp " +"
 
 type token = [ indentToken | userToken ]
 
+type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string]
+  
 (**
  * each rule contains of two regexps (one for the string allowed to precede the expression
  * and one which matches the token) and a function turning the matched string into a token
  *)
-let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBack of token * string])) list =
+let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
   let idFunc s = `Identifier s in
   let regexpRule str token = 
@@ -62,16 +64,19 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let validIdentifierChars = "a-zA-Z0-9:_" in
   let validIdentifierFirstChar = "a-zA-Z" in
-  let opRule symbol tokenF =
+  let opRule symbol (tokenF :string -> token) =
     (Str.regexp "[a-z)]",
-     Str.regexp (opre symbol)),
-    tokenF
+     Str.regexp (opre symbol ^ "[^ \n]")),
+    ((fun str ->
+        let lastChar = str.[String.length str - 1] in
+        let str2 = Str.string_before str (String.length str - 1) in
+        `PutBack( tokenF (trim str2), String.make 1 lastChar ) ) :tokenBuilder)
   in
-  let opRuleWS symbol tokenF =
+  let opRuleWS symbol (tokenF :string -> token) =
     re (sprintf " +%s +" (opre symbol)),
-    (fun str -> tokenF (trim str))
+    (fun str -> (tokenF (trim str) :> [token | `Ignore | `PutBack of token * string]))
   in
-  let opRules symbol tokenF =
+  let opRules symbol (tokenF :string -> token) =
     [opRule symbol tokenF;
      opRuleWS symbol tokenF]
   in
@@ -108,11 +113,16 @@ let rules : ((Str.regexp * Str.regexp) * (string -> [< token | `Ignore | `PutBac
        `Quote str)
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
-  (* let singleLineCommentRule = (Str.regexp ".*", Str.regexp "//[^\n]*\n"), (fun _ -> `Ignore) in *)
+  let opfuncRule prefix =
+    re ((Str.quote prefix) ^ "[+-\\*/&.><=!]+ *"),
+    (fun (str:string) -> `Identifier (trim str))
+  in
   [
     identifierRule;
     whitespaceRule;
-    (* singleLineCommentRule; *)
+    opfuncRule "op";
+    opfuncRule "preop";
+    opfuncRule "postop";
     regexpRule "(" `OpenParen;
     regexpRule ")" `CloseParen;
     regexpRule "{" `OpenCurlyBrackets;

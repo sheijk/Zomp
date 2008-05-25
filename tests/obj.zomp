@@ -110,6 +110,16 @@ type IntArray
   int* elements
 end
 
+
+template op:= name value
+  var2 #name #value
+end
+
+func void test()
+  i := 0
+  printlnInt i
+end
+
 func void IntArray:init(IntArray* this, int size)
   setField this size size
   setField this elements malloc(int, size)
@@ -241,6 +251,12 @@ func Mesh* makeCube(float size)
   ret cube
 end
 
+func void test()
+  printlnString "Hello, cube"
+  
+  var Mesh* mesh makeCube(1.0)
+  Mesh:print(mesh)
+end
 
 //   template setCubeSide num a b c d
 //     store ptradd(indices, 4 * #num + 0) #a

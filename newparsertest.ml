@@ -244,8 +244,14 @@ struct
       (* todo *)
 
       "a +5", `Exception "Unbalanced whitespace";
+      "a- b", `Exception "Unbalanced whitespace";
 
       (* "(sin 10) / (cos 20)", `Return [expr "op/" [jux ["sin"; "10"]; jux ["cos"; "20"]]]; *)
+
+      (** operator identifiers *)
+      "op> a b", `Return [jux ["op>"; "a"; "b"]];
+      "postop* l r", `Return [jux ["postop*"; "l"; "r"]];
+      "macro preop& val", `Return [jux ["macro"; "preop&"; "val"]];
       
       (** invalid cases *)
       "§", `Exception "Invalid char";
