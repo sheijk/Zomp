@@ -29,7 +29,7 @@ namespace {
 }
 
 namespace {
-  // will run the code
+  /// will run the code
   static ExecutionEngine* executionEngine = 0;
 
   static Module* llvmModule = 0;

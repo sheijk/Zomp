@@ -354,6 +354,10 @@ struct
         "end wrong",
       `Exception "Should fail because 'wrong' would need to be 'main' or be omitted";
 
+      "empty block\n" ^
+        "end",
+      `Return [juxExpr [id "empty"; id "block"; seqExpr[]]];
+
       (*       "for: p in primes\n\ *)
       (*       \  print p\n\ *)
       (*       \  log p", *)

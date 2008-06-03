@@ -1,6 +1,94 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] support functions returning non-void on toplevel
+
+  
+** TODO [#A] loops mit broken/exhausted
+
+   (von converged)
+   for <expression>:
+     ...
+   exhausted:
+     ...
+   broken:
+     ...
+
+   exhausted block wird aufgerufen wenn loop durch ist
+   broken wird aufgerufen wenn per break abgebrochen wurde
+   continued ~
+
+** TODO [#A] indent: ignore parens in strings
+** TODO [#A] checked/unchecked vars im type system (checked = auf konsistenz usw. geprueft)
+** TODO [#A] type classes: alternative instanz als keyword argument?
+
+   typeclass Comparator<T>:
+     bool compare(T, T)
+
+   func void sort<Comparator T>(Array<T>* array)
+     ...
+   end sort
+
+   instance less Comparator<int>:
+     bool compare(int l, int r) => l < r
+
+   instance greater Comparator<int>:
+     bool compare(int l, int r) => l > r
+
+   sort(intList)
+   sort(intList, Comparator: greater)
+   
+** TODO [#A] miniml als testprojekt
+   Um zu kucken wie sich Restriktionen umsetzen lassen
+   
+** TODO [#A] folding -> hs-special-modes-alist
+** TODO [#A] yield
+** TODO [#A] import push => stackPush, pop => stackPop from eve.da
+** TODO [#A] named params: copy(from: file1, to: file2)
+
+   foo: bar baz
+   <=>
+   (postfix: foo (bar baz)
+
+   > :foo:bar
+   prefix: fuer global namespace (nicht als operator definieren?)
+
+   zomp:core:add
+   infix: fuer namespaces
+
+   auch sowas:?
+   
+   obj print: "fooo" to: stderr
+   (jux (op: print "foo") (op: to stderr))
+
+   (foo bar) op: blah
+   (seq (jux foo bar) (op: blah))
+
+** TODO [#A] function types: (int,float)->float, float->int, ...
+** TODO [#A] operatorsymbol am zeilenanfang/ende = pre/postfix operator fuer ganze zeile?
+
+   > equals(int a, int b) =
+   <=>
+   (postfix= (funcall equals (int a) (int b)))
+
+   > | [1,2,3] => foo
+
+   (prefix| (infix=> (op[] 1 2 3) foo))
+
+   loesung fuer pattern matching
+
+   > match lst with
+   >   | [1,2,3] => handle123()
+   >   | [1,2,3,4] => handle1234()
+   >   | _ => handleOther()
+
+** TODO [#A] zugriffsrechte per ACLs: auch fuer class member / einzelne parameter?
+** TODO [#A] oder auch \+\ \+ +\
+** TODO [#A] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_?
+** TODO [#A] exceptions: restartable conditions
+** TODO [#A] compilation scheme: base instructions can have effects on the bindings
+** TODO [#A] list<int> => template, xml <node> -> xml like trees
+** TODO [#A] "foo bar\nend" should be translated correctly
 ** TODO [#A] GC using macros
    Support classes to be GC-collected
 
@@ -794,21 +882,21 @@ Put macro functions into seperate module
 
 **** On sexpr/ast
 
-ast:match ast matchExpr
+     ast:match ast matchExpr
 
-matchExpr ::= case matchCase => code
+     matchExpr ::= case matchCase => code
 
-matchCase ::= pattern
-matchCase ::= var = pattern
-matchCase ::= var varName : type
+     matchCase ::= pattern
+     matchCase ::= var = pattern
+     matchCase ::= var varName : type
 
-pattern ::= "expectId"
-pattern ::= (matchCase+)
+     pattern ::= "expectId"
+     pattern ::= (matchCase+)
 
 **** Overloaded match macro
 
-match foo matchExprs+
-=> typeOf(foo):match foo matchExprs+
+     match foo matchExprs+
+     => typeOf(foo):match foo matchExprs+
      
 *** TODO [#B] Regular expressions
 **** TODO [#A] Bindings for PCRE
@@ -861,7 +949,7 @@ new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
 
 **** Syntax support
 
-Is anything special needed?
+     Is anything special needed?
      
 **** Represent them in zomp ast type <- what does this mean? :)
 

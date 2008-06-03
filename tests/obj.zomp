@@ -105,12 +105,6 @@ macro new type args...
   ret code
 end
 
-type IntArray
-  int size
-  int* elements
-end
-
-
 template op:= name value
   var2 #name #value
 end
@@ -119,6 +113,11 @@ end
 //   i := 0
 //   printlnInt i
 // end
+
+type IntArray
+  int size
+  int* elements
+end
 
 func void IntArray:init(IntArray* this, int size)
   setField this size size
@@ -170,10 +169,14 @@ func Mesh* makeMesh(int vertexCount, int indexCount)
   ret m
 end
 
+func void nop()
+  var int dummy 0
+end
+
 func void Mesh:setVertex(Mesh* this, int num, float x, float y, float z)
   var VertexStream* vertices fieldptr(this, positions)
   var float* vertArray getField(vertices, data)
-
+  
   store ptradd(vertArray, 3 * num + 0) x
   store ptradd(vertArray, 3 * num + 1) y
   store ptradd(vertArray, 3 * num + 2) z
@@ -252,8 +255,13 @@ func Mesh* makeCube(float size)
 end
 
 func void test()
+  var Mesh* mesh makeCube(1.0)
+  Mesh:print(mesh)
+end
+
+func void test()
   printlnString "Hello, cube"
-  
+
   var Mesh* mesh makeCube(1.0)
   Mesh:print(mesh)
 end

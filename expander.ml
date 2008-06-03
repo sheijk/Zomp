@@ -174,6 +174,7 @@ let rec expr2value typ expr =
       end
     | _ -> raiseIllegalExpression expr "unsupported value expression"
         
+(** TODO: foobar *)
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
   let transform id name typeExpr valueExpr =
     let declaredType = match typeExpr with

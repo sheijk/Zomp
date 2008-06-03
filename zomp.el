@@ -274,7 +274,7 @@
 
                                         ; indexing of current file (control-')
   (setq imenu-generic-expression zomp-imenu-generic-expression)
-  (local-set-key [(control ?')] 'imenu)
+  ;; (local-set-key [(control ?')] 'imenu)
 
                                         ; display documentation for methods/macros/... in status line
   (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)

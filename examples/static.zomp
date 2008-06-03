@@ -1,0 +1,36 @@
+/**
+ * Simple compile time meta programming example
+
+!verify off
+ */
+
+`(var int x 10)
+
+(func void test () (
+  (var int sum (2 + 3 * 4))
+  (printInt sum)
+  (printlnString "blah")
+
+  (printAst `(foo bar) 8)
+  ))
+
+!syntax indent
+
+func int sum(int l, int r)
+  ret l + r
+end
+
+${var int iCompileTime 100}
+
+func void test()
+  ${var int foo 10}
+
+  println()
+end
+
+func void test()
+  var int r #{sum(2,3)}
+  printlnInt(r)
+end
+
+
