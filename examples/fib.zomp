@@ -1,0 +1,36 @@
+/**
+ * Calculating fibonacci numbers the sane way
+
+!verify off
+ */
+!syntex indent
+
+template op:= name value
+  var2 #name #value
+end
+
+func int fib(int n)
+  prevprev := 1
+  prev := 1
+  
+  for i 2 n
+    next := prev + prevprev
+    prevprev = prev
+    prev = next
+  end
+
+  ret prev
+end
+
+func void test()
+  printlnString "Fibonaccis without the waiting"
+
+  for i 1 20
+    printString "fib("
+    printInt i
+    printString ") = "
+    printInt fib(i)
+    println()
+  end
+end
+
