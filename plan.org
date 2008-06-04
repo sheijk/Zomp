@@ -1,278 +1,6 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
-** TODO [#A] support functions returning non-void on toplevel
-
-  
-** TODO [#A] loops mit broken/exhausted
-
-   (von converged)
-   for <expression>:
-     ...
-   exhausted:
-     ...
-   broken:
-     ...
-
-   exhausted block wird aufgerufen wenn loop durch ist
-   broken wird aufgerufen wenn per break abgebrochen wurde
-   continued ~
-
-** TODO [#A] indent: ignore parens in strings
-** TODO [#A] checked/unchecked vars im type system (checked = auf konsistenz usw. geprueft)
-** TODO [#A] type classes: alternative instanz als keyword argument?
-
-   typeclass Comparator<T>:
-     bool compare(T, T)
-
-   func void sort<Comparator T>(Array<T>* array)
-     ...
-   end sort
-
-   instance less Comparator<int>:
-     bool compare(int l, int r) => l < r
-
-   instance greater Comparator<int>:
-     bool compare(int l, int r) => l > r
-
-   sort(intList)
-   sort(intList, Comparator: greater)
-   
-** TODO [#A] miniml als testprojekt
-   Um zu kucken wie sich Restriktionen umsetzen lassen
-   
-** TODO [#A] folding -> hs-special-modes-alist
-** TODO [#A] yield
-** TODO [#A] import push => stackPush, pop => stackPop from eve.da
-** TODO [#A] named params: copy(from: file1, to: file2)
-
-   foo: bar baz
-   <=>
-   (postfix: foo (bar baz)
-
-   > :foo:bar
-   prefix: fuer global namespace (nicht als operator definieren?)
-
-   zomp:core:add
-   infix: fuer namespaces
-
-   auch sowas:?
-   
-   obj print: "fooo" to: stderr
-   (jux (op: print "foo") (op: to stderr))
-
-   (foo bar) op: blah
-   (seq (jux foo bar) (op: blah))
-
-** TODO [#A] function types: (int,float)->float, float->int, ...
-** TODO [#A] operatorsymbol am zeilenanfang/ende = pre/postfix operator fuer ganze zeile?
-
-   > equals(int a, int b) =
-   <=>
-   (postfix= (funcall equals (int a) (int b)))
-
-   > | [1,2,3] => foo
-
-   (prefix| (infix=> (op[] 1 2 3) foo))
-
-   loesung fuer pattern matching
-
-   > match lst with
-   >   | [1,2,3] => handle123()
-   >   | [1,2,3,4] => handle1234()
-   >   | _ => handleOther()
-
-** TODO [#A] zugriffsrechte per ACLs: auch fuer class member / einzelne parameter?
-** TODO [#A] oder auch \+\ \+ +\
-** TODO [#A] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_?
-** TODO [#A] exceptions: restartable conditions
-** TODO [#A] compilation scheme: base instructions can have effects on the bindings
-** TODO [#A] list<int> => template, xml <node> -> xml like trees
-** TODO [#A] "foo bar\nend" should be translated correctly
-** TODO [#A] GC using macros
-   Support classes to be GC-collected
-
-   gcclass Foo
-     ...
-
-   gcclass Bar
-     int x
-     Foo* target
-
-   =>
-
-   class PointerInfo:
-     list<offset> pointers
-     
-   class GarbageCollected:
-     PointerInfo* pointerInfo
-     static list<GarbageCollected> roots
-   
-   class Bar extends GarbageCollected:
-     int x
-     Foo* target
-     Bar* other
-
-     static PointerInfo classPointerInfo
-       pointers = [offset(target), offset(other)]
-
-     constructor():
-       pointerInfo = &classPointerInfo
-
-   void garbageCollection()
-     // mark+sweep all roots and their target pointers
-
-** TODO [#A] einheitliches system fuer tests
-** TODO [#A] motivation: mixins
-** TODO [#A] motivation: automatische printer
-
-   type Point:
-     float x, y
-     
-   Point.derive Printer, XMLSerializer
-
-   => print, toXML, fromXML Methoden generieren
-
-   codeDeriver = Type -> [toplevelExpr]
-
-** TODO [#A] extended var
-   - should be able to create multiple variables like 'var int x, y = 10, z'
-   - should return the variable's value so it can be better used inside control structures
-     while (var int x = foo())
-       println(x)
-    
-** TODO [#A] motivation: powerful asserts
-   assert x < 10
-   => Fehlermeldung mit Wert von x
-   "Assertion 'x < 10' failed, x = 11 @file.zomp:101"
-
-** TODO allow variable definitions within expressions?
-   while (var int x = foo()) > 10
-     print(x)
-
-** TODO [#A] array/list comprehensions
-** TODO [#A] pointer + vars mit scope level parametrisieren, dann bei ptr = &foo nur erlauben wenn scopelevel von ptr <= scopelevel(foo)
-   (siehe cyclone, ada)
-
-** TODO [#A] finally
-   begin
-     code
-   finally
-     code
-   end
-
-** TODO [#A] tuples: var (int, float) x => x.0 : int, x.1 : float
-** TODO [#A] clisp artiges destructuring
-** TODO [#A] error when redefining symbol with different number of arguments
-** TODO konfigurierbare base language
-macroExpand :: [AST], Bindings -> [Instruction]
-
-enum Symbol:
-  Instruction :AstPattern
-  Variable :Type
-  Function :Args * Type
-  Macro :MacroFunc
-
-type Bindings:
-  Id => Symbol
-
-Gibt am Ende AST zurueck der nur noch aus Instructions besteht
-Kann dann auch zum kompilieren von Shadern benutzt werden
-
-** TODO ruby syntax, fortress syntax fuer nested function calls
-** TODO gencode in zomp umstellen
-   (zeiger durch abstrakten typ darstellen)
-   http://www.linux-nantes.org/~fmonnier/OCaml/ocaml-wrapping-c.php#ref_ptr
-
-** TODO [#A] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
-** TODO [#A] `undefine name' => name kann nicht mehr verwendet werden
-** TODO [#A] runtime checks generieren
-** TODO [#A] if (*addF)(3, 4) > 10
-   => jux (preop* addF) (op> (op, 3 4) 10)
-   Sollte aber jux if (op> (opcall (preop* addF) 3 4) 10) sein
-
-   Regeln fuer jux/call aendern? Doch jux hoechste Prioritaet geben und Klammern verwenden?
-   Oder {} fuer Prioritaet?
-
-   Oder einfach addF(3,4) in einen function call umwandeln wenn addF ein function pointer ist
-
-*** Zu Bedenken:
-   
-   let x + y = ...
-   if cond(arg) then ...
-
-   sin x + cos y
-   
-*** Evtl
-    if: expr* then: expr*
-
-    visitTree: tree onLeaf: leafF onNode: nodeF
-
-    for: i in: 10 .. 20 do: print i; println()
-    
-** TODO [#A] foo(bar baz) auch als call parsen? 
-
-*** foo {bar baz} dann um jux zu bekommen?
-*** Neues Token fuer calls einfuehren?
-    foo bar (a b) => ID(foo) ID(BAR) OPEN_PAREN ID(a) ID(b) CLOSE_PAREN
-    foo bar(a b) => ID(foo) ID(bar) ARGS_BEGIN ID(a) ID(b) CLOSE_PAREN
-
-    foo bar (a b) => jux (id foo) (id bar) (jux a b)
-    foo bar(a b) => jux (id foo) (call bar (jux a b))
-
-** TODO [#A] rename modules of indent based parser and seperate them from the unit tests
-** TODO [#A] printString "foo\n" ignored newline on both sexpr and indent syntax
-** TODO [#A] stack basiertes system fuer settings/bindings im macro expander
-** TODO [#A] haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
-** TODO [#A] speichermanagement fixen!!! (ast.id wird manchmal geloescht.. im ocaml ffi?)
-** TODO [#A] keine fehler ausgabe im prelude?
-** TODO [#A] define operator funcs in indent syntax (func l == r ...)
-** TODO [#A] unit tests still use identifiers with dots (line 'int.add') - change this to colon (int:add)
-** TODO [#A] toplevel: run expr through macro expansion. if it consists only of toplevel exprs evaluate, otherwise run immediate
-** TODO [#A] char handling in macro expansion fucked up?
-macro Cstring:forEachChar string char onChar
-  uniqueId ptr "forEachChar"
-
-  mret ${
-    var char* ptr line
-    while bool:not( char:equal(load(ptr), '\0') )
-      var char chr load(ptr)
-      printChar chr
-      ptr = ptradd(ptr, 1)
-    end
-  end}
-end macro
-
-In macro expansion the \0 will be replaced by an !
-   
-** TODO [#A] sometimes macros can't be parsed at the toplevel (might be related to the macro expansion string fuckup)
-** TODO [#A] todos nach features ordnen + mit tags versehen
-** TODO [#A] unique/linear types
-   - nach erzeugung linear, bis das erste mal eine zuweisung passiert
-   - mit pattern matching bzw. on-the-fly typanpassung?
-   - funktionen beeinflussen linear eigenschaft?
-     
-** TODO [#A] prio fuer call(a,b,c) analog zu operator precedence loesen? (ala multExpr, addExpr)
-** TODO [#A] reduce to llvm bindings and macros (mixed ocaml/zomp macro system for now)
-** TODO [#A] subseq "foo" -2 => "oo", subseq "foo" 2 => "fo" etc.
-** TODO [#A] proper support for compile time variables
-** TODO [#A] simplify all base language forms so only one syntax is allowed and support variants using macros
-** TODO [#A] move all builtin forms into zomp namespace (e.g. zmp:base:var etc.)
-** TODO [#A] disallow identifiers which only differ in capitalization (unless for type/function, e.g. if they denote different kinds of elements?)
-** TODO [#A] bugs wenn innerhalb eines makros andere makros getriggert werden?
-** TODO [#A] macro expansion failures in compiler but not toplevel (comments.zomp), getting weird characters
-   scheint in der stdlib zu sein
-   koennte daran liegen dass redefinitionen im compiler anders behandelt werden
-** TODO [#A] int to char conversion
-** TODO [#A]     store ptradd(buffer, 99) '\0' => llvm failure
-** TODO [#A] ast:print( ${foo bar}, 0 ) => fails
-** TODO [#A]     store ptradd(indices, 4 * #num + 0) #a => fails to parse
-** TODO [#A]   store ptradd(vertArray, 3*num + 0) x => error (see below)
-** TODO [#A] give additional info if a name resolves to something of the wrong type (expected type but found function etc.)
-** TODO [#A] evaluating multipe expressions will ignore all but the last (iexpr) (sometimes)
-** TODO [#A] (include ..) should support iexpr syntax
-** TODO [#A] better error message on invalid typedef
-** TODO [#A] empty lines containing spaces let the parser fail
 
 * Use Cases
 
@@ -344,10 +72,42 @@ void Render(float t)
          (possibly trigger macro expansion of an ast from within macros)
    - [ ] compile time global variables
 
+** miniml als testprojekt
+   Um zu kucken wie sich Restriktionen umsetzen lassen
+
 * Tasks											:zomp:
 
 ** BUGS
 
+*** TODO [#C] keine fehler ausgabe im prelude?                             :bug:
+*** TODO [#B] bugs wenn innerhalb eines makros andere makros getriggert werden? :bug:
+*** TODO [#B] sometimes macros can't be parsed at the toplevel (might be related to the macro expansion string fuckup) :bug:
+*** TODO [#B] macro expansion failures in compiler but not toplevel (comments.zomp), getting weird characters :bug:
+    scheint in der stdlib zu sein
+    koennte daran liegen dass redefinitionen im compiler anders behandelt werden
+*** TODO [#A] evaluating multipe expressions will ignore all but the last (iexpr) (sometimes) :bug:
+*** TODO [#B]     store ptradd(buffer, 99) '\0' => llvm failure            :bug:
+*** TODO [#B] ast:print( ${foo bar}, 0 ) => fails                          :bug:
+*** TODO [#B]     store ptradd(indices, 4 * #num + 0) #a => fails to parse :bug:
+*** TODO [#B]   store ptradd(vertArray, 3*num + 0) x => error (see below)  :bug:
+*** TODO [#A] printString "foo\n" ignored newline on both sexpr and indent syntax :bug:
+*** TODO [#A] char handling in macro expansion fucked up?                  :bug:
+macro Cstring:forEachChar string char onChar
+  uniqueId ptr "forEachChar"
+
+  mret ${
+    var char* ptr line
+    while bool:not( char:equal(load(ptr), '\0') )
+      var char chr load(ptr)
+      printChar chr
+      ptr = ptradd(ptr, 1)
+    end
+  end}
+end macro
+
+In macro expansion the \0 will be replaced by an !
+*** TODO [#A] speichermanagement fixen!!! (ast.id wird manchmal geloescht.. im ocaml ffi?) :bug:
+   
 *** TODO [#B] check where `DefineVariable for void vars comes from
 *** DONE [#A] "" is not parsed as a string
     CLOSED: [2008-01-11 Fri 01:28]
@@ -477,8 +237,13 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     (template uniqueLabel name purpose (
       (var cstring #name (newUniqueNameFor #purpose)) ))
 
-** Refactorings
+** Refactorings                                                   :refactorings:
    
+*** TODO [#A] unit tests still use identifiers with dots (line 'int.add') - change this to colon (int:add) :refactorings:quick:
+*** TODO [#B] reduce to llvm bindings and macros (mixed ocaml/zomp macro system for now) :refactorings:
+*** TODO [#A] simplify all base language forms so only one syntax is allowed and support variants using macros :refactorings:
+*** TODO [#B] move all builtin forms into zomp namespace (e.g. zmp:base:var etc.) :refactorings:
+*** TODO [#B] rename modules of indent based parser and seperate them from the unit tests
 *** TODO [#A] change all types to Capitalized case in stdlib
 *** TODO [#B] Allow nested expressions in branch instruction
     
@@ -497,24 +262,100 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** TODO [#B] check return values of tests/*.zomp
     Rename files to foo.ret100.zomp, then check whether running foo returns 100
 
-** Parser
+** Parser / Syntax                                               :parser:syntax:
 
-*** TODO [#A] indent parser: support escaped linebreaks (\ at beginning/end of line)
-*** TODO [#A] indent parser: skip comments
-*** TODO [#A] indent parser: strings
-*** TODO [#B] only allow one dot in ids (and none at a later point)
-*** TODO [#B] iexprtest.ml: does worker in token use stringAcc at all?
-*** TODO [#C] parse (a b c) into (op() a b c), {a b c} into (op{} a b c), (a) into (op() a), b into b?
+*** TODO [#A] prio fuer call(a,b,c) analog zu operator precedence loesen? (ala multExpr, addExpr) :parser:
+
+*** TODO [#A] if (*addF)(3, 4) > 10
+    => jux (preop* addF) (op> (op, 3 4) 10)
+    Sollte aber jux if (op> (opcall (preop* addF) 3 4) 10) sein
+
+    Regeln fuer jux/call aendern? Doch jux hoechste Prioritaet geben und Klammern verwenden?
+    Oder {} fuer Prioritaet?
+
+    Oder einfach addF(3,4) in einen function call umwandeln wenn addF ein function pointer ist
+
+**** Zu Bedenken:
+    
+    let x + y = ...
+    if cond(arg) then ...
+
+    sin x + cos y
+    
+**** Evtl
+     if: expr* then: expr*
+
+     visitTree: tree onLeaf: leafF onNode: nodeF
+
+     for: i in: 10 .. 20 do: print i; println()
+
+**** foo {bar baz} dann um jux zu bekommen?
+**** Neues Token fuer calls einfuehren?
+    foo bar (a b) => ID(foo) ID(BAR) OPEN_PAREN ID(a) ID(b) CLOSE_PAREN
+    foo bar(a b) => ID(foo) ID(bar) ARGS_BEGIN ID(a) ID(b) CLOSE_PAREN
+
+    foo bar (a b) => jux (id foo) (id bar) (jux a b)
+    foo bar(a b) => jux (id foo) (call bar (jux a b))
+
+     
+*** TODO [#A] foo(bar baz) auch als call parsen? 
+
+
+
+*** TODO [#A] list<int> => template, xml <node> -> xml like trees
+
+*** TODO [#B] "foo bar\nend" should be translated correctly
+
+*** TODO [#B] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_?
+    oder auch \+\ \+ +\
+
+*** TODO [#B] operatorsymbol am zeilenanfang/ende = pre/postfix operator fuer ganze zeile?
+
+   > equals(int a, int b) =
+   <=>
+   (postfix= (funcall equals (int a) (int b)))
+
+   > | [1,2,3] => foo
+
+   (prefix| (infix=> (op[] 1 2 3) foo))
+
+   loesung fuer pattern matching
+
+   > match lst with
+   >   | [1,2,3] => handle123()
+   >   | [1,2,3,4] => handle1234()
+   >   | _ => handleOther()
+
+*** TODO [#B] indent parser: support escaped linebreaks (\ at beginning/end of line) :quick:
+*** DONE [#A] indent parser: skip comments
+    CLOSED: [2008-06-04 Wed 02:52]
+*** DONE [#A] indent parser: strings
+    CLOSED: [2008-06-04 Wed 02:52]
+
+*** TODO [#B] only allow one dot in ids (and none at a later point)      :quick:
 *** TODO [#B] support "\"" in strings
 *** TODO [#A] add += -= *= /= etc. operators
 *** DONE [#A] parse logical ops &, |, &&, ||
     CLOSED: [2008-04-14 Mon 01:17]
-*** TODO [#A] / should be left associative: a / b / c => (a / b) / c	   :bug:
+*** TODO [#A] / should be left associative: a / b / c => (a / b) / c       :bug:
 *** TODO [#B] parser: keep track of line and char number and add this to error messages
 
 ** Compiler
 
+*** TODO [#B] proper support for compile time variables               :compiler:
+    Use normal variables for now
+
+*** TODO [#B] disallow identifiers which only differ in capitalization (unless for type/function, e.g. if they denote different kinds of elements?) :compiler:quick:
+*** TODO [#A] give additional info if a name resolves to something of the wrong type (expected type but found function etc.) :compiler:quick:
+*** TODO [#A] better error message on invalid typedef           :compiler:quick:
+
+*** TODO [#B] stack basiertes system fuer settings/bindings im macro expander
+
+*** TODO [#B] gencode in zomp umstellen
+   (zeiger durch abstrakten typ darstellen)
+   http://www.linux-nantes.org/~fmonnier/OCaml/ocaml-wrapping-c.php#ref_ptr
 *** TODO [#A] error on redefining vars
+*** TODO [#A] error when redefining symbol with different number of arguments
 *** TODO [#A] error when local var is redefined
 *** TODO [#A] no segfaults when redefining local variables
 *** TODO [#A] allow uninitialized vars
@@ -598,10 +439,11 @@ check whether this makes IR-verification faster / prevent bugs / ...
     CLOSED: [2008-01-16 Wed 01:20]
 
 ** Interactive toplevel
-   
+
+*** TODO [#B] support functions returning non-void on toplevel
 *** TODO [#A] better error reporting on immediate code execution in toplevel
-*** TODO [#A] macro/function to check whether running in toplevel
-*** TODO [#A] add (ret void) to end of immediate functions in toplevel
+*** TODO [#B] macro/function to check whether running in toplevel        :quick:
+*** TODO [#A] add (ret void) to end of immediate functions in toplevel   :quick:
 *** TODO [#B] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
 *** TODO [#A] using invalid floating point constant will screw up LLVM for whole session :bug:
 *** DONE [#A] allow immediate execution of code
@@ -655,6 +497,8 @@ check whether this makes IR-verification faster / prevent bugs / ...
     
 ** Emacs support
 
+*** TODO [#A] folding -> hs-special-modes-alist
+*** TODO [#B] indent: ignore parens in strings
 *** TODO [#B] zomp-newline: problem with indent (resetting pos)
 *** TODO [#B] emacs/toplevel: C-c C-s abfangen wenn toplevel schon laeuft
 *** TODO [#C] examples which can be browsed directly in emacs
@@ -700,6 +544,22 @@ check whether this makes IR-verification faster / prevent bugs / ...
      CLOSED: [2007-11-16 Fri 02:33] 
 
 ** Macros
+
+*** TODO [#B] konfigurierbare base language
+    macroExpand :: [Ast] * Bindings -> [Instruction]
+    translate :: [Ast] * Bindings -> Bindings
+
+    enum Symbol:
+      Instruction : Ast * Bindings -> Bindings
+      Variable :Type
+      Function :Args * Type
+      Macro : Ast * Bindings -> [Ast]
+     
+    type Bindings:
+      Id => Symbol
+     
+    Gibt am Ende AST zurueck der nur noch aus Instructions besteht
+    Kann dann auch zum kompilieren von Shadern benutzt werden
    
 *** TODO [#B] implicit arguments for macros (source location from where it was invoked etc.)
 *** TODO [#C] hygienic macros: ast* qualify(ast*, bindings) will fully qualify all identifiers in the given ast
@@ -756,6 +616,7 @@ Put macro functions into seperate module
      :PROPERTIES:
       :ARCHIVE_TIME: 2008-04-14 Mon 01:35
      :END:
+
 ** Language / APIs
 
 *** TODO [#B] framebuffer cleanup/releasing code
@@ -825,6 +686,39 @@ Put macro functions into seperate module
      lookupType(string) -> Option<Type>
      lookup(string) -> Variant<Var(Var), Func(Func), Type(Type), Macro(Macro), Undefined>
 
+*** TODO [#B] imperative control structures
+
+**** DONE [#A] if/then/else
+     CLOSED: [2008-06-04 Wed 02:43]
+
+**** TODO [#B] for min to/downto/upto max
+**** TODO [#B] loops mit break + continue
+**** TODO [#C] loops mit broken/exhausted
+
+   (von converged)
+   for <expression>:
+     ...
+   exhausted:
+     ...
+   broken:
+     ...
+
+   exhausted block wird aufgerufen wenn loop durch ist
+   broken wird aufgerufen wenn per break abgebrochen wurde
+   continued ~
+
+**** TODO [#C] finally
+   begin
+     code
+   finally
+     code
+   end
+
+**** TODO [#C] allow variable definitions within expressions?
+   while (var int x = foo()) > 10
+     print(x)
+
+
 *** TODO [#A] Explicit polymorphism
 
     Overloading functions should be possible
@@ -875,8 +769,26 @@ Put macro functions into seperate module
   => func name (param*) impl
   with substituted types (and functions?)
 
-**** std:typeclass
-??
+*** TODO [#A] type classes
+
+**** alternative instanz als keyword argument?
+
+   typeclass Comparator<T>:
+     bool compare(T, T)
+
+   func void sort<Comparator T>(Array<T>* array)
+     ...
+   end sort
+
+   instance less Comparator<int>:
+     bool compare(int l, int r) => l < r
+
+   instance greater Comparator<int>:
+     bool compare(int l, int r) => l > r
+
+   sort(intList)
+   sort(intList, Comparator: greater)
+   
 
 *** TODO [#A] Pattern matching
 
@@ -897,7 +809,78 @@ Put macro functions into seperate module
 
      match foo matchExprs+
      => typeOf(foo):match foo matchExprs+
-     
+
+*** TODO Misc
+
+**** TODO [#C] subseq "foo" -2 => "oo", subseq "foo" 2 => "fo" etc.       :libs:
+**** TODO [#A] int to char conversion                               :libs:quick:
+**** TODO [#A] (include ..) should support iexpr syntax             :libs:quick:
+**** TODO [#B] define operator funcs in indent syntax (func l == r ...)
+**** TODO [#B] runtime checks generieren
+**** TODO [#C] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
+**** TODO [#C] `undefine name' => name kann nicht mehr verwendet werden
+
+**** TODO [#B] tuples: var (int, float) x => x.0 : int, x.1 : float
+
+**** TODO [#B] motivation: automatische printer
+
+     type Point:
+       float x, y
+       
+     Point.derive Printer, XMLSerializer
+
+     => print, toXML, fromXML Methoden generieren
+
+     codeDeriver = Type -> [toplevelExpr]
+
+**** TODO [#B] extended var                                              :quick:
+     - should be able to create multiple variables like 'var int x, y = 10, z'
+     - should return the variable's value so it can be better used inside control structures
+       while (var int x = foo())
+         println(x)
+
+**** TODO [#B] motivation: powerful asserts
+   assert x < 10
+   => Fehlermeldung mit Wert von x
+   "Assertion 'x < 10' failed, x = 11 @file.zomp:101"
+
+**** TODO [#C] array/list comprehensions
+
+**** TODO [#A] yield
+
+**** TODO [#B] GC using macros
+    Support classes to be GC-collected
+
+    gcclass Foo
+      ...
+
+    gcclass Bar
+      int x
+      Foo* target
+
+    =>
+
+    class PointerInfo:
+      list<offset> pointers
+      
+    class GarbageCollected:
+      PointerInfo* pointerInfo
+      static list<GarbageCollected> roots
+    
+    class Bar extends GarbageCollected:
+      int x
+      Foo* target
+      Bar* other
+
+      static PointerInfo classPointerInfo
+        pointers = [offset(target), offset(other)]
+
+      constructor():
+        pointerInfo = &classPointerInfo
+
+    void garbageCollection()
+      // mark+sweep all roots and their target pointers
+
 *** TODO [#B] Regular expressions
 **** TODO [#A] Bindings for PCRE
 **** TODO [#B] Special match syntax
@@ -905,8 +888,6 @@ Put macro functions into seperate module
 *** TODO [#B] File I/O
 **** TODO [#A] Bindings for C stdlib
 **** TODO [#C] Systems of streams similar to Java/.Net/...
-
-*** TODO [#B] Namespaces / Modules
 
 *** TODO [#B] Allow testing macros
 (running them on code and printing the resulting AST)
@@ -957,6 +938,8 @@ new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
 
 **** Type classes / concepts based on classes? Reusing infrastructure?
 
+**** mixins
+
 *** TODO [#C] Compile multi file projects
     
 **** Realize definition of project files
@@ -967,14 +950,44 @@ new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
 
 **** Define .zobj format
     
-*** TODO [#C] support break in loops
+*** TODO [#A] named params: copy(from: file1, to: file2)
 
-*** TODO [#C] Specify exceptions using attributes?
+   foo: bar baz
+   <=>
+   (postfix: foo (bar baz)
+
+   > :foo:bar
+   prefix: fuer global namespace (nicht als operator definieren?)
+
+   zomp:core:add
+   infix: fuer namespaces
+
+   auch sowas:?
+   
+   obj print: "fooo" to: stderr
+   (jux (op: print "foo") (op: to stderr))
+
+   (foo bar) op: blah
+   (seq (jux foo bar) (op: blah))
+
+
+*** TODO [#A] Tests
+    einheitliches system fuer tests
+
+*** TODO [#C] Exceptions
+    
+**** TODO [#C] exceptions: restartable conditions
+
+**** TODO [#C] Specify exceptions using attributes?
 
     file = @(cfa:disable fileIsOpen) openFile "foo"
 
-*** TODO [#A] allow replacing parts of libraries
-*** TODO [#A] versioned packages
+*** TODO [#A] Namespaces/Package/Module/Project System
+
+**** TODO [#A] import push => stackPush, pop => stackPop from eve.da
+**** TODO [#A] allow replacing parts of libraries
+**** TODO [#A] versioned packages
+**** TODO [#A] zugriffsrechte per ACLs: auch fuer class member / einzelne parameter?
 
 *** DONE [#A] template
     CLOSED: [2007-11-24 Sat 20:12]     
@@ -1053,6 +1066,11 @@ automatically check embedded examples in documentation for correctness
 
 ** Type System
 
+*** TODO [#C] unique/linear types
+   - nach erzeugung linear, bis das erste mal eine zuweisung passiert
+   - mit pattern matching bzw. on-the-fly typanpassung?
+   - funktionen beeinflussen linear eigenschaft?
+
 *** Composable type system?
     
 **** multiple lanes/rails/...
@@ -1066,6 +1084,14 @@ automatically check embedded examples in documentation for correctness
 *** Generic types
 *** How much in kernel language, how much as macros?
      
+*** checked/unchecked vars im type system (checked = auf konsistenz usw. geprueft)
+    Als ADT realisieren?
+
+*** pointer + vars mit scope level parametrisieren, dann bei ptr = &foo nur erlauben wenn scopelevel von ptr <= scopelevel(foo)
+   (siehe cyclone, ada)
+
+*** function types: (int,float)->float, float->int, ...
+
 *** refinement types?
 *** research: macros and formal verification
 
@@ -1126,6 +1152,11 @@ project.zomp
   sourcepath ./src
   sources
     src/utils/*.zomp
+
+    
+** Readings
+*** [#A] ruby syntax, fortress syntax fuer nested function calls
+*** haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
 
 * Footer
 

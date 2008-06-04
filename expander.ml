@@ -963,7 +963,7 @@ let matchFunc =
           `NotAFunc expr
         end
 
-    (** func decl from iexpr with one argumet **)
+    (** func decl from iexpr with one argument **)
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
