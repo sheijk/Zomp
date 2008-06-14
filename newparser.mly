@@ -177,6 +177,8 @@
   { idExpr id }
 | e = quoteexpr;
   { e }
+| e = dotexpr;
+  { e }
 
 %inline opsymbol:
 | o = ADD_OP

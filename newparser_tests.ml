@@ -188,6 +188,16 @@ struct
       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       (* todo post/prefix ops which work without additional whitespace *)
 
+      "++i", `Return [se1 "preop++" "i"];
+      "x++", `Return [se1 "postop++" "x"];
+      "--foo", `Return [se1 "preop--" "foo"];
+      "blah--", `Return [se1 "postop--" "blah"];
+
+      "foo ++ bar", `Return [se2 "op++" "foo" "bar"];
+      "line1; line2", `Return [se2 "op;" "line1" "line2"];
+      "line1;line2", `Return [se2 "op;" "line1" "line2"];
+      "line1 ; line2", `Return [se2 "op;" "line1" "line2"];
+
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
       (* todo *)

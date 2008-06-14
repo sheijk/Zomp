@@ -81,12 +81,57 @@ template op. record component
   getField(#record, #component)
 end
 
+macro op= l r
+  if2 ast:matchesShape(l, ${_._}) then
+    var ast* component ast:child(l, 0)
+    var ast* field ast:child(l, 1)
+    ret ${setField #component #field #r}
+  else
+    ret ${assign #l #r}
+  end
+
+  ret ${internal error}
+end
+
+template op:= name value
+  var2 #name #value
+end
+
+/// Allocate storage and initialize variable
+/// `new Foo a b c' does the same as `var Foo* this (malloc Foo); Foo:init(this,a,b,c); this'
+macro new type args...
+  uniqueId name "new"
+
+  var ast* initCall astFromString(cstring:concat(getField(type, id), ":init"))
+  addChild initCall astFromString(name)
+  forEachAstChild arg args
+    addChild initCall arg
+  end
+
+  var ast* code ${seq}
+  addChild code ${var (ptr #type) #name (malloc #type)}
+  addChild code initCall
+  addChild code astFromString(name)
+
+  ret code
+end
+
 template return v
   ret #v
 end
 
+template op; expr1 expr2
+  #expr1
+  #expr2
+end
+
 //------------------------------------------------------------------------------
 /// Standard library
+
+template op++ lstring rstring 
+  cstrings:append #lstring #rstring
+end
+
 
 type Complex
   float real
@@ -101,27 +146,25 @@ func void Complex:print(Complex* c)
   printString "i)"
 end
 
-macro op= l r
-  if2 ast:matchesShape(l, ${_._}) then
-    mret ${assigning foo}
-  else
-    mret ${assign #l #r}
-  end
-
-  mret ${internal error}
+func void Complex:init(Complex* c, float real, float img)
+  c.real = real
+  c.img = img
 end
+
+//------------------------------------------------------------------------------
+/// program
+
+// macro for2 loopExpr code
+//   if2 ast:matchesShape(loopExpr, ${op; 
+// end
+  // for2(int i = 0; i < 10; ++i)
+  //   printString "i = "
+  //   printlnInt i
+  // end
 
 func void test()
-  var int i 10
-  i = 20
-  i.blah = 30
-  printlnInt i
-end
-
-func Complex* Complex:new(float real, float img)
-  var Complex* c malloc(Complex)
-
-  return c
+  c := new(Complex, 1.0, 0.0)
+  Complex:print c; println()
 end
 
 func int main()

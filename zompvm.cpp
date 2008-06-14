@@ -593,7 +593,8 @@ extern "C" {
       || (c == '-')
       || (c == '.')
       || (c == '\\')
-      || (c == '\'');
+      || (c == '\'')
+      || (c == ';');
   }
   
   void checkId(const char* id, const char* func) {

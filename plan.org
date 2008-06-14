@@ -1,6 +1,11 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] op; needs lower priority than juxtapositions
+** TODO [#A] name z*mp?
+** TODO [#A] indent parser als default fuer toplevel
+** TODO [#A] fieldptr hat keine doku im toplevel
+** TODO [#A] eldoc geht nicht in quotations: ${setField <cursor>}
 ** TODO [#A] zomp-newline does not delete selection
 ** TODO [#A] references (int& lvalue) ueber makros oder aehnliches machen
 ** TODO [#A] nur identifier in namespaces erlauben, keine im toplevel?
@@ -220,7 +225,7 @@ void Render(float t)
    Um zu kucken wie sich Restriktionen umsetzen lassen
 
 * Language design
-  
+
 ** zomp-cee
    Set of macros and functions providing a simple C like feeling
 

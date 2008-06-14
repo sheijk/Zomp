@@ -165,10 +165,10 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo Generating Zomp bindings using indent syntax for $(<:.skel=) ...
 	./gencode -lang izomp $(<:.skel=)
 
-CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml	\
-gencode.ml genllvm.ml indentlexer.ml lang.ml	\
-machine.ml newparserutils.ml newparser_tests.ml parseutils.ml semantic.ml sexprtoplevel.ml	\
-testing.ml typesystems.ml zompc.ml zompvm.ml
+CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml	\
+genllvm.ml indentlexer.ml indentlexer_tests.ml lang.ml machine.ml	\
+newparser_tests.ml newparserutils.ml parseutils.ml semantic.ml		\
+sexprtoplevel.ml testing.ml typesystems.ml zompc.ml zompvm.ml
 
 # Additional dependencies
 makefile.depends: $(CAMLDEP_INPUT)
