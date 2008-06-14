@@ -63,7 +63,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   in
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let validIdentifierChars = "a-zA-Z0-9:_" in
-  let validIdentifierFirstChar = "a-zA-Z" in
+  let validIdentifierFirstChar = "a-zA-Z_" in
   let opRule symbol (tokenF :string -> token) =
     (Str.regexp "[a-z)]",
      Str.regexp (opre symbol ^ "[^ \n]")),

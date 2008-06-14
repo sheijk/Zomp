@@ -206,6 +206,10 @@ llvm::GenericValue runFunctionWithArgs(
   return retval;
 }
 
+/**
+ * Will run the function `name` with the arguments added using
+ * zompAdd*Arg previously
+ */
 llvm::GenericValue runFunction(const char* name) {
   std::vector<const Type*> noparams;
   std::vector<GenericValue> noargs;

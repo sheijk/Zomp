@@ -1,6 +1,150 @@
 #+SEQ_TODO: TODO DONE
 
 * To be sorted
+** TODO [#A] zomp-newline does not delete selection
+** TODO [#A] references (int& lvalue) ueber makros oder aehnliches machen
+** TODO [#A] nur identifier in namespaces erlauben, keine im toplevel?
+** TODO [#A] ueberall nounwind an die methoden haengen (evt. performance-relevant, benchmarken)
+** TODO [#A] swap quote and antiquote characters to get more "natural" syntax?
+** TODO [#A] alias macro
+** TODO [#A] 'a ++ b' als append operator (oder bessere alternative)
+** TODO [#A] weiterer plan: 1. polishing c-like language 2. add fancy object system, type classes, message passing 3. add miniml + ml like features
+** TODO [#A] base language verkleinern + vereinheitlichen: nur eine form pro konstrukt mit nur einer variation. declareFunc und defineFunc usw.
+** TODO [#A] overload sets? http://www.digitalmars.com/d/2.0/hijack.html
+** TODO [#A] system fuer fehlercodes + ausfuehrlicher doku
+** TODO [#A] teilprojekte / ziele definieren um das projekt ueberschaubar zu machen?
+** TODO [#A] referenzen unterstuetzen? (fuer "foo[10] = 0" usw.)
+** TODO [#A] overloading functions + macros immer auf AST-struktur basierend?
+
+   mit praedikaten oder pattern matching?
+
+   pattern: define matches, on match return some(..) else none
+   
+   pattern id =
+     case: {id = name; args=[]} => name
+     
+   pattern boundType =
+     case: { id = name; args = [] } => bindings.lookupType name
+
+   pattern seq =
+     case: {id = seq} =>
+
+
+   var int x
+   var float y 10.0
+
+   // no default
+   macro var name: id type: boundType name: id
+     ...
+
+   // with default
+   macro var name: id type: boundType name: id default: anyExpr
+
+
+   func void print(int x)
+   func void print(float y)
+
+   =>
+
+   macro print x: exprWithType(int)
+   macro print y: exprWithType(float)
+** TODO [#A] llvm-gcc -> virtuelle methoden, (mehrfach)vererbung ansehen
+** TODO [#A] collection initialization
+
+   l = new List<int>() { 1, 2, 3, 4, 5 }
+   =>
+   l = new List<int>();
+   l.add(1) ...
+
+   - When will this work?
+   - Whenever an add method exists?
+     - will cause problems with Complex.add(Complex) etc.
+   - add method will some attribute?
+   - include "extension" methods? (void add(List, int))
+   - require implementation of Collector / Collection interface?
+   - realization of type class?
+** TODO [#A] arbitrary attributes used by the type system?
+   allow user defined attributes to be sticked to vars, funcs and types which will then be used during type checking
+   support const using this system
+
+*** Example
+
+    attribute threadSafe
+
+    func void remove(List l, Iter i) ...
+    func void insert(List l, int element) ...
+
+    @threadSafe
+    func void sort(List l)
+      ...
+      remove(l, first) <- error, remove is not @threadSafe
+      ...
+
+*** Use cases
+    - const member methods
+    - const vars
+    - thread safety
+    - exception safety
+    - pure functions
+    - functions which perform io?
+** TODO [#A] implicit (dummy) parameters?
+   parameters which will be added implicitly
+   use for: type classes, capabilities
+   maybe restricted/defined by calling function?
+** TODO [#A] optimierungs-settings pro funktion
+   zusaetzlich auf project file ebene ueberschreibbar (~ "optimizations sheijk.raytracer.math.* speed 3")
+
+   @optimize(speed 3)
+   func void foo()
+     ...
+** TODO [#A] reconsider the syntax
+   explicitely state goals! :)
+
+   idee:
+   - jux has highest prio
+   - comma operator
+   - jux a b
+     - function call if a is a function name or function ptr name
+     - expand macro if a is a macro name
+     - else expand macro + see if expanded a resolves to a function
+
+   sin x + 3 cos y * 2
+   =>
+   (inf+
+     (jux sin x)
+     (inf*
+       (jux 3 cos y)
+       2))
+
+   if: condition() then: ...
+   if condition() then ...
+   if (condition()) then ...
+
+   for i in min() to max() do ...
+   for i in (min()) to (max()) do ...
+   for: i in: min() to: max() do: ...
+
+   while x + foo() > 10 do ...
+   while (x + foo() > 10) do ...
+   while: x + foo() > 10 do: ...
+
+   make even layout optional?
+
+** TODO add parse and expand
+   parse :: string -> Ast
+   expand :: Ast, Bindings -> Ast
+** TODO [#A] im parser ausprobieren
+
+   printInt (ifExpr a > b
+     1
+   else
+     2
+   end)
+** TODO [#A] delegating methods
+
+   class Adapter
+     Thing* target
+     method print => target.print
 
 * Use Cases
 
@@ -75,6 +219,85 @@ void Render(float t)
 ** miniml als testprojekt
    Um zu kucken wie sich Restriktionen umsetzen lassen
 
+* Language design
+  
+** zomp-cee
+   Set of macros and functions providing a simple C like feeling
+
+   - [X] variables
+   - [-] basic types
+     - [X] int
+     - [ ] fixed size int (int8, int16, ..., int128)
+     - [X] float 
+     - [ ] double
+     - [ ] signed/unsigned
+     - [X] bool
+   - [X] structs
+   - [ ] enums
+   - [ ] unions
+   - [ ] operators for all basic types
+   - [X] functions
+   - [ ] function pointers
+   - [-] control structures
+     - [X] if then/else if/else
+     - [ ] for
+     - [X] while
+
+*** var
+    Define a variable
+
+    var int x
+    var int x = 10
+    var x = 10
+    var x // not allowed
+    var x = 10, y = 20.0
+    var int x = 10, float y = 20.0
+    var x = 10, float y = 20.0
+    var int x, y, z
+
+**** Requirements
+     - [ ] optional default value
+     - [ ] multiple vars in one line
+     - [ ] optionally propagate type from default value
+
+**** Properties
+    - Legal forms
+      var $type $name:id
+      var $type (op= $name:id $default)
+      var (op= $name:id $default)
+      var (op, ($type $name:id | $type (op= $name:id $default) | (op= $name:id $default))+)
+
+    - Returns value of last var
+
+*** Types
+    How types can be specified
+
+    - simple type name (int, float, MyStruct, ...)
+    - pointer by appending a star (int*, float*, MyStruct**, ...)
+    - signed(int), sint, uint, slong, ulong, ...
+
+** zomp-cee2
+   Extension of cee, featuring an object system, type classes etc.
+
+   - [ ] object system
+     - [ ] virtual methods
+     - [ ] override specifier
+     - [ ] dynamic messages
+     - [ ] mixins
+   - [ ] type classes
+     - [ ] explicit inlining/flattening/specialisation
+   - [ ] overloaded methods
+
+** zomp-miniml
+   A minimalistic ml-like language featuring variant types and tuples
+
+   - [ ] tuples
+   - [ ] variant data types
+   - [ ] pattern matching
+   - [ ] constant vars
+   - [ ] garbage collection?
+   - [ ] modules?
+   
 * Tasks											:zomp:
 
 ** BUGS
@@ -243,7 +466,8 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 *** TODO [#B] reduce to llvm bindings and macros (mixed ocaml/zomp macro system for now) :refactorings:
 *** TODO [#A] simplify all base language forms so only one syntax is allowed and support variants using macros :refactorings:
 *** TODO [#B] move all builtin forms into zomp namespace (e.g. zmp:base:var etc.) :refactorings:
-*** TODO [#B] rename modules of indent based parser and seperate them from the unit tests
+*** DONE [#B] rename modules of indent based parser and seperate them from the unit tests
+    CLOSED: [2008-06-08 Sun 23:40]
 *** TODO [#A] change all types to Capitalized case in stdlib
 *** TODO [#B] Allow nested expressions in branch instruction
     

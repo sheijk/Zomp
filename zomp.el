@@ -62,11 +62,12 @@
 
 (defun zomp-toplevel ()
   (interactive)
-  (shell "*zomp-toplevel*")
-  (zomp-tl-do (concat "cd " zomp-basedir))
-  (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
-  (message "Started zomp toplevel")
-  )
+  (let ((oldwin (selected-window)))
+    (shell "*zomp-toplevel*")
+    (zomp-tl-do (concat "cd " zomp-basedir))
+    (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
+    (message "Started zomp toplevel")
+    (select-window oldwin)))
 
 (defun zomp-tl-do (code)
   (process-send-string (get-buffer-process "*zomp-toplevel*") (concat code ""))
