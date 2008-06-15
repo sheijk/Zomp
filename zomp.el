@@ -1,4 +1,44 @@
+;;; zomp.el --- Major mode for the Zomp programming language
 
+;; Copyright 2008 Jan Rehders
+;; 
+;; Author: Jan Rehders <cmdkeen@gmx.de>
+;; Version: 0.3
+
+;; This file is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+
+;; This file is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+;;
+;; Put the following into your .emacs:
+;; (defvar zomp-basedir "/path/to/dir/where/zomp.el/and/zompc/resides")
+;; (load "/path/to/zomp.el")
+;;
+
+(defgroup zomp nil
+  "Major mode for Zomp programming language" 
+  :link '(emacs-library-link :tag "Source Lisp File" "zomp.el")
+  :group 'programming
+  :prefix "zomp-")
+
+(defcustom zomp-indent-keywords (list "func" "macro" "template" "if2" "for2" "cee:for")
+  "A list of identifiers which will cause the auto-indenter to
+indent the next line when they occur at the beginning of a line"
+  :group 'zomp
+  :type `(repeat string))
+  
 (defvar zomp-mode-hook nil)
 
 (defun goto-match-paren (arg)
@@ -172,7 +212,7 @@
     "Return number of current line in current buffer
     (provided by `zomp.el` because it was not defined)"
     (count-lines (point-min) (if (eobp) (point) (1+ (point))))) )
-
+  
 (defun zomp-indent-line ()
   (interactive)
   (let ((left 0) (oldindent 0))
@@ -193,9 +233,15 @@
           (back-to-indentation)
           (setq left (current-column))
 
-          (when (looking-at "\\*")
-            (setq left (- left 1)))
-          
+          (let ((w (zomp-symbol-at-point)))
+            (cond ((looking-at "\\*")
+                   (setq left (- left 1)))
+                  ((member w zomp-indent-keywords)
+                   (setq left (+ left 2)))
+                  ))
+          ;; (when (looking-at "\\*")
+          ;;   (setq left (- left 1)))
+
           (let* ((line-start (progn (beginning-of-line) (point)))
                 (line-end (progn (end-of-line) (point)))
                 (open-parens (how-many "[({]" line-start line-end))
@@ -206,11 +252,16 @@
       (beginning-of-line)
 
       ; lines like " * foo" are indented by one more space
+      ;; (when (looking-at " *\\*")
+        ;; (set 'left (+ left 1)))
       (when (looking-at " *\\*")
-        (set 'left (+ left 1)))
+          (set 'left (+ left 1)))
       
-      (just-one-space)
-      (backward-delete-char 1)
+      (back-to-indentation)
+      (when (string= (word-at-point) "end")
+        (setq left (- left 2)))
+      
+      (delete-horizontal-space)
       (indent-to-column left))
     ; place cursor correctly on newline-and-indent
     (when (equal (current-column) 0)
@@ -246,6 +297,7 @@
       (when (and (looking-at " *\\(/\\)?\\*") (not (looking-at ".*\\*/")))
         (set 'isStar t))
       )
+    (indent-according-to-mode)
     (newline-and-indent)
     (when isComment
       (insert "/// "))
@@ -443,7 +495,9 @@
             (back-to-indentation)
             (setq linestart (point))
             ;; (forward-word)
-            (search-forward-regexp zomp-identifier-regexp)
+            (condition-case nil
+                (search-forward-regexp zomp-identifier-regexp)
+              (error nil))
             (buffer-substring linestart (point))))
     (setq funcsym
           (save-excursion

@@ -12,8 +12,6 @@
 ** TODO [#A] ueberall nounwind an die methoden haengen (evt. performance-relevant, benchmarken)
 ** TODO [#A] swap quote and antiquote characters to get more "natural" syntax?
 ** TODO [#A] alias macro
-** TODO [#A] 'a ++ b' als append operator (oder bessere alternative)
-** TODO [#A] weiterer plan: 1. polishing c-like language 2. add fancy object system, type classes, message passing 3. add miniml + ml like features
 ** TODO [#A] base language verkleinern + vereinheitlichen: nur eine form pro konstrukt mit nur einer variation. declareFunc und defineFunc usw.
 ** TODO [#A] overload sets? http://www.digitalmars.com/d/2.0/hijack.html
 ** TODO [#A] system fuer fehlercodes + ausfuehrlicher doku

@@ -1089,9 +1089,8 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
   in
   let importFile fileName impls =
     let parse fileName : sexpr list =
-      try
+      try begin
         let fileContent = Common.readFile fileName in
-        let lexbuf = Lexing.from_string fileContent in
         let rec parseExprs lexbuf exprAccum =
           try
             let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
@@ -1099,9 +1098,29 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
           with
             | Sexprlexer.Eof -> exprAccum
         in
-        let sexprs = List.rev (parseExprs lexbuf []) in
-        sexprs
-      with
+        let parseIExpr source =
+          let lexbuf = Lexing.from_string source in
+          let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+          let lexFunc = Newparserutils.lexFunc lexstate in
+          let rec read acc =
+            try
+              let expr = Newparser.main lexFunc lexbuf in
+              read (expr :: acc)
+            with
+              | Indentlexer.Eof -> acc
+          in
+          List.rev (read [])
+        in
+        try
+          let lexbuf = Lexing.from_string fileContent in
+          let sexprs = List.rev (parseExprs lexbuf []) in
+          sexprs
+        with
+          | Sexprparser.Error
+          | Sexprlexer.UnknowChar _ -> begin
+              parseIExpr fileContent
+            end
+      end with
         | Sys_error message -> raiseIllegalExpression expr
             (sprintf "Could not find file '%s': %s" fileName message)
     in

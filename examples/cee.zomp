@@ -154,17 +154,23 @@ end
 //------------------------------------------------------------------------------
 /// program
 
-// macro for2 loopExpr code
-//   if2 ast:matchesShape(loopExpr, ${op; 
-// end
-  // for2(int i = 0; i < 10; ++i)
-  //   printString "i = "
-  //   printlnInt i
-  // end
+macro cee:for loopExpr code
+  ast:print 
+  ${printlnString "no loops for you, bitch"}
+end
 
+/**
+ * foo bar
+ */
 func void test()
+  cee:for(int i = 0; i < 10; ++i)
+    printString "i = "
+    printlnInt i
+  end
+
   c := new(Complex, 1.0, 0.0)
-  Complex:print c; println()
+  Complex:print c
+  println()
 end
 
 func int main()
