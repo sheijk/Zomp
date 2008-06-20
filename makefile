@@ -1,4 +1,4 @@
-OCAMLPATH=
+OCAMLPATH="c:/Program Files/Objective Caml/bin/"
 OCAMLLEX=$(OCAMLPATH)ocamllex.opt
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
@@ -36,7 +36,7 @@ SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	echo Building $@ ...
-	g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
+	llvm-g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
 # 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser analysis transformutils`
 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs all`
@@ -240,7 +240,7 @@ ml_check:
 
 cpp_check:
 	@echo Checking C++ files $(CHK_SOURCES)
-	@g++ -c $(CHK_SOURCES) -Wall `llvm-config --cxxflags` -fsyntax-only > $(FLYMAKE_LOG)
+	@llvm-g++ -c $(CHK_SOURCES) -Wall `llvm-config --cxxflags` -fsyntax-only > $(FLYMAKE_LOG)
 
 check-source: $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES)))
 	@cat $(FLYMAKE_LOG)
@@ -252,6 +252,9 @@ check-syntax: check-source
 # check-syntax:
 # 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
 # 	@ocamlc -c $(CHK_SOURCES) > build/flymake-output && mv *_flymake.cm? build/
+
+makefile.depends:
+	touch $<
 
 include makefile.depends
 
