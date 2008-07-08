@@ -60,4 +60,29 @@ let loadLLVMFile filename =
   with
       Sys_error message ->
         eprintf "Could not load file %s: %s\n" filename message
+
+let hello_callback () =
+  printf "Hello, callback!\n";
+  flush stdout
+
+let printString str =
+  printf "Printing string from C: %s\n" str;
+  flush stdout
+
+let getTrue () = true
+
+let currentBindings :Bindings.t ref = ref (Bindings.addTypedef [] "asdf" `Int8)
   
+let isBound name =
+  match Bindings.lookup !currentBindings name with
+    | Bindings.UndefinedSymbol -> false
+    | _ -> true
+  
+let () =
+  Callback.register "helloCallback" hello_callback;
+  Callback.register "printString" printString;
+  Callback.register "getTrue" getTrue;
+  
+  Callback.register "isBound" isBound
+
+    

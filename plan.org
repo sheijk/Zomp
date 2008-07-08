@@ -1,6 +1,100 @@
 #+SEQ_TODO: TODO DONE
+#+STARTUP: fold
 
 * To be sorted
+** TODO [#A] mehr auf einfachheit / schnelle umsetzbarkeit optimieren
+** TODO [#A] more friendly name for sexpr? (itree? codetree?)
+** TODO [#A] doch benutzerdefinierbare syntax?
+   
+   anfang + ende definiert durch ein token
+   ende definiert durch indent level?
+   tokens koennen in namespaces leben
+
+   matches = zomp.db.sql
+     SELECT foo, bar FROM WHERE foo > bar
+
+   zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >> 
+   
+** TODO [#A] alle tests auf neue syntax umstellen, tests organisieren, moeglichkeit zum fehler pruefen einbauen
+** TODO referenzen fuer hot-swapping
+
+   A. Baumann, J. Kerr, J. Appavoo, D. Da Silva, O. Krieger, and R. W. Wisniewski. 
+   Module hot-swapping for dynamic update and reconfiguration in K42. 
+   In Proceedings of the 6th Linux.Conf.Au, Canberra, Australia, Apr. 2005. 
+   To appear.
+   
+   C. A. N. Soules, J. Appavoo, K. Hui, R. W. Wisniewski, D. D. Silva,
+   G. R. Ganger, O. Krieger, M. Stumm, M. Auslander, M. Ostrowski,
+   B. Rosenburg, and J. Xenidis.
+   System support for online reconfigura- tion. 
+   In Proc. of the Usenix Technical Conference, 2003.
+
+   M. Hicks. 
+   Dynamic Software Updating. 
+   PhD thesis, Department of Computer and Information Science, University of Pennsylvania, August 2001.   
+   
+** TODO [#A] object system with composition as a primitive? (mixins / entity part scene graph like?)
+** TODO [#A] ownership types
+** TODO [#A] automatically derive data parallel code?
+** TODO [#A] cee: 'a, b = 1, 2' should be possible
+  
+** TODO [#A] deref operator precedence
+
+   c - c precedence rules, *foo, lowest precedence
+   postfix - foo^, highest precedence
+   prefix - *foo, highest precedence
+
+   | c                  | postfix            |              | prefix             | comments |
+   |--------------------+--------------------+--------------+--------------------+----------|
+   | *ptr               | ptr^               |              | *ptr               |          |
+   | *obj.ptr           | obj.ptr^           |              | obj.*ptr           |          |
+   | (*ptr).field       | ptr^.field         |              | *ptr.field         |          |
+   | *(*ptr1).ptr2      | ptr1^.ptr2^        |              | *ptr1.*ptr2        |          |
+   | (*ptr2array)[n]    | ptr2array^[n]      |              | *ptr2array[n]      |          |
+   | *arrayOfPtrs[n]    | arrayOfPtrs[n]^    |              | *(arrayOfPtrs[n])  |          |
+   | ptr[n]             | ptr[n]             |              | ptr[n]             |          |
+   | *array[n].fieldPtr | array[n].fieldPtr^ |              | array[n].*fieldPtr |          |
+   |--------------------+--------------------+--------------+--------------------+----------|
+   | &addr              | addr&              | ^addr        | &addr              |          |
+   | &addr[2]           | addr[2]&           | ^addr[2]     | &(addr[2])         |          |
+   | (&addr[2])         | addr&[2]           |              | &addr[2]           | ???      |
+   | &struct.addr       | struct.addr&       | ^struct.addr | &(struct.addr)     |          |
+   | (&addr).field      | addr&.field        |              | &addr.field        | ???      |
+   |--------------------+--------------------+--------------+--------------------+----------|
+   | int (*)()          | int()^             |              | *int()             |          |
+   | int* (*)()         | int^()^            |              | *(*int)()          |          |
+   | todo               |                    |              |                    |          |
+ 
+   [Anderson 80]. Sethi [Sethi 81] http://www.cs.bell-labs.com/who/dmr/chist.html
+   
+** TODO [#A] get "inspiration" from tango: http://www.dsource.org/projects/tango/wiki/Manual
+** TODO [#A] how to integrate OOP and concepts nicely?
+
+   interface ICollection<T>
+     void append(T)
+     int size()
+
+   concept Collection<T>
+     type Self
+     void append(Self, T)
+     int size(Self)
+
+   // generator from each other like
+   concept Collection<T> = ICollection<T>
+   interface ICollection<T> = Collection<T>
+
+*** TODO some things cannot be expressed properly using OOP
+
+    concept Clonable<T>
+      T clone(T)
+
+*** TODO concepts allow adding implementations to closed classed
+    will not help for non-polymorphic methods
+
+** TODO [#A] foreach mit support fuer index                                                        :unsorted:
+** TODO generics: share inlined implementation
+   possible if binary data layout is the same
+   => dummy parameters should not matter
 ** TODO [#A] op; needs lower priority than juxtapositions
 ** TODO [#A] name z*mp?
 ** TODO [#A] indent parser als default fuer toplevel
@@ -101,7 +195,7 @@
    func void foo()
      ...
 ** TODO [#A] reconsider the syntax
-   explicitely state goals! :)
+   explicitly state goals! :)
 
    idee:
    - jux has highest prio
@@ -148,15 +242,134 @@
    class Adapter
      Thing* target
      method print => target.print
+** TODO [#A] zömp / zomp als name?
+** TODO data flow programming
+   get inspiration from SISAL
+   http://www2.cmp.uea.ac.uk/~jrwg/Sisal/08.Loops.par.html
+** TODO combinators for parallel code
+   similar to this
+   http://www.cilk.com/multicore-blog/bid/5672/Global-Variable-Reconsidered
+** TODO [#A] exception handling
+   structured exception handling (win32) ankucken
+   http://www.ddj.com/cpp/184403758
+   lisp style condition system (exception handler vor stack-unwind aufrufen)
+** TODO [#A] typ von member methoden
+   nicht abhaengig von typ in dem sie deklariert wird
+   sondern jeweils vom leaf-typ
 
-* Use Cases
+   class Clonable
+     virtual type(this)* clone()
 
-** Indent based syntax [1/3]
-   - [ ] support for comments
-   - [ ] code cleanup
-         correctly named modules, remove junk etc.,
-         seperate unit tests
-   - [X] support in toplevel and compiler
+   class DerivedClonable
+     override type(this)* clone()
+   
+   void test(Cloneable* c, DerivedClonable* d)
+     c*.clone() :: Cloneable*
+     d*.clone() :: DerivedClonable*
+
+
+   method signature will be evaluated in the context of the class overriding the method
+   result type in derived class must be subtype of result type in base class
+** TODO [#A] indent syntax
+
+   Other rules for multi line expressions:
+   - only use indented block as parameter by default
+   - : at the end of the line will start multi-line expression
+   - last one has no ending :
+   - make end optional?
+
+   for i in 10 .. 20
+     print i
+   
+   print "done"
+
+
+   if a > b then:
+     print a
+   else if b > a then:
+     print b
+   else
+     fail()
+
+
+   class Blah:
+   public:
+     void foo()
+     void bar()
+   private:
+     int x
+     int y
+   end class Blah
+** TODO [#A] type classes / overloaded functions
+   
+   -- not legal
+   class Foo x where
+       xxx :: x -> x
+   class Bar x where
+       xxx :: x -> x
+
+
+   type TypeClassFunction =
+     String name
+     Type type
+     TypeClass* class
+
+   type TypeClass =
+     String name
+     [TypeClassFunction*] functions
+
+** TODO linked text modus
+   [*CURSOR*foobar]
+   '|' eingeben
+   => [|*CURSOR*foobar|]
+
+   aehnlich:
+
+   while| true
+     random(code)
+   end while
+
+   M-backspace, "loop"
+
+   =>
+
+   loop| true
+     random(code)
+   end loop
+** TODO [#A] schnelle interpreter bauen
+   Don't have time to dig up links, but here's my list that google will help you with:
+
+Context Threading: A flexible and efficient dispatch technique for virtual machine interpreters
+
+Optimizing Indirect Branch Prediction Accuracy in Virtual Machine Interpreters
+
+Context Threading, by Florien Fest
+
+The Case for Virtual Register Machines
+
+YETI: A GRADUALLY EXTENSIBLE TRACE INTERPRETER
+
+Effective Inline-Threaded Interpretation of Java Bytecode Using Preparation Sequences
+
+A PORTABLE RESEARCH FRAMEWORK FOR THE EXECUTION OF JAVA BYTECODE
+
+A No-Frills Introduction to Lua 5.1 VM Instructions
+
+von http://lambda-the-ultimate.org/node/2884
+   
+** TODO next steps                                                        :next:
+   - provide support for function pointers
+   - provide simple dynamic oop system
+   - use it to implement compiler services
+     
+   - rename all build-ins to std:base:...
+   - simplify them to only one valid form
+   - provide var,.. wrappers which redirect to the std:base forms
+     and add zomp-side meta information
+** TODO [#A] &, == operator precedence
+   & sollte hoehere prioritaet haben, damit "a & 0x00001001 == 0x00001001" geht
+   
+* Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
    
@@ -181,29 +394,29 @@
        gl_FragColor = ...
    end shader Phong
 
-class Phong extends Shader
-{
-	float exponent
-
-	void vertex(Vertex v, out bla)
-
-	void Pass0()
-	{
-		state.blendenble = true
-		state.vs = vertex;
-		if ()
-	}
-
-float bla[32];
-Texture t;
-Sampler1D blaSampler = {mode = Sampler.Mode.WRAP, filter = POINT, texure = t}
-
-void Simulate
-void Render(float t)
-
-   - [X] opengl bindings
-   - [ ] function pointers
-   - [ ] classes
+   class Phong extends Shader
+   {
+       float exponent
+    
+       void vertex(Vertex v, out bla)
+    
+       void Pass0()
+       {
+       	state.blendenble = true
+       	state.vs = vertex;
+       	if ()
+       }
+    
+   float bla[32];
+   Texture t;
+   Sampler1D blaSampler = {mode = Sampler.Mode.WRAP, filter = POINT, texure = t}
+    
+   void Simulate
+   void Render(float t)
+    
+      - [X] opengl bindings
+      - [ ] function pointers
+      - [ ] classes
 
 ** persistent camera in toplevel [0/2]
 
@@ -222,43 +435,36 @@ void Render(float t)
 ** miniml als testprojekt
    Um zu kucken wie sich Restriktionen umsetzen lassen
 
-* Language design
+** Archive                                                             :ARCHIVE:
 
-** zomp-cee
+*** Indent based syntax [3/3]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2008-06-28 Sat 22:41
+    :END:
+    - [X] support for comments
+    - [X] code cleanup
+          correctly named modules, remove junk etc.,
+          seperate unit tests
+    - [X] support in toplevel and compiler
+* Language design                                                  :design:lang:
+
+** zomp-cee                                                                :cee:
    Set of macros and functions providing a simple C like feeling
-
-   - [X] variables
-   - [-] basic types
-     - [X] int
-     - [ ] fixed size int (int8, int16, ..., int128)
-     - [X] float 
-     - [ ] double
-     - [ ] signed/unsigned
-     - [X] bool
-   - [X] structs
-   - [ ] enums
-   - [ ] unions
-   - [ ] operators for all basic types
-   - [X] functions
-   - [ ] function pointers
-   - [-] control structures
-     - [X] if then/else if/else
-     - [ ] for
-     - [X] while
-
-*** var
+     
+*** TODO variables [2/9]
     Define a variable
 
-    var int x
-    var int x = 10
-    var x = 10
-    var x // not allowed
-    var x = 10, y = 20.0
-    var int x = 10, float y = 20.0
-    var x = 10, float y = 20.0
-    var int x, y, z
+    - [X] var int x
+    - [ ] var int x = 10
+    - [ ] var x = 10
+    - [ ] var x // not allowed
+    - [ ] var x = 10, y = 20.0
+    - [ ] var int x = 10, float y = 20.0
+    - [ ] var x = 10, float y = 20.0
+    - [ ] var int x, y, z
+    - [X] x := defaultValue
 
-**** Requirements
+**** Requirements [0/3]
      - [ ] optional default value
      - [ ] multiple vars in one line
      - [ ] optionally propagate type from default value
@@ -272,14 +478,91 @@ void Render(float t)
 
     - Returns value of last var
 
-*** Types
+*** TODO basic types [3/6]
+**** DONE int
+**** TODO fixed size int (int8, int16, ..., int128)
+**** DONE float 
+**** TODO double
+**** TODO signed/unsigned
+**** DONE bool
+          
+*** TODO strings [1/3]
+    
+**** DONE concatentate
+     CLOSED: [2008-07-01 Tue 02:12]
+**** TODO literals
+**** TODO string type != char*
+
+*** TODO structs [1/2]
+
+**** DONE Simple case
+     type IntArray
+       int size
+       int* elements
+     end
+
+**** TODO multiple members per line
+     type Vector
+       float x, y, z
+     end
+     
+*** TODO enums [0/4]
+**** TODO define them
+     enum Primitive
+       Triangles
+       Quads
+       Points
+       Lines
+
+**** TODO assign default values
+     enum Primitive
+       Triangles = GL_LINES
+       Quads = GL_QUADS
+
+**** TODO auto generated attribs
+     Primitive.count :: int
+     Primitive.cases :: list<string*int>
+
+*** TODO unions
+*** TODO operators for all basic types
+**** TODO infix +, -, *, /, **
+**** TODO prefix/postfix ++, --
+*** TODO control structures [1/5]
+**** DONE if then/else if/else
+**** TODO c-style for
+**** TODO while
+**** TODO switch / case
+**** TODO break, continue
+*** TODO pointers [0/3]
+    using postfix notation
+    
+**** TODO var&
+**** TODO var*
+**** TODO (var+10)*
+*** TODO functions [3/4]
+**** DONE define them
+     func RetType name(args)
+       code
+     end
+
+     args ::=
+     args ::= comma-seperated-list(arg)
+     arg ::= Type name
+     
+**** DONE declare them
+     func RetType name(args)
+     // no impl
+**** DONE call them
+
+**** TODO function pointers
+*** TODO Types
     How types can be specified
 
     - simple type name (int, float, MyStruct, ...)
     - pointer by appending a star (int*, float*, MyStruct**, ...)
     - signed(int), sint, uint, slong, ulong, ...
 
-** zomp-cee2
+** zomp-ceepp
    Extension of cee, featuring an object system, type classes etc.
 
    - [ ] object system
@@ -300,7 +583,11 @@ void Render(float t)
    - [ ] constant vars
    - [ ] garbage collection?
    - [ ] modules?
-   
+   - [ ] type classes
+
+*** Ideas
+    int? => Option<int>
+
 * Tasks											:zomp:
 
 ** BUGS
@@ -342,11 +629,11 @@ In macro expansion the \0 will be replaced by an !
     CLOSED: [2008-01-11 Fri 01:40]
     Cannot be reproduced anymore
 
-(func int main () (
-  (label start)
-  (branch start)
-  (ret 0)
-  ))
+    (func int main () (
+      (label start)
+      (branch start)
+      (ret 0)
+      ))
 
 *** DONE [#B] Using OpenGL results in crashes
     CLOSED: [2007-12-31 Mon 03:25]
@@ -362,7 +649,7 @@ In macro expansion the \0 will be replaced by an !
     CLOSED: [2007-12-04 Tue 02:35] 
 
 *** DONE [#A] BUG: (ret (load (ptradd (getField parent childs) index))) :bug:
-in function returning (ptr ast) is not accepted 
+    in function returning (ptr ast) is not accepted 
    CLOSED: [2007-12-05 Wed 20:35]
 
 *** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily :bug:
@@ -395,8 +682,8 @@ in function returning (ptr ast) is not accepted
 
 *** DONE [#A] linking multiple generated .ll files does not work :bug:
     CLOSED: [2007-12-20 Thu 02:53]
-(wrong linking attributes for function declarations?)
-more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
+    (wrong linking attributes for function declarations?)
+    more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
 
 *** DONE check return type in functions!		:improve:
     CLOSED: [2007-12-06 Thu 02:01]
@@ -406,8 +693,8 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     Repeat (compiler:error ...)?
 
 *** TODO [#B] can't send antiquote to macro
-  (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
-  (twice (printInt #i))
+    (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
+    (twice (printInt #i))
 
 *** TODO [#B] int representations: 0xff 0b1001 etc.	:features:
     
@@ -635,7 +922,7 @@ more likely: stdlib.zomp are linked into stdlib.bc _and_ main.bc
     CLOSED: [2008-01-11 Fri 19:18]
 
 *** TODO [#B] use llvm ocaml bindings for code generation
-check whether this makes IR-verification faster / prevent bugs / ...
+    check whether this makes IR-verification faster / prevent bugs / ...
 
 *** DONE compilation needs O(n^2) time
     CLOSED: [2007-12-20 Thu 02:54]
@@ -802,7 +1089,7 @@ check whether this makes IR-verification faster / prevent bugs / ...
 Put macro functions into seperate module
 
 *** TODO [#B] Hygienic macro support?
-*** Archive                                                            :ARCHIVE:
+*** Archive                                                         :ARCHIVE:
 **** DONE Allow definition of simple "template" macros
      :PROPERTIES:
      :ARCHIVE_TIME: 2008-04-14 Mon 01:34
@@ -845,197 +1132,6 @@ Put macro functions into seperate module
      :END:
 
 ** Language / APIs
-
-*** TODO [#B] framebuffer cleanup/releasing code
-*** TODO [#C] check for off-by-one error in shbase function calculation
-*** TODO [#A] rename "template" to "rewrite"
-*** TODO [#C] glfw bindings auf 2.6 updaten
-*** TODO [#A] support for GL_RGBA32F_ARB etc.
-*** TODO [#A] remove new macro in glutils, replace by new macro from shprog (move it to stdlib)
-*** TODO [#A] complete enum.zomp
-*** TODO [#B] macros to get current file/line/column
-*** TODO [#A] API for code analysis
-    Get information about an expression: types etc.
-    (can be used for type propagation)
-
-**** std:kernel
-        Builtin primitives in a seperate module
-        label, branch
-        type
-        var, const
-        func
-        macro
-
-**** std:ast
-        ast representation
-
-        type Type
-          String name
-
-          isIntegerType() -> bool
-          isFloatType() -> bool
-          +-isString() -> bool-+
-          isRecordType() -> bool
-          isRecordType() -> bool
-
-          isSubType(Type*) -> bool
-
-**** std:ast:reflection
-        type, typeOf(ast)
-        
-**** std:ast:detect
-        isLabel, isBranch, ...
-
-**** std:ast:annotations
-        // Query annotations
-        ast.hasAnnotation name
-
-**** std:bindings
-     // Query for bound names
-
-     type Var
-       String name
-       Type type
-       
-     type Macro
-       String name
-       Array<String> args
-       Bool isVariadic
-
-     type Func
-       String name
-       Type resultType
-       Pair<String, Type> args
-
-     lookupVar(string) -> Option<Var>
-     lookupMacro(string) -> Option<Macro>
-     lookupFunc(string) -> Option<Func>
-     lookupType(string) -> Option<Type>
-     lookup(string) -> Variant<Var(Var), Func(Func), Type(Type), Macro(Macro), Undefined>
-
-*** TODO [#B] imperative control structures
-
-**** DONE [#A] if/then/else
-     CLOSED: [2008-06-04 Wed 02:43]
-
-**** TODO [#B] for min to/downto/upto max
-**** TODO [#B] loops mit break + continue
-**** TODO [#C] loops mit broken/exhausted
-
-   (von converged)
-   for <expression>:
-     ...
-   exhausted:
-     ...
-   broken:
-     ...
-
-   exhausted block wird aufgerufen wenn loop durch ist
-   broken wird aufgerufen wenn per break abgebrochen wurde
-   continued ~
-
-**** TODO [#C] finally
-   begin
-     code
-   finally
-     code
-   end
-
-**** TODO [#C] allow variable definitions within expressions?
-   while (var int x = foo()) > 10
-     print(x)
-
-
-*** TODO [#A] Explicit polymorphism
-
-    Overloading functions should be possible
-
-    Requires the API for code analysis (see above)
-
-**** API
-
-    overloadable name
-
-    overload name(param*) targetName
-
-    param ::= type typeName
-    param ::= ast
-
-**** Example
-
-    overloadable print
-    overload print(type int) printInt
-    overload print(type string) printString
-
-**** Utils
-
-    overloadable plus
-
-    ofunc int plus(int l, int r) impl
-    =>
-    func int plus_int_int(int l, int r) impl
-    overload plus(type int, type int) plus_int_int
-
-*** TODO [#A] Some simple generic/C++-style-template support
-
-**** std:generic
-  
-  type (param+) name decl
-  => macro name, expanding into expandType
-
-  expandType name (param+)
-  => std:toplevelExpr
-       std:kernel:type name decl'
-  where decl' is decl with substituted type params
-  (only generate type once)
-
-  func (typeParam+) name (param*) impl
-  => macro name (param*), translating into expandFunc
-
-  expandFunc (typeParam+) name
-  => func name (param*) impl
-  with substituted types (and functions?)
-
-*** TODO [#A] type classes
-
-**** alternative instanz als keyword argument?
-
-   typeclass Comparator<T>:
-     bool compare(T, T)
-
-   func void sort<Comparator T>(Array<T>* array)
-     ...
-   end sort
-
-   instance less Comparator<int>:
-     bool compare(int l, int r) => l < r
-
-   instance greater Comparator<int>:
-     bool compare(int l, int r) => l > r
-
-   sort(intList)
-   sort(intList, Comparator: greater)
-   
-
-*** TODO [#A] Pattern matching
-
-**** On sexpr/ast
-
-     ast:match ast matchExpr
-
-     matchExpr ::= case matchCase => code
-
-     matchCase ::= pattern
-     matchCase ::= var = pattern
-     matchCase ::= var varName : type
-
-     pattern ::= "expectId"
-     pattern ::= (matchCase+)
-
-**** Overloaded match macro
-
-     match foo matchExprs+
-     => typeOf(foo):match foo matchExprs+
 
 *** TODO Misc
 
@@ -1108,6 +1204,192 @@ Put macro functions into seperate module
     void garbageCollection()
       // mark+sweep all roots and their target pointers
 
+*** TODO [#A] API for code analysis
+    Get information about an expression: types etc.
+    (can be used for type propagation)
+
+**** std:kernel
+        Builtin primitives in a seperate module
+        label, branch
+        type
+        var, const
+        func
+        macro
+
+**** std:ast
+        ast representation
+
+        type Type
+          String name
+
+          isIntegerType() -> bool
+          isFloatType() -> bool
+          +-isString() -> bool-+
+          isRecordType() -> bool
+          isRecordType() -> bool
+
+          isSubType(Type*) -> bool
+
+**** std:ast:reflection
+        type, typeOf(ast)
+        
+**** std:ast:detect
+        isLabel, isBranch, ...
+
+**** std:ast:annotations
+        // Query annotations
+        ast.hasAnnotation name
+
+**** std:bindings
+     // Query for bound names
+
+     type Var
+       String name
+       Type type
+       
+     type Macro
+       String name
+       Array<String> args
+       Bool isVariadic
+
+     type Func
+       String name
+       Type resultType
+       Pair<String, Type> args
+
+     lookupVar(string) -> Option<Var>
+     lookupMacro(string) -> Option<Macro>
+     lookupFunc(string) -> Option<Func>
+     lookupType(string) -> Option<Type>
+     lookup(string) -> Variant<Var(Var), Func(Func), Type(Type), Macro(Macro), Undefined>
+*** TODO [#A] rename "template" to "rewrite"
+*** TODO [#A] Pattern matching
+
+**** On sexpr/ast
+
+     ast:match ast matchExpr
+
+     matchExpr ::= case matchCase => code
+
+     matchCase ::= pattern
+     matchCase ::= var = pattern
+     matchCase ::= var varName : type
+
+     pattern ::= "expectId"
+     pattern ::= (matchCase+)
+
+**** Overloaded match macro
+
+     match foo matchExprs+
+     => typeOf(foo):match foo matchExprs+
+*** TODO [#A] support for GL_RGBA32F_ARB etc.
+*** TODO [#A] remove new macro in glutils, replace by new macro from shprog (move it to stdlib)
+*** TODO [#A] Explicit polymorphism
+
+    Overloading functions should be possible
+
+    Requires the API for code analysis (see above)
+
+**** API
+
+    overloadable name
+
+    overload name(param*) targetName
+
+    param ::= type typeName
+    param ::= ast
+
+**** Example
+
+    overloadable print
+    overload print(type int) printInt
+    overload print(type string) printString
+
+**** Utils
+
+    overloadable plus
+
+    ofunc int plus(int l, int r) impl
+    =>
+    func int plus_int_int(int l, int r) impl
+    overload plus(type int, type int) plus_int_int
+
+*** TODO [#A] Some simple generic/C++-style-template support
+
+**** std:generic
+  
+  type (param+) name decl
+  => macro name, expanding into expandType
+
+  expandType name (param+)
+  => std:toplevelExpr
+       std:kernel:type name decl'
+  where decl' is decl with substituted type params
+  (only generate type once)
+
+  func (typeParam+) name (param*) impl
+  => macro name (param*), translating into expandFunc
+
+  expandFunc (typeParam+) name
+  => func name (param*) impl
+  with substituted types (and functions?)
+
+*** TODO [#A] type classes
+
+**** alternative instanz als keyword argument?
+
+   typeclass Comparator<T>:
+     bool compare(T, T)
+
+   func void sort<Comparator T>(Array<T>* array)
+     ...
+   end sort
+
+   instance less Comparator<int>:
+     bool compare(int l, int r) => l < r
+
+   instance greater Comparator<int>:
+     bool compare(int l, int r) => l > r
+
+   sort(intList)
+   sort(intList, Comparator: greater)
+*** TODO [#B] framebuffer cleanup/releasing code
+*** TODO [#B] macros to get current file/line/column
+*** TODO [#B] imperative control structures
+    See also zomp-ce
+
+**** DONE [#A] if/then/else
+     CLOSED: [2008-06-04 Wed 02:43]
+
+**** TODO [#B] for min to/downto/upto max
+**** TODO [#B] loops mit break + continue
+**** TODO [#C] loops mit broken/exhausted
+
+   (von converged)
+   for <expression>:
+     ...
+   exhausted:
+     ...
+   broken:
+     ...
+
+   exhausted block wird aufgerufen wenn loop durch ist
+   broken wird aufgerufen wenn per break abgebrochen wurde
+   continued ~
+
+**** TODO [#C] finally
+   begin
+     code
+   finally
+     code
+   end
+
+**** TODO [#C] allow variable definitions within expressions?
+   while (var int x = foo()) > 10
+     print(x)
+*** TODO [#C] check for off-by-one error in shbase function calculation
+*** TODO [#C] glfw bindings auf 2.6 updaten
+
 *** TODO [#B] Regular expressions
 **** TODO [#A] Bindings for PCRE
 **** TODO [#B] Special match syntax
@@ -1117,39 +1399,39 @@ Put macro functions into seperate module
 **** TODO [#C] Systems of streams similar to Java/.Net/...
 
 *** TODO [#B] Allow testing macros
-(running them on code and printing the resulting AST)
+    (running them on code and printing the resulting AST)
     
 *** TODO [#B] Object system
     
 **** vtable calls
 
-class Foo
-  Foo(int arg) / constructor(int arg)
-  var int x
-  method float bar (int y) barImpl
-
-=>
-
-type Foo:vtable
-  (Foo* -> void)* destructor
-  (int -> float)* bar
-
-type Foo
-  Foo:vtable* vtable
-  int x
-  (int -> float)* bar
-
-func float Foo:bar(Foo* this, int y)
-  barImpl
-
-macro bar (var Foo f) y
-  f.vtable.bar( f, y )
-
-func Foo:constructor(Foo* this, int arg)
-  this.vtable = & Foo:vtable
-
-
-new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
+     class Foo
+       Foo(int arg) / constructor(int arg)
+       var int x
+       method float bar (int y) barImpl
+      
+     =>
+      
+     type Foo:vtable
+       (Foo* -> void)* destructor
+       (int -> float)* bar
+      
+     type Foo
+       Foo:vtable* vtable
+       int x
+       (int -> float)* bar
+      
+     func float Foo:bar(Foo* this, int y)
+       barImpl
+      
+     macro bar (var Foo f) y
+       f.vtable.bar( f, y )
+      
+     func Foo:constructor(Foo* this, int arg)
+       this.vtable = & Foo:vtable
+      
+      
+     new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
 
 **** Interfaces
 
@@ -1179,24 +1461,24 @@ new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
     
 *** TODO [#A] named params: copy(from: file1, to: file2)
 
-   foo: bar baz
-   <=>
-   (postfix: foo (bar baz)
+    foo: bar baz
+    <=>
+    (postfix: foo (bar baz)
 
-   > :foo:bar
-   prefix: fuer global namespace (nicht als operator definieren?)
+    > :foo:bar
+    prefix: fuer global namespace (nicht als operator definieren?)
 
-   zomp:core:add
-   infix: fuer namespaces
-
-   auch sowas:?
+    zomp:core:add
+    infix: fuer namespaces
    
-   obj print: "fooo" to: stderr
-   (jux (op: print "foo") (op: to stderr))
-
-   (foo bar) op: blah
-   (seq (jux foo bar) (op: blah))
-
+    auch sowas:?
+   
+    obj print: "fooo" to: stderr
+    (jux (op: print "foo") (op: to stderr))
+    
+    (foo bar) op: blah
+    (seq (jux foo bar) (op: blah))
+   
 
 *** TODO [#A] Tests
     einheitliches system fuer tests
@@ -1241,17 +1523,17 @@ new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
 
 ** Alternative names
 
-There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
+   There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
 
-zump - only name which sounds more stupid than zump :)
-zompl - zero overhead meta programming language
-baremp - bare metal meta programming / bare metal programming
-bmmp
-llmp - low level meta programming
-lowmp
-zoml - zero overhead meta language
-0mp
-roomp
+   zump - only name which sounds more stupid than zump :)
+   zompl - zero overhead meta programming language
+   baremp - bare metal meta programming / bare metal programming
+   bmmp
+   llmp - low level meta programming
+   lowmp
+   zoml - zero overhead meta language
+   0mp
+   roomp
 
 ** Type annotations
 Annotate types using meta data?
@@ -1269,27 +1551,27 @@ then:
 let x :int = 10
 
 ** ; / expression separation
-Let ; be an operator/macro?
-
-print "1+1="; print 2;
-
-=>
-
-(op; (print "1+1=") (print 2))
-
-;-macro evaluates each expression + returns value of the last one
-(problem: requires macro expansion at run time. maybe instead create a sequence expression (evalseq (print "1+1=") (print 2)) and return that?)
-
-Then monads are probably possible without expanding the syntax (and possibly even without any/too much runtime overhead because no closures need to be passed around)
+   Let ; be an operator/macro?
+   
+   print "1+1="; print 2;
+   
+   =>
+   
+   (op; (print "1+1=") (print 2))
+   
+   ;-macro evaluates each expression + returns value of the last one
+   (problem: requires macro expansion at run time. maybe instead create a sequence expression (evalseq (print "1+1=") (print 2)) and return that?)
+   
+   Then monads are probably possible without expanding the syntax (and possibly even without any/too much runtime overhead because no closures need to be passed around)
 
 ** Annotations
 
-See the declare statement in lisp
-
-Use @attrib( valueExpr ) syntax?
+   See the declare statement in lisp
+   
+   Use @attrib( valueExpr ) syntax?
 
 ** python's doctest clone
-automatically check embedded examples in documentation for correctness
+   automatically check embedded examples in documentation for correctness
 
 ** Type System
 
@@ -1323,34 +1605,34 @@ automatically check embedded examples in documentation for correctness
 *** research: macros and formal verification
 
 *** Security level
-A variable a has an associated security level l(a). Writing a := b requires l(b) >= l(a).
-Similarily, the relation of security levels between function's arguments and parameters can be declared.
-Might allow to do flow analysis.
-See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
+    A variable a has an associated security level l(a). Writing a := b requires l(b) >= l(a).
+    Similarily, the relation of security levels between function's arguments and parameters can be declared.
+    Might allow to do flow analysis.
+    See http://cristal.inria.fr/~simonet/soft/flowcaml/manual/fcs003.html#toc5
 
 *** linear types?
 
 *** control flow analysis
 
-cfa:invariant bool fileIsOpen
-  require false on: ret message: "File should be closed"
-  set true on io:openFile
-  set false on io:closeFile
-end
+    cfa:invariant bool fileIsOpen
+      require false on: ret message: "File should be closed"
+      set true on io:openFile
+      set false on io:closeFile
+    end
 
-func foo()
-  file = openFile "blah" (1)
-  if( cond )
-    closeFile
-  else
-    do stuff // (2)
-  end
-end func
-
-=>
-
-Error:dummy.zomp:(2): File should be closed
-  cfa:invariant fileIsOpen set to true on line (1), expected to be false on ret
+    func foo()
+      file = openFile "blah" (1)
+      if( cond )
+        closeFile
+      else
+        do stuff // (2)
+      end
+    end func
+     
+    =>
+     
+    Error:dummy.zomp:(2): File should be closed
+      cfa:invariant fileIsOpen set to true on line (1), expected to be false on ret
        
 ** Packages / Projects
 *** compilation model
@@ -1366,19 +1648,19 @@ Error:dummy.zomp:(2): File should be closed
 
 *** packages
 *** project layout
-one toplevel file, drawing in all libs, settings etc.
+    one toplevel file, drawing in all libs, settings etc.
 
-project.zomp
-
-  application RadiositySolver
-
-  libpath ./extlib
-  require ./extlib/*
-  replaceLib std.strings with extlib.unicodeStrings
-
-  sourcepath ./src
-  sources
-    src/utils/*.zomp
+    project.zomp
+     
+      application RadiositySolver
+     
+      libpath ./extlib
+      require ./extlib/*
+      replaceLib std.strings with extlib.unicodeStrings
+     
+      sourcepath ./src
+      sources
+        src/utils/*.zomp
 
     
 ** Readings

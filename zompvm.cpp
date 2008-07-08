@@ -17,6 +17,13 @@
 #include "llvm/Target/TargetData.h"
 #include "llvm/LinkAllPasses.h"
 
+extern "C" {
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/callback.h>
+}
+
 #include <dlfcn.h>
 
 using std::printf;
@@ -26,6 +33,12 @@ namespace {
   void debugMessage(const char* msg) {
     printf( "[DEBUG] %s", msg );
   }
+}
+
+namespace dummy {
+  int i;
+  int j;
+  int k;
 }
 
 namespace {
@@ -44,6 +57,8 @@ namespace {
 //   static Function* astId = NULL;
 //   static Function* astChildCount = NULL;
 //   static Function* getChild = NULL;
+
+  value* isBoundCallback = NULL;
 
   static void loadLLVMFunctions()
   {
@@ -160,6 +175,8 @@ namespace {
   }
 }
 
+#define ZOMP_ASSERT(x) if( !(x) ) { printf("Assertion failed: %s", #x); fflush(stdout); exit(-10); }
+
 extern "C" {
   void zompHello() {
     printf( "hello, testmessage\n" );
@@ -178,7 +195,7 @@ extern "C" {
     return verifyCode;
   }
   
-}
+} // extern C
 
 
 llvm::GenericValue runFunctionWithArgs(
@@ -197,7 +214,7 @@ llvm::GenericValue runFunctionWithArgs(
     func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
   }
 
-//   std::vector<GenericValue> args;
+  //   std::vector<GenericValue> args;
   GenericValue retval = executionEngine->runFunction( func, args );
 
   fflush( stdout );
@@ -267,6 +284,13 @@ extern "C" {
 //     // Simplify the control flow graph (deleting unreachable blocks, etc).
 //     passManager->add(createCFGSimplificationPass());
 //   }
+
+  bool isBound(char* name) {
+    ZOMP_ASSERT(isBoundCallback != NULL);
+    
+    value result = caml_callback(*isBoundCallback, caml_copy_string(name));
+    return Bool_val(result);
+  }
   
   bool zompInit() {
 //     printf( "Initializing ZompVM\n" );
@@ -278,6 +302,23 @@ extern "C" {
 //     passManager = new FunctionPassManager( moduleProvider );
 //     setupOptimizerPasses();
 
+    value* closure_f = NULL;
+    closure_f = caml_named_value("helloCallback");
+    caml_callback(*closure_f, Val_unit);
+
+    value* printString = caml_named_value("printString");
+    caml_callback(*printString, caml_copy_string("This is ZompVM"));
+
+    value* getTrue = caml_named_value("getTrue");
+    value result = caml_callback(*getTrue, Val_unit);
+    std::cout << "Received bool from OCaml: " << Bool_val(result) << std::endl;
+
+    isBoundCallback = caml_named_value("isBound");
+    ZOMP_ASSERT( isBoundCallback != NULL );
+
+    std::cout << "asdf is bound: " << isBound("asdf") << std::endl;
+    std::cout << "dummy is bound: " << isBound("dummy") << std::endl;
+    
     return true;
   }
   
@@ -596,7 +637,7 @@ extern "C" {
       || (c == '\'')
       || (c == ';');
   }
-  
+
   void checkId(const char* id, const char* func) {
     bool valid = true;
 

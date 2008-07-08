@@ -77,6 +77,7 @@ macro if2 cond then onTrue remArgs...
   ret code
 end
 
+///TODO: add support to call methods
 template op. record component
   getField(#record, #component)
 end
@@ -151,26 +152,88 @@ func void Complex:init(Complex* c, float real, float img)
   c.img = img
 end
 
+// macro v2 args...
+//   printlnString "Given AST:"
+//   ast:print args 2
+// 
+//   ret ${}
+// end
+
+include "libs/stdio.zomp"
+
+macro defineArrayType type
+  arrayTypeName := "Array_" ++ type.id
+
+  code := ${
+    type #arrayTypeName
+      int length
+      #type* elements
+    end
+  end}
+
+  ast:print code 0
+
+  ret ${}
+end
+
+defineArrayType int
+
+func char* readFile(char* fileName)
+  file := fopen(fileName, "r")
+
+  if2 file ==_ptr nullptr(int) then
+    return nullptr(char)
+  end
+
+  buffer := ""
+  
+end
+
+func void test()
+  var int x 10
+  printlnInt x
+end
+
+
+func void test()
+  var int x 10
+  
+  printBool isBound("foo")
+  printBool isBound("x")
+end
+
+func void test()
+  std:base:localVar x 20
+  printInt x
+end
+
+func void test()
+  foo := nullptr(int)
+end
+
 //------------------------------------------------------------------------------
 /// program
 
-macro cee:for loopExpr code
-  ast:print 
-  ${printlnString "no loops for you, bitch"}
-end
+/// operator ; will need to get a different priority
+// macro cee:for loopExpr code
+//   ast:print loopExpr 0
+//   ${printlnString "no loops for you, bitch"}
+// end
 
 /**
  * foo bar
  */
 func void test()
-  cee:for(int i = 0; i < 10; ++i)
-    printString "i = "
-    printlnInt i
-  end
+  // cee:for(int i = 0; i < 10; ++i)
+  //   printString "i = "
+  //   printlnInt i
+  // end
 
-  c := new(Complex, 1.0, 0.0)
+  c := new(Complex, 1.0, 10.0)
   Complex:print c
   println()
+  
+  
 end
 
 func int main()

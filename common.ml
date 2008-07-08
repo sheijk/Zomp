@@ -49,17 +49,6 @@ let rec combine seperator strings =
 (*   | [str] -> str *)
 (*   | hd :: tl -> hd ^ seperator ^ (combine seperator tl) *)
         
-let rec translate errorF translators bindings expr =
-  let rec t = function
-    | [] -> errorF expr "Expression can not be translated"
-    | f :: remf -> begin
-        match f (translate errorF translators) bindings expr with
-          | Some (newBindings, result) -> (newBindings, result)
-          | None -> t remf
-      end
-  in
-  t translators
-
 let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let rec combine seperator = function
       [] -> ""
