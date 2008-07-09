@@ -130,6 +130,7 @@ struct
       expectValidId "-9";
       expectValidId "-20.3";
       expectValidId "-30.2d";
+      expectValidId "_";
       
       (** juxtaposition *)
       "var int x", `Return [ se "opjux" ["var"; "int"; "x"] ];
@@ -186,6 +187,16 @@ struct
       "*ptr", `Return [se1 "preop*" "ptr"];
       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       (* todo post/prefix ops which work without additional whitespace *)
+
+      "++i", `Return [se1 "preop++" "i"];
+      "x++", `Return [se1 "postop++" "x"];
+      "--foo", `Return [se1 "preop--" "foo"];
+      "blah--", `Return [se1 "postop--" "blah"];
+
+      "foo ++ bar", `Return [se2 "op++" "foo" "bar"];
+      "line1; line2", `Return [se2 "op;" "line1" "line2"];
+      "line1;line2", `Return [se2 "op;" "line1" "line2"];
+      "line1 ; line2", `Return [se2 "op;" "line1" "line2"];
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
@@ -370,6 +381,7 @@ struct
 
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];
+      "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
       
       "foo.print(1, 2)",
       `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]];

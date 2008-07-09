@@ -63,7 +63,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   in
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let validIdentifierChars = "a-zA-Z0-9:_" in
-  let validIdentifierFirstChar = "a-zA-Z" in
+  let validIdentifierFirstChar = "a-zA-Z_" in
   let opRule symbol (tokenF :string -> token) =
     (Str.regexp "[a-z)]",
      Str.regexp (opre symbol ^ "[^ \n]")),
@@ -83,6 +83,9 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let opRulesMultiSym symbols tokenF =
     let rules = List.map (fun symbol -> opRules symbol tokenF) symbols in
     List.flatten rules
+  in
+  let contextInsensitiveOp symbol f =
+    (Str.regexp "", Str.regexp symbol), f
   in
   let postfixRule symbol =
     re (sprintf "\\(%s +\\|%s\n\\)" (Str.quote symbol) (Str.quote symbol)),
@@ -114,7 +117,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
   let opfuncRule prefix =
-    re ((Str.quote prefix) ^ "[+-\\*/&.><=!]+ *"),
+    re ((Str.quote prefix) ^ "[+-\\*/&.><=!;]+ *"),
     (fun (str:string) -> `Identifier (trim str))
   in
   [
@@ -135,16 +138,22 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     postfixRule "*";
     prefixRule "*";
     prefixRule "&";
+    postfixRule "++";
+    postfixRule "--";
+    prefixRule "++";
+    prefixRule "--";
     stringRule;
     charRule;
     intRule;
     floatRule;
+    contextInsensitiveOp ";" (fun s -> `LazyBoolOp s);
   ]
   @ opRules "+" (fun s -> `Add s)
   @ opRules "-" (fun s -> `Add s)
   @ opRules "*" (fun s -> `Mult s)
   @ opRules "/" (fun s -> `Mult s)
   @ opRules "**" (fun s -> `Mult s)
+  @ opRules "++" (fun s -> `Add s)
   @ opRulesMultiSym ["="; ":="] (fun s -> `Assign s)
   @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> `Compare s)
   @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> `StrictBoolOp s)

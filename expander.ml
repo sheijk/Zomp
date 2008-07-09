@@ -173,8 +173,8 @@ let rec expr2value typ expr =
         raiseIllegalExpression expr "records not supported"
       end
     | _ -> raiseIllegalExpression expr "unsupported value expression"
+
         
-(** TODO: foobar *)
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
   let transform id name typeExpr valueExpr =
     let declaredType = match typeExpr with
@@ -882,6 +882,122 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
+type env = {
+  bindings :Bindings.t;
+  translateF :exprTranslateF;
+}
+
+type translationResult =
+  | Error of string
+  | Result of bindings * (formWithTLsEmbedded list)
+    
+let translateDummy (env :env) (expr :Ast2.sexpr)  :translationResult =
+  Error "Not supported at all"
+
+
+let translateDefineLocalVar env expr =
+  let transform id name typeExpr valueExpr =
+    let declaredType = match typeExpr with
+      | Some e ->
+          begin
+            match translateType env.bindings e with
+              | Some t -> Some t
+              | None -> raise (CouldNotParseType (Ast2.expression2string e))
+          end
+      | None -> None
+    in
+    let valueType, toplevelForms, implForms =
+      match valueExpr with
+        | Some valueExpr ->
+            begin
+              let _, simpleform = env.translateF env.bindings valueExpr in
+              let toplevelForms, implForms = extractToplevelForms simpleform in
+              match typeCheck env.bindings (`Sequence implForms) with
+                | TypeOf t -> Some t, toplevelForms, implForms
+                | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (m,f,e)
+            end
+        | None -> None, [], []
+    in
+    let varType =
+      match declaredType, valueType with
+        | Some declaredType, Some valueType when equalTypes env.bindings declaredType valueType -> declaredType
+        | Some declaredType, Some valueType ->
+            raiseIllegalExpressionFromTypeError expr ("Types do not match",declaredType,valueType)
+        | None, Some valueType -> valueType
+        | Some declaredType, None -> declaredType
+        | None, None -> raiseIllegalExpression expr "var needs either a default value or declare a type"
+    in
+    match varType with
+      | (#integralType as typ)
+      | (`Pointer _ as typ) ->
+          begin
+            let value = defaultValue typ in
+            let storage = MemoryStorage
+            in
+            let var = variable name typ value storage false in
+            let defvar = `DefineVariable (var, Some (`Sequence implForms))
+            in
+            match typeCheck env.bindings defvar with
+              | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+              | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+          end
+      | (`Record _ as typ) ->
+          begin
+            match valueExpr with
+              | None ->
+                  let var = variable name typ (defaultValue typ) MemoryStorage false in
+                  Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
+              | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
+          end
+      | `TypeRef _ ->
+          raiseIllegalExpression expr "Internal error: received unexpected type ref"
+  in
+  match expr with
+    | { args = [
+          { id = name; args = [] };
+          valueExpr
+        ] } ->
+        transform id name None (Some valueExpr)
+          
+    | _ ->
+        Error "Invalid format"
+    
+let baseInstructions =
+  let table = Hashtbl.create 32 in
+  Hashtbl.add table "dummy" translateDummy;
+  Hashtbl.add table "std:base:localVar" translateDefineLocalVar;
+  table
+
+let translateFromDict
+    (translateF :exprTranslateF)
+    (bindings :bindings)
+    (expr :Ast2.sexpr)
+    : (bindings * formWithTLsEmbedded list) option =
+  try
+    let handler = Hashtbl.find baseInstructions expr.id in
+    let env = { bindings = bindings; translateF = translateF } in
+    match handler env expr with
+      | Error msg ->
+          printf "Swallowed error: %s\n" msg;
+          flush stdout;
+          None
+      | Result (bindings, tlexprs) ->
+          Some (bindings, tlexprs)
+  with _ ->
+    None
+
+let rec translate errorF translators bindings expr =
+  let rec t = function
+    | [] -> errorF expr "Expression can not be translated"
+    | f :: remf -> begin
+        Zompvm.currentBindings := bindings;
+        match f (translate errorF translators) bindings expr with
+          | Some (newBindings, result) -> (newBindings, result)
+          | None -> t remf
+      end
+  in
+  t translators
+      
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateSeq;
@@ -897,6 +1013,7 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
     translateReturn;
     translateLabel;
     translateBranch;
+    translateFromDict;
 (*     translateAntiquote; *)
   ]
   translateF bindings
@@ -1089,9 +1206,8 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
   in
   let importFile fileName impls =
     let parse fileName : sexpr list =
-      try
+      try begin
         let fileContent = Common.readFile fileName in
-        let lexbuf = Lexing.from_string fileContent in
         let rec parseExprs lexbuf exprAccum =
           try
             let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
@@ -1099,9 +1215,29 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
           with
             | Sexprlexer.Eof -> exprAccum
         in
-        let sexprs = List.rev (parseExprs lexbuf []) in
-        sexprs
-      with
+        let parseIExpr source =
+          let lexbuf = Lexing.from_string source in
+          let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+          let lexFunc = Newparserutils.lexFunc lexstate in
+          let rec read acc =
+            try
+              let expr = Newparser.main lexFunc lexbuf in
+              read (expr :: acc)
+            with
+              | Indentlexer.Eof -> acc
+          in
+          List.rev (read [])
+        in
+        try
+          let lexbuf = Lexing.from_string fileContent in
+          let sexprs = List.rev (parseExprs lexbuf []) in
+          sexprs
+        with
+          | Sexprparser.Error
+          | Sexprlexer.UnknowChar _ -> begin
+              parseIExpr fileContent
+            end
+      end with
         | Sys_error message -> raiseIllegalExpression expr
             (sprintf "Could not find file '%s': %s" fileName message)
     in

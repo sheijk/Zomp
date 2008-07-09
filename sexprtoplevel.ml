@@ -63,43 +63,13 @@ let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 
-let parseSExpr input =
-  try
-    let lexbuf = Lexing.from_string input in
-    Some( Sexprparser.main Sexprlexer.token lexbuf )
-  with Sexprlexer.Eof ->
-    None
-
-let parseIExpr source =
-  if String.length source >= 3 && Str.last_chars source 3 = "\n\n\n" then
-    try
-      let lexbuf = Lexing.from_string source in
-      let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-      let lexFunc = Newparserutils.lexFunc lexstate in
-      let rec read acc =
-        try
-          let expr = Newparser.main lexFunc lexbuf in
-          read (expr :: acc)
-        with
-          | Indentlexer.Eof -> acc
-      in
-      match List.rev (read []) with
-        | [singleExpr] ->
-            Some singleExpr
-        | multipleExprs ->
-            Some { Ast2.id = "opseq"; args = multipleExprs }
-    with _ ->
-      None
-  else (
-    None)
-
-let parseFunc = ref parseSExpr
+let parseFunc = ref Parseutils.parseSExpr
 
 let toggleParseFunc args _ =
   let confirm syntax = printf "Changed syntax to %s\n" syntax in
   match args with
-    | ["sexpr"] -> parseFunc := parseSExpr; confirm "sexpr"
-    | ["indent"] -> parseFunc := parseIExpr; confirm "indent"
+    | ["sexpr"] -> parseFunc := Parseutils.parseSExpr; confirm "sexpr"
+    | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
   
 let toggleVerifyCommand args _ =
