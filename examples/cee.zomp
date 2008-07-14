@@ -77,9 +77,96 @@ macro if2 cond then onTrue remArgs...
   ret code
 end
 
+func bool isBound(char* name)
+
+type symbolKind int
+const symbolKind ZOMP_SYMBOL_UNDEFINED 0
+const symbolKind ZOMP_SYMBOL_VAR 1
+const symbolKind ZOMP_SYMBOL_FUNC 2
+const symbolKind ZOMP_SYMBOL_MACRO 3
+const symbolKind ZOMP_SYMBOL_TYPEDEF 4
+const symbolKind ZOMP_SYMBOL_LABEL 5
+
+func char* symbolKind:toString(symbolKind kind)
+  if2 kind == ZOMP_SYMBOL_UNDEFINED then
+    ret "Undefined"
+  elseif kind == ZOMP_SYMBOL_VAR
+    ret "Variable"
+  elseif kind == ZOMP_SYMBOL_FUNC
+    ret "Function"
+  elseif kind == ZOMP_SYMBOL_MACRO
+    ret "Macro"      
+  elseif kind == ZOMP_SYMBOL_TYPEDEF
+    ret "Type"
+  elseif kind == ZOMP_SYMBOL_LABEL
+    ret "Label"
+  end
+              
+  ret "internal error"
+end
+            
+func symbolKind zompLookup(char* name)
+
+// template op== l r
+//   cstring:equal #l #r
+// end
+
+func bool dummy(bool x)
+  printString "Returning "
+  printBool x
+  println()
+
+  ret x
+end
+
+macro op|| l r
+  uniqueId result "||"
+  
+  ret ${
+    #result := false
+    if2 #l then
+      #result = true
+    elseif #r
+      #result = true
+    end
+    #result
+  end}
+end
+
+macro op&& l r
+  uniqueId result "&&"
+
+  ret ${
+    #result := false
+    if2 #l then
+      #result = #r
+    #result
+  end}
+end
+
+// func void test()
+//   printlnString "(&&) Expect: f"
+//   dummy(false) && dummy(true)
+// 
+//   printlnString "(&&) Expect: t,f"
+//   dummy(true) && dummy(false)
+// 
+//   printlnString "(||) Expect f,t"
+//   dummy(false) || dummy(true)
+// 
+//   printlnString "(||) Expect t"
+//   dummy(true) || dummy(false)
+// 
+//   ret void
+// end
+
 ///TODO: add support to call methods
-template op. record component
-  getField(#record, #component)
+macro op. record component
+  if2 getField(component, childCount) == 0 then
+    ret ${getField(#record, #component)}
+  end
+  // else
+  ret ${error "function calls with dot syntax not supported yet" in #component}
 end
 
 macro op= l r
@@ -161,55 +248,74 @@ end
 
 include "libs/stdio.zomp"
 
-macro defineArrayType type
-  arrayTypeName := "Array_" ++ type.id
+// macro defineArrayType type
+//   arrayTypeName := "Array_" ++ type.id
+// 
+//   code := ${
+//     type #arrayTypeName
+//       int length
+//       #type* elements
+//     end
+//   end}
+// 
+//   ast:print code 0
+// 
+//   ret ${}
+// end
+// 
+// defineArrayType int
 
-  code := ${
-    type #arrayTypeName
-      int length
-      #type* elements
-    end
-  end}
+// func char* readFile(char* fileName)
+//   file := fopen(fileName, "r")
+// 
+//   if2 file ==_ptr nullptr(int) then
+//     return nullptr(char)
+//   end
+// 
+//   buffer := ""
+//   
+// end
 
-  ast:print code 0
 
-  ret ${}
-end
+// macro alias newName toName
+//   if2 isBound(getField(newName, id)) then
+//     printString "Redefining "
+//     printString newName.id
+//     printString " => "
+//     printString toName.id
+//     println()
+//     
+//     ret ${}
+//   else
+//     ret ${error #toName is not defined}
+//   end
+// end
+  
+func void test()
+  var int x 10
 
-defineArrayType int
-
-func char* readFile(char* fileName)
-  file := fopen(fileName, "r")
-
-  if2 file ==_ptr nullptr(int) then
-    return nullptr(char)
+  template printDefinitionInfo name
+    printString #name
+    printString " defined: "
+    printBool isBound(#name)
   end
 
-  buffer := ""
-  
-end
+  printDefinitionInfo "gipsdochganich"
+  printDefinitionInfo "x"
 
-func void test()
-  var int x 10
-  printlnInt x
+  printInt zompLookup("x")
 end
 
 
-func void test()
-  var int x 10
-  
-  printBool isBound("foo")
-  printBool isBound("x")
-end
 
-func void test()
-  std:base:localVar x 20
-  printInt x
-end
-
-func void test()
-  foo := nullptr(int)
-end
+// func void test()
+//   std:base:localVar x 20
+//   printInt x
+// end
+// 
+// func void test()
+//   foo := nullptr(int)
+// end
 
 //------------------------------------------------------------------------------
 /// program
@@ -220,21 +326,21 @@ end
 //   ${printlnString "no loops for you, bitch"}
 // end
 
-/**
- * foo bar
- */
-func void test()
-  // cee:for(int i = 0; i < 10; ++i)
-  //   printString "i = "
-  //   printlnInt i
-  // end
-
-  c := new(Complex, 1.0, 10.0)
-  Complex:print c
-  println()
-  
-  
-end
+// /**
+//  * foo bar
+//  */
+// func void test()
+//   // cee:for(int i = 0; i < 10; ++i)
+//   //   printString "i = "
+//   //   printlnInt i
+//   // end
+// 
+//   c := new(Complex, 1.0, 10.0)
+//   Complex:print c
+//   println()
+//   
+//   
+// end
 
 func int main()
   

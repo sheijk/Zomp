@@ -61,28 +61,53 @@ let loadLLVMFile filename =
       Sys_error message ->
         eprintf "Could not load file %s: %s\n" filename message
 
-let hello_callback () =
-  printf "Hello, callback!\n";
-  flush stdout
-
-let printString str =
-  printf "Printing string from C: %s\n" str;
-  flush stdout
-
-let getTrue () = true
-
 let currentBindings :Bindings.t ref = ref (Bindings.addTypedef [] "asdf" `Int8)
+
+module MeshCache : sig
+end = struct
   
-let isBound name =
-  match Bindings.lookup !currentBindings name with
-    | Bindings.UndefinedSymbol -> false
-    | _ -> true
-  
-let () =
-  Callback.register "helloCallback" hello_callback;
-  Callback.register "printString" printString;
-  Callback.register "getTrue" getTrue;
-  
-  Callback.register "isBound" isBound
+  let isBound name =
+    match Bindings.lookup !currentBindings name with
+      | Bindings.UndefinedSymbol -> false
+      | _ -> true
+
+  (* also defined in zompvm.cpp *)
+  let symbolUndefined = 0
+  and symbolVar = 1
+  and symbolFunc = 2
+  and symbolMacro = 3
+  and symbolTypedef = 4
+  and symbolLabel = 5
+    
+  let lookup name =
+    match Bindings.lookup !currentBindings name with
+      | Bindings.UndefinedSymbol -> symbolUndefined
+      | Bindings.VarSymbol _ -> symbolVar
+      | Bindings.FuncSymbol _ -> symbolFunc
+      | Bindings.MacroSymbol _ -> symbolMacro
+      | Bindings.TypedefSymbol _ -> symbolTypedef
+      | Bindings.LabelSymbol _ -> symbolLabel
+
+  let hello_callback () =
+    printf "Hello, callback!\n";
+    flush stdout
+
+  let printString str =
+    printf "Printing string from C: %s\n" str;
+    flush stdout
+
+  let getTrue () = true
+
+  let () =
+    Callback.register "helloCallback" hello_callback;
+    Callback.register "printString" printString;
+    Callback.register "getTrue" getTrue;
+    
+    Callback.register "isBound" isBound;
+    Callback.register "lookup" lookup;
+    ()      
+      
+end
+
 
     

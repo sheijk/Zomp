@@ -117,7 +117,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
   let opfuncRule prefix =
-    re ((Str.quote prefix) ^ "[+-\\*/&.><=!;]+ *"),
+    re ((Str.quote prefix) ^ "[+-\\*/&.><=!;|]+ *"),
     (fun (str:string) -> `Identifier (trim str))
   in
   [
@@ -156,8 +156,9 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   @ opRules "++" (fun s -> `Add s)
   @ opRulesMultiSym ["="; ":="] (fun s -> `Assign s)
   @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> `Compare s)
-  @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> `StrictBoolOp s)
   @ opRulesMultiSym ["&&"; "||"] (fun s -> `LazyBoolOp s)
+  @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> `StrictBoolOp s)
+    (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
     
 type 'token lexerstate = {
   readChar : unit -> char;
@@ -310,14 +311,6 @@ let token (lexbuf : token lexerstate) : token =
               | `PutBack(token, prefetched) ->
                   putback lexbuf prefetched;
                   (token :> [`Ignore|token])
-                    (*               | `Ignore -> *)
-                    (*                   let lastReadChar = *)
-                    (*                     let len = String.length lexbuf.lastReadChars in *)
-                    (*                     if len >= 1 then lexbuf.lastReadChars.[len-1] *)
-                    (*                     else '\n' *)
-                    (*                   in *)
-                    (*                   lexbuf.endOfLastToken <- lastReadChar; *)
-                    (*                   worker () *)
               | `Ignore -> `Ignore
               | #token as token -> (token :> [`Ignore|token])
           in

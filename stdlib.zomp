@@ -54,12 +54,10 @@
 
   (label true)
   (printChar 't')
-  (printNewline)
   (branch end)
 
   (label false)
   (printChar 'f')
-  (printNewline)
 
   (label end)
   ))

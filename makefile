@@ -1,4 +1,4 @@
-OCAMLPATH="c:/Program Files/Objective Caml/bin/"
+OCAMLPATH=
 OCAMLLEX=$(OCAMLPATH)ocamllex.opt
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
@@ -260,8 +260,8 @@ check-syntax: check-source
 # 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
 # 	@ocamlc -c $(CHK_SOURCES) > build/flymake-output && mv *_flymake.cm? build/
 
-makefile.depends:
-	touch $<
+# makefile.depends:
+# 	touch $<
 
 include makefile.depends
 

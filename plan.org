@@ -2,6 +2,11 @@
 #+STARTUP: fold
 
 * To be sorted
+** TODO [#A] which-func mode zeigt fuer operatoren nur "op" an
+** TODO [#A] indent syntax: redefine _foo operators like ==_str not supported, yet
+** TODO [#A] fehlende returns am ende von makros werden nicht immer uebersetzt
+** TODO [#A] op. geht nicht innerhalb von argumentliste
+** TODO [#A] reorganize zompvm.cpp
 ** TODO [#A] mehr auf einfachheit / schnelle umsetzbarkeit optimieren
 ** TODO [#A] more friendly name for sexpr? (itree? codetree?)
 ** TODO [#A] doch benutzerdefinierbare syntax?
@@ -368,6 +373,8 @@ von http://lambda-the-ultimate.org/node/2884
      and add zomp-side meta information
 ** TODO [#A] &, == operator precedence
    & sollte hoehere prioritaet haben, damit "a & 0x00001001 == 0x00001001" geht
+** TODO [#A] consider latex style operators
+   \x, \o, ...
    
 * Use Cases                                                            :usecase:
 
@@ -588,7 +595,7 @@ von http://lambda-the-ultimate.org/node/2884
 *** Ideas
     int? => Option<int>
 
-* Tasks											:zomp:
+* Tasks                                                                   :zomp:
 
 ** BUGS
 
@@ -814,16 +821,14 @@ In macro expansion the \0 will be replaced by an !
      
 *** TODO [#A] foo(bar baz) auch als call parsen? 
 
-
-
 *** TODO [#A] list<int> => template, xml <node> -> xml like trees
 
 *** TODO [#B] "foo bar\nend" should be translated correctly
 
-*** TODO [#B] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_?
+*** TODO [#B] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_? :operators:
     oder auch \+\ \+ +\
 
-*** TODO [#B] operatorsymbol am zeilenanfang/ende = pre/postfix operator fuer ganze zeile?
+*** TODO [#B] operatorsymbol am zeilenanfang/ende = pre/postfix operator fuer ganze zeile? :operators:
 
    > equals(int a, int b) =
    <=>
@@ -841,19 +846,31 @@ In macro expansion the \0 will be replaced by an !
    >   | _ => handleOther()
 
 *** TODO [#B] indent parser: support escaped linebreaks (\ at beginning/end of line) :quick:
-*** DONE [#A] indent parser: skip comments
-    CLOSED: [2008-06-04 Wed 02:52]
-*** DONE [#A] indent parser: strings
-    CLOSED: [2008-06-04 Wed 02:52]
 
 *** TODO [#B] only allow one dot in ids (and none at a later point)      :quick:
 *** TODO [#B] support "\"" in strings
-*** TODO [#A] add += -= *= /= etc. operators
-*** DONE [#A] parse logical ops &, |, &&, ||
-    CLOSED: [2008-04-14 Mon 01:17]
+*** TODO [#A] add += -= *= /= etc. operators                         :operators:
 *** TODO [#A] / should be left associative: a / b / c => (a / b) / c       :bug:
 *** TODO [#B] parser: keep track of line and char number and add this to error messages
 
+*** Archive                                                            :ARCHIVE:
+**** DONE [#A] indent parser: skip comments
+     CLOSED: [2008-06-04 Wed 02:52]
+     :PROPERTIES:
+     :ARCHIVE_TIME: 2008-07-09 Wed 14:49
+     :END:
+**** DONE [#A] indent parser: skip comments
+     CLOSED: [2008-06-04 Wed 02:52]
+     :PROPERTIES:
+     :ARCHIVE_TIME: 2008-07-09 Wed 14:49
+     :END:
+**** DONE [#A] indent parser: strings
+     CLOSED: [2008-06-04 Wed 02:52]
+**** DONE [#A] parse logical ops &, |, &&, ||
+     CLOSED: [2008-04-14 Mon 01:17]
+     :PROPERTIES:
+     :ARCHIVE_TIME: 2008-07-09 Wed 14:49
+     :END:
 ** Compiler
 
 *** TODO [#B] proper support for compile time variables               :compiler:
@@ -1138,7 +1155,6 @@ Put macro functions into seperate module
 **** TODO [#C] subseq "foo" -2 => "oo", subseq "foo" 2 => "fo" etc.       :libs:
 **** TODO [#A] int to char conversion                               :libs:quick:
 **** TODO [#A] (include ..) should support iexpr syntax             :libs:quick:
-**** TODO [#B] define operator funcs in indent syntax (func l == r ...)
 **** TODO [#B] runtime checks generieren
 **** TODO [#C] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
 **** TODO [#C] `undefine name' => name kann nicht mehr verwendet werden
@@ -1204,6 +1220,12 @@ Put macro functions into seperate module
     void garbageCollection()
       // mark+sweep all roots and their target pointers
 
+**** Archive                                                           :ARCHIVE:
+***** DONE [#B] define operator funcs in indent syntax (func l == r ...)
+      CLOSED: [2008-07-09 Wed 14:50]
+      :PROPERTIES:
+      :ARCHIVE_TIME: 2008-07-09 Wed 14:50
+      :END:
 *** TODO [#A] API for code analysis
     Get information about an expression: types etc.
     (can be used for type propagation)
@@ -1274,7 +1296,7 @@ Put macro functions into seperate module
      matchCase ::= pattern
      matchCase ::= var = pattern
      matchCase ::= var varName : type
-
+     
      pattern ::= "expectId"
      pattern ::= (matchCase+)
 
@@ -1519,7 +1541,7 @@ Put macro functions into seperate module
 
 **** TODO [#A] (count-1) is being parsed incorrectly
 
-* Notes											:zomp:
+* Notes                                                                   :zomp:
 
 ** Alternative names
 
@@ -1542,7 +1564,7 @@ let @type(int) x = 10
 
 Use : as infix operator (: symbol type) as a macro name:
 
-macro : symbol thetype = {
+macro inf_: symbol thetype = {
   @type(thetype) symbol
 }
 
@@ -1664,7 +1686,7 @@ let x :int = 10
 
     
 ** Readings
-*** [#A] ruby syntax, fortress syntax fuer nested function calls
+*** ruby syntax, fortress syntax fuer nested function calls             :syntax:
 *** haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
 
 * Footer

@@ -32,6 +32,13 @@ struct
       let idTokens = List.map (fun str -> (`Identifier str :> token)) stringList in
       idTokens
     in
+    let parsedAsId id =
+      id, `Return [`Identifier id; `End]
+    in
+    let infixOp op optoken =
+      ["l " ^ op ^ " r", `Return [id "l"; optoken; id "r"; `End];
+       parsedAsId ("op" ^ op)]
+    in
     ignore( ids [] );
     [
       "single", `Return [id "single"; `End];
@@ -137,7 +144,17 @@ struct
 (*       \  nested2\n\ *)
 (*       end main", *)
 (*       `Exception "Should fail because \"nested\" has no end terminator"; *)
+
+      parsedAsId "op&&";
+      parsedAsId "op||";
+      parsedAsId "op++";
+      parsedAsId "op*";
+      (* TODO: alle operatoren testen *)
     ]
+    @ infixOp "+" (`Add "+")
+    @ infixOp "-" (`Add "-")
+    @ infixOp "&&" (`LazyBoolOp "&&")
+    @ infixOp "||" (`LazyBoolOp "||")
 end
 
 let () =

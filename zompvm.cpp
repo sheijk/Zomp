@@ -29,17 +29,69 @@ extern "C" {
 using std::printf;
 using namespace llvm;
 
-namespace {
-  void debugMessage(const char* msg) {
-    printf( "[DEBUG] %s", msg );
-  }
+///-----------------------------------------------------------------------------
+/// Basic utilities
+
+static void debugMessage(const char* msg) {
+  printf( "[DEBUG] %s", msg );
 }
 
-namespace dummy {
-  int i;
-  int j;
-  int k;
+#define ZOMP_ASSERT(x) if( !(x) ) { printf("Assertion failed: %s", #x); fflush(stdout); exit(-10); }
+
+///-----------------------------------------------------------------------------
+/// {{{Native Callbacks
+
+/**
+ * These are callbacks to the parts of the zomp compiler/runtime implemented
+ * in OCaml. You can find the OCaml counter parts in ZompVM.Callable
+ */
+namespace ZompCallbacks {
+  value* isBoundCB = NULL;
+  value* lookupCB = NULL;
+
+  void init() {
+    isBoundCB = caml_named_value("isBound");
+    lookupCB = caml_named_value("lookup");
+  }
+
+  bool areValid() {
+    return
+      isBoundCB != NULL &&
+      lookupCB != NULL;
+  }
+
+
+extern "C" {
+  
+  bool isBound(char* name) {
+    ZOMP_ASSERT(ZompCallbacks::isBoundCB != NULL);
+
+    value result = caml_callback(*ZompCallbacks::isBoundCB, caml_copy_string(name));
+    return Bool_val(result);
+  }
+
+  enum { // also defined in zompvm.ml
+    ZOMP_SYMBOL_UNDEFINED = 0,
+    ZOMP_SYMBOL_VAR = 1,
+    ZOMP_SYMBOL_FUNC = 2,
+    ZOMP_SYMBOL_MACRO = 3,
+    ZOMP_SYMBOL_TYPEDEF = 4,
+    ZOMP_SYMBOL_LABEL = 5
+  };
+  
+  int zompLookup(char* name) {
+    ZOMP_ASSERT( ZompCallbacks::lookupCB != NULL );
+    value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
+    return Int_val(result);
+  }
+  
+} // extern "C"
 }
+
+///}}}
+
+///-----------------------------------------------------------------------------
+/// Virtual machine and execution environment
 
 namespace {
   /// will run the code
@@ -57,8 +109,6 @@ namespace {
 //   static Function* astId = NULL;
 //   static Function* astChildCount = NULL;
 //   static Function* getChild = NULL;
-
-  value* isBoundCallback = NULL;
 
   static void loadLLVMFunctions()
   {
@@ -175,7 +225,8 @@ namespace {
   }
 }
 
-#define ZOMP_ASSERT(x) if( !(x) ) { printf("Assertion failed: %s", #x); fflush(stdout); exit(-10); }
+///-----------------------------------------------------------------------------
+/// primitives called from OCaml code
 
 extern "C" {
   void zompHello() {
@@ -194,7 +245,6 @@ extern "C" {
   bool zompDoesVerifyCode() {
     return verifyCode;
   }
-  
 } // extern C
 
 
@@ -285,12 +335,7 @@ extern "C" {
 //     passManager->add(createCFGSimplificationPass());
 //   }
 
-  bool isBound(char* name) {
-    ZOMP_ASSERT(isBoundCallback != NULL);
-    
-    value result = caml_callback(*isBoundCallback, caml_copy_string(name));
-    return Bool_val(result);
-  }
+  
   
   bool zompInit() {
 //     printf( "Initializing ZompVM\n" );
@@ -313,17 +358,13 @@ extern "C" {
     value result = caml_callback(*getTrue, Val_unit);
     std::cout << "Received bool from OCaml: " << Bool_val(result) << std::endl;
 
-    isBoundCallback = caml_named_value("isBound");
-    ZOMP_ASSERT( isBoundCallback != NULL );
-
-    std::cout << "asdf is bound: " << isBound("asdf") << std::endl;
-    std::cout << "dummy is bound: " << isBound("dummy") << std::endl;
+    ZompCallbacks::init();
+    ZOMP_ASSERT( ZompCallbacks::areValid() );
     
     return true;
   }
   
   void zompShutdown() {
-//     printf( "Shutting down ZompVM\n" );
     fflush( stdout );
   }
 
@@ -635,7 +676,9 @@ extern "C" {
       || (c == '.')
       || (c == '\\')
       || (c == '\'')
-      || (c == ';');
+      || (c == ';')
+      || (c == '&')
+      || (c == '|');
   }
 
   void checkId(const char* id, const char* func) {
