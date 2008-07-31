@@ -140,6 +140,7 @@ macro op&& l r
     #result := false
     if2 #l then
       #result = #r
+    end
     #result
   end}
 end
@@ -306,6 +307,9 @@ func void test()
   printInt zompLookup("x")
 end
 
+//------------------------------------------------------------------------------
+http://www.clutter-project.org/
+//------------------------------------------------------------------------------
 
 
 // func void test()

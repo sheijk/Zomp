@@ -88,7 +88,9 @@ type 'typ variable = {
 let rec validateValue = function
   | VoidVal | CharVal _ | BoolVal _
   | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _
-  | PointerVal _ | StringLiteral _ as value -> value
+  | PointerVal _ | StringLiteral _
+  | FunctionVal _ as value ->
+      value
   | FloatVal _ | DoubleVal _ as value ->
       let valueString = Typesystems.Zomp.valueString value in
       Typesystems.Zomp.parseValue (Typesystems.Zomp.typeOf value) valueString
@@ -129,6 +131,7 @@ type 'argument funcCall = {
   fcrettype :composedType;
   fcparams :composedType list;
   fcargs :'argument list;
+  fcptr : [`FuncPtr | `NoFuncPtr];
 }
 and label = {
   lname :string;

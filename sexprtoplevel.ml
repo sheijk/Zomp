@@ -344,8 +344,10 @@ let () =
              printf " => %s\n" asString;
            end;
            
-           if !printLLVMCode then
+           if !printLLVMCode then begin
              printf "LLVM code:\n%s\n" llvmCode;
+             flush stdout;
+           end;
            
            if !llvmEvaluationOn then
              Zompvm.evalLLVMCode bindings simpleforms llvmCode;

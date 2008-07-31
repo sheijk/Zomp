@@ -1,6 +1,4 @@
 
-
-
 open Printf
   
 module type TYPE_SYSTEM =
@@ -41,8 +39,13 @@ struct
   | `Pointer of typ
   | `Record of recordType
   | `TypeRef of string
+  | `Function of functionType
   ]
   and recordType = (string * typ) list
+  and functionType = {
+    returnType :typ;
+    argTypes :typ list;
+  }
      
   type value =
     | VoidVal
@@ -57,6 +60,7 @@ struct
     | CharVal of char
     | PointerVal of typ * int option
     | RecordVal of (string * value) list
+    | FunctionVal of functionType * int option
       
   exception CouldNotParseType of string
 
@@ -91,6 +95,7 @@ struct
     | RecordVal components ->
         let convert (name, value) = name, typeOf value in
         `Record (List.map convert components)
+    | FunctionVal (t, _) -> `Function t
           
   (* val typeName : typ -> string *)
   let rec typeName : typ -> string = function
@@ -109,32 +114,37 @@ struct
         let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
         let componentStrings = List.map component2String components in
         "(" ^ Common.combine ", " componentStrings ^ ")"
+    | `Function ft ->
+        let retName = typeName ft.returnType in
+        let argNames = List.map typeName ft.argTypes in
+        sprintf "%s -> %s" (Common.combine ", " argNames) retName
 
   (* val valueString : value -> string *)
-  let rec valueString : value -> string = function
-    | VoidVal -> raise (Failure "no values of void allowed")
-    | Int8Val i -> Int32.to_string i
-    | Int16Val i -> Int32.to_string i
-    | Int32Val i -> Int32.to_string i
-    | Int64Val i -> Int64.to_string i
-    | FloatVal f -> string_of_float f
-    | DoubleVal f -> string_of_float f
-    | StringLiteral s -> "\"" ^ s ^ "\""
-    | BoolVal b -> string_of_bool b
-    | CharVal c -> string_of_int (int_of_char c)
-    | PointerVal (typ, target) ->
-        begin
-          match target with
-            | Some addr -> "0x" ^ string_of_int addr
-            | None -> "null"
-        end
-    | RecordVal components ->
-        let rec convert = function
-          | [] -> ""
-          | (name, value) :: tail ->
-              (Printf.sprintf "(%s = %s)" name (valueString value)) ^ (convert tail)
-        in
-        "(" ^ convert components ^ ")"
+  let rec valueString : value -> string =
+    let pointerValueName = function
+      | Some addr -> "0x" ^ string_of_int addr
+      | None -> "null"
+    in
+    function
+      | VoidVal -> raise (Failure "no values of void allowed")
+      | Int8Val i -> Int32.to_string i
+      | Int16Val i -> Int32.to_string i
+      | Int32Val i -> Int32.to_string i
+      | Int64Val i -> Int64.to_string i
+      | FloatVal f -> string_of_float f
+      | DoubleVal f -> string_of_float f
+      | StringLiteral s -> "\"" ^ s ^ "\""
+      | BoolVal b -> string_of_bool b
+      | CharVal c -> string_of_int (int_of_char c)
+      | PointerVal (_, target) -> pointerValueName target
+      | RecordVal components ->
+          let rec convert = function
+            | [] -> ""
+            | (name, value) :: tail ->
+                (Printf.sprintf "(%s = %s)" name (valueString value)) ^ (convert tail)
+          in
+          "(" ^ convert components ^ ")"
+      | FunctionVal (_, target) -> pointerValueName target
 
   (* val parseType : string -> typ *)
   let rec parseType (str :string) :typ = 
@@ -183,7 +193,8 @@ struct
       | `Pointer t -> if str == "null"
         then PointerVal (t, None)
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
-      | `Record _ -> raise (Failure (sprintf "cannot parse records (value was %s)" str))
+      | `Record _ -> raise (Failure (sprintf "Cannot parse records (value was %s)" str))
+      | `Function _ -> raise (Failure (sprintf "Cannot parse function ptr values (value was %s)" str))
           
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
@@ -200,7 +211,7 @@ struct
     | `Record components ->
         let convert (name, typ) = name, defaultValue typ in
         RecordVal (List.map convert components)
-(*     | `NamedType name -> failwith (sprintf "No default value for type %s only known by name" name) *)
+    | `Function t -> FunctionVal (t, None)
 end
 
 module Tests =

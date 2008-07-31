@@ -65,6 +65,10 @@ let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.
 let rec findTypeName bindings = function
   | #Lang.integralType as integralType -> Lang.typeName integralType
   | `Pointer targetType -> findTypeName bindings targetType ^ "*"
+  | `Function ft ->
+      sprintf "%s -> %s"
+        (Common.combine ", " (List.map (findTypeName bindings) ft.argTypes))
+        (findTypeName bindings ft.returnType)
   | `TypeRef name -> name
   | `Record components as typ ->
       try
@@ -112,11 +116,27 @@ let rec translateType bindings typeExpr =
       | None -> None
   in  
   match typeExpr with
-    | { id = jux; args = args } when jux = macroJuxOp ->
+    | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
+        begin try
+          let translate typ =
+            match translateType bindings typ with
+              | Some t -> t
+              | None -> failwith ""
+          in
+          begin
+            Some (`Pointer (`Function {
+              returnType = translate returnTypeExpr;
+              argTypes = List.map translate argTypeExprs;
+            }))
+          end
+        with Failure _ ->
+          None
+        end
+    | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
         translateType bindings (shiftId args)
     | { id = "postop*"; args = [targetTypeExpr] } ->
         translatePtr targetTypeExpr
-    | { id = id; args = [targetTypeExpr]; } when id = macroPtr ->
+    | { id = "ptr"; args = [targetTypeExpr]; } (* when id = macroPtr *) ->
         translatePtr targetTypeExpr
     | { id = name; args = [] } ->
         begin
@@ -124,7 +144,7 @@ let rec translateType bindings typeExpr =
         end
     | _ -> None
 
-let translateType = Common.sampleFunc2 "translateType" translateType
+(* let translateType = Common.sampleFunc2 "translateType" translateType *)
   
 type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form]
 
@@ -208,13 +228,9 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
         | None, None -> raiseIllegalExpression expr "var needs either a default value or declare a type"
     in
     match varType with
-      | (#integralType as typ)
-      | (`Pointer _ as typ) ->
+      | #integralType | `Pointer _ | `Function _ as typ ->
           begin
-            let value = defaultValue typ in
-            let storage = MemoryStorage
-            in
-            let var = variable name typ value storage false in
+            let var = variable name typ (defaultValue typ) MemoryStorage false in
             let defvar = `DefineVariable (var, Some (`Sequence implForms))
             in
             match typeCheck bindings defvar with
@@ -268,6 +284,20 @@ let expr2VarOrConst (bindings :bindings) = function
               | Some c -> Some (`Constant c)
               | None -> None
     end
+  | { id = "preop&"; args = [{id = name; args = []}] } ->
+      begin
+        match lookup bindings name with
+          | FuncSymbol f ->
+              let name = f.fname in
+              let typ = `Function {
+                returnType = f.rettype;
+                argTypes = List.map snd f.Lang.fargs;
+              } in
+              let var = variable name (`Pointer typ) (defaultValue typ) RegisterStorage true in
+              Some (`Variable var)
+          | _ ->
+              None
+      end
   | _ -> None
 
       
@@ -314,32 +344,57 @@ let rec flattenLeft = function
       let remList, remX = flattenLeft rem in
       (list @ remList, x :: remX)
 
-let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = name; args = args; } as expr ->
-      match lookup bindings name with
-        | FuncSymbol func ->
-            begin
-              let evalArg (argExpr :Ast2.sexpr) =
-                let _, xforms = translateF bindings argExpr in
-                let toplevelForms, forms = extractToplevelForms xforms in
-                toplevelForms, toSingleForm forms
-              in
-              let x = List.map evalArg args in
-              let toplevelForms, argForms = flattenLeft x in
-              let funccall = `FuncCall {
-                fcname = name;
-                fcrettype = func.rettype;
-                fcparams = List.map snd func.fargs;
-                fcargs = argForms;
-              }
-              in
-              match typeCheck bindings funccall with
-                | TypeOf _ ->
-                    Some( bindings, toplevelForms @ [funccall] )
-                | TypeError (msg,f,e) ->
-                    raiseIllegalExpression expr (typeErrorMessage bindings (msg,f,e))
-            end
-        | _ -> None
+let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
+  let buildCall name rettype argTypes isPointer bindings args =
+    let evalArg (argExpr :Ast2.sexpr) =
+      let _, xforms = translateF bindings argExpr in
+      let toplevelForms, forms = extractToplevelForms xforms in
+      toplevelForms, toSingleForm forms
+    in
+    let x = List.map evalArg args in
+    let toplevelForms, argForms = flattenLeft x in
+    let funccall = `FuncCall {
+      fcname = name;
+      fcrettype = rettype;
+      fcparams = argTypes;
+      fcargs = argForms;
+      fcptr = isPointer;
+    }
+    in
+    match typeCheck bindings funccall with
+      | TypeOf _ ->
+          Some( bindings, toplevelForms @ [funccall] )
+      | TypeError (msg,f,e) ->
+          raiseIllegalExpression expr (typeErrorMessage bindings (msg,f,e))
+  in    
+  match expr with
+    | { id = name; args = args; } ->
+        match lookup bindings name with
+          | FuncSymbol func ->
+              begin
+                buildCall name func.rettype (List.map snd func.fargs) `NoFuncPtr bindings args
+              end
+          | VarSymbol var ->
+              begin
+                match var.typ with
+                  | `Pointer `Function ft ->
+                      begin
+                        buildCall name ft.returnType ft.argTypes `FuncPtr bindings args
+                        (* let newBindings, tempVar = getNewVar bindings var.typ in *)
+                        (* let loadForm = `DefineVariable(tempVar, Some (`LoadIntrinsic (`Variable var))) in *)
+                        (* match buildCall tempVar.vname ft.returnType ft.argTypes newBindings args with *)
+                        (*   | Some(bindings, forms) -> *)
+                        (*       Some(bindings, loadForm :: forms) *)
+                        (*   | None -> *)
+                        (*       None *)
+                      end
+                  | _ ->
+                      raiseIllegalExpression
+                        expr
+                        (sprintf "Variable should be a function pointer but has type %s"
+                           (typeName var.typ))
+              end
+          | _ -> None
 
 
 let translateMacro translateF (bindings :bindings) = function
@@ -461,7 +516,9 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
                       Some (`FuncCall { fcname = name;
                                         fcrettype = astPtrType;
                                         fcparams = repeatedList astPtrType (List.length argAstForms);
-                                        fcargs = argAstForms; }) );
+                                        fcargs = argAstForms;
+                                        fcptr = `NoFuncPtr;
+                                      }) );
       `CastIntrinsic (`Int32, `Variable resultVar);
     ]
     in
@@ -716,6 +773,7 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
                   fcrettype = initFunc.rettype;
                   fcparams = List.map snd initFunc.fargs;
                   fcargs = List.map2 translate initFunc.fargs componentExprs;
+                  fcptr = `NoFuncPtr;
                 } in
                 Some( bindings, [`FuncCall call] )
               end
@@ -928,13 +986,9 @@ let translateDefineLocalVar env expr =
         | None, None -> raiseIllegalExpression expr "var needs either a default value or declare a type"
     in
     match varType with
-      | (#integralType as typ)
-      | (`Pointer _ as typ) ->
+      | #integralType | `Pointer _ | `Function _ as typ ->
           begin
-            let value = defaultValue typ in
-            let storage = MemoryStorage
-            in
-            let var = variable name typ value storage false in
+            let var = variable name typ (defaultValue typ) MemoryStorage false in
             let defvar = `DefineVariable (var, Some (`Sequence implForms))
             in
             match typeCheck env.bindings defvar with

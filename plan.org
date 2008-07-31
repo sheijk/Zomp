@@ -1,7 +1,12 @@
 #+SEQ_TODO: TODO DONE
 #+STARTUP: fold
+#+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] support fuer var int* addr = &i
+** TODO [#A] pointer alignment ins typsystem aufnehmen
+** TODO [#A] chooseRandomly(Sequence T s) -> T
+** TODO [#A] support fuer clutter gui (OpenGL basiert, mit C api, LGPL)
 ** TODO [#A] which-func mode zeigt fuer operatoren nur "op" an
 ** TODO [#A] indent syntax: redefine _foo operators like ==_str not supported, yet
 ** TODO [#A] fehlende returns am ende von makros werden nicht immer uebersetzt
@@ -375,6 +380,23 @@ von http://lambda-the-ultimate.org/node/2884
    & sollte hoehere prioritaet haben, damit "a & 0x00001001 == 0x00001001" geht
 ** TODO [#A] consider latex style operators
    \x, \o, ...
+** TODO [#A] it/the foo um auf vorherige ergebnisse zuzugreifen
+   http://code.google.com/p/muvee-symbolic-expressions/wiki/TheAndIt
+
+   sum [1, 2, 3, 4, 5]
+   print it
+   => 15
+
+
+   sum(1..100)
+   average(20..30)
+   
+   print (the sum)
+   print (the average)
+** TODO [#A] sml-like integer types
+   InfInt - integer with arbitrary size
+   FixedInt - signed int which raises exceptions on overflow
+   Word - unsigned int with modulo arithmetic
    
 * Use Cases                                                            :usecase:
 

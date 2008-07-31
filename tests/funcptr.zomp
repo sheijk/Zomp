@@ -1,0 +1,28 @@
+/**
+ * Example displaying usage of function pointers
+
+!verify off
+ */
+!syntax indent
+
+func int twice(int i)
+  ret 2 * i
+end
+
+func int incr(int i)
+  ret i + 1
+end
+
+type MapFunc (fptr int int)
+
+func int main()
+  var MapFunc f &twice
+  printlnInt f(10)
+
+  f = &incr
+  printlnInt f(5)
+
+  ret 0
+end
+
+

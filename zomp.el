@@ -221,17 +221,21 @@ indent the next line when they occur at the beginning of a line"
       (setq oldindent (current-column))
       (when (> (current-line) 1)
         (save-excursion
-          ; goto previous non whitespace line
-          (let ((dontabort t))
-            (while dontabort
-              (previous-line)
-              (beginning-of-line)
-              (when (not (looking-at " *$"))
-                (setq dontabort nil))))
+          (setq left
+                (condition-case nil
+                    (progn
+                                        ; goto previous non whitespace line
+                      (let ((dontabort t))
+                        (while dontabort
+                          (previous-line)
+                          (beginning-of-line)
+                          (when (not (looking-at " *$"))
+                            (setq dontabort nil))))
 
-          ; get indentation of previous line
-          (back-to-indentation)
-          (setq left (current-column))
+                                        ; get indentation of previous line
+                      (back-to-indentation)
+                      (current-column))
+                  (error 0)))
 
           (let ((w (zomp-symbol-at-point)))
             (cond ((looking-at "\\*")
@@ -303,7 +307,7 @@ indent the next line when they occur at the beginning of a line"
       (insert "/// "))
     (when isStar
       (insert " * ")
-      (indent-for-tab-command) )
+      (indent-for-tab-command))
     ))
 
 (defun zomp-electric-slash ()
@@ -316,6 +320,15 @@ indent the next line when they occur at the beginning of a line"
     (backward-delete-char 1))
   (insert "/") )
 
+(defun zomp-electric-backspace (prefix)
+  (interactive "p")
+  (delete-backward-char
+   (cond ((looking-back "/// ") 4)
+         ((looking-back "///") 3)
+         ((looking-back " \\* ") 3)
+         ((looking-back " \\*") 2)
+         (t prefix))))
+
 (defun zomp-setup ()
 ;;   (setq comment-start "/*")
 ;;   (setq comment-end "*/")
@@ -325,37 +338,39 @@ indent the next line when they occur at the beginning of a line"
   
   (setq indent-tabs-mode nil)
 
-                                        ; indexing of current file (control-')
+  ;; indexing of current file (control-')
   (setq imenu-generic-expression zomp-imenu-generic-expression)
   ;; (local-set-key [(control ?')] 'imenu)
 
-                                        ; display documentation for methods/macros/... in status line
+  ;; display documentation for methods/macros/... in status line
   (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
   (eldoc-mode t)
 
-                                        ; auto indenting
+  ;; auto indenting
   (setq indent-line-function 'zomp-indent-line)
            
-                                        ; highlight s-expression under cursor
+  ;; highlight s-expression under cursor
   (hl-sexp-mode t)
 
-                                        ; quick navigation and marking expressions
+  ;; quick navigation and marking expressions
   (local-set-key [(meta n)] 'zomp-next-tl-expr)
   (local-set-key [(meta p)] 'zomp-prev-tl-expr)
   (local-set-key [(meta k)] 'zomp-mark-sexp)
 
-                                        ; expand templates
-  (local-set-key [(control ?.)] 'snippetio-complete)
+  ;; expand templates
+  ;; (local-set-key [(control ?.)] 'snippetio-complete)
 
-                                        ; extra comfort (insert ///, * in matching places, * / => */ etc.)
+  ;; extra comfort (insert ///, * in matching places, * / => */ etc.)
   (local-set-key "\r" 'zomp-newline)
   (local-set-key [(control j)] 'zomp-newline)
   (local-set-key [(?/)] 'zomp-electric-slash)
+  (local-set-key (kbd "DEL") 'zomp-electric-backspace)
 
+  
   (local-set-key [(control c)(control k)] '(lambda () (interactive)
                                              (zomp-tl-do "!")))
            
-                                        ; create zomp menu. order of the zomp-add-action commands is reversed order in menu
+  ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
   (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
@@ -388,7 +403,7 @@ indent the next line when they occur at the beginning of a line"
   (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
   (zomp-add-action zomp-toplevel [(control c)(control s)] "Start toplevel")
 
-                                        ; set additional keys on OS X
+  ;; set additional keys on OS X
   (local-set-key [(alt r)] '(lambda () (interactive)
                               (zomp-tl-eval-current)
                               (zomp-tl-run-test) ))

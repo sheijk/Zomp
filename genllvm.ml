@@ -40,6 +40,10 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Record components ->
       let componentNames = List.map (fun (_, t) -> llvmTypeName t) components in
       "{ " ^ combine ", " componentNames ^ "}"
+  | `Function ft ->
+      sprintf "%s (%s)"
+        (llvmTypeName ft.returnType)
+        (Common.combine ", " (List.map llvmTypeName ft.argTypes))
 
 let paramTypeName = function
   | `Char -> "i8 signext"
@@ -460,7 +464,7 @@ let gencodeDefineVariable gencode var default =
     | RegisterStorage ->
         begin
           let zeroElement = function
-            | `Pointer _ -> Some "null"
+            | `Pointer _ | `Function _ -> Some "null"
             | `Record _ | `TypeRef _ -> None
             | #integralType as t -> Some (Lang.valueString (defaultValue t))
           in
@@ -550,16 +554,32 @@ let gencodeFuncCall gencode call =
           let comment =
             sprintf "; calling function %s(%s)\n\n" call.fcname argString
           in
+          let calleeName, loadCode =
+            match call.fcptr with
+              | `NoFuncPtr -> "@" ^ escapeName call.fcname, ""
+              | `FuncPtr ->
+                  let typeOfCalledFunc fc =
+                    `Function {
+                      returnType = call.fcrettype;
+                      argTypes = call.fcparams
+                    }
+                  in
+                  let fptrVar = newLocalTempVar (`Pointer (typeOfCalledFunc call)) in
+                  fptrVar.rvname,
+                  sprintf "%s = load %s* %%%s\n" fptrVar.rvname fptrVar.rvtypename call.fcname
+          in
           comment,
-          (assignResultCode
-           ^ (sprintf "call %s (%s)* @%s(%s)\n\n"
+          (loadCode
+           ^ assignResultCode
+           ^ (sprintf "call %s (%s)* %s(%s)\n\n"
                 (llvmTypeName call.fcrettype)
                 signatureString
-                (escapeName call.fcname)
+                calleeName
                 argString))
         in
         (resultVar, comment ^ argevalCode ^ funccallCode)
     | Some gencallCodeF ->
+        assert( call.fcptr = `NoFuncPtr );
         let comment = sprintf "; calling intrinsic %s\n\n" call.fcname in
         let intrinsicCallCode =
           assignResultCode ^ (gencallCodeF vars)
@@ -795,7 +815,7 @@ let gencodeGlobalVar var =
           (Lang.valueString var.vdefault)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
-    | PointerVal _ ->
+    | PointerVal _ | FunctionVal _ ->
         raiseCodeGenError ~msg:"global pointers not supported, yet"
     | RecordVal _ ->
         raiseCodeGenError ~msg:"global constant of record type not supported, yet"
