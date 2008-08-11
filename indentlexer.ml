@@ -7,7 +7,7 @@ open Printf
 open Common
 
 exception Eof
-  
+
 type location = {
   line :int;
   fileName :string;
@@ -43,13 +43,13 @@ let (=~) string regexp =
   Str.string_match (Str.regexp regexp) string  0
 let nthmatch n =
   Str.matched_group n !lastMatchedString
-    
+
 let whitespaceRE = Str.regexp " +"
 
 type token = [ indentToken | userToken ]
 
 type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string]
-  
+
 (**
  * each rule contains of two regexps (one for the string allowed to precede the expression
  * and one which matches the token) and a function turning the matched string into a token
@@ -57,7 +57,7 @@ type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string]
 let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
   let idFunc s = `Identifier s in
-  let regexpRule str token = 
+  let regexpRule str token =
     re str,
     (fun matchedStr -> token)
   in
@@ -159,7 +159,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   @ opRulesMultiSym ["&&"; "||"] (fun s -> `LazyBoolOp s)
   @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> `StrictBoolOp s)
     (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
-    
+
 type 'token lexerstate = {
   readChar : unit -> char;
   backTrack : int -> unit;
@@ -175,13 +175,13 @@ type 'token lexerstate = {
 let returnMultipleTokens state first remaining =
   state.pushedTokens <- remaining;
   first
-    
+
 let isNewline chr = chr = '\n'
 let isWhitespace chr = chr = ' '
 
 let isBlockEndLine line =
   Str.string_match (Str.regexp "^end.*$") line 0
-    
+
 exception UnknowToken of location * string * string
 let raiseUnknownToken loc str reason = raise (UnknowToken (loc, str, reason))
 
@@ -189,7 +189,7 @@ exception IndentError of location * string
 let raiseIndentError loc str = raise (IndentError (loc, str))
 
 let appendChar string char = string ^ String.make 1 char
-  
+
 let readUntil abortOnChar state =
   let acc = ref "" in
   let rec worker () =
@@ -205,7 +205,7 @@ let readUntil abortOnChar state =
     worker()
   with Eof -> () end;
   !acc
-      
+
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
     let len = String.length string in
@@ -215,7 +215,7 @@ let token (lexbuf : token lexerstate) : token =
     end;
     lexbuf.backTrack len
   in
-  
+
   let ruleBeginMatches prevChar string ((prevCharRE, regexp), _) =
     Str.string_match prevCharRE prevChar 0 &&
       Str.string_partial_match regexp string 0 &&
@@ -225,7 +225,7 @@ let token (lexbuf : token lexerstate) : token =
       Str.string_match regexp string 0 &&
       String.length (Str.matched_group 0 string) = String.length string
   in
-  
+
   let rec worker () =
     let currentChar = lexbuf.readChar() in
     if currentChar = '!' then (** hack to allow to abort within file *)
@@ -251,11 +251,11 @@ let token (lexbuf : token lexerstate) : token =
       let indent = consumeWhitespaceAndReturnIndent 0 in
       let prevIndent = lexbuf.prevIndent in
       lexbuf.prevIndent <- indent;
-      
+
       if lexbuf.readTokenBefore = false then begin
         if indent = prevIndent then worker ()
         else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
-          
+
       end else begin
         (* lookup forward for `Ignore and possibly reset indent? *)
         if indent = prevIndent then begin
@@ -298,7 +298,7 @@ let token (lexbuf : token lexerstate) : token =
         let fullMatches =
           match List.filter (ruleMatches prevChar input) rules with
             | [] -> prevFullMatches
-            | fullMatches -> 
+            | fullMatches ->
                 let inputLength = String.length input in
                 List.map (fun m -> inputLength, m) fullMatches
         in
@@ -418,11 +418,11 @@ type preprocessorState =
   | Source
   | OneLineComment
   | MultiLineComment
-          
+
 let makeLexbuf fileName readCharFunc =
   let buffer = ref "" in
   let eof = ref false in
-  
+
   let rec lexbuf =
     let readCharExtraNewline () =
       if !eof then
@@ -508,7 +508,7 @@ let lexbufFromString fileName string =
 
 (* Main --------------------------------------------------------------------- *)
 
-let dummymllexbuf = 
+let dummymllexbuf =
   {
     Lexing.refill_buff = (fun _ -> ());
     lex_buffer = "";
@@ -523,11 +523,11 @@ let dummymllexbuf =
     lex_start_p = Lexing.dummy_pos;
     lex_curr_p = Lexing.dummy_pos;
   }
-  
+
 let lexString str =
   let lexbuf = lexbufFromString "dummy.zomp" str in
   let rec worker acc =
-    let maybeToken = 
+    let maybeToken =
       try Some (token lexbuf)
       with Eof -> None
     in

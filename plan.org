@@ -3,6 +3,7 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] indenting fuegt spaces in leere zeilen ein :emacs:bug:
 ** TODO [#A] can't get address of record
 ** TODO [#A] #foo.bar does not work :bug:parser:
 ** TODO [#A] #func(a,b,c) does not work (antiquotation should be allowed for funcalls) :bug:

@@ -31,7 +31,8 @@
     let rec checkAll = function
       | _, [] ->
           ()
-      | { Ast2.id = exprId; args = [] } :: remExprs, firstTerm :: remTerms when exprId = firstTerm ->
+      | { Ast2.id = exprId; args = [] } :: remExprs, firstTerm :: remTerms
+          when exprId = firstTerm ->
           checkAll (remExprs, remTerms)
       | _, _ ->
           raiseParseError (Printf.sprintf "Invalid terminators: %s for %s"
@@ -40,6 +41,36 @@
     in
     checkAll (Ast2.idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
 
+  let exprOfNoTerm ((expr :Ast2.sexpr), (terminators :string list)) =
+    match terminators with
+      | [] -> expr
+      | invalidTerminators -> raiseParseError
+          (Printf.sprintf "Expected no terminators but found %s in %s"
+             (Common.combine " " invalidTerminators)
+             (Ast2.toString expr))
+
+  let rec extractExprsAndCheckTerminators headExpr exprAndTerminators =
+    let rec worker acc = function
+      | [] -> List.rev acc
+      | [expr, terminators] ->
+          checkTerminators headExpr terminators;
+          worker (expr::acc) []
+      | (expr, []) :: rem ->
+          worker (expr::acc) rem
+      | (expr, invalidTerminators) :: rem ->
+          raiseParseError (Printf.sprintf "Expected no terminators but found %s in %s"
+                             (Common.combine " " invalidTerminators)
+                             (Ast2.toString expr))
+    in
+    worker [] exprAndTerminators
+
+  (* let rec checkArgTerms head = function *)
+  (*   | [] -> () *)
+  (*   | [_, terminators] -> checkTerminators (fst head) terminators *)
+  (*   | (_, []) :: rem -> checkArgTerms rem *)
+  (*   | (_, invalidTerms) :: _ -> *)
+  (*       raiseParseError (Printf.sprintf "Expected no terminators but found %s" *)
+  (*                          (Common.combine " " invalidTerms)) *)
 
   let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
   let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
@@ -75,7 +106,7 @@
 %nonassoc STRICT_BOOL_OP LAZY_BOOL_OP
 %left ADD_OP
 %left MULT_OP
-(* %nonassoc DOT *)
+%nonassoc DOT
 %left POSTFIX_OP
 %right PREFIX_OP
 
@@ -84,149 +115,55 @@
 %%
 
   main:
-| id = IDENTIFIER; END;
-  { Ast2.idExpr id }
-| e = sexpr; END;
-  { e }
-| e = mexpr; END;
-  { e }
-| e = opexpr; END;
-  { e }
-| e = quoteexpr; END;
-  { e }
-| e = dotexpr; END;
+| e = expr; END;
   { e }
 
-  sexpr:
-| head = sexprArg; argsAndTerminators = sexprArg+;
+  expr:
+| exprAndTerminator = exprArg;
+  { let expr, terminators = exprAndTerminator in
+    (* checkTerminators expr terminators; *)
+    expr }
+| firstAndTerms = exprArg; argsAndTerminators = exprArg+;
   {
-    let rec checkArgTerms = function
-      | [] -> ()
-      | [_, terminators] -> checkTerminators (fst head) terminators
-      | (_, []) :: rem -> checkArgTerms rem
-      | (_, invalidTerms) :: _ ->
-          raiseParseError (Printf.sprintf "Expected no terminators but found %s"
-                             (Common.combine " " invalidTerms))
-    in
-    checkArgTerms argsAndTerminators;
-    let args = List.map fst argsAndTerminators in
-    { Ast2.id = "opjux"; args = (fst head) :: args }}
+    let first = exprOfNoTerm firstAndTerms in
+    let args = extractExprsAndCheckTerminators first argsAndTerminators in
+    { Ast2.id = "opjux"; args = first :: args }}
+| e = opExpr;
+  { e }
 
-%inline sexprArg:
+exprArg:
 | id = IDENTIFIER;
-  { Ast2.idExpr id, [] }
-| OPEN_PAREN; e = sexpr; CLOSE_PAREN;
-  { e, [] }
-| e = mexpr;
-| e = opexpr;
-| e = dotexpr;
+  { idExpr id, [] }
+| e = exprArg; s = POSTFIX_OP;
+  { expr ("post" ^ opName s) [fst e], [] }
+| s = PREFIX_OP; e = exprArg;
+  { expr ("pre" ^ opName s) [fst e], [] }
+| OPEN_PAREN; e = expr; CLOSE_PAREN;
   { e, [] }
 | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
-| e = quoteexpr;
-  { e, [] }
+| l = exprArg; DOT; r = exprArg;
+  { expr "op." [exprOfNoTerm l; exprOfNoTerm r], [] }
 
-mexpr:
-| hd = mexprHead; OPEN_PAREN; CLOSE_PAREN;
-  {{ Ast2.id = "opcall"; args = [hd] }}
+| q = QUOTE; id = IDENTIFIER;
+  { expr (quoteId q) [idExpr id], [] }
+| q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
+  { expr (quoteId q) [{Ast2.id = "seq"; args = []}], [] }
+| q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
+  { expr (quoteId q) [e], [] }
 
-| hd = mexprHead; OPEN_PAREN; arg = singleMexprArg; CLOSE_PAREN;
-  {{ Ast2.id = "opcall"; args = [hd; arg] }}
+opExpr:
+| l = expr; o = opSymbol; r = expr;
+  { expr (opName o) [l; r] }
 
-| hd = mexprHead; OPEN_PAREN; arg1 = mexprArg; COMMA; arg2 = mexprArg; remArgs = mexprArgSep*; CLOSE_PAREN;
-  { callExpr hd (arg1 :: arg2 :: remArgs) }
-
-%inline mexprHead:
-| id = IDENTIFIER;
-  { idExpr id }
-    (* would introduce > 10 conflicts and errors *)
-(* | OPEN_PAREN; q = QUOTE; id = IDENTIFIER; CLOSE_PAREN; *)
-(*   { expr (quoteId q) [(idExpr id)] } *)
-
-%inline mexprArgSep:
-| COMMA; arg = mexprArg;
-  { arg }
-
-%inline mexprArg:
-| arg = singleMexprArg;
-  { arg }
-| arg = sexpr;
-  { arg }
-
-%inline singleMexprArg:
-| id = IDENTIFIER;
-  { Ast2.idExpr id }
-| e = opexpr;
-  { e }
-| e = mexpr;
-  { e }
-| e = quoteexpr;
-  { e }
-
-  opexpr:
-| l = opexprArg; s = opsymbol; r = opexprArg;
-  { expr (opName s) [l; r] }
-| e = opexprArg; s = POSTFIX_OP;
-  { expr ("post" ^ opName s) [e] }
-| s = PREFIX_OP; e = opexprArg;
-  { expr ("pre" ^ opName s) [e] }
-
-  opexprArg:
-| e = opexpr;
-  { e }
-| e = mexpr;
-  { e }
-| id = IDENTIFIER; (* causes shift/reduce conflict *)
-  { idExpr id }
-| e = quoteexpr;
-  { e }
-| e = dotexpr;
-  { e }
-
-%inline opsymbol:
+%inline opSymbol:
 | o = ADD_OP
 | o = MULT_OP
 | o = ASSIGN_OP
 | o = COMPARE_OP
 | o = LAZY_BOOL_OP
 | o = STRICT_BOOL_OP
-  { o }
-
-quoteexpr:
-| q = QUOTE; OPEN_CURLY; e = quotable; CLOSE_CURLY;
-  { expr (quoteId q) [e] }
-| q = QUOTE; id = IDENTIFIER;
-  { expr (quoteId q) [idExpr id] }
-| q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
-  {{ Ast2.id = quoteId q; args = [{Ast2.id = "seq"; args = []}] }}
-
-%inline quotable:
-| e = sexpr;
-| e = mexpr;
-| e = opexpr;
-| e = dotexpr;
-  { e }
-| id = IDENTIFIER;
-  { idExpr id }
-| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
-  (* causes reduce/reduce conflict *)
-  { assert( List.length terminators = 0 );
-    seqExpr exprs }
-
-
-%inline dotexpr:
-| l = dotexprFront; DOT; r = IDENTIFIER;
-  { expr "op." [l; idExpr r] }
-| l = dotexprFront; DOT; r = mexpr;
-| l = dotexprFront; DOT; r = quoteexpr;
-  { expr "op." [l; r] }
-
-%inline dotexprFront:
-| id = IDENTIFIER;
-  { idExpr id }
-| q = QUOTE; id = IDENTIFIER;
-  (* causes conflict *)
-  { expr (quoteId q) [(idExpr id)] }
-
-
+{ o }
+(* | DOT *)
+(* { "." } *)
 
