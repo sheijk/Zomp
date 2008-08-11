@@ -1,5 +1,5 @@
 open Printf
-  
+
 (* moved here from Zompvm because exception was not caught properly (compiler bug?) *)
 exception FailedToEvaluateLLVMCode of string * string
 
@@ -9,11 +9,11 @@ let (>>=) x f = f x
 let (++) f g x = f (g x)
 let (|>) x f = f x
 let (=~) str re = Str.string_match (Str.regexp re) str 0
-  
+
 let rec fromTo min max =
   if min > max then []
   else min :: fromTo (min+1) max
-    
+
 let rec combine seperator strings =
   match strings with
     | [] -> ""
@@ -43,12 +43,12 @@ let rec combine seperator strings =
         in
         copyStrings measuredStrings 0;
         buffer
-      
+
 (* let rec combine seperator = function *)
 (*     [] -> "" *)
 (*   | [str] -> str *)
 (*   | hd :: tl -> hd ^ seperator ^ (combine seperator tl) *)
-        
+
 let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let rec combine seperator = function
       [] -> ""
@@ -59,7 +59,7 @@ let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let lines = Str.split newlineRE multiLineSource in
   let commentedLines = List.map (fun line -> startDelim ^ line ^ stopDelim) lines in
   combine "\n" commentedLines
-  
+
 let indent string =
   let indentLine line =
     let len = String.length line in
@@ -92,14 +92,14 @@ let readChannel channel =
   in
   copyLines lines totalLength;
   fileContent
-    
+
 let readFile fileName =
   let channel = open_in fileName in
   readChannel channel
-    
+
 let some x = Some x
 let id x = x
-  
+
 let rec tryAll ~onSuccess ~ifAllFailed = function
   | [] -> Lazy.force ifAllFailed
   | f :: rem ->
@@ -118,12 +118,12 @@ let tryAllCollectingErrors ~onSuccess ~ifAllFailed funcs =
           worker (e :: exceptions) rem
   in
   worker [] funcs
-          
+
 let rec lastElement = function
   | [] -> None
   | [last] -> Some last
   | _ :: tail -> lastElement tail
-      
+
 let splitAfter firstLength list =
   let rec worker num accum = function
     | [] -> accum, []
@@ -147,7 +147,7 @@ let removeQuotes str =
     substring str 1 (String.length str - 2)
   end else
     str
-  
+
 let restrictToSingleprecision double =
   let array = Bigarray.Array1.create Bigarray.float32 Bigarray.c_layout 1 in
   Bigarray.Array1.set array 0 double;
@@ -159,7 +159,7 @@ let restrictToSingleprecision double =
 let dotimes count func =
   for i = 1 to count do func() done
 
-    
+
 type timingInfo = {
   name :string;
   mutable totalTime :float;
@@ -178,16 +178,16 @@ let findOrCreate parent name =
     begin
       let newTimingInfo = makeTimingInfo name in
       parent.childs <- newTimingInfo :: parent.childs;
-      newTimingInfo      
+      newTimingInfo
     end
-  
+
 let toplevelTimingInfos = makeTimingInfo "toplevel"
 
 let rec totalTime timingInfo =
   let childTimes = List.map totalTime timingInfo.childs in
   let totalChildTimes = List.fold_left (+.) 0.0 childTimes in
   totalChildTimes +. timingInfo.totalTime
-  
+
 let printTimings () =
   let rec worker prefix timingInfo =
     printf "%s%f - %s\n" prefix timingInfo.totalTime timingInfo.name;
@@ -209,7 +209,7 @@ let guarded f ~finally =
   try
     let result = f() in
     let () = finally() in
-    result      
+    result
   with error ->
     let () = finally() in
     raise error
@@ -238,7 +238,7 @@ let collectTimingInfo name f =
 let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
 let sampleFunc3 name f arg0 arg1 arg2 = collectTimingInfo name (fun () -> f arg0 arg1 arg2)
-        
+
 let listIteri f list =
   let rec iterWithIndex index = function
     | [] -> ()
@@ -259,7 +259,7 @@ let listMap2i f list1 list2 =
           raise (Invalid_argument "listMap2i")
   in
   mapWithIndex 0 [] list1 list2
-        
+
 let listFold2i f initial list1 list2 =
   let rec foldWithIndex index value list1 list2 =
     match list1, list2 with
@@ -298,7 +298,7 @@ let dequoteString quoteChar str =
   else
     `NotQuoted str
 
- 
+
 let trim str =
   let rec findFirstNonWS str index succ =
     if index < String.length str && index >= 0 && str.[index] = ' ' then

@@ -8,35 +8,6 @@ open Common
 
 exception Eof
 
-type location = {
-  line :int;
-  fileName :string;
-}
-
-type indentToken = [
-| `BeginBlock
-| `EndBlock of string list
-| `End
-(* | `Whitespace of int *)
-]
-
-type userToken = [
-| `Identifier of string
-| `OpenParen | `CloseParen
-| `OpenCurlyBrackets | `CloseCurlyBrackets
-| `Comma
-| `Add of string
-| `Mult of string
-| `StrictBoolOp of string
-| `LazyBoolOp of string
-| `Assign of string
-| `Compare of string
-| `Dot
-| `Prefix of string
-| `Postfix of string
-| `Quote of string
-]
-
 let lastMatchedString = ref ""
 let (=~) string regexp =
   lastMatchedString := string;
@@ -46,9 +17,22 @@ let nthmatch n =
 
 let whitespaceRE = Str.regexp " +"
 
-type token = [ indentToken | userToken ]
+type location = {
+  line :int;
+  fileName :string;
+}
 
-type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string]
+type token = Newparser.token
+open Newparser
+
+(* type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string] *)
+type tokenOrAction = [
+  | `Token of token
+  | `Ignore
+  | `PutBack of token * string
+]
+
+type tokenBuilder = string -> tokenOrAction
 
 (**
  * each rule contains of two regexps (one for the string allowed to precede the expression
@@ -56,10 +40,10 @@ type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string]
  *)
 let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
-  let idFunc s = `Identifier s in
+  let idFunc s = `Token (IDENTIFIER s) in
   let regexpRule str token =
     re str,
-    (fun matchedStr -> token)
+    (fun matchedStr -> `Token token)
   in
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let validIdentifierChars = "a-zA-Z0-9:_" in
@@ -67,14 +51,15 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let opRule symbol (tokenF :string -> token) =
     (Str.regexp "[a-z)]",
      Str.regexp (opre symbol ^ "[^ \n]")),
-    ((fun str ->
-        let lastChar = str.[String.length str - 1] in
-        let str2 = Str.string_before str (String.length str - 1) in
-        `PutBack( tokenF (trim str2), String.make 1 lastChar ) ) :tokenBuilder)
+    (fun str ->
+       let lastChar = str.[String.length str - 1] in
+       let str2 = Str.string_before str (String.length str - 1) in
+       `PutBack( tokenF (trim str2), String.make 1 lastChar ) )
   in
   let opRuleWS symbol (tokenF :string -> token) =
     re (sprintf " +%s +" (opre symbol)),
-    (fun str -> (tokenF (trim str) :> [token | `Ignore | `PutBack of token * string]))
+    (fun str -> `Token (tokenF (trim str)))
+    (* (fun str -> (tokenF (trim str) :> [token | `Ignore | `PutBack of token * string])) *)
   in
   let opRules symbol (tokenF :string -> token) =
     [opRule symbol tokenF;
@@ -85,21 +70,21 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     List.flatten rules
   in
   let contextInsensitiveOp symbol f =
-    (Str.regexp "", Str.regexp symbol), f
+    (Str.regexp "", Str.regexp symbol), (fun t -> `Token (f t))
   in
   let postfixRule symbol =
     re (sprintf "\\(%s +\\|%s\n\\)" (Str.quote symbol) (Str.quote symbol)),
     (fun s ->
        if String.length s >= 1 && Str.last_chars s 1 = "\n" then
-         `PutBack (`Postfix (trim (Str.first_chars s (String.length s - 1))), "\n")
+         `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
        else
          let trimmed = trim s in
          let removedWhitespace = String.length s - String.length trimmed in
-         `PutBack( `Postfix (trim s), String.make removedWhitespace ' ' ) )
+         `PutBack( POSTFIX_OP (trim s), String.make removedWhitespace ' ' ) )
   in
   let prefixRule symbol =
     (Str.regexp "\\(\n\\| +\\)", Str.regexp (sprintf "%s" (Str.quote symbol))),
-    (fun s -> `Prefix (trim s))
+    (fun s -> `Token (PREFIX_OP (trim s)))
   in
   let stringRule = re "\"[^\"]*\"", idFunc in
   let charRule = re "'[^']+'", idFunc in
@@ -107,18 +92,18 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let floatRule = re "-?\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
   let identifierRule =
     re (sprintf "[%s][%s]*" validIdentifierFirstChar validIdentifierChars),
-    (fun str -> `Identifier str);
+    (fun str -> `Token (IDENTIFIER str));
   in
   let quoteRule str =
     re (Str.quote str),
     (fun foundStr ->
        assert( str = foundStr );
-       `Quote str)
+       `Token (QUOTE str))
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
   let opfuncRule prefix =
     re ((Str.quote prefix) ^ "[+-\\*/&.><=!;|]+ *"),
-    (fun (str:string) -> `Identifier (trim str))
+    (fun (str:string) -> `Token (IDENTIFIER (trim str)))
   in
   [
     identifierRule;
@@ -126,12 +111,12 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     opfuncRule "op";
     opfuncRule "preop";
     opfuncRule "postop";
-    regexpRule "(" `OpenParen;
-    regexpRule ")" `CloseParen;
-    regexpRule "{" `OpenCurlyBrackets;
-    regexpRule "}" `CloseCurlyBrackets;
-    regexpRule " *, *" `Comma;
-    regexpRule "\\." `Dot;
+    regexpRule "(" OPEN_PAREN;
+    regexpRule ")" CLOSE_PAREN;
+    regexpRule "{" OPEN_CURLY;
+    regexpRule "}" CLOSE_CURLY;
+    regexpRule " *, *" COMMA;
+    regexpRule "\\." DOT;
     quoteRule "$";
     quoteRule "#";
     postfixRule "...";
@@ -146,18 +131,18 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     charRule;
     intRule;
     floatRule;
-    contextInsensitiveOp ";" (fun s -> `LazyBoolOp s);
+    contextInsensitiveOp ";" (fun s -> LAZY_BOOL_OP s);
   ]
-  @ opRules "+" (fun s -> `Add s)
-  @ opRules "-" (fun s -> `Add s)
-  @ opRules "*" (fun s -> `Mult s)
-  @ opRules "/" (fun s -> `Mult s)
-  @ opRules "**" (fun s -> `Mult s)
-  @ opRules "++" (fun s -> `Add s)
-  @ opRulesMultiSym ["="; ":="] (fun s -> `Assign s)
-  @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> `Compare s)
-  @ opRulesMultiSym ["&&"; "||"] (fun s -> `LazyBoolOp s)
-  @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> `StrictBoolOp s)
+  @ opRules "+" (fun s -> ADD_OP s)
+  @ opRules "-" (fun s -> ADD_OP s)
+  @ opRules "*" (fun s -> MULT_OP s)
+  @ opRules "/" (fun s -> MULT_OP s)
+  @ opRules "**" (fun s -> MULT_OP s)
+  @ opRules "++" (fun s -> ADD_OP s)
+  @ opRulesMultiSym ["="; ":="] (fun s -> ASSIGN_OP s)
+  @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> COMPARE_OP s)
+  @ opRulesMultiSym ["&&"; "||"] (fun s -> LAZY_BOOL_OP s)
+  @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
     (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
 
 type 'token lexerstate = {
@@ -259,9 +244,9 @@ let token (lexbuf : token lexerstate) : token =
       end else begin
         (* lookup forward for `Ignore and possibly reset indent? *)
         if indent = prevIndent then begin
-          `End
+          `Token END
         end else if indent = prevIndent + 2 then begin
-          `BeginBlock
+          `Token BEGIN_BLOCK
         end else if indent > prevIndent then begin
           raiseIndentError lexbuf.location
             (sprintf "Indentation was increased by %d spaces but only 2 are legal" (indent - prevIndent))
@@ -272,14 +257,14 @@ let token (lexbuf : token lexerstate) : token =
             if line =~ "^end\\(.*\\)$" then
               match List.rev (Str.split whitespaceRE (nthmatch 1)) with
                 | "}" :: args ->
-                    returnMultipleTokens lexbuf `End [`EndBlock (List.rev args); `CloseCurlyBrackets]
+                    returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args); CLOSE_CURLY]
                 | args ->
-                    returnMultipleTokens lexbuf `End [`EndBlock (List.rev args)]
+                    returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args)]
             else
               failwith "splitting block end line failed"
           end else begin
             putback lexbuf (line ^ "\n");
-            returnMultipleTokens lexbuf `End [`EndBlock []]
+            returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
           end
         end else begin (* indent is more than one level less than in previous line *)
           raiseIndentError lexbuf.location
@@ -306,13 +291,13 @@ let token (lexbuf : token lexerstate) : token =
           let spareInput = Str.string_after input length in
           let consumedInput = Str.string_before input length in
           putback lexbuf spareInput;
-          let token : [`Ignore | token] =
-            match (makeToken consumedInput : [`Ignore | `PutBack of token * string | token]) with
+          let token : [`Ignore | `Token of token] =
+            match (makeToken consumedInput : tokenOrAction) with
               | `PutBack(token, prefetched) ->
                   putback lexbuf prefetched;
-                  (token :> [`Ignore|token])
+                  (`Token token :> [`Ignore|`Token of token])
               | `Ignore -> `Ignore
-              | #token as token -> (token :> [`Ignore|token])
+              | `Token token -> ((`Token token) : [`Ignore | `Token of token])
           in
           token
         in
@@ -353,7 +338,7 @@ let token (lexbuf : token lexerstate) : token =
           in
           lexbuf.endOfLastToken <- lastReadChar;
           getNextToken()
-      | #token as token -> token
+      | `Token token -> token
   in
   let token =
     match lexbuf.pushedTokens with
@@ -375,12 +360,12 @@ let tokenToString (lineIndent, indentNext) (token :token) =
       ""
   in
   match token with
-    | `EndBlock args ->
+    | END_BLOCK args ->
         indentString (lineIndent - 1) ^
           begin
             match args with
-              | [] -> "`EndBlock"
-              | _ -> sprintf "`EndBlock(%s)" (Common.combine ", " args)
+              | [] -> "END_BLOCK"
+              | _ -> sprintf "END_BLOCK(%s)" (Common.combine ", " args)
           end,
         (lineIndent - 1, `Indent)
     | _ as t ->
@@ -389,28 +374,28 @@ let tokenToString (lineIndent, indentNext) (token :token) =
         in
         let str, (indent, doindent) =
         match t with
-          | `BeginBlock ->
-              "`BeginBlock\n", (lineIndent + 1, `Indent)
-          | `EndBlock _ -> failwith "match failure"
-          | `End -> "`End\n", ind
-          | `Identifier str -> str, noind
-(*           | `Whitespace length -> "_", noind *)
-          | `Comma -> ",", noind
-          | `Add arg
-          | `Mult arg
-          | `Assign arg
-          | `Compare arg
-          | `LazyBoolOp arg
-          | `StrictBoolOp arg
+          | BEGIN_BLOCK ->
+              "BEGIN_BLOCK\n", (lineIndent + 1, `Indent)
+          | END_BLOCK _ -> failwith "match failure"
+          | END -> "END\n", ind
+          | IDENTIFIER str -> str, noind
+(*           | Whitespace length -> "_", noind *)
+          | COMMA -> ",", noind
+          | ADD_OP arg
+          | MULT_OP arg
+          | ASSIGN_OP arg
+          | COMPARE_OP arg
+          | LAZY_BOOL_OP arg
+          | STRICT_BOOL_OP arg
             -> "op" ^ arg, noind
-          | `Postfix arg -> "post" ^ arg, noind
-          | `Prefix arg -> "pre" ^ arg, noind
-          | `OpenParen -> "(", noind
-          | `CloseParen -> ")", noind
-          | `OpenCurlyBrackets -> "{", noind
-          | `CloseCurlyBrackets -> "}", noind
-          | `Dot -> ".", noind
-          | `Quote str -> "$" ^ str, noind
+          | POSTFIX_OP arg -> "post" ^ arg, noind
+          | PREFIX_OP arg -> "pre" ^ arg, noind
+          | OPEN_PAREN -> "(", noind
+          | CLOSE_PAREN -> ")", noind
+          | OPEN_CURLY -> "{", noind
+          | CLOSE_CURLY -> "}", noind
+          | DOT -> ".", noind
+          | QUOTE str -> "$" ^ str, noind
         in
         indentString lineIndent ^ str, (indent, doindent)
 

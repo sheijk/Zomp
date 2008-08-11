@@ -114,7 +114,7 @@ let compile instream outstream =
                 (fun (lexbuf, lexstate) ->
                    Newparser.main (fun lexbuf ->
                                      try
-                                       Newparserutils.lexFunc lexstate lexbuf
+                                       Indentlexer.token lexstate
                                      with End_of_file -> printf "arschkack\n"; exit 123)
                      lexbuf)
                 bindings )

@@ -2,7 +2,8 @@
 open Indentlexer
 open Testing
 open Printf
-  
+open Newparser
+
 module IndentLexerTestCase : CASE_STRUCT =
 struct
   type input = string
@@ -27,92 +28,95 @@ struct
       lexString str
 
   let testCases : (input * result) list =
-    let id x = `Identifier x in
+    let id x = IDENTIFIER x in
     let ids stringList =
-      let idTokens = List.map (fun str -> (`Identifier str :> token)) stringList in
+      let idTokens = List.map (fun str -> (IDENTIFIER str :> token)) stringList in
       idTokens
     in
     let parsedAsId id =
-      id, `Return [`Identifier id; `End]
+      id, `Return [IDENTIFIER id; END]
     in
     let infixOp op optoken =
-      ["l " ^ op ^ " r", `Return [id "l"; optoken; id "r"; `End];
+      ["l " ^ op ^ " r", `Return [id "l"; optoken; id "r"; END];
        parsedAsId ("op" ^ op)]
     in
     ignore( ids [] );
     [
-      "single", `Return [id "single"; `End];
+      "single", `Return [id "single"; END];
 
-      "foo(3) + 1", `Return [id "foo"; `OpenParen; id "3"; `CloseParen; `Add "+"; id "1"; `End];
-      
-      "foo bar", `Return [id "foo"; id "bar"; `End];
+      "foo(3) + 1", `Return [id "foo"; OPEN_PAREN; id "3"; CLOSE_PAREN;
+                             ADD_OP "+"; id "1"; END];
 
-      "a+b", `Return [id "a"; `Add "+"; id "b"; `End];
-      "a   + b", `Return [id "a"; `Add "+"; id "b"; `End];
+      "foo bar", `Return [id "foo"; id "bar"; END];
 
-      "a,b", `Return [id "a"; `Comma; id "b"; `End];
-      "x, y", `Return [id "x"; `Comma; id "y"; `End];
-      "foo , bar", `Return [id "foo"; `Comma; id "bar"; `End];
+      "a+b", `Return [id "a"; ADD_OP "+"; id "b"; END];
+      "a   + b", `Return [id "a"; ADD_OP "+"; id "b"; END];
 
-      "a +_f b", `Return [id "a"; `Add "+_f"; id "b"; `End];
+      "a,b", `Return [id "a"; COMMA; id "b"; END];
+      "x, y", `Return [id "x"; COMMA; id "y"; END];
+      "foo , bar", `Return [id "foo"; COMMA; id "bar"; END];
 
-      "(a + b)*c", `Return [`OpenParen; id "a"; `Add "+"; id "b"; `CloseParen; `Mult "*"; id "c"; `End];
+      "a +_f b", `Return [id "a"; ADD_OP "+_f"; id "b"; END];
 
-      "space... ", `Return [id "space"; `Postfix "..."; `End];
-      "lineend...", `Return [id "lineend"; `Postfix "..."; `End];
+      "(a + b)*c", `Return [
+        OPEN_PAREN; id "a"; ADD_OP "+"; id "b"; CLOSE_PAREN;
+        MULT_OP "*"; id "c"; END];
 
-      "&blah", `Return [`Prefix "&"; id "blah"; `End];
-      "*deref", `Return [`Prefix "*"; id "deref"; `End];
-      "foo *ptr", `Return [id "foo"; `Prefix "*"; id "ptr"; `End];
-      "float*", `Return [id "float"; `Postfix "*"; `End];
-      "float* var", `Return [id "float"; `Postfix "*"; id "var"; `End];
+      "space... ", `Return [id "space"; POSTFIX_OP "..."; END];
+      "lineend...", `Return [id "lineend"; POSTFIX_OP "..."; END];
+
+      "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
+      "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
+      "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
+      "float*", `Return [id "float"; POSTFIX_OP "*"; END];
+      "float* var", `Return [id "float"; POSTFIX_OP "*"; id "var"; END];
 
       (* strings and numbers *)
-      "1337", `Return [id "1337"; `End];
-      "10.3", `Return [id "10.3"; `End];
-      "100.", `Return [id "100."; `End];
-      ".01", `Return [id ".01"; `End];
-      "\"foobar\"", `Return [id "\"foobar\""; `End];
-      "\"windows\\\\path\"", `Return [id "\"windows\\\\path\""; `End];
-      "'x'", `Return [id "'x'"; `End];
-      "'\\n'", `Return [id "'\\n'"; `End];
-      "'\\0'", `Return [id "'\\0'"; `End];
-      "'\\\\'", `Return [id "'\\\\'"; `End];
+      "1337", `Return [id "1337"; END];
+      "10.3", `Return [id "10.3"; END];
+      "100.", `Return [id "100."; END];
+      ".01", `Return [id ".01"; END];
+      "\"foobar\"", `Return [id "\"foobar\""; END];
+      "\"windows\\\\path\"", `Return [id "\"windows\\\\path\""; END];
+      "'x'", `Return [id "'x'"; END];
+      "'\\n'", `Return [id "'\\n'"; END];
+      "'\\0'", `Return [id "'\\0'"; END];
+      "'\\\\'", `Return [id "'\\\\'"; END];
 
       (* quotes *)
-      "$", `Return [`Quote "$"; `End];
-      "#", `Return [`Quote "#"; `End];
+      "$", `Return [QUOTE "$"; END];
+      "#", `Return [QUOTE "#"; END];
 
-      "${foo}", `Return [`Quote "$"; `OpenCurlyBrackets; id "foo"; `CloseCurlyBrackets; `End];
+      "${foo}", `Return [QUOTE "$"; OPEN_CURLY; id "foo"; CLOSE_CURLY; END];
       "${class\n  child1\nend}",
-      `Return [`Quote "$";
-               `OpenCurlyBrackets;
-               id "class"; `BeginBlock; id "child1"; `End; `EndBlock [];
-               `CloseCurlyBrackets; `End];
+      `Return [QUOTE "$";
+               OPEN_CURLY;
+               id "class"; BEGIN_BLOCK; id "child1"; END; END_BLOCK [];
+               CLOSE_CURLY; END];
 
       (* simple one-line expressions *)
-      "var int y\n", `Return( ids ["var"; "int"; "y"] @ [`End] );
-      "var int x", `Return( ids ["var"; "int"; "x"] @ [`End] );
+      "var int y\n", `Return( ids ["var"; "int"; "y"] @ [END] );
+      "var int x", `Return( ids ["var"; "int"; "x"] @ [END] );
 
       "first line\nsecond line\n",
-      `Return( [id "first"; id "line"; `End;
-                id "second"; id "line"; `End] );
+      `Return( [id "first"; id "line"; END;
+                id "second"; id "line"; END] );
 
       (* simple multi-line expressions *)
       "if a then\n\
       \  foobar\n\
       end",
-      `Return( ids ["if"; "a"; "then"] @ [`BeginBlock]
-               @ [id "foobar"; `End]
-               @ [`EndBlock []; `End] );
+      `Return( ids ["if"; "a"; "then"] @ [BEGIN_BLOCK]
+               @ [id "foobar"; END]
+               @ [END_BLOCK []; END] );
       
       (* block end with tokens *)
       "foreach num IN primes\n\
       \  printLine num\n\
       end foreach num",
-      `Return( ids ["foreach"; "num"; "IN"; "primes"] @ [`BeginBlock]
-               @ ids ["printLine"; "num"] @ [`End]
-               @ [`EndBlock ["foreach"; "num"]; `End] );
+      `Return( ids ["foreach"; "num"; "IN"; "primes"] @ [BEGIN_BLOCK]
+               @ ids ["printLine"; "num"] @ [END]
+               @ [END_BLOCK ["foreach"; "num"]; END] );
 
       (* multi-part multi-line expressions *)
       "if cond then\n\
@@ -120,16 +124,16 @@ struct
       else\n\
       \  print 2\n\
       end",
-      `Return( ids ["if"; "cond"; "then"] @ [`BeginBlock]
-               @ ids ["print"; "1"] @ [`End]
-               @ [`EndBlock []; id "else"; `BeginBlock]
-               @ ids ["print"; "2"] @ [`End]
-               @ [`EndBlock []; `End] );
+      `Return( ids ["if"; "cond"; "then"] @ [BEGIN_BLOCK]
+               @ ids ["print"; "1"] @ [END]
+               @ [END_BLOCK []; id "else"; BEGIN_BLOCK]
+               @ ids ["print"; "2"] @ [END]
+               @ [END_BLOCK []; END] );
 
       (* leading whitespace/newlines *)
-      "   a b c", `Return (ids ["a"; "b"; "c"] @ [`End]);
-      "first\n\n\nsecond", `Return [id "first"; `End; id "second"; `End];
-      "\n\n\n\nfirst\n\n\n", `Return [id "first"; `End];
+      "   a b c", `Return (ids ["a"; "b"; "c"] @ [END]);
+      "first\n\n\nsecond", `Return [id "first"; END; id "second"; END];
+      "\n\n\n\nfirst\n\n\n", `Return [id "first"; END];
   
       (* fail if indent level is reduced too much *)
       "main\n\
@@ -151,10 +155,10 @@ struct
       parsedAsId "op*";
       (* TODO: alle operatoren testen *)
     ]
-    @ infixOp "+" (`Add "+")
-    @ infixOp "-" (`Add "-")
-    @ infixOp "&&" (`LazyBoolOp "&&")
-    @ infixOp "||" (`LazyBoolOp "||")
+    @ infixOp "+" (ADD_OP "+")
+    @ infixOp "-" (ADD_OP "-")
+    @ infixOp "&&" (LAZY_BOOL_OP "&&")
+    @ infixOp "||" (LAZY_BOOL_OP "||")
 end
 
 let () =

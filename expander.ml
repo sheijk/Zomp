@@ -1,5 +1,5 @@
 (*
-  
+
 #directory "../v3";;
 #load "lexer2.cmo";;
 #load "parser2.cmo";;
@@ -46,18 +46,18 @@ and macroRest = "postop..."
 and macroJuxOp = "opjux"
 and macroSeqOp = "opseq"
 and macroCallOp = "opcall"
-  
+
 exception IllegalExpression of sexpr * string
-  
+
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
-  
+
 let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
   raiseIllegalExpression expr (sprintf "Expected type %s but found %s: %s"
                                  (typeName expected)
                                  (typeName found)
                                  msg )
 
-    
+
 let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
 
 
@@ -82,22 +82,22 @@ let rec findTypeName bindings = function
         name
       with Not_found ->
         Lang.typeName typ
-        
+
 let typeErrorMessage bindings (msg, foundType, expectedType) =
   sprintf "Type error: %s, expected %s but found %s"
     msg
     (findTypeName bindings expectedType)
     (findTypeName bindings foundType)
-    
-  
 
-  
-(* TODO: use in translateDefineVar and translateGlobalVar + test *)        
+
+
+
+(* TODO: use in translateDefineVar and translateGlobalVar + test *)
 let determineStorage typ =
   match typ with
     | `Pointer _ -> MemoryStorage
     | _ -> RegisterStorage
-        
+
 
 let rec translateType bindings typeExpr =
   let lookupType bindings name =
@@ -114,7 +114,7 @@ let rec translateType bindings typeExpr =
     match translateType bindings targetTypeExpr with
       | Some t -> Some (`Pointer t)
       | None -> None
-  in  
+  in
   match typeExpr with
     | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
         begin try
@@ -145,15 +145,15 @@ let rec translateType bindings typeExpr =
     | _ -> None
 
 (* let translateType = Common.sampleFunc2 "translateType" translateType *)
-  
+
 type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form]
 
 let formWithTLsEmbeddedToString = function
   | #Lang.form as form -> Lang.formToString form
   | `ToplevelForm tlform -> Lang.toplevelFormToString tlform
-    
+
 type exprTranslateF = bindings -> sexpr -> bindings * formWithTLsEmbedded list
-      
+
 let rec extractToplevelForms = function
   | [] -> [], []
   | head :: rem ->
@@ -164,7 +164,7 @@ let rec extractToplevelForms = function
           | #Lang.form as implF -> remTL, implF::remImpl
       end
 
-        
+
 let translatelst translateF bindings expr =
   let rec worker bindings = function
     | [] -> bindings, []
@@ -180,7 +180,7 @@ let translateSeq translateF bindings = function
       Some (translatelst translateF bindings sequence)
   | _ ->
       None
-        
+
 let rec expr2value typ expr =
   match typ with
     | #integralType -> begin
@@ -194,7 +194,7 @@ let rec expr2value typ expr =
       end
     | _ -> raiseIllegalExpression expr "unsupported value expression"
 
-        
+
 let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
   let transform id name typeExpr valueExpr =
     let declaredType = match typeExpr with
@@ -256,7 +256,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
         ] }
         when (id = macroVar) ->
         transform id name (Some typeExpr) (Some valueExpr)
-          
+
     | { id = id; args = [
           typeExpr;
           { id = name; args = [] };
@@ -270,7 +270,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
         ] }
         when id = "var2" ->
         transform id name None (Some valueExpr)
-          
+
     | _ ->
         None
 
@@ -300,7 +300,7 @@ let expr2VarOrConst (bindings :bindings) = function
       end
   | _ -> None
 
-      
+
 let lastTempVarNum = ref 0
 
 let getNewVar bindings typ =
@@ -317,7 +317,7 @@ let getNewVar bindings typ =
   let value = defaultValue typ in
   let var = globalVar newVarName typ value in
   (addVar bindings var, var)
-      
+
 let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
   match expr2VarOrConst bindings expr with
     | Some varOrConst ->
@@ -331,13 +331,13 @@ let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
           | _ -> Some (bindings, [varOrConst] )
         end
     | None -> None
-          
+
 
 let translateToForms (translateF :exprTranslateF) bindings expr =
   let newBindings, xforms = translateF bindings expr in
   let tlforms, forms = extractToplevelForms xforms in
   newBindings, toSingleForm forms, tlforms
-  
+
 let rec flattenLeft = function
   | [] -> [], []
   | (list, x) :: rem ->
@@ -366,7 +366,7 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
           Some( bindings, toplevelForms @ [funccall] )
       | TypeError (msg,f,e) ->
           raiseIllegalExpression expr (typeErrorMessage bindings (msg,f,e))
-  in    
+  in
   match expr with
     | { id = name; args = args; } ->
         match lookup bindings name with
@@ -466,7 +466,7 @@ let createNativeMacro translateF bindings macroName argNames impl =
 let log message = ()
 (*   eprintf "%s\n" message; *)
 (*   flush stderr *)
-    
+
 let trace message f =
   log ("-> " ^ message);
   let result = f() in
@@ -480,20 +480,20 @@ let foldString str f init =
     else worker (index+1) (f v str.[index])
   in
   worker 0 init
-    
+
 let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
   let expectedArgCount = List.length argNames in
   let foundArgCount = List.length args in
-  if expectedArgCount <> foundArgCount then 
+  if expectedArgCount <> foundArgCount then
     raiseIllegalExpression
       { id = name; args = args }
       (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
-  
+
   let rec repeatedList element count =
     if count > 0 then element :: repeatedList element (count-1)
     else []
   in
-  
+
   let constructCallerFunction args =
     log "building arg expr";
     let argAstExprs = List.map Genllvm.sexpr2codeasis args in
@@ -540,7 +540,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   in
 
   if false then constructCallerFunction [];
-  
+
   let calli1i functionName arg =
     Zompvm.zompResetArgs();
     Zompvm.zompAddIntArg arg;
@@ -561,7 +561,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
 (*   let validIdRE = Str.regexp "[a-zA-Z0-9_:\"']+" in *)
 (*   let isValidId name = Str.string_match validIdRE name 0 in *)
   let isValidId name = foldString name (fun wasValid chr -> wasValid && Char.code chr < 128) true in
-  
+
   let rec extractSExprFromNativeAst astAddress =
     if astAddress = 0 then
       Ast2.idExpr "error, macro returned NULL"
@@ -585,7 +585,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       in
       { id = name; args = childs }
   in
-  
+
   let createArgs() =
     let rec buildNativeAst = function
       | {id = id; args = []} ->
@@ -609,7 +609,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   let argsAddresses = createArgs() in
   log "Calling macro";
   let astAddress = callMacro argsAddresses in
-  
+
   log (sprintf "extracting result from address %d" astAddress);
   let sexpr = extractSExprFromNativeAst astAddress in
   log (sprintf "extracted:\n%s" (Ast2.toString sexpr));
@@ -666,7 +666,7 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
       end
   | _ ->
       None
-            
+
 let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [expr] } when id = macroReturn ->
       begin
@@ -674,7 +674,7 @@ let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
         Some( bindings, toplevelExprs @ [`Return form] )
       end
   | _ -> None
-      
+
 let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function
   | { id = id; args = [
         { id = varName; args = [] };
@@ -692,7 +692,7 @@ let translateTypedef translateF (bindings :bindings) =
   let translateRecordTypedef typeName componentExprs expr =
     let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
     let expr2component =
-      let translate name typeExpr = 
+      let translate name typeExpr =
         match translateType tempBindings typeExpr with
           | Some typ -> name, typ
           | None -> raise (CouldNotParseType typeName)
@@ -906,7 +906,7 @@ let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
       end
   | _ -> None
 
-      
+
 type toplevelExprTranslateF = bindings -> sexpr -> bindings * toplevelExpr list
 
 let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
@@ -948,7 +948,7 @@ type env = {
 type translationResult =
   | Error of string
   | Result of bindings * (formWithTLsEmbedded list)
-    
+
 let translateDummy (env :env) (expr :Ast2.sexpr)  :translationResult =
   Error "Not supported at all"
 
@@ -1012,10 +1012,10 @@ let translateDefineLocalVar env expr =
           valueExpr
         ] } ->
         transform id name None (Some valueExpr)
-          
+
     | _ ->
         Error "Invalid format"
-    
+
 let baseInstructions =
   let table = Hashtbl.create 32 in
   Hashtbl.add table "dummy" translateDummy;
@@ -1051,7 +1051,7 @@ let rec translate errorF translators bindings expr =
       end
   in
   t translators
-      
+
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateSeq;
@@ -1094,7 +1094,7 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
 let shiftLeft = function
   | { id = id; args = [] } :: args -> { id = id; args = args }
   | args -> { id = "seq"; args = args }
-      
+
 let matchFunc =
   let convertParam = function
     | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param }
@@ -1175,11 +1175,11 @@ let matchFunc =
         with Failure _ ->
           `NotAFunc expr
         end
-          
+
     | expr ->
         `NotAFunc expr
 
-          
+
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -1253,7 +1253,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         end
     | _ ->
         None
-          
+
 
 and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let translateDeclarationsOnlyF bindings tlexprs = translateF bindings tlexprs
@@ -1272,7 +1272,7 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
         let parseIExpr source =
           let lexbuf = Lexing.from_string source in
           let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-          let lexFunc = Newparserutils.lexFunc lexstate in
+          let lexFunc _ = Indentlexer.token lexstate in
           let rec read acc =
             try
               let expr = Newparser.main lexFunc lexbuf in
@@ -1321,7 +1321,7 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
         raiseIllegalExpression invalidExpr "Expected one parameter"
     | _ ->
         None
-          
+
 and translateTL bindings expr = translate raiseIllegalExpression
   [
     translateGlobalVar;
@@ -1337,7 +1337,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
   bindings expr
 
 let translateTL = Common.sampleFunc2 "translateTL" translateTL
-    
+
 (* let makeNested (translateF :toplevelExprTranslateF) (_ :exprTranslateF) (bindings :bindings) expr = *)
 (*   let _, toplevelForms = translateF bindings expr in *)
 (*   let nestedForms = List.map (fun f -> `ToplevelForm f) toplevelForms in *)
@@ -1346,5 +1346,5 @@ let translateTL = Common.sampleFunc2 "translateTL" translateTL
 
 
 
-  
-  
+
+

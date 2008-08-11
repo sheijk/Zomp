@@ -3,6 +3,8 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
+** TODO [#A] scala "extractors", F# "active patterns"
 ** TODO [#A] indenting fuegt spaces in leere zeilen ein :emacs:bug:
 ** TODO [#A] can't get address of record
 ** TODO [#A] #foo.bar does not work :bug:parser:

@@ -64,14 +64,6 @@
     in
     worker [] exprAndTerminators
 
-  (* let rec checkArgTerms head = function *)
-  (*   | [] -> () *)
-  (*   | [_, terminators] -> checkTerminators (fst head) terminators *)
-  (*   | (_, []) :: rem -> checkArgTerms rem *)
-  (*   | (_, invalidTerms) :: _ -> *)
-  (*       raiseParseError (Printf.sprintf "Expected no terminators but found %s" *)
-  (*                          (Common.combine " " invalidTerms)) *)
-
   let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
   let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
   let idExpr = Ast2.idExpr
@@ -164,6 +156,4 @@ opExpr:
 | o = LAZY_BOOL_OP
 | o = STRICT_BOOL_OP
 { o }
-(* | DOT *)
-(* { "." } *)
 

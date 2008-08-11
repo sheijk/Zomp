@@ -6,7 +6,6 @@
 open Printf
 open Common
 open Newparser
-open Newparserutils
 
 let readBlock channel =
   let rec readLine lineAcc =
@@ -56,7 +55,7 @@ let tokenToString =
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-  let lexFunc = lexFunc lexstate in
+  let lexFunc _ = Indentlexer.token lexstate in
   let rec read acc =
     try
       let expr = Newparser.main lexFunc lexbuf in

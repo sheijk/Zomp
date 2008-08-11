@@ -24,7 +24,10 @@ CXX_FLAGS=-pg -g -I /usr/local/lib/ocaml/
 # CXX_FLAGS=
 
 CAML_LIBS = str.cma bigarray.cma
-LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so machine.cmo zompvm.cmo indentlexer.cmo newparser.cmo newparserutils.cmo expander.cmo testing.cmo parseutils.cmo
+LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo      \
+lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so \
+machine.cmo zompvm.cmo indentlexer.cmo newparser.cmo expander.cmo testing.cmo \
+parseutils.cmo
 
 # Combined targets
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png alltests
@@ -32,13 +35,15 @@ libbindings: gencode opengl20.zomp glfw.zomp opengl20.izomp glfw.izomp
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
-SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo machine.cmo dllzompvm.so zompvm.cmo newparser.cmo indentlexer.cmo newparserutils.cmo expander.cmo testing.cmo parseutils.cmo testing.cmo sexprtoplevel.cmo
+SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo            \
+bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo      \
+machine.cmo dllzompvm.so zompvm.cmo newparser.cmo indentlexer.cmo expander.cmo \
+testing.cmo parseutils.cmo testing.cmo sexprtoplevel.cmo
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c
 	echo Building $@ ...
 	llvm-g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-# 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs jit interpreter native x86 asmparser analysis transformutils`
 	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs all`
 
 glut.dylib:
@@ -60,7 +65,7 @@ LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx			\
 bindings.cmx typesystems.cmx lang.cmx semantic.cmx genllvm.cmx			\
 machine.cmx -cclib -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx	\
-indentlexer.cmx newparser.cmx newparserutils.cmx expander.cmx			\
+indentlexer.cmx newparser.cmx expander.cmx			\
 testing.cmx parseutils.cmx
 
 sexprtoplevel.native: $(SEXPR_TL_INPUT:.cmo=.cmx) $(TL_CMXS) dllzompvm.so machine.cmx zompvm.cmx
@@ -83,8 +88,7 @@ machine.c machine.ml: gencode machine.skel
 	echo Making OCaml bindings for zomp-machine ...
 	./gencode machine
 
-NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo\
- indentlexer.cmo newparserutils.cmo
+NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo
 
 # newparsertest: $(NEWPARSER_CMOS)
 # 	echo Building $@ ...
@@ -169,7 +173,7 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 
 CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml	\
 genllvm.ml indentlexer.ml indentlexer_tests.ml lang.ml machine.ml	\
-newparser_tests.ml newparserutils.ml parseutils.ml semantic.ml		\
+newparser_tests.ml parseutils.ml semantic.ml		\
 sexprtoplevel.ml testing.ml typesystems.ml zompc.ml zompvm.ml
 
 makefile.depends: $(CAMLDEP_INPUT)
@@ -185,8 +189,7 @@ glfw.izomp: gencode
 newparser.ml: newparser.mly ast2.cmo
 newparser_tests.cmo: newparser.cmo
 newparser_tests.cmx: newparser.cmx
-newparserutils.cmo: newparser.cmo
-newparserutils.cmo: newparser.cmx
+indentlexer.cmo: newparser.ml
 
 sexprparser.ml: ast2.cmo common.cmo
 sexprlexer.ml: ast2.ml common.ml sexprparser.cmo
@@ -229,7 +232,6 @@ clean:
 	rm -f opengl20.izomp glfw.izomp
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
-	rm -f newparserutils.cm?
 	rm -f expandertests.cm? alltests.cm? alltests
 
 clean_tags:

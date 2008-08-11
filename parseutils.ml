@@ -125,7 +125,7 @@ let parseIExpr source =
     try
       let lexbuf = Lexing.from_string source in
       let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-      let lexFunc = Newparserutils.lexFunc lexstate in
+      let lexFunc _ = Indentlexer.token lexstate in
       let rec read acc =
         try
           let expr = Newparser.main lexFunc lexbuf in
