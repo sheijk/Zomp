@@ -139,6 +139,7 @@ mexpr:
 %inline mexprHead:
 | id = IDENTIFIER;
   { idExpr id }
+    (* would introduce > 10 conflicts and errors *)
 (* | OPEN_PAREN; q = QUOTE; id = IDENTIFIER; CLOSE_PAREN; *)
 (*   { expr (quoteId q) [(idExpr id)] } *)
 
