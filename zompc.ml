@@ -158,9 +158,9 @@ let compile instream outstream =
   in
   Zompvm.zompShutdown();
   if exitCode <> 0 then
-    eprintf "Failed to compile"
-  else
-    printf "Compilation done\n";
+    eprintf "Failed to compile";
+  (* else *)
+  (*   printf "Compilation done\n"; *)
   exit exitCode
 
 let () =

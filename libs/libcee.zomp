@@ -1,0 +1,155 @@
+/**
+ * Libraries providing a C like feel
+
+!verify off
+ */
+
+
+template macro:failUnless cond
+  unless #{cond}
+    ret ${error expression is false #{cond}}
+  end
+end
+
+macro uniqueIds purpose ids...
+  var ast* code ${seq}
+
+  forEachAstChild child ids
+    addChild code ${uniqueIds #child #purpose}
+  end
+
+  ret code
+end
+
+
+/// if statement
+///
+/// Usage example:
+///
+/// if a > 10 then
+///   print "It's bigger!"
+/// else if a < 5 then
+///   print "It's smaller!"
+/// else
+///   print "Neither to big nor to small. Purrfect"
+/// end
+macro if2 cond then onTrue remArgs...
+  println()
+
+  macro:failUnless cstring:equal(getField(then, id), "then")
+
+  uniqueId endLabel "if_end"
+
+  var astp code ${seq}
+
+  addChild code ${when #cond
+    #onTrue
+    branch #endLabel
+  end}
+
+  var int currentArg 0
+  const int argCount getField(remArgs, childCount)
+
+  while currentArg+3 <= argCount
+    var astp econd ast:child(remArgs, currentArg+1)
+    var astp eexpr ast:child(remArgs, currentArg+2)
+
+    addChild code ${seq
+      when #econd
+        #eexpr
+        branch #endLabel
+      end
+    end}
+
+    currentArg = currentArg + 3
+  end
+
+  when currentArg+1 < argCount
+    var astp elseCode ast:child(remArgs, currentArg+1)
+
+    addChild code elseCode
+  end
+
+  addChild code ${label #endLabel}
+
+  ret code
+end
+
+macro op|| l r
+  uniqueId result "||"
+
+  ret ${
+    #result := false
+    if2 #l then
+      #result = true
+    elseif #r
+      #result = true
+    end
+    #result
+  end}
+end
+
+macro op&& l r
+  uniqueId result "&&"
+
+  ret ${
+    #result := false
+    if2 #l then
+      #result = #r
+    end
+    #result
+  end}
+end
+
+///TODO: add support to call methods
+macro op. record component
+  if2 getField(component, childCount) == 0 then
+    ret ${getField(#record, #component)}
+  end
+  // else
+  ret ${error "function calls with dot syntax not supported yet" in #component}
+end
+
+macro op= l r
+  if2 ast:matchesShape(l, ${_._}) then
+    var ast* component ast:child(l, 0)
+    var ast* field ast:child(l, 1)
+    ret ${setField #component #field #r}
+  else
+    ret ${assign #l #r}
+  end
+
+  ret ${internal error}
+end
+
+template op:= name value
+  var2 #name #value
+end
+
+/// Allocate storage and initialize variable
+/// `new Foo a b c' does the same as `Foo:init(malloc Foo, a, b, c)'
+macro new type args...
+  uniqueId name "new"
+
+  var ast* initCall astFromString(cstring:concat(getField(type, id), ":init"))
+  addChild initCall astFromString(name)
+  forEachAstChild arg args
+    addChild initCall arg
+  end
+
+  var ast* code ${seq}
+  addChild code ${var (ptr #type) #name (malloc #type)}
+  addChild code initCall
+  addChild code astFromString(name)
+
+  ret code
+end
+
+template return value
+  ret #value
+end
+
+template op++ lstring rstring
+  cstrings:append #lstring #rstring
+end
+

@@ -62,7 +62,7 @@ namespace ZompCallbacks {
 
 
 extern "C" {
-  
+
   bool isBound(char* name) {
     ZOMP_ASSERT(ZompCallbacks::isBoundCB != NULL);
 
@@ -78,13 +78,13 @@ extern "C" {
     ZOMP_SYMBOL_TYPEDEF = 4,
     ZOMP_SYMBOL_LABEL = 5
   };
-  
+
   int zompLookup(char* name) {
     ZOMP_ASSERT( ZompCallbacks::lookupCB != NULL );
     value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
     return Int_val(result);
   }
-  
+
 } // extern "C"
 }
 
@@ -116,13 +116,13 @@ namespace {
 
     std::vector<const Type*>StructTy_ast_fields;
     llvmModule->addTypeName("cstring", PointerTy_cstring);
-  
+
     StructTy_ast_fields.push_back(PointerTy_cstring);
     StructTy_ast_fields.push_back(IntegerType::get(32));
     PATypeHolder StructTy_ast_fwd = OpaqueType::get();
     PointerType* PointerTy_astp = PointerType::get(StructTy_ast_fwd);
     llvmModule->addTypeName("astp", PointerTy_astp);
-  
+
     PointerType* PointerTy_0 = PointerType::get(PointerTy_astp);
     StructTy_ast_fields.push_back(PointerTy_0);
     StructType* StructTy_ast = StructType::get(StructTy_ast_fields, /*isPacked=*/false);
@@ -146,17 +146,17 @@ namespace {
       ParamAttrsList *FuncTy_73_PAL = 0;
       FunctionType* FuncTy_73 = FunctionType::get(
         PointerTy_astp, FuncTy_73_args, false, FuncTy_73_PAL);
-  
+
       simpleAst = new Function(
         FuncTy_73,
         GlobalValue::ExternalLinkage,
-        "simpleAst", llvmModule); 
+        "simpleAst", llvmModule);
       simpleAst->setCallingConv(CallingConv::C);
     }
 
     { // addChild decl
       addChild = new Function(
-        FuncTy_80, GlobalValue::ExternalLinkage, "addChild", llvmModule); 
+        FuncTy_80, GlobalValue::ExternalLinkage, "addChild", llvmModule);
       addChild->setCallingConv(CallingConv::C);
     }
 
@@ -168,19 +168,19 @@ namespace {
 
     { // getChild decl
     }
-    
+
 //     { // simpleAst def
 //       Constant* const_int32_117 = Constant::getNullValue(IntegerType::get(32));
 //       ConstantInt* const_int32_174 = ConstantInt::get(APInt(32,  "1", 10));
 //       ConstantInt* const_int32_187 = ConstantInt::get(APInt(32,  "2", 10));
 //       Constant* const_ptr_188 = Constant::getNullValue(PointerTy_cstring);
-      
+
 //       Function::arg_iterator args = simpleAst->arg_begin();
 //       Value* ptr_name = args++;
 //       ptr_name->setName("name");
-    
+
 //       BasicBlock* label_404 = new BasicBlock("",simpleAst,0);
-    
+
 //       // Block  (label_404)
 //       AllocaInst* ptr_a = new AllocaInst(PointerTy_astp, "a", label_404);
 //       MallocInst* ptr_temp123 = new MallocInst(StructTy_ast, "temp123", label_404);
@@ -206,10 +206,10 @@ namespace {
 //       StoreInst* void_408 = new StoreInst(ptr_temp130, ptr_temp128, false, label_404);
 //       LoadInst* ptr_temp131 = new LoadInst(ptr_a, "temp131", false, label_404);
 //       new ReturnInst(ptr_temp131, label_404);
-    
+
 //     }
   }
-  
+
   static void assureModuleExists() {
     if (llvmModule == 0) {
       llvmModule = new Module("llvm_module.bc");
@@ -241,7 +241,7 @@ extern "C" {
   void zompVerifyCode(bool doit) {
     verifyCode = doit;
   }
-  
+
   bool zompDoesVerifyCode() {
     return verifyCode;
   }
@@ -260,7 +260,7 @@ llvm::GenericValue runFunctionWithArgs(
   if( func == NULL ) {
     printf( "Function %s not found in module\n", name );
     fflush( stdout );
-      
+
     func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
   }
 
@@ -335,42 +335,42 @@ extern "C" {
 //     passManager->add(createCFGSimplificationPass());
 //   }
 
-  
-  
+
+
   bool zompInit() {
 //     printf( "Initializing ZompVM\n" );
     fflush( stdout );
-  
+
     assureModuleExists();
     moduleProvider = new ExistingModuleProvider( llvmModule );
     executionEngine = ExecutionEngine::create( moduleProvider, false );
 //     passManager = new FunctionPassManager( moduleProvider );
 //     setupOptimizerPasses();
 
-    value* closure_f = NULL;
-    closure_f = caml_named_value("helloCallback");
-    caml_callback(*closure_f, Val_unit);
-
-    value* printString = caml_named_value("printString");
-    caml_callback(*printString, caml_copy_string("This is ZompVM"));
-
-    value* getTrue = caml_named_value("getTrue");
-    value result = caml_callback(*getTrue, Val_unit);
-    std::cout << "Received bool from OCaml: " << Bool_val(result) << std::endl;
+    // value* closure_f = NULL;
+    // closure_f = caml_named_value("helloCallback");
+    // caml_callback(*closure_f, Val_unit);
+    //
+    // value* printString = caml_named_value("printString");
+    // caml_callback(*printString, caml_copy_string("This is ZompVM"));
+    //
+    // value* getTrue = caml_named_value("getTrue");
+    // value result = caml_callback(*getTrue, Val_unit);
+    // std::cout << "Received bool from OCaml: " << Bool_val(result) << std::endl;
 
     ZompCallbacks::init();
     ZOMP_ASSERT( ZompCallbacks::areValid() );
-    
+
     return true;
   }
-  
+
   void zompShutdown() {
     fflush( stdout );
   }
 
   bool zompSendCode(const char* code, const char* module) {
     bool errorsOccurred = false;
-    
+
     ParseError errorInfo;
 
     Module* targetModule = llvmModule;
@@ -383,7 +383,7 @@ extern "C" {
     if( parsedModule == NULL ) {
       printf( "Parsed module is NULL\n" );
       fflush( stdout );
-      
+
       errorsOccurred = true;
     }
 //     else if( true == verifyModule(*parsedModule, PrintMessageAction, &errorMessage) ) {
@@ -414,13 +414,13 @@ extern "C" {
 
     return !errorsOccurred;
   }
-  
+
 //   bool zompSendCodeNewVar(const char* code) {
 //     printf( "Creating new var\n" );
 //     fflush( stdout );
 //     return zompSendCode( code );
 //   }
-  
+
 //   bool zompSendCodeNewFunc(const char* code) {
 //     printf( "Create new function\n" );
 //     fflush( stdout );
@@ -450,16 +450,16 @@ extern "C" {
 
     return false;
   }
-  
-  
+
+
 //   bool zompSendCodeModifyFunc(const char* code) {
 //     printf( "Modifying existing function\n" );
 //     fflush( stdout );
 //     return zompSendCode( code );
-    
+
 //     ParseError errorInfo;
 
-    
+
 //     Module* module = ParseAssemblyString( code, llvmModule, &errorInfo );
 // //     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
 
@@ -470,7 +470,7 @@ extern "C" {
 //         << "--------------------------------------------\n\n";
 //       std::cout.flush();
 //     }
-    
+
 //     if( errorInfo.getRawMessage() != "none" ) {
 //       fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
 //       fflush( stderr );
@@ -531,7 +531,7 @@ extern "C" {
 
     return addr;
   }
-  
+
   int zompRunFunctionPointerWithArgs(const char* functionName) {
     GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
     return ptrToCamlInt( result.PointerVal );
@@ -558,17 +558,17 @@ extern "C" {
 
     return result.IntVal != 0;
   }
-  
+
 
   void zompPrintModuleCode() {
     std::cout
       << "--- We just constructed this LLVM module ---\n\n"
       << *llvmModule << "\n"
       << "--------------------------------------------\n\n";
-  
+
     /*
     std::string llvmCode = llvmModule->getModuleInlineAsm();
-    
+
     const char* header = "--- Inline ASM of module ---";
     const char* decls =  "------- LLVM Symbols -------";
     const char* hline =  "----------------------------";
@@ -585,7 +585,7 @@ extern "C" {
       std::string rettypeName = "???";
       std::string arguments = "???";
       std::string impl = func->isDeclaration() ? ";" : " { ... }";
-      
+
       printf( "%s %s(%s)%s\n", rettypeName.c_str(), name.c_str(), arguments.c_str(), impl.c_str() );
 //       func->print( cout );
     }
@@ -644,7 +644,7 @@ extern "C" {
 //       return 0;
 //     }
 //   }
-  
+
 // (func cstring macroAstId ((int macroCurrentAst)) (
 //   (getField (cast (ptr ast) macroCurrentAst) id) ))
 
@@ -657,7 +657,6 @@ extern "C" {
 //   (var int i (cast int child))
 //   (ret i)
 //   ))
-
 
   static bool validIdChar(char c) {
     return (c >= 'a' && c <= 'z')
@@ -700,7 +699,7 @@ extern "C" {
         valid &= validIdChar(*ptr++);
       }
     }
-      
+
     if( ! valid ) {
       printf("Found invalid id '%s' in '%s'\n", id, func);
     }
@@ -708,9 +707,9 @@ extern "C" {
 
   int zompSimpleAst(char* name) {
     checkId(name, "zompSimpleAst");
-    
+
     std::vector<GenericValue> args;
-    
+
     args.push_back( ptrValue(name) );
 
     GenericValue retval = executionEngine->runFunction( simpleAst, args );
@@ -738,8 +737,8 @@ extern "C" {
       printf( "Warning: found unregistered ast in %s\n", func );
     }
   }
-  
-  
+
+
 //   typedef std::map<int, void*> IdToAstMapping;
 //   IdToAstMapping astIdTable;
 //   typedef std::map<void*, int> AstToIdMapping;
@@ -748,7 +747,7 @@ extern "C" {
 
 //   int addAstToTable(void* ast) {
 //     ++lastAstId;
-    
+
 //     astIdTable.insert( std::make_pair(lastAstId, ast) );
 //     idAstTable.insert( std::make_pair(ast, lastAstId) );
 //     return lastAstId;
@@ -776,7 +775,7 @@ extern "C" {
 
 //   int zompSimpleAst(char* name) {
 //     std::vector<GenericValue> args;
-    
+
 //     args.push_back( ptrValue(name) );
 
 //     GenericValue retval = executionEngine->runFunction( simpleAst, args );
@@ -793,7 +792,7 @@ extern "C" {
 
 //       args.push_back( ptrValue(parentPtr) );
 //       args.push_back( ptrValue(childPtr) );
-    
+
 //       executionEngine->runFunction( addChild, args );
 //     }
 //     else {
@@ -827,7 +826,7 @@ extern "C" {
 //       return "compiler:error:invalidAstId(zompAstId)";
 //     }
 //   }
-  
+
 //   const int zompAstChildCount (int ast) {
 //     void* astPtr = findAstById(ast);
 
@@ -840,7 +839,7 @@ extern "C" {
 //       return 0;
 //     }
 //   }
-  
+
 //   int zompAstChild (int ast, int num) {
 //     void* astPtr = findAstById(ast);
 //     if( astPtr != NULL ) {
@@ -853,11 +852,11 @@ extern "C" {
 //       return 0;
 //     }
 //   }
-    
+
 
   void zompRunMacro() {
   }
-  
+
 } // extern "C"
 
 

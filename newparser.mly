@@ -58,7 +58,7 @@
 %token COMMA
 %token OPEN_CURLY
 %token CLOSE_CURLY
-  
+
 %token <string> ADD_OP
 %token <string> MULT_OP
 %token <string> ASSIGN_OP
@@ -78,7 +78,7 @@
 (* %nonassoc DOT *)
 %left POSTFIX_OP
 %right PREFIX_OP
-  
+
 %start <Ast2.sexpr> main
 
 %%
@@ -96,7 +96,7 @@
   { e }
 | e = dotexpr; END;
   { e }
-    
+
   sexpr:
 | head = sexprArg; argsAndTerminators = sexprArg+;
   {
@@ -126,7 +126,7 @@
 | e = quoteexpr;
   { e, [] }
 
-  mexpr:
+mexpr:
 | hd = mexprHead; OPEN_PAREN; CLOSE_PAREN;
   {{ Ast2.id = "opcall"; args = [hd] }}
 
@@ -139,7 +139,9 @@
 %inline mexprHead:
 | id = IDENTIFIER;
   { idExpr id }
-    
+(* | OPEN_PAREN; q = QUOTE; id = IDENTIFIER; CLOSE_PAREN; *)
+(*   { expr (quoteId q) [(idExpr id)] } *)
+
 %inline mexprArgSep:
 | COMMA; arg = mexprArg;
   { arg }
@@ -149,7 +151,7 @@
   { arg }
 | arg = sexpr;
   { arg }
-    
+
 %inline singleMexprArg:
 | id = IDENTIFIER;
   { Ast2.idExpr id }
@@ -167,7 +169,7 @@
   { expr ("post" ^ opName s) [e] }
 | s = PREFIX_OP; e = opexprArg;
   { expr ("pre" ^ opName s) [e] }
-    
+
   opexprArg:
 | e = opexpr;
   { e }
@@ -189,14 +191,14 @@
 | o = STRICT_BOOL_OP
   { o }
 
-  quoteexpr:
+quoteexpr:
 | q = QUOTE; OPEN_CURLY; e = quotable; CLOSE_CURLY;
   { expr (quoteId q) [e] }
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id] }
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
   {{ Ast2.id = quoteId q; args = [{Ast2.id = "seq"; args = []}] }}
-    
+
 %inline quotable:
 | e = sexpr;
 | e = mexpr;
@@ -205,20 +207,25 @@
   { e }
 | id = IDENTIFIER;
   { idExpr id }
-| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK; (* causes reduce/reduce conflict *)
+| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
+  (* causes reduce/reduce conflict *)
   { assert( List.length terminators = 0 );
     seqExpr exprs }
 
-    
+
 %inline dotexpr:
 | l = dotexprFront; DOT; r = IDENTIFIER;
   { expr "op." [l; idExpr r] }
 | l = dotexprFront; DOT; r = mexpr;
+| l = dotexprFront; DOT; r = quoteexpr;
   { expr "op." [l; r] }
-    
+
 %inline dotexprFront:
 | id = IDENTIFIER;
   { idExpr id }
+| q = QUOTE; id = IDENTIFIER;
+  (* causes conflict *)
+  { expr (quoteId q) [(idExpr id)] }
 
 
-    
+

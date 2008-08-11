@@ -52,7 +52,7 @@ let tokenToString =
     | Newparser.LAZY_BOOL_OP arg -> os "lb" arg
     | Newparser.STRICT_BOOL_OP arg -> os "sb" arg
     | Newparser.QUOTE arg -> os "$" arg
-      
+
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
@@ -75,10 +75,10 @@ let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
 
 exception ParsingFailure of exn * string
-  
+
 let rec ast2SimpleString ast =
   "(" ^ ast.Ast2.id ^ " " ^ Common.combine " " (List.map ast2SimpleString ast.Ast2.args) ^ ")"
-    
+
 module IndentParserTestCase : Testing.CASE_STRUCT =
 struct
   type input = string
@@ -88,7 +88,7 @@ struct
   let printOutput = printEachOnLine (printf "%s" ++ Ast2.toString)
 
   let outputEqual l r =
-    List.length l = List.length r 
+    List.length l = List.length r
     && List.for_all2 Ast2.equals l r
 
   type result = [ `Return of output | `Exception of string ]
@@ -131,7 +131,7 @@ struct
       expectValidId "-20.3";
       expectValidId "-30.2d";
       expectValidId "_";
-      
+
       (** juxtaposition *)
       "var int x", `Return [ se "opjux" ["var"; "int"; "x"] ];
       "var int x\nvar int y", `Return [intVar "x"; intVar "y"];
@@ -224,7 +224,7 @@ struct
       "op> a b", `Return [jux ["op>"; "a"; "b"]];
       "postop* l r", `Return [jux ["postop*"; "l"; "r"]];
       "macro preop& val", `Return [jux ["macro"; "preop&"; "val"]];
-      
+
       (** invalid cases *)
       "§", `Exception "Invalid char";
 
@@ -233,10 +233,10 @@ struct
       "func(arg)", `Return [se2 "opcall" "func" "arg"];
       "plus(3, 5)", `Return [se "opcall" ["plus"; "3"; "5"]];
       "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]];
-      
+
       "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]];
       "while empty(list)", `Return [juxExpr [id "while"; call ["empty"; "list"]]];
-      
+
       "while equal(a, b)", `Return [juxExpr [id "while"; call ["equal"; "a"; "b"]]];
 
       "sqrt( if pos then x else 0 )",
@@ -263,7 +263,7 @@ struct
 
       "sqrt(sin(x))",
       `Return [callExpr [id "sqrt"; callExpr [id "sin"; id "x"]]];
-      
+
       (** indenting *)
       "type point\n\
       \  int x\n\
@@ -300,7 +300,7 @@ struct
           seqExpr [
             jux ["print"; "line"];
           ]]];
-      
+
       "let x + y\n\
       \  plus(x, y)\n\
       end",
@@ -324,7 +324,7 @@ struct
           seqExpr [id "child1"];
         ]
       ];
-      
+
       "if 10 > 20 then\n\
       \  print 1\n\
       else\n\
@@ -349,7 +349,7 @@ struct
                         seqExpr[id "ontrue";];
                         id "else";
                         seqExpr[id "onfalse"]]];
-      
+
       "main blah\n" ^
         "  nested\n" ^
         "    body\n" ^
@@ -382,13 +382,13 @@ struct
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];
       "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
-      
+
       "foo.print(1, 2)",
       `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]];
 
       "while cond.true do",
       `Return [juxExpr [id "while"; expr "op." [id "cond"; id "true"]; id "do"]];
-      
+
       "item.print()", `Return [expr "op." [id "item"; call ["print"]]];
       "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]];
       "x.add(2 * 3)",
@@ -400,7 +400,7 @@ struct
       (** juxtaposition has lowest priority *)
       "print 10 + 20",
       `Return [juxExpr [id "print"; expr "op+" [id "10"; id "20"]]];
-      
+
       "let x + y = 20",
       `Return [juxExpr [id "let"; expr "op=" [se2 "op+" "x" "y"; id "20"]]];
 
@@ -439,7 +439,18 @@ struct
             expr "op." [id "foo"; call ["bar"]];
           ]]];
 
-      "ret ${foo bar}", `Return [juxExpr [id "ret"; expr "quote" [jux ["foo"; "bar"]]]];
+      "#foo.bar", `Return [expr "op." [se1 "antiquote" "foo"; id "bar"]];
+      "abc.#def", `Return [expr "op." [id "abc"; se1 "antiquote" "def"]];
+
+      "#foo(1,2)", `Return [expr "antiquote" [
+                              expr "opcall" [
+                                id "foo";
+                                id "1";
+                                id "2"]]];
+
+      "ret ${foo bar}", `Return [juxExpr [
+                                   id "ret";
+                                   expr "quote" [jux ["foo"; "bar"]]]];
       "ast:print ${\n\
       \  foo bar\n\
       end}",
@@ -452,7 +463,7 @@ struct
       "callFunc(#insert)", `Return [callExpr [id "callFunc"; se1 "antiquote" "insert"]];
 
       "left + $right", `Return [expr "op+" [id "left"; se1 "quote" "right"]];
-      
+
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];
       "a   b  c", `Return [jux ["a"; "b"; "c"]];
@@ -478,18 +489,18 @@ struct
       expectValidId "'x'";
       expectValidId "'\\n'";
       expectValidId "'\\0'";
-      
+
       (** comments *)
       "// single line comment\n" ^
         "var int x",
       `Return [jux ["var"; "int"; "x"]];
-      
+
       "// comment only", `Return [];
 
       "whitespace(atEOF)\n ", `Return [call ["whitespace"; "atEOF"]];
       "nonempty whitespace lines\n   \ninbetween",
       `Return [jux ["nonempty"; "whitespace"; "lines"]; id "inbetween"];
-      
+
       "foo(bar)\n" ^
         "// comment at end of file",
       `Return [call ["foo"; "bar"]];
@@ -497,11 +508,11 @@ struct
       "first line\n" ^
         "// comment inbetween\n" ^
         "second line", `Return [jux ["first"; "line"]; jux ["second"; "line"]];
-      
+
       "first line\n" ^
         "    // comment inbetween indented\n" ^
         "second line", `Return [jux ["first"; "line"]; jux ["second"; "line"]];
-      
+
       "var int x // the x variable\n",
       `Return [jux ["var"; "int"; "x"]];
 
@@ -534,11 +545,11 @@ struct
       "/*0123*/even length", `Return [jux ["even"; "length"]];
     ]
 end
-  
+
 let () =
   let module M = Testing.Tester(IndentParserTestCase) in
   M.runTestsAndReport "indentparser"
 
 
 
-  
+

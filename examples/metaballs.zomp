@@ -1,0 +1,330 @@
+/**
+
+!verify off
+
+* A simple .obj loader
+
+!load libglfw.dylib
+!load libGLEW.dylib
+*/
+!syntax indent
+
+include "opengl20.zomp"
+include "glfw.zomp"
+include "tests/glutils.zomp"
+
+include "libs/libcee.zomp"
+
+//------------------------------------------------------------------------------
+
+func int rand()
+
+func int random (int max)
+  ret int:srem(rand(), max)
+end
+
+func float float:random()
+  randomInt := random(4097)
+  return int:toFloat(randomInt) /_f 4096.0
+end
+
+func float float:srandom()
+  return float:random() *_f 2.0 -_f 1.0
+end
+
+
+func float powf(float base, float exp)
+func double pow(double base, double exp)
+
+func int int:pow(int base, int exp)
+  v := base
+
+  remMults := exp
+
+  while remMults > 1
+    v = v * base
+    remMults = remMults - 1
+  end
+
+  ret v
+end
+
+template op** base exp
+  int:pow(#base, #exp)
+end
+
+//------------------------------------------------------------------------------
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if2 bool:not(initCalled) then
+    glfwInit()
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+var float angle 0.0
+
+// avoid writing it over and over, part of utils lib
+macro mainloop body...
+  ret ${
+    var float time 0.0
+    var bool running true
+    while running
+      time = double:toFloat(glfwGetTime())
+      angle = time *_f 128.0
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = bool:not( isPressed(GLFW_KEY_ESC) )
+    end
+  end}
+end
+
+//------------------------------------------------------------------------------
+
+type Field3D
+  int sideLength
+  float* array
+end
+
+template Field3D:checkRange component
+  assert #component >= 0
+  assert #component < this.sideLength
+end
+
+func int Field3D:index(Field3D* this, int x, int y, int z)
+  Field3D:checkRange x
+  Field3D:checkRange y
+  Field3D:checkRange z
+
+  return x + z * this.sideLength + y * this.sideLength * this.sideLength
+end
+
+func float Field3D:get(Field3D* this, int x, int y, int z)
+  index := Field3D:index(this, x, y, z)
+
+  array := this.array
+  return load(ptradd(array, index))
+end
+
+func void Field3D:set(Field3D* this, int x, int y, int z, float value)
+  index := Field3D:index(this, x, y, z)
+  a := this.array
+  store ptradd(a, index) value
+end
+
+func void Field3D:clear(Field3D* this)
+  array := this.array
+  sideLength := this.sideLength
+
+  for i 0 sideLength ** 3
+    store ptradd(array, i) 0.0
+  end
+
+  // for x 0 this.sideLength
+  //   for y 0 this.sideLength
+  //     for z 0 this.sideLength
+  //       Field3D:set(this, x, y, z, int:toFloat(z) /_f int:toFloat(sideLength))
+  //     end
+  //   end
+  // end
+end
+
+func void Field3D:init(Field3D* this, int sideLength)
+  setField this sideLength sideLength
+  setField this array malloc(float, sideLength * sideLength * sideLength)
+  Field3D:clear this
+end
+
+func void Field3D:show(Field3D* this)
+  sideLength := this.sideLength
+
+  saveTransforms
+    scale := 2.0 /_f int:toFloat(sideLength)
+    glScalef scale scale scale
+
+    offset := int:toFloat(sideLength) /_f -2.0
+    glTranslatef offset offset offset
+
+    rendergl GL_POINTS
+      for x 0 sideLength
+        for y 0 sideLength
+          for z 0 sideLength
+            v := Field3D:get(this, x,y,z)
+            glColor3f v v 1.0
+            glVertex3i x y z
+          end
+        end
+      end
+    end
+  end
+end
+
+type Metaball
+  float x
+  float y
+  float z
+
+  float size
+end
+
+// TODO: metaballs reintun
+// http://en.wikipedia.org/wiki/Marching_cubes
+
+macro struct name members...
+  code := simpleAst("type")
+  addChild code name
+
+  forEachAstChild member members
+    addChild code member
+  end
+
+  ret code
+end
+
+//------------------------------------------------------------------------------
+// Quick and dirty arrays
+
+macro defineArrayType type
+  arrayTypeName := "Array_" ++ type.id
+  initFuncName := "Array_" ++ type.id ++ ":init"
+
+  // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
+  initDecl := simpleAst("opcall")
+  addChild initDecl simpleAst(initFuncName)
+  addChild initDecl ${Array_int* this}
+  addChild initDecl ${int size}
+
+  code := ${
+    struct #arrayTypeName
+      int length
+      #type* elements
+    end
+
+    // func void #initFuncName(#arrayTypeName* this, int length)
+    func void #initDecl
+      this.length = size
+      this.elements = malloc(#type, size)
+    end
+  end}
+
+  ret code
+end
+
+defineArrayType int
+
+template aget array index
+  load (ptradd getField(#array, elements) #index)
+end
+
+template aset array index value
+  store (ptradd getField(#array, elements) #index) #value
+end
+
+macro array:setAll array value
+  uniqueId size "lala"
+  uniqueId i "lala"
+
+  ret ${
+    size := getField(#array, length)
+    for #i 0 size
+      aset #array #i #value
+    end
+  end}
+end
+
+struct Point
+  float x
+  float y
+end
+
+func void Point:init(Point* this, float x, float y)
+  this.x = x
+  this.y = y
+end
+
+func void Point:print(Point* this)
+  printString "Point ("
+  printFloat this.x
+  printString ", "
+  printFloat this.y
+  printString ")"
+end
+
+func void test()
+  var Point p
+  setField p x 1.0
+  // p.x = 1.0
+  // p.y = 2.0
+
+  // q := p
+  // p.x = 8.0
+
+  // Point:print p
+  // println()
+  // Point:print q
+  // println()
+end
+
+// func void test()
+//   arr := new(Array_int, 10)
+// 
+//   array:setAll arr 17
+// 
+//   for i 0 10
+//     printlnInt aget(arr, i)
+//   end
+// end
+
+//------------------------------------------------------------------------------
+
+func int main()
+  init()
+
+  glMatrixMode( GL_PROJECTION )
+  glLoadIdentity()
+  const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+  gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
+
+  field := new(Field3D, 10)
+
+  mainloop
+    glClearColor(0.0, 0.0, 0.0, 1.0)
+    glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef( 0., 2., float:neg(4.) )
+    glRotatef( angle, 0., 1., 0. )
+
+    drawCoordSys( 8.0 )
+
+    Field3D:show field
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+  glfwPollEvents()
+
+  printlnString "cu"
+
+  ret 0
+end
+
+

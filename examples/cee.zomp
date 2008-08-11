@@ -1,3 +1,4 @@
+
 /**
  * Experimental test bed of the cee language profile
  *
@@ -8,74 +9,17 @@
 //------------------------------------------------------------------------------
 /// base lib
 
-template macro:failUnless cond
-  unless #{cond}
-    ret ${error expression is false #{cond}}
-  end
-end
+include "libs/libcee.zomp"
 
-macro uniqueIds purpose ids...
-  var ast* code ${seq}
-
-  forEachAstChild child ids
-    addChild code ${uniqueIds #child #purpose}
-  end
-
-  ret code
-end
-
-/// if statement
-///
-/// Usage example:
-/// 
-/// if a > 10 then
-///   print "It's bigger!"
-/// else if a < 5 then
-///   print "It's smaller!"
-/// else
-///   print "Neither to big nor to small. Purrfect"
-/// end
-macro if2 cond then onTrue remArgs...
-  println()
-
-  macro:failUnless cstring:equal(getField(then, id), "then")
-
-  uniqueId endLabel "if_end"
-
-  var astp code ${seq}
-
-  addChild code ${when #cond
-    #onTrue
-    branch #endLabel
-  end}
-
-  var int currentArg 0
-  const int argCount getField(remArgs, childCount)
-
-  while currentArg+3 <= argCount
-    var astp econd ast:child(remArgs, currentArg+1)
-    var astp eexpr ast:child(remArgs, currentArg+2)
-
-    addChild code ${seq
-      when #econd
-        #eexpr
-        branch #endLabel
-      end
-    end}
-
-    currentArg = currentArg + 3
-  end
-
-  when currentArg+1 < argCount
-    var astp elseCode ast:child(remArgs, currentArg+1)
-
-    addChild code elseCode
-  end
-
-  addChild code ${label #endLabel}
-
-  ret code
-end
+// TODO
+// macro dowhile block condition
+//   ret ${
+//     label #start
+//     var bool #testVar #condition
+//     branch #testVar #start
+//     label #exit
+//   end}
+// end
 
 func bool isBound(char* name)
 
@@ -95,16 +39,16 @@ func char* symbolKind:toString(symbolKind kind)
   elseif kind == ZOMP_SYMBOL_FUNC
     ret "Function"
   elseif kind == ZOMP_SYMBOL_MACRO
-    ret "Macro"      
+    ret "Macro"
   elseif kind == ZOMP_SYMBOL_TYPEDEF
     ret "Type"
   elseif kind == ZOMP_SYMBOL_LABEL
     ret "Label"
   end
-              
+
   ret "internal error"
 end
-            
+
 func symbolKind zompLookup(char* name)
 
 // template op== l r
@@ -117,32 +61,6 @@ func bool dummy(bool x)
   println()
 
   ret x
-end
-
-macro op|| l r
-  uniqueId result "||"
-  
-  ret ${
-    #result := false
-    if2 #l then
-      #result = true
-    elseif #r
-      #result = true
-    end
-    #result
-  end}
-end
-
-macro op&& l r
-  uniqueId result "&&"
-
-  ret ${
-    #result := false
-    if2 #l then
-      #result = #r
-    end
-    #result
-  end}
 end
 
 // func void test()
@@ -161,54 +79,6 @@ end
 //   ret void
 // end
 
-///TODO: add support to call methods
-macro op. record component
-  if2 getField(component, childCount) == 0 then
-    ret ${getField(#record, #component)}
-  end
-  // else
-  ret ${error "function calls with dot syntax not supported yet" in #component}
-end
-
-macro op= l r
-  if2 ast:matchesShape(l, ${_._}) then
-    var ast* component ast:child(l, 0)
-    var ast* field ast:child(l, 1)
-    ret ${setField #component #field #r}
-  else
-    ret ${assign #l #r}
-  end
-
-  ret ${internal error}
-end
-
-template op:= name value
-  var2 #name #value
-end
-
-/// Allocate storage and initialize variable
-/// `new Foo a b c' does the same as `var Foo* this (malloc Foo); Foo:init(this,a,b,c); this'
-macro new type args...
-  uniqueId name "new"
-
-  var ast* initCall astFromString(cstring:concat(getField(type, id), ":init"))
-  addChild initCall astFromString(name)
-  forEachAstChild arg args
-    addChild initCall arg
-  end
-
-  var ast* code ${seq}
-  addChild code ${var (ptr #type) #name (malloc #type)}
-  addChild code initCall
-  addChild code astFromString(name)
-
-  ret code
-end
-
-template return v
-  ret #v
-end
-
 template op; expr1 expr2
   #expr1
   #expr2
@@ -216,11 +86,6 @@ end
 
 //------------------------------------------------------------------------------
 /// Standard library
-
-template op++ lstring rstring 
-  cstrings:append #lstring #rstring
-end
-
 
 type Complex
   float real
@@ -285,13 +150,13 @@ include "libs/stdio.zomp"
 //     printString " => "
 //     printString toName.id
 //     println()
-//     
+//
 //     ret ${}
 //   else
 //     ret ${error #toName is not defined}
 //   end
 // end
-  
+
 func void test()
   var int x 10
 
@@ -307,16 +172,12 @@ func void test()
   printInt zompLookup("x")
 end
 
-//------------------------------------------------------------------------------
-http://www.clutter-project.org/
-//------------------------------------------------------------------------------
-
 
 // func void test()
 //   std:base:localVar x 20
 //   printInt x
 // end
-// 
+//
 // func void test()
 //   foo := nullptr(int)
 // end
@@ -342,13 +203,14 @@ http://www.clutter-project.org/
 //   c := new(Complex, 1.0, 10.0)
 //   Complex:print c
 //   println()
-//   
-//   
+//
+//
 // end
 
 func int main()
-  
+
   ret 0
 end
+
 
 

@@ -38,6 +38,13 @@
 indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type `(repeat string))
+
+(defcustom zomp-unindent-keywords (list "elseif")
+  "A list of identifiers which will cause the auto-indenter to
+  unindent the next line by one level when they are at the
+  beginning of a line"
+  :group 'zomp
+  :type `(repeat string))
   
 (defvar zomp-mode-hook nil)
 
@@ -65,7 +72,7 @@ indent the next line when they occur at the beginning of a line"
 
 (defvar zomp-imenu-generic-expression nil)
 (defun zomp-id (str)
-  (replace-regexp-in-string "ID" "[a-zA-Z0-9:*+-/!=><_]+" str t))
+  (replace-regexp-in-string "ID" "[a-zA-Z0-9:*+-/!=><_|&]+" str t))
 (setq zomp-imenu-generic-expression
       `((nil ,(zomp-id "^(?macro +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
@@ -81,7 +88,7 @@ indent the next line when they occur at the beginning of a line"
          (goto-match-paren 0)
          (goto-match-paren 0)
          (forward-char)))
-        
+
   (cond ((not (looking-at "("))
           (goto-match-paren 0)))
    (set-mark (point))
@@ -224,7 +231,7 @@ indent the next line when they occur at the beginning of a line"
           (setq left
                 (condition-case nil
                     (progn
-                                        ; goto previous non whitespace line
+                      ;; goto previous non whitespace line
                       (let ((dontabort t))
                         (while dontabort
                           (previous-line)
@@ -232,7 +239,7 @@ indent the next line when they occur at the beginning of a line"
                           (when (not (looking-at " *$"))
                             (setq dontabort nil))))
 
-                                        ; get indentation of previous line
+                      ;; get indentation of previous line
                       (back-to-indentation)
                       (current-column))
                   (error 0)))
@@ -241,6 +248,8 @@ indent the next line when they occur at the beginning of a line"
             (cond ((looking-at "\\*")
                    (setq left (- left 1)))
                   ((member w zomp-indent-keywords)
+                   (setq left (+ left 2)))
+                  ((looking-at "end}")
                    (setq left (+ left 2)))
                   ))
           ;; (when (looking-at "\\*")
@@ -253,21 +262,27 @@ indent the next line when they occur at the beginning of a line"
             (cond ((> open-parens closing-parens) (setq left (+ left 2)))
                   ((< open-parens closing-parens) (setq left (- left 2))))
             (next-line))))
+
       (beginning-of-line)
 
-      ; lines like " * foo" are indented by one more space
+      ;; lines like " * foo" are indented by one more space
       ;; (when (looking-at " *\\*")
         ;; (set 'left (+ left 1)))
       (when (looking-at " *\\*")
           (set 'left (+ left 1)))
-      
+
+      ;; unindent end lines
       (back-to-indentation)
       (when (string= (word-at-point) "end")
         (setq left (- left 2)))
-      
+
+      ;; unindent keywords like elseif etc.
+      (when (member (zomp-symbol-at-point) zomp-unindent-keywords)
+        (setq left (- left 2)))
+
       (delete-horizontal-space)
       (indent-to-column left))
-    ; place cursor correctly on newline-and-indent
+    ;; place cursor correctly on newline-and-indent
     (when (equal (current-column) 0)
       (back-to-indentation))
 ;;     (when (equal (+ 2 (point)) (save-excursion (end-of-line) (point)))
@@ -292,12 +307,12 @@ indent the next line when they occur at the beginning of a line"
         (isStar nil) )
     (save-excursion
       (move-beginning-of-line 1)
-      ; /// on documentation comment
+      ;; /// on documentation comment
       (when (looking-at " *///")
         (set 'isComment t))
-      ; /*
-      ;  * nice aligned stars
-      ;  */ (but not after this line)
+      ;; /*
+      ;;  * nice aligned stars
+      ;;  */ (but not after this line)
       (when (and (looking-at " *\\(/\\)?\\*") (not (looking-at ".*\\*/")))
         (set 'isStar t))
       )

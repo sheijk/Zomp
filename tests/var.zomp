@@ -27,7 +27,7 @@ end
 
 func int main()
   f := plus2(3)
-
+  
   printInt f
   nl()
   

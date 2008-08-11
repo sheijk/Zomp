@@ -1,0 +1,8 @@
+/**
+ * A minimal test case which will not do anything
+ */
+
+func int main()
+  ret 0
+end
+

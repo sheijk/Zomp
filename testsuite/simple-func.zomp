@@ -1,0 +1,27 @@
+/**
+ * Demonstrates basic usage of functions
+ */
+
+func int get5()
+  ret 5
+end
+
+func int incr(int i)
+  ret i + 1
+end
+
+func int sum(int a, int b, int c)
+  ret a + b + c
+end
+
+func int main()
+  assert 4 == get5()
+  // assert 10 == incr(10)
+
+  printInt 10
+  printString "foo"
+
+  ret 0
+end
+
+

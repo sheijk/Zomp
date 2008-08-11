@@ -1,0 +1,11 @@
+/**
+ * Will cause a crash
+ */
+
+func int main()
+  var (ptr int) null nullptr(int)
+  store null 1
+
+  ret 0
+end
+

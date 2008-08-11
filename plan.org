@@ -3,6 +3,16 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] can't get address of record
+** TODO [#A] #foo.bar does not work :bug:parser:
+** TODO [#A] #func(a,b,c) does not work (antiquotation should be allowed for funcalls) :bug:
+** TODO [#A] http://citeseer.ist.psu.edu/cache/papers/cs/25243/http:zSzzSzseclab.cs.ucdavis.eduzSz~devanbuzSzteachingzSz260zSzmacros.pdf/weise93programmable.pdf macro system for C
+** TODO [#A] macro checking / typing http://www.ccs.neu.edu/scheme/pubs/gpce2004-cf.pdf
+** TODO [#A] for i 0 (ret int:pow(2,3)) => llvm parser-fehler
+** TODO [#A] schreibzugriff auf args/register vars verbieten
+** TODO [#A] zomp.el: double als typ highlighten
+** TODO [#A] `printBool true && (false || true)' geht nicht
+** TODO [#A] a-10 will be parsed as `(jux a -10)` :bug:
 ** TODO [#A] support fuer var int* addr = &i
 ** TODO [#A] pointer alignment ins typsystem aufnehmen
 ** TODO [#A] chooseRandomly(Sequence T s) -> T
@@ -397,6 +407,44 @@ von http://lambda-the-ultimate.org/node/2884
    InfInt - integer with arbitrary size
    FixedInt - signed int which raises exceptions on overflow
    Word - unsigned int with modulo arithmetic
+** TODO [#A] generate uniqueIds automatically in macros
+
+   template foo
+     var int `x 10
+     print `x
+   end
+
+   =>
+
+   macro foo
+     uniqueIds x "foo"
+     ret ${
+       var int #x 10
+       print #x
+     end}
+   end
+** TODO [#A] makro-system inspiration
+   . Common Lisp reader macros, the proposed QuasiQuoting extensions to Template Haskell, Forth parsing words, and/or Camlp4 are things to look at in this regard.
+** TODO [#A] do not allow function and variable names and constants as id of expression
+   Require them to be wrapped into apply/var/constant
+
+   print(10 + x)
+   =>
+   (opcall print 10 x)
+   =>
+   (apply print 10 x)
+   =>
+   Error: unknown 10 and x
+   =>
+   (apply print (constant 10) (var x))
+
+   How to convert into constant and var forms? Calling an error function which may return a transformed sexpr?
+** TODO [#A] smooth integration of other languages
+   extractDefs(LLVM::Module*)
+   Will parse the module and add Zomp definitions for all found types and functions
+   
+   parseC(string) -> LLVM::Module*
+   Invoke Clang to JIT C-code from a string or file
    
 * Use Cases                                                            :usecase:
 
@@ -479,14 +527,14 @@ von http://lambda-the-ultimate.org/node/2884
 
 ** zomp-cee                                                                :cee:
    Set of macros and functions providing a simple C like feeling
-     
-*** TODO variables [2/9]
+
+*** TODO variables [3/9]
     Define a variable
 
     - [X] var int x
     - [ ] var int x = 10
     - [ ] var x = 10
-    - [ ] var x // not allowed
+    - [X] var x // not allowed
     - [ ] var x = 10, y = 20.0
     - [ ] var int x = 10, float y = 20.0
     - [ ] var x = 10, float y = 20.0
@@ -507,11 +555,12 @@ von http://lambda-the-ultimate.org/node/2884
 
     - Returns value of last var
 
-*** TODO basic types [3/6]
+*** TODO types [4/7]
 **** DONE int
 **** TODO fixed size int (int8, int16, ..., int128)
 **** DONE float 
 **** TODO double
+**** DONE structs
 **** TODO signed/unsigned
 **** DONE bool
           
@@ -556,19 +605,22 @@ von http://lambda-the-ultimate.org/node/2884
 *** TODO operators for all basic types
 **** TODO infix +, -, *, /, **
 **** TODO prefix/postfix ++, --
-*** TODO control structures [1/5]
+*** TODO control structures [2/7]
 **** DONE if then/else if/else
 **** TODO c-style for
-**** TODO while
+**** DONE while
+**** TODO do/while
+**** TODO do/until
 **** TODO switch / case
 **** TODO break, continue
-*** TODO pointers [0/3]
+*** TODO pointers [0/4]
     using postfix notation
-    
-**** TODO var&
+
+**** TODO &var
 **** TODO var*
 **** TODO (var+10)*
-*** TODO functions [3/4]
+**** TODO global pointers
+*** DONE functions [4/4]
 **** DONE define them
      func RetType name(args)
        code
@@ -583,7 +635,8 @@ von http://lambda-the-ultimate.org/node/2884
      // no impl
 **** DONE call them
 
-**** TODO function pointers
+**** DONE function pointers
+     CLOSED: [2008-07-31 Thu 20:10]
 *** TODO Types
     How types can be specified
 

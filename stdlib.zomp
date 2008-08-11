@@ -210,14 +210,14 @@
   ((ptr (ptr ast)) childs) )
 (type astp (ptr ast))
 
-(func void checkId ((cstring id) (cstring func)))
+// (func void checkId ((cstring id) (cstring func)))
 (func void checkAst ((astp ast) (cstring func)))
 (func void registerAst ((astp ast)))
 
 (func cstring cstrings:append ((cstring l) (cstring r)))
 
 (func (ptr ast) simpleAst ((cstring name)) (
-  (checkId name "simpleAst")
+  // (checkId name "simpleAst")
 
   (var (ptr ast) a (malloc ast))
 
@@ -307,7 +307,7 @@
 (func cstring macroAstId ((int macroCurrentAst)) (
   (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
   (var cstring name (getField (cast (ptr ast) macroCurrentAst) id))
-  (checkId name "macroAstId")
+  // (checkId name "macroAstId")
   (ret name)
   ))
 
@@ -1028,31 +1028,31 @@
 /// any other ast
 ///
 /// Examples:
-///	  ast:matchesShape `(foo bar) `(foo bar) => true
-///	  ast:matchesShape `(a b c) `(_) => true
-///	  ast:matchesShape `(foo (some child) bar) `(foo _ bar) => true
-///	  ast:matchesShape `(a b) `(a) => false
-///	  ast:matchesShape `(a b c) `(a b) => false
-///	  ast:matchesShape `(a b) `(a b _) => false
+///   ast:matchesShape `(foo bar) `(foo bar) => true
+///   ast:matchesShape `(a b c) `(_) => true
+///   ast:matchesShape `(foo (some child) bar) `(foo _ bar) => true
+///   ast:matchesShape `(a b) `(a) => false
+///   ast:matchesShape `(a b c) `(a b) => false
+///   ast:matchesShape `(a b) `(a b _) => false
 (func bool ast:matchesShape ((astp code) (astp template)) (
   (if (bool:and (cstring:equal (getField template id) "_") (0 == getField code childCount))
-	(ret true) ())
+    (ret true) ())
 
   (if
-	(bool:and
-	  (getField code childCount == getField template childCount)
-	  (cstring:equal (getField code id) (getField template id)))
-	(
-	  (const int childCount (getField code childCount))
-	  (for childNum 0 childCount (
-		(if (ast:matchesShape (astChild code childNum) (astChild template childNum))
-		  () // else
-		  (ret false)
-		  )
-		))
-	  (ret true)	 
-	  )		
-	())
+    (bool:and
+      (getField code childCount == getField template childCount)
+      (cstring:equal (getField code id) (getField template id)))
+    (
+      (const int childCount (getField code childCount))
+      (for childNum 0 childCount (
+        (if (ast:matchesShape (ast:child code childNum) (ast:child template childNum))
+          () // else
+          (ret false)
+          )
+        ))
+      (ret true)
+      )
+    ())
   (ret false)
   ))
 
