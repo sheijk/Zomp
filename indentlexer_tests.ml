@@ -44,7 +44,10 @@ struct
     [
       "single", `Return [id "single"; END];
 
-      "foo(3) + 1", `Return [id "foo"; OPEN_PAREN; id "3"; CLOSE_PAREN;
+      "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
+                             ADD_OP "+"; id "1"; END];
+
+      "foo (3) + 1", `Return [id "foo"; OPEN_PAREN; id "3"; CLOSE_PAREN;
                              ADD_OP "+"; id "1"; END];
 
       "foo bar", `Return [id "foo"; id "bar"; END];
@@ -70,6 +73,9 @@ struct
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];
       "float* var", `Return [id "float"; POSTFIX_OP "*"; id "var"; END];
+
+      "opAtEndOfLine = ", `Return [id "opAtEndOfLine"; ASSIGN_OP "="; END];
+      "opAtEndOfLine =", `Return [id "opAtEndOfLine"; ASSIGN_OP "="; END];
 
       (* strings and numbers *)
       "1337", `Return [id "1337"; END];

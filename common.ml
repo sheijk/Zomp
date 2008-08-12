@@ -298,7 +298,6 @@ let dequoteString quoteChar str =
   else
     `NotQuoted str
 
-
 let trim str =
   let rec findFirstNonWS str index succ =
     if index < String.length str && index >= 0 && str.[index] = ' ' then
@@ -312,6 +311,14 @@ let trim str =
   let frontTrimmedLength = String.length frontTrimmed in
   let backSpaces = frontTrimmedLength - 1 - findFirstNonWS frontTrimmed (frontTrimmedLength-1) (fun x -> x - 1) in
   String.sub frontTrimmed 0 (frontTrimmedLength - backSpaces)
+
+let mapString f str =
+  let newString = String.copy str in
+  let strLength = String.length str in
+  for charNum = 0 to strLength-1 do
+    newString.[charNum] <- f str.[charNum]
+  done;
+  newString
 
 
 

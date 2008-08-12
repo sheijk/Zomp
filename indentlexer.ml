@@ -34,8 +34,14 @@ type tokenOrAction = [
 
 type tokenBuilder = string -> tokenOrAction
 
+let trimLinefeed str =
+  let noLineFeeds = mapString (function '\n' -> ' ' | c -> c) str in
+  trim noLineFeeds
+
+let lastChar str = str.[String.length str - 1]
+
 (**
- * each rule contains of two regexps (one for the string allowed to precede the expression
+ * each rule consists of two regexps (one for the string allowed to precede the expression
  * and one which matches the token) and a function turning the matched string into a token
  *)
 let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
@@ -57,9 +63,13 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
        `PutBack( tokenF (trim str2), String.make 1 lastChar ) )
   in
   let opRuleWS symbol (tokenF :string -> token) =
-    re (sprintf " +%s +" (opre symbol)),
-    (fun str -> `Token (tokenF (trim str)))
-    (* (fun str -> (tokenF (trim str) :> [token | `Ignore | `PutBack of token * string])) *)
+    re (sprintf " +%s\\( +\\|\n\\)" (opre symbol)),
+    (fun str ->
+       let token = (tokenF (trimLinefeed str)) in
+       if lastChar str = '\n' then
+         `PutBack(token, "\n")
+       else
+         `Token token)
   in
   let opRules symbol (tokenF :string -> token) =
     [opRule symbol tokenF;
@@ -111,7 +121,9 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     opfuncRule "op";
     opfuncRule "preop";
     opfuncRule "postop";
-    regexpRule "(" OPEN_PAREN;
+    (* regexpRule "(" OPEN_PAREN; *)
+    (Str.regexp "[^a-zA-Z]", Str.regexp_string "("), (fun s -> `Token OPEN_PAREN);
+    (Str.regexp "[a-zA-Z]", Str.regexp_string "("), (fun s -> `Token OPEN_ARGLIST);
     regexpRule ")" CLOSE_PAREN;
     regexpRule "{" OPEN_CURLY;
     regexpRule "}" CLOSE_CURLY;
@@ -391,6 +403,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | POSTFIX_OP arg -> "post" ^ arg, noind
           | PREFIX_OP arg -> "pre" ^ arg, noind
           | OPEN_PAREN -> "(", noind
+          | OPEN_ARGLIST -> "(`", noind
           | CLOSE_PAREN -> ")", noind
           | OPEN_CURLY -> "{", noind
           | CLOSE_CURLY -> "}", noind

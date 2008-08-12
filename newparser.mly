@@ -78,6 +78,7 @@
 
 %token OPEN_PAREN
 %token CLOSE_PAREN
+%token OPEN_ARGLIST
 %token COMMA
 %token OPEN_CURLY
 %token CLOSE_CURLY
@@ -106,11 +107,28 @@
 
 %%
 
-  main:
+main:
 | e = expr; END;
   { e }
+(* | e = expr; BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK; END; *)
+(*   { juxExpr e [seqExpr exprs] } *)
 
-  expr:
+(* | e = expr; blocksAndTerminators = block+; END; *)
+(*   { let args = extractExprsAndCheckTerminators e blocksAndTerminators in *)
+(*     juxExpr e args } *)
+
+(* exprWithBlocks: *)
+(* | exprAndTerminators = exprArg; blocksAndT = blockOrArg+; *)
+(*   { let first = exprOfNoTerm exprAndTerminators in *)
+(*     let args = extractExprsAndCheckTerminators first blocksAndT in *)
+(*     juxExpr first args } *)
+(*  *)
+(* | firstAndT = exprArg; argsAndT = exprArg+; blocksAndT = blockOrArg+; *)
+(*   { let first = exprOfNoTerm firstAndT in *)
+(*     let args = extractExprsAndCheckTerminators first (argsAndT @ blocksAndT) in *)
+(*     juxExpr first args } *)
+
+expr:
 | exprAndTerminator = exprArg;
   { let expr, terminators = exprAndTerminator in
     (* checkTerminators expr terminators; *)
@@ -119,23 +137,29 @@
   {
     let first = exprOfNoTerm firstAndTerms in
     let args = extractExprsAndCheckTerminators first argsAndTerminators in
-    { Ast2.id = "opjux"; args = first :: args }}
+    juxExpr first args }
 | e = opExpr;
   { e }
 
 exprArg:
 | id = IDENTIFIER;
   { idExpr id, [] }
-| e = exprArg; s = POSTFIX_OP;
-  { expr ("post" ^ opName s) [fst e], [] }
-| s = PREFIX_OP; e = exprArg;
-  { expr ("pre" ^ opName s) [fst e], [] }
+
 | OPEN_PAREN; e = expr; CLOSE_PAREN;
   { e, [] }
 | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
+
+| head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
+  { callExpr (idExpr head) args, [] }
+
 | l = exprArg; DOT; r = exprArg;
   { expr "op." [exprOfNoTerm l; exprOfNoTerm r], [] }
+
+| e = exprArg; s = POSTFIX_OP;
+  { expr ("post" ^ opName s) [fst e], [] }
+| s = PREFIX_OP; e = exprArg;
+  { expr ("pre" ^ opName s) [fst e], [] }
 
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id], [] }
@@ -143,6 +167,10 @@ exprArg:
   { expr (quoteId q) [{Ast2.id = "seq"; args = []}], [] }
 | q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
   { expr (quoteId q) [e], [] }
+
+(* block: *)
+(* | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK; *)
+(*   { seqExpr exprs, terminators } *)
 
 opExpr:
 | l = expr; o = opSymbol; r = expr;
