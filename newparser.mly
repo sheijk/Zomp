@@ -41,6 +41,12 @@
     in
     checkAll (Ast2.idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
 
+  let expectNoTerminators = function
+    | [] -> ()
+    | invalidTerminators ->
+        raiseParseError (Printf.sprintf "Expected no terminators but found: %s"
+                           (Common.combine " " invalidTerminators))
+
   let exprOfNoTerm ((expr :Ast2.sexpr), (terminators :string list)) =
     match terminators with
       | [] -> expr
@@ -110,71 +116,97 @@
 main:
 | e = expr; END;
   { e }
-(* | e = expr; BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK; END; *)
-(*   { juxExpr e [seqExpr exprs] } *)
 
-(* | e = expr; blocksAndTerminators = block+; END; *)
-(*   { let args = extractExprsAndCheckTerminators e blocksAndTerminators in *)
-(*     juxExpr e args } *)
-
-(* exprWithBlocks: *)
-(* | exprAndTerminators = exprArg; blocksAndT = blockOrArg+; *)
-(*   { let first = exprOfNoTerm exprAndTerminators in *)
-(*     let args = extractExprsAndCheckTerminators first blocksAndT in *)
-(*     juxExpr first args } *)
-(*  *)
-(* | firstAndT = exprArg; argsAndT = exprArg+; blocksAndT = blockOrArg+; *)
-(*   { let first = exprOfNoTerm firstAndT in *)
-(*     let args = extractExprsAndCheckTerminators first (argsAndT @ blocksAndT) in *)
-(*     juxExpr first args } *)
 
 expr:
-| exprAndTerminator = exprArg;
-  { let expr, terminators = exprAndTerminator in
-    (* checkTerminators expr terminators; *)
-    expr }
-| firstAndTerms = exprArg; argsAndTerminators = exprArg+;
-  {
-    let first = exprOfNoTerm firstAndTerms in
-    let args = extractExprsAndCheckTerminators first argsAndTerminators in
+| first = exprArg; argsAndT = exprArgList;
+  { let args, terminators = argsAndT in
+    checkTerminators first terminators;
     juxExpr first args }
+
+| e = juxExpr;
+  { e }
+
+
+juxExpr:
+| e = exprArg;
+  { e }
+| first = exprArg; args = exprArg+;
+  { juxExpr first args }
 | e = opExpr;
   { e }
+| e = opExpr; blockAndTerm = block;
+  { let block, terminators = blockAndTerm in
+    checkTerminators e terminators;
+    juxExpr e [block] }
+
+
+exprArgList:
+| blockAndT = block;
+  { let block, terminators = blockAndT in
+    [block], terminators }
+| argsAndT = alternateExprArgsAndBlock;
+  { argsAndT }
+| blockAndT = block; argsAndT = alternateExprArgsAndBlock;
+  { let block = exprOfNoTerm blockAndT in
+    let args, terminators = argsAndT in
+    block :: args, terminators }
+
+
+alternateExprArgsAndBlock:
+| args = exprArg+; blockAndT = block;
+  { let block, terminators = blockAndT in
+    args @ [block], terminators }
+
+| args = exprArg+; blockAndT = block; remAndT = alternateExprArgsAndBlock;
+  { let block = exprOfNoTerm blockAndT in
+    let rem, terminators = remAndT in
+    args @ [block] @ rem, terminators }
+
 
 exprArg:
 | id = IDENTIFIER;
-  { idExpr id, [] }
+  { idExpr id }
 
 | OPEN_PAREN; e = expr; CLOSE_PAREN;
-  { e, [] }
+  { e }
+
+| head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
+  { callExpr (idExpr head) args }
+
+| l = exprArg; DOT; r = exprArg;
+  { expr "op." [l; r] }
+
+| e = exprArg; s = POSTFIX_OP;
+  { expr ("post" ^ opName s) [e] }
+| s = PREFIX_OP; e = exprArg;
+  { expr ("pre" ^ opName s) [e] }
+
+| q = QUOTE; id = IDENTIFIER;
+  { expr (quoteId q) [idExpr id] }
+| q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
+  { expr (quoteId q) [{Ast2.id = "seq"; args = []}] }
+| q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
+  { expr (quoteId q) [e] }
+| q = QUOTE; OPEN_CURLY; blockAndT = block; CLOSE_CURLY;
+  { let block, terminators = blockAndT in
+    expectNoTerminators terminators;
+    expr (quoteId q) [block] }
+
+
+%inline block:
 | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
 
-| head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  { callExpr (idExpr head) args, [] }
-
-| l = exprArg; DOT; r = exprArg;
-  { expr "op." [exprOfNoTerm l; exprOfNoTerm r], [] }
-
-| e = exprArg; s = POSTFIX_OP;
-  { expr ("post" ^ opName s) [fst e], [] }
-| s = PREFIX_OP; e = exprArg;
-  { expr ("pre" ^ opName s) [fst e], [] }
-
-| q = QUOTE; id = IDENTIFIER;
-  { expr (quoteId q) [idExpr id], [] }
-| q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
-  { expr (quoteId q) [{Ast2.id = "seq"; args = []}], [] }
-| q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
-  { expr (quoteId q) [e], [] }
-
-(* block: *)
-(* | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK; *)
-(*   { seqExpr exprs, terminators } *)
 
 opExpr:
-| l = expr; o = opSymbol; r = expr;
-  { expr (opName o) [l; r] }
+| l = juxExpr; o = opSymbol; r = juxExpr;
+  {expr (opName o) [l; r]}
+| l = juxExpr; o = opSymbol; rAndT = block;
+  { let r, terminators = rAndT in
+    expectNoTerminators terminators;
+    expr (opName o) [l; r] }
+
 
 %inline opSymbol:
 | o = ADD_OP

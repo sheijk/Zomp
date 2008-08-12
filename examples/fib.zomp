@@ -3,7 +3,7 @@
 
 !verify off
  */
-!syntex indent
+!syntax indent
 
 template op:= name value
   var2 #name #value
@@ -12,7 +12,7 @@ end
 func int fib(int n)
   prevprev := 1
   prev := 1
-  
+
   for i 2 n
     next := prev + prevprev
     prevprev = prev
@@ -25,7 +25,7 @@ end
 func void test()
   printlnString "Fibonaccis without the waiting"
 
-  for i 1 20
+  for i 1 47
     printString "fib("
     printInt i
     printString ") = "

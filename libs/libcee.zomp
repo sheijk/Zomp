@@ -50,7 +50,7 @@ macro if2 cond then onTrue remArgs...
   var int currentArg 0
   const int argCount getField(remArgs, childCount)
 
-  while currentArg+3 <= argCount
+  while (currentArg+3 <= argCount)
     var astp econd ast:child(remArgs, currentArg+1)
     var astp eexpr ast:child(remArgs, currentArg+2)
 
@@ -64,7 +64,7 @@ macro if2 cond then onTrue remArgs...
     currentArg = currentArg + 3
   end
 
-  when currentArg+1 < argCount
+  when (currentArg+1 < argCount)
     var astp elseCode ast:child(remArgs, currentArg+1)
 
     addChild code elseCode
@@ -103,7 +103,7 @@ end
 
 ///TODO: add support to call methods
 macro op. record component
-  if2 getField(component, childCount) == 0 then
+  if2 (getField(component, childCount) == 0) then
     ret ${getField(#record, #component)}
   end
   // else

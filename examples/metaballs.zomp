@@ -25,11 +25,11 @@ end
 
 func float float:random()
   randomInt := random(4097)
-  return int:toFloat(randomInt) /_f 4096.0
+  return (int:toFloat(randomInt) /_f 4096.0)
 end
 
 func float float:srandom()
-  return float:random() *_f 2.0 -_f 1.0
+  return (float:random() *_f 2.0 -_f 1.0)
 end
 
 
@@ -41,7 +41,7 @@ func int int:pow(int base, int exp)
 
   remMults := exp
 
-  while remMults > 1
+  while (remMults > 1)
     v = v * base
     remMults = remMults - 1
   end
@@ -81,17 +81,17 @@ var float angle 0.0
 // avoid writing it over and over, part of utils lib
 macro mainloop body...
   ret ${
-    var float time 0.0
-    var bool running true
+    time := 0.0
+    running := true
     while running
-      time = double:toFloat(glfwGetTime())
+      time = double:toFloat glfwGetTime()
       angle = time *_f 128.0
 
       #body
 
       glfwSwapBuffers()
       glfwPollEvents()
-      running = bool:not( isPressed(GLFW_KEY_ESC) )
+      running = bool:not isPressed(GLFW_KEY_ESC)
     end
   end}
 end
@@ -104,8 +104,8 @@ type Field3D
 end
 
 template Field3D:checkRange component
-  assert #component >= 0
-  assert #component < this.sideLength
+  assert (#component >= 0)
+  assert (#component < this.sideLength)
 end
 
 func int Field3D:index(Field3D* this, int x, int y, int z)
@@ -113,7 +113,7 @@ func int Field3D:index(Field3D* this, int x, int y, int z)
   Field3D:checkRange y
   Field3D:checkRange z
 
-  return x + z * this.sideLength + y * this.sideLength * this.sideLength
+  return (x + z * this.sideLength + y * this.sideLength * this.sideLength)
 end
 
 func float Field3D:get(Field3D* this, int x, int y, int z)
@@ -133,7 +133,7 @@ func void Field3D:clear(Field3D* this)
   array := this.array
   sideLength := this.sideLength
 
-  for i 0 sideLength ** 3
+  for i 0 (sideLength ** 3)
     store ptradd(array, i) 0.0
   end
 
@@ -267,20 +267,20 @@ func void Point:print(Point* this)
   printString ")"
 end
 
-func void test()
-  var Point p
-  setField p x 1.0
-  // p.x = 1.0
-  // p.y = 2.0
-
-  // q := p
-  // p.x = 8.0
-
-  // Point:print p
-  // println()
-  // Point:print q
-  // println()
-end
+// func void test()
+//   var Point p
+//   setField p x 1.0
+//   // p.x = 1.0
+//   // p.y = 2.0
+// 
+//   // q := p
+//   // p.x = 8.0
+// 
+//   // Point:print p
+//   // println()
+//   // Point:print q
+//   // println()
+// end
 
 // func void test()
 //   arr := new(Array_int, 10)
@@ -299,7 +299,7 @@ func int main()
 
   glMatrixMode( GL_PROJECTION )
   glLoadIdentity()
-  const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+  aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
   field := new(Field3D, 10)

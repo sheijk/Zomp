@@ -260,6 +260,11 @@ struct
           ]}];
 
       "simple\n\
+      \  single\n\
+      end",
+      `Return [juxExpr [id "simple"; seqExpr [id "single"]]];
+
+      "simple\n\
       \  single sexpr child\n\
       end",
       `Return [
@@ -353,10 +358,11 @@ struct
         "    body\n" ^
         "  nested2\n" ^
         "end main\n",
-      `Return [juxExpr [id "main"; id "blah"; seqExpr [
-                          juxExpr [id "nested";
-                                   seqExpr [id "body"];
-                                   id "nested2"]]]];
+      `Exception "Should faile because 'nested' has no 'end' terminator";
+      (* `Return [juxExpr [id "main"; id "blah"; seqExpr [ *)
+      (*                     juxExpr [id "nested"; *)
+      (*                              seqExpr [id "body"]; *)
+      (*                              id "nested2"]]]]; *)
 
       "main foo\n" ^
         "  nested\n" ^

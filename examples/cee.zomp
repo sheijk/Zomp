@@ -1,4 +1,3 @@
-
 /**
  * Experimental test bed of the cee language profile
  *
@@ -32,17 +31,17 @@ const symbolKind ZOMP_SYMBOL_TYPEDEF 4
 const symbolKind ZOMP_SYMBOL_LABEL 5
 
 func char* symbolKind:toString(symbolKind kind)
-  if2 kind == ZOMP_SYMBOL_UNDEFINED then
+  if2 (kind == ZOMP_SYMBOL_UNDEFINED) then
     ret "Undefined"
-  elseif kind == ZOMP_SYMBOL_VAR
+  elseif (kind == ZOMP_SYMBOL_VAR)
     ret "Variable"
-  elseif kind == ZOMP_SYMBOL_FUNC
+  elseif (kind == ZOMP_SYMBOL_FUNC)
     ret "Function"
-  elseif kind == ZOMP_SYMBOL_MACRO
+  elseif (kind == ZOMP_SYMBOL_MACRO)
     ret "Macro"
-  elseif kind == ZOMP_SYMBOL_TYPEDEF
+  elseif (kind == ZOMP_SYMBOL_TYPEDEF)
     ret "Type"
-  elseif kind == ZOMP_SYMBOL_LABEL
+  elseif (kind == ZOMP_SYMBOL_LABEL)
     ret "Label"
   end
 

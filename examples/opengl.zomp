@@ -57,7 +57,7 @@ macro if2 cond then onTrue remArgs...
   var int currentArg 0
   const int argCount getField(remArgs, childCount)
 
-  while currentArg+3 <= argCount
+  while (currentArg+3 <= argCount)
     var astp econd ast:child(remArgs, currentArg+1)
     var astp eexpr ast:child(remArgs, currentArg+2)
 
@@ -71,7 +71,7 @@ macro if2 cond then onTrue remArgs...
     currentArg = currentArg + 3
   end
 
-  when currentArg+1 < argCount
+  when (currentArg+1 < argCount)
     var astp elseCode ast:child(remArgs, currentArg+1)
 
     addChild code elseCode
@@ -132,7 +132,7 @@ func int main()
 
   glMatrixMode( GL_PROJECTION )
   glLoadIdentity()
-  const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+  const double aspect (int:toDouble windowWidth /_d int:toDouble windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
   mainloop
