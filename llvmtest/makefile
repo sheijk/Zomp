@@ -26,3 +26,7 @@ misc.ll: misc.bc
 .bc.run:
 	lli $<
 
+FLYMAKE_LOG=flymake-log.temp
+
+include ../makefile.flymake
+

@@ -24,7 +24,6 @@ extern "C" {
 #include <caml/callback.h>
 }
 
-#include <dlfcn.h>
 
 using std::printf;
 using namespace llvm;
@@ -593,23 +592,6 @@ extern "C" {
     printf( "%s\n", hline );
     */
   }
-
-  int zompLoadLib(const char* name) {
-    void* handle = dlopen( name, RTLD_LAZY );
-//     void* handle = dlopen( "dlltest.dylib", RTLD_LAZY );
-
-    if( handle == NULL ) {
-      printf( "Could not load dll '%s': %s\n", name, dlerror() );
-      fflush( stdout );
-    }
-
-    return reinterpret_cast<int>( handle );
-  }
-
-  bool zompCheckNativeSymbol(const char* name) {
-    return dlsym( NULL, name ) != NULL ? true : false;
-  }
-
 
 //   struct Ast
 //   {

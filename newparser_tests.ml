@@ -211,6 +211,8 @@ struct
       "plus(3, 5)", `Return [se "opcall" ["plus"; "3"; "5"]];
       "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]];
 
+      "func int get5()", `Return [juxExpr [id "func"; id "int"; call ["get5"]]];
+
       "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]];
       "while empty(list)", `Return [juxExpr [id "while";
                                       call ["empty"; "list"]]];

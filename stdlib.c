@@ -4,12 +4,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-void printString( char* str ) {
-    printf( "%s", str );
-}
+#include <dlfcn.h>
 
 void printInt( int i ) {
-    printf( "%d", i );
+  printf( "%d", i );
+}
+
+void printString( char* str ) {
+    printf( "%s", str );
 }
 
 void printFloat( float f ) {
@@ -28,13 +30,9 @@ void printNewline() {
   printf( "\n" );
 }
 
-int* nullptr() {
-  return NULL;
-}
-
-void stdlibHello() {
-  printf( "hello, stdlib\n" );
-}
+/* int* nullptr() { */
+/*   return NULL; */
+/* } */
 
 char* int2cstring(int i) {
   char buffer[1000];
@@ -47,10 +45,25 @@ char* int2cstring(int i) {
   return result;
 }
 
-size_t testAdd(size_t l, size_t r) {
-  printf( "%l + %l = %l", l, r, l+r );
-  return l + r;
+void stdlibHello() {
+  printf( "hello, stdlib\n" );
 }
+
+int zompLoadLib(const char* name) {
+  void* handle = dlopen( name, RTLD_LAZY );
+
+  if( handle == NULL ) {
+    printf( "Could not load dll '%s': %s\n", name, dlerror() );
+    fflush( stdout );
+  }
+
+  return (int)handle;
+}
+
+bool zompCheckNativeSymbol(const char* name) {
+  return dlsym( NULL, name ) != NULL ? true : false;
+}
+
 
 /* NSBundle* webKitBundle; */
 /*     webKitBundle = [NSBundle bundleWithPath:@"/System/Library/Frameworks/WebKit.framework"]; */

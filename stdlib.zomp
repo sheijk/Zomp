@@ -1,11 +1,17 @@
+///
+/// The Zomp prelude
+/// Contains definitions and methods which are available everywhere
+///
 
 /*
 !verify off
 */
 
-/// external (C) functions ----------------------------------------
-
 (type int u32)
+
+///-----------------------------------------------------------------------------
+/// Content of stdlib.c
+///-----------------------------------------------------------------------------
 
 (func void printInt ((int i)))
 (func void printString (((ptr char) s)))
@@ -16,11 +22,15 @@
 
 (func (ptr char) int2cstring ((int i)))
 
-// (func void zompLoadLib ((string libname)))
-// (func bool zompCheckNativeSymbol ((string libname)))
+(func int zompLoadLib (((ptr char) libname)))
+// (func bool zompCheckNativeSymbol (((ptr char) libname)))
 
 (func void stdlibHello ())
-(func void zompHello ())
+// (func void zompHello ())
+
+///-----------------------------------------------------------------------------
+/// C library
+///-----------------------------------------------------------------------------
 
 (func void exit ((int exitCode)))
 
@@ -40,9 +50,9 @@
 
 (func float sqrtf ((float x)))
 
-(func int zompLoadLib (((ptr char) dllname)))
-
-/// utility functions ----------------------------------------
+///-----------------------------------------------------------------------------
+/// Utility functions
+///-----------------------------------------------------------------------------
 
 (func bool bool:not ((bool b)) ((bool:xor true b)))
 
@@ -82,7 +92,9 @@
   (store (fieldptr record componentName) value)
   ))
 
-/// string functions ----------------------------------------
+///-----------------------------------------------------------------------------
+/// String functions
+///-----------------------------------------------------------------------------
 
 (type cstring (ptr char))
 
@@ -202,7 +214,9 @@
   ))
 
 
-/// ast ----------------------------------------
+///-----------------------------------------------------------------------------
+/// Abstract syntax tree representation
+///-----------------------------------------------------------------------------
 
 (type ast
   (cstring id)
@@ -300,7 +314,9 @@
   (var (ptr ast) child (load (ptradd (getField parent childs) index)))
   (ret child) ))
 
-/// macro support ----------------------------------------
+///-----------------------------------------------------------------------------
+/// Macro support
+///-----------------------------------------------------------------------------
 
 (var cstring macroRest "postop...")
 
@@ -609,8 +625,9 @@
   (ret code)
   ))
 
-//------------------------------------------------------------------------------
-// unit tests
+///-----------------------------------------------------------------------------
+/// Unit tests
+///-----------------------------------------------------------------------------
 
 /// Executes the given expression and prints an error
 /// message containing the passed ast if it does not
@@ -661,7 +678,9 @@
   (ret `(func void #testFuncName () #impl))
   ))
 
-//------------------------------------------------------------------------------
+///-----------------------------------------------------------------------------
+/// More
+///-----------------------------------------------------------------------------
 
 /// Prints the passed ast to stdout at compile time
 /// and will return it at run time. Can be used to debug
@@ -692,7 +711,9 @@
   ))
 
 
-/// additional ast functions --------------------------------
+///-----------------------------------------------------------------------------
+/// Additional AST functions
+///-----------------------------------------------------------------------------
 
 (func void ast:setChild
   (((ptr ast) parent) (int index) ((ptr ast) newChild))
@@ -736,7 +757,9 @@
   (ret code)
   ))
 
-/// floating point support --------------------------------
+///-----------------------------------------------------------------------------
+/// Floating point support
+///-----------------------------------------------------------------------------
 
 (macro float:aliasNoQNAN funcName (
   (var cstring macroName (cstrings:append "float:" (getField funcName id)))
@@ -769,7 +792,9 @@
 
 (template float:neg x (float:sub 0. #x))
 
-/// additional operators and basic math functions
+///-----------------------------------------------------------------------------
+/// Additional operators and basic math functions
+///-----------------------------------------------------------------------------
 
 (func int int:mod ((int v) (int div)) (
   (int:urem v div)
@@ -898,7 +923,9 @@
   (ret (diff <=_f delta))
   ))
 
-/// deprecation -------------------------------
+///-----------------------------------------------------------------------------
+/// Deprecation
+///-----------------------------------------------------------------------------
 
 (macro deprecatedNoVarArgs name replacementName warning args ... (
   (var astp code `(macro #name))
@@ -978,7 +1005,9 @@
   (ret code)
   ))
 
-/// support for indent based syntax --------------
+///-----------------------------------------------------------------------------
+/// Support for indent syntax
+///-----------------------------------------------------------------------------
 
 (macro opseq args ... (
   args
@@ -1012,7 +1041,9 @@
   (ret code)
   ))
 
-/// deprecated functions ------------------------
+///-----------------------------------------------------------------------------
+/// Deprecated functions
+///-----------------------------------------------------------------------------
 
 // (deprecated unittest.assert unittest:assert check)
 // (deprecated unittest.assertAll unittest:assertAll "blah" check ...)
@@ -1055,56 +1086,5 @@
     ())
   (ret false)
   ))
-
-// /* /// default test function
-
-// */
-
-// /*
-
-// !load libglfw.dylib dlltest.dylib
-
-// (func void test () (
-//   (println)
-//   (if (int:uless 2 4)
-//     (printlnString "yippieh!")
-//     (printlnString "wtf?")
-//     )
-//   ))
-
-// (macro inline3 code (
-//   (var (ptr ast) tree (simpleAst "seq"))
-//   (printlnString "Warning: you suck!")
-//   (addChild tree code)
-//   (addChild tree code)
-//   (addChild tree code)
-//   (ret `(
-//     (printlnString "doing it three times!")
-//     #tree ))
-//   ))
-
-// (var cstring yippieh "yippieh!")
-
-// (macro tmacro2 arg
-//   (insert macro #arg) )
-
-// (macro tmacro3 arg0 arg1
-//   (foo bar #arg0 #arg1) )
-// */
-
-// /*
-// (func int testast2 () (
-//   (var (ptr ast) tree `(this is a (simple ast) (for testing purposes)))
-//   (ret (cast int tree))
-//   ))
-
-// (func void test () (
-//   (var int t (testast2))
-
-//   (println)
-//   (printString (macroAstId t)) (printInt (macroAstChildCount t)) (println)
-//   (printlnString (macroAstId (macroAstChild t 2)))
-// ))
-// */
 
 

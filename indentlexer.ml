@@ -116,14 +116,14 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     (fun (str:string) -> `Token (IDENTIFIER (trim str)))
   in
   [
+    (Str.regexp "[^a-zA-Z0-9]", Str.regexp_string "("), (fun s -> `Token OPEN_PAREN);
+    (Str.regexp "[a-zA-Z0-9]", Str.regexp_string "("), (fun s -> `Token OPEN_ARGLIST);
     identifierRule;
     whitespaceRule;
     opfuncRule "op";
     opfuncRule "preop";
     opfuncRule "postop";
     (* regexpRule "(" OPEN_PAREN; *)
-    (Str.regexp "[^a-zA-Z]", Str.regexp_string "("), (fun s -> `Token OPEN_PAREN);
-    (Str.regexp "[a-zA-Z]", Str.regexp_string "("), (fun s -> `Token OPEN_ARGLIST);
     regexpRule ")" CLOSE_PAREN;
     regexpRule "{" OPEN_CURLY;
     regexpRule "}" CLOSE_CURLY;

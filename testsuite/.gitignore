@@ -1,3 +1,4 @@
 gmon.out
 *.ll
 *.bc
+*.test

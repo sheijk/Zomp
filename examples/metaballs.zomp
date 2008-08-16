@@ -208,7 +208,7 @@ macro defineArrayType type
   // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
   initDecl := simpleAst("opcall")
   addChild initDecl simpleAst(initFuncName)
-  addChild initDecl ${Array_int* this}
+  addChild initDecl ${#arrayTypeName* this}
   addChild initDecl ${int size}
 
   code := ${
@@ -225,9 +225,16 @@ macro defineArrayType type
   end}
 
   ret code
+  // println()
+  // printHLine '-' 80
+  // ast:print code 0
+  // printHLine '-' 80
+  //
+  // ret ${}
 end
 
 defineArrayType int
+defineArrayType float
 
 template aget array index
   load (ptradd getField(#array, elements) #index)
@@ -252,11 +259,13 @@ end
 struct Point
   float x
   float y
+  float z
 end
 
-func void Point:init(Point* this, float x, float y)
+func void Point:init(Point* this, float x, float y, float z)
   this.x = x
   this.y = y
+  this.z = z
 end
 
 func void Point:print(Point* this)
@@ -264,8 +273,24 @@ func void Point:print(Point* this)
   printFloat this.x
   printString ", "
   printFloat this.y
+  printString ", "
+  printFloat this.z
   printString ")"
 end
+
+// defineArrayType Point
+
+// testf
+//   points := new Array_Point 10
+//   var Point p
+//   array:setAll points p
+// end
+
+// func void test()
+//   points := malloc Point 10
+//   var Point p
+//   store points p
+// end
 
 // func void test()
 //   var Point p
@@ -294,6 +319,19 @@ end
 
 //------------------------------------------------------------------------------
 
+func void resizeWindow(int width, int height)
+  windowWidth = width
+  windowHeight = height
+  glfwSetWindowSize windowWidth windowHeight
+  glViewport 0 0 windowWidth windowHeight
+end
+
+// macro executeOnce
+//   uniqueId alreadyRun "executeOnce"
+//   ret ${
+//   end}
+// end
+
 func int main()
   init()
 
@@ -302,7 +340,7 @@ func int main()
   aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
-  field := new(Field3D, 10)
+  field := new Field3D 10
 
   mainloop
     glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -313,7 +351,7 @@ func int main()
     glTranslatef( 0., 2., float:neg(4.) )
     glRotatef( angle, 0., 1., 0. )
 
-    drawCoordSys( 8.0 )
+    drawCoordSys 8.0
 
     Field3D:show field
   end

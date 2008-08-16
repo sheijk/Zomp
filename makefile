@@ -40,11 +40,11 @@ bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo      \
 machine.cmo dllzompvm.so zompvm.cmo newparser.cmo indentlexer.cmo expander.cmo \
 testing.cmo parseutils.cmo testing.cmo sexprtoplevel.cmo
 
-dllzompvm.so: zompvm.h zompvm.cpp machine.c
+dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o
 	echo Building $@ ...
 	llvm-g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	ocamlmklib -o zompvm zompvm.o machine.o -lstdc++ `llvm-config --libs all`
+	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ `llvm-config --libs all`
 
 glut.dylib:
 	@echo Building $@ ...
@@ -242,21 +242,6 @@ clean_tags:
 
 clean_all: clean clean_tags
 
-ml_check:
-	@echo Checking OCaml files $(CHK_SOURCES)
-	@$(OCAMLC) $(CAML_FLAGS) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo > $(FLYMAKE_LOG)
-	@perl -pe "s/_flymake//g" < $(CHK_SOURCES:.ml=.annot) > $(CHK_SOURCES:_flymake.ml=.annot)
-
-cpp_check:
-	@echo Checking C++ files $(CHK_SOURCES)
-	@llvm-g++ -c $(CHK_SOURCES) $(CXX_FLAGS) -Wall `llvm-config --cxxflags` -fsyntax-only > $(FLYMAKE_LOG)
-
-check-source: $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES)))
-	@cat $(FLYMAKE_LOG)
-
-check-syntax: check-source
-	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> $(FLYMAKE_LOG)
-	@rm -f *_flymake.cpp
 
 # check-syntax:
 # 	@echo `date "+%Y-%m-%d %H:%M:%S"` \" \" $(CHK_SOURCES) >> build/flymake-log
@@ -264,6 +249,6 @@ check-syntax: check-source
 
 # makefile.depends:
 # 	touch $<
-
+include makefile.flymake
 include makefile.depends
 

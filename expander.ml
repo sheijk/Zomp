@@ -931,9 +931,9 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
                       let newBindings = addVar bindings var in
                       Some( newBindings, [`GlobalVar var] )
                     else
-                      raiseIllegalExpression expr "only null values supported for pointers currently"
+                      raiseIllegalExpression expr "only null values supported for global pointers currently"
                 | _ -> raiseIllegalExpression expr
-                    "only integral types legal for variables at this time"
+                    "only integral types legal for global variables at this time"
             end
           | None -> raiseInvalidType typeExpr
       end

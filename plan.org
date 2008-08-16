@@ -3,6 +3,9 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] cleanup stdlib :minor:
+** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
+** TODO [#A] GHCs newtype genauer ankucken
 ** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
 ** TODO [#A] scala "extractors", F# "active patterns"
 ** TODO [#A] indenting fuegt spaces in leere zeilen ein :emacs:bug:
@@ -448,6 +451,23 @@ von http://lambda-the-ultimate.org/node/2884
    
    parseC(string) -> LLVM::Module*
    Invoke Clang to JIT C-code from a string or file
+** TODO [#A] source code annotation language
+   http://msdn.microsoft.com/en-us/library/ms235402(VS.80).aspx
+** TODO [#A] SAL http://www.cs.uoregon.edu/research/summerschool/summer07/lectures/Lightweight_Specifications_for_Win32_APIs.pdf
+** TODO [#A] vector operations
+   http://dobbscodetalk.com/index.php?option=com_myblog&show=Vector-Operations.html&Itemid=29
+   http://gcc.gnu.org/onlinedocs/gcc/Vector-Extensions.html
+   http://developer.apple.com/performance/accelerateframework.html
+** TODO [#A] order independent toplevel statements
+   Try to do macro expansion in the order they appear in the file
+   If the expansion of one toplevel expressions fails because a method/function
+   was not found, re-evaluate it once the symbol is defined
+
+   Defining two symbols with the same name in the same scope is illegal, even for macros
+
+   Keep a Map<Symbol, ToplevelExpr>. After the processing of each toplevel expression check
+   whether any symbols in this map have been defined in the mean time. If true evaluate the
+   corresponding toplevel expression
    
 * Use Cases                                                            :usecase:
 
@@ -615,6 +635,33 @@ von http://lambda-the-ultimate.org/node/2884
 **** TODO do/while
 **** TODO do/until
 **** TODO switch / case
+***** TODO support explicit fall-through
+
+      switch someVar:
+      @fallthrough case 1
+        print "I"
+      @fallthrough case 2
+        print "I"
+      case 3
+        print "I"
+      @fallthrough case 4
+        print "I"
+      case 5
+        print "V"
+      end
+
+      oder
+
+      switch x:
+      case 1
+        print "falling!"
+        fallthrough
+      case 2
+        print "not falling"
+      case 3
+        print "blah"
+      end
+
 **** TODO break, continue
 *** TODO pointers [0/4]
     using postfix notation

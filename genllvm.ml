@@ -6,7 +6,7 @@ open Bindings
 open Common
 
 let combine = Common.combine
-  
+
 exception CodeGenError of string
 let raiseCodeGenError ~msg = raise (CodeGenError msg)
 
@@ -18,12 +18,12 @@ let typeOfForm = Semantic.typeOfForm
                                    (Typesystems.Zomp.typeName found) ) )
 
 let escapeName name = "\"" ^ name ^ "\""
-    
+
 let llvmName name =
   let name = escapeName name in
   if name.[0] = '%' then name
   else "%" ^ name
-  
+
 let rec llvmTypeName : Lang.typ -> string = function
   | `Void -> "void"
   | `Int8 -> "i8"
@@ -60,9 +60,9 @@ let resultVar var =
     rvname = if var.vglobal then "@" ^ name else "%" ^ name;
     rvtypename = llvmTypeName var.typ;
   }
-  
+
 let noVar = { rvname = ""; rvtypename = "" }
-    
+
 let lastTempVarNum = ref 0
 let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
@@ -77,7 +77,7 @@ let isConstant name =
   match string2integralValue name with
     | Some _ -> true
     | None -> false
-  
+
 let paramString signature =
   let argsWithTypes =
     List.map
@@ -113,7 +113,7 @@ let isValidLlvmString str =
       let isInRange min max = chr >= min && chr <= max in
       isInRange '0' '9' || isInRange 'a' 'f' || isInRange 'A' 'F'
     in
-    let strLength = String.length str in     
+    let strLength = String.length str in
     let rec checkFrom start =
       if start >= strLength then
         true
@@ -129,7 +129,7 @@ let isValidLlvmString str =
     checkFrom 0
   with Not_found ->
     true
-  
+
 let lastUniqueId = ref 0
 let newUniqueId() =
   incr lastUniqueId;
@@ -166,7 +166,7 @@ let sexpr2codeNoAntiquotes recursion = function
       seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
 
 let rec sexpr2codeasis expr = sexpr2codeNoAntiquotes sexpr2codeasis expr
-  
+
 let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = function
   | { id = "antiquote"; args = [{ id = id; args = args}] } ->
       begin
@@ -190,7 +190,7 @@ let insertAstConstructors bindings =
           end
       | _ -> default
 
-       
+
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -202,7 +202,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         | `Float | `Double -> "fcmp"
         | _ -> "icmp"
     in
-    let f argVarNames = 
+    let f argVarNames =
       sprintf "%s %s %s %s\n" instruction cond (llvmTypeName typ) (combine ", " argVarNames)
     in
     (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
@@ -213,7 +213,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let simpleTwoArgIntrinsincs typ namespace names =
     List.map (fun name -> twoArgIntrinsic (sprintf "%s:%s" namespace name) name typ) names
   in
-  
+
   let compareIntrinsics typ typeName =
     let functionMapping =
       [
@@ -254,7 +254,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     | [arg] -> f arg
     | _ -> raiseCodeGenError ~msg:(sprintf "Only one argument expected by %s" name)
   in
-  let convertIntr funcName intrName fromType toType = 
+  let convertIntr funcName intrName fromType toType =
     let convertIntrF intrName = oneArgFunc intrName
       (fun arg ->
          sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType))
@@ -286,7 +286,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       convertIntr "double:toInt" "fptosi" `Double `Int32;
       convertIntr "float:toDouble" "fpext" `Float `Double;
       convertIntr "double:toFloat" "fptrunc" `Double `Float;
-      
+
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
@@ -396,7 +396,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let rec defs = function
       | [] -> []
       | (name, `ExternalFunc, rettype, args) :: tail ->
-          let decl = 
+          let decl =
             sprintf "declare %s @%s(%s)"
               (llvmTypeName rettype)
               name
@@ -416,7 +416,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     find intrinsicFuncs
   in
   defaultBindings, externalFuncDecls, findIntrinsic
-    
+
 let gencodeSequence gencode exprs =
   let rec lastVarAndCode var code = function
     | [] -> var, code
@@ -628,16 +628,45 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
       begin
         let ptrVar, ptrAccessCode = gencode ptrForm in
         let valueVar, valueAccessCode = gencode valueForm in
-        let code =
-          sprintf "store %s %s, %s %s\n\n"
-            valueVar.rvtypename valueVar.rvname ptrVar.rvtypename ptrVar.rvname
-        in
-        (noVar, ptrAccessCode ^ valueAccessCode ^ code)
+        match typeOfForm todoBindings valueForm with
+          | `Record components ->
+              begin
+                (* let makeStoreCode index (name, typ) = *)
+                (*   "%value = " *)
+                (*   (\* let fieldAddr = newLocalTempVar (`Pointer typ) in *\) *)
+                (*   (\* sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n" *\) *)
+                (*   (\*   fieldAddr.rvname valueVar.rvtypename valueVar.rvname index *\) *)
+                (*   (\* ^ sprintf "store %s %s, %s*" *\) *)
+                (*   (\*   (llvmTypeName typ)  *\) *)
+                (* in *)
+                (* let rec listMapi f list = *)
+                (*   let rec mapWithIndex i acc = function *)
+                (*     | [] -> List.rev acc *)
+                (*     | hd :: tl -> *)
+                (*         mapWithIndex (i+1) (f i hd :: acc) tl *)
+                (*   in *)
+                (*   mapWithIndex 0 [] list *)
+                (* in *)
+                (* let (_ :string list) = listMapi makeStoreCode components in *)
+                raiseCodeGenError ~msg:"Tried to store struct"
+              end
+          | _ ->
+              begin
+                let code =
+                  sprintf "store %s %s, %s %s\n\n"
+                    valueVar.rvtypename valueVar.rvname ptrVar.rvtypename ptrVar.rvname
+                in
+                (noVar, ptrAccessCode ^ valueAccessCode ^ code)
+              end
       end
   | `LoadIntrinsic expr ->
       begin
         let targetType =
           match typeOfForm todoBindings expr with
+            | `Pointer (`Record _ as targetType) ->
+                raiseCodeGenError ~msg:("Loading records is not supported, yet. " ^
+                                         "Could not load value of type " ^
+                                         (typeName targetType))
             | `Pointer targetType -> targetType
             | nonPointerType ->
                 raiseCodeGenError ~msg:("Expected pointer argument instead of "
@@ -699,7 +728,7 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
       let valueType = typeOfForm todoBindings valueForm in
       let resultVar = newLocalTempVar targetType in
       let comment = sprintf "; casting to %s\n\n" resultVar.rvtypename in
-      let instructionName = 
+      let instructionName =
         match valueType, targetType with
           | `Pointer _, `Int32 -> "ptrtoint"
           | `Int32, `Pointer _ -> "inttoptr"
@@ -717,7 +746,7 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
           (llvmTypeName targetType)
       in
       resultVar, comment ^ valueCode ^ "\n" ^ code
-      
+
 let gencodeAssignVar gencode var expr =
   let rvalVar, rvalCode = gencode expr in
   let name = (resultVar var).rvname in
@@ -730,7 +759,7 @@ let gencodeReturn gencode expr =
   let exprVar, exprCode = gencode expr in
   let comment = sprintf "; return %s\n\n" exprVar.rvtypename in
   let isValueType name = String.length name > 0 && name <> "void" in
-  let retCode = 
+  let retCode =
     if isValueType exprVar.rvtypename then
       sprintf "ret %s %s\n\n" exprVar.rvtypename exprVar.rvname
     else
@@ -741,7 +770,7 @@ let gencodeReturn gencode expr =
 let gencodeJump label =
   let code = sprintf "br label %%%s\n\n" label.lname in
   (noVar, code)
-    
+
 let gencodeLabel label =
   let _, dummyJumpCode = gencodeJump label in
   let code = sprintf "%s:\n\n" label.lname in
@@ -771,14 +800,14 @@ let rec gencode : Lang.form -> resultvar * string = function
   | `Branch b -> gencodeBranch gencode b
   | `AssignVar (var, expr) -> gencodeAssignVar gencode var expr
   | #genericIntrinsic as intr -> gencodeGenericIntr gencode intr
-      
+
 let countChar str c =
   let count = ref 0 in
   for i = 0 to String.length str - 1 do
     if str.[i] = c then incr count
   done;
   !count
-  
+
 let llvmStringLength str =
   let length = String.length str in
   length - 2 * countChar str '\\'
@@ -857,7 +886,7 @@ let gencodeDefineFunc func =
 
 let gencodeTypedef name typ =
   sprintf "%%%s = type %s\n\n" name (llvmTypeName typ)
-  
+
 let gencodeTL = function
   | `GlobalVar var -> gencodeGlobalVar var
   | `DefineFunc func -> gencodeDefineFunc func
@@ -898,7 +927,7 @@ let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
          (combine "\n\n" funcCode);
          "\n\n" ^ externalFuncDecls;
        ])
-    
+
 (*        "\n\n\n\n;;; header ;;;\n\n\n\n" *)
 (*        ^ headerCode ^ "\n\n" *)
 (*        ^ "\n\n\n\n;;; typedefs ;;;\n\n\n\n" *)
@@ -909,4 +938,4 @@ let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
 (*        ^ (combine "\n\n" funcCode) *)
 (*        ^ "\n\n" ^ externalFuncDecls *)
 (*     ) *)
-    
+
