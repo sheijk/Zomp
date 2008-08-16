@@ -218,6 +218,10 @@
 /// Abstract syntax tree representation
 ///-----------------------------------------------------------------------------
 
+// (type Dummy)
+// (func void checkAst (((ptr Dummy) ast) (cstring func)))
+// (func void registerAst (((ptr Dummy) ast)))
+
 (type ast
   (cstring id)
   (int childCount)
@@ -225,8 +229,6 @@
 (type astp (ptr ast))
 
 // (func void checkId ((cstring id) (cstring func)))
-(func void checkAst ((astp ast) (cstring func)))
-(func void registerAst ((astp ast)))
 
 (func cstring cstrings:append ((cstring l) (cstring r)))
 
@@ -239,7 +241,7 @@
   (store (fieldptr a childCount) 0)
   (store (fieldptr a childs) (nullptr (ptr ast)))
 
-  (registerAst a)
+  // (registerAst a)
   (ret a)
   ))
 
@@ -274,8 +276,8 @@
   ))
 
 (func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
-  (checkAst tree "addChild")
-  (checkAst child "addChild")
+  // (checkAst tree "addChild")
+  // (checkAst child "addChild")
 
   (var int oldChildCount (getField tree childCount))
   (var int newChildCount (int:add 1 oldChildCount))
@@ -321,18 +323,18 @@
 (var cstring macroRest "postop...")
 
 (func cstring macroAstId ((int macroCurrentAst)) (
-  (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
+  // (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
   (var cstring name (getField (cast (ptr ast) macroCurrentAst) id))
   // (checkId name "macroAstId")
   (ret name)
   ))
 
 (func int macroAstChildCount ((int macroCurrentAst)) (
-  (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
+  // (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
   (getField (cast (ptr ast) macroCurrentAst) childCount) ))
 
 (func int macroAstChild ((int treeaddr) (int num)) (
-  (checkAst (cast (ptr ast) treeaddr) "macroAstId")
+  // (checkAst (cast (ptr ast) treeaddr) "macroAstId")
   (var (ptr ast) tree (cast (ptr ast) treeaddr))
   (var (ptr ast) child (load (ptradd (getField tree childs) num)))
   (var int i (cast int child))

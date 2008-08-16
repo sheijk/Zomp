@@ -31,9 +31,9 @@ using namespace llvm;
 ///-----------------------------------------------------------------------------
 /// Basic utilities
 
-static void debugMessage(const char* msg) {
-  printf( "[DEBUG] %s", msg );
-}
+// static void debugMessage(const char* msg) {
+//   printf( "[DEBUG] %s", msg );
+// }
 
 #define ZOMP_ASSERT(x) if( !(x) ) { printf("Assertion failed: %s", #x); fflush(stdout); exit(-10); }
 
@@ -708,18 +708,17 @@ extern "C" {
     executionEngine->runFunction( addChild, args );
   }
 
-  static std::set<void*> registeredAsts;
+  static std::set<void*> registeredvoids;
 
-  void registerAst(void* ast) {
-    registeredAsts.insert(ast);
+  void registervoid(void* ast) {
+    registeredvoids.insert(ast);
   }
 
-  void checkAst(void* ast, const char* func) {
-    if( registeredAsts.find(ast) == registeredAsts.end() ) {
+  void checkvoid(void* ast, const char* func) {
+    if( registeredvoids.find(ast) == registeredvoids.end() ) {
       printf( "Warning: found unregistered ast in %s\n", func );
     }
   }
-
 
 //   typedef std::map<int, void*> IdToAstMapping;
 //   IdToAstMapping astIdTable;

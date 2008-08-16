@@ -6,16 +6,17 @@
 
 #include <dlfcn.h>
 
+
 void printInt( int i ) {
   printf( "%d", i );
 }
 
 void printString( char* str ) {
-    printf( "%s", str );
+  printf( "%s", str );
 }
 
 void printFloat( float f ) {
-    printf( "%f", f );
+  printf( "%f", f );
 }
 
 void printDouble( double d ) {
@@ -63,7 +64,6 @@ int zompLoadLib(const char* name) {
 bool zompCheckNativeSymbol(const char* name) {
   return dlsym( NULL, name ) != NULL ? true : false;
 }
-
 
 /* NSBundle* webKitBundle; */
 /*     webKitBundle = [NSBundle bundleWithPath:@"/System/Library/Frameworks/WebKit.framework"]; */

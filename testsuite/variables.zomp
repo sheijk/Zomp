@@ -1,0 +1,15 @@
+/**
+ * Demonstrates very basic usage of variables
+ */
+
+func int main()
+  var int i 10
+  assert (i == 10)
+
+  assign i 3
+  assert (i == 3)
+
+  ret 0
+end
+
+

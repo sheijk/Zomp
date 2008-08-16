@@ -8,7 +8,7 @@ include ../makefile.config
 # Targets
 ################################################################################
 
-all: minimal.test simple-func.test
+all: minimal.test simple-func.test variables.test
 fail: crash.test
 
 clean:
@@ -31,7 +31,7 @@ minimal.ll: ../zompc.native
 	@$(ECHO) Compiling $(<) to .ll...
 	@../zomp-check-syntax.sh $<
 
-%.bc: %.ll ../stdlib.c ../stdlib.zomp
+%.bc: %.ll ../stdlib.zomp ../stdlib.c
 	@echo Compiling $< to $@
 	@llvm-as -f $< -o $(<:.ll=.o.bc)
 	@llvm-link -f ../stdlib.bc $(<:.ll=.o.bc) -o $@

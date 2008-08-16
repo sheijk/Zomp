@@ -115,6 +115,9 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 	cd tests && time make clean_tests check
 # 	date +"Finished at %d.%m.20%y %H:%M:%S"
 
+runtestsuite: all
+	cd testsuite && make all
+
 perftest: zompc.native zompc
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 4000 8000 16000"
 
@@ -214,7 +217,7 @@ clean:
 	rm -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) zompc.o sexprtoplevel.o
 	rm -f expander_tests.cm?
 	rm -f zompc.cm? zompc
-	rm -f stdlib.bc
+	rm -f stdlib.bc stdlib.o
 	rm -f sexprlexer.cmi sexprlexer.cmo sexprlexer.ml
 	rm -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
 	rm -f sexprtoplevel sexprtoplevel.cmi sexprtoplevel.cmo
