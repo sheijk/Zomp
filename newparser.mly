@@ -3,6 +3,12 @@
   exception ParseError of string
   let raiseParseError str = raise (ParseError str)
 
+  let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
+  let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
+  let idExpr = Ast2.idExpr
+  let seqExpr args = { Ast2.id = "opseq"; args = args }
+  let expr id args = { Ast2.id = id; args = args }
+    
   let quoteId = function
     | "`" -> "quote"
     | "$" -> "quote"
@@ -70,11 +76,19 @@
     in
     worker [] exprAndTerminators
 
-  let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
-  let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
-  let idExpr = Ast2.idExpr
-  let seqExpr args = { Ast2.id = "opseq"; args = args }
-  let expr id args = { Ast2.id = id; args = args }
+  let rec extractKeywordsAndExprsAndCheckTerminators = function
+    | [] -> []
+    | [(keyword, (expr, terminators))] ->
+        checkTerminators (Ast2.idExpr keyword) terminators;
+        [(keyword, expr)]
+    | (keyword, (expr, [])) :: rem ->
+        (keyword, expr) :: extractKeywordsAndExprsAndCheckTerminators rem
+    | (keyword, (expr, terminators)) :: _ ->
+        raiseParseError (Printf.sprintf "Found invalid terminators '%s' after block in expr %s"
+                           (Common.combine ", " terminators)
+                           (Ast2.toString expr))
+
+  let keywordAndExprToList (keyword, expr) = [Ast2.idExpr keyword; expr]
 %}
 
 %token <string> IDENTIFIER
@@ -99,6 +113,8 @@
 %token <string> PREFIX_OP
 %token <string> POSTFIX_OP
 %token <string> QUOTE
+%token <string> KEYWORD_ARG
+(* %token EXTENDED_INDENT *)
 
 %nonassoc COMPARE_OP
 %nonassoc ASSIGN_OP
@@ -114,9 +130,29 @@
 %%
 
 main:
-| e = expr; END;
+| e = kwexpr; END;
   { e }
 
+
+kwexpr:
+| components = pair(KEYWORD_ARG, kwarg)+;
+  {
+    let keywordsAndExprs = extractKeywordsAndExprsAndCheckTerminators components in
+    expr "opkeyword" (Common.multiMap keywordAndExprToList keywordsAndExprs)
+  }
+
+| e = expr; components = pair(KEYWORD_ARG, kwarg)+;
+  { let keywordsAndExprs = extractKeywordsAndExprsAndCheckTerminators components in
+    expr "opkeyword" (idExpr "default" :: e :: Common.multiMap keywordAndExprToList keywordsAndExprs) }
+
+| e = expr;
+  { e }
+
+kwarg:
+| e = expr;
+  { e, [] }
+| b = block;
+  { b }
 
 expr:
 | first = exprArg; argsAndT = exprArgList;
@@ -131,15 +167,17 @@ expr:
 juxExpr:
 | e = exprArg;
   { e }
+
 | first = exprArg; args = exprArg+;
   { juxExpr first args }
+
 | e = opExpr;
   { e }
+
 | e = opExpr; blockAndTerm = block;
   { let block, terminators = blockAndTerm in
     checkTerminators e terminators;
     juxExpr e [block] }
-
 
 exprArgList:
 | blockAndT = block;
@@ -151,7 +189,6 @@ exprArgList:
   { let block = exprOfNoTerm blockAndT in
     let args, terminators = argsAndT in
     block :: args, terminators }
-
 
 alternateExprArgsAndBlock:
 | args = exprArg+; blockAndT = block;
@@ -168,7 +205,7 @@ exprArg:
 | id = IDENTIFIER;
   { idExpr id }
 
-| OPEN_PAREN; e = expr; CLOSE_PAREN;
+| OPEN_PAREN; e = kwexpr; CLOSE_PAREN;
   { e }
 
 | head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;

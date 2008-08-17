@@ -40,9 +40,15 @@ struct
       ["l " ^ op ^ " r", `Return [id "l"; optoken; id "r"; END];
        parsedAsId ("op" ^ op)]
     in
+    let isValidId id = id, `Return [IDENTIFIER id; END] in
     ignore( ids [] );
     [
-      "single", `Return [id "single"; END];
+      isValidId "single";
+      isValidId "123";
+      isValidId "foo:bar";
+      isValidId "_";
+      isValidId "_1";
+      isValidId "foo_";
 
       "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
                              ADD_OP "+"; id "1"; END];
@@ -115,7 +121,7 @@ struct
       `Return( ids ["if"; "a"; "then"] @ [BEGIN_BLOCK]
                @ [id "foobar"; END]
                @ [END_BLOCK []; END] );
-      
+
       (* block end with tokens *)
       "foreach num IN primes\n\
       \  printLine num\n\
@@ -140,7 +146,7 @@ struct
       "   a b c", `Return (ids ["a"; "b"; "c"] @ [END]);
       "first\n\n\nsecond", `Return [id "first"; END; id "second"; END];
       "\n\n\n\nfirst\n\n\n", `Return [id "first"; END];
-  
+
       (* fail if indent level is reduced too much *)
       "main\n\
       \  begin foo\n\
@@ -160,6 +166,11 @@ struct
       parsedAsId "op++";
       parsedAsId "op*";
       (* TODO: alle operatoren testen *)
+
+      "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];
+      "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo"; KEYWORD_ARG "then"; END];
+      (* "this is a line:", `Return [id "this"; id "is"; id "a"; id "line"; *)
+      (*                             EXTENDED_INDENT; END]; *)
     ]
     @ infixOp "+" (ADD_OP "+")
     @ infixOp "-" (ADD_OP "-")

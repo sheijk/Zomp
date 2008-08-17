@@ -126,6 +126,7 @@ struct
       "x + y", `Return [se "op+" ["x"; "y"]];
       "x+y", `Return [se "op+" ["x"; "y"]];
       "a - b", `Return [se "op-" ["a"; "b"]];
+      (* "-x", `Return [se1 "preop-" "x"]; *)
       "foo * bar", `Return [se "op*" ["foo"; "bar"]];
       "p/q", `Return [se2 "op/" "p" "q"];
       (* "a, b", `Return [se2 "op," "a" "b"]; *)
@@ -215,7 +216,7 @@ struct
 
       "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]];
       "while empty(list)", `Return [juxExpr [id "while";
-                                      call ["empty"; "list"]]];
+                                             call ["empty"; "list"]]];
 
       "while equal(a, b)", `Return [juxExpr [
                                       id "while";
@@ -360,11 +361,7 @@ struct
         "    body\n" ^
         "  nested2\n" ^
         "end main\n",
-      `Exception "Should faile because 'nested' has no 'end' terminator";
-      (* `Return [juxExpr [id "main"; id "blah"; seqExpr [ *)
-      (*                     juxExpr [id "nested"; *)
-      (*                              seqExpr [id "body"]; *)
-      (*                              id "nested2"]]]]; *)
+      `Exception "Should fail because 'nested' has no 'end' terminator";
 
       "main foo\n" ^
         "  nested\n" ^
@@ -427,7 +424,7 @@ struct
       (* (\*       "for i = 0 .. 100", *\) *)
       (* (\*       `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *\) *)
 
-         (** quotations *)
+      (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];
       "${}", `Return [se1 "quote" "seq"];
       "${foo}", `Return [se1 "quote" "foo"];
@@ -470,6 +467,49 @@ struct
       (* "callFunc(#insert)", `Return [callExpr [id "callFunc"; se1 "antiquote" "insert"]]; *)
 
       "left + $right", `Return [expr "op+" [id "left"; se1 "quote" "right"]];
+
+      (** keyword arguments **)
+      "assert: a != b",
+      `Return [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]];
+
+      "if: a then: b",
+      `Return [expr "opkeyword" [id "if"; id "a";
+                                 id "then"; id "b"]];
+
+      "if: a > b then: --b",
+      `Return [expr "opkeyword" [id "if"; se2 "op>" "a" "b";
+                                 id "then"; se1 "preop--" "b"]];
+
+      "print errormsg unless: allIsFine()",
+      `Return [expr "opkeyword" [id "default"; jux ["print"; "errormsg"];
+                                 id "unless"; call ["allIsFine"]]];
+
+      "if: some cond then: (print x unless: moreCond())",
+      `Return [expr "opkeyword" [id "if";
+                                 jux ["some"; "cond"];
+                                 id "then";
+                                 expr "opkeyword"
+                                   [id "default"; jux ["print"; "x"];
+                                    id "unless"; call ["moreCond"]]]];
+
+      "for: 1 to 2 do:\n\
+      \  print x\n\
+      end",
+      `Return [expr "opkeyword" [id "for"; jux ["1"; "to"; "2"];
+                                 id "do"; seqExpr [
+                                   jux ["print"; "x"];
+                                 ]]];
+
+      "foo bar in:\n\
+      \  some code\n\
+      \  more code\n\
+      end",
+      `Return [expr "opkeyword" [
+                 id "default"; jux ["foo"; "bar"];
+                 id "in"; seqExpr [
+                   jux ["some"; "code"];
+                   jux ["more"; "code"];
+                 ]]];
 
       (** test whitespace tolerance *)
       "int x ", `Return [jux ["int"; "x"]];

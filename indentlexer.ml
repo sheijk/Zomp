@@ -54,6 +54,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
   let validIdentifierChars = "a-zA-Z0-9:_" in
   let validIdentifierFirstChar = "a-zA-Z_" in
+  let validIdentifierLastChar = "a-zA-Z0-9_" in
   let opRule symbol (tokenF :string -> token) =
     (Str.regexp "[a-z)]",
      Str.regexp (opre symbol ^ "[^ \n]")),
@@ -100,9 +101,12 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let charRule = re "'[^']+'", idFunc in
   let intRule = re "-?[0-9]+[a-zA-Z]*", idFunc in
   let floatRule = re "-?\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
+  let identifierRE =
+    sprintf "\\([%s][%s]*[%s]" validIdentifierFirstChar validIdentifierChars validIdentifierLastChar
+    ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
+ in
   let identifierRule =
-    re (sprintf "[%s][%s]*" validIdentifierFirstChar validIdentifierChars),
-    (fun str -> `Token (IDENTIFIER str));
+    re identifierRE, (fun str -> `Token (IDENTIFIER str));
   in
   let quoteRule str =
     re (Str.quote str),
@@ -115,11 +119,36 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     re ((Str.quote prefix) ^ "[+-\\*/&.><=!;|]+ *"),
     (fun (str:string) -> `Token (IDENTIFIER (trim str)))
   in
+  let keywordRule =
+    re (identifierRE ^ ":\\( \\| *\n\\)"),
+    (fun id ->
+       let keyword, colon = Common.splitAt id (FromBack 2) in
+       let token = KEYWORD_ARG keyword in
+       if lastChar colon = '\n' then
+         `PutBack( token, "\n" )
+       else
+         `Token token)
+  in
+  (* let extendedIndentRule = *)
+  (*   (Str.regexp ".", Str.regexp ": *\n"), *)
+  (*   (fun id -> *)
+  (*      `PutBack( EXTENDED_INDENT, "\n" )) *)
+  (* in *)
+  let openParenRule =
+    (Str.regexp "[^a-zA-Z0-9]", Str.regexp_string "("),
+    (fun s -> `Token OPEN_PAREN)
+  in
+  let openArgListRule =
+    (Str.regexp "[a-zA-Z0-9]", Str.regexp_string "("),
+    (fun s -> `Token OPEN_ARGLIST);
+  in
   [
-    (Str.regexp "[^a-zA-Z0-9]", Str.regexp_string "("), (fun s -> `Token OPEN_PAREN);
-    (Str.regexp "[a-zA-Z0-9]", Str.regexp_string "("), (fun s -> `Token OPEN_ARGLIST);
+    openParenRule;
+    openArgListRule;
     identifierRule;
     whitespaceRule;
+    keywordRule;
+    (* extendedIndentRule; *)
     opfuncRule "op";
     opfuncRule "preop";
     opfuncRule "postop";
@@ -409,6 +438,8 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | CLOSE_CURLY -> "}", noind
           | DOT -> ".", noind
           | QUOTE str -> "$" ^ str, noind
+          | KEYWORD_ARG str -> "`kwd(" ^ str ^ ")", noind
+          (* | EXTENDED_INDENT -> "`extind", noind *)
         in
         indentString lineIndent ^ str, (indent, doindent)
 

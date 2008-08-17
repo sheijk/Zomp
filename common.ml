@@ -3,7 +3,8 @@ open Printf
 (* moved here from Zompvm because exception was not caught properly (compiler bug?) *)
 exception FailedToEvaluateLLVMCode of string * string
 
-let apply2nd f (fst, snd) = (fst, f snd)
+let map2nd f (fst, snd) = (fst, f snd)
+let map1st f (fst, snd) = (f fst, snd)
 let (<<=) f g = f g
 let (>>=) x f = f x
 let (++) f g x = f (g x)
@@ -320,5 +321,16 @@ let mapString f str =
   done;
   newString
 
+type sequenceAnchor = FromFront of int | FromBack of int
 
+let splitAt str pos =
+  let strLength = String.length str in
+  let splitPos = match pos with
+    | FromFront pos -> pos
+    | FromBack pos -> strLength - pos
+  in
+  let front = Str.string_before str splitPos
+  and back = Str.string_after str splitPos
+  in
+  front, back
 

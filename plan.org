@@ -909,8 +909,17 @@ In macro expansion the \0 will be replaced by an !
     Rename files to foo.ret100.zomp, then check whether running foo returns 100
 
 ** Parser / Syntax                                               :parser:syntax:
+*** TODO smalltalk-style grouping mit keyword: arguments
 
-*** TODO [#A] prio fuer call(a,b,c) analog zu operator precedence loesen? (ala multExpr, addExpr) :parser:
+    Keyword identifer a la 'foo:' brechen expression in teile
+
+    print "oh noes" unless: everything.ok()
+    =>
+    (opkeyword leading (jux print "oh noes") unless (op. everything (opcall ok)))
+
+    do: some stuff until: endCondition
+    =>
+    (opkeyword do (jux some stuff) until endCondition)
 
 *** TODO [#A] if (*addF)(3, 4) > 10
     => jux (preop* addF) (op> (op, 3 4) 10)
@@ -943,12 +952,7 @@ In macro expansion the \0 will be replaced by an !
     foo bar (a b) => jux (id foo) (id bar) (jux a b)
     foo bar(a b) => jux (id foo) (call bar (jux a b))
 
-     
-*** TODO [#A] foo(bar baz) auch als call parsen? 
-
 *** TODO [#A] list<int> => template, xml <node> -> xml like trees
-
-*** TODO [#B] "foo bar\nend" should be translated correctly
 
 *** TODO [#B] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_? :operators:
     oder auch \+\ \+ +\
@@ -996,6 +1000,16 @@ In macro expansion the \0 will be replaced by an !
      :PROPERTIES:
      :ARCHIVE_TIME: 2008-07-09 Wed 14:49
      :END:
+
+**** DONE [#A] prio fuer call(a,b,c) analog zu operator precedence loesen? (ala multExpr, addExpr) :parser:
+     :PROPERTIES:
+     :ARCHIVE_TIME: 2008-08-17 Sun 19:23
+     :END:
+
+**** DONE [#A] foo(bar baz) auch als call parsen?
+     :PROPERTIES:
+     :ARCHIVE_TIME: 2008-08-17 Sun 19:23
+     :END: 
 ** Compiler
 
 *** TODO [#B] proper support for compile time variables               :compiler:
