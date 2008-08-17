@@ -6,15 +6,13 @@ test: simpletest.bc
 clean:
 	rm *.bc
 
-.SUFFIXES: .ll .bc .c
-
 # LLVM IR Text zu IR Bytecode
-.ll.bc:
+%.bc: %.ll
 	rm -f $@
 	llvm-as $<
 
 # C File nach Bytecode
-.c.bc:
+%.bc: %.c
 	llvm-gcc -c --emit-llvm -O0 $< -o $@
 	llvm-dis -f $@
 
@@ -23,7 +21,7 @@ misc.ll: misc.bc
 
 # Faketarget, "make foo.run" fuehrt Bytecodedatei foo.bc aus
 # (und erzeugt sie bei Bedarf)
-.bc.run:
+%.run: %.bc
 	lli $<
 
 FLYMAKE_LOG=flymake-log.temp

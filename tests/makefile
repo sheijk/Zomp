@@ -54,44 +54,42 @@ clean_tests:
 	rm -f *.ll *.bc *.exe
 	rm -f compileperf.*
 
-.SUFFIXES: .zomp .ll .check .bc .run .exe .glexe .cbe.c .s .o
-
-.bc.cbe.c:
+%.cbe.c: %.bc
 	@echo Generating $@ ...
-	llc -march=c -f gltest.bc
+	llc -march=c -f $<
 
-.zomp.check:
+%.check: %.zomp
 	@echo Checking $<
 	@rm -f ${<:.zomp=.ll}
 	@../zomp-check-syntax.sh $<
 
-.zomp.run:
+%.run: %.zomp
 	@rm -f ${<:.zomp=.ll} ${<:.zomp=.bc}
 	@make $(<:.zomp=.bc)
 	@echo Running $(<:.zomp=)
 	@lli $(<:.zomp=.bc)
 	@echo Done
 
-.zomp.ll:
+%.ll: %.zomp
 	@echo Compiling $< to LLVM IR
 	@../zomp-check-syntax.sh $<
 
-.ll.bc:
+%.bc: %.ll
 	@echo Compiling $< to $@
 	@llvm-as -f $< -o $(<:.ll=.o.bc)
 	@llvm-link -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
 
-.bc.exe:
+%.exe: %.bc
 	@echo Building $@ ...
 	@llvm-ld $< -native -o $@
 
-.bc.s:
+%.s: %.bc
 	@llc $< -f -o $@
 
-.s.o:
+%.o: %.s
 	@as $< -o $@
 
-.o.glexe:
+%.glexe: %.o
 	@g++ -o $@ -lstdc++ $(GLAPP_LIBS) $<
 
 # glanim.glexe: glanim.o

@@ -141,36 +141,34 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
 	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
 
-.SUFFIXES: .ml .cmo .mly .mll .cmi .cmx .skel .zomp .izomp
-
 .PHONY: clean clean_all
 
-.mly.ml:
+%.ml: %.mly
 	echo Generating parser $< ...
 	$(MENHIR) --explain --infer $<
 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
-.mll.ml:
+%.ml: %.mll
 	echo Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-.ml.cmi:
+%.cmi: %.ml
 	echo Compiling $< triggered by .cmi ...
 	$(OCAMLC) $(CAML_FLAGS)  -c $<
 
-.ml.cmo:
+%.cmo: %.ml
 	echo "Compiling (bytecode) $< ..."
 	$(OCAMLC) $(CAML_FLAGS)  -c $<
 
-.ml.cmx:
+%.cmx: %.ml
 	echo "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
-.skel.zomp: gencode
+%.zomp: %.skel gencode
 	echo Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
 
-.skel.izomp: gencode
+%.izomp: %.skel gencode
 	echo Generating Zomp bindings using indent syntax for $(<:.skel=) ...
 	./gencode -lang izomp $(<:.skel=)
 
