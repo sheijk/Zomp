@@ -1020,58 +1020,50 @@ type 'translateF env = {
   translateF :'translateF;
 }
 
-type translationResult =
-  | Error of string
-  | Result of bindings * (formWithTLsEmbedded list)
+type 'a mayfail =
+  | Result of 'a
+  | Error of string list
+
+let combineErrors msg = function
+    | [] -> msg ^ ": no error message given"
+    | errors -> msg ^ ": " ^ Common.combine "\n  " errors
+
+type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 
 let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
-  Error "Not supported at all"
+  Error ["Not supported at all"]
 
 module Macros =
 struct
-  let buildNativeMacroFunc translateF bindings macroName argNames impl =
-    let sexprImpl = impl in
-    let bindings =
-      List.fold_left
-        (fun bindings name ->
-           Bindings.addVar bindings
-             (Lang.variable
-                ~name
-                ~typ:astPtrType
-                ~default:(PointerVal (astPtrType, None))
-                ~storage:Lang.RegisterStorage
-                ~global:false) )
-        bindings argNames
+  let buildNativeMacroFunc (translateF :exprTranslateF) bindings
+      macroName argNames implExprs (isVariadic : [`IsVariadic | `IsNotVariadic])
+      =
+    let bindings = Bindings.addVar bindings
+      (Lang.variable
+         ~name:"macro_args"
+         ~typ:(`Pointer astPtrType)
+         ~default:(PointerVal (`Pointer astPtrType, None))
+         ~storage:Lang.RegisterStorage
+         ~global:false)
     in
+    let argParamName = "macro_args" in
+    let buildParamFetchExpr num name =
+      Ast2.expr "std:base:localVar" [Ast2.idExpr name;
+                                     Ast2.expr "ptradd" [
+                                       Ast2.simpleExpr "load" [argParamName];
+                                       Ast2.idExpr (sprintf "%d" num);
+                                       ]]
+    in
+    let fetchParamExprs = Common.listMapi buildParamFetchExpr argNames in
+    let sexprImpl = Ast2.seqExpr (fetchParamExprs @ implExprs) in
     let _, xforms = translateF bindings sexprImpl in
     let initForms, implforms = extractToplevelForms xforms in
     let initForms = flattenNestedTLForms initForms in
-    let localVar ~typ ~name =
-      Lang.variable ~typ ~name ~storage:MemoryStorage
-        ~global:false ~default:(Typesystems.Zomp.defaultValue typ)
-    in
     let astType =
       match lookupType bindings "ast" with
         | Some t -> t
         | None -> raiseIllegalExpression (Ast2.idExpr "ast") "Could not find prelude type 'ast'"
     in
-    let argParamName = "__macro_args" in
-    let extractParamExprs : Lang.form list =
-      let makeExtractCode argNum argName =
-        let argNum = Int32.of_int argNum in
-        let argName = argName ^ "_dummy" in
-        (* var ast* argName (ptradd __macro_args argNum) *)
-        let astPtr = `Pointer astType in
-        let argVar = localVar ~typ:astPtr ~name:argName in
-        let macroArgs = `Variable (localVar ~typ:(`Pointer astPtr) ~name:argParamName) in
-        let argNumConstant = `Constant (Int32Val argNum) in
-        `DefineVariable (argVar, Some (`LoadIntrinsic (`PtrAddIntrinsic
-                                                         (macroArgs,
-                                                          argNumConstant))))
-      in
-      Common.listMapi makeExtractCode argNames
-    in
-    let implforms = extractParamExprs @ implforms in
     let macroFunc = {
       Lang.fname = macroName;
       rettype = astPtrType;
@@ -1079,136 +1071,176 @@ struct
       (* fargs = List.map (fun name -> (name, astPtrType)) argNames; *)
       impl = Some (toSingleForm implforms);
     } in
-    printf "----- %s\n" macroName;
-    (* printf "%s\n" (formToString argsDummy); *)
-    List.iter (printf "%s\n" ++ formToString) extractParamExprs;
-    printf "=> %s\n" (funcToString macroFunc);
-    List.iter (printf "%s\n" ++ formToString) implforms;
-    printf "-----\n";
-    flush stdout;
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     tlforms, macroFunc
 
   let translateDefineMacro env expr =
-    let isValidMacroDefinition expr =
-      match List.rev expr.args with
-        | { Ast2.id = id; args = implExprs; } :: params when id = macroSeqOp ->
+    let decomposeMacroDefinition expr =
+      let nameParamImplOption =
+        match expr with
+          | {Ast2.args = {Ast2.id = name; args = []} :: paramsAndImpl} ->
+              begin match List.rev paramsAndImpl with
+                | {Ast2.id = seqId; args = implExprs} :: params ->
+                    Some (name, List.rev params, implExprs)
+                | _ ->
+                    None
+              end
+          | _ ->
+              None
+      in
+
+      match nameParamImplOption with
+        | Some (name, params, implExprs) ->
             begin
-              let isValidMacroParam = function
-                | {Ast2.args = []} -> true
-                | _ -> false
+              let decomposeMacroParam = function
+                | {Ast2.id = paramName; Ast2.args = []} ->
+                    Result (paramName, `IsNotVariadic)
+                | {Ast2.id = id; args = [{Ast2.id = paramName; Ast2.args=[]}]}
+                    when id = macroRest ->
+                    Result (paramName, `IsVariadic)
+                | (_ as invalidParam) ->
+                    Error [sprintf "Invalid macro param: %s" (Ast2.toString invalidParam)]
               in
-              let isVariadicMacroParam = function
-                | {Ast2.id = id; args = [{Ast2.args=[]}]} -> true
-                | _ -> false
-              in
-              match params with
+              match List.rev params with
                 | [] ->
-                    true
-                | [singleParam] ->
-                    isValidMacroParam singleParam
-                | lastParam :: frontParams ->
-                    List.for_all isValidMacroParam frontParams &&
-                      (isValidMacroParam lastParam || isVariadicMacroParam lastParam)
+                    Result (name, ([] :string list), implExprs, `IsNotVariadic)
+                | lastParam :: frontParamsRev ->
+                    let combineParams names param =
+                      match names, param with
+                        | Result names, Result (paramName, `IsNotVariadic) ->
+                            Result (paramName :: names)
+                        | Result names, Result (paramName, `IsVariadic) ->
+                            Error [sprintf
+                                     "param %s is variadic but not the last param"
+                                     paramName]
+                        | Error msg, _ | _, Error msg ->
+                            Error msg
+                    in
+                    let frontParamNamesOpt =
+                      List.fold_left combineParams
+                        (Result [])
+                        (List.map decomposeMacroParam frontParamsRev)
+                    in
+                    match frontParamNamesOpt with
+                      | Result frontParamNames ->
+                          begin match decomposeMacroParam lastParam with
+                            | Result (lastParamName, isVariadic) ->
+                                Result (name,
+                                        frontParamNames @ [lastParamName],
+                                        implExprs,
+                                        isVariadic)
+                            | Error msg ->
+                                Error msg
+                          end
+                      | Error msg ->
+                          Error msg
             end
         | _ ->
-            false
+            Error [sprintf "Expecting '%s name paramName* lastParamVariadic...? seq" expr.id]
     in
-    if isValidMacroDefinition expr then begin
-      printf "Valid macro definition\n";
-    end else begin
-      printf "Invalid macro definition\n";
-    end;
-    let funcSource =
-      "func ast* foobar(ast* macro_args)\n" ^
-        "  printString(\"xxx\")\n" ^
-        "end\n\n\n"
-      (* "func ast* transform(ast** __macro_args)\n" ^ *)
-      (*   "  ret ${a b c}\n" ^ *)
-      (*   "end\n" *)
-    in
-    let funcExpr = Parseutils.parseIExpr funcSource in
-    (match funcExpr with
-      | Some expr -> printf "macro = %s\n" (Ast2.toString expr)
-      | None -> printf "Could not parse macro source\n");
-    flush stdout;
-    Error "can't define macro, yet"
+    match decomposeMacroDefinition expr with
+      | Result (name, paramNames, implExprs, isVariadic) ->
+          begin
+            printf "name = %s; params = %s; impl = ...%s\n"
+              name
+              (Common.combine ", " paramNames)
+              (match isVariadic with `IsVariadic -> " is variadic" | _ -> "");
+            let tlexprs, func =
+              buildNativeMacroFunc
+                env.translateF env.bindings
+                name paramNames implExprs isVariadic
+            in
+            printf "--- tlexprs =\n%s\n--- func =\n%s\n---\n"
+              (Common.combine "\n" (List.map (Ast2.toString ++ Lang.toplevelFormToSExpr) tlexprs))
+              (Lang.funcToString func);
+            flush stdout;
+            Error ["Macro seems valid but can't define macro, yet"]
+          end
+      | Error reasons ->
+          Error [combineErrors "Could not define macro: " reasons]
+
 end
 
-let translateDefineLocalVar env expr =
-  let transform id name typeExpr valueExpr =
-    let declaredType = match typeExpr with
-      | Some e ->
-          begin
-            match translateType env.bindings e with
-              | Some t -> Some t
-              | None -> raise (CouldNotParseType (Ast2.expression2string e))
-          end
-      | None -> None
-    in
-    let valueType, toplevelForms, implForms =
-      match valueExpr with
-        | Some valueExpr ->
+module Base =
+struct
+  let translateDefineLocalVar env expr =
+    let transform id name typeExpr valueExpr =
+      let declaredType = match typeExpr with
+        | Some e ->
             begin
-              let _, simpleform = env.translateF env.bindings valueExpr in
-              let toplevelForms, implForms = extractToplevelForms simpleform in
-              match typeCheck env.bindings (`Sequence implForms) with
-                | TypeOf t -> Some t, toplevelForms, implForms
-                | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (m,f,e)
+              match translateType env.bindings e with
+                | Some t -> Some t
+                | None -> raise (CouldNotParseType (Ast2.expression2string e))
             end
-        | None -> None, [], []
+        | None -> None
+      in
+      let valueType, toplevelForms, implForms =
+        match valueExpr with
+          | Some valueExpr ->
+              begin
+                let _, simpleform = env.translateF env.bindings valueExpr in
+                let toplevelForms, implForms = extractToplevelForms simpleform in
+                match typeCheck env.bindings (`Sequence implForms) with
+                  | TypeOf t -> Some t, toplevelForms, implForms
+                  | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (m,f,e)
+              end
+          | None -> None, [], []
+      in
+      let varType =
+        match declaredType, valueType with
+          | Some declaredType, Some valueType
+              when equalTypes env.bindings declaredType valueType
+                -> declaredType
+          | Some declaredType, Some valueType ->
+              raiseIllegalExpressionFromTypeError
+                expr ("Types do not match",declaredType,valueType)
+          | None, Some valueType ->
+              valueType
+          | Some declaredType, None ->
+              declaredType
+          | None, None ->
+              raiseIllegalExpression
+                expr "var needs either a default value or declare a type"
+      in
+      match varType with
+        | #integralType | `Pointer _ | `Function _ as typ ->
+            begin
+              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let defvar = `DefineVariable (var, Some (`Sequence implForms))
+              in
+              match typeCheck env.bindings defvar with
+                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+                | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+            end
+        | (`Record _ as typ) ->
+            begin
+              match valueExpr with
+                | None ->
+                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
+                | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
+            end
+        | `TypeRef _ ->
+            raiseIllegalExpression expr "Internal error: received unexpected type ref"
     in
-    let varType =
-      match declaredType, valueType with
-        | Some declaredType, Some valueType when equalTypes env.bindings declaredType valueType -> declaredType
-        | Some declaredType, Some valueType ->
-            raiseIllegalExpressionFromTypeError expr ("Types do not match",declaredType,valueType)
-        | None, Some valueType -> valueType
-        | Some declaredType, None -> declaredType
-        | None, None -> raiseIllegalExpression expr "var needs either a default value or declare a type"
-    in
-    match varType with
-      | #integralType | `Pointer _ | `Function _ as typ ->
-          begin
-            let var = variable name typ (defaultValue typ) MemoryStorage false in
-            let defvar = `DefineVariable (var, Some (`Sequence implForms))
-            in
-            match typeCheck env.bindings defvar with
-              | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
-              | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
-          end
-      | (`Record _ as typ) ->
-          begin
-            match valueExpr with
-              | None ->
-                  let var = variable name typ (defaultValue typ) MemoryStorage false in
-                  Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
-              | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
-          end
-      | `TypeRef _ ->
-          raiseIllegalExpression expr "Internal error: received unexpected type ref"
-  in
-  match expr with
-    | { args = [
-          { id = name; args = [] };
-          valueExpr
-        ] } ->
-        transform id name None (Some valueExpr)
+    match expr with
+      | { args = [
+            { id = name; args = [] };
+            valueExpr
+          ] } ->
+          transform id name None (Some valueExpr)
 
-    | _ ->
-        Error "Invalid format"
+      | _ ->
+          Error [sprintf "Expecting '%s name valueExpr'" expr.id]
+
+end
 
 let baseInstructions =
   let table = Hashtbl.create 32 in
   Hashtbl.add table "dummy" translateDummy;
-  Hashtbl.add table "std:base:localVar" translateDefineLocalVar;
+  Hashtbl.add table "std:base:localVar" Base.translateDefineLocalVar;
   Hashtbl.add table "std:base:macro" Macros.translateDefineMacro;
   table
-
-(* let toplevelBaseInstructions = *)
-(*   let table = Hashtbl.create 32 in *)
-(*   Hashtbl.add table "std:base:macro" Macros.translateDefineMacro; *)
-(*   table *)
 
 let translateFromDict
     baseInstructions
@@ -1220,8 +1252,9 @@ let translateFromDict
     let handler = Hashtbl.find baseInstructions expr.id in
     let env = { bindings = bindings; translateF = translateF } in
     match handler env expr with
-      | Error msg ->
-          printf "Swallowed error: %s\n" msg;
+      | Error errors ->
+          print_string (combineErrors "Swallowed errors: " errors);
+          print_newline();
           flush stdout;
           None
       | Result (bindings, tlexprs) ->
@@ -1240,6 +1273,11 @@ let rec translate errorF translators bindings expr =
       end
   in
   t translators
+
+(* let noErrorMsg func = *)
+(*   match func with *)
+(*     | Some result -> Result result *)
+(*     | None -> Error [] *)
 
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [

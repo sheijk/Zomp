@@ -1,0 +1,22 @@
+/**
+ * Testing the new macro implementation
+
+!verify off
+ */
+
+func int main()
+  // std:base:localVar x 10
+  std:base:macro hellos the1 the2 the3 count
+    var ast* code ${foo bar}
+    ret ${for i 0 #count printlnString("hello")}
+  end
+
+  hellos 3
+
+  ret 0
+end
+
+func void foo(int** x)
+  printlnInt load(load(x))
+end
+

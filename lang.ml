@@ -192,6 +192,50 @@ and toplevelExpr = [
 | `Typedef of string * typ
 ]
 
+let rec formToSExpr : form -> Ast2.t = function
+  | `Variable var ->
+      Ast2.simpleExpr "Variable" [var.vname]
+  | `Constant c ->
+      Ast2.simpleExpr "Constant" [valueString c]
+  | `Sequence forms ->
+      Ast2.seqExpr (List.map formToSExpr forms)
+  | `DefineVariable (var, formOption) ->
+      Ast2.expr "DefVar" [Ast2.idExpr (typeName var.typ);
+                          Ast2.idExpr var.vname;
+                          match formOption with
+                            | Some form -> formToSExpr form
+                            | None -> Ast2.idExpr "undefined"]
+  | `FuncCall fc ->
+      Ast2.expr fc.fcname (List.map formToSExpr fc.fcargs)
+  | `AssignVar (var, form) ->
+      Ast2.expr "Assign" [Ast2.idExpr var.vname; formToSExpr form]
+  | `Return form ->
+      Ast2.expr "Return" [formToSExpr form]
+  | `Jump label ->
+      Ast2.simpleExpr "Jump" [labelToString label]
+  | `Branch b ->
+      Ast2.simpleExpr "Branch" [b.bcondition.vname;
+                                labelToString b.trueLabel;
+                                labelToString b.falseLabel]
+  | `Label l ->
+      Ast2.simpleExpr "Label" [labelToString l]
+  | `NullptrIntrinsic (typ) ->
+      Ast2.simpleExpr "Nullptr" [typeName typ]
+  | `MallocIntrinsic (typ, form) ->
+      Ast2.expr "Malloc" [Ast2.idExpr (typeName typ); formToSExpr form]
+  | `GetAddrIntrinsic var ->
+      Ast2.simpleExpr "AddressOf" [var.vname]
+  | `StoreIntrinsic (ptr, value) ->
+      Ast2.expr "Store" [formToSExpr ptr; formToSExpr value]
+  | `LoadIntrinsic (ptr) ->
+      Ast2.expr "Load" [formToSExpr ptr]
+  | `PtrAddIntrinsic (ptr, offset) ->
+      Ast2.expr "PtrAdd" [formToSExpr ptr; formToSExpr offset]
+  | `GetFieldPointerIntrinsic (record, fieldName) ->
+      Ast2.expr "GetFieldPtr" [formToSExpr record; Ast2.idExpr fieldName]
+  | `CastIntrinsic (typ, expr) ->
+      Ast2.expr "Cast" [Ast2.idExpr (typeName typ); formToSExpr expr]
+
 let rec formToString : form -> string = function
   | `Variable var -> sprintf "Variable (%s)" (varToString var)
   | `Constant c -> sprintf "Constant (%s)" (valueString c)
@@ -224,10 +268,31 @@ let rec formToString : form -> string = function
 let funcToString func =
   let argToString (name, typ) = name ^ " :" ^ typeName typ in
   let argStrings = List.map argToString func.fargs in
-  sprintf "%s(%s) :%s"
+  sprintf "%s(%s) :%s%s"
     func.fname
     (Common.combine ", " argStrings)
     (typeName func.rettype)
+    (match func.impl with
+       | Some form -> " = \n" ^ formToString form
+       | None -> "")
+
+let toplevelFormToSExpr =
+  let id = Ast2.idExpr in
+  function
+    | `GlobalVar var ->
+        Ast2.simpleExpr "GlobalVar" [typeName var.typ; var.vname; valueString var.vdefault]
+    | `DefineFunc func ->
+        let implExpr = match func.impl with
+          | Some expr -> [formToSExpr expr]
+          | None -> []
+        in
+        let argToSExpr (name, typ) = Ast2.simpleExpr (typeName typ) [name] in
+        Ast2.expr "Func" ([id (typeName func.rettype);
+                           id func.fname;
+                           Ast2.expr "opcall" (List.map argToSExpr func.fargs)]
+                          @ implExpr)
+    | `Typedef (name, typ) ->
+        Ast2.simpleExpr "Typedef" [name; typeName typ]
 
 let toplevelFormToString = function
   | `GlobalVar var ->

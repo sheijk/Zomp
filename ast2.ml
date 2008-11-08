@@ -5,10 +5,13 @@ type sexpr = {
   args :sexpr list;
 }
 
+type t = sexpr
+
 let idExpr name = { id = name; args = [] }
-let simpleExpr name args = { id = name; args = List.map (fun str -> { id = str; args = [] }) args }
+let simpleExpr name args = { id = name; args = List.map idExpr args }
 let emptyExpr = { id = "seq"; args = [] }
 let seqExpr args = { id = "seq"; args = args }
+let expr name args = { id = name; args = args }
 
 let testAst = {
   id = "main"; args = [

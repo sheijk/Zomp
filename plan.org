@@ -514,6 +514,20 @@ von http://lambda-the-ultimate.org/node/2884
      # |<enter>
    ..foo |
 ** TODO [#A] dynamic calls with support for protocols
+** TODO syntax for generic/polymorphic functions
+
+   func void print<Printable P>(P p) vs. print(Printable[P] p)
+   
+   func P add<Number P>(P l, P r) vs. Number[P] add(P l, P r)
+
+   add :: Number P => (P, P)->P
+   add(l, r) = ..
+
+   func N add(N l, N r) where Number N
+
+   func<Number N> N add(N l, N r) // schick
+** TODO assimp anbindung
+** TODO pcre anbindung
    
 * Use Cases                                                            :usecase:
 
@@ -1750,6 +1764,18 @@ Put macro functions into seperate module
    zoml - zero overhead meta language
    0mp
    roomp
+
+   self-assembly, or something inspired from nano technology?
+   moleculang
+   submicron
+   microstruct
+   meso-lang
+   monolayer
+   monolang
+   mesolayer
+   membrane
+   metalipid
+   nanolang, microlang, zeptolang
 
 ** Type annotations
 Annotate types using meta data?
