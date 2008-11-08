@@ -162,6 +162,7 @@ struct
       "int*", `Return [se1 "postop*" "int"];
       "*ptr", `Return [se1 "preop*" "ptr"];
       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
+      "(foo bar*)", `Return [juxExpr [id "foo"; se "postop*" ["bar"]]];
       (* todo post/prefix ops which work without additional whitespace *)
 
       "++i", `Return [se1 "preop++" "i"];

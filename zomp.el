@@ -79,6 +79,7 @@ indent the next line when they occur at the beginning of a line"
         (nil ,(zomp-id "^(?var +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?const +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?type +\\(ID\\)") 1)
+        (nil ,(zomp-id "^(?struct +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?template +\\(ID\\)") 1)
         ))
 
@@ -474,7 +475,7 @@ indent the next line when they occur at the beginning of a line"
     ;; ("^ +$" 0 compilation-error-face)
     
     ;; ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
-    ("\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b(" 1 font-lock-function-name-face)
+    ("\\([a-zA-Z][a-zA-Z0-9_.:]*\\)\\b(" 1 font-lock-function-name-face)
     ("^ *\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-variable-name-face)
     ("[()]" 0 font-lock-keyword-face)
     

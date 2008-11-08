@@ -7,21 +7,21 @@ open Bindings
 
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
-  
+
 let defaultPrompt = ref "  # "
 and continuedPrompt = ref "..# "
-  
+
 let printLLVMCode = ref false
 and printSExpr = ref false
 and printDeclarations = ref true
 and llvmEvaluationOn = ref true
-  
+
 module StringMap = Map.Make(String)
-  
+
 exception AbortExpr
 
 type commandFunc = string list -> Bindings.bindings -> unit
-  
+
 let exitCommand _ _  =
   printf "Exiting.\n";
   exit 0
@@ -48,7 +48,7 @@ let promptCommand args _ =
         report()
     | args ->
         printf "Expected 0-2 arguments instead of %d\n" (List.length args)
-  
+
 
 let boolString = function
   | true -> "yes"
@@ -71,20 +71,20 @@ let toggleParseFunc args _ =
     | ["sexpr"] -> parseFunc := Parseutils.parseSExpr; confirm "sexpr"
     | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
-  
+
 let toggleVerifyCommand args _ =
   match args with
     | ["on"] -> Zompvm.zompVerifyCode true
     | ["off"] -> Zompvm.zompVerifyCode false
     | _ -> eprintf "Expected on|off\n"; flush stderr
-        
+
 let matchAnyRegexp patterns =
   match patterns with
     | [] -> Str.regexp ".*"
     | _ ->
         let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
         Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
-      
+
 let printBindings args (bindings :bindings) =
   let checkRE = matchAnyRegexp args in
   let printSymbol (name, symbol)  =
@@ -133,14 +133,14 @@ let runFunction bindings funcname =
         end
     | _ ->
         eprintf "Cannot run %s because no such function was found\n" funcname
-  
+
 let runMain args bindings =
   match args with
     | [funcname] ->
         runFunction bindings funcname
     | _ ->
         eprintf "Only one argument allowed\n"; flush stderr
-    
+
 let loadLLVMFile filename _ =
   Zompvm.loadLLVMFile filename
 
@@ -155,14 +155,14 @@ let loadCode args bindings =
   let matches re string = Str.string_match (Str.regexp re) string 0 in
   List.iter
     (fun name ->
-       if matches ".*\\.ll" name then 
+       if matches ".*\\.ll" name then
          loadLLVMFile name bindings
        else if matches ".*\\.\\(dylib\\|so\\|dll\\)" name then
          loadCDll name bindings
        else
          printf "Unsupported file extension\n" )
     args
-  
+
 let listCommands commands _ _ =
   printf "%c to abort multi-line (continued input)\n" toplevelCommandChar;
   let maxCommandLength =
@@ -241,7 +241,7 @@ let writeSymbols args (bindings : Bindings.bindings) =
           eprintf "Expecting one argument\n";
           flush stderr
         end
-  
+
 let commands =
   let rec internalCommands = [
     "exit", ["x"; "q"], exitCommand, "Exit";
@@ -267,7 +267,7 @@ let commands =
     List.fold_left (fun map name -> StringMap.add name (func, docRef) map) newMap aliases
   in
   List.fold_left addCommands StringMap.empty internalCommands
-  
+
 let handleCommand commandLine bindings =
   let commandRE = Str.regexp (toplevelCommandString ^ "\\([a-zA-Z0-9]+\\)\\(.*\\)") in
   if Str.string_match commandRE commandLine 0 then
@@ -292,7 +292,7 @@ let beginsWith word line =
   in
   lineLength >= wordLength &&
     (String.sub line 0 (String.length word)) = word
-      
+
 let removeBeginning text count =
   let textLength = String.length text in
   let count = min textLength count in
@@ -303,21 +303,21 @@ let nthChar num string =
     Some string.[num]
   else
     None
-  
+
 let rec readExpr prompt previousLines bindings =
   printf "%s" prompt; flush stdout;
-  
+
   let line = read_line() in
-  
+
   if line |> beginsWith silentPrefix then begin
     let command = removeBeginning line (String.length silentPrefix + 1) in
     handleCommand command bindings;
     readExpr "" previousLines bindings
-      
+
   end else if line = toplevelCommandString then begin
     printf "Aborted input, cleared \"%s\"\n" previousLines;
     readExpr !defaultPrompt "" bindings
-      
+
   end else if nthChar 0 line = Some toplevelCommandChar then begin
     handleCommand line bindings;
     readExpr prompt previousLines bindings
@@ -331,7 +331,7 @@ let rec readExpr prompt previousLines bindings =
     in
     expr
   end
-    
+
 let () =
   let rec step bindings () =
     Parseutils.catchingErrorsDo
@@ -343,15 +343,15 @@ let () =
              let asString = Ast2.expression2string expr in
              printf " => %s\n" asString;
            end;
-           
+
            if !printLLVMCode then begin
              printf "LLVM code:\n%s\n" llvmCode;
              flush stdout;
            end;
-           
+
            if !llvmEvaluationOn then
              Zompvm.evalLLVMCode bindings simpleforms llvmCode;
-           
+
            if !printDeclarations then begin
              List.iter (fun form ->
                           let text = Lang.toplevelFormToString form in
@@ -360,19 +360,19 @@ let () =
            end;
            flush stdout;
          in
-         
+
          try
            let newBindings, simpleforms, llvmCode =
              Parseutils.compileExpr Expander.translateTL bindings expr
            in
            onSuccess newBindings simpleforms llvmCode;
            step newBindings ()
-             
+
          with originalException ->
            printf "Running immediately\n";
 
            let immediateFuncName = "toplevel:immediate" in
-           
+
            let exprInFunc =
              { id = "func"; args = [
                  idExpr "void";
@@ -382,7 +382,7 @@ let () =
                ] }
            in
            try
-             let newBindings, simpleforms, llvmCode = 
+             let newBindings, simpleforms, llvmCode =
                Parseutils.compileExpr Expander.translateTL bindings exprInFunc
              in
              onSuccess newBindings simpleforms llvmCode;
@@ -406,8 +406,8 @@ let () =
     end;
     at_exit Machine.zompShutdown;
   in
-  
-  let loadPrelude() = 
+
+  let loadPrelude() =
     Parseutils.catchingErrorsDo
       (fun () -> begin
          let preludeBindings = Parseutils.loadPrelude "./" in
@@ -427,7 +427,7 @@ let () =
   let message msg = printf "%s\n" msg; flush stdout; in
 
   message "Welcome to the interactive ZompVM";
-  
+
   message "Initializing...";
   init();
 
@@ -446,4 +446,4 @@ let () =
   run initialBindings
 
 
-    
+

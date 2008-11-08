@@ -223,6 +223,7 @@ GLFW_2_5
 #	void glfwSetCharCallback (GLFWcharfun cbfun)
 #	void glfwSetMouseButtonCallback (GLFWmousebuttonfun cbfun)
 #	void glfwSetMousePosCallback (GLFWmouseposfun cbfun)
+	void glfwSetMousePosCallback (void* cbfun)
 #	void glfwSetMouseWheelCallback (GLFWmousewheelfun cbfun)
 
 	int glfwGetJoystickParam (int joy, int param)

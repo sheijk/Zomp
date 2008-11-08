@@ -57,10 +57,8 @@ let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
                                  (typeName found)
                                  msg )
 
-
-let raiseInvalidType typeExpr = raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
-
-
+let raiseInvalidType typeExpr =
+  raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
 
 let rec findTypeName bindings = function
   | #Lang.integralType as integralType -> Lang.typeName integralType

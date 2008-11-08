@@ -6,14 +6,16 @@
 !syntax indent
 
 func int twice(int i)
-  ret 2 * i
+  ret (2 * i)
 end
 
 func int incr(int i)
-  ret i + 1
+  ret (i + 1)
 end
 
 type MapFunc (fptr int int)
+
+type IntToFloatFunc (fptr float int)
 
 func int main()
   var MapFunc f &twice

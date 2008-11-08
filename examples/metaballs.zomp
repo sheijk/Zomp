@@ -187,16 +187,16 @@ end
 // TODO: metaballs reintun
 // http://en.wikipedia.org/wiki/Marching_cubes
 
-macro struct name members...
-  code := simpleAst("type")
-  addChild code name
-
-  forEachAstChild member members
-    addChild code member
-  end
-
-  ret code
-end
+// macro struct name members...
+//   code := simpleAst("type")
+//   addChild code name
+// 
+//   forEachAstChild member members
+//     addChild code member
+//   end
+// 
+//   ret code
+// end
 
 //------------------------------------------------------------------------------
 // Quick and dirty arrays
@@ -332,13 +332,105 @@ end
 //   end}
 // end
 
+type degree float
+
+///
+/// A camera defined by longitude, latitude and distance
+///
+struct SpaceballCamera
+  /// angle between z-axis and rotation around y-axis
+  degree longitude
+
+  /// angle between z-axis and rotation around x-axis
+  degree latitude
+
+  degree distance
+end
+
+func void SpaceballCamera:init(SpaceballCamera* this)
+  this.latitude = 0.f
+  this.longitude = 0.f
+  this.distance = 1.f
+end
+
+func void SpaceballCamera:rotate(SpaceballCamera* this)
+  glTranslatef 0. 0. float:neg(this.distance)
+  glRotatef this.latitude 1. 0. 0.
+  glRotatef this.longitude 0. 1. 0.
+end
+
+// memberFunc void SpaceballCamera.rotate()
+// ...
+// end
+
+func void SpaceballCamera:applyToGL(SpaceballCamera* this)
+  glMatrixMode GL_MODELVIEW
+  glLoadIdentity()
+  SpaceballCamera:rotate(this)
+end
+
+func float posmod(float x, float divisor)
+  mod := fmodf(x, divisor)
+
+  if2 (mod <_f 0.0) then
+    mod = divisor -_f float:neg(mod)
+  end
+
+  ret mod
+end
+
+macro unittest:assertAll checks
+  var ast* code ${}
+  forEachAstChild check checks
+    addChild code ${unittest:assert #check}
+  end
+  ret code
+end
+
+unittest:testCasesFor posmod
+  posmod(0.0,2.0) ==_f 0.0
+  posmod(1.0,2.0) ==_f 1.0
+  posmod(2.0,2.0) ==_f 0.0
+
+  posmod(-1.0,3.0) ==_f 2.0
+  posmod(-2.0,3.0) ==_f 1.0
+
+  posmod(23.0, 4.0) ==_f 3.0
+  posmod(-61.0, 3.0) ==_f 2.0
+end
+
+func void SpaceballCamera:restrictParams(SpaceballCamera* this)
+  this.longitude = posmod this.longitude 360.0f
+  this.latitude = float:clamp float:neg(90.0) 90.0 this.latitude
+  this.distance = float:max 0.0 this.distance
+end
+
+var int lastMouseX 0
+var int lastMouseY 0
+var int mouseXDelta 0
+var int mouseYDelta 0
+
+func void onMouseMove(int x, int y)
+  mouseXDelta = lastMouseX - x
+  mouseYDelta = lastMouseY - y
+  
+  lastMouseX = x
+  lastMouseY = y
+end
+
 func int main()
   init()
+  resizeWindow 1440 900
+
+  glfwSetMousePosCallback (cast void* &onMouseMove)
 
   glMatrixMode( GL_PROJECTION )
   glLoadIdentity()
   aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
+
+  cam := new SpaceballCamera
+  cam.distance = 4.0f
 
   field := new Field3D 10
 
@@ -346,10 +438,22 @@ func int main()
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
 
+    if2 (abs(mouseXDelta) > abs(mouseYDelta)) then
+      mouseYDelta = 0
+    else
+      mouseXDelta = 0
+    end
+    cam.longitude = cam.longitude +_f int:toFloat(mouseXDelta)
+    cam.latitude = cam.latitude +_f int:toFloat(mouseYDelta)
+    SpaceballCamera:restrictParams cam
+    mouseXDelta = 0
+    mouseYDelta = 0
+
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    glTranslatef( 0., 2., float:neg(4.) )
-    glRotatef( angle, 0., 1., 0. )
+    SpaceballCamera:applyToGL cam
+    // glTranslatef( 0., 2., float:neg(4.) )
+    // glRotatef( angle, 0., 1., 0. )
 
     drawCoordSys 8.0
 

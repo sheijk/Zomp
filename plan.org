@@ -3,6 +3,7 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
 ** TODO [#A] cleanup stdlib :minor:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
 ** TODO [#A] GHCs newtype genauer ankucken
@@ -495,6 +496,23 @@ von http://lambda-the-ultimate.org/node/2884
 
    Instead of initially pausing the computation at line 0 let it run until the
    first occurence of yield
+** TODO [#A] Codegen tries to get address of parameter                     :bug:
+   Without the printFLocal this fails:
+   
+   struct concept_Printable
+     (fptr void void* ) printF
+   end
+      
+   func void concept_Printable:init(concept_Printable* this, (fptr void void* ) printF)
+     printFLocal := printF
+     this.printF = printFLocal
+   end
+** TODO [#A] !prompt is applied too late                                   :bug:
+
+     # !prompt foo<enter>
+   Set prompt to '  foo ' and cont. prompt to '..foo '
+     # |<enter>
+   ..foo |
    
 * Use Cases                                                            :usecase:
 
