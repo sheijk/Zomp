@@ -128,7 +128,7 @@
 ** TODO [#A] eldoc geht nicht in quotations: ${setField <cursor>}
 ** TODO [#A] zomp-newline does not delete selection
 ** TODO [#A] references (int& lvalue) ueber makros oder aehnliches machen
-** TODO [#A] nur identifier in namespaces erlauben, keine im toplevel?
+** TODO [#A] nur identifier in namespaces erlauben, keine im TOPLEVEL?
 ** TODO [#A] ueberall nounwind an die methoden haengen (evt. performance-relevant, benchmarken)
 ** TODO [#A] swap quote and antiquote characters to get more "natural" syntax?
 ** TODO [#A] alias macro
@@ -468,6 +468,33 @@ von http://lambda-the-ultimate.org/node/2884
    Keep a Map<Symbol, ToplevelExpr>. After the processing of each toplevel expression check
    whether any symbols in this map have been defined in the mean time. If true evaluate the
    corresponding toplevel expression
+** TODO [#A] yield iterator/loops: sofort zum ersten ergebnis
+   public static class StreamReaderExtensions
+   {
+       public static IEnumerable<string> Lines(this StreamReader reader)
+       {
+           if (reader== null)
+               throw new ArgumentNullException("reader");
+           reader.BaseStream.Seek(0, SeekOrigin.Begin);
+           string line;
+           while ((line = reader.ReadLine()) != null)
+               yield return line;
+       }
+   }
+
+   Problem: null check will be done when iterator is moved for the first time
+   and not when the method is originally called:
+
+   // will create an object representing the computation being paused before line 1
+   Iterator<string> lines = fileStream.lines();
+
+   // loads of code
+
+   // will throw ArgumentNullException here
+   string firstLine = lines.next();
+
+   Instead of initially pausing the computation at line 0 let it run until the
+   first occurence of yield
    
 * Use Cases                                                            :usecase:
 
@@ -721,6 +748,15 @@ von http://lambda-the-ultimate.org/node/2884
     int? => Option<int>
 
 * Tasks                                                                   :zomp:
+
+** Performance
+
+   | What                | 1000 lines |   Speedup | 2000 lines |   Speedup |
+   |---------------------+------------+-----------+------------+-----------|
+   | Original 2008-09-27 |      5.537 |        1. |      7.220 |        1. |
+   | Cache simpleAst     |      4.824 | 1.1478027 |      6.372 | 1.1330822 |
+   | Cache addChild      |      4.357 | 1.2708286 |      5.960 | 1.2114094 |
+#+TBLFM: $3=@2$2/$2::$5=@2$4/$4
 
 ** BUGS
 

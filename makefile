@@ -121,6 +121,9 @@ runtestsuite: all
 perftest: zompc.native zompc
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 4000 8000 16000"
 
+perftest_quick: zompc.native zompc
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="1000 2000"
+
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
 	llvm-gcc --emit-llvm -c $< -o $@

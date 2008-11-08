@@ -277,8 +277,8 @@ llvm::GenericValue runFunctionWithArgs(
  * zompAdd*Arg previously
  */
 llvm::GenericValue runFunction(const char* name) {
-  std::vector<const Type*> noparams;
-  std::vector<GenericValue> noargs;
+  static std::vector<const Type*> noparams;
+  static std::vector<GenericValue> noargs;
   return runFunctionWithArgs( name, noparams, noargs );
 }
 
@@ -664,9 +664,9 @@ extern "C" {
 
   void checkId(const char* id, const char* func) {
     bool valid = true;
-
+    
     const int length = strlen(id);
-
+    
     if( length >= 2 && ((id[0] == '"' && id[length-1] == '"') || (id[0] == '\'' && id[length-1] == '\'')) ) {
       const unsigned char* ptr = (unsigned char*)id;
       while( *ptr != '\0' ) {
@@ -681,31 +681,49 @@ extern "C" {
         valid &= validIdChar(*ptr++);
       }
     }
-
+    
     if( ! valid ) {
       printf("Found invalid id '%s' in '%s'\n", id, func);
     }
   }
 
+  // int zompSimpleAst(char* name) {
+  //   checkId(name, "zompSimpleAst");
+  // 
+  //   std::vector<GenericValue> args;
+  // 
+  //   args.push_back( ptrValue(name) );
+  // 
+  //   GenericValue retval = executionEngine->runFunction( simpleAst, args );
+  // 
+  //   return ptrToCamlInt( retval.PointerVal );
+  // }
+
   int zompSimpleAst(char* name) {
     checkId(name, "zompSimpleAst");
 
-    std::vector<GenericValue> args;
+    static void* (*simpleAstF)(void*) =
+      (void* (*)(void*)) executionEngine->getPointerToFunction(simpleAst);
+    assert( simpleAstF != NULL );
 
-    args.push_back( ptrValue(name) );
-
-    GenericValue retval = executionEngine->runFunction( simpleAst, args );
-
-    return ptrToCamlInt( retval.PointerVal );
+    return ptrToCamlInt( simpleAstF(name) );
   }
 
+  // void zompAddChild(int parent, int child) {
+  //   std::vector<GenericValue> args;
+  // 
+  //   args.push_back( ptrValue(parent) );
+  //   args.push_back( ptrValue(child) );
+  // 
+  //   executionEngine->runFunction( addChild, args );
+  // }
+
   void zompAddChild(int parent, int child) {
-    std::vector<GenericValue> args;
+    static void (*addChildF)(void*, void*) =
+      (void (*)(void*,void*)) executionEngine->getPointerToFunction(addChild);
+    assert( addChildF != NULL );
 
-    args.push_back( ptrValue(parent) );
-    args.push_back( ptrValue(child) );
-
-    executionEngine->runFunction( addChild, args );
+    addChildF( (void*)(parent), (void*)(child) );
   }
 
   static std::set<void*> registeredvoids;
