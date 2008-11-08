@@ -10,7 +10,7 @@ struct
   type output = token list
 
   let printInput str = printf "%s" str
-    
+
   let printOutput tokens = printTokens tokens 
 
   let outputEqual l r =
@@ -18,7 +18,7 @@ struct
       List.for_all2 (=) l r
     else
       false
-    
+
   type result = [ `Return of output | `Exception of string ]
 
   let testedFunc str =
@@ -79,6 +79,12 @@ struct
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];
       "float* var", `Return [id "float"; POSTFIX_OP "*"; id "var"; END];
+
+      "char**", `Return [id "char"; POSTFIX_OP "*"; POSTFIX_OP "*"; END];
+      "(float*)*", `Return [OPEN_PAREN; id "float"; POSTFIX_OP "*";
+                          CLOSE_PAREN; POSTFIX_OP "*"; END];
+      "(foo baz*)", `Return
+        [OPEN_PAREN; id "foo"; id "baz"; POSTFIX_OP "*"; CLOSE_PAREN; END];
 
       "opAtEndOfLine = ", `Return [id "opAtEndOfLine"; ASSIGN_OP "="; END];
       "opAtEndOfLine =", `Return [id "opAtEndOfLine"; ASSIGN_OP "="; END];

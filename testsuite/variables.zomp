@@ -9,10 +9,10 @@ func int main()
   assign i 3
   assert (i == 3)
 
-  // TODO
-  var int* ptr &i
-  store ptr 99
-  assert (i == 99)
+  // // TODO
+  // var int* ptr &i
+  // store ptr 99
+  // assert (i == 99)
 
   ret 0
 end

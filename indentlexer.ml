@@ -38,13 +38,12 @@ let trimLinefeed str =
   let noLineFeeds = mapString (function '\n' -> ' ' | c -> c) str in
   trim noLineFeeds
 
-let lastChar str = str.[String.length str - 1]
-
 (**
  * each rule consists of two regexps (one for the string allowed to precede the expression
  * and one which matches the token) and a function turning the matched string into a token
  *)
 let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
+  let opSymbols = "-+\\*/&.><=!:|" in
   let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
   let idFunc s = `Token (IDENTIFIER s) in
   let regexpRule str token =
@@ -57,7 +56,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   let validIdentifierLastChar = "a-zA-Z0-9_" in
   let opRule symbol (tokenF :string -> token) =
     (Str.regexp "[a-z)]",
-     Str.regexp (opre symbol ^ "[^ \n]")),
+     Str.regexp (opre symbol ^ (sprintf "[^) \n%s]" opSymbols))),
     (fun str ->
        let lastChar = str.[String.length str - 1] in
        let str2 = Str.string_before str (String.length str - 1) in
@@ -84,14 +83,13 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     (Str.regexp "", Str.regexp symbol), (fun t -> `Token (f t))
   in
   let postfixRule symbol =
-    re (sprintf "\\(%s +\\|%s\n\\)" (Str.quote symbol) (Str.quote symbol)),
+    re (sprintf "%s\\( +\\|\n\\|)\\|[%s]\\)" (Str.quote symbol) opSymbols),
     (fun s ->
        if String.length s >= 1 && Str.last_chars s 1 = "\n" then
          `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
        else
-         let trimmed = trim s in
-         let removedWhitespace = String.length s - String.length trimmed in
-         `PutBack( POSTFIX_OP (trim s), String.make removedWhitespace ' ' ) )
+         let trimmed, putbackString = splitAt s (FromFront (String.length symbol)) in
+         `PutBack (POSTFIX_OP trimmed, putbackString) )
   in
   let prefixRule symbol =
     (Str.regexp "\\(\n\\| +\\)", Str.regexp (sprintf "%s" (Str.quote symbol))),
@@ -116,7 +114,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
   let opfuncRule prefix =
-    re ((Str.quote prefix) ^ "[+-\\*/&.><=!;|]+ *"),
+    re ((Str.quote prefix) ^ sprintf "[%s]+ *" opSymbols),
     (fun (str:string) -> `Token (IDENTIFIER (trim str)))
   in
   let keywordRule =
@@ -129,11 +127,6 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
        else
          `Token token)
   in
-  (* let extendedIndentRule = *)
-  (*   (Str.regexp ".", Str.regexp ": *\n"), *)
-  (*   (fun id -> *)
-  (*      `PutBack( EXTENDED_INDENT, "\n" )) *)
-  (* in *)
   let openParenRule =
     (Str.regexp "[^a-zA-Z0-9]", Str.regexp_string "("),
     (fun s -> `Token OPEN_PAREN)
@@ -581,7 +574,7 @@ let printTokens tokens =
     | [] -> ()
     | t :: remTokens ->
         let str, newContext = tokenToString context t in
-        printf "%s " str;
+        printf "<%s> " str;
         worker newContext remTokens
   in
   worker (0, `DontIndent) tokens

@@ -160,6 +160,8 @@ struct
                  ];
                ]];
       "int*", `Return [se1 "postop*" "int"];
+      "int**", `Return [expr "postop*" [expr "postop*" [id "int"]]];
+      "(int*)*", `Return [expr "postop*" [expr "postop*" [id "int"]]];
       "*ptr", `Return [se1 "preop*" "ptr"];
       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       "(foo bar*)", `Return [juxExpr [id "foo"; se "postop*" ["bar"]]];

@@ -1,6 +1,7 @@
 
-WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp var.zomp functions.zomp stdlibfuncs.zomp void.zomp voidvar.zomp ops.zomp typedefs.zomp sexpr.zomp pointers.zomp records.zomp ret.zomp labels.zomp strings.zomp macros.zomp nested.zomp arrays.zomp ast.zomp compiletime.zomp casts.zomp variadicmacro.zomp floats.zomp ops.zomp
+WORKING = comments.zomp constant.zomp globalvar.zomp var.zomp stdlibfuncs.zomp void.zomp voidvar.zomp ops.zomp typedefs.zomp sexpr.zomp pointers.zomp records.zomp ret.zomp labels.zomp strings.zomp macros.zomp nested.zomp arrays.zomp ast.zomp compiletime.zomp casts.zomp variadicmacro.zomp floats.zomp ops.zomp
 
+OUTDATED= intrinsics.zomp functions.zomp
 # WORKING=sharkperf.zomp
 
 # WORKING = comments.zomp constant.zomp globalvar.zomp intrinsics.zomp functions.zomp voidvar.zomp ops.zomp typedefs.zomp pointers.zomp records.zomp ret.zomp macros.zomp nested.zomp arrays.zomp strings.zomp

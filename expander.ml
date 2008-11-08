@@ -96,18 +96,16 @@ let determineStorage typ =
     | `Pointer _ -> MemoryStorage
     | _ -> RegisterStorage
 
+let lookupType bindings name =
+  try
+    Some (Lang.parseType name)
+  with
+    | Typesystems.Zomp.CouldNotParseType _ ->
+        match lookup bindings name with
+          | TypedefSymbol t -> Some t
+          | _ -> None
 
 let rec translateType bindings typeExpr =
-  let lookupType bindings name =
-    try
-      Some (Lang.parseType name)
-    with
-      | Typesystems.Zomp.CouldNotParseType _ ->
-          match lookup bindings name with
-              (*             | TypedefSymbol `Record _ -> Some (`TypeRef name) *)
-            | TypedefSymbol t -> Some t
-            | _ -> None
-  in
   let translatePtr targetTypeExpr =
     match translateType bindings targetTypeExpr with
       | Some t -> Some (`Pointer t)
@@ -378,13 +376,6 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
                   | `Pointer `Function ft ->
                       begin
                         buildCall name ft.returnType ft.argTypes `FuncPtr bindings args
-                        (* let newBindings, tempVar = getNewVar bindings var.typ in *)
-                        (* let loadForm = `DefineVariable(tempVar, Some (`LoadIntrinsic (`Variable var))) in *)
-                        (* match buildCall tempVar.vname ft.returnType ft.argTypes newBindings args with *)
-                        (*   | Some(bindings, forms) -> *)
-                        (*       Some(bindings, loadForm :: forms) *)
-                        (*   | None -> *)
-                        (*       None *)
                       end
                   | _ ->
                       raiseIllegalExpression
@@ -423,6 +414,87 @@ let rec listContains element = function
   | [] -> false
   | e :: rem when e = element -> true
   | _ :: rem -> listContains element rem
+
+
+(* let createNativeMacro translateF bindings macroName argNames impl = *)
+(*   let sexprImpl = impl in *)
+(*   let bindings = *)
+(*     List.fold_left *)
+(*       (fun bindings name -> *)
+(*          Bindings.addVar bindings *)
+(*            (Lang.variable *)
+(*               ~name *)
+(*               ~typ:astPtrType *)
+(*               ~default:(PointerVal (astPtrType, None)) *)
+(*               ~storage:Lang.RegisterStorage *)
+(*               ~global:false) ) *)
+(*       bindings argNames *)
+(*   in *)
+(*   let _, xforms = translateF bindings sexprImpl in *)
+(*   let initForms, implforms = extractToplevelForms xforms in *)
+(*   let initForms = flattenNestedTLForms initForms in *)
+(*   let localVar ~typ ~name = *)
+(*     Lang.variable ~typ ~name ~storage:MemoryStorage *)
+(*     ~global:false ~default:(Typesystems.Zomp.defaultValue typ) *)
+(*   in *)
+(*   let astType = *)
+(*     match lookupType bindings "ast" with *)
+(*       | Some t -> t *)
+(*       | None -> raiseIllegalExpression (Ast2.idExpr "ast") "Could not find prelude type 'ast'" *)
+(*   in *)
+(*   let argParamName = "__macro_args" in *)
+(*   let extractParamExprs : Lang.form list = *)
+(*     let makeExtractCode argNum argName = *)
+(*       let argNum = Int32.of_int argNum in *)
+(*       let argName = argName ^ "_dummy" in *)
+(*       (\* var ast* argName (ptradd __macro_args argNum) *\) *)
+(*       let astPtr = `Pointer astType in *)
+(*       let argVar = localVar ~typ:astPtr ~name:argName in *)
+(*       let macroArgs = `Variable (localVar ~typ:(`Pointer astPtr) ~name:argParamName) in *)
+(*       let argNumConstant = `Constant (Int32Val argNum) in *)
+(*       `DefineVariable (argVar, Some (`LoadIntrinsic (`PtrAddIntrinsic *)
+(*                                                        (macroArgs, *)
+(*                                                         argNumConstant)))) *)
+(*     in *)
+(*     Common.listMapi makeExtractCode argNames *)
+(*   in *)
+(*   (\* let argsDummy : Lang.form = *\) *)
+(*   (\*   `DefineVariable (localVar *\) *)
+(*   (\*                      ~typ:(`Pointer (`Pointer astType)) *\) *)
+(*   (\*                      ~name:argParamName, *\) *)
+(*   (\*                    Some (`NullptrIntrinsic (`Pointer astType))) *\) *)
+(*   (\* in *\) *)
+(* (\* TODO: wieder alte methode von unten einbauen, neue special form "build macro impl ast" *\) *)
+(* (\*   crash: weil __macro_args mit null initialisiert wird *\) *)
+(*   (\* let implforms = argsDummy :: (extractParamExprs @ implforms) in *\) *)
+(*   let implforms = extractParamExprs @ implforms in *)
+(*   let macroFunc = { *)
+(*     Lang.fname = macroName; *)
+(*     rettype = astPtrType; *)
+(*     fargs = [argParamName, `Pointer (`Pointer astType)]; *)
+(*     (\* fargs = List.map (fun name -> (name, astPtrType)) argNames; *\) *)
+(*     impl = Some (toSingleForm implforms); *)
+(*   } in *)
+(*   printf "----- %s\n" macroName; *)
+(*   (\* printf "%s\n" (formToString argsDummy); *\) *)
+(*   List.iter (printf "%s\n" ++ formToString) extractParamExprs; *)
+(*   printf "=> %s\n" (funcToString macroFunc); *)
+(*   List.iter (printf "%s\n" ++ formToString) implforms; *)
+(*   printf "-----\n"; *)
+(*   flush stdout; *)
+(*   let tlforms = initForms @ [`DefineFunc macroFunc] in *)
+(*   let llvmCodes = List.map Genllvm.gencodeTL tlforms in *)
+(*   let llvmCode = Common.combine "\n" llvmCodes in *)
+(*   Zompvm.evalLLVMCodeB *)
+(*     ~targetModule:Zompvm.Runtime *)
+(*     (if listContains macroName !macroFuncs then *)
+(*        [macroName] *)
+(*      else begin *)
+(*        macroFuncs := macroName :: !macroFuncs; *)
+(*        [] *)
+(*      end) *)
+(*     (tlforms @ [`DefineFunc macroFunc]) *)
+(*     llvmCode *)
 
 let createNativeMacro translateF bindings macroName argNames impl =
   let sexprImpl = impl in
@@ -938,18 +1010,130 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
   | _ ->
       None
 
-type env = {
+(* type env = { *)
+(*   bindings :Bindings.t; *)
+(*   translateF :exprTranslateF; *)
+(* } *)
+
+type 'translateF env = {
   bindings :Bindings.t;
-  translateF :exprTranslateF;
+  translateF :'translateF;
 }
 
 type translationResult =
   | Error of string
   | Result of bindings * (formWithTLsEmbedded list)
 
-let translateDummy (env :env) (expr :Ast2.sexpr)  :translationResult =
+let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
   Error "Not supported at all"
 
+module Macros =
+struct
+  let buildNativeMacroFunc translateF bindings macroName argNames impl =
+    let sexprImpl = impl in
+    let bindings =
+      List.fold_left
+        (fun bindings name ->
+           Bindings.addVar bindings
+             (Lang.variable
+                ~name
+                ~typ:astPtrType
+                ~default:(PointerVal (astPtrType, None))
+                ~storage:Lang.RegisterStorage
+                ~global:false) )
+        bindings argNames
+    in
+    let _, xforms = translateF bindings sexprImpl in
+    let initForms, implforms = extractToplevelForms xforms in
+    let initForms = flattenNestedTLForms initForms in
+    let localVar ~typ ~name =
+      Lang.variable ~typ ~name ~storage:MemoryStorage
+        ~global:false ~default:(Typesystems.Zomp.defaultValue typ)
+    in
+    let astType =
+      match lookupType bindings "ast" with
+        | Some t -> t
+        | None -> raiseIllegalExpression (Ast2.idExpr "ast") "Could not find prelude type 'ast'"
+    in
+    let argParamName = "__macro_args" in
+    let extractParamExprs : Lang.form list =
+      let makeExtractCode argNum argName =
+        let argNum = Int32.of_int argNum in
+        let argName = argName ^ "_dummy" in
+        (* var ast* argName (ptradd __macro_args argNum) *)
+        let astPtr = `Pointer astType in
+        let argVar = localVar ~typ:astPtr ~name:argName in
+        let macroArgs = `Variable (localVar ~typ:(`Pointer astPtr) ~name:argParamName) in
+        let argNumConstant = `Constant (Int32Val argNum) in
+        `DefineVariable (argVar, Some (`LoadIntrinsic (`PtrAddIntrinsic
+                                                         (macroArgs,
+                                                          argNumConstant))))
+      in
+      Common.listMapi makeExtractCode argNames
+    in
+    let implforms = extractParamExprs @ implforms in
+    let macroFunc = {
+      Lang.fname = macroName;
+      rettype = astPtrType;
+      fargs = [argParamName, `Pointer (`Pointer astType)];
+      (* fargs = List.map (fun name -> (name, astPtrType)) argNames; *)
+      impl = Some (toSingleForm implforms);
+    } in
+    printf "----- %s\n" macroName;
+    (* printf "%s\n" (formToString argsDummy); *)
+    List.iter (printf "%s\n" ++ formToString) extractParamExprs;
+    printf "=> %s\n" (funcToString macroFunc);
+    List.iter (printf "%s\n" ++ formToString) implforms;
+    printf "-----\n";
+    flush stdout;
+    let tlforms = initForms @ [`DefineFunc macroFunc] in
+    tlforms, macroFunc
+
+  let translateDefineMacro env expr =
+    let isValidMacroDefinition expr =
+      match List.rev expr.args with
+        | { Ast2.id = id; args = implExprs; } :: params when id = macroSeqOp ->
+            begin
+              let isValidMacroParam = function
+                | {Ast2.args = []} -> true
+                | _ -> false
+              in
+              let isVariadicMacroParam = function
+                | {Ast2.id = id; args = [{Ast2.args=[]}]} -> true
+                | _ -> false
+              in
+              match params with
+                | [] ->
+                    true
+                | [singleParam] ->
+                    isValidMacroParam singleParam
+                | lastParam :: frontParams ->
+                    List.for_all isValidMacroParam frontParams &&
+                      (isValidMacroParam lastParam || isVariadicMacroParam lastParam)
+            end
+        | _ ->
+            false
+    in
+    if isValidMacroDefinition expr then begin
+      printf "Valid macro definition\n";
+    end else begin
+      printf "Invalid macro definition\n";
+    end;
+    let funcSource =
+      "func ast* foobar(ast* macro_args)\n" ^
+        "  printString(\"xxx\")\n" ^
+        "end\n\n\n"
+      (* "func ast* transform(ast** __macro_args)\n" ^ *)
+      (*   "  ret ${a b c}\n" ^ *)
+      (*   "end\n" *)
+    in
+    let funcExpr = Parseutils.parseIExpr funcSource in
+    (match funcExpr with
+      | Some expr -> printf "macro = %s\n" (Ast2.toString expr)
+      | None -> printf "Could not parse macro source\n");
+    flush stdout;
+    Error "can't define macro, yet"
+end
 
 let translateDefineLocalVar env expr =
   let transform id name typeExpr valueExpr =
@@ -1018,13 +1202,20 @@ let baseInstructions =
   let table = Hashtbl.create 32 in
   Hashtbl.add table "dummy" translateDummy;
   Hashtbl.add table "std:base:localVar" translateDefineLocalVar;
+  Hashtbl.add table "std:base:macro" Macros.translateDefineMacro;
   table
 
+(* let toplevelBaseInstructions = *)
+(*   let table = Hashtbl.create 32 in *)
+(*   Hashtbl.add table "std:base:macro" Macros.translateDefineMacro; *)
+(*   table *)
+
 let translateFromDict
-    (translateF :exprTranslateF)
+    baseInstructions
+    translateF
     (bindings :bindings)
     (expr :Ast2.sexpr)
-    : (bindings * formWithTLsEmbedded list) option =
+    =
   try
     let handler = Hashtbl.find baseInstructions expr.id in
     let env = { bindings = bindings; translateF = translateF } in
@@ -1052,6 +1243,7 @@ let rec translate errorF translators bindings expr =
 
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
+    translateFromDict baseInstructions;
     translateSeq;
     translateDefineVar;
     translateSimpleExpr;
@@ -1065,7 +1257,6 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
     translateReturn;
     translateLabel;
     translateBranch;
-    translateFromDict;
 (*     translateAntiquote; *)
   ]
   translateF bindings
@@ -1322,6 +1513,7 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
 
 and translateTL bindings expr = translate raiseIllegalExpression
   [
+    (* translateFromDict toplevelBaseInstructions; *)
     translateGlobalVar;
     translateFunc;
     translateTypedef;

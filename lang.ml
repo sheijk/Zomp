@@ -1,7 +1,7 @@
 
 open Printf
 open Common
-  
+
 let componentType components componentName =
   try Some( snd (List.find (fun (name, _) -> name = componentName) components) )
   with Not_found -> None
@@ -71,11 +71,11 @@ let string2integralValue str =
     ]
     ~onSuccess:some
     ~ifAllFailed:(lazy None)
-    
+
 type varStorage =
   | RegisterStorage
   | MemoryStorage
-      
+
 type 'typ variable = {
   vname :string;
   typ :'typ;
@@ -99,7 +99,7 @@ let rec validateValue = function
         name, validateValue value
       in
       RecordVal (List.map validateComponent components)
-        
+
 let variable ~name ~typ ~default ~storage ~global = {
   vname = name;
   typ = typ;
@@ -111,11 +111,11 @@ let variable ~name ~typ ~default ~storage ~global = {
 
 let varToStringShort var =
   sprintf "%s : %s" var.vname (typeName var.typ)
-    
+
 let varToString var =
   sprintf "%s : %s = %s" var.vname (typeName var.typ) (valueString var.vdefault)
-    
-    
+
+
 (* TODO: fix this! TODO: find out what should be fixed... *)
 let localVar ~typ =
   variable
@@ -123,7 +123,7 @@ let localVar ~typ =
     ~storage:RegisterStorage
     ~global:false
     ~default:(Typesystems.Zomp.defaultValue typ)
-    
+
 and globalVar = variable ~storage:MemoryStorage ~global:true
 
 type 'argument funcCall = {
@@ -150,7 +150,7 @@ let labelToString l = l.lname
 
 let branchToString b =
   sprintf "%s ? %s : %s" b.bcondition.vname (labelToString b.trueLabel) (labelToString b.falseLabel)
-    
+
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
 | `Variable of 'typ variable
@@ -167,7 +167,7 @@ type 'form genericIntrinsic = [
 | `GetFieldPointerIntrinsic of 'form * string
 | `CastIntrinsic of composedType * 'form
 ]
-    
+
 type form = [
 | composedType flatArgForm
 | `Sequence of form list
@@ -212,7 +212,14 @@ let rec formToString : form -> string = function
       sprintf "Branch( %s )" (branchToString b)
   | `Label l ->
       labelToString l
-  | #genericIntrinsic -> "some generic intrinsic"
+  | `NullptrIntrinsic (typ) -> sprintf "null %s" (typeName typ)
+  | `MallocIntrinsic (typ, form) -> sprintf "malloc %s x %s" (typeName typ) (formToString form)
+  | `GetAddrIntrinsic var -> sprintf "GetAddr (%s)" (varToString var)
+  | `StoreIntrinsic (ptr, value) -> sprintf "Store (%s, %s)" (formToString ptr) (formToString value)
+  | `LoadIntrinsic (ptr) -> sprintf "Load (%s)" (formToString ptr)
+  | `PtrAddIntrinsic (ptr, offset) -> sprintf "PtrAdd (%s, %s)" (formToString ptr) (formToString offset)
+  | `GetFieldPointerIntrinsic (record, fieldName) -> sprintf "GetField (%s, %s)" (formToString record) fieldName
+  | `CastIntrinsic (typ, expr) -> sprintf "Cast (%s, %s)" (typeName typ) (formToString expr)
 
 let funcToString func =
   let argToString (name, typ) = name ^ " :" ^ typeName typ in
@@ -221,7 +228,7 @@ let funcToString func =
     func.fname
     (Common.combine ", " argStrings)
     (typeName func.rettype)
-    
+
 let toplevelFormToString = function
   | `GlobalVar var ->
       sprintf "var %s" (varToString var)
@@ -229,7 +236,7 @@ let toplevelFormToString = function
       sprintf "func %s" (funcToString func)
   | `Typedef (name, typ) ->
       sprintf "type %s = %s" name (typeName typ)
-      
+
 let toSingleForm formlist =
   match formlist with
     | [(singleForm :form)] -> singleForm
@@ -249,7 +256,7 @@ let funcDecl name rettype args = {
   fargs = args;
   impl = None;
 }
-  
+
 let funcDef name rettype args impl = {
   fname = name;
   rettype = rettype;
@@ -264,12 +271,12 @@ type 'bindings macro = {
 }
 
 
-  
+
 (* type package = { *)
 (*   pname :string; *)
 (*   vars :variable list; *)
 (*   funcs :func list; *)
 (* } *)
-    
+
 
 

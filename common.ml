@@ -249,6 +249,15 @@ let listIteri f list =
   in
   iterWithIndex 0 list
 
+let listMapi f list =
+  let rec mapWithIndex index acc = function
+    | [] ->
+        List.rev acc
+    | head::tail ->
+        mapWithIndex (index+1) (f index head :: acc) tail
+  in
+  mapWithIndex 0 [] list
+
 let listMap2i f list1 list2 =
   let rec mapWithIndex index acc list1 list2 =
     match list1, list2 with
@@ -333,4 +342,13 @@ let splitAt str pos =
   and back = Str.string_after str splitPos
   in
   front, back
+
+let lastChar str = str.[String.length str - 1]
+
+let splitLastChar str =
+  let strLength = String.length str in
+  assert (strLength > 0);
+  let lastChar = str.[strLength - 1] in
+  let front = Str.string_before str (strLength-1) in
+  front, lastChar
 

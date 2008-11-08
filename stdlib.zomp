@@ -378,7 +378,6 @@
   (ret (cstrings:append (cstrings:append name "_") purpose)) ))
 
 
-
 (macro testmacro args ... (
   (var astp code `(was))
 

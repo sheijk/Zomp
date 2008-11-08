@@ -334,7 +334,7 @@ let rec readExpr prompt previousLines bindings =
 
 let () =
   let rec step bindings () =
-    Parseutils.catchingErrorsDo
+    Compileutils.catchingErrorsDo
       (fun () -> begin
          let expr = readExpr !defaultPrompt "" bindings in
 
@@ -408,9 +408,9 @@ let () =
   in
 
   let loadPrelude() =
-    Parseutils.catchingErrorsDo
+    Compileutils.catchingErrorsDo
       (fun () -> begin
-         let preludeBindings = Parseutils.loadPrelude "./" in
+         let preludeBindings = Compileutils.loadPrelude "./" in
          let initialBindings = addToplevelBindings preludeBindings in
          initialBindings
        end)

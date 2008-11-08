@@ -664,9 +664,9 @@ extern "C" {
 
   void checkId(const char* id, const char* func) {
     bool valid = true;
-    
+
     const int length = strlen(id);
-    
+
     if( length >= 2 && ((id[0] == '"' && id[length-1] == '"') || (id[0] == '\'' && id[length-1] == '\'')) ) {
       const unsigned char* ptr = (unsigned char*)id;
       while( *ptr != '\0' ) {
@@ -681,23 +681,16 @@ extern "C" {
         valid &= validIdChar(*ptr++);
       }
     }
-    
+
     if( ! valid ) {
       printf("Found invalid id '%s' in '%s'\n", id, func);
     }
   }
 
-  // int zompSimpleAst(char* name) {
-  //   checkId(name, "zompSimpleAst");
-  // 
-  //   std::vector<GenericValue> args;
-  // 
-  //   args.push_back( ptrValue(name) );
-  // 
-  //   GenericValue retval = executionEngine->runFunction( simpleAst, args );
-  // 
-  //   return ptrToCamlInt( retval.PointerVal );
-  // }
+// improves compiliation time of realistic programs by two
+#define ZOMP_CACHED_FUNCS
+
+#ifdef ZOMP_CACHED_FUNCS
 
   int zompSimpleAst(char* name) {
     checkId(name, "zompSimpleAst");
@@ -709,15 +702,6 @@ extern "C" {
     return ptrToCamlInt( simpleAstF(name) );
   }
 
-  // void zompAddChild(int parent, int child) {
-  //   std::vector<GenericValue> args;
-  // 
-  //   args.push_back( ptrValue(parent) );
-  //   args.push_back( ptrValue(child) );
-  // 
-  //   executionEngine->runFunction( addChild, args );
-  // }
-
   void zompAddChild(int parent, int child) {
     static void (*addChildF)(void*, void*) =
       (void (*)(void*,void*)) executionEngine->getPointerToFunction(addChild);
@@ -725,6 +709,31 @@ extern "C" {
 
     addChildF( (void*)(parent), (void*)(child) );
   }
+
+#else
+
+  int zompSimpleAst(char* name) {
+    checkId(name, "zompSimpleAst");
+
+    std::vector<GenericValue> args;
+
+    args.push_back( ptrValue(name) );
+
+    GenericValue retval = executionEngine->runFunction( simpleAst, args );
+
+    return ptrToCamlInt( retval.PointerVal );
+  }
+
+  void zompAddChild(int parent, int child) {
+    std::vector<GenericValue> args;
+
+    args.push_back( ptrValue(parent) );
+    args.push_back( ptrValue(child) );
+
+    executionEngine->runFunction( addChild, args );
+  }
+
+#endif
 
   static std::set<void*> registeredvoids;
 
@@ -857,7 +866,4 @@ extern "C" {
   }
 
 } // extern "C"
-
-
-
 

@@ -4,6 +4,7 @@ open Expander
 open Genllvm
 open Common
 open Parseutils
+open Compileutils
 
 type llvmCode = string
 
@@ -140,10 +141,10 @@ let compile instream outstream =
   end;
   Zompvm.zompVerifyCode false;
   let exitCode =
-    Parseutils.catchingErrorsDo
+    Compileutils.catchingErrorsDo
       (fun () -> begin
          let bindings :Bindings.t =
-           Parseutils.loadPrelude
+           Compileutils.loadPrelude
              ~dir:preludeDir
              ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
                              output_string outstream llvmCode)

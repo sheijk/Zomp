@@ -2,7 +2,7 @@
 func int main {} {
   var int i1 0;
   var int i2 1;
-  
+
   int.add i1 i2;
   int.sub i1 i2;
   int.mul i1 i2;
