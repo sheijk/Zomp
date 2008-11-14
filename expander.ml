@@ -1036,6 +1036,7 @@ let combineErrors msg = function
     | errors -> msg ^ ": " ^ Common.combine "\n  " errors
 
 type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
+type toplevelTranslationResult = (bindings * (toplevelExpr list)) mayfail
 
 let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
   Error ["Not supported at all"]
@@ -1085,27 +1086,42 @@ struct
     let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name in
     (fun bindings args ->
        begin
-         match isVariadic, List.length args with
-           | `IsNotVariadic, argCount ->
+         let invokeMacro args =
+           let nativeArgs = List.map NativeAst.buildNativeAst args in
+           Machine.zompResetMacroArgs();
+           List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
+           let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
+           let resultAst = NativeAst.extractSExprFromNativeAst nativeResultAst in
+           resultAst
+         in
+         let argCount = List.length args in
+         match isVariadic with
+           | `IsNotVariadic -> begin
                if argCount <> paramCount then begin
                  raiseIllegalExpression
                    {Ast2.id = name; args = args}
                    (sprintf "Expected %d args but found %d" paramCount argCount);
                end else begin
-                 let nativeArgs = List.map NativeAst.buildNativeAst args in
-                 Machine.zompResetMacroArgs();
-                 List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
-                 let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
-                 let resultAst = NativeAst.extractSExprFromNativeAst nativeResultAst in
-                 resultAst
+                 invokeMacro args
                end
-           | `IsVariadic, _ ->
-               raiseIllegalExpression
-                 {Ast2.id = name; args = args}
-                 "Variadic arg macros cannot be called, yet"
+             end
+           | `IsVariadic -> begin
+               if argCount < paramCount-1 then begin
+                 raiseIllegalExpression
+                   {Ast2.id = name; args = args}
+                   (sprintf "Expected at least %d args but found only %d"
+                      (paramCount-1) argCount)
+               end;
+               let declaredArgs, variadicArgs = Common.splitAfter (paramCount-1) args in
+               let inflatedArgs = declaredArgs @ [Ast2.seqExpr variadicArgs] in
+               invokeMacro inflatedArgs
+             end
+               (* raiseIllegalExpression *)
+               (*   {Ast2.id = name; args = args} *)
+               (*   "Variadic arg macros cannot be called, yet" *)
        end : bindings -> Ast2.sexpr list -> Ast2.sexpr)
 
-  let translateDefineMacro env expr =
+  let translateDefineMacro translateNestedF env expr =
     let decomposeMacroDefinition expr =
       let nameParamImplOption =
         match expr with
@@ -1172,24 +1188,25 @@ struct
     match decomposeMacroDefinition expr with
       | Result (name, paramNames, implExprs, isVariadic) ->
           begin
-            printf "name = %s; params = %s; impl = ...%s\n"
-              name
-              (Common.combine ", " paramNames)
-              (match isVariadic with `IsVariadic -> " is variadic" | _ -> "");
+            (* printf "name = %s; params = %s; impl = ...%s\n" *)
+            (*   name *)
+            (*   (Common.combine ", " paramNames) *)
+            (*   (match isVariadic with `IsVariadic -> " is variadic" | _ -> ""); *)
             let tlexprs, func =
               buildNativeMacroFunc
-                env.translateF env.bindings
+                (* env.translateF env.bindings *)
+                translateNestedF env.bindings
                 name paramNames implExprs isVariadic
             in
-            printf "--- tlexprs =\n%s\n"
-              (Common.combine "\n"
-                 (List.map
-                    (Ast2.toString ++ Lang.toplevelFormToSExpr)
-                    tlexprs));
+            (* printf "--- tlexprs =\n%s\n" *)
+            (*   (Common.combine "\n" *)
+            (*      (List.map *)
+            (*         (Ast2.toString ++ Lang.toplevelFormToSExpr) *)
+            (*         tlexprs)); *)
 
             let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
-            printf "--- llvm code =\n";
-            List.iter (printf "%s\n---\n") llvmCodeFragments;
+            (* printf "--- llvm code =\n"; *)
+            (* List.iter (printf "%s\n---\n") llvmCodeFragments; *)
 
             Zompvm.evalLLVMCodeB
               ~targetModule:Zompvm.Runtime
@@ -1293,7 +1310,6 @@ let baseInstructions =
   let table = Hashtbl.create 32 in
   Hashtbl.add table "dummy" translateDummy;
   Hashtbl.add table "std:base:localVar" Base.translateDefineLocalVar;
-  Hashtbl.add table "std:base:macro" Macros.translateDefineMacro;
   table
 
 let translateFromDict
@@ -1328,11 +1344,6 @@ let rec translate errorF translators bindings expr =
   in
   t translators
 
-(* let noErrorMsg func = *)
-(*   match func with *)
-(*     | Some result -> Result result *)
-(*     | None -> Error [] *)
-
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateFromDict baseInstructions;
@@ -1352,6 +1363,17 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
 (*     translateAntiquote; *)
   ]
   translateF bindings
+
+let () =
+  Hashtbl.add baseInstructions "std:base:macro" (Macros.translateDefineMacro translateNested);
+  ()
+
+let toplevelBaseInstructions =
+  let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
+    Hashtbl.create 32
+  in
+  Hashtbl.add table "std:base:macro" (Macros.translateDefineMacro translateNested);
+  table
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
   | { id = "antiquote"; args = [quotedExpr] } ->
@@ -1605,7 +1627,6 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
 
 and translateTL bindings expr = translate raiseIllegalExpression
   [
-    (* translateFromDict toplevelBaseInstructions; *)
     translateGlobalVar;
     translateFunc;
     translateTypedef;
@@ -1614,19 +1635,11 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateCompileTimeVar;
     translateSeq;
     translateInclude;
-    (*     translateJuxtaposition; *)
+    translateFromDict toplevelBaseInstructions;
   ]
   bindings expr
 
 let translateTL = Common.sampleFunc2 "translateTL" translateTL
-
-(* let makeNested (translateF :toplevelExprTranslateF) (_ :exprTranslateF) (bindings :bindings) expr = *)
-(*   let _, toplevelForms = translateF bindings expr in *)
-(*   let nestedForms = List.map (fun f -> `ToplevelForm f) toplevelForms in *)
-(*   Some( bindings, nestedForms ) *)
-
-
-
 
 
 

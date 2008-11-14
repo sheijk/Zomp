@@ -4,12 +4,14 @@
 !verify off
  */
 
-func int main()
-  std:base:macro hellos count
-    ret ${for i 0 #count printlnString("hello")}
-  end
+macro hellos count rem...
+  ast:print rem 0
+  ret ${for i 0 #count printlnString("hello")}
+end
 
-  hellos 3
+func int main()
+
+  hellos 24 foo bar baz()
 
   ret 0
 end
