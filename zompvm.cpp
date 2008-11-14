@@ -105,9 +105,9 @@ namespace {
 
   static Function* simpleAst = NULL;
   static Function* addChild = NULL;
-//   static Function* astId = NULL;
-//   static Function* astChildCount = NULL;
-//   static Function* getChild = NULL;
+  static Function* macroAstId = NULL;
+  static Function* macroAstChildCount = NULL;
+  static Function* macroAstChild = NULL;
 
   static void loadLLVMFunctions()
   {
@@ -159,13 +159,55 @@ namespace {
       addChild->setCallingConv(CallingConv::C);
     }
 
-    { // astId decl
+    { // macroAstId decl
+      std::vector<const Type*>FuncTy_61_args;
+      FuncTy_61_args.push_back(IntegerType::get(32));
+      ParamAttrsList *FuncTy_61_PAL = 0;
+      FunctionType* FuncTy_61 = FunctionType::get(
+        /*Result=*/PointerTy_cstring,
+        /*Params=*/FuncTy_61_args,
+        /*isVarArg=*/false,
+        /*ParamAttrs=*/FuncTy_61_PAL);
+      macroAstId = new Function(
+        FuncTy_61,
+        GlobalValue::ExternalLinkage,
+        "macroAstId", llvmModule);
+      macroAstId->setCallingConv(CallingConv::C);
     }
 
-    { // astChildCount decl
+    { // macroAstChildCount decl
+      std::vector<const Type*>FuncTy_59_args;
+      FuncTy_59_args.push_back(IntegerType::get(32));
+      ParamAttrsList *FuncTy_59_PAL = 0;
+      FunctionType* FuncTy_59 = FunctionType::get(
+        /*Result=*/IntegerType::get(32),
+        /*Params=*/FuncTy_59_args,
+        /*isVarArg=*/false,
+        /*ParamAttrs=*/FuncTy_59_PAL);
+
+      macroAstChildCount = new Function(
+        FuncTy_59,
+        GlobalValue::ExternalLinkage,
+        "macroAstChildCount", llvmModule);
+      macroAstChildCount->setCallingConv(CallingConv::C);
     }
 
-    { // getChild decl
+    { // macroGetChild decl
+      std::vector<const Type*>FuncTy_105_args;
+      FuncTy_105_args.push_back(IntegerType::get(32));
+      FuncTy_105_args.push_back(IntegerType::get(32));
+      ParamAttrsList *FuncTy_105_PAL = 0;
+      FunctionType* FuncTy_105 = FunctionType::get(
+        /*Result=*/IntegerType::get(32),
+        /*Params=*/FuncTy_105_args,
+        /*isVarArg=*/false,
+        /*ParamAttrs=*/FuncTy_105_PAL);
+
+      macroAstChild = new Function(
+        FuncTy_105,
+        GlobalValue::ExternalLinkage,
+        "macroAstChild", llvmModule); 
+      macroAstChild->setCallingConv(CallingConv::C);
     }
 
 //     { // simpleAst def
@@ -749,6 +791,30 @@ extern "C" {
     assert( addChildF != NULL );
 
     addChildF( (void*)(parent), (void*)(child) );
+  }
+
+  const char* zompAstId(int ast) {
+    static char* (*macroAstIdF)(int) =
+      (char* (*)(int)) executionEngine->getPointerToFunction(macroAstId);
+    assert( macroAstIdF != NULL );
+
+    return macroAstIdF(ast);
+  }
+
+  int zompAstChildCount(int ast) {
+    static int (*macroAstChildCountF)(int) =
+      (int (*)(int)) executionEngine->getPointerToFunction(macroAstChildCount);
+    assert( macroAstChildCountF != NULL );
+
+    return macroAstChildCountF(ast);
+  }
+
+  int zompAstChild(int ast, int num) {
+    static int (*macroAstChildF)(int, int) =
+      (int (*)(int, int)) executionEngine->getPointerToFunction(macroAstChild);
+    assert( macroAstChildF != NULL );
+
+    return macroAstChildF(ast, num);
   }
 
 #else

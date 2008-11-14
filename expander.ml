@@ -554,38 +554,25 @@ let foldString str f init =
 (** Utilites to convert between Ast2.sexpr and Zomp native AST *)
 module NativeAst =
 struct
-  let calli1i functionName arg =
-    Zompvm.zompResetArgs();
-    Zompvm.zompAddIntArg arg;
-    Zompvm.zompRunFunctionIntWithArgs functionName
 
-  let calls1i functionName arg =
-    Zompvm.zompResetArgs();
-    Zompvm.zompAddIntArg arg;
-    Zompvm.zompRunFunctionStringWithArgs functionName
-
-  let calli2ii functionName arg0 arg1 =
-    Zompvm.zompResetArgs();
-    Zompvm.zompAddIntArg arg0;
-    Zompvm.zompAddIntArg arg1;
-    Zompvm.zompRunFunctionIntWithArgs functionName
-
-  let isValidId name = foldString name (fun wasValid chr -> wasValid && Char.code chr < 128) true
+  let isValidId name =
+    foldString
+      name (fun wasValid chr -> wasValid && Char.code chr < 128) true
 
   let rec extractSExprFromNativeAst astAddress =
     if astAddress = 0 then
       Ast2.idExpr "error, macro returned NULL"
     else
       let name =
-        let extracted = calls1i "macroAstId" astAddress in
+        let extracted = Machine.zompAstId astAddress in
         if isValidId extracted then extracted
         else sprintf "compiler:error:invalidId '%s'" extracted
       in
-      let childCount = calli1i "macroAstChildCount" astAddress in
+      let childCount = Machine.zompAstChildCount astAddress in
       let childs =
         let rec getChilds num =
           if num < childCount then
-            let childAddress = calli2ii "macroAstChild" astAddress num in
+            let childAddress = Machine.zompAstChild astAddress num in
             let child = extractSExprFromNativeAst childAddress in
             child :: getChilds (num+1)
           else
