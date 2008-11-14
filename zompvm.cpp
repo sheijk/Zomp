@@ -687,6 +687,47 @@ extern "C" {
     }
   }
 
+  static std::vector<void*> macroArgs;
+
+  void zompResetMacroArgs() {
+    macroArgs.clear();
+  }
+
+  void zompAddMacroArg(int ptr) {
+    macroArgs.push_back(bitcast<void*>(ptr));
+  }
+
+  int zompAddressOfMacroFunction(char* name) {
+    PATypeHolder StructTy_ast_fwd = OpaqueType::get();
+    PointerType* ast_ptr = PointerType::get(StructTy_ast_fwd);
+    std::vector<const Type*> args;
+    args.push_back(ast_ptr);
+    FunctionType* macroFuncType = FunctionType::get(ast_ptr, args, false, 0);
+
+    Function* macroFunc = llvmModule->getFunction( name );
+
+    if( macroFunc == NULL ) {
+      printf( "Macro function %s not found in module\n", name );
+      fflush( stdout );
+
+      Function* macroFunc = new Function(macroFuncType,
+                                         GlobalValue::ExternalLinkage,
+                                         name, llvmModule);
+      macroFunc->setCallingConv(CallingConv::C);
+    }
+
+    void* funcAddr = (void*) executionEngine->getPointerToFunction(macroFunc);
+
+    return ptrToCamlInt(funcAddr);
+  }
+
+  int zompCallMacro(int macroAddress) {
+    void* (*macroFunc)(void**) = (void* (*)(void**))macroAddress;
+    void** macroArguments = &macroArgs[0];
+    void* resultAst = macroFunc(macroArguments);
+    return ptrToCamlInt(resultAst);
+  }
+
 // improves compiliation time of realistic programs by two
 #define ZOMP_CACHED_FUNCS
 

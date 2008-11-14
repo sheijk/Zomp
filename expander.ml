@@ -551,6 +551,60 @@ let foldString str f init =
   in
   worker 0 init
 
+(** Utilites to convert between Ast2.sexpr and Zomp native AST *)
+module NativeAst =
+struct
+  let calli1i functionName arg =
+    Zompvm.zompResetArgs();
+    Zompvm.zompAddIntArg arg;
+    Zompvm.zompRunFunctionIntWithArgs functionName
+
+  let calls1i functionName arg =
+    Zompvm.zompResetArgs();
+    Zompvm.zompAddIntArg arg;
+    Zompvm.zompRunFunctionStringWithArgs functionName
+
+  let calli2ii functionName arg0 arg1 =
+    Zompvm.zompResetArgs();
+    Zompvm.zompAddIntArg arg0;
+    Zompvm.zompAddIntArg arg1;
+    Zompvm.zompRunFunctionIntWithArgs functionName
+
+  let isValidId name = foldString name (fun wasValid chr -> wasValid && Char.code chr < 128) true
+
+  let rec extractSExprFromNativeAst astAddress =
+    if astAddress = 0 then
+      Ast2.idExpr "error, macro returned NULL"
+    else
+      let name =
+        let extracted = calls1i "macroAstId" astAddress in
+        if isValidId extracted then extracted
+        else sprintf "compiler:error:invalidId '%s'" extracted
+      in
+      let childCount = calli1i "macroAstChildCount" astAddress in
+      let childs =
+        let rec getChilds num =
+          if num < childCount then
+            let childAddress = calli2ii "macroAstChild" astAddress num in
+            let child = extractSExprFromNativeAst childAddress in
+            child :: getChilds (num+1)
+          else
+            []
+        in
+        getChilds 0
+      in
+      { id = name; args = childs }
+
+  let rec buildNativeAst = function
+    | {id = id; args = []} ->
+        Zompvm.zompSimpleAst id
+    | ast ->
+        let childs = List.map buildNativeAst ast.args in
+        let nativeAst = Zompvm.zompSimpleAst ast.id in
+        List.iter (fun child -> Zompvm.zompAddChild ~parent:nativeAst ~child) childs;
+        nativeAst
+end
+
 let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
   let expectedArgCount = List.length argNames in
   let foundArgCount = List.length args in
@@ -611,62 +665,8 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
 
   if false then constructCallerFunction [];
 
-  let calli1i functionName arg =
-    Zompvm.zompResetArgs();
-    Zompvm.zompAddIntArg arg;
-    Zompvm.zompRunFunctionIntWithArgs functionName
-  in
-  let calls1i functionName arg =
-    Zompvm.zompResetArgs();
-    Zompvm.zompAddIntArg arg;
-    Zompvm.zompRunFunctionStringWithArgs functionName
-  in
-  let calli2ii functionName arg0 arg1 =
-    Zompvm.zompResetArgs();
-    Zompvm.zompAddIntArg arg0;
-    Zompvm.zompAddIntArg arg1;
-    Zompvm.zompRunFunctionIntWithArgs functionName
-  in
-
-(*   let validIdRE = Str.regexp "[a-zA-Z0-9_:\"']+" in *)
-(*   let isValidId name = Str.string_match validIdRE name 0 in *)
-  let isValidId name = foldString name (fun wasValid chr -> wasValid && Char.code chr < 128) true in
-
-  let rec extractSExprFromNativeAst astAddress =
-    if astAddress = 0 then
-      Ast2.idExpr "error, macro returned NULL"
-    else
-      let name =
-        let extracted = calls1i "macroAstId" astAddress in
-        if isValidId extracted then extracted
-        else sprintf "compiler:error:invalidId '%s'" extracted
-      in
-      let childCount = calli1i "macroAstChildCount" astAddress in
-      let childs =
-        let rec getChilds num =
-          if num < childCount then
-            let childAddress = calli2ii "macroAstChild" astAddress num in
-            let child = extractSExprFromNativeAst childAddress in
-            child :: getChilds (num+1)
-          else
-            []
-        in
-        getChilds 0
-      in
-      { id = name; args = childs }
-  in
-
   let createArgs() =
-    let rec buildNativeAst = function
-      | {id = id; args = []} ->
-          Zompvm.zompSimpleAst id
-      | ast ->
-          let childs = List.map buildNativeAst ast.args in
-          let nativeAst = Zompvm.zompSimpleAst ast.id in
-          List.iter (fun child -> Zompvm.zompAddChild ~parent:nativeAst ~child) childs;
-          nativeAst
-    in
-    List.map buildNativeAst args;
+    List.map NativeAst.buildNativeAst args;
   in
 
   let callMacro args =
@@ -681,11 +681,18 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   let astAddress = callMacro argsAddresses in
 
   log (sprintf "extracting result from address %d" astAddress);
-  let sexpr = extractSExprFromNativeAst astAddress in
+  let sexpr = NativeAst.extractSExprFromNativeAst astAddress in
   log (sprintf "extracted:\n%s" (Ast2.toString sexpr));
   sexpr
 
-let translateVariadicFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
+let translateVariadicFuncMacro
+    (translateNestedF :exprTranslateF)
+    name
+    bindings
+    argNames
+    args
+    impl
+    =
   let internalArgCount = List.length argNames in
   let inflatedArgs =
     let regularArgs, variadicArgs = Common.splitAfter (internalArgCount-1) args in
@@ -1035,7 +1042,7 @@ let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationRes
 
 module Macros =
 struct
-  let buildNativeMacroFunc (translateF :exprTranslateF) bindings
+  let buildNativeMacroFunc translateF bindings
       macroName argNames implExprs (isVariadic : [`IsVariadic | `IsNotVariadic])
       =
     let bindings = Bindings.addVar bindings
@@ -1049,10 +1056,10 @@ struct
     let argParamName = "macro_args" in
     let buildParamFetchExpr num name =
       Ast2.expr "std:base:localVar" [Ast2.idExpr name;
-                                     Ast2.expr "ptradd" [
-                                       Ast2.simpleExpr "load" [argParamName];
-                                       Ast2.idExpr (sprintf "%d" num);
-                                       ]]
+                                     Ast2.expr "load" [
+                                       Ast2.expr "ptradd" [Ast2.idExpr argParamName;
+                                                           Ast2.idExpr (sprintf "%d" num)]
+                                     ]]
     in
     let fetchParamExprs = Common.listMapi buildParamFetchExpr argNames in
     let sexprImpl = Ast2.seqExpr (fetchParamExprs @ implExprs) in
@@ -1073,6 +1080,30 @@ struct
     } in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     tlforms, macroFunc
+
+  let translateMacroCall name paramCount isVariadic =
+    let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name in
+    (fun bindings args ->
+       begin
+         match isVariadic, List.length args with
+           | `IsNotVariadic, argCount ->
+               if argCount <> paramCount then begin
+                 raiseIllegalExpression
+                   {Ast2.id = name; args = args}
+                   (sprintf "Expected %d args but found %d" paramCount argCount);
+               end else begin
+                 let nativeArgs = List.map NativeAst.buildNativeAst args in
+                 Machine.zompResetMacroArgs();
+                 List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
+                 let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
+                 let resultAst = NativeAst.extractSExprFromNativeAst nativeResultAst in
+                 resultAst
+               end
+           | `IsVariadic, _ ->
+               raiseIllegalExpression
+                 {Ast2.id = name; args = args}
+                 "Variadic arg macros cannot be called, yet"
+       end : bindings -> Ast2.sexpr list -> Ast2.sexpr)
 
   let translateDefineMacro env expr =
     let decomposeMacroDefinition expr =
@@ -1150,11 +1181,34 @@ struct
                 env.translateF env.bindings
                 name paramNames implExprs isVariadic
             in
-            printf "--- tlexprs =\n%s\n--- func =\n%s\n---\n"
-              (Common.combine "\n" (List.map (Ast2.toString ++ Lang.toplevelFormToSExpr) tlexprs))
-              (Lang.funcToString func);
+            printf "--- tlexprs =\n%s\n"
+              (Common.combine "\n"
+                 (List.map
+                    (Ast2.toString ++ Lang.toplevelFormToSExpr)
+                    tlexprs));
+
+            let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
+            printf "--- llvm code =\n";
+            List.iter (printf "%s\n---\n") llvmCodeFragments;
+
+            Zompvm.evalLLVMCodeB
+              ~targetModule:Zompvm.Runtime
+              (if listContains name !macroFuncs then
+                 [name]
+               else begin
+                 macroFuncs := name :: !macroFuncs;
+                 []
+               end)
+              []
+              (Common.combine "\n" llvmCodeFragments);
+
             flush stdout;
-            Error ["Macro seems valid but can't define macro, yet"]
+
+            let newBindings = Bindings.addMacro env.bindings name "TODO: doc"
+              (translateMacroCall name (List.length paramNames) isVariadic)
+            in
+            Result (newBindings, [])
+            (* Error ["Macro seems valid but can't define macro, yet"] *)
           end
       | Error reasons ->
           Error [combineErrors "Could not define macro: " reasons]

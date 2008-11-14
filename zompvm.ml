@@ -4,7 +4,7 @@ open Common
 open Lang
 
 include Machine
-  
+
 (* exception FailedToEvaluateLLVMCode of string * string *)
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
@@ -12,7 +12,7 @@ let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluat
 
 type targetModule = Runtime | Compiletime
 
-    
+
 let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmCode :unit =
   let targetModuleName = match targetModule with Runtime -> "" | Compiletime -> "compiletime" in
   let tryApplyToAll ~onError f list =
@@ -32,7 +32,7 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
     recompileAndRelinkFunction
     redefinedFunctions
     ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not recompile and relink function: " ^ msg))
-  
+
 let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
   let isDefinedFunction func =
     match func.impl with
@@ -63,9 +63,10 @@ let loadLLVMFile filename =
 
 let currentBindings :Bindings.t ref = ref (Bindings.addTypedef [] "asdf" `Int8)
 
+(** Callbacks which can be called from Zomp *)
 module MeshCache : sig
 end = struct
-  
+
   let isBound name =
     match Bindings.lookup !currentBindings name with
       | Bindings.UndefinedSymbol -> false
@@ -78,7 +79,7 @@ end = struct
   and symbolMacro = 3
   and symbolTypedef = 4
   and symbolLabel = 5
-    
+
   let lookup name =
     match Bindings.lookup !currentBindings name with
       | Bindings.UndefinedSymbol -> symbolUndefined
@@ -102,12 +103,12 @@ end = struct
     Callback.register "helloCallback" hello_callback;
     Callback.register "printString" printString;
     Callback.register "getTrue" getTrue;
-    
+
     Callback.register "isBound" isBound;
     Callback.register "lookup" lookup;
-    ()      
-      
+    ()
+
 end
 
 
-    
+

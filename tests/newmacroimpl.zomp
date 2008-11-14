@@ -5,9 +5,7 @@
  */
 
 func int main()
-  // std:base:localVar x 10
-  std:base:macro hellos the1 the2 the3 count
-    var ast* code ${foo bar}
+  std:base:macro hellos count
     ret ${for i 0 #count printlnString("hello")}
   end
 

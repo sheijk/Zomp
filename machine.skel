@@ -4,26 +4,26 @@ http://sheijk.dword.org/zomp
 	include <caml/mlvalues.h>
 	include <caml/alloc.h>
 	include <caml/memory.h>
-    
+
 	bool zompInit ()
 	void zompShutdown ()
 
     void zompVerifyCode (bool doit)
     bool zompDoesVerifyCode ()
-    
+
     bool zompSendCode (const char* code, const char* moduleName)
-    
+
     bool zompLoadFile (const char* filename)
-    
+
     void zompPrintModuleCode ()
-    
+
     bool zompRemoveFunctionBody (const char* funcName)
     bool zompRecompileAndRelinkFunction (const char* funcName)
 
     void zompResetArgs ()
     void zompAddIntArg (int arg)
     void zompAddPointerArg (int ptr)
-    
+
     void zompRunFunction (const char* name)
     int zompRunFunctionInt (const char* name)
     int zompRunFunctionIntWithArgs (const char* name)
@@ -31,7 +31,7 @@ http://sheijk.dword.org/zomp
     const char* zompRunFunctionString (const char* name)
     const char* zompRunFunctionStringWithArgs (const char* name)
     bool zompRunFunctionBool (const char* name)
-    
+
     int zompLoadLib (const char* name)
 
     int zompSimpleAst (const char* name)
@@ -39,4 +39,9 @@ http://sheijk.dword.org/zomp
 #    const char* zompAstId (int ast)
 #    int zompAstChildCount (int ast)
 #    int zompAstChild (int ast, int num)
-    
+
+    void zompResetMacroArgs ()
+    void zompAddMacroArg (int ptr)
+    int zompAddressOfMacroFunction (const char* name)
+    int zompCallMacro (int macroAddress)
+

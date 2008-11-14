@@ -1,6 +1,6 @@
 
 * Desired syntax
-  
+
 This section lists use cases. Each one should demonstrate how the
 language might be used. Should guide the syntax related decisions.
 
@@ -13,7 +13,7 @@ language might be used. Should guide the syntax related decisions.
      current->doStuff()
 
 ** if/then/else
-   
+
    if i > 10 then
      handleI()
    else if i < 5 then
@@ -26,13 +26,13 @@ language might be used. Should guide the syntax related decisions.
    class Point
      attrib x = 0
      attrib y = x
-    
+
      void print(Stream s)
        s.print "(#{x}, #{y})"
-    
+
    class ColoredPoint extends Point, implements Paintable
      attrib color = red
-    
+
      void print(Stream s)
        s.setColor color
        super.print
@@ -40,9 +40,9 @@ language might be used. Should guide the syntax related decisions.
 ** Keyword arguments
 
    select( from: list, where: pred, sortBy: desc )
-   
+
    select from: list where: pred sortBy: desc
-   
+
 ** Smalltalk style?
 
    tree
@@ -50,50 +50,50 @@ language might be used. Should guide the syntax related decisions.
      onBranch: print branch
 
 * DONE Misc
- 
+
 ** DONE (foobar) is not parsed different from foobar
    CLOSED: [2008-02-17 Sun 01:23]
-See 3rd paragraph
+   See 3rd paragraph
 
-Both will be parsed as { id = "foobar"; args = [] }
-This means calling a function with 0 args can't be distinguished from the function as a value
+   Both will be parsed as { id = "foobar"; args = [] }
+   This means calling a function with 0 args can't be distinguished from the function as a value
 
-foo bar <=> (op() foo bar)
-foo <=> (foo)
+   foo bar <=> (op() foo bar)
+   foo <=> (foo)
 
-Require all function calls to follow the form (call func args*)
-Then transform (op() f rest*) into (call f rest*) if f resolves to a function (pointer)
-and transform into (jux f rest*) otherwise. Sequences are transformed into (seq a b ...)
+   Require all function calls to follow the form (call func args*)
+   Then transform (op() f rest*) into (call f rest*) if f resolves to a function (pointer)
+   and transform into (jux f rest*) otherwise. Sequences are transformed into (seq a b ...)
 
 *** Conflicts
 
-This will conflict with sequences:
+   This will conflict with sequences:
 
-func void foo ()
-  f
-  1
-end
+   func void foo ()
+     f
+     1
+   end
 
-would be (func void foo () (jux f 1))
+   would be (func void foo () (jux f 1))
 
-Resolve using {}?
+   Resolve using {}?
 
-func void foo {
-  f
-  1
-}
+   func void foo {
+     f
+     1
+   }
 
-<=> (func void foo () {seq f 1})
+   <=> (func void foo () {seq f 1})
 
-Resolved:
-a b <=> (jux a b)
+   Resolved:
+   a b <=> (jux a b)
 
-while
+   while
 
-parent
-  a
-  b
-<=> (jux parent (seq a b))
+   parent
+     a
+     b
+   <=> (jux parent (seq a b))
 
 * DONE Significant indentation
 
@@ -404,10 +404,10 @@ float* vs. *ptr vs. a * b aka. a*b
 ** DONE Special support for first id of expression?
    Rejected, not needed due to jux with low priority
 
-let foo = bar <=> (op= (let foo) bar)
-
-Allow some syntax for..?
-let foo = bar <=> (let (op= foo bar))
+   let foo = bar <=> (op= (let foo) bar)
+n
+   Allow some syntax for..?
+   let foo = bar <=> (let (op= foo bar))
 
 *** DONE Is it okay to require parenthesis on method calls when used as arguments of operators?
     Resolved: it is ok. C-style notation is used for function calls
@@ -486,24 +486,25 @@ if: a > 10 then: print yay else: print nay
 Rejected: see list of problems below
 
     a b + c => (a (op+ b c))
+    var x = 10 -> (var (op= x 10)
 
 **** Will this cause problems?
 
-Requires using parentheses when it is not needed.
+     Requires using parentheses when it is not needed.
 
-sqrt(5) + sqrt 20
+     sqrt(5) + sqrt 20
 
 **** Might result in unexpected ASTs
 
-sqr 3 + 4 <=> (sqr (op+ 3 4))
+     sqr 3 + 4 <=> (sqr (op+ 3 4))
 
-**** Results in different behaviour of left and right expr on operators
+**** [#A] Results in different behaviour of left and right expr on operators
 
-sqrt 10 * 2 <=> (sqrt (op* 10 2))
+     sqrt 10 * 2 <=> (sqrt (op* 10 2))
 
-but
+     but
 
-10 * sqrt 2 <=> (op* 10 (sqrt 2))
+     10 * sqrt 2 <=> (op* 10 (sqrt 2))
 
 *** DONE Reuse foo: notation from significant indent?
      CLOSED: [2008-01-28 Mon 02:47]
@@ -638,21 +639,21 @@ end
 < is interpreted as opening brace if a > follows, else as greater
 
 ** DONE Special handling for (singleId)
-Solution: below
+   Solution: below
 
-Non-ambigous cases:
+   Non-ambigous cases:
 
-foo a b <=> (foo a b)
-foo(a, b) <=> (foo a b)
+   foo a b <=> (foo a b)
+   foo(a, b) <=> (foo a b)
 
-Ambiguous cases:
+   Ambiguous cases:
 
-foo(arg) <=> (foo arg) <=> foo arg
+   foo(arg) <=> (foo arg) <=> foo arg
 
-foo bar(arg) <=> (foo (bar arg))
+   foo bar(arg) <=> (foo (bar arg))
 
-foo (a) b <=> error
-foo(a, b) c <=> error
+   foo (a) b <=> error
+   foo(a, b) c <=> error
 
 ** TODO A grammar
 Needs work: specify completely, build experimental version in menhir

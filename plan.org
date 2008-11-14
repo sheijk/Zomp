@@ -528,7 +528,37 @@ von http://lambda-the-ultimate.org/node/2884
    func<Number N> N add(N l, N r) // schick
 ** TODO assimp anbindung
 ** TODO pcre anbindung
-   
+** TODO [#A] casting syntax
+
+   obj.to(Printer).println("10".to int)
+** TODO [#A] c# style coalesce operator a ?? b
+   x = a ?? b
+   =>
+   x = if a != 0 then a else b
+
+   x = a ?? b ?? c
+   =>
+   x = if a != null then a elseif b != null then b else c
+
+   Alternative:
+
+   x = firstNonNull a b c
+
+** TODO object initializers
+
+   (from wikipedia)
+   Customer c = new Customer(); c.Name = "James";
+   can be written
+   Customer c = new Customer { Name="James" };
+
+   MyList list = new MyList();
+   list.Add(1);
+   list.Add(2);
+
+   can be written as
+
+   MyList list = new MyList { 1, 2 };
+
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
