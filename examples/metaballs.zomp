@@ -11,7 +11,7 @@
 
 include "opengl20.zomp"
 include "glfw.zomp"
-include "tests/glutils.zomp"
+include "libs/glutils.zomp"
 
 include "libs/libcee.zomp"
 

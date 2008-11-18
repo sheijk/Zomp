@@ -94,9 +94,45 @@ let readChannel channel =
   copyLines lines totalLength;
   fileContent
 
-let readFile fileName =
-  let channel = open_in fileName in
-  readChannel channel
+let absolutePath fileName =
+  let fileName =
+    if fileName = "." then ""
+    else fileName
+  in
+  if Filename.is_relative fileName then
+    Filename.concat (Sys.getcwd()) fileName
+  else
+    fileName
+
+let rec findFileIn fileName paths =
+  if Filename.is_implicit fileName then begin
+    match paths with
+      | [] ->
+          None
+      | path :: remPaths ->
+          let absoluteFileName = Filename.concat (absolutePath path) fileName in
+          if Sys.file_exists absoluteFileName then
+            Some absoluteFileName
+          else
+            findFileIn fileName remPaths
+  end else begin
+    if Sys.file_exists fileName then
+      Some (absolutePath fileName)
+    else
+      None
+  end
+
+let readFile ?(paths = ["."]) fileName =
+  match findFileIn fileName paths with
+    | Some absFileName ->
+        let channel = open_in absFileName in
+        readChannel channel
+    | None ->
+        raise (Sys_error
+                 (Printf.sprintf "File '%s' could not be found in '%s', pwd = %s"
+                    fileName
+                    (combine "', '" paths)
+                    (Sys.getcwd())))
 
 let some x = Some x
 let id x = x

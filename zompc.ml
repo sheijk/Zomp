@@ -166,7 +166,7 @@ let compile instream outstream =
 
 let () =
   match Sys.argv with
-      [| _; "-c"; fileName |] ->
+      [| execNameAndPath; "-c"; fileName |] ->
         begin
           match getBasename fileName with
             | Some baseName ->
@@ -174,6 +174,8 @@ let () =
                   let inStream = open_in (baseName ^ ".zomp")
                   and outStream = open_out (baseName ^ ".ll")
                   in
+                  let compilerDir = Filename.dirname execNameAndPath in
+                  Expander.addIncludePath compilerDir `Front;
                   try
                     compile inStream outStream
                   with
@@ -191,4 +193,4 @@ let () =
         end
     | _ ->
         printInstructions()
-    
+

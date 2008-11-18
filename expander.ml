@@ -1470,6 +1470,81 @@ let matchFunc =
         `NotAFunc expr
 
 
+let includePath = ref ["."]
+
+let addIncludePath path = function
+  | `Back ->
+      includePath := !includePath @ [path]
+  | `Front ->
+      includePath := path :: !includePath
+
+let translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
+  let translateDeclarationsOnlyF bindings tlexprs = translateF bindings tlexprs
+  in
+  let importFile fileName impls =
+    let parse fileName : sexpr list =
+      try begin
+        let fileContent = Common.readFile ~paths:!includePath fileName in
+        let rec parseExprs lexbuf exprAccum =
+          try
+            let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
+            parseExprs lexbuf (sexpr :: exprAccum)
+          with
+            | Sexprlexer.Eof -> exprAccum
+        in
+        let parseIExpr source =
+          let lexbuf = Lexing.from_string source in
+          let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+          let lexFunc _ = Indentlexer.token lexstate in
+          let rec read acc =
+            try
+              let expr = Newparser.main lexFunc lexbuf in
+              read (expr :: acc)
+            with
+              | Indentlexer.Eof -> acc
+          in
+          List.rev (read [])
+        in
+        try
+          let lexbuf = Lexing.from_string fileContent in
+          let sexprs = List.rev (parseExprs lexbuf []) in
+          sexprs
+        with
+          | Sexprparser.Error
+          | Sexprlexer.UnknowChar _ -> begin
+              parseIExpr fileContent
+            end
+      end with
+        | Sys_error message -> raiseIllegalExpression expr
+            (sprintf "Could not find file '%s': %s" fileName message)
+    in
+    let sexprs = parse fileName in
+    let translateFunc =
+      match impls with
+        | `WithImplementations -> translateF
+        | `DeclarationsOnly -> translateDeclarationsOnlyF
+    in
+    let newBindings, tlexprsFromFile =
+      List.fold_left
+        (fun (bindings,prevExprs) sexpr ->
+           let newBindings, newExprs = translateFunc bindings sexpr in
+           newBindings, prevExprs @ newExprs )
+        (bindings, [])
+        sexprs
+    in
+    Some( newBindings, tlexprsFromFile )
+  in
+  match expr with
+    | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
+        begin
+          let fileName = Common.removeQuotes fileName in
+          importFile fileName `WithImplementations
+        end
+    | { id = id; args = _ } as invalidExpr when id = macroInclude ->
+        raiseIllegalExpression invalidExpr "Expected one parameter"
+    | _ ->
+        None
+
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
@@ -1541,74 +1616,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
             | None ->
                 raiseInvalidType typeExpr
         end
-    | _ ->
-        None
-
-
-and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
-  let translateDeclarationsOnlyF bindings tlexprs = translateF bindings tlexprs
-  in
-  let importFile fileName impls =
-    let parse fileName : sexpr list =
-      try begin
-        let fileContent = Common.readFile fileName in
-        let rec parseExprs lexbuf exprAccum =
-          try
-            let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
-            parseExprs lexbuf (sexpr :: exprAccum)
-          with
-            | Sexprlexer.Eof -> exprAccum
-        in
-        let parseIExpr source =
-          let lexbuf = Lexing.from_string source in
-          let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-          let lexFunc _ = Indentlexer.token lexstate in
-          let rec read acc =
-            try
-              let expr = Newparser.main lexFunc lexbuf in
-              read (expr :: acc)
-            with
-              | Indentlexer.Eof -> acc
-          in
-          List.rev (read [])
-        in
-        try
-          let lexbuf = Lexing.from_string fileContent in
-          let sexprs = List.rev (parseExprs lexbuf []) in
-          sexprs
-        with
-          | Sexprparser.Error
-          | Sexprlexer.UnknowChar _ -> begin
-              parseIExpr fileContent
-            end
-      end with
-        | Sys_error message -> raiseIllegalExpression expr
-            (sprintf "Could not find file '%s': %s" fileName message)
-    in
-    let sexprs = parse fileName in
-    let translateFunc =
-      match impls with
-        | `WithImplementations -> translateF
-        | `DeclarationsOnly -> translateDeclarationsOnlyF
-    in
-    let newBindings, tlexprsFromFile =
-      List.fold_left
-        (fun (bindings,prevExprs) sexpr ->
-           let newBindings, newExprs = translateFunc bindings sexpr in
-           newBindings, prevExprs @ newExprs )
-        (bindings, [])
-        sexprs
-    in
-    Some( newBindings, tlexprsFromFile )
-  in
-  match expr with
-    | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
-        begin
-          let fileName = Common.removeQuotes fileName in
-          importFile fileName `WithImplementations
-        end
-    | { id = id; args = _ } as invalidExpr when id = macroInclude ->
-        raiseIllegalExpression invalidExpr "Expected one parameter"
     | _ ->
         None
 
