@@ -564,6 +564,7 @@ von http://lambda-the-ultimate.org/node/2884
    can be written as
 
    MyList list = new MyList { 1, 2 };
+** TODO [#A] change character class for '&' in zomp.el (and possibly other characters)
 
 * Use Cases                                                            :usecase:
 

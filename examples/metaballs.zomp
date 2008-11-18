@@ -324,7 +324,6 @@ func void resizeWindow(int width, int height)
   windowWidth = width
   windowHeight = height
   glfwSetWindowSize windowWidth windowHeight
-  glViewport 0 0 windowWidth windowHeight
 end
 
 // macro executeOnce
@@ -414,16 +413,29 @@ var int mouseYDelta 0
 func void onMouseMove(int x, int y)
   mouseXDelta = lastMouseX - x
   mouseYDelta = lastMouseY - y
-  
+
   lastMouseX = x
   lastMouseY = y
 end
 
+func void onWindowResize(int newWidth, int newHeight)
+  printString "Window was resized to "
+  printInt newWidth
+  printString "x"
+  printInt newHeight
+  println()
+
+  windowWidth = newWidth
+  windowHeight = newHeight
+  glViewport 0 0 windowWidth windowHeight
+end
+
 func int main()
   init()
-  resizeWindow 1440 900
+  // resizeWindow 1440 900
 
   glfwSetMousePosCallback (cast void* &onMouseMove)
+  glfwSetWindowSizeCallback (cast void* &onWindowResize)
 
   glMatrixMode( GL_PROJECTION )
   glLoadIdentity()
