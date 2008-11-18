@@ -12,7 +12,7 @@ let defaultPrompt = ref "  # "
 and continuedPrompt = ref "..# "
 
 let printLLVMCode = ref false
-and printSExpr = ref false
+and printAst = ref false
 and printDeclarations = ref true
 and llvmEvaluationOn = ref true
 
@@ -58,7 +58,7 @@ let makeToggleCommand refvar message _ _ =
   refvar := not !refvar;
   printf "%s: %s\n" message (boolString !refvar)
 
-let toggleSExprCommand = makeToggleCommand printSExpr "Printing s-expressions"
+let toggleAstCommand = makeToggleCommand printAst "Printing s-expressions"
 let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
@@ -247,7 +247,7 @@ let commands =
     "exit", ["x"; "q"], exitCommand, "Exit";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
-    "printSExpr", [], toggleSExprCommand, "Toggle printing of parsed s-expressions";
+    "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
     "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
@@ -339,7 +339,7 @@ let () =
          let expr = readExpr !defaultPrompt "" bindings in
 
          let onSuccess newBindings simpleforms llvmCode =
-           if !printSExpr then begin
+           if !printAst then begin
              let asString = Ast2.expression2string expr in
              printf " => %s\n" asString;
            end;
@@ -354,7 +354,7 @@ let () =
 
            if !printDeclarations then begin
              List.iter (fun form ->
-                          let text = Lang.toplevelFormToString form in
+                          let text = Lang.toplevelFormDeclToString form in
                           printf "%s\n" text)
                simpleforms;
            end;

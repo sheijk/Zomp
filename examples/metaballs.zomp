@@ -6,17 +6,18 @@
 
 !load libglfw.dylib
 !load libGLEW.dylib
+!syntax indent
 */
-// !syntax indent
 
-include "../opengl20.zomp"
-include "../glfw.zomp"
-include "../tests/glutils.zomp"
+include "opengl20.zomp"
+include "glfw.zomp"
+include "tests/glutils.zomp"
 
-include "../libs/libcee.zomp"
+include "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
 
+// from libstdc
 func int rand()
 
 func int random (int max)

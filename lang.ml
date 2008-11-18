@@ -265,14 +265,16 @@ let rec formToString : form -> string = function
   | `GetFieldPointerIntrinsic (record, fieldName) -> sprintf "GetField (%s, %s)" (formToString record) fieldName
   | `CastIntrinsic (typ, expr) -> sprintf "Cast (%s, %s)" (typeName typ) (formToString expr)
 
-let funcToString func =
+let funcDeclToString func =
   let argToString (name, typ) = name ^ " :" ^ typeName typ in
   let argStrings = List.map argToString func.fargs in
-  sprintf "%s(%s) :%s%s"
+  sprintf "%s(%s) :%s"
     func.fname
     (Common.combine ", " argStrings)
     (typeName func.rettype)
-    (match func.impl with
+
+let funcToString func =
+  funcDeclToString func ^ (match func.impl with
        | Some form -> " = \n" ^ formToString form
        | None -> "")
 
@@ -293,6 +295,14 @@ let toplevelFormToSExpr =
                           @ implExpr)
     | `Typedef (name, typ) ->
         Ast2.simpleExpr "Typedef" [name; typeName typ]
+
+let toplevelFormDeclToString = function
+  | `GlobalVar var ->
+      sprintf "var %s" (varToString var)
+  | `DefineFunc func ->
+      sprintf "func %s" (funcDeclToString func)
+  | `Typedef (name, typ) ->
+      sprintf "type %s = %s" name (typeName typ)
 
 let toplevelFormToString = function
   | `GlobalVar var ->

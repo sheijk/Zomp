@@ -1359,7 +1359,7 @@ let toplevelBaseInstructions =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
     Hashtbl.create 32
   in
-  Hashtbl.add table "std:base:macro" (Macros.translateDefineMacro translateNested);
+  Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested);
   table
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
@@ -1614,6 +1614,7 @@ and translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
 
 and translateTL bindings expr = translate raiseIllegalExpression
   [
+    translateFromDict toplevelBaseInstructions;
     translateGlobalVar;
     translateFunc;
     translateTypedef;
@@ -1622,7 +1623,6 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateCompileTimeVar;
     translateSeq;
     translateInclude;
-    translateFromDict toplevelBaseInstructions;
   ]
   bindings expr
 

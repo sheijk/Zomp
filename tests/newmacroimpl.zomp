@@ -10,7 +10,6 @@ macro hellos count rem...
 end
 
 func int main()
-
   hellos 24 foo bar baz()
 
   ret 0

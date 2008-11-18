@@ -196,6 +196,8 @@ indent the next line when they occur at the beginning of a line"
 (zomp-dofun zomp-tl-list-all-bindings "!bindings")
 (zomp-dofun zomp-tl-help "!help")
 (zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
+(zomp-dofun zomp-tl-toggle-decl-printing "!printDecl")
+(zomp-dofun zomp-tl-toggle-parsed-ast-printing "!printAst")
 
 (defmacro zomp-add-action (command key caption)
   `(list (local-set-key ,key (quote ,command))
@@ -389,7 +391,12 @@ indent the next line when they occur at the beginning of a line"
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
-  (zomp-add-action zomp-tl-toggle-llvm-printing [(control c) (?.) (l)] "Toggle LLVM code printing")
+  (zomp-add-action zomp-tl-toggle-llvm-printing
+                   [(control c) (?.) (l)] "Toggle LLVM code printing")
+  (zomp-add-action zomp-tl-toggle-decl-printing
+                   [(control c) (?.) (d)] "Toggle printing of declarations")
+  (zomp-add-action zomp-tl-toggle-parsed-ast-printing
+                   [(control c) (?.) (p)] "Toggle printing of parsed ASTs")
   (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
 
   (local-set-key [(control c) (?.) (?s)] '(lambda () (interactive)

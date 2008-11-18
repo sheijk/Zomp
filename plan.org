@@ -3,6 +3,12 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] Causes invalid llvm code when omitting "ret"
+
+   (macro opseq args ... (
+     (ret args)
+     ))
+
 ** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
 ** TODO [#A] cleanup stdlib :minor:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
