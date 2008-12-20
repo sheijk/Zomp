@@ -621,7 +621,9 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
   | `GetAddrIntrinsic var ->
       begin
         match var.vstorage with
-          | MemoryStorage -> (resultVar var, "")
+          | MemoryStorage -> (resultVar {var with typ = `Pointer var.typ},
+                              sprintf "; addrOf %s\n" (typeName var.typ))
+          (* | MemoryStorage -> (resultVar var, "") *)
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
   | `StoreIntrinsic (ptrForm, valueForm) ->
@@ -697,7 +699,9 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
         in
         let ptrVar = newLocalTempVar (`Pointer fieldType) in
         let recordVar, recordAccessCode = gencode recordForm in
-        let comment = sprintf "; obtaining address of %s.%s\n\n" recordVar.rvname fieldName in
+        let comment = sprintf "; obtaining address of %s.%s (type = %s)\n\n"
+          recordVar.rvname fieldName recordVar.rvtypename
+        in
         let code = sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n\n"
           ptrVar.rvname
           recordVar.rvtypename

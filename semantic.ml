@@ -9,7 +9,7 @@ type typecheckResult =
   | TypeError of string * composedType * composedType
 
 let rec equalTypes bindings ltype rtype =
-  let rec lookupType name = 
+  let rec lookupType name =
     match Bindings.lookup bindings name with
       | Bindings.TypedefSymbol typ -> Some typ
       | _ -> None
@@ -34,9 +34,9 @@ let rec equalTypes bindings ltype rtype =
         componentsEqual (l, r)
     | `Pointer l, `Pointer r when equalTypes bindings l r -> true
     | _, _ -> ltype = rtype
-      
+
 let rec typeCheck bindings form : typecheckResult =
-  let result = 
+  let result =
     let expectPointerType form =
       match typeCheck bindings form with
         | TypeOf (`Pointer _ as pointerType) -> TypeOf pointerType
@@ -139,7 +139,7 @@ let rec typeCheck bindings form : typecheckResult =
           begin
             match typeCheck bindings expr with
               | TypeOf `Pointer targetType -> TypeOf targetType
-              | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void) 
+              | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void)
               | TypeError _ as t -> t
           end
       | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
@@ -193,7 +193,7 @@ let rec mapfold f initialValue = function
       let tlmapped, finalValue = mapfold f newValue tl in
       mappedElements @ tlmapped, finalValue
 
-        
+
 let rec collectVars (form :Lang.form) =
   let returnTransformed form f =
     let newForm, newVars = collectVars form in
@@ -319,7 +319,7 @@ let lookupTypeInBindings bindings typeName =
   match Bindings.lookup bindings typeName with
     | Bindings.TypedefSymbol typ -> `Found typ
     | _ -> `NotFound
-  
+
 let typesEquivalent bindings type1 type2 =
   try
     let canonicType = Lang.canonicType (lookupTypeInBindings bindings) in
@@ -327,7 +327,7 @@ let typesEquivalent bindings type1 type2 =
     canonic1 = canonic2
   with
     | Failure _ -> false
-        
+
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ
   | `DefineFunc f ->
@@ -344,7 +344,7 @@ let rec typeCheckTL bindings = function
                     wrongType)
               | TypeError _ as e ->
                   e
-                    
+
 let typeOfForm ~onError bindings form =
   match typeCheck bindings form with
     | TypeOf typ -> typ
@@ -394,4 +394,4 @@ let functionIsValid func =
         end
     | None ->
         `Ok
-         
+

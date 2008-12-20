@@ -114,7 +114,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
   in
   let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
   let opfuncRule prefix =
-    re ((Str.quote prefix) ^ sprintf "[%s]+ *" opSymbols),
+    re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z]+\\)? *" opSymbols),
     (fun (str:string) -> `Token (IDENTIFIER (trim str)))
   in
   let keywordRule =

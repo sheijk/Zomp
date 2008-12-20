@@ -920,11 +920,30 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         ] } when id = macroFieldptr ->
         begin
           let _, recordForm, toplevelForms = translateToForms translateF bindings recordExpr in
-          let fieldptr = `GetFieldPointerIntrinsic (recordForm, fieldName) in
+          let recordForm' =
+            match recordForm with
+              | `Variable ({ typ = `Record _; } as recordVar) ->
+                  `GetAddrIntrinsic recordVar
+              | _ ->
+                  begin match typeCheck bindings recordForm with
+                    | TypeOf `Pointer `Record _ -> recordForm
+                    | TypeOf invalidType ->
+                        raiseIllegalExpression expr
+                          (sprintf "%s but found %s"
+                             ("Can only access struct members from a var of record type or " ^
+                             "an expression of type pointer to record atm")
+                             (typeName invalidType))
+                    | TypeError (m,f,e) ->
+                        raiseIllegalExpressionFromTypeError expr (m,f,e)
+                  end
+          in
+          let fieldptr = `GetFieldPointerIntrinsic (recordForm', fieldName) in
           match typeCheck bindings fieldptr with
             | TypeOf _ -> Some( bindings, toplevelForms @ [fieldptr] )
             | TypeError (m,f,e) ->
-                raiseIllegalExpressionFromTypeError expr (m,f,e)
+                begin
+                  raiseIllegalExpressionFromTypeError expr (m,f,e)
+                end
         end
     | { id = id; args = [targetTypeExpr; valueExpr] } when id = macroCast ->
         begin
@@ -1550,6 +1569,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let expr2param argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
+          | Some `Record _ -> raiseIllegalExpression typeExpr
+              "Record types not allowed as function argument, yet"
           | Some typ -> (varName, typ)
           | None -> raiseInvalidType typeExpr
       in

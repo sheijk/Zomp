@@ -1,0 +1,71 @@
+/**
+ * Usage of structs
+ *
+ */
+
+type Point
+  int x
+  int y
+end
+
+func void mallocStruct()
+  var (ptr Point) p malloc(Point)
+
+  setField p x 1
+  setField p y 2
+
+  var int x getField(p,x)
+  var int y getField(p,y)
+
+  assert (x == 1)
+  assert (y == 2)
+end
+
+func void onstackAddrOf()
+  var Point p
+  var (ptr Point) pp ptr(p)
+
+  setField pp x 4
+  setField ptr(p) y 5
+
+  var int x getField(pp,x)
+  var int y getField(ptr(p),y)
+
+  assert (x == 4)
+  assert (y == 5)
+end
+
+func void onstack()
+  var Point p
+
+  setField p x 4
+  setField p y 5
+
+  var int x getField(p,x)
+  var int y getField(p,y)
+
+  assert (x == 4)
+  assert (y == 5)
+end
+
+// func void expect89(Point p)
+//   assert (getField(ptr(p),x) == 8)
+//   assert (getField(ptr(p),y) == 9)
+// end
+//
+// func void argument()
+//   var Point p
+//   setField p x 8
+//   setField p y 9
+//   expect89 p
+// end
+
+func int main()
+  mallocStruct()
+  onstackAddrOf()
+  onstack()
+  // argument()
+
+  ret 0
+end
+

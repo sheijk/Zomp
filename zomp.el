@@ -1,7 +1,7 @@
 ;;; zomp.el --- Major mode for the Zomp programming language
 
 ;; Copyright 2008 Jan Rehders
-;; 
+;;
 ;; Author: Jan Rehders <cmdkeen@gmx.de>
 ;; Version: 0.3
 
@@ -28,7 +28,7 @@
 ;;
 
 (defgroup zomp nil
-  "Major mode for Zomp programming language" 
+  "Major mode for Zomp programming language"
   :link '(emacs-library-link :tag "Source Lisp File" "zomp.el")
   :group 'programming
   :prefix "zomp-")
@@ -45,7 +45,7 @@ indent the next line when they occur at the beginning of a line"
   beginning of a line"
   :group 'zomp
   :type `(repeat string))
-  
+
 (defvar zomp-mode-hook nil)
 
 (defun goto-match-paren (arg)
@@ -146,7 +146,7 @@ indent the next line when they occur at the beginning of a line"
             (forward-word)
           (goto-char next-line-pos)))
     )))
-  
+
 (defun zomp-tl-eval-current ()
   (interactive)
   (message "Evaluating function at point")
@@ -188,7 +188,7 @@ indent the next line when they occur at the beginning of a line"
 
 (defmacro zomp-add-seperator (seperator-id)
   `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
-   
+
 (defmacro zomp-dofun (name command)
   `(defun ,name () (interactive) (zomp-tl-do ,command)))
 
@@ -222,7 +222,7 @@ indent the next line when they occur at the beginning of a line"
     "Return number of current line in current buffer
     (provided by `zomp.el` because it was not defined)"
     (count-lines (point-min) (if (eobp) (point) (1+ (point))))) )
-  
+
 (defun zomp-indent-line ()
   (interactive)
   (let ((left 0) (oldindent 0))
@@ -353,7 +353,7 @@ indent the next line when they occur at the beginning of a line"
   (setq comment-start "//")
   (setq comment-start-skip "// *")
   (setq comment-end "")
-  
+
   (setq indent-tabs-mode nil)
 
   ;; indexing of current file (control-')
@@ -366,7 +366,7 @@ indent the next line when they occur at the beginning of a line"
 
   ;; auto indenting
   (setq indent-line-function 'zomp-indent-line)
-           
+
   ;; highlight s-expression under cursor
   (hl-sexp-mode t)
 
@@ -384,10 +384,10 @@ indent the next line when they occur at the beginning of a line"
   (local-set-key [(?/)] 'zomp-electric-slash)
   (local-set-key (kbd "DEL") 'zomp-electric-backspace)
 
-  
+
   (local-set-key [(control c)(control k)] '(lambda () (interactive)
                                              (zomp-tl-do "!")))
-           
+
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
@@ -434,6 +434,12 @@ indent the next line when they occur at the beginning of a line"
   (local-set-key [(alt d)] 'zomp-tl-run)
   (local-set-key [(alt shift d)] 'zomp-tl-run-test)
 
+  ;; (outline-minor-mode t)
+  ;; (setq outline-regexp "\\([a-df-z]\\| *\\(if\\|else\\|while\\)\\)")
+  ;; (local-set-key [(control c)(-)] 'outline-cycle)
+  ;; (local-set-key [(control c)(=)] 'show-entry)
+  ;; (local-set-key [(control c)(+)] 'show-all)
+
   (run-mode-hooks 'zomp-mode-hook)
   )
 
@@ -447,7 +453,7 @@ indent the next line when they occur at the beginning of a line"
     ("'[^']'" 0 font-lock-string-face)
 
     ("// *\\(TODO\\)" 1 todo-face t t)
-     
+
     ("\\bconst\\b" 0 font-lock-keyword-face)
     ("\\bvar\\b" 0 font-lock-keyword-face)
     ("\\bfunc\\b" 0 font-lock-keyword-face)
@@ -461,7 +467,7 @@ indent the next line when they occur at the beginning of a line"
 
     ("\\btrue\\b" 0 font-lock-keyword-face)
     ("\\bfalse\\b" 0 font-lock-keyword-face)
-    
+
     ("\\bstore\\b" 0 font-lock-keyword-face)
     ("\\bload\\b" 0 font-lock-keyword-face)
     ("\\bnullptr\\b" 0 font-lock-keyword-face)
@@ -469,23 +475,23 @@ indent the next line when they occur at the beginning of a line"
     ("\\bfieldptr\\b" 0 font-lock-keyword-face)
     ("\\bptr\\b" 0 font-lock-keyword-face)
     ("\\bmalloc\\b" 0 font-lock-keyword-face)
-    
+
     ("\\bint\\b" 0 font-lock-type-face)
     ("\\bfloat\\b" 0 font-lock-type-face)
     ("\\bstring\\b" 0 font-lock-type-face)
     ("\\bbool\\b" 0 font-lock-type-face)
     ("\\bvoid\\b" 0 font-lock-type-face)
     ("\\bchar\\b" 0 font-lock-type-face)
-    
+
     ("\\bmacro\\b" 0 font-lock-keyword-face)
 
     ;; ("^ +$" 0 compilation-error-face)
-    
+
     ;; ("(\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-function-name-face)
     ("\\([a-zA-Z][a-zA-Z0-9_.:]*\\)\\b(" 1 font-lock-function-name-face)
     ("^ *\\([a-zA-Z][a-zA-Z0-9_.:]+\\)\\b" 1 font-lock-variable-name-face)
     ("[()]" 0 font-lock-keyword-face)
-    
+
     ("@[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-variable-name-face)
     (" :[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-type-face)
     )
@@ -501,7 +507,7 @@ indent the next line when they occur at the beginning of a line"
 
 (defvar zomp-symbol-file "/tmp/zomp-symbols")
 (defvar zomp-symbol-buffer "*zomp-symbols*")
-  
+
 (defun zomp-build-symbol-buffer ()
   (interactive)
   (save-excursion
@@ -524,7 +530,7 @@ indent the next line when they occur at the beginning of a line"
 
 (defconst zomp-identifier-chars "a-zA-Z0-9:*")
 (defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*]*")
-  
+
 (defun zomp-symbol-at-point ()
   (interactive)
   (let ((linestart 0) (parenopen 0) funcend linesym funcsym)
@@ -576,4 +582,3 @@ indent the next line when they occur at the beginning of a line"
       (error nil))))
 
 
-  

@@ -179,6 +179,8 @@ struct
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
+      "op== a b", `Return [jux ["op=="; "a"; "b"]];
+      "op==_str lstr rstr", `Return [jux ["op==_str"; "lstr"; "rstr"]];
       (* todo *)
 
       (** operator precedence *)
@@ -387,6 +389,8 @@ struct
 
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];
+      "a.b.c", `Return [expr "op." [id "a"; se2 "op." "b" "c"]];
+      "x.y.z.w", `Return [expr "op." [id "x"; expr "op." [id "y"; se2 "op." "z" "w"]]];
       "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
 
       (* "foo.print(1, 2)", *)

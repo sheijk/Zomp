@@ -8,7 +8,7 @@ include ../makefile.config
 # Targets
 ################################################################################
 
-all: minimal.test simple-func.test variables.test
+all: structs.test minimal.test simple-func.test variables.test
 fail: crash.test
 
 clean:
@@ -24,8 +24,6 @@ redo: clear-results all
 ################################################################################
 
 .PRECIOUS: %.ll
-
-minimal.ll: ../zompc.native
 
 %.ll: %.zomp ../zompc.native
 	@$(ECHO) Compiling $(<) to .ll...

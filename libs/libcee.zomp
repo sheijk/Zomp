@@ -101,13 +101,31 @@ macro op&& l r
   end}
 end
 
+template op==_str left right
+  strcmp(#left, #right) == 0
+end
+
+macro dummy l r
+  printlnString "applying dummy"
+  ret ${foo bar}
+end
+
+func void p2(ast* l, ast* r)
+  printlnString "should do something now.."
+end
+
 ///TODO: add support to call methods
 macro op. record component
-  if2 (getField(component, childCount) == 0) then
-    ret ${getField(#record, #component)}
-  end
-  // else
-  ret ${error "function calls with dot syntax not supported yet" in #component}
+  // ret ${getField(#record, #component)}
+  mret ${getField(#record, #component)}
+  // if2 (getField(component, childCount) == 0) then
+  //   ret ${getField(#record, #component)}
+  // elseif (getField(component, id) ==_str "op.")
+  //   ret ${dummy #record #component}
+  //   // ret ${getField(#record, #component)}
+  // end
+  // // else
+  // ret ${error "function calls with dot syntax not supported yet" in #component}
 end
 
 macro op= l r

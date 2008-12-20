@@ -3,6 +3,16 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO snobol string matching ankucken
+** TODO type degree := int in :=_type degree int umwandeln
+   defkind name := definition+
+   => :=_defkind name definition
+
+   varname := value
+   => var varname value
+
+   Will provide overloadable definitions / simulate keywords
+** TODO optional + named parameters: c# modell taugt
 ** TODO [#A] Causes invalid llvm code when omitting "ret"
 
    (macro opseq args ... (
@@ -565,6 +575,82 @@ von http://lambda-the-ultimate.org/node/2884
 
    MyList list = new MyList { 1, 2 };
 ** TODO [#A] change character class for '&' in zomp.el (and possibly other characters)
+** TODO [#A] varargs per concept param
+
+   int sum(vararg list<int> args)
+   int sum(vararg vector<int> args)
+
+   template<T, Cont = vector>
+   T sum(vararg Cont<T> vars)
+
+   all legal to be called by
+   total := sum(1, 2, 3, 4, 5)
+
+   Everything which is a model of concept Iterable
+
+   concept Iterable<T>
+     Iterator<T> iterator()
+
+   concept Iterator<T>
+     bool atEnd()
+     T get()
+     void next()
+** TODO [#A] parsing of foo(a)(b), foo<int>(3) etc.
+** TODO [#A] a, *b, c = range(5)
+   Extended Iterable Unpacking. You can now write things like a, b, *rest =
+   some_sequence. And even *rest, a = stuff. The rest object is always a
+   (possibly empty) list; the right-hand side may be any iterable
+   (from python3 changelist)
+** TODO [#A] quantities: number + unit
+   also allow a unit-power in constructors
+   1000m = 1km
+   10kg .uncomparableTo 10min
+** TODO [#A] ++i or +i
+   Pre- and postfix operators consist of only one symbol. This conflicts with
+   using ++ and -- for in/decrement.
+
+   for +:
+   - no inconsistencies (every pre/postfix op is always one char)
+   - nesting like +++i to increment by three possible
+
+     func copy(byte* dest, byte* source, int size)
+       do size times
+         +dest = +source
+
+   for ++:
+   - consistent with C
+   - meets expectations of developers
+   - might be confusing if i++ means (i+)+
+
+     func copy(byte* dest, byte* source, int size)
+       do size times
+         ++dest = ++source
+** TODO [#A] regexp syntax #/foo/bar/
+   #c, means use c as seperator
+   for c != char, num, paren
+
+   allow prefix for strings like
+   L"foobar"
+   utf8"some string with umlauts"
+   re"[a-z]+"
+   textVar.replace re"func ([:type:]) ([a-z]+)" "\1 \2"
+** TODO modulsysteme für lisp dialekte ankucken
+** TODO [#A] allow 500_000 as numeric constants
+** TODO [#A] type expression syntax
+
+   int[]*                   - pointer to int array
+   int*[]                   - array to int pointers
+   int, float               - pair of int and float
+   float -> int             - int f(float)
+   int, float -> char       - char f(int, float)
+   (int,int), float -> char - char f(pair(int,int), float)
+
+   Optional:
+   [int] - list of ints
+   {int} - set of ints
+** TODO [#A] llvm.globalctors for initialization
+** TODO [#A] wadler-blott for ad-hoc polymorphism
+** TODO [#A] if2: elseif should support 'then'
 
 * Use Cases                                                            :usecase:
 

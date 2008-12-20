@@ -74,6 +74,9 @@ struct
       "space... ", `Return [id "space"; POSTFIX_OP "..."; END];
       "lineend...", `Return [id "lineend"; POSTFIX_OP "..."; END];
 
+      "foo.bar", `Return [id "foo"; DOT; id "bar"; END];
+      "foo.bar.baz", `Return [id "foo"; DOT; id "bar"; DOT; id "baz"; END];
+
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
@@ -171,6 +174,7 @@ struct
       parsedAsId "op||";
       parsedAsId "op++";
       parsedAsId "op*";
+      parsedAsId "op==_str";
       (* TODO: alle operatoren testen *)
 
       "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];

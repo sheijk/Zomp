@@ -55,6 +55,61 @@ template op** base exp
 end
 
 //------------------------------------------------------------------------------
+// Quick and dirty arrays
+
+macro defineArrayType type
+  arrayTypeName := "Array_" ++ type.id
+  initFuncName := "Array_" ++ type.id ++ ":init"
+
+  // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
+  initDecl := simpleAst("opcall")
+  addChild initDecl simpleAst(initFuncName)
+  addChild initDecl ${#arrayTypeName* this}
+  addChild initDecl ${int size}
+
+  code := ${
+    struct #arrayTypeName
+      int length
+      #type* elements
+    end
+
+    // func void #initFuncName(#arrayTypeName* this, int length)
+    func void #initDecl
+      this.length = size
+      this.elements = malloc(#type, size)
+    end
+  end}
+
+  ret code
+  // println()
+  // printHLine '-' 80
+  // ast:print code 0
+  // printHLine '-' 80
+  //
+  // ret ${}
+end
+
+template aget array index
+  load (ptradd getField(#array, elements) #index)
+end
+
+template aset array index value
+  store (ptradd getField(#array, elements) #index) #value
+end
+
+macro array:setAll array value
+  uniqueId size "lala"
+  uniqueId i "lala"
+
+  ret ${
+    size := getField(#array, length)
+    for #i 0 size
+      aset #array #i #value
+    end
+  end}
+end
+
+//------------------------------------------------------------------------------
 
 var int windowWidth 400
 var int windowHeight 300
@@ -137,14 +192,6 @@ func void Field3D:clear(Field3D* this)
   for i 0 (sideLength ** 3)
     store ptradd(array, i) 0.0
   end
-
-  // for x 0 this.sideLength
-  //   for y 0 this.sideLength
-  //     for z 0 this.sideLength
-  //       Field3D:set(this, x, y, z, int:toFloat(z) /_f int:toFloat(sideLength))
-  //     end
-  //   end
-  // end
 end
 
 func void Field3D:init(Field3D* this, int sideLength)
@@ -177,85 +224,11 @@ func void Field3D:show(Field3D* this)
   end
 end
 
-type Metaball
-  float x
-  float y
-  float z
-
-  float size
-end
-
 // TODO: metaballs reintun
 // http://en.wikipedia.org/wiki/Marching_cubes
 
-// macro struct name members...
-//   code := simpleAst("type")
-//   addChild code name
-// 
-//   forEachAstChild member members
-//     addChild code member
-//   end
-// 
-//   ret code
-// end
-
-//------------------------------------------------------------------------------
-// Quick and dirty arrays
-
-macro defineArrayType type
-  arrayTypeName := "Array_" ++ type.id
-  initFuncName := "Array_" ++ type.id ++ ":init"
-
-  // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
-  initDecl := simpleAst("opcall")
-  addChild initDecl simpleAst(initFuncName)
-  addChild initDecl ${#arrayTypeName* this}
-  addChild initDecl ${int size}
-
-  code := ${
-    struct #arrayTypeName
-      int length
-      #type* elements
-    end
-
-    // func void #initFuncName(#arrayTypeName* this, int length)
-    func void #initDecl
-      this.length = size
-      this.elements = malloc(#type, size)
-    end
-  end}
-
-  ret code
-  // println()
-  // printHLine '-' 80
-  // ast:print code 0
-  // printHLine '-' 80
-  //
-  // ret ${}
-end
-
 defineArrayType int
 defineArrayType float
-
-template aget array index
-  load (ptradd getField(#array, elements) #index)
-end
-
-template aset array index value
-  store (ptradd getField(#array, elements) #index) #value
-end
-
-macro array:setAll array value
-  uniqueId size "lala"
-  uniqueId i "lala"
-
-  ret ${
-    size := getField(#array, length)
-    for #i 0 size
-      aset #array #i #value
-    end
-  end}
-end
 
 struct Point
   float x
@@ -277,6 +250,33 @@ func void Point:print(Point* this)
   printString ", "
   printFloat this.z
   printString ")"
+end
+
+struct Metaball
+  Point pos
+  float strength
+end
+
+// func void Metaball:init(Metaball* this, Point* pos, float strength)
+//   this.pos.x = pos.x
+//   this.strength = strength
+// end
+
+testf
+  // printlnString "fooblah!"
+  // 
+  // ball := malloc(Metaball)
+  // ball.strength = 1.0
+  // 
+  // x := 10.0
+  // addr := ptr(x)
+
+  var Point p
+  pa := ptr(p)
+  // Point:print(pa)
+
+  printFloat load(fieldptr(ptr(p), x))
+  // printFloat getField(getField(ball, pos), x)
 end
 
 // defineArrayType Point
