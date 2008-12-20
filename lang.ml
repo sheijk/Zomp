@@ -179,6 +179,7 @@ type form = [
 | `Branch of branch
 | `Label of label
 | form genericIntrinsic
+| `EmbeddedComment of string list
 ]
 and func = {
   fname :string;
@@ -235,6 +236,9 @@ let rec formToSExpr : form -> Ast2.t = function
       Ast2.expr "GetFieldPtr" [formToSExpr record; Ast2.idExpr fieldName]
   | `CastIntrinsic (typ, expr) ->
       Ast2.expr "Cast" [Ast2.idExpr (typeName typ); formToSExpr expr]
+  | `EmbeddedComment strings ->
+      let addQuotes str = "\"" ^ str ^ "\"" in
+      Ast2.expr "Comment" (List.map (Ast2.idExpr ++ addQuotes) strings)
 
 let rec formToString : form -> string = function
   | `Variable var -> sprintf "Variable (%s)" (varToString var)
@@ -264,6 +268,8 @@ let rec formToString : form -> string = function
   | `PtrAddIntrinsic (ptr, offset) -> sprintf "PtrAdd (%s, %s)" (formToString ptr) (formToString offset)
   | `GetFieldPointerIntrinsic (record, fieldName) -> sprintf "GetField (%s, %s)" (formToString record) fieldName
   | `CastIntrinsic (typ, expr) -> sprintf "Cast (%s, %s)" (typeName typ) (formToString expr)
+  | `EmbeddedComment strings ->
+      sprintf "Comments ('%s')" (Common.combine "', '" strings)
 
 let funcDeclToString func =
   let argToString (name, typ) = name ^ " :" ^ typeName typ in
@@ -344,14 +350,4 @@ type 'bindings macro = {
   mtransformFunc : 'bindings -> Ast2.sexpr list -> Ast2.sexpr;
   mdocstring :string;
 }
-
-
-
-(* type package = { *)
-(*   pname :string; *)
-(*   vars :variable list; *)
-(*   funcs :func list; *)
-(* } *)
-
-
 

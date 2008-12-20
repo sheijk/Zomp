@@ -163,9 +163,9 @@ let rec typeCheck bindings form : typecheckResult =
             >> expectPointerType ptrExpr
           end
       | `CastIntrinsic (targetType, valueExpr) ->
-          begin
-            TypeOf targetType
-          end
+          TypeOf targetType
+      | `EmbeddedComment _ ->
+          TypeOf `Void
   in
   let rec removeTypeRefs bindings = function
     | `TypeRef name as typeref ->
@@ -211,6 +211,7 @@ let rec collectVars (form :Lang.form) =
     | `GetAddrIntrinsic _
     | `Jump _
     | `Label _
+    | `EmbeddedComment _
         as simple ->
         simple, []
 

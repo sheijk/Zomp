@@ -752,12 +752,17 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
       resultVar, comment ^ valueCode ^ "\n" ^ code
 
 let gencodeAssignVar gencode var expr =
-  let rvalVar, rvalCode = gencode expr in
-  let name = (resultVar var).rvname in
-  let typename = llvmTypeName var.typ in
-  let comment = sprintf "; assigning new value to %s\n\n" name in
-  let assignCode = sprintf "store %s %s, %s* %s\n\n" typename rvalVar.rvname typename name in
-  (noVar, comment ^ rvalCode ^ "\n\n" ^ assignCode)
+  match var.typ with
+    | `Record _ -> raiseCodeGenError ~msg:"Cannot assign structs, yet"
+    | _ ->
+        let rvalVar, rvalCode = gencode expr in
+        let name = (resultVar var).rvname in
+        let typename = llvmTypeName var.typ in
+        let comment = sprintf "; assigning new value to %s\n\n" name in
+        let assignCode = sprintf "store %s %s, %s* %s\n\n"
+          typename rvalVar.rvname typename name
+        in
+        (noVar, comment ^ rvalCode ^ "\n\n" ^ assignCode)
 
 let gencodeReturn gencode expr =
   let exprVar, exprCode = gencode expr in
@@ -791,8 +796,11 @@ let gencodeBranch gencode branch =
   in
   (noVar, preCode ^ code)
 
+let gencodeEmbeddedComment gencode comments =
+  let commentLines = List.map (fun str -> "; " ^ str) comments in
+  (noVar, Common.combine "\n" commentLines)
+
 let rec gencode : Lang.form -> resultvar * string = function
-(*   | `ToplevelForm _ -> raiseCodeGenError ~msg:"toplevel form not allowed, here" *)
   | `Sequence exprs -> gencodeSequence gencode exprs
   | `DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr
   | `Variable var -> gencodeVariable var
@@ -804,6 +812,7 @@ let rec gencode : Lang.form -> resultvar * string = function
   | `Branch b -> gencodeBranch gencode b
   | `AssignVar (var, expr) -> gencodeAssignVar gencode var expr
   | #genericIntrinsic as intr -> gencodeGenericIntr gencode intr
+  | `EmbeddedComment comments -> gencodeEmbeddedComment gencode comments
 
 let countChar str c =
   let count = ref 0 in
@@ -858,8 +867,11 @@ let gencodeDefineFunc func =
     | None ->
         let paramTypeNames = List.map (fun (_, typ) -> paramTypeName typ) func.fargs in
         let paramString = combine ", " paramTypeNames in
-        let decl = sprintf "%s @%s(%s) "
-          (llvmTypeName func.rettype) (escapeName func.fname) paramString
+        let decl =
+          sprintf "%s @%s(%s)\n"
+            (llvmTypeName func.rettype)
+            (escapeName func.fname)
+            paramString
         in
         "declare " ^ decl
     | Some impl ->

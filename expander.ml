@@ -739,19 +739,6 @@ let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
       end
   | _ -> None
 
-let translateAssignVar (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [
-        { id = varName; args = [] };
-        rightHandExpr;
-      ] } when id = macroAssign -> begin
-      let _, rightHandForm, toplevelForms = translateToForms translateF bindings rightHandExpr in
-      match lookup bindings varName with
-        | VarSymbol v ->
-            Some (bindings, toplevelForms @ [`AssignVar (v, rightHandForm)] )
-        | _ -> None
-    end
-  | _ -> None
-
 let translateTypedef translateF (bindings :bindings) =
   let translateRecordTypedef typeName componentExprs expr =
     let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
@@ -1031,6 +1018,7 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
 type 'translateF env = {
   bindings :Bindings.t;
   translateF :'translateF;
+  parseF :string -> Ast2.t list option;
 }
 
 type 'a mayfail =
@@ -1310,12 +1298,90 @@ struct
       | _ ->
           Error [sprintf "Expecting '%s name valueExpr'" expr.id]
 
+  (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
+  let translateAssignVar (env :exprTranslateF env) expr =
+    let translateSourceToForms bindings source =
+      let ast =
+        match env.parseF source with
+          | Some asts ->
+              Ast2.toSingleExpr asts
+          | None ->
+              raiseIllegalExpression expr
+                (sprintf "Failed to parse '%s'" source)
+      in
+      env.translateF bindings ast
+    in
+    let translateRecordAssign components lhsVar rightHandForm =
+      let newBindings, rhsTempVar, defRhsVar =
+        (** don't introduce new temp vars recursively! *)
+        match rightHandForm with
+          | `Variable rhsVar -> env.bindings, rhsVar, []
+          | _ ->
+              let newBindings, rhsTempVar = getNewVar env.bindings lhsVar.typ in
+              newBindings, rhsTempVar, [`DefineVariable (rhsTempVar, (Some rightHandForm))]
+      in
+      let makeCopyFieldsCode target source =
+        let rec copyFields bindings formsAcc = function
+          | [] -> bindings, List.rev formsAcc
+          | (name, typ) :: remFields ->
+              begin
+                let newBindings, forms =
+                  translateSourceToForms bindings
+                    (sprintf "setField(%s, %s, getField(%s, %s))"
+                       target name source name)
+                in
+                copyFields newBindings (forms @ formsAcc) remFields
+              end
+        in
+        copyFields newBindings [] components
+      in
+      let newBindings, forms = makeCopyFieldsCode lhsVar.vname rhsTempVar.vname in
+      let allForms = defRhsVar @ [`EmbeddedComment ["Assigning struct here"]] @ forms in
+      (newBindings, allForms)
+    in
+
+    let doTranslation id varName rightHandExpr =
+      let _, rightHandForm, toplevelForms =
+        translateToForms env.translateF env.bindings rightHandExpr
+      in
+      match lookup env.bindings varName with
+        | VarSymbol lhsVar ->
+            begin
+              match typeCheck env.bindings rightHandForm with
+                | TypeOf (`Record components) ->
+                    let newBindings, forms =
+                      translateRecordAssign components lhsVar rightHandForm
+                    in
+                    Result (newBindings, toplevelForms @ forms)
+                | TypeOf rhsType when rhsType = lhsVar.typ ->
+                    Result (env.bindings,
+                            toplevelForms @ [`AssignVar (lhsVar, rightHandForm)] )
+                | TypeOf invalidRhsType ->
+                    Error [sprintf "Type error: cannot assign %s to %s"
+                             (typeName invalidRhsType) (typeName lhsVar.typ)]
+                | TypeError (m,f,e) ->
+                    Error [typeErrorMessage env.bindings (m,f,e)]
+            end
+        | _ -> Error [sprintf "Could not find variable %s" varName]
+    in
+
+    match expr with
+      | { id = id; args = [
+            { id = varName; args = [] };
+            rightHandExpr;
+          ] } when id = macroAssign ->
+          doTranslation id varName rightHandExpr
+      | _ ->
+          Error ["Expected 'assign varName valueExpr'"]
+
 end
 
 let baseInstructions =
   let table = Hashtbl.create 32 in
-  Hashtbl.add table "dummy" translateDummy;
-  Hashtbl.add table "std:base:localVar" Base.translateDefineLocalVar;
+  let add = Hashtbl.add table in
+  add "dummy" translateDummy;
+  add "std:base:localVar" Base.translateDefineLocalVar;
+  add macroAssign Base.translateAssignVar;
   table
 
 let translateFromDict
@@ -1326,7 +1392,11 @@ let translateFromDict
     =
   try
     let handler = Hashtbl.find baseInstructions expr.id in
-    let env = { bindings = bindings; translateF = translateF } in
+    let env = {
+      bindings = bindings;
+      translateF = translateF;
+      parseF = Parseutils.parseIExprs;
+    } in
     match handler env expr with
       | Error errors ->
           print_string (combineErrors "Swallowed errors: " errors);
@@ -1359,7 +1429,7 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
     translateFuncCall;
     translateMacro;
     translateDefineMacro translateNested;
-    translateAssignVar;
+    (* translateAssignVar; *)
     (*     translateTypedef; *)
     translateGenericIntrinsic;
     translateRecord;

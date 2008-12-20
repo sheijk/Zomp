@@ -13,6 +13,10 @@ let emptyExpr = { id = "seq"; args = [] }
 let seqExpr args = { id = "seq"; args = args }
 let expr name args = { id = name; args = args }
 
+let toSingleExpr = function
+  | [single] -> single
+  | multiOrNone -> seqExpr multiOrNone
+
 let testAst = {
   id = "main"; args = [
     { id = "foreach";

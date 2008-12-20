@@ -265,17 +265,20 @@ end
 testf
   // printlnString "fooblah!"
   // 
-  // ball := malloc(Metaball)
-  // ball.strength = 1.0
-  // 
+  ball := malloc(Metaball)
+  ball.strength = 1.0
+  
   // x := 10.0
   // addr := ptr(x)
 
-  var Point p
-  pa := ptr(p)
+  // var Point p
+  // pa := ptr(p)
   // Point:print(pa)
 
-  printFloat load(fieldptr(ptr(p), x))
+  // p := getField(ball, pos)
+  var Point p
+  p = getField(ball, pos)
+  // printFloat getField(p, x)
   // printFloat getField(getField(ball, pos), x)
 end
 
