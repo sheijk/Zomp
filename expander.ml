@@ -1628,6 +1628,23 @@ let translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) 
         None
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
+  let sanityChecks returnType params =
+    (match returnType with
+       | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet"
+       | _ -> ());
+    let module StringSet = Set.Make(String) in
+    let _ =
+      List.fold_left
+        (fun prevNames (nextName, _) ->
+           if StringSet.mem nextName prevNames then
+             raiseIllegalExpression expr
+               (sprintf "Each argument needs a distinct name. %s used more than once" nextName);
+           StringSet.add nextName prevNames)
+        StringSet.empty
+        params
+    in
+    ()
+  in
   let buildFunction bindings typ name paramExprs implExprOption =
     let expr2param argExpr =
       let translate varName typeExpr =
@@ -1645,10 +1662,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         | _ as expr ->
             raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
-    (match typ with
-       | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet"
-       | _ -> ());
     let params = List.map expr2param paramExprs in
+    sanityChecks typ params;
     let rec localBinding bindings = function
       | [] -> bindings
       | (name, typ) :: tail ->
