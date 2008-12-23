@@ -184,6 +184,26 @@ template op++ lstring rstring
   cstrings:append #lstring #rstring
 end
 
+template preop++ int
+  #int = #int + 1
+  #int
+end
+
+template preop-- int
+  #int = #int - 1
+  #int
+end
+
+template postop++ int
+  #int = #int + 1
+  #int - 1
+end
+
+template postop-- int
+  #int = #int - 1
+  #int + 1
+end
+
 macro struct name members...
   code := simpleAst("type")
   addChild code name

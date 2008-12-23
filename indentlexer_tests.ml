@@ -76,6 +76,8 @@ struct
 
       "foo.bar", `Return [id "foo"; DOT; id "bar"; END];
       "foo.bar.baz", `Return [id "foo"; DOT; id "bar"; DOT; id "baz"; END];
+      "x.10", `Return [id "x"; DOT; id "10"; END];
+      "3.toInt", `Return [id "3"; DOT; id "toInt"; END];
 
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];

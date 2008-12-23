@@ -338,12 +338,12 @@ let () =
       (fun () -> begin
          let expr = readExpr !defaultPrompt "" bindings in
 
-         let onSuccess newBindings simpleforms llvmCode =
-           if !printAst then begin
-             let asString = Ast2.expression2string expr in
-             printf " => %s\n" asString;
-           end;
+         if !printAst then begin
+           let asString = Ast2.expression2string expr in
+           printf " => %s\n" asString;
+         end;
 
+         let onSuccess newBindings simpleforms llvmCode =
            if !printLLVMCode then begin
              printf "LLVM code:\n%s\n" llvmCode;
              flush stdout;

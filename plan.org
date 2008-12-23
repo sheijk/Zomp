@@ -651,6 +651,7 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] llvm.globalctors for initialization
 ** TODO [#A] wadler-blott for ad-hoc polymorphism
 ** TODO [#A] if2: elseif should support 'then'
+** TODO [#A] unit test: writing function argument
 
 * Use Cases                                                            :usecase:
 

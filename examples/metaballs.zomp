@@ -17,6 +17,9 @@ include "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
 
+var int sideLength 40
+var float sideLengthf 40.0
+
 // from libstdc
 func int rand()
 
@@ -138,9 +141,16 @@ var float angle 0.0
 macro mainloop body...
   ret ${
     time := 0.0
+    lastTime := 0.0
+    frameDuration := 0.0
+    frameNum := 0
+    startTime := double:toFloat glfwGetTime()
     running := true
+
     while running
+      lastTime = time
       time = double:toFloat glfwGetTime()
+      frameDuration = time -_f lastTime
       angle = time *_f 128.0
 
       #body
@@ -148,7 +158,10 @@ macro mainloop body...
       glfwSwapBuffers()
       glfwPollEvents()
       running = bool:not isPressed(GLFW_KEY_ESC)
+      ++frameNum
     end
+
+    endTime := double:toFloat glfwGetTime()
   end}
 end
 
@@ -185,6 +198,17 @@ func void Field3D:set(Field3D* this, int x, int y, int z, float value)
   store ptradd(a, index) value
 end
 
+template Field3D:foreach field x y z value code...
+  for #x 0 #field.sideLength
+    for #y 0 #field.sideLength
+      for #z 0 #field.sideLength
+        #value := Field3D:get(#field, #x, #y, #z)
+        #code
+      end
+    end
+  end
+end
+
 func void Field3D:clear(Field3D* this)
   array := this.array
   sideLength := this.sideLength
@@ -201,25 +225,158 @@ func void Field3D:init(Field3D* this, int sideLength)
 end
 
 func void Field3D:show(Field3D* this)
-  sideLength := this.sideLength
+  rendergl GL_POINTS
+    Field3D:foreach this x y z v
+      glColor3f v v (1.0 /_f 4.0)
+      glVertex3i x y z
+    end
+  end
+end
 
-  saveTransforms
-    scale := 2.0 /_f int:toFloat(sideLength)
-    glScalef scale scale scale
+struct Metaballs
+  int count
+  float* xs
+  float* ys
+  float* zs
+  float* xvels
+  float* yvels
+  float* zvels
+  float* strengths
+end
 
-    offset := int:toFloat(sideLength) /_f -2.0
-    glTranslatef offset offset offset
+template Metaballs:foreach ballnum balls code...
+  for #ballnum 0 #balls.count
+    #code
+  end
+end
 
-    rendergl GL_POINTS
-      for x 0 sideLength
-        for y 0 sideLength
-          for z 0 sideLength
-            v := Field3D:get(this, x,y,z)
-            glColor3f v v 1.0
-            glVertex3i x y z
-          end
-        end
-      end
+func void Metaballs:init(Metaballs* this, int count)
+  template tempAndMemberArray name
+    #name := malloc float count
+    this.#name = #name
+  end
+
+  this.count = count
+
+  tempAndMemberArray xs
+  tempAndMemberArray ys
+  tempAndMemberArray zs
+  tempAndMemberArray xvels
+  tempAndMemberArray yvels
+  tempAndMemberArray zvels
+  tempAndMemberArray strengths
+
+  max := 5.0
+  offet := 10.0
+
+  Metaballs:foreach ballnum this
+    xs[ballnum] = max *_f float:random() +_f offet
+    ys[ballnum] = max *_f float:random() +_f offet
+    zs[ballnum] = max *_f float:random() +_f offet
+    xvels[ballnum] = float:neg xs[ballnum]
+    yvels[ballnum] = float:neg xs[ballnum]
+    zvels[ballnum] = float:neg ys[ballnum]
+    strengths[ballnum] = 1.0
+  end
+end
+
+func void Metaballs:update(Metaballs* this, float time)
+  xs := this.xs
+  ys := this.ys
+  zs := this.zs
+  xvels := this.xvels
+  yvels := this.yvels
+  zvels := this.zvels
+
+  t := time /_f 1.0
+
+  Metaballs:foreach ballnum this
+    xs[ballnum] = xs[ballnum] +_f t *_f xvels[ballnum]
+    ys[ballnum] = ys[ballnum] +_f t *_f yvels[ballnum]
+    zs[ballnum] = zs[ballnum] +_f t *_f zvels[ballnum]
+
+    acc := 1.0 /_f 10.0 *_f float:random()
+
+    if2 (xs[ballnum] <_f 0.0) then
+      xvels[ballnum] = xvels[ballnum] +_f acc
+    elseif (xs[ballnum] >_f sideLengthf)
+      xvels[ballnum] = xvels[ballnum] -_f acc
+    end
+    if2 (ys[ballnum] <_f 0.0) then
+      yvels[ballnum] = yvels[ballnum] +_f acc
+    elseif (ys[ballnum] >_f sideLengthf)
+      yvels[ballnum] = yvels[ballnum] -_f acc
+    end
+    if2 (zs[ballnum] <_f 0.0) then
+      zvels[ballnum] = zvels[ballnum] +_f acc
+    elseif (zs[ballnum] >_f sideLengthf)
+      zvels[ballnum] = zvels[ballnum] -_f acc
+    end
+
+    maxVel := 10.0
+    minVel := -10.0
+
+    xvels[ballnum] = float:clamp(minVel, maxVel, xvels[ballnum])
+    yvels[ballnum] = float:clamp(minVel, maxVel, yvels[ballnum])
+    zvels[ballnum] = float:clamp(minVel, maxVel, zvels[ballnum])
+  end
+end
+
+func void Metaballs:print(Metaballs* this)
+  printInt this.count
+  printlnString " metaballs"
+
+  xs := this.xs
+  ys := this.ys
+  zs := this.zs
+  strengths := this.strengths
+
+  Metaballs:foreach ballnum this
+    printString "  x = "
+    printFloat xs[ballnum]
+    printString ", y = "
+    printFloat ys[ballnum]
+    printString ", z = "
+    printFloat zs[ballnum]
+    printString ", strength = "
+    printFloat strengths[ballnum]
+    println()
+  end
+end
+
+func void Metaballs:applyToField(Metaballs* this, Field3D* field)
+  xs := this.xs
+  ys := this.ys
+  zs := this.zs
+
+  Field3D:clear(field)
+
+  mballSize := 8.0
+
+  Field3D:foreach field x y z value
+    newValue := value
+    Metaballs:foreach ballnum this
+      xd := int:toFloat x -_f xs[ballnum]
+      yd := int:toFloat y -_f ys[ballnum]
+      zd := int:toFloat z -_f zs[ballnum]
+      d := sqrtf(xd *_f xd +_f yd *_f yd +_f zd *_f zd)
+
+      newValue = newValue +_f float:max(0.0, 1.0 -_f d /_f mballSize)
+    end
+    Field3D:set(field, x, y, z, newValue)
+  end
+end
+
+func void Metaballs:show(Metaballs* this)
+  xs := this.xs
+  ys := this.ys
+  zs := this.zs
+  strengths := this.strengths
+
+  rendergl GL_POINTS
+    glColor3f 1.0 0.0 0.0
+    Metaballs:foreach ballnum this
+      glVertex3f xs[ballnum] ys[ballnum] zs[ballnum]
     end
   end
 end
@@ -252,73 +409,9 @@ func void Point:print(Point* this)
   printString ")"
 end
 
-struct Metaball
-  Point pos
-  float strength
-end
-
-// func void Metaball:init(Metaball* this, Point* pos, float strength)
-//   this.pos.x = pos.x
-//   this.strength = strength
-// end
-
-testf
-  // printlnString "fooblah!"
-  // 
-  ball := malloc(Metaball)
-  ball.strength = 1.0
-  
-  // x := 10.0
-  // addr := ptr(x)
-
-  // var Point p
-  // pa := ptr(p)
-  // Point:print(pa)
-
-  // p := getField(ball, pos)
-  var Point p
-  p = getField(ball, pos)
-  // printFloat getField(p, x)
-  // printFloat getField(getField(ball, pos), x)
-end
-
-// defineArrayType Point
-
-// testf
-//   points := new Array_Point 10
-//   var Point p
-//   array:setAll points p
-// end
-
-// func void test()
-//   points := malloc Point 10
-//   var Point p
-//   store points p
-// end
-
-// func void test()
-//   var Point p
-//   setField p x 1.0
-//   // p.x = 1.0
-//   // p.y = 2.0
-// 
-//   // q := p
-//   // p.x = 8.0
-// 
-//   // Point:print p
-//   // println()
-//   // Point:print q
-//   // println()
-// end
-
-// func void test()
-//   arr := new(Array_int, 10)
-// 
-//   array:setAll arr 17
-// 
-//   for i 0 10
-//     printlnInt aget(arr, i)
-//   end
+// struct Metaball
+//   Point pos
+//   float strength
 // end
 
 //------------------------------------------------------------------------------
@@ -433,6 +526,12 @@ func void onWindowResize(int newWidth, int newHeight)
   glViewport 0 0 windowWidth windowHeight
 end
 
+func void free(void* ptr)
+
+template delete ptr
+  free (cast void* #ptr)
+end
+
 func int main()
   init()
   // resizeWindow 1440 900
@@ -443,12 +542,15 @@ func int main()
   glMatrixMode( GL_PROJECTION )
   glLoadIdentity()
   aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
-  gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
+  gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
 
   cam := new SpaceballCamera
-  cam.distance = 4.0f
+  cam.distance = 100.0f
 
-  field := new Field3D 10
+  field := new Field3D sideLength
+  mballs := new Metaballs 3
+
+  Metaballs:print mballs
 
   mainloop
     glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -468,19 +570,41 @@ func int main()
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
     SpaceballCamera:applyToGL cam
-    // glTranslatef( 0., 2., float:neg(4.) )
-    // glRotatef( angle, 0., 1., 0. )
+
+    if2 (time -_f startTime >_f 1.0) then
+      Metaballs:update mballs frameDuration
+      Metaballs:applyToField mballs field
+    end
 
     drawCoordSys 8.0
 
-    Field3D:show field
+    saveTransforms
+      sideLength := field.sideLength
+      scale := 100.0 /_f int:toFloat(sideLength)
+      glScalef scale scale scale
+
+      offset := int:toFloat(sideLength) /_f -2.0
+      glTranslatef offset offset offset
+
+      Field3D:show field
+      Metaballs:show mballs
+    end
   end
 
   drawPausedOverlay()
   glfwSwapBuffers()
   glfwPollEvents()
 
-  printlnString "cu"
+  println()
+  printFloat (endTime -_f startTime)
+  printString "s, "
+  printInt frameNum
+  printString " frames, "
+  printFloat (int:toFloat frameNum /_f (endTime -_f startTime))
+  printlnString " fps"
+
+  delete field
+  delete mballs
 
   ret 0
 end
