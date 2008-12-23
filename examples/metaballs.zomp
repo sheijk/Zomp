@@ -143,6 +143,24 @@ unittest:testCasesFor float:mix
   float:mix 0.25 0.0 8.0 ==_f 2.0
 end
 
+
+//------------------------------------------------------------------------------
+// some simple types
+
+struct Color
+  float r
+  float g
+  float b
+  float a
+end
+
+func void Color:init(Color* this, float r, float g, float b, float a)
+  this.r = r
+  this.g = g
+  this.b = b
+  this.a = a
+end
+
 //------------------------------------------------------------------------------
 // Quick and dirty arrays
 
@@ -311,10 +329,19 @@ func void Field3D:init(Field3D* this, int sideLength)
 end
 
 func void Field3D:show(Field3D* this)
-  rendergl GL_POINTS
-    Field3D:foreach this x y z v
-      glColor3f v v (1.0 /_f 4.0)
-      glVertex3i x y z
+  o := -0.5 *_f int:toFloat this.sideLength
+
+  saveTransforms
+    glTranslatef o o o
+    rendergl GL_POINTS
+      Field3D:foreach this x y z v
+        r := float:mix v 0.0 1.0
+        g := float:mix v 0.0 0.25
+        b := float:mix v 0.0 0.0
+
+        glColor3f r g b
+        glVertex3i x y z
+      end
     end
   end
 end
@@ -353,15 +380,15 @@ func void Metaballs:init(Metaballs* this, int count)
   tempAndMemberArray strengths
 
   max := 20.0
-  offet := 0.0
+  offet := -10.0
 
   Metaballs:foreach ballnum this
     xs[ballnum] = max *_f float:random() +_f offet
     ys[ballnum] = max *_f float:random() +_f offet
     zs[ballnum] = max *_f float:random() +_f offet
     xvels[ballnum] = float:neg xs[ballnum] /_f 4.0
-    yvels[ballnum] = float:neg xs[ballnum] /_f 4.0
-    zvels[ballnum] = float:neg ys[ballnum] /_f 4.0
+    yvels[ballnum] = float:neg ys[ballnum] /_f 4.0
+    zvels[ballnum] = float:neg zs[ballnum] /_f 4.0
     strengths[ballnum] = 1.0
   end
 end
@@ -376,6 +403,9 @@ func void Metaballs:update(Metaballs* this, float time)
 
   t := time /_f 1.0
 
+  minpos := -0.5 *_f sideLengthf
+  maxpos := 0.5 *_f sideLengthf
+
   Metaballs:foreach ballnum this
     xs[ballnum] = xs[ballnum] +_f t *_f xvels[ballnum]
     ys[ballnum] = ys[ballnum] +_f t *_f yvels[ballnum]
@@ -383,19 +413,19 @@ func void Metaballs:update(Metaballs* this, float time)
 
     acc := 1.0 /_f 10.0 *_f float:random()
 
-    if2 (xs[ballnum] <_f 0.0) then
+    if2 (xs[ballnum] <_f minpos) then
       xvels[ballnum] = xvels[ballnum] +_f acc
-    elseif (xs[ballnum] >_f sideLengthf)
+    elseif (xs[ballnum] >_f maxpos)
       xvels[ballnum] = xvels[ballnum] -_f acc
     end
-    if2 (ys[ballnum] <_f 0.0) then
+    if2 (ys[ballnum] <_f minpos) then
       yvels[ballnum] = yvels[ballnum] +_f acc
-    elseif (ys[ballnum] >_f sideLengthf)
+    elseif (ys[ballnum] >_f maxpos)
       yvels[ballnum] = yvels[ballnum] -_f acc
     end
-    if2 (zs[ballnum] <_f 0.0) then
+    if2 (zs[ballnum] <_f minpos) then
       zvels[ballnum] = zvels[ballnum] +_f acc
-    elseif (zs[ballnum] >_f sideLengthf)
+    elseif (zs[ballnum] >_f maxpos)
       zvels[ballnum] = zvels[ballnum] -_f acc
     end
 
@@ -439,12 +469,14 @@ func void Metaballs:applyToField(Metaballs* this, Field3D* field)
 
   mballSize := 4.0
 
+  offset := -0.5 *_f sideLengthf
+
   Field3D:foreach field x y z value
     newValue := value
     Metaballs:foreach ballnum this
-      xd := int:toFloat x -_f xs[ballnum]
-      yd := int:toFloat y -_f ys[ballnum]
-      zd := int:toFloat z -_f zs[ballnum]
+      xd := int:toFloat x -_f xs[ballnum] +_f offset
+      yd := int:toFloat y -_f ys[ballnum] +_f offset
+      zd := int:toFloat z -_f zs[ballnum] +_f offset
       d := sqrtf(xd *_f xd +_f yd *_f yd +_f zd *_f zd)
 
       newValue = newValue +_f float:max(0.0, 1.0 -_f d /_f mballSize)
@@ -626,7 +658,7 @@ func int main()
   cam.distance = 100.0f
 
   field := new Field3D (float:toInt sideLengthf)
-  mballs := new Metaballs 100
+  mballs := new Metaballs 50
 
   // Metaballs:print mballs
 
@@ -661,8 +693,8 @@ func int main()
       scale := 100.0 /_f int:toFloat(sideLength)
       glScalef scale scale scale
 
-      offset := int:toFloat(sideLength) /_f -2.0
-      glTranslatef offset offset offset
+      // offset := int:toFloat(sideLength) /_f -2.0
+      // glTranslatef offset offset offset
 
       Field3D:show field
       Metaballs:show mballs
