@@ -127,28 +127,33 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
        else
          `Token token)
   in
-  let openParenRule =
-    (Str.regexp "[^a-zA-Z0-9]", Str.regexp_string "("),
-    (fun s -> `Token OPEN_PAREN)
+  let opbracketRules =
+    [re "op\\[\\]", (fun s -> `Token (IDENTIFIER s));
+     re "postop\\[\\]", (fun s -> `Token (IDENTIFIER s))]
   in
-  let openArgListRule =
-    (Str.regexp "[a-zA-Z0-9]", Str.regexp_string "("),
-    (fun s -> `Token OPEN_ARGLIST);
+  let whitespaceDependentToken chr afterWhitepace afterId =
+    let idChars = "a-zA-Z0-9_" in
+    [
+      (Str.regexp (sprintf "[^%s]" idChars), Str.regexp_string chr),
+      (fun _ -> `Token afterWhitepace);
+      (Str.regexp (sprintf "[%s]" idChars), Str.regexp_string chr),
+      (fun s -> `Token afterId);
+    ]
   in
-  [
-    openParenRule;
-    openArgListRule;
+  whitespaceDependentToken "(" OPEN_PAREN OPEN_ARGLIST
+  @ whitespaceDependentToken "[" OPEN_BRACKET OPEN_BRACKET_POSTFIX
+  @ opbracketRules
+  @ [
     identifierRule;
     whitespaceRule;
     keywordRule;
-    (* extendedIndentRule; *)
     opfuncRule "op";
     opfuncRule "preop";
     opfuncRule "postop";
-    (* regexpRule "(" OPEN_PAREN; *)
     regexpRule ")" CLOSE_PAREN;
     regexpRule "{" OPEN_CURLY;
     regexpRule "}" CLOSE_CURLY;
+    regexpRule "]" CLOSE_BRACKET;
     regexpRule " *, *" COMMA;
     regexpRule "\\." DOT;
     quoteRule "$";
@@ -432,6 +437,9 @@ let tokenToString (lineIndent, indentNext) (token :token) =
           | DOT -> ".", noind
           | QUOTE str -> "$" ^ str, noind
           | KEYWORD_ARG str -> "`kwd(" ^ str ^ ")", noind
+          | OPEN_BRACKET -> "[", noind
+          | OPEN_BRACKET_POSTFIX -> "[_postfix", noind
+          | CLOSE_BRACKET -> "]", noind
           (* | EXTENDED_INDENT -> "`extind", noind *)
         in
         indentString lineIndent ^ str, (indent, doindent)

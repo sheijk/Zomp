@@ -1183,25 +1183,13 @@ struct
     match decomposeMacroDefinition expr with
       | Result (name, paramNames, implExprs, isVariadic) ->
           begin
-            (* printf "name = %s; params = %s; impl = ...%s\n" *)
-            (*   name *)
-            (*   (Common.combine ", " paramNames) *)
-            (*   (match isVariadic with `IsVariadic -> " is variadic" | _ -> ""); *)
             let tlexprs, func =
               buildNativeMacroFunc
-                (* env.translateF env.bindings *)
                 translateNestedF env.bindings
                 name paramNames implExprs isVariadic
             in
-            (* printf "--- tlexprs =\n%s\n" *)
-            (*   (Common.combine "\n" *)
-            (*      (List.map *)
-            (*         (Ast2.toString ++ Lang.toplevelFormToSExpr) *)
-            (*         tlexprs)); *)
 
             let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
-            (* printf "--- llvm code =\n"; *)
-            (* List.iter (printf "%s\n---\n") llvmCodeFragments; *)
 
             Zompvm.evalLLVMCodeB
               ~targetModule:Zompvm.Runtime
@@ -1216,11 +1204,15 @@ struct
 
             flush stdout;
 
-            let newBindings = Bindings.addMacro env.bindings name "TODO: doc"
+            let docstring =
+              Common.combine " " paramNames ^
+                match isVariadic with | `IsVariadic -> "..." | _ -> ""
+            in
+
+            let newBindings = Bindings.addMacro env.bindings name docstring
               (translateMacroCall name (List.length paramNames) isVariadic)
             in
             Result (newBindings, [])
-            (* Error ["Macro seems valid but can't define macro, yet"] *)
           end
       | Error reasons ->
           Error [combineErrors "Could not define macro: " reasons]

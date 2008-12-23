@@ -91,16 +91,16 @@ let printBindings args (bindings :bindings) =
     if Str.string_match checkRE (String.lowercase name) 0 then
       match symbol with
         | VarSymbol var ->
-            printf "var %s : %s\n" var.vname (Lang.typeName var.typ)
+            printf "var %s %s\n" (Lang.typeName var.typ) var.vname
         | FuncSymbol f ->
             let arg2string (name, typ) = Lang.typeName typ ^ " " ^ name in
             let args = List.map arg2string f.fargs in
             let argString = combine ", " args in
-            printf "func %s : %s -> %s\n" f.fname argString (Lang.typeName f.rettype)
+            printf "func %s %s(%s)\n" (Lang.typeName f.rettype) f.fname argString
         | MacroSymbol m ->
-            printf "macro %s\n" m.mname
+            printf "macro %s %s\n" m.mname m.mdocstring
         | TypedefSymbol t ->
-            printf "type %s\n" name
+            printf "type %s = %s\n" name (typeName t)
         | LabelSymbol { lname = name; } ->
             printf "label %s\n" name
         | UndefinedSymbol ->

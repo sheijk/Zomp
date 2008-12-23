@@ -177,6 +177,8 @@ struct
       "line1;line2", `Return [se2 "op;" "line1" "line2"];
       "line1 ; line2", `Return [se2 "op;" "line1" "line2"];
 
+      
+
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
       "op== a b", `Return [jux ["op=="; "a"; "b"]];
@@ -200,8 +202,6 @@ struct
 
       "a +5", `Exception "Unbalanced whitespace";
       "a- b", `Exception "Unbalanced whitespace";
-
-      (* "(sin 10) / (cos 20)", `Return [expr "op/" [jux ["sin"; "10"]; jux ["cos"; "20"]]]; *)
 
       (** operator identifiers *)
       "op> a b", `Return [jux ["op>"; "a"; "b"]];
@@ -232,6 +232,11 @@ struct
                          jux ["if"; "pos"; "then"; "x"; "else"; "0"]]];
 
       "sqrt(2 + 3)", `Return [callExpr [id "sqrt"; se2 "op+" "2" "3"]];
+
+      "foo [123]", `Return [juxExpr [id "foo"; se1 "op[]" "123"]];
+      "array[0]", `Return [se2 "postop[]" "array" "0"];
+      "op[] arg", `Return [jux ["op[]"; "arg"]];
+      "postop[] l r", `Return [jux ["postop[]"; "l"; "r"]];
 
       (** s-expressions (currently not supported) *)
       "quote (foo bar)", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]];

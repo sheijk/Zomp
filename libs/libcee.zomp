@@ -128,11 +128,23 @@ macro op. record component
   // ret ${error "function calls with dot syntax not supported yet" in #component}
 end
 
+template op:= name value
+  var2 #name #value
+end
+
+/// Assigning values. Supports
+/// a = b - for first class types
+/// a.x = b - for struct members
+/// ptr[10] = b - for pointers
 macro op= l r
   if2 ast:matchesShape(l, ${_._}) then
     var ast* component ast:child(l, 0)
     var ast* field ast:child(l, 1)
     ret ${setField #component #field #r}
+  elseif ast:matchesShape(l, ${_[_]})
+    var ast* array ast:child(l, 0)
+    var ast* index ast:child(l, 1)
+    ret ${store ptradd(#array, #index) #r}
   else
     ret ${assign #l #r}
   end
@@ -140,8 +152,9 @@ macro op= l r
   ret ${internal error}
 end
 
-template op:= name value
-  var2 #name #value
+/// Accessing pointers like C arrays
+template postop[] array index
+  load(ptradd #array #index)
 end
 
 /// Allocate storage and initialize variable

@@ -103,6 +103,10 @@
 %token OPEN_CURLY
 %token CLOSE_CURLY
 
+%token OPEN_BRACKET
+%token OPEN_BRACKET_POSTFIX
+%token CLOSE_BRACKET
+
 %token <string> ADD_OP
 %token <string> MULT_OP
 %token <string> ASSIGN_OP
@@ -208,8 +212,14 @@ exprArg:
 | OPEN_PAREN; e = kwexpr; CLOSE_PAREN;
   { e }
 
+| OPEN_BRACKET; e = kwexpr; CLOSE_BRACKET;
+  { expr "op[]" [e] }
+
 | head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
   { callExpr (idExpr head) args }
+
+| head = IDENTIFIER; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
+  { expr "postop[]" [idExpr head; arg] }
 
 | l = exprArg; DOT; r = exprArg;
   { expr "op." [l; r] }

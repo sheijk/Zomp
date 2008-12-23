@@ -67,12 +67,12 @@ end
 
 /// nested functions
 
-type Nested
-  Point pos
-  float weight
-end
-
 /// doesn't work, yet
+// type Nested
+//   Point pos
+//   float weight
+// end
+//
 // func void testNested()
 //   var Nested n
 //   var Point p
@@ -106,7 +106,6 @@ func int main()
   testOnstackAddrOf()
   testOnstack()
   testAssignment()
-  testNested()
 
   ret 0
 end

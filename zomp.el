@@ -307,8 +307,13 @@ indent the next line when they occur at the beginning of a line"
 (defun zomp-newline ()
   (interactive)
   (let ((isComment nil)
-        (isStar nil) )
+        (isStar nil)
+        (isQuotation nil)
+        (isAtEnd nil)
+        (wordAtLineBeginning ""))
     (save-excursion
+      (setq isAtEnd (looking-at " *$"))
+
       (move-beginning-of-line 1)
       ;; /// on documentation comment
       (when (looking-at " *///")
@@ -318,14 +323,42 @@ indent the next line when they occur at the beginning of a line"
       ;;  */ (but not after this line)
       (when (and (looking-at " *\\(/\\)?\\*") (not (looking-at ".*\\*/")))
         (set 'isStar t))
+
+      (end-of-line)
+      (setq isQuotation (looking-back "${ *"))
+
+      (back-to-indentation)
+      (let ((start (point)))
+        (forward-word)
+        (setq wordAtLineBeginning (buffer-substring start (point))))
       )
+
     (indent-according-to-mode)
     (newline-and-indent)
+
     (when isComment
       (insert "/// "))
     (when isStar
       (insert " * ")
       (indent-for-tab-command))
+
+    (when (and
+           (not isStar)
+           (not isComment)
+           (member wordAtLineBeginning zomp-indent-keywords)
+           isAtEnd)
+      (insert "end")
+      (indent-according-to-mode)
+      (previous-line)
+      (end-of-line)
+      (newline-and-indent))
+
+    (when isQuotation
+      (insert "end}")
+      (indent-according-to-mode)
+      (previous-line)
+      (end-of-line)
+      (newline-and-indent))
     ))
 
 (defun zomp-electric-slash ()
