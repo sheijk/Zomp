@@ -17,6 +17,25 @@ OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep.opt
 UPDATE=cp
 
+LLVM_BIN_DIR=$(PWD)/tools/llvm/Release/bin
+LLVM_INCLUDE_DIR=$(PWD)/tools/llvm/include
+LLVM_LIB_DIR=$(PWD)/tools/llvm/Release/lib
+LLVM_GCC_BIN_DIR=$(PWD)/tools/llvm-gcc/bin
+
+LLVM_CONFIG=$(LLVM_BIN_DIR)/llvm-config
+LLVM_CC=$(LLVM_GCC_BIN_DIR)/llvm-gcc
+LLVM_CXX=$(LLVM_GCC_BIN_DIR)/llvm-g++
+LLVM_DIS=$(LLVM_BIN_DIR)/llvm-dis
+
+PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
+
+# help:
+# 	echo PATH $(PATH)
+# 	echo "CXX_FLAGS = '"$(CXX_FLAGS)"'"
+# 	echo LLVM_BIN_DIR $(LLVM_BIN_DIR)
+# 	echo LLVM_CONFIG $(LLVM_CONFIG)
+# 	echo llvm config help `${LLVM_CONFIG} --help`
+
 FLYMAKE_LOG=flymake-log.temp
 
 CAML_INCLUDE=
@@ -25,7 +44,7 @@ CAML_PP=
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
 
-CXX_FLAGS=-pg -g -I /usr/local/lib/ocaml/
+CXX_FLAGS=-pg -g -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR)
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
@@ -41,6 +60,30 @@ libbindings: gencode opengl20.zomp glfw.zomp opengl20.izomp glfw.izomp
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
+# LLVM download and compilation
+################################################################################
+
+LLVM_VERSION=2.1
+
+tools/llvm-$(LLVM_VERSION).tar.gz:
+	@echo Downloading $@ ...
+	mkdir tools
+	curl http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tar.gz -o $@ -s -S
+
+tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
+	@echo Unpacking $@ ...
+	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
+	touch $@ # tar sets date from archive. avoid downloading the archive twice
+
+tools/llvm: tools/llvm-$(LLVM_VERSION)
+	@echo Linking $@ to tools/llvm-$(LLVM_VERSION)
+	rm -f $@
+	ln -s llvm-$(LLVM_VERSION) $@
+	@echo Configuring and building llvm $(LLVM_VERSION)
+	cd tools/llvm && ./configure && make
+
+################################################################################
+
 SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
 bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo \
 machine.cmo dllzompvm.so zompvm.cmo newparser.cmo indentlexer.cmo \
@@ -49,9 +92,9 @@ sexprtoplevel.cmo
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o
 	echo Building $@ ...
-	llvm-g++ $(CXX_FLAGS) `llvm-config --cxxflags` -c zompvm.cpp -o zompvm.o
+	$(LLVM_CXX) $(CXX_FLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ `llvm-config --libs all`
+	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) `$(LLVM_CONFIG) --libs all`
 
 glut.dylib:
 	@echo Building $@ ...
@@ -66,7 +109,7 @@ sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
 	echo Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
 
-LLVM_LIBS=`llvm-config --libs all`
+LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx      \
 typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib -lstdc++  \
@@ -75,11 +118,11 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
 sexprtoplevel.native: $(SEXPR_TL_INPUT:.cmo=.cmx) $(TL_CMXS) dllzompvm.so machine.cmx zompvm.cmx
 	echo Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ str.cmxa bigarray.cmxa $(LANG_CMXS) sexprtoplevel.cmx
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) sexprtoplevel.cmx
 
 zompc.native: $(LANG_CMOS:.cmo=.cmx) zompc.cmx dllzompvm.so
 	echo Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) zompc.cmx
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) zompc.cmx
 
 zompc: $(LANG_CMOS) zompc.cmo dllzompvm.so
 	echo Building $@ ...
@@ -129,8 +172,8 @@ perftest_quick: zompc.native zompc
 
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
-	llvm-gcc --emit-llvm -c $< -o $@
-	llvm-dis < stdlib.bc > stdlib.ll
+	$(LLVM_CC) --emit-llvm -c $< -o $@
+	$(LLVM_DIS) < stdlib.bc > stdlib.ll
 
 # generate a file for graphviz which visualizes the dependencies
 # between modules
