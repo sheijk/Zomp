@@ -866,7 +866,8 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
     let loadForm = `LoadIntrinsic ptrForm in
     match typeCheck bindings loadForm with
-      | TypeOf _ -> Some( bindings, toplevelForms @ [loadForm] )
+      | TypeOf _ ->
+          Some( bindings, toplevelForms @ [loadForm] )
       | TypeError (m,f,e) ->
           raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
@@ -1652,6 +1653,9 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         | _ as expr ->
             raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
+    (match typ with
+       | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet"
+       | _ -> ());
     let params = List.map expr2param paramExprs in
     let rec localBinding bindings = function
       | [] -> bindings

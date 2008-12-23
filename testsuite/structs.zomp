@@ -65,6 +65,22 @@ func void testAssignment()
   assert (getField(b,y) == 20)
 end
 
+/// nested functions
+
+type Nested
+  Point pos
+  float weight
+end
+
+/// doesn't work, yet
+// func void testNested()
+//   var Nested n
+//   var Point p
+//   getField(n, pos)
+//   void
+// end
+
+/// not supported, yet
 // func void expect89(Point p)
 //   assert (getField(ptr(p),x) == 8)
 //   assert (getField(ptr(p),y) == 9)
@@ -77,13 +93,20 @@ end
 //   expect89 p
 // end
 
+/// not supported, yet
+// func Point makePoint()
+//   var Point p
+//   setField p x 1
+//   setField p y 2
+//   ret p
+// end
+
 func int main()
   testMallocStruct()
   testOnstackAddrOf()
   testOnstack()
   testAssignment()
-
-  // argument()
+  testNested()
 
   ret 0
 end

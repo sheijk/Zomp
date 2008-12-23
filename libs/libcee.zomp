@@ -117,7 +117,7 @@ end
 ///TODO: add support to call methods
 macro op. record component
   // ret ${getField(#record, #component)}
-  mret ${getField(#record, #component)}
+  ret ${getField(#record, #component)}
   // if2 (getField(component, childCount) == 0) then
   //   ret ${getField(#record, #component)}
   // elseif (getField(component, id) ==_str "op.")
