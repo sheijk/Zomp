@@ -242,6 +242,8 @@ clean:
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
 	rm -f expandertests.cm? alltests.cm? alltests
+	cd examples/ && make clean
+	cd testsuite/ && make clean
 
 clean_tags:
 	rm -f *.annot
