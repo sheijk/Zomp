@@ -16,9 +16,85 @@ include "libs/glutils.zomp"
 include "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
+// Improved unit tests
 
-var int sideLength 40
-var float sideLengthf 40.0
+///
+/// An assertion macro which detects certain kinds of expressions and inserts
+/// code printing the arguments for better error messages
+///
+/// Example:
+/// x := 20.0
+/// unittest:assert (sin 10.0 ==_f 20.0)
+///
+/// Will result in:
+///
+/// Assertion failed
+/// left = -0.544021
+/// right = 20.000000
+/// op==_f [2 childs]
+///   opjux [2 childs]
+///     sinf [0 childs]
+///     10.0 [0 childs]
+///   x [0 childs]
+///
+macro unittest:assert testCode
+  isCompare := false
+  printF := simpleAst "internalErrorIn unittest:assert"
+  compareF := simpleAst "internalErrorIn unittest:assert"
+
+  if2 ast:matchesShape(testCode, ${_ ==_f _}) then
+    isCompare = true
+    printF = simpleAst "printFloat"
+    compareF = simpleAst "op==_f"
+  elseif ast:matchesShape(testCode, ${_ == _})
+    isCompare = true
+    printF = simpleAst "printInt"
+    compareF = simpleAst "op=="
+  end
+
+  if2 isCompare then
+    uniqueId lvar "lvar"
+    uniqueId rvar "rvar"
+    l := ast:child(testCode, 0)
+    r := ast:child(testCode, 1)
+    ret ${
+      #lvar := #l
+      #rvar := #r
+      unless (#compareF #lvar #rvar)
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        printString "left = "
+        #printF #lvar
+        println()
+        printString "right = "
+        #printF #rvar
+        println()
+        ast:print ${#testCode} 0
+      end
+    end}
+  else
+    ret ${
+      unless #testCode
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        ast:print ${#testCode} 0
+      end
+    end}
+  end
+end
+
+/// pointless(?) redefinition using indent syntax
+macro unittest:assertAll checks
+  var ast* code ${}
+  forEachAstChild check checks
+    addChild code ${unittest:assert #check}
+  end
+  ret code
+end
+
+//------------------------------------------------------------------------------
+
+var float sideLengthf 20.0
 
 // from libstdc
 func int rand()
@@ -35,7 +111,6 @@ end
 func float float:srandom()
   return (float:random() *_f 2.0 -_f 1.0)
 end
-
 
 func float powf(float base, float exp)
 func double pow(double base, double exp)
@@ -55,6 +130,17 @@ end
 
 template op** base exp
   int:pow(#base, #exp)
+end
+
+func float float:mix(float x, float a, float b)
+  ret ( (1.0 -_f x) *_f a +_f x *_f b )
+end
+
+unittest:testCasesFor float:mix
+  float:mix 0.0 1.0 10.0 ==_f 1.0
+  float:mix 1.0 0.0 4.0 ==_f 4.0
+  float:mix 0.5 0.0 4.0 ==_f 2.0
+  float:mix 0.25 0.0 8.0 ==_f 2.0
 end
 
 //------------------------------------------------------------------------------
@@ -266,16 +352,16 @@ func void Metaballs:init(Metaballs* this, int count)
   tempAndMemberArray zvels
   tempAndMemberArray strengths
 
-  max := 5.0
-  offet := 10.0
+  max := 20.0
+  offet := 0.0
 
   Metaballs:foreach ballnum this
     xs[ballnum] = max *_f float:random() +_f offet
     ys[ballnum] = max *_f float:random() +_f offet
     zs[ballnum] = max *_f float:random() +_f offet
-    xvels[ballnum] = float:neg xs[ballnum]
-    yvels[ballnum] = float:neg xs[ballnum]
-    zvels[ballnum] = float:neg ys[ballnum]
+    xvels[ballnum] = float:neg xs[ballnum] /_f 4.0
+    yvels[ballnum] = float:neg xs[ballnum] /_f 4.0
+    zvels[ballnum] = float:neg ys[ballnum] /_f 4.0
     strengths[ballnum] = 1.0
   end
 end
@@ -351,7 +437,7 @@ func void Metaballs:applyToField(Metaballs* this, Field3D* field)
 
   Field3D:clear(field)
 
-  mballSize := 8.0
+  mballSize := 4.0
 
   Field3D:foreach field x y z value
     newValue := value
@@ -475,14 +561,6 @@ func float posmod(float x, float divisor)
   ret mod
 end
 
-macro unittest:assertAll checks
-  var ast* code ${}
-  forEachAstChild check checks
-    addChild code ${unittest:assert #check}
-  end
-  ret code
-end
-
 unittest:testCasesFor posmod
   posmod(0.0,2.0) ==_f 0.0
   posmod(1.0,2.0) ==_f 1.0
@@ -547,10 +625,10 @@ func int main()
   cam := new SpaceballCamera
   cam.distance = 100.0f
 
-  field := new Field3D sideLength
-  mballs := new Metaballs 3
+  field := new Field3D (float:toInt sideLengthf)
+  mballs := new Metaballs 100
 
-  Metaballs:print mballs
+  // Metaballs:print mballs
 
   mainloop
     glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -609,4 +687,7 @@ func int main()
   ret 0
 end
 
+testf
+  runMain()
+end
 
