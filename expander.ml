@@ -843,6 +843,11 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
     let _, rightHandForm, toplevelForms2 = translateToForms translateF bindings rightHandExpr in
     let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
+    (match typeCheck bindings rightHandForm with
+      | TypeOf (`Record _ as typ) ->
+          raiseIllegalExpression expr
+            (sprintf "Storing of records not supported, yet (%s)" (typeName typ))
+      | _ -> ());
     match typeCheck bindings storeInstruction with
       | TypeOf _ ->
           Some( bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
@@ -862,10 +867,16 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | TypeError (m,f,e) ->
           raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
+  let buildRecordLoadInstruction typ ptrForm toplevelForms =
+    raiseIllegalExpression expr
+      (sprintf "Loading of records not supported, yet (%s)" (typeName (typ :> Lang.typ)))
+  in
   let buildLoadInstruction ptrExpr =
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
     let loadForm = `LoadIntrinsic ptrForm in
     match typeCheck bindings loadForm with
+      | TypeOf (`Record _ as typ) ->
+          buildRecordLoadInstruction typ ptrForm toplevelForms
       | TypeOf _ ->
           Some( bindings, toplevelForms @ [loadForm] )
       | TypeError (m,f,e) ->
@@ -919,7 +930,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                         raiseIllegalExpression expr
                           (sprintf "%s but found %s"
                              ("Can only access struct members from a var of record type or " ^
-                             "an expression of type pointer to record atm")
+                                "an expression of type pointer to record atm")
                              (typeName invalidType))
                     | TypeError (m,f,e) ->
                         raiseIllegalExpressionFromTypeError expr (m,f,e)
