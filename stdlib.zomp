@@ -1067,7 +1067,7 @@
 ///   ast:matchesShape `(a b c) `(a b) => false
 ///   ast:matchesShape `(a b) `(a b _) => false
 (func bool ast:matchesShape ((astp code) (astp template)) (
-  (if (bool:and (cstring:equal (getField template id) "_") (0 == getField code childCount))
+  (if (cstring:equal (getField template id) "_")
     (ret true) ())
 
   (if

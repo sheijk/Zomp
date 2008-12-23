@@ -303,6 +303,13 @@ indent the next line when they occur at the beginning of a line"
   (save-excursion
     (indent-region 0 (buffer-end 1))))
 
+(defun zomp-current-line-indent ()
+  (let (lineBegin)
+    (save-excursion
+      (beginning-of-line)
+      (setq lineBegin (point))
+      (back-to-indentation)
+      (- (point) lineBegin))))
 
 (defun zomp-newline ()
   (interactive)
@@ -310,10 +317,14 @@ indent the next line when they occur at the beginning of a line"
         (isStar nil)
         (isQuotation nil)
         (isAtEnd nil)
-        (wordAtLineBeginning ""))
-    (save-excursion
-      (setq isAtEnd (looking-at " *$"))
+        (wordAtLineBeginning "")
+        (endAtNextLine nil)
+        (endQuotationAtNextLine nil)
+        (nextLineMoreIndented nil))
 
+    (setq isAtEnd (looking-at " *$"))
+
+    (save-excursion
       (move-beginning-of-line 1)
       ;; /// on documentation comment
       (when (looking-at " *///")
@@ -322,16 +333,26 @@ indent the next line when they occur at the beginning of a line"
       ;;  * nice aligned stars
       ;;  */ (but not after this line)
       (when (and (looking-at " *\\(/\\)?\\*") (not (looking-at ".*\\*/")))
-        (set 'isStar t))
+        (set 'isStar t)))
 
+    (save-excursion
       (end-of-line)
-      (setq isQuotation (looking-back "${ *"))
+      (setq isQuotation (looking-back "${ *")))
 
+    (save-excursion
+      (let ((thisLineIndent (zomp-current-line-indent)))
+        (next-line)
+        (setq nextLineMoreIndented (< thisLineIndent (zomp-current-line-indent)))))
+
+    (save-excursion
       (back-to-indentation)
-      (let ((start (point)))
-        (forward-word)
-        (setq wordAtLineBeginning (buffer-substring start (point))))
-      )
+      (setq wordAtLineBeginning (zomp-symbol-at-point)))
+
+    (save-excursion
+      (next-line)
+      (beginning-of-line)
+      (setq endQuotationAtNextLine (looking-at " *end} *\\(//.*\\)?$"))
+      (setq endAtNextLine (looking-at " *end *\\(//.*\\)?$")))
 
     (indent-according-to-mode)
     (newline-and-indent)
@@ -342,18 +363,21 @@ indent the next line when they occur at the beginning of a line"
       (insert " * ")
       (indent-for-tab-command))
 
-    (when (and
-           (not isStar)
-           (not isComment)
-           (member wordAtLineBeginning zomp-indent-keywords)
-           isAtEnd)
+    (when (and (not isStar)
+               (not isComment)
+               (member wordAtLineBeginning zomp-indent-keywords)
+               (not endAtNextLine)
+               (not nextLineMoreIndented)
+               isAtEnd)
       (insert "end")
       (indent-according-to-mode)
       (previous-line)
       (end-of-line)
       (newline-and-indent))
 
-    (when isQuotation
+    (when (and isQuotation
+               (not endQuotationAtNextLine)
+               (not nextLineMoreIndented))
       (insert "end}")
       (indent-according-to-mode)
       (previous-line)
@@ -592,10 +616,6 @@ indent the next line when they occur at the beginning of a line"
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
     (or funcsym linesym "nothing found")))
-
-;; (defun zomp-symbol-at-point ()
-;;    (interactive)
-;;    "xxx")
 
 (defun zomp-get-eldoc-string ()
   (let ((symbol "unknown"))

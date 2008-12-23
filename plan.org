@@ -651,7 +651,14 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] llvm.globalctors for initialization
 ** TODO [#A] wadler-blott for ad-hoc polymorphism
 ** TODO [#A] if2: elseif should support 'then'
+** TODO func void foo(float a, float a)                                    :bug:
+   should be checked
 ** TODO [#A] unit test: writing function argument
+** TODO [#A] llvm::ParseAssemblyString does not add code to target module
+   parsedModule = ParseAssemblyString( code, targetModule, &errorInfo );
+   2.1: targetModule contains definitions
+   2.4: defs not added anymore
+** TODO [#A] performance tests, ergebnisse loggen
 
 * Use Cases                                                            :usecase:
 
