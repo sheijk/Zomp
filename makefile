@@ -74,13 +74,13 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	@echo Unpacking $@ ...
 	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
 	touch $@ # tar sets date from archive. avoid downloading the archive twice
+	@echo Configuring and building LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION) && ./configure && make
 
 tools/llvm: tools/llvm-$(LLVM_VERSION)
 	@echo Linking $@ to tools/llvm-$(LLVM_VERSION)
 	rm -f $@
 	ln -s llvm-$(LLVM_VERSION) $@
-	@echo Configuring and building llvm $(LLVM_VERSION)
-	cd tools/llvm && ./configure && make
 
 ################################################################################
 
