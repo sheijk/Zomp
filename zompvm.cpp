@@ -34,7 +34,7 @@ using namespace llvm;
 // static void debugMessage(const char* msg) {
 //   printf( "[DEBUG] %s", msg );
 // }
-
+ 
 #define ZOMP_ASSERT(x) if( !(x) ) { printf("Assertion failed: %s", #x); fflush(stdout); exit(-10); }
 
 ///-----------------------------------------------------------------------------
@@ -92,6 +92,10 @@ extern "C" {
 ///-----------------------------------------------------------------------------
 /// Virtual machine and execution environment
 
+static PointerType *getPointerType(const Type *ElementType) {
+  return PointerType::get(ElementType, 0);
+}
+
 namespace {
   /// will run the code
   static ExecutionEngine* executionEngine = 0;
@@ -111,7 +115,7 @@ namespace {
 
   static void loadLLVMFunctions()
   {
-    PointerType* PointerTy_cstring = PointerType::get(IntegerType::get(8));
+    PointerType* PointerTy_cstring = getPointerType(IntegerType::get(8));
 
     std::vector<const Type*>StructTy_ast_fields;
     llvmModule->addTypeName("cstring", PointerTy_cstring);
@@ -119,10 +123,10 @@ namespace {
     StructTy_ast_fields.push_back(PointerTy_cstring);
     StructTy_ast_fields.push_back(IntegerType::get(32));
     PATypeHolder StructTy_ast_fwd = OpaqueType::get();
-    PointerType* PointerTy_astp = PointerType::get(StructTy_ast_fwd);
+    PointerType* PointerTy_astp = getPointerType(StructTy_ast_fwd);
     llvmModule->addTypeName("astp", PointerTy_astp);
 
-    PointerType* PointerTy_0 = PointerType::get(PointerTy_astp);
+    PointerType* PointerTy_0 = getPointerType(PointerTy_astp);
     StructTy_ast_fields.push_back(PointerTy_0);
     StructType* StructTy_ast = StructType::get(StructTy_ast_fields, /*isPacked=*/false);
     llvmModule->addTypeName("ast", StructTy_ast);
@@ -136,15 +140,15 @@ namespace {
     FunctionType* FuncTy_80 = FunctionType::get(
       Type::VoidTy,
       FuncTy_80_args,
-      false,
-      FuncTy_80_PAL);
+      false);
+      // FuncTy_80_PAL);
 
     { // simpleAst decl
       std::vector<const Type*>FuncTy_73_args;
       FuncTy_73_args.push_back(PointerTy_cstring);
       ParamAttrsList *FuncTy_73_PAL = 0;
-      FunctionType* FuncTy_73 = FunctionType::get(
-        PointerTy_astp, FuncTy_73_args, false, FuncTy_73_PAL);
+      FunctionType* FuncTy_73 = FunctionType::get(PointerTy_astp, FuncTy_73_args, false);
+        // FuncTy_73_PAL);
 
       simpleAst = new Function(
         FuncTy_73,
@@ -166,8 +170,8 @@ namespace {
       FunctionType* FuncTy_61 = FunctionType::get(
         /*Result=*/PointerTy_cstring,
         /*Params=*/FuncTy_61_args,
-        /*isVarArg=*/false,
-        /*ParamAttrs=*/FuncTy_61_PAL);
+        /*isVarArg=*/false);
+        // /*ParamAttrs=*/FuncTy_61_PAL);
       macroAstId = new Function(
         FuncTy_61,
         GlobalValue::ExternalLinkage,
@@ -182,8 +186,8 @@ namespace {
       FunctionType* FuncTy_59 = FunctionType::get(
         /*Result=*/IntegerType::get(32),
         /*Params=*/FuncTy_59_args,
-        /*isVarArg=*/false,
-        /*ParamAttrs=*/FuncTy_59_PAL);
+        /*isVarArg=*/false);
+        // /*ParamAttrs=*/FuncTy_59_PAL);
 
       macroAstChildCount = new Function(
         FuncTy_59,
@@ -200,8 +204,8 @@ namespace {
       FunctionType* FuncTy_105 = FunctionType::get(
         /*Result=*/IntegerType::get(32),
         /*Params=*/FuncTy_105_args,
-        /*isVarArg=*/false,
-        /*ParamAttrs=*/FuncTy_105_PAL);
+        /*isVarArg=*/false);
+        // /*ParamAttrs=*/FuncTy_105_PAL);
 
       macroAstChild = new Function(
         FuncTy_105,
@@ -294,7 +298,7 @@ llvm::GenericValue runFunctionWithArgs(
   const std::vector<const Type*>& argTypes,
   const std::vector<GenericValue>& args)
 {
-  FunctionType* voidType = FunctionType::get( Type::VoidTy, argTypes, false, NULL );
+  FunctionType* voidType = FunctionType::get( Type::VoidTy, argTypes, false);
 
   Function* func = llvmModule->getFunction( name );
 
@@ -552,7 +556,7 @@ extern "C" {
   }
 
   void zompAddPointerArg(int ptr) {
-    argTypes.push_back( PointerType::get(OpaqueType::get()) );
+    argTypes.push_back( getPointerType(OpaqueType::get()) );
     argValues.push_back( ptrValue(ptr) );
   }
 
@@ -743,10 +747,10 @@ extern "C" {
 
   int zompAddressOfMacroFunction(char* name) {
     PATypeHolder StructTy_ast_fwd = OpaqueType::get();
-    PointerType* ast_ptr = PointerType::get(StructTy_ast_fwd);
+    PointerType* ast_ptr = getPointerType(StructTy_ast_fwd);
     std::vector<const Type*> args;
     args.push_back(ast_ptr);
-    FunctionType* macroFuncType = FunctionType::get(ast_ptr, args, false, 0);
+    FunctionType* macroFuncType = FunctionType::get(ast_ptr, args, false);
 
     Function* macroFunc = llvmModule->getFunction( name );
 
