@@ -8,7 +8,7 @@ include ../makefile.config
 # Targets
 ################################################################################
 
-all: structs.test minimal.test simple-func.test variables.test
+all: sexpr.test structs.test minimal.test simple-func.test variables.test
 fail: crash.test
 
 clean:

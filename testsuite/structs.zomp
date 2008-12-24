@@ -1,6 +1,7 @@
 /**
  * Usage of structs
  *
+!syntax indent
  */
 
 type Point

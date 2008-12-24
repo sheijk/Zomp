@@ -74,13 +74,18 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	@echo Unpacking $@ ...
 	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
 	touch $@ # tar sets date from archive. avoid downloading the archive twice
-	@echo Configuring and building LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && ./configure && make
+	@echo Configuring LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION) && ./configure
 
 tools/llvm: tools/llvm-$(LLVM_VERSION)
+	@echo Building LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION) && make
 	@echo Linking $@ to tools/llvm-$(LLVM_VERSION)
-	rm -f $@
 	ln -s llvm-$(LLVM_VERSION) $@
+
+tools/llvm-$(LLVM_VERSION)/TAGS:
+	@echo Building tags for LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
 
 ################################################################################
 
