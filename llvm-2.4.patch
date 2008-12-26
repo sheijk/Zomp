@@ -1,0 +1,55 @@
+diff --git a/lib/AsmParser/Parser.cpp b/lib/AsmParser/Parser.cpp
+@@ -41,0 +41,0 @@
+Module *llvm::ParseAssemblyString(const char *AsmString, Module *M,
+   MemoryBuffer *F = MemoryBuffer::getMemBuffer(AsmString, 
+                                                AsmString+strlen(AsmString),
+                                                "<string>");
+-  Module *Result = RunVMAsmParser(F);
++  Module *Result = RunVMAsmParser(F, M);
+   delete F;
+   return Result;
+ }
+diff --git a/lib/AsmParser/ParserInternals.h b/lib/AsmParser/ParserInternals.h
+@@ -42,0 +42,0 @@
+namespace llvm {
+ class Module;
+ 
+ // RunVMAsmParser - Parse a buffer and return Module
+-Module *RunVMAsmParser(llvm::MemoryBuffer *MB);
++Module *RunVMAsmParser(llvm::MemoryBuffer *MB, llvm::Module* M = NULL);
+ 
+ // GenerateError - Wrapper around the ParseException class that automatically
+ // fills in file line number and column number and options info.
+diff --git a/lib/AsmParser/llvmAsmParser.y b/lib/AsmParser/llvmAsmParser.y
+@@ -962,0 +962,0 @@
+static PATypeHolder HandleUpRefs(const Type *ty) {
+ //
+ static Module* RunParser(Module * M);
+ 
+-Module *llvm::RunVMAsmParser(llvm::MemoryBuffer *MB) {
++Module *llvm::RunVMAsmParser(llvm::MemoryBuffer *MB, llvm::Module* M) {
+   InitLLLexer(MB);
+-  Module *M = RunParser(new Module(LLLgetFilename()));
++  Module *result;
++  if( M == NULL ) {
++    result = RunParser(new Module(LLLgetFilename()));
++  }
++  else {
++    result = RunParser(M);
++  }
++
+   FreeLexer();
+-  return M;
++  return result;
+ }
+ 
++// Module *llvm::RunVMAsmParser(llvm::MemoryBuffer *MB) {
++//   InitLLLexer(MB);
++//   Module *M = RunParser(new Module(LLLgetFilename()));
++//   FreeLexer();
++//   return M;
++// }
++
+ %}
+ 
+ %union {

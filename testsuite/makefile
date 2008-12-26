@@ -9,7 +9,8 @@ include ../makefile.config
 ################################################################################
 
 all: sexpr.test structs.test minimal.test simple-func.test variables.test
-fail: crash.test
+# all: sexpr.test
+fail: fail.test crash.test
 
 clean:
 	rm -f *.bc *.o.bc *.ll *.test gmon.out

@@ -1,0 +1,12 @@
+
+// (func void println () (
+//   (printNewline)))
+
+(func int main () (
+  (printString "foo?")
+  (println)
+  (printString "bar!")
+  (println)
+  (ret 0)
+  ))
+

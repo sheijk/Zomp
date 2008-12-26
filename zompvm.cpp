@@ -136,7 +136,7 @@ namespace {
     std::vector<const Type*>FuncTy_80_args;
     FuncTy_80_args.push_back(PointerTy_astp);
     FuncTy_80_args.push_back(PointerTy_astp);
-    ParamAttrsList *FuncTy_80_PAL = 0;
+    // ParamAttrsList *FuncTy_80_PAL = 0;
     FunctionType* FuncTy_80 = FunctionType::get(
       Type::VoidTy,
       FuncTy_80_args,
@@ -146,11 +146,11 @@ namespace {
     { // simpleAst decl
       std::vector<const Type*>FuncTy_73_args;
       FuncTy_73_args.push_back(PointerTy_cstring);
-      ParamAttrsList *FuncTy_73_PAL = 0;
+      // ParamAttrsList *FuncTy_73_PAL = 0;
       FunctionType* FuncTy_73 = FunctionType::get(PointerTy_astp, FuncTy_73_args, false);
         // FuncTy_73_PAL);
 
-      simpleAst = new Function(
+      simpleAst = Function::Create(
         FuncTy_73,
         GlobalValue::ExternalLinkage,
         "simpleAst", llvmModule);
@@ -158,7 +158,7 @@ namespace {
     }
 
     { // addChild decl
-      addChild = new Function(
+      addChild = Function::Create(
         FuncTy_80, GlobalValue::ExternalLinkage, "addChild", llvmModule);
       addChild->setCallingConv(CallingConv::C);
     }
@@ -166,13 +166,13 @@ namespace {
     { // macroAstId decl
       std::vector<const Type*>FuncTy_61_args;
       FuncTy_61_args.push_back(IntegerType::get(32));
-      ParamAttrsList *FuncTy_61_PAL = 0;
+      // ParamAttrsList *FuncTy_61_PAL = 0;
       FunctionType* FuncTy_61 = FunctionType::get(
         /*Result=*/PointerTy_cstring,
         /*Params=*/FuncTy_61_args,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_61_PAL);
-      macroAstId = new Function(
+      macroAstId = Function::Create(
         FuncTy_61,
         GlobalValue::ExternalLinkage,
         "macroAstId", llvmModule);
@@ -182,14 +182,14 @@ namespace {
     { // macroAstChildCount decl
       std::vector<const Type*>FuncTy_59_args;
       FuncTy_59_args.push_back(IntegerType::get(32));
-      ParamAttrsList *FuncTy_59_PAL = 0;
+      // ParamAttrsList *FuncTy_59_PAL = 0;
       FunctionType* FuncTy_59 = FunctionType::get(
         /*Result=*/IntegerType::get(32),
         /*Params=*/FuncTy_59_args,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_59_PAL);
 
-      macroAstChildCount = new Function(
+      macroAstChildCount = Function::Create(
         FuncTy_59,
         GlobalValue::ExternalLinkage,
         "macroAstChildCount", llvmModule);
@@ -200,14 +200,14 @@ namespace {
       std::vector<const Type*>FuncTy_105_args;
       FuncTy_105_args.push_back(IntegerType::get(32));
       FuncTy_105_args.push_back(IntegerType::get(32));
-      ParamAttrsList *FuncTy_105_PAL = 0;
+      // ParamAttrsList *FuncTy_105_PAL = 0;
       FunctionType* FuncTy_105 = FunctionType::get(
         /*Result=*/IntegerType::get(32),
         /*Params=*/FuncTy_105_args,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_105_PAL);
 
-      macroAstChild = new Function(
+      macroAstChild = Function::Create(
         FuncTy_105,
         GlobalValue::ExternalLinkage,
         "macroAstChild", llvmModule); 
@@ -306,7 +306,7 @@ llvm::GenericValue runFunctionWithArgs(
     printf( "Function %s not found in module\n", name );
     fflush( stdout );
 
-    func = new Function( voidType, GlobalVariable::ExternalLinkage, name, NULL );
+    func = Function::Create( voidType, GlobalVariable::ExternalLinkage, name, NULL );
   }
 
   //   std::vector<GenericValue> args;
@@ -758,9 +758,9 @@ extern "C" {
       printf( "Macro function %s not found in module\n", name );
       fflush( stdout );
 
-      Function* macroFunc = new Function(macroFuncType,
-                                         GlobalValue::ExternalLinkage,
-                                         name, llvmModule);
+      Function* macroFunc = Function::Create(macroFuncType,
+                                             GlobalValue::ExternalLinkage,
+                                             name, llvmModule);
       macroFunc->setCallingConv(CallingConv::C);
     }
 
