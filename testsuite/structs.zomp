@@ -68,18 +68,25 @@ end
 
 /// nested functions
 
-/// doesn't work, yet
-// type Nested
-//   Point pos
-//   float weight
-// end
-//
-// func void testNested()
-//   var Nested n
-//   var Point p
-//   getField(n, pos)
-//   void
-// end
+type Nested
+  Point pos
+  float weight
+end
+
+func void testNested()
+  var Nested n
+
+  var Point p
+  setField p x 10
+  setField p y 30
+
+  setField n pos p
+
+  assert (getField getField(n, pos) x == 10)
+  assert (getField getField(n, pos) y == 30)
+
+  void
+end
 
 /// not supported, yet
 // func void expect89(Point p)
@@ -107,6 +114,7 @@ func int main()
   testOnstackAddrOf()
   testOnstack()
   testAssignment()
+  testNested()
 
   ret 0
 end

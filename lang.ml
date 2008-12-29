@@ -115,16 +115,7 @@ let varToStringShort var =
 let varToString var =
   sprintf "%s : %s = %s" var.vname (typeName var.typ) (valueString var.vdefault)
 
-
-(* TODO: fix this! TODO: find out what should be fixed... *)
-let localVar ~typ =
-  variable
-    ~typ
-    ~storage:RegisterStorage
-    ~global:false
-    ~default:(Typesystems.Zomp.defaultValue typ)
-
-and globalVar = variable ~storage:MemoryStorage ~global:true
+let globalVar = variable ~storage:MemoryStorage ~global:true
 
 type 'argument funcCall = {
   fcname :string;

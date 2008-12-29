@@ -623,52 +623,23 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
         match var.vstorage with
           | MemoryStorage -> (resultVar {var with typ = `Pointer var.typ},
                               sprintf "; addrOf %s\n" (typeName var.typ))
-          (* | MemoryStorage -> (resultVar var, "") *)
+              (* | MemoryStorage -> (resultVar var, "") *)
           | RegisterStorage -> raiseCodeGenError ~msg:"Getting address of register storage var not possible"
       end
   | `StoreIntrinsic (ptrForm, valueForm) ->
       begin
         let ptrVar, ptrAccessCode = gencode ptrForm in
         let valueVar, valueAccessCode = gencode valueForm in
-        match typeOfForm todoBindings valueForm with
-          | `Record components ->
-              begin
-                (* let makeStoreCode index (name, typ) = *)
-                (*   "%value = " *)
-                (*   (\* let fieldAddr = newLocalTempVar (`Pointer typ) in *\) *)
-                (*   (\* sprintf "%s = getelementptr %s %s, i32 0, i32 %d\n" *\) *)
-                (*   (\*   fieldAddr.rvname valueVar.rvtypename valueVar.rvname index *\) *)
-                (*   (\* ^ sprintf "store %s %s, %s*" *\) *)
-                (*   (\*   (llvmTypeName typ)  *\) *)
-                (* in *)
-                (* let rec listMapi f list = *)
-                (*   let rec mapWithIndex i acc = function *)
-                (*     | [] -> List.rev acc *)
-                (*     | hd :: tl -> *)
-                (*         mapWithIndex (i+1) (f i hd :: acc) tl *)
-                (*   in *)
-                (*   mapWithIndex 0 [] list *)
-                (* in *)
-                (* let (_ :string list) = listMapi makeStoreCode components in *)
-                raiseCodeGenError ~msg:"Tried to store struct"
-              end
-          | _ ->
-              begin
-                let code =
-                  sprintf "store %s %s, %s %s\n\n"
-                    valueVar.rvtypename valueVar.rvname ptrVar.rvtypename ptrVar.rvname
-                in
-                (noVar, ptrAccessCode ^ valueAccessCode ^ code)
-              end
+        let code =
+          sprintf "store %s %s, %s %s\n\n"
+            valueVar.rvtypename valueVar.rvname ptrVar.rvtypename ptrVar.rvname
+        in
+        (noVar, ptrAccessCode ^ valueAccessCode ^ code)
       end
   | `LoadIntrinsic expr ->
       begin
         let targetType =
           match typeOfForm todoBindings expr with
-            | `Pointer (`Record _ as targetType) ->
-                raiseCodeGenError ~msg:("Loading records is not supported, yet. " ^
-                                         "Could not load value of type " ^
-                                         (typeName targetType))
             | `Pointer targetType -> targetType
             | nonPointerType ->
                 raiseCodeGenError ~msg:("Expected pointer argument instead of "
@@ -752,17 +723,14 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
       resultVar, comment ^ valueCode ^ "\n" ^ code
 
 let gencodeAssignVar gencode var expr =
-  match var.typ with
-    | `Record _ -> raiseCodeGenError ~msg:"Cannot assign structs, yet"
-    | _ ->
-        let rvalVar, rvalCode = gencode expr in
-        let name = (resultVar var).rvname in
-        let typename = llvmTypeName var.typ in
-        let comment = sprintf "; assigning new value to %s\n\n" name in
-        let assignCode = sprintf "store %s %s, %s* %s\n\n"
-          typename rvalVar.rvname typename name
-        in
-        (noVar, comment ^ rvalCode ^ "\n\n" ^ assignCode)
+  let rvalVar, rvalCode = gencode expr in
+  let name = (resultVar var).rvname in
+  let typename = llvmTypeName var.typ in
+  let comment = sprintf "; assigning new value to %s\n\n" name in
+  let assignCode = sprintf "store %s %s, %s* %s\n\n"
+    typename rvalVar.rvname typename name
+  in
+  (noVar, comment ^ rvalCode ^ "\n\n" ^ assignCode)
 
 let gencodeReturn gencode expr =
   let exprVar, exprCode = gencode expr in

@@ -299,19 +299,32 @@ let expr2VarOrConst (bindings :bindings) = function
 
 let lastTempVarNum = ref 0
 
-let getNewVar bindings typ =
-  let newVarName =
-    let rec tryTempVar num =
-      let name = (Printf.sprintf "tempvar_%d" num) in
-      match lookup bindings name with
-        | UndefinedSymbol -> name
-        | _ -> tryTempVar (num + 1)
-    in
-    incr lastTempVarNum;
-    tryTempVar !lastTempVarNum
+let getUnusedName ?(prefix = "temp") bindings =
+  let rec tryTempVar num =
+    let name = (Printf.sprintf "%s_%d" prefix num) in
+    match lookup bindings name with
+      | UndefinedSymbol -> name
+      | _ -> tryTempVar (num + 1)
   in
-  let value = defaultValue typ in
-  let var = globalVar newVarName typ value in
+  incr lastTempVarNum;
+  tryTempVar !lastTempVarNum
+
+let getNewGlobalVar bindings typ =
+  let newVarName = getUnusedName ~prefix:"tempvar" bindings in
+  let default = defaultValue typ in
+  let var = globalVar ~name:newVarName ~typ ~default in
+  (addVar bindings var, var)
+
+let getNewLocalVar bindings typ =
+  let newVarName = getUnusedName bindings in
+  (* let var = localVar ~name:newVarName ~typ in *)
+  let var = Lang.variable
+    ~name:newVarName
+    ~typ
+    ~storage:MemoryStorage
+    ~global:false
+    ~default:(Typesystems.Zomp.defaultValue typ)
+  in
   (addVar bindings var, var)
 
 let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
@@ -320,7 +333,7 @@ let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
         begin match varOrConst with
           | `Constant StringLiteral string ->
               begin
-                let newBindings, var = getNewVar bindings (`Pointer `Char) in
+                let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
                 let var = { var with vdefault = StringLiteral string } in
                 Some( newBindings, [`ToplevelForm (`GlobalVar var); `Variable var] )
               end
@@ -618,8 +631,13 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
       ([], [])
       argAstExprs
     in
-    let resultVar = { (Lang.localVar ~name:"result" ~typ:astPtrType)
-                      with vstorage = MemoryStorage }
+    let resultVar =
+      Lang.variable
+        ~name:"result"
+        ~typ:astPtrType
+        ~storage:MemoryStorage
+        ~global:false
+        ~default:(Typesystems.Zomp.defaultValue astPtrType)
     in
     log "building function impl";
     let implForms = [
@@ -839,21 +857,6 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | Some typ -> Some (bindings, [constructF typ] )
       | None -> None
   in
-  let buildStoreInstruction ptrExpr rightHandExpr =
-    let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
-    let _, rightHandForm, toplevelForms2 = translateToForms translateF bindings rightHandExpr in
-    let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
-    (match typeCheck bindings rightHandForm with
-      | TypeOf (`Record _ as typ) ->
-          raiseIllegalExpression expr
-            (sprintf "Storing of records not supported, yet (%s)" (typeName typ))
-      | _ -> ());
-    match typeCheck bindings storeInstruction with
-      | TypeOf _ ->
-          Some( bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
-      | TypeError (m,f,e) ->
-          raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
-  in
   let buildMallocInstruction typeExpr countExpr =
     let typ =
       match translateType bindings typeExpr with
@@ -867,16 +870,20 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
       | TypeError (m,f,e) ->
           raiseIllegalExpressionFromTypeError expr (m,f,e)
   in
-  let buildRecordLoadInstruction typ ptrForm toplevelForms =
-    raiseIllegalExpression expr
-      (sprintf "Loading of records not supported, yet (%s)" (typeName (typ :> Lang.typ)))
+  let buildStoreInstruction ptrExpr rightHandExpr =
+    let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
+    let _, rightHandForm, toplevelForms2 = translateToForms translateF bindings rightHandExpr in
+    let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
+    match typeCheck bindings storeInstruction with
+      | TypeOf _ ->
+          Some( bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
+      | TypeError (m,f,e) ->
+          raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
   in
   let buildLoadInstruction ptrExpr =
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
     let loadForm = `LoadIntrinsic ptrForm in
     match typeCheck bindings loadForm with
-      | TypeOf (`Record _ as typ) ->
-          buildRecordLoadInstruction typ ptrForm toplevelForms
       | TypeOf _ ->
           Some( bindings, toplevelForms @ [loadForm] )
       | TypeError (m,f,e) ->
@@ -919,13 +926,17 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
         ] } when id = macroFieldptr ->
         begin
           let _, recordForm, toplevelForms = translateToForms translateF bindings recordExpr in
-          let recordForm' =
+          let (moreForms : formWithTLsEmbedded list), (recordForm' :Lang.form) =
             match recordForm with
               | `Variable ({ typ = `Record _; } as recordVar) ->
-                  `GetAddrIntrinsic recordVar
+                  [], `GetAddrIntrinsic recordVar
               | _ ->
                   begin match typeCheck bindings recordForm with
-                    | TypeOf `Pointer `Record _ -> recordForm
+                    | TypeOf (`Record _ as typ) ->
+                        let newBindings, tempVar = getNewLocalVar bindings typ in
+                        [((`DefineVariable (tempVar, Some recordForm)) :> formWithTLsEmbedded)],
+                        `GetAddrIntrinsic tempVar
+                    | TypeOf `Pointer `Record _ -> [], recordForm
                     | TypeOf invalidType ->
                         raiseIllegalExpression expr
                           (sprintf "%s but found %s"
@@ -938,7 +949,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           in
           let fieldptr = `GetFieldPointerIntrinsic (recordForm', fieldName) in
           match typeCheck bindings fieldptr with
-            | TypeOf _ -> Some( bindings, toplevelForms @ [fieldptr] )
+            | TypeOf _ -> Some( bindings, toplevelForms @ moreForms @ [fieldptr] )
             | TypeError (m,f,e) ->
                 begin
                   raiseIllegalExpressionFromTypeError expr (m,f,e)
@@ -1304,46 +1315,6 @@ struct
 
   (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
   let translateAssignVar (env :exprTranslateF env) expr =
-    let translateSourceToForms bindings source =
-      let ast =
-        match env.parseF source with
-          | Some asts ->
-              Ast2.toSingleExpr asts
-          | None ->
-              raiseIllegalExpression expr
-                (sprintf "Failed to parse '%s'" source)
-      in
-      env.translateF bindings ast
-    in
-    let translateRecordAssign components lhsVar rightHandForm =
-      let newBindings, rhsTempVar, defRhsVar =
-        (** don't introduce new temp vars recursively! *)
-        match rightHandForm with
-          | `Variable rhsVar -> env.bindings, rhsVar, []
-          | _ ->
-              let newBindings, rhsTempVar = getNewVar env.bindings lhsVar.typ in
-              newBindings, rhsTempVar, [`DefineVariable (rhsTempVar, (Some rightHandForm))]
-      in
-      let makeCopyFieldsCode target source =
-        let rec copyFields bindings formsAcc = function
-          | [] -> bindings, List.rev formsAcc
-          | (name, typ) :: remFields ->
-              begin
-                let newBindings, forms =
-                  translateSourceToForms bindings
-                    (sprintf "setField(%s, %s, getField(%s, %s))"
-                       target name source name)
-                in
-                copyFields newBindings (forms @ formsAcc) remFields
-              end
-        in
-        copyFields newBindings [] components
-      in
-      let newBindings, forms = makeCopyFieldsCode lhsVar.vname rhsTempVar.vname in
-      let allForms = defRhsVar @ [`EmbeddedComment ["Assigning struct here"]] @ forms in
-      (newBindings, allForms)
-    in
-
     let doTranslation id varName rightHandExpr =
       let _, rightHandForm, toplevelForms =
         translateToForms env.translateF env.bindings rightHandExpr
@@ -1352,11 +1323,6 @@ struct
         | VarSymbol lhsVar ->
             begin
               match typeCheck env.bindings rightHandForm with
-                | TypeOf (`Record components) ->
-                    let newBindings, forms =
-                      translateRecordAssign components lhsVar rightHandForm
-                    in
-                    Result (newBindings, toplevelForms @ forms)
                 | TypeOf rhsType when rhsType = lhsVar.typ ->
                     Result (env.bindings,
                             toplevelForms @ [`AssignVar (lhsVar, rightHandForm)] )
@@ -1678,7 +1644,14 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let rec localBinding bindings = function
       | [] -> bindings
       | (name, typ) :: tail ->
-          let var = localVar ~name ~typ in
+          let var =
+            variable
+              ~name
+              ~typ
+              ~storage:RegisterStorage
+              ~global:false
+              ~default:(Typesystems.Zomp.defaultValue typ)
+          in
           localBinding (addVar bindings var) tail
     in
     let innerBindings = localBinding bindings params in
