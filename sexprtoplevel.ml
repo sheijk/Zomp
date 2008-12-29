@@ -442,6 +442,10 @@ let () =
   message "Loading prelude...";
   let initialBindings = recordTiming "Loading prelude" loadPrelude in
 
+  let includePath = ref ["."] in
+  let translateInclude = Expander.translateInclude includePath in
+  Hashtbl.add Expander.toplevelBaseInstructions "include" translateInclude;
+
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
   run initialBindings
 

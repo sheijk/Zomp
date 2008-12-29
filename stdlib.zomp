@@ -449,10 +449,11 @@
   (ret result)
   ))
 
-(macro ift condition onTrue `(if #condition #onTrue ()))
+(macro ift condition onTrue (
+  `(if #condition #onTrue ())))
 
-(macro ifnot condition onFalse
-  `(if (bool:not #condition) #onFalse ()))
+(macro ifnot condition onFalse (
+  `(if (bool:not #condition) #onFalse ())))
 
 ///TODO: generalize for arbitrary types once this is possible in zomp
 (macro ifExprInt test onTrue onFalse (

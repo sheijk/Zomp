@@ -22,19 +22,38 @@ let parseSExpr input =
   with Sexprlexer.Eof ->
     None
 
-let parseIExprs source =
+let parseSExprs source =
+  let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
+    try
+      let expr = parseF lexbuf in
+      parse parseF lexbuf (codeAccum @ [expr])
+    with
+        Sexprlexer.Eof | Indentlexer.Eof -> codeAccum
+  in
   try
     let lexbuf = Lexing.from_string source in
-    let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-    let lexFunc _ = Indentlexer.token lexstate in
-    let rec read acc =
-      try
-        let expr = Newparser.main lexFunc lexbuf in
-        read (expr :: acc)
-      with
-        | Indentlexer.Eof -> acc
-    in
-    Some (List.rev (read []))
+    let parseF = Sexprparser.main Sexprlexer.token in
+    let exprs = parse parseF lexbuf [] in
+    Some exprs
+  with _ ->
+    None
+
+let parseIExprsNoCatch source =
+  let lexbuf = Lexing.from_string source in
+  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  let lexFunc _ = Indentlexer.token lexstate in
+  let rec read acc =
+    try
+      let expr = Newparser.main lexFunc lexbuf in
+      read (expr :: acc)
+    with
+      | Indentlexer.Eof -> acc
+  in
+  List.rev (read [])
+
+let parseIExprs source =
+  try
+    Some (parseIExprsNoCatch source)
   with _ ->
     None
 

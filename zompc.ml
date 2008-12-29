@@ -13,12 +13,6 @@ type llvmCode = string
 (*   | CouldNotParse of string *)
 (*   | CouldNotCompile of string *)
 
-exception CouldNotParse of string
-let raiseCouldNotParse str = raise (CouldNotParse str)
-
-exception CouldNotCompile of string
-let raiseCouldNotCompile str = raise (CouldNotCompile str)
-
 type sourceloc = {
   fileName :string;
   line :int;
@@ -42,7 +36,7 @@ let locationFromLexbuf lexbuf =
     column = columNum;
     charsFromBeginning = totalChars;
   }
-    
+
 let parseChannel lexbuf errorLocationF parseF bindings =
   try
     let newBindings, toplevelExprs =
@@ -89,52 +83,12 @@ let getBasename filename =
   else
     None
 
-let compile instream outstream =
+let compile fileName instream outstream =
   let preludeDir = Filename.dirname Sys.executable_name in
   let input =
     collectTimingInfo "reading prelude file content" (fun () -> readInput instream)
   in
 
-  let printError = function
-    | CouldNotParse msg -> eprintf "%s" msg
-    | CouldNotCompile msg -> eprintf "%s" msg
-    | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError); raise unknownError
-  in
-  let compileCode bindings input =
-    (*     let makeAstF parseF = parseChannel *)
-    (*       (collectTimingInfo "lexing" (fun () -> Lexing.from_string input)) *)
-    (*       parseF *)
-    (*       bindings *)
-    (*     in *)
-    tryAllCollectingErrors
-      [
-        lazy( parseChannel (Lexing.from_string input) locationFromLexbuf (Sexprparser.main Sexprlexer.token) bindings );
-        lazy( parseChannel
-                (Lexing.from_string input, Indentlexer.lexbufFromString "dummy.zomp" input)
-                (locationFromLexbuf ++ fst)
-                (fun (lexbuf, lexstate) ->
-                   Newparser.main (fun lexbuf ->
-                                     try
-                                       Indentlexer.token lexstate
-                                     with End_of_file -> printf "arschkack\n"; exit 123)
-                     lexbuf)
-                bindings )
-      ]
-      ~onSuccess:(fun (newBindings, toplevelExprs, llvmCode) ->
-                    output_string outstream llvmCode;
-                    Some newBindings)
-      ~ifAllFailed:(fun exceptions -> List.iter printError exceptions; None)
-      
-  (*     tryAllCollectingErrors *)
-  (*       [ *)
-  (*         lazy (makeAstF (Parser2.main Lexer2.token)); *)
-  (*         lazy (makeAstF (Sexprparser.main Sexprlexer.token)); *)
-  (*       ] *)
-  (*       ~onSuccess:(fun (newBindings, toplevelExprs, llvmCode) -> *)
-  (*                     output_string outstream llvmCode; *)
-  (*                     Some newBindings) *)
-  (*       ~ifAllFailed:(fun exceptions -> List.iter printError exceptions; None) *)
-  in
   if not( Zompvm.zompInit() ) then begin
     eprintf "Could not init ZompVM\n";
     exit 3;
@@ -149,7 +103,7 @@ let compile instream outstream =
              ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
                              output_string outstream llvmCode)
          in
-         match compileCode bindings input with
+         match Compileutils.compileCode bindings input outstream fileName with
            | Some _ -> 0
            | None -> 2
        end)
@@ -159,10 +113,16 @@ let compile instream outstream =
   in
   Zompvm.zompShutdown();
   if exitCode <> 0 then
-    eprintf "Failed to compile";
-  (* else *)
-  (*   printf "Compilation done\n"; *)
+    eprintf "Failed to compile\n";
   exit exitCode
+
+let includePath = ref ["."]
+
+let addIncludePath path = function
+  | `Back ->
+      includePath := !includePath @ [path]
+  | `Front ->
+      includePath := path :: !includePath
 
 let () =
   match Sys.argv with
@@ -175,9 +135,11 @@ let () =
                   and outStream = open_out (baseName ^ ".ll")
                   in
                   let compilerDir = Filename.dirname execNameAndPath in
-                  Expander.addIncludePath compilerDir `Front;
+                  addIncludePath compilerDir `Front;
+                  let translateInclude = Expander.translateInclude includePath in
+                  Hashtbl.add Expander.toplevelBaseInstructions "include" translateInclude;
                   try
-                    compile inStream outStream
+                    compile (baseName ^ ".zomp") inStream outStream
                   with
                     | Sexprlexer.Eof ->
                         close_in inStream;

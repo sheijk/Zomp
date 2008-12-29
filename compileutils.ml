@@ -65,6 +65,48 @@ let rec compile
                 let () = onError msg in
                 compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onError bindings)
 
+exception CouldNotParse of string
+let raiseCouldNotParse str = raise (CouldNotParse str)
+
+exception CouldNotCompile of string
+let raiseCouldNotCompile str = raise (CouldNotCompile str)
+
+let compileCode bindings input outstream fileName =
+  let printError = function
+    | CouldNotParse msg -> eprintf "%s" msg
+    | CouldNotCompile msg -> eprintf "%s" msg
+    | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError); raise unknownError
+  in
+  let parseAndCompile parseF =
+    let exprs =
+      match parseF input with
+        | Some exprs -> exprs
+        | None ->
+            raiseCouldNotParse (sprintf "%s:%d: error: Could not parse file\n" fileName 0)
+    in
+    let leftExprs = ref exprs in
+    let readExpr _ =
+      match !leftExprs with
+        | next :: rem ->
+            leftExprs := rem;
+            Some next
+        | [] -> None
+    in
+    compile
+      ~readExpr
+      ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                    Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
+                    output_string outstream llvmCode)
+      bindings
+  in
+  tryAllCollectingErrors
+    [lazy (parseAndCompile Parseutils.parseIExprs);
+     lazy (parseAndCompile Parseutils.parseSExprs)]
+    ~onSuccess:(fun _ -> Some ())
+    ~ifAllFailed:(fun exceptions ->
+                    List.iter printError exceptions;
+                    None)
+
 let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
   let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
     try
@@ -78,7 +120,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
   let llvmPreludeFile = dir ^ "stdlib.ll" in
   (collectTimingInfo "loading .ll file"
      (fun () -> Zompvm.loadLLVMFile llvmPreludeFile));
-  
+
   let zompPreludeFile = dir ^ "stdlib.zomp" in
   let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
   let parseF = Sexprparser.main Sexprlexer.token in

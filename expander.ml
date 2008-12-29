@@ -710,42 +710,49 @@ let translateDefineMacro translateNestedF translateF (bindings :bindings) = func
         { id = name; args = [] }
         :: paramImpl
     } when id = macroMacro or id = macroReplacement ->
-      begin match List.rev paramImpl with
-        | [] -> None
-        | impl :: args ->
-            begin
-              let args = List.rev args in
-              let argNames, isVariadic =
-                let rec worker accum = function
-                  | [] ->
-                      accum, false
-                  | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
-                      (name :: accum), true
-                  | { id = name; args = [] } :: rem ->
-                      worker (name :: accum) rem
-                  | (_ as arg) :: _ ->
-                      raiseIllegalExpression arg "only identifiers allowed as macro parameter"
+      let result =
+        begin match List.rev paramImpl with
+          | [] -> None
+          | impl :: args ->
+              begin
+                let args = List.rev args in
+                let argNames, isVariadic =
+                  let rec worker accum = function
+                    | [] ->
+                        accum, false
+                    | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
+                        (name :: accum), true
+                    | { id = name; args = [] } :: rem ->
+                        worker (name :: accum) rem
+                    | (_ as arg) :: _ ->
+                        raiseIllegalExpression arg "only identifiers allowed as macro parameter"
+                  in
+                  let reversed, isVariadic = worker [] args in
+                  List.rev reversed, isVariadic
                 in
-                let reversed, isVariadic = worker [] args in
-                List.rev reversed, isVariadic
-              in
-              let docstring =
-                Common.combine " " argNames ^ if isVariadic then "..." else ""
-              in
-              let macroF =
-                if id = macroMacro then begin
-                  createNativeMacro translateNestedF bindings name argNames impl;
-                  if isVariadic then
-                    translateVariadicFuncMacro translateNestedF name
-                  else
-                    translateFuncMacro translateNestedF name
-                end else
-                  (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
-              in
-              Some( Bindings.addMacro bindings name docstring
-                      (fun bindings args -> macroF bindings argNames args impl), [] )
-            end
-      end
+                let docstring =
+                  Common.combine " " argNames ^ if isVariadic then "..." else ""
+                in
+                let macroF =
+                  if id = macroMacro then begin
+                    createNativeMacro translateNestedF bindings name argNames impl;
+                    if isVariadic then
+                      translateVariadicFuncMacro translateNestedF name
+                    else
+                      translateFuncMacro translateNestedF name
+                  end else
+                    (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
+                in
+                Some( Bindings.addMacro bindings name docstring
+                        (fun bindings args -> macroF bindings argNames args impl), [] )
+              end
+        end
+      in
+      if not (id = macroReplacement) then begin
+        printf "Warning: Invoked old translateDefineMacro for '%s'\n" name;
+        flush stdout;
+      end;
+      result
   | _ ->
       None
 
@@ -1411,7 +1418,7 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
   translateF bindings
 
 let () =
-  Hashtbl.add baseInstructions "std:base:macro" (Macros.translateDefineMacro translateNested);
+  Hashtbl.add baseInstructions "macro" (Macros.translateDefineMacro translateNested);
   ()
 
 let toplevelBaseInstructions =
@@ -1528,82 +1535,6 @@ let matchFunc =
     | expr ->
         `NotAFunc expr
 
-
-let includePath = ref ["."]
-
-let addIncludePath path = function
-  | `Back ->
-      includePath := !includePath @ [path]
-  | `Front ->
-      includePath := path :: !includePath
-
-let translateInclude (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
-  let translateDeclarationsOnlyF bindings tlexprs = translateF bindings tlexprs
-  in
-  let importFile fileName impls =
-    let parse fileName : sexpr list =
-      try begin
-        let fileContent = Common.readFile ~paths:!includePath fileName in
-        let rec parseExprs lexbuf exprAccum =
-          try
-            let sexpr = Sexprparser.main Sexprlexer.token lexbuf in
-            parseExprs lexbuf (sexpr :: exprAccum)
-          with
-            | Sexprlexer.Eof -> exprAccum
-        in
-        let parseIExpr source =
-          let lexbuf = Lexing.from_string source in
-          let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-          let lexFunc _ = Indentlexer.token lexstate in
-          let rec read acc =
-            try
-              let expr = Newparser.main lexFunc lexbuf in
-              read (expr :: acc)
-            with
-              | Indentlexer.Eof -> acc
-          in
-          List.rev (read [])
-        in
-        try
-          let lexbuf = Lexing.from_string fileContent in
-          let sexprs = List.rev (parseExprs lexbuf []) in
-          sexprs
-        with
-          | Sexprparser.Error
-          | Sexprlexer.UnknowChar _ -> begin
-              parseIExpr fileContent
-            end
-      end with
-        | Sys_error message -> raiseIllegalExpression expr
-            (sprintf "Could not find file '%s': %s" fileName message)
-    in
-    let sexprs = parse fileName in
-    let translateFunc =
-      match impls with
-        | `WithImplementations -> translateF
-        | `DeclarationsOnly -> translateDeclarationsOnlyF
-    in
-    let newBindings, tlexprsFromFile =
-      List.fold_left
-        (fun (bindings,prevExprs) sexpr ->
-           let newBindings, newExprs = translateFunc bindings sexpr in
-           newBindings, prevExprs @ newExprs )
-        (bindings, [])
-        sexprs
-    in
-    Some( newBindings, tlexprsFromFile )
-  in
-  match expr with
-    | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
-        begin
-          let fileName = Common.removeQuotes fileName in
-          importFile fileName `WithImplementations
-        end
-    | { id = id; args = _ } as invalidExpr when id = macroInclude ->
-        raiseIllegalExpression invalidExpr "Expected one parameter"
-    | _ ->
-        None
-
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let sanityChecks returnType params =
     (match returnType with
@@ -1715,11 +1646,43 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateMacro;
     translateCompileTimeVar;
     translateSeq;
-    translateInclude;
+    (* translateInclude; *)
   ]
   bindings expr
 
 let translateTL = Common.sampleFunc2 "translateTL" translateTL
 
+
+let translateInclude includePath env expr =
+  let importFile fileName =
+    let fileContent = Common.readFile ~paths:!includePath fileName in
+    let sexprs = Parseutils.parseIExprsNoCatch fileContent in
+    let newBindings, tlexprsFromFile =
+      List.fold_left
+        (fun (bindings,prevExprs) sexpr ->
+           let newBindings, newExprs = env.translateF bindings sexpr in
+           List.iter
+             (fun form ->
+                let llvmCode = Genllvm.gencodeTL form in
+                Zompvm.evalLLVMCode bindings [form] llvmCode)
+             newExprs;
+           newBindings, prevExprs @ newExprs )
+        (env.bindings, [])
+        sexprs
+    in
+    Result (newBindings, [])
+  in
+  match expr with
+    | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
+        begin
+          try
+            let fileName = Common.removeQuotes fileName in
+            importFile fileName
+          with error ->
+            eprintf "While compiling included file '%s'\n" fileName;
+            raise error
+        end
+    | _ ->
+        Error ["Expecting 'include \"fileName.zomp\"'"]
 
 
