@@ -100,12 +100,56 @@ let stringMap f str =
   !newString
 
 let llvmEscapedString str =
-  let replace regexp newstring = Str.global_replace (Str.regexp regexp) newstring in
-  str
-  >>= replace "\\\\n" "\\\\0A"
-  >>= replace "\"" "\\\\22"
-  >>= replace "\\\\\\\\" "\\\\5C"
-  >>= replace "\\\\0" "\\\\00"
+  let strLength = String.length str in
+  let rec nextChar pos acc =
+    if pos < strLength then
+      let chr = str.[pos] in
+      if chr = '\\' then
+        nextCharEscaped (pos+1) acc
+      else if chr = '"' then
+        nextChar (pos+1) ('2' :: '2' :: '\\' :: acc)
+      else
+        nextChar (pos+1) (chr::acc)
+    else
+      acc
+  and nextCharEscaped pos acc =
+    if pos < strLength then
+      let chr = str.[pos] in
+      let chars =
+        match chr with
+          | 'n' -> ['A'; '0'; '\\']
+          | '0' -> ['0'; '0'; '\\']
+          | '\\' -> ['C'; '5'; '\\']
+          | invalid -> raiseCodeGenError ~msg:(sprintf "Cannot escape \\%c" invalid)
+      in
+      nextChar (pos+1) (chars @ acc)
+    else
+      raiseCodeGenError ~msg:"String may not end in \\"
+  in
+  let chars = nextChar 0 [] in
+  let stringFromList chars =
+    let len = List.length chars in
+    let str = String.make len 'x' in
+    listIteri (fun pos chr -> str.[len - pos - 1] <- chr) chars;
+    str
+  in
+  stringFromList chars
+
+(* let test_llvmEscapedString = *)
+(*   let testCases = [ *)
+(*     "\\n", "\\0A"; *)
+(*     "\\\"", "\\22"; *)
+(*     "\\0", "\\00"; *)
+(*     "foo", "foo"; *)
+(*   ] in *)
+(*   print_newline(); *)
+(*   List.iter *)
+(*     (fun (input, expected) -> *)
+(*        let found = llvmEscapedString input in *)
+(*        if not (input = found) then *)
+(*          printf "Error: llvmEscapedString '%s' => '%s' instead of '%s'\n" *)
+(*            input found expected) *)
+(*     testCases *)
 
 let isValidLlvmString str =
   try

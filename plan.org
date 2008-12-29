@@ -673,6 +673,8 @@ von http://lambda-the-ultimate.org/node/2884
 
    Inspiration: maven, CPAN
 ** TODO [#A] add call to flush() after macro calls
+** TODO [#A] ast:matchesShape should support vararg match
+   _(_...) => matches (opcall _ args*)
 
 * Use Cases                                                            :usecase:
 

@@ -1,0 +1,30 @@
+/**
+ * Testing string handling
+!syntax indent
+ */
+
+template op==_chr l r
+  char:equal #l #r
+end
+
+var char* multiline "line0\nline1\n"
+
+func int main()
+  var char* simpleString "this be a simple string"
+  var char* simpleString2 "another string"
+
+  unittest:assert (cstring:equal simpleString simpleString)
+  unittest:assert bool:not(cstring:equal simpleString simpleString2)
+
+  printlnString "Here should be an empty line"
+  printChar load(ptradd multiline 5)
+  printlnString "And here another one"
+  printChar '\n'
+  printlnString "And here should be 'one', 'two', 'three' each in a line"
+  printString "one\ntwo\nthree\n"
+
+  unittest:assert (load(ptradd multiline 5) ==_chr '\n')
+
+  ret 0
+end
+
