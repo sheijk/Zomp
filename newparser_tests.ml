@@ -549,6 +549,8 @@ struct
       expectValidId "'\\n'";
       expectValidId "'\\0'";
 
+      expectValidId "\"line0\nline1\nline2\"";
+
       (** comments *)
       "// single line comment\n" ^
         "var int x",

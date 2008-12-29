@@ -131,4 +131,8 @@ let shiftId = function
       { id = firstArgId; args = remArgs }
   | _ ->
       failwith "shiftId"
-      
+
+let shiftLeft = function
+  | { id = id; args = [] } :: args -> { id = id; args = args }
+  | args -> { id = "seq"; args = args }
+

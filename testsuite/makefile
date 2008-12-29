@@ -9,7 +9,7 @@ include ../makefile.config
 ################################################################################
 
 all: sexpr.test structs.test minimal.test simple-func.test variables.test \
-astmatch.test cee.test
+astmatch.test cee.test bug-macro-func-samemodule.test
 
 # all: sexpr.test
 fail: fail.test crash.test

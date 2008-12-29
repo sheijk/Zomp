@@ -672,6 +672,7 @@ von http://lambda-the-ultimate.org/node/2884
    - automatic installation
 
    Inspiration: maven, CPAN
+** TODO [#A] add call to flush() after macro calls
 
 * Use Cases                                                            :usecase:
 

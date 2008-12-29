@@ -1417,6 +1417,25 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
   ]
   translateF bindings
 
+let translateAndEval env exprs =
+  let newBindings, tlexprsFromFile =
+    List.fold_left
+      (fun (bindings,prevExprs) sexpr ->
+         let newBindings, newExprs = env.translateF bindings sexpr in
+         List.iter
+           (fun form ->
+              let llvmCode = Genllvm.gencodeTL form in
+              Zompvm.evalLLVMCode bindings [form] llvmCode)
+           newExprs;
+         newBindings, prevExprs @ newExprs )
+      (env.bindings, [])
+      exprs
+  in
+  Result (newBindings, [])
+
+let translateSeqTL env expr =
+  translateAndEval env expr.args
+
 let () =
   Hashtbl.add baseInstructions "macro" (Macros.translateDefineMacro translateNested);
   ()
@@ -1426,6 +1445,7 @@ let toplevelBaseInstructions =
     Hashtbl.create 32
   in
   Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested);
+  Hashtbl.add table "seq" translateSeqTL;
   table
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
@@ -1447,15 +1467,11 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
   | _ ->
       None
 
-let shiftLeft = function
-  | { id = id; args = [] } :: args -> { id = id; args = args }
-  | args -> { id = "seq"; args = args }
-
 let matchFunc =
   let convertParam = function
     | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param }
         when opjux = macroJuxOp ->
-        shiftLeft param
+        Ast2.shiftLeft param
     | _ -> failwith ""
   in
   function
@@ -1645,32 +1661,18 @@ and translateTL bindings expr = translate raiseIllegalExpression
     translateDefineMacro translateNested;
     translateMacro;
     translateCompileTimeVar;
-    translateSeq;
+    (* translateSeqTL; *)
     (* translateInclude; *)
   ]
   bindings expr
 
 let translateTL = Common.sampleFunc2 "translateTL" translateTL
 
-
 let translateInclude includePath env expr =
   let importFile fileName =
     let fileContent = Common.readFile ~paths:!includePath fileName in
-    let sexprs = Parseutils.parseIExprsNoCatch fileContent in
-    let newBindings, tlexprsFromFile =
-      List.fold_left
-        (fun (bindings,prevExprs) sexpr ->
-           let newBindings, newExprs = env.translateF bindings sexpr in
-           List.iter
-             (fun form ->
-                let llvmCode = Genllvm.gencodeTL form in
-                Zompvm.evalLLVMCode bindings [form] llvmCode)
-             newExprs;
-           newBindings, prevExprs @ newExprs )
-        (env.bindings, [])
-        sexprs
-    in
-    Result (newBindings, [])
+    let exprs = Parseutils.parseIExprsNoCatch fileContent in
+    translateAndEval env exprs
   in
   match expr with
     | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
