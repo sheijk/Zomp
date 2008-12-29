@@ -778,14 +778,16 @@ func int main()
   const int offsetCount = 21;
   uniform float offsetx[offsetCount];
   uniform float offsety[offsetCount];
+  uniform float weights[offsetCount];
 
   void main(void) {
     float pixx = 1.0/800.0;
     float pixy = 1.0/600.0;
 
-    vec4 color = vec4(0.0);//texture2D(tex, texCoord);
-    float scale = 4.0/float(offsetCount);
+    vec4 color = vec4(0.0);
     for(int i = 0; i < offsetCount; ++i) {
+        float d = float(1 + abs(i - (offsetCount/2)));
+        float scale = 1.0 / d;
         color += scale * texture2D(tex, texCoord + vec2(offsetx[i], offsety[i]));
       }
     gl_FragColor = color;
@@ -812,6 +814,8 @@ func int main()
   offsetx2 := malloc float offsetCount
   offsety1 := malloc float offsetCount
   offsety2 := malloc float offsetCount
+  weights := malloc float offsetCount
+
   for i 1 ((offsetCount+1)/2)
     s := int:toFloat i
     h := offsetCount/2 + i
@@ -826,12 +830,19 @@ func int main()
     offsetx2[h] = 0.0
     offsety2[l] = float:neg(pixh *_f s)
     offsety2[h] = pixh *_f s
+
+    // weights[l] = 1.0 /_f int:toFloat i
+    // weights[h] = 1.0 /_f int:toFloat i
   end
   offsetCountH := offsetCount/2
   offsetx1[offsetCountH] = 0.0
   offsety1[offsetCountH] = 0.0
   offsetx2[offsetCountH] = 0.0
   offsety2[offsetCountH] = 0.0
+  // weights[offsetCountH] = 1.0
+  for wi 0 offsetCount
+    weights[offsetCount] = 1.0
+  end
 
   mainloop
     if2 resizeDirty then
@@ -885,12 +896,14 @@ func int main()
       glBindTexture2D getField(target, colorTexture)
       gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
       gl:uniform1fv glowShader "offsety" offsetCount offsety1
+      gl:uniform1fv glowShader "weights" offsetCount weights
       drawFullscreenQuad()
     end
 
     glBindTexture2D getField(target2, colorTexture)
     gl:uniform1fv glowShader "offsetx" offsetCount offsetx2
     gl:uniform1fv glowShader "offsety" offsetCount offsety2
+    gl:uniform1fv glowShader "weights" offsetCount weights
     drawFullscreenQuad()
     glBindTexture2D 0
 
