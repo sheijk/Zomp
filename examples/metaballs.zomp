@@ -771,27 +771,20 @@ func int main()
     }
   " /*fragment*/"
   uniform sampler2D tex;
-  const int offsetCount = 1;
+  const int offsetCount = 3;
   uniform float offsetx[offsetCount];
+  uniform float offsety[offsetCount];
+
   void main(void) {
-    // gl_FragColor = vec4(0.5,1.0,0.0,1.0);
-    // gl_FragColor = vec4(texCoord.x, texCoord.y, 0.0, 1.0);
-    // vec2 offset = vec2(1.0/800.0, 0.0);
     float pixx = 1.0/800.0;
     float pixy = 1.0/600.0;
-    // offsetx[0] = -pixx;
-    // offsetx[1] = 0.0;
-    // offsetx[2] = pixx;
 
     vec4 color = vec4(0.);
+    float scale = 1.0/float(offsetCount);
     for(int i = 0; i < offsetCount; ++i) {
-        color += texture2D(tex, texCoord + vec2(offsetx[i], 0.0));
+        color += scale * texture2D(tex, texCoord + vec2(offsetx[i], offsety[i]));
       }
     gl_FragColor = color;
-    // gl_FragColor =
-    //   1.0 * texture2D(tex, texCoord - offset) +
-    //   1.0 * texture2D(tex, texCoord) +
-    //   1.0 * texture2D(tex, texCoord + offset);
     }"
   assert (glowShader != 0)
 
@@ -799,7 +792,40 @@ func int main()
   assert (target !=_ptr nullptr framebuffer)
   framebuffer:attachColorTexture target
   framebuffer:create target
-  framebuffer:print target
+
+  target2 := framebuffer:new(800,600)
+  assert (target !=_ptr nullptr framebuffer)
+  framebuffer:attachColorTexture target2
+  framebuffer:create target2
+
+  offsetCount := 3
+  pixw := 1.0 /_f int:toFloat(windowWidth)
+  pixh := 1.0 /_f int:toFloat(windowHeight)
+
+  offsetx1 := malloc float offsetCount
+  offsetx2 := malloc float offsetCount
+  offsety1 := malloc float offsetCount
+  offsety2 := malloc float offsetCount
+  for i 1 ((offsetCount+1)/2)
+    s := int:toFloat i
+    h := offsetCount/2 + i
+    l := offsetCount/2 - i
+
+    offsetx1[l] = float:neg(pixw *_f s)
+    offsetx1[h] = pixw *_f s
+    offsety1[l] = 0.0
+    offsety1[h] = 0.0
+
+    offsetx2[l] = 0.0
+    offsetx2[h] = 0.0
+    offsety2[l] = float:neg(pixh *_f s)
+    offsety2[h] = pixh *_f s
+  end
+  offsetCountH := offsetCount/2
+  offsetx1[offsetCountH] = 0.0
+  offsety1[offsetCountH] = 0.0
+  offsetx2[offsetCountH] = 0.0
+  offsety2[offsetCountH] = 0.0
 
   mainloop
     glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -820,7 +846,7 @@ func int main()
       Metaballs:update mballs frameDuration
       Metaballs:applyToField mballs field
     end
-    
+
     renderToTarget target
       glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
 
@@ -841,14 +867,20 @@ func int main()
     end
     framebuffer:makeColorTexture target
 
-    // showTexture (getField target colorTexture)
-
     glUseProgram glowShader
-    glBindTexture2D getField(target, colorTexture)
-    // glEnable GL_TEXTURE_2D
+    renderToTarget target2
+      glBindTexture2D getField(target, colorTexture)
+      gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
+      gl:uniform1fv glowShader "offsety" offsetCount offsety1
+      drawFullscreenQuad()
+    end
+
+    glBindTexture2D getField(target2, colorTexture)
+    gl:uniform1fv glowShader "offsetx" offsetCount offsetx2
+    gl:uniform1fv glowShader "offsety" offsetCount offsety2
     drawFullscreenQuad()
-    // glDisable GL_TEXTURE_2D
     glBindTexture2D 0
+
     glUseProgram 0
   end
 
@@ -867,6 +899,13 @@ func int main()
   glDeleteShader glowShader
   delete field
   delete mballs
+
+  delete offsetx1
+  delete offsety1
+  delete offsetx2
+  delete offsety2
+
+  //TODO: release target, target2
 
   ret 0
 end

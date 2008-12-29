@@ -87,6 +87,16 @@ func void gl:uniform1i(GLuint shader, cstring name, int value)
   glUniform1i loc value
 end
 
+func void gl:uniform1f(GLuint shader, cstring name, float value)
+  const GLuint loc glGetUniformLocation(shader, name)
+  glUniform1f loc value
+end
+
+func void gl:uniform1fv(GLuint shader, cstring name, int count, float* value)
+  const GLuint loc glGetUniformLocation(shader, name)
+  glUniform1fv loc count value
+end
+
 func void gl:uniform4f(GLuint shader, cstring name, float a, float b, float c, float d)
   const GLuint loc (glGetUniformLocation shader name)
   glUniform4f loc a b c d
