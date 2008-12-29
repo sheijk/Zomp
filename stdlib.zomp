@@ -650,8 +650,11 @@
 (macro unittest:assertAll checks ... (
   (var (ptr ast) code `())
   (forEachAstChild check checks (
+    (if (cstring:equal (getField check id) "opseq")
+      (printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported") ())
     (addChild code `(unittest:assert #check))
     ))
+  (ast:print code 0)
   (ret code)
   ))
 
