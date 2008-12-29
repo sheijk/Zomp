@@ -1537,9 +1537,9 @@ let matchFunc =
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let sanityChecks returnType params =
-    (match returnType with
-       | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet"
-       | _ -> ());
+    (* (match returnType with *)
+    (*    | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet" *)
+    (*    | _ -> ()); *)
     let module StringSet = Set.Make(String) in
     let _ =
       List.fold_left

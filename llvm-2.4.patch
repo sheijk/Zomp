@@ -43,13 +43,6 @@ static PATypeHolder HandleUpRefs(const Type *ty) {
 +  return result;
  }
  
-+// Module *llvm::RunVMAsmParser(llvm::MemoryBuffer *MB) {
-+//   InitLLLexer(MB);
-+//   Module *M = RunParser(new Module(LLLgetFilename()));
-+//   FreeLexer();
-+//   return M;
-+// }
-+
  %}
  
  %union {

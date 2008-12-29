@@ -660,6 +660,18 @@ von http://lambda-the-ultimate.org/node/2884
    2.2/2.4: defs not added anymore
 
 ** TODO [#A] performance tests, ergebnisse loggen
+** TODO [#A] letzte zeile vom toplevel aus in buffer/kill-ring befördern
+** TODO design a library system for zomp                                   :pop:
+   Needed features
+   - simple packaging
+   - dependencies
+   - documentation
+   - cookbook
+   - faq
+   - central repository
+   - automatic installation
+
+   Inspiration: maven, CPAN
 
 * Use Cases                                                            :usecase:
 
