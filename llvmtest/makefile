@@ -1,7 +1,11 @@
 
+LLVM_GCC=../tools/llvm-gcc/bin/llvm-gcc
+LLVM_DIS=../tools/llvm/Release/bin/llvm-dis
+LLVM_AS=../tools/llvm/Release/bin/llvm-as
+LLI=../tools/llvm/Release/bin/lli
 
 test: simpletest.bc
-	lli simpletest.bc
+	$(LLI) simpletest.bc
 
 clean:
 	rm *.bc
@@ -9,20 +13,20 @@ clean:
 # LLVM IR Text zu IR Bytecode
 %.bc: %.ll
 	rm -f $@
-	llvm-as $<
+	$(LLVM_AS) $<
 
 # C File nach Bytecode
 %.bc: %.c
-	llvm-gcc -c --emit-llvm -O0 $< -o $@
-	llvm-dis -f $@
+	$(LLVM_GCC) -c --emit-llvm -O0 $< -o $@
+	$(LLVM_DIS) -f $@
 
 misc.ll: misc.bc
-	llvm-dis -f $< -o $@
+	$(LLVM_DIS) -f $< -o $@
 
 # Faketarget, "make foo.run" fuehrt Bytecodedatei foo.bc aus
 # (und erzeugt sie bei Bedarf)
 %.run: %.bc
-	lli $<
+	$(LLI) $<
 
 FLYMAKE_LOG=flymake-log.temp
 

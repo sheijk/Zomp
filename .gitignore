@@ -4,3 +4,4 @@ alltests
 tools
 /tests/temp.zomp
 /tests/temp2.zomp
+/llvmtest/string.ll
