@@ -2,6 +2,7 @@
  * Libraries providing a C like feel
 
 !verify off
+!syntax indent
  */
 
 
@@ -105,19 +106,47 @@ template op==_str left right
   strcmp(#left, #right) == 0
 end
 
-macro dummy l r
-  printlnString "applying dummy"
-  ret ${foo bar}
+template op:= name value
+  var2 #name #value
 end
 
-func void p2(ast* l, ast* r)
-  printlnString "should do something now.."
+// macro dummy l r
+//   printlnString "applying dummy"
+//   ret ${foo bar}
+// end
+// 
+// func void p2(ast* l, ast* r)
+//   printlnString "should do something now.."
+// end
+
+///
+/// Will return code to get the address of the denoted element
+/// Accepts code of the form id(.id)*
+///
+/// Example:
+///   getMemberAddress(${a.b.c}) => (fieldptr (fieldptr a b) c)
+///
+func ast* getMemberAddress(ast* code)
+  if2 (getField code childCount == 0) then
+    ret ${ptr #code}
+  elseif ast:matchesShape(code, ${_._})
+    recordExpr := ast:child(code, 0)
+    fieldName := getField ast:child(code, 1) id
+    ret ${fieldptr #recordExpr #fieldName}
+  elseif ast:matchesShape(code, ${__._})
+    nestedPtr := getMemberAddress ast:child(code, 0)
+    fieldName2 := getField ast:child(code, 1) id
+    ret ${fieldptr #nestedPtr #fieldName2}
+  end
+  ret ${error "Do not know how to get address of this expression" #code}
 end
 
 ///TODO: add support to call methods
 macro op. record component
-  // ret ${getField(#record, #component)}
-  ret ${getField(#record, #component)}
+  println()
+  addr := getMemberAddress ${#record.#component}
+  ret ${load #addr}
+
   // if2 (getField(component, childCount) == 0) then
   //   ret ${getField(#record, #component)}
   // elseif (getField(component, id) ==_str "op.")
@@ -128,23 +157,18 @@ macro op. record component
   // ret ${error "function calls with dot syntax not supported yet" in #component}
 end
 
-template op:= name value
-  var2 #name #value
-end
-
 /// Assigning values. Supports
 /// a = b - for first class types
 /// a.x = b - for struct members
 /// ptr[10] = b - for pointers
 macro op= l r
-  if2 ast:matchesShape(l, ${_._}) then
-    var ast* component ast:child(l, 0)
-    var ast* field ast:child(l, 1)
-    ret ${setField #component #field #r}
-  elseif ast:matchesShape(l, ${_[_]})
+  if2 ast:matchesShape(l, ${_[_]}) then
     var ast* array ast:child(l, 0)
     var ast* index ast:child(l, 1)
     ret ${store ptradd(#array, #index) #r}
+  elseif ast:matchesShape(l, ${__.__})
+    laddr := getMemberAddress(l)
+    ret ${store #laddr #r}
   else
     ret ${assign #l #r}
   end
@@ -202,6 +226,10 @@ end
 template postop-- int
   #int = #int - 1
   #int + 1
+end
+
+template preop& obj
+  ptr #obj
 end
 
 macro struct name members...

@@ -125,7 +125,7 @@
 %nonassoc STRICT_BOOL_OP LAZY_BOOL_OP
 %left ADD_OP
 %left MULT_OP
-%right DOT
+%left DOT
 %left POSTFIX_OP
 %right PREFIX_OP
 

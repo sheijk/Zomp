@@ -1,0 +1,47 @@
+/**
+ * Testing functions in the ../stdlib.zomp
+
+!verify off
+!syntax indent
+ */
+
+macro unittest:assertAll checks
+  var ast* code ${}
+  forEachAstChild check checks
+    addChild code ${unittest:assert #check}
+  end
+  ret code
+end
+
+func int main()
+  /// testing ast:matchesShape
+  unittest:assertAll
+
+    /// very simple cases
+    ast:matchesShape ${foo} ${foo}
+    bool:not (ast:matchesShape ${foo} ${bar})
+    bool:not (ast:matchesShape ${foo} ${foo args})
+
+    ast:matchesShape ${a b c} ${a b c}
+    bool:not (ast:matchesShape ${a b c} ${a b x})
+
+    /// place holder for one element, only
+    ast:matchesShape ${onlyOneId} ${_}
+    bool:not (ast:matchesShape ${complex expr} ${_})
+
+    /// place holder for arbitrary sub-trees
+    ast:matchesShape ${matches any expr} ${__}
+    ast:matchesShape ${if call(1, 2, 3) then} ${if __ then}
+
+    /// more complex tests
+    ast:matchesShape ${var (ptr int) x (10 + 20 * 30)} ${var (ptr int) x (10 + 20 * 30)}
+    bool:not (ast:matchesShape ${var (ptr int) (10 + xxx * 30)} ${var (ptr int) (10 + 20 * 30)})
+
+    ast:matchesShape ${int x} ${int _}
+
+    ast:matchesShape ${if (a > b) then (printString "gt") else (printString "lt")} ${if __ then __ else __}
+  end
+
+  ret 0
+end
+

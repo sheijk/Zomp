@@ -1,0 +1,12 @@
+/**
+ * Testing libcee.zomp
+!syntax indent
+ */
+
+include "libs/libcee.zomp"
+
+func int main()
+  ret 0
+end
+
+

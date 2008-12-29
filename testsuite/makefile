@@ -8,7 +8,9 @@ include ../makefile.config
 # Targets
 ################################################################################
 
-all: sexpr.test structs.test minimal.test simple-func.test variables.test astmatch.test
+all: sexpr.test structs.test minimal.test simple-func.test variables.test \
+astmatch.test cee.test
+
 # all: sexpr.test
 fail: fail.test crash.test
 
