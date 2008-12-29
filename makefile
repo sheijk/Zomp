@@ -72,7 +72,7 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 ################################################################################
 
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png alltests
-libbindings: gencode opengl20.zomp glfw.zomp opengl20.izomp glfw.izomp
+libbindings: gencode opengl20.zomp glfw.zomp
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
@@ -221,10 +221,6 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
 
-%.izomp: %.skel gencode
-	echo Generating Zomp bindings using indent syntax for $(<:.skel=) ...
-	./gencode -lang izomp $(<:.skel=)
-
 CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml	\
 genllvm.ml indentlexer.ml indentlexer_tests.ml lang.ml machine.ml	\
 newparser_tests.ml parseutils.ml compileutils.ml semantic.ml		\
@@ -239,8 +235,6 @@ makefile.depends: $(CAMLDEP_INPUT)
 
 glfw.zomp: gencode
 opengl20.zomp: gencode
-opengl20.izomp: gencode
-glfw.izomp: gencode
 
 newparser.ml: newparser.mly ast2.cmo
 newparser_tests.cmo: newparser.cmo
@@ -290,7 +284,6 @@ clean:
 	rm -f makefile.depends
 	rm -f stdlib.ll
 	rm -f opengl20.zomp glfw.zomp
-	rm -f opengl20.izomp glfw.izomp
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
 	rm -f expandertests.cm? alltests.cm? alltests

@@ -708,7 +708,7 @@ end
   
 module ZompSExprPrinter : ZOMP_CODE_PRINTER =
 struct
-  let langExtension = "zomp"
+  let langExtension = "szomp"
     
   let printHeader () =
     "/// zomp definitions\n\n"
@@ -738,7 +738,7 @@ end
 
 module ZompIndentPrinter : ZOMP_CODE_PRINTER =
 struct
-  let langExtension = "izomp"
+  let langExtension = "zomp"
   let printHeader () = ""
   let printError ~decl ~msg = ""
   let printConstant ~name ~typ ~default =
@@ -893,9 +893,9 @@ let _ =
           CamlbindingsGen.process_file, moduleName
       | [| _; "-lang"; "ml"; moduleName |] ->
           CamlbindingsGen.process_file, moduleName
-      | [| _; "-lang"; "zomp"; moduleName |] ->
+      | [| _; "-lang"; "szomp"; moduleName |] ->
           ZompbindingsSExprGen.process_file, moduleName
-      | [| _; "-lang"; "izomp"; moduleName |] ->
+      | [| _; "-lang"; "zomp"; moduleName |] ->
           ZompbindingsIndentGen.process_file, moduleName
       | [| _; "-lang"; invalidLanguage; _ |] ->
           eprintf "Language %s is not supported. Try ml or zomp\n" invalidLanguage;
