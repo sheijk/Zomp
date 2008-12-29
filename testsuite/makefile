@@ -8,7 +8,7 @@ include ../makefile.config
 # Targets
 ################################################################################
 
-all: sexpr.test structs.test minimal.test simple-func.test variables.test
+all: sexpr.test structs.test minimal.test simple-func.test variables.test astmatch.test
 # all: sexpr.test
 fail: fail.test crash.test
 
@@ -26,7 +26,7 @@ redo: clear-results all
 
 .PRECIOUS: %.ll
 
-%.ll: %.zomp ../zompc.native
+%.ll: %.zomp ../zompc.native ../stdlib.zomp
 	@$(ECHO) Compiling $(<) to .ll...
 	@../zomp-check-syntax.sh $<
 

@@ -1057,20 +1057,25 @@
 
 
 
-/// Given an ast and an ast containing placeholders (astFromString "_") the shapes of both
-/// ast's are matched against each other. They match if they have the same name, same number
-/// of children and all their children are matching. A placeholder is considered to match
-/// any other ast
+/// Given an ast and an ast containing placeholders _/__ the
+/// shapes of both ast's are matched against each other. They match if they have
+/// the same name, same number of children and all their children are matching.
+///
+/// The _ placeholder matches expressions without children (like 'a') while
+/// the __ placeholder matches any other ast
 ///
 /// Examples:
 ///   ast:matchesShape `(foo bar) `(foo bar) => true
-///   ast:matchesShape `(a b c) `(_) => true
-///   ast:matchesShape `(foo (some child) bar) `(foo _ bar) => true
+///   ast:matchesShape `(a b c) `(__) => true
+///   ast:matchesShape `(foo (some child) bar) `(foo __ bar) => true
 ///   ast:matchesShape `(a b) `(a) => false
 ///   ast:matchesShape `(a b c) `(a b) => false
 ///   ast:matchesShape `(a b) `(a b _) => false
 (func bool ast:matchesShape ((astp code) (astp template)) (
-  (if (cstring:equal (getField template id) "_")
+  (if (bool:and (cstring:equal (getField template id) "_") (getField code childCount == 0))
+    (ret true) ())
+
+  (if (cstring:equal (getField template id) "__")
     (ret true) ())
 
   (if
