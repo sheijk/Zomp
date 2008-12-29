@@ -106,6 +106,10 @@ template op==_str left right
   strcmp(#left, #right) == 0
 end
 
+template op!=_str left right
+  strcmp(#left, #right) != 0
+end
+
 template op:= name value
   var2 #name #value
 end

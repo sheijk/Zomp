@@ -82,20 +82,6 @@ func GLuint createShader(cstring varyingParams, cstring vertexSource, cstring fr
   ret program
 end
 
-// (macro gl:uniformSetterFunc type funcName setUniform (
-//   (var astp valueArg (astFromString (getFloat type id)))
-//   (addChild valueArg (astFromString "value"))
-
-//   (var astp setUniformCall (astFromString (getFloat setUniform id)))
-//   (addMappedChilds setUniform astFromString "loc" "value")
-  
-//   (printAst `(func void funcName((GLuint shader) (cstring name) #valueArg) (
-//     (const GLuint loc (glGetUniformLocation shader value))
-//     (
-//     )) 0)
-//   (ret `())
-//   ))
-
 func void gl:uniform1i(GLuint shader, cstring name, int value)
   const GLuint loc (glGetUniformLocation shader name)
   glUniform1i loc value
@@ -125,6 +111,28 @@ template rendergl primitiveType code...
   glEnd
 end
 
+template saveTransforms code... 
+  glMatrixMode GL_TEXTURE
+  glPushMatrix
+  glMatrixMode GL_PROJECTION
+  glPushMatrix
+  glMatrixMode GL_MODELVIEW
+  glPushMatrix
+  #code
+  glMatrixMode GL_TEXTURE
+  glPopMatrix
+  glMatrixMode GL_PROJECTION
+  glPopMatrix
+  glMatrixMode GL_MODELVIEW
+  glPopMatrix
+end
+
+template saveAttribs code... 
+  glPushAttrib GL_ALL_ATTRIB_BITS
+  #code
+  glPopAttrib
+end
+
 func void renderStripes(float count, float size, float alpha)
   const float left (float:sub 0. size)
   const float right size
@@ -145,18 +153,18 @@ func void renderStripes(float count, float size, float alpha)
 end
 
 func void drawPausedOverlay()
-  glPushAttrib GL_BLEND
-  glEnable GL_BLEND
-  glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
-  glMatrixMode GL_PROJECTION
-  glLoadIdentity
-  glMatrixMode GL_MODELVIEW
-  glLoadIdentity
-  glScalef 0.75 1. 1.
-  glRotatef 45.0 0. 0. 1.
-  renderStripes 10.0 2.0 0.125
-  glfwSwapBuffers
-  glPopAttrib
+  saveAttribs GL_BLEND
+    glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glScalef 0.75 1. 1.
+    glRotatef 45.0 0. 0. 1.
+    renderStripes 10.0 2.0 0.125
+    glPopAttrib()
+  end
+  glfwSwapBuffers()
 end
 
 func void renderQuad(float size)
@@ -249,28 +257,6 @@ func void autoSetupViewport()
   glViewport 0 0 width height
 end
 
-template saveTransforms code... 
-  glMatrixMode GL_TEXTURE
-  glPushMatrix
-  glMatrixMode GL_PROJECTION
-  glPushMatrix
-  glMatrixMode GL_MODELVIEW
-  glPushMatrix
-  #code
-  glMatrixMode GL_TEXTURE
-  glPopMatrix
-  glMatrixMode GL_PROJECTION
-  glPopMatrix
-  glMatrixMode GL_MODELVIEW
-  glPopMatrix
-end
-
-template saveAttribs code... 
-  glPushAttrib GL_ALL_ATTRIB_BITS
-  #code
-  glPopAttrib
-end
-
 func void makeGLIdentityTransforms() 
   template loadIdentity matrix
     glMatrixMode #matrix
@@ -343,8 +329,7 @@ type framebuffer
 end
 
 func framebuffer* framebuffer:new(int width, int height)
-  var (ptr framebuffer) fbo (malloc framebuffer)
-  template set field value (setField fbo #field #value)
+  var framebuffer* fbo (malloc framebuffer)
   setFieldsTo 0 fbo colorTexture colorBuffer depthTexture depthBuffer
   setField fbo width width
   setField fbo height height
@@ -397,9 +382,11 @@ func void framebuffer:makeColorTexture(framebuffer* fbo)
 end
 
 template renderToTarget framebuffer code...
-  framebuffer:bind #framebuffer
-  #code
-  framebuffer:unbind #framebuffer
+  saveAttribs GL_VIEWPORT_BIT
+    framebuffer:bind #framebuffer
+    #code
+    framebuffer:unbind #framebuffer
+  end
 end
 
 //------------------------------------------------------------------------------

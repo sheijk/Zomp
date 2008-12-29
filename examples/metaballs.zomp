@@ -42,11 +42,11 @@ macro unittest:assert testCode
   printF := simpleAst "internalErrorIn unittest:assert"
   compareF := simpleAst "internalErrorIn unittest:assert"
 
-  if2 ast:matchesShape(testCode, ${_ ==_f _}) then
+  if2 ast:matchesShape(testCode, ${__ ==_f __}) then
     isCompare = true
     printF = simpleAst "printFloat"
     compareF = simpleAst "op==_f"
-  elseif ast:matchesShape(testCode, ${_ == _})
+  elseif ast:matchesShape(testCode, ${__ == __})
     isCompare = true
     printF = simpleAst "printInt"
     compareF = simpleAst "op=="
@@ -83,7 +83,7 @@ macro unittest:assert testCode
   end
 end
 
-/// pointless(?) redefinition using indent syntax
+/// redefine to work with indent based syntax expressions
 macro unittest:assertAll checks
   var ast* code ${}
   forEachAstChild check checks
@@ -93,6 +93,13 @@ macro unittest:assertAll checks
 end
 
 //------------------------------------------------------------------------------
+
+macro assert code
+  ret ${if2 (bool:not #code) then
+    printlnString "error: Assertion failed"
+    ast:print ${#code} 0
+  end}
+end
 
 var float sideLengthf 20.0
 
@@ -143,6 +150,11 @@ unittest:testCasesFor float:mix
   float:mix 0.25 0.0 8.0 ==_f 2.0
 end
 
+func void free(void* ptr)
+
+template delete ptr
+  free (cast void* #ptr)
+end
 
 //------------------------------------------------------------------------------
 // some simple types
@@ -188,12 +200,6 @@ macro defineArrayType type
   end}
 
   ret code
-  // println()
-  // printHLine '-' 80
-  // ast:print code 0
-  // printHLine '-' 80
-  //
-  // ret ${}
 end
 
 template aget array index
@@ -213,6 +219,14 @@ macro array:setAll array value
     for #i 0 size
       aset #array #i #value
     end
+  end}
+end
+
+macro Array:foreach array indexVar code
+  uniqueId count "array_size"
+
+  ret ${for #indexVar 0 #array.length
+    #code
   end}
 end
 
@@ -527,10 +541,73 @@ func void Point:print(Point* this)
   printString ")"
 end
 
-// struct Metaball
-//   Point pos
-//   float strength
+func void printsi(cstring str, int i)
+  printString str
+  printChar ' '
+  printInt i
+end
+
+func void printsf(cstring str, float f)
+  printString str
+  printChar ' '
+  printFloat f
+end
+
+func void Point:print(Point* this)
+  printString "(Point"
+  printsf " x = " this.x
+  printsf " y = " this.y
+  printsf " z = " this.z
+  printChar ')'
+end
+
+struct Metaball
+  Point pos
+  float strength
+end
+
+func void Metaball:print(Metaball* this)
+  printString "(Metaball pos="
+  Point:print fieldptr(this, pos)
+  printsf " strength = " this.strength
+  printChar ')'
+end
+
+// func Point Point:make(float x, float y, float z)
+//   var Point p
+//   p.x = x
+//   p.y = y
+//   p.z = z
+//   ret p
 // end
+
+// defineArrayType Metaball
+// 
+// testf
+//   balls := new Array_Metaball 10
+// 
+//   Array:foreach balls i
+//     var Metaball b
+//     b = aget balls i
+//     Metaball:print &b
+//     println()
+//   end
+// 
+//   delete balls
+// end
+
+// testf
+//   var Metaball mb
+//   var Point p
+//   p.x = 1.0
+//   p.y = 1.0
+//   p.z = 1.0
+//   mb.pos = p
+// 
+//   printFloat mb.pos.x
+// end
+
+/**/
 
 //------------------------------------------------------------------------------
 
@@ -624,6 +701,12 @@ func void onMouseMove(int x, int y)
   lastMouseY = y
 end
 
+func char* char:toCString(char c)
+  str := "X"
+  store (cast char* str) c
+  ret str
+end
+
 func void onWindowResize(int newWidth, int newHeight)
   printString "Window was resized to "
   printInt newWidth
@@ -636,10 +719,28 @@ func void onWindowResize(int newWidth, int newHeight)
   glViewport 0 0 windowWidth windowHeight
 end
 
-func void free(void* ptr)
+func void framebuffer:print(framebuffer* this)
+  macro printMember name printF
+    quoteStr := char:toCString '"' // '"' dumb emacs parser \o/
+    text := quoteStr ++ " " ++ name.id ++ "=" ++ quoteStr
+    ret ${
+      printString #text
+      #printF this.#name
+    end}
+  end
 
-template delete ptr
-  free (cast void* #ptr)
+  template printIntMember name
+    printMember #name printInt
+  end
+
+  printString "(framebuffer"
+  printIntMember width
+  printIntMember height
+  printIntMember fbo
+  printIntMember colorTexture
+  printIntMember colorBuffer
+  printIntMember depthTexture
+  printIntMember depthBuffer
 end
 
 func int main()
@@ -660,13 +761,51 @@ func int main()
   field := new Field3D (float:toInt sideLengthf)
   mballs := new Metaballs 50
 
-  // Metaballs:print mballs
+  glowShader := createShader /*varying*/"
+  #version 120
+  varying vec2 texCoord;
+  " /*vertex*/"
+  void main(void) {
+    gl_Position = ftransform();
+    texCoord = gl_MultiTexCoord0.xy;
+    }
+  " /*fragment*/"
+  uniform sampler2D tex;
+  const int offsetCount = 1;
+  uniform float offsetx[offsetCount];
+  void main(void) {
+    // gl_FragColor = vec4(0.5,1.0,0.0,1.0);
+    // gl_FragColor = vec4(texCoord.x, texCoord.y, 0.0, 1.0);
+    // vec2 offset = vec2(1.0/800.0, 0.0);
+    float pixx = 1.0/800.0;
+    float pixy = 1.0/600.0;
+    // offsetx[0] = -pixx;
+    // offsetx[1] = 0.0;
+    // offsetx[2] = pixx;
+
+    vec4 color = vec4(0.);
+    for(int i = 0; i < offsetCount; ++i) {
+        color += texture2D(tex, texCoord + vec2(offsetx[i], 0.0));
+      }
+    gl_FragColor = color;
+    // gl_FragColor =
+    //   1.0 * texture2D(tex, texCoord - offset) +
+    //   1.0 * texture2D(tex, texCoord) +
+    //   1.0 * texture2D(tex, texCoord + offset);
+    }"
+  assert (glowShader != 0)
+
+  target := framebuffer:new(800,600)
+  assert (target !=_ptr nullptr framebuffer)
+  framebuffer:attachColorTexture target
+  framebuffer:create target
+  framebuffer:print target
 
   mainloop
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
 
-    if2 (abs(mouseXDelta) > abs(mouseYDelta)) then
+    if2 (abs mouseXDelta > abs mouseYDelta) then
       mouseYDelta = 0
     else
       mouseXDelta = 0
@@ -677,28 +816,40 @@ func int main()
     mouseXDelta = 0
     mouseYDelta = 0
 
-    glMatrixMode GL_MODELVIEW
-    glLoadIdentity()
-    SpaceballCamera:applyToGL cam
-
     if2 (time -_f startTime >_f 1.0) then
       Metaballs:update mballs frameDuration
       Metaballs:applyToField mballs field
     end
+    
+    renderToTarget target
+      glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
 
-    drawCoordSys 8.0
+      glMatrixMode GL_MODELVIEW
+      glLoadIdentity()
+      SpaceballCamera:applyToGL cam
 
-    saveTransforms
-      sideLength := field.sideLength
-      scale := 100.0 /_f int:toFloat(sideLength)
-      glScalef scale scale scale
+      drawCoordSys 8.0
 
-      // offset := int:toFloat(sideLength) /_f -2.0
-      // glTranslatef offset offset offset
+      saveTransforms
+        sideLength := field.sideLength
+        scale := 100.0 /_f int:toFloat(sideLength)
+        glScalef scale scale scale
 
-      Field3D:show field
-      Metaballs:show mballs
+        Field3D:show field
+        Metaballs:show mballs
+      end
     end
+    framebuffer:makeColorTexture target
+
+    // showTexture (getField target colorTexture)
+
+    glUseProgram glowShader
+    glBindTexture2D getField(target, colorTexture)
+    // glEnable GL_TEXTURE_2D
+    drawFullscreenQuad()
+    // glDisable GL_TEXTURE_2D
+    glBindTexture2D 0
+    glUseProgram 0
   end
 
   drawPausedOverlay()
@@ -713,13 +864,14 @@ func int main()
   printFloat (int:toFloat frameNum /_f (endTime -_f startTime))
   printlnString " fps"
 
+  glDeleteShader glowShader
   delete field
   delete mballs
 
   ret 0
 end
 
-testf
+func void test()
   runMain()
 end
 
