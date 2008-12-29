@@ -321,7 +321,7 @@ indent the next line when they occur at the beginning of a line"
         (wordAtLineBeginning "")
         (endAtNextLine nil)
         (endQuotationAtNextLine nil)
-        (nextLineMoreIndented nil))
+        (nextLineIndentDiff 0))
 
     (setq isAtEnd (looking-at " *$"))
 
@@ -343,7 +343,7 @@ indent the next line when they occur at the beginning of a line"
     (save-excursion
       (let ((thisLineIndent (zomp-current-line-indent)))
         (next-line)
-        (setq nextLineMoreIndented (< thisLineIndent (zomp-current-line-indent)))))
+        (setq nextLineIndentDiff (- (zomp-current-line-indent) thisLineIndent))))
 
     (save-excursion
       (back-to-indentation)
@@ -367,8 +367,8 @@ indent the next line when they occur at the beginning of a line"
     (when (and (not isStar)
                (not isComment)
                (member wordAtLineBeginning zomp-indent-keywords)
-               (not endAtNextLine)
-               (not nextLineMoreIndented)
+               (not (and endAtNextLine (>= nextLineIndentDiff 0)))
+               (<= nextLineIndentDiff 0)
                isAtEnd)
       (insert "end")
       (indent-according-to-mode)
@@ -378,7 +378,7 @@ indent the next line when they occur at the beginning of a line"
 
     (when (and isQuotation
                (not endQuotationAtNextLine)
-               (not nextLineMoreIndented))
+               (<= nextLineIndentDiff 0))
       (insert "end}")
       (indent-according-to-mode)
       (previous-line)
