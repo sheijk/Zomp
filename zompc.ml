@@ -136,8 +136,11 @@ let () =
                   in
                   let compilerDir = Filename.dirname execNameAndPath in
                   addIncludePath compilerDir `Front;
-                  let translateInclude = Expander.translateInclude includePath in
+                  let handleLLVMCode code = output_string outStream code in
+                  let translateInclude = Expander.translateInclude includePath handleLLVMCode in
                   Hashtbl.add Expander.toplevelBaseInstructions "include" translateInclude;
+                  Hashtbl.add Expander.toplevelBaseInstructions "seq"
+                    (Expander.translateSeqTL handleLLVMCode);
                   try
                     compile (baseName ^ ".zomp") inStream outStream
                   with

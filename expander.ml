@@ -216,12 +216,15 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
     in
     let varType =
       match declaredType, valueType with
-        | Some declaredType, Some valueType when equalTypes bindings declaredType valueType -> declaredType
+        | Some declaredType, Some valueType when equalTypes bindings declaredType valueType ->
+            declaredType
         | Some declaredType, Some valueType ->
-            raiseIllegalExpressionFromTypeError expr ("Types do not match",declaredType,valueType)
+            raiseIllegalExpressionFromTypeError expr
+              ("Types do not match",declaredType,valueType)
         | None, Some valueType -> valueType
         | Some declaredType, None -> declaredType
-        | None, None -> raiseIllegalExpression expr "var needs either a default value or declare a type"
+        | None, None ->
+            raiseIllegalExpression expr "var needs either a default value or declare a type"
     in
     match varType with
       | #integralType | `Pointer _ | `Function _ as typ ->
@@ -1417,7 +1420,7 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
   ]
   translateF bindings
 
-let translateAndEval env exprs =
+let translateAndEval handleLLVMCodeF env exprs =
   let newBindings, tlexprsFromFile =
     List.fold_left
       (fun (bindings,prevExprs) sexpr ->
@@ -1425,7 +1428,8 @@ let translateAndEval env exprs =
          List.iter
            (fun form ->
               let llvmCode = Genllvm.gencodeTL form in
-              Zompvm.evalLLVMCode bindings [form] llvmCode)
+              Zompvm.evalLLVMCode bindings [form] llvmCode;
+              handleLLVMCodeF llvmCode)
            newExprs;
          newBindings, prevExprs @ newExprs )
       (env.bindings, [])
@@ -1433,8 +1437,8 @@ let translateAndEval env exprs =
   in
   Result (newBindings, [])
 
-let translateSeqTL env expr =
-  translateAndEval env expr.args
+let translateSeqTL handleLLVMCodeF env expr =
+  translateAndEval handleLLVMCodeF env expr.args
 
 let () =
   Hashtbl.add baseInstructions "macro" (Macros.translateDefineMacro translateNested);
@@ -1445,7 +1449,7 @@ let toplevelBaseInstructions =
     Hashtbl.create 32
   in
   Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested);
-  Hashtbl.add table "seq" translateSeqTL;
+  (* Hashtbl.add table "seq" translateSeqTL; *)
   table
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
@@ -1668,11 +1672,11 @@ and translateTL bindings expr = translate raiseIllegalExpression
 
 let translateTL = Common.sampleFunc2 "translateTL" translateTL
 
-let translateInclude includePath env expr =
+let translateInclude includePath handleLLVMCodeF env expr =
   let importFile fileName =
     let fileContent = Common.readFile ~paths:!includePath fileName in
     let exprs = Parseutils.parseIExprsNoCatch fileContent in
-    translateAndEval env exprs
+    translateAndEval handleLLVMCodeF env exprs
   in
   match expr with
     | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->

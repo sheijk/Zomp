@@ -675,6 +675,14 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] add call to flush() after macro calls
 ** TODO [#A] ast:matchesShape should support vararg match
    _(_...) => matches (opcall _ args*)
+** TODO [#A] var doesn't check whether types match
+  var cstring foo 10
+** TODO [#A] ${foo _...} is not parsed correctly                    :bug:parser:
+** TODO [#A] (a == 2 && 3 == 4) is not parsed properly
+** TODO [#A] zomp-newline
+   indent current line first, then decide about auto insertions
+** TODO [#A] zomp-newline
+   also check for words in zomp-unindent-keywords (like for end)
 
 * Use Cases                                                            :usecase:
 
