@@ -5,7 +5,24 @@
 
 include "libs/libcee.zomp"
 
+var int counter 0
+
+func bool increaseAndRet(bool result)
+  counter = counter + 1
+  ret result
+end
+
+func void testLazyOps()
+  unittest:assert
+    counter = 0
+    increaseAndRet true && increaseAndRet true
+    counter == 1
+  end
+end
+
 func int main()
+  testLazyOps()
+
   ret 0
 end
 
