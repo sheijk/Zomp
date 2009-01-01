@@ -5,6 +5,8 @@
 !syntax indent
  */
 
+include "libs/libcee.zomp"
+
 macro unittest:assertAll checks
   var ast* code ${}
   forEachAstChild check checks
@@ -32,6 +34,14 @@ func int main()
     /// place holder for arbitrary sub-trees
     ast:matchesShape ${matches any expr} ${__}
     ast:matchesShape ${if call(1, 2, 3) then} ${if __ then}
+
+    /// vararg placeholder
+    ast:matchesShape ${sum 1 2 3 4 5} ${sum _... }
+    bool:not (ast:matchesShape ${sum} ${sum first _... })
+
+    ast:matchesShape ${int add(int l, int r)} ${_ _(_...)}
+    ast:matchesShape ${int add(int l, int r)} ${_ _(__, __)}
+    ast:matchesShape ${int add(int l, int r)} ${_ _(__, __, _...)}
 
     /// more complex tests
     ast:matchesShape ${var (ptr int) x (10 + 20 * 30)} ${var (ptr int) x (10 + 20 * 30)}

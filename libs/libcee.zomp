@@ -35,8 +35,6 @@ end
 ///   print "Neither to big nor to small. Purrfect"
 /// end
 macro if2 cond then onTrue remArgs...
-  println()
-
   macro:failUnless cstring:equal(getField(then, id), "then")
 
   uniqueId endLabel "if_end"
@@ -123,6 +121,77 @@ end
 //   printlnString "should do something now.."
 // end
 
+/// Given an ast and an ast containing placeholders _/__ the
+/// shapes of both ast's are matched against each other. They match if they have
+/// the same name, same number of children and all their children are matching.
+///
+/// The _ placeholder matches expressions without children (like 'a') while
+/// the __ placeholder matches any other ast
+/// _... as last argument means any number of parameters
+///
+/// Examples:
+///   ast:matchesShape ${foo bar} ${foo bar} => true
+///   ast:matchesShape ${a b c} ${__} => true
+///   ast:matchesShape ${foo (some child) bar} ${foo __ bar} => true
+///   ast:matchesShape ${a b} ${a} => false
+///   ast:matchesShape ${a b c} ${a b} => false
+///   ast:matchesShape ${a b} ${a b _} => false
+///   ast:matchesShape ${a _...} ${a 1 2 3 4} => true
+///
+func bool ast:matchesShape(ast* codeArg, ast* templateArg)
+  var ast* code codeArg
+  var ast* template templateArg
+
+  assert (template !=_ptr nullptr ast)
+  assert (code !=_ptr nullptr ast)
+
+  var cstring templateId getField(template, id)
+  var int templateChildCount getField(template, childCount)
+  var cstring codeId getField(code, id)
+  var int codeChildCount getField(code, childCount)
+
+  when (bool:and (templateId ==_str "_") (codeChildCount == 0))
+    ret true
+  end
+
+  when (templateId ==_str "__")
+    ret true
+  end
+
+  varargs := false
+  lastChild := nullptr ast
+  if2 (templateChildCount > 0) then
+    lastChild = ast:child template (templateChildCount - 1)
+    assert (lastChild !=_ptr nullptr ast)
+    if2 ((getField(lastChild, childCount) == 1) && (getField(lastChild, id) ==_str "postop...")) then
+      var ast* lastChildChild ast:child(lastChild, 0)
+      varargs = (getField(lastChildChild, id) ==_str "_")
+    end
+  end
+
+  if2 varargs then
+    if2 ((codeChildCount >= templateChildCount - 1) && (codeId ==_str templateId)) then
+      for childNum2 0 (templateChildCount - 1)
+        unless (ast:matchesShape (ast:child code childNum2) (ast:child template childNum2))
+          ret false
+        end
+      end
+      ret true
+    end
+  else
+    if2 ((codeChildCount == templateChildCount) && (codeId ==_str templateId)) then
+      for childNum 0 codeChildCount
+        unless (ast:matchesShape (ast:child code childNum) (ast:child template childNum))
+          ret false
+        end
+      end
+      ret true
+    end
+  end
+
+  ret false
+end
+
 ///
 /// Will return code to get the address of the denoted element
 /// Accepts code of the form id(.id)*
@@ -147,7 +216,6 @@ end
 
 ///TODO: add support to call methods
 macro op. record component
-  println()
   addr := getMemberAddress ${#record.#component}
   ret ${load #addr}
 
