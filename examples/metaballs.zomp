@@ -745,6 +745,72 @@ func void framebuffer:print(framebuffer* this)
   printIntMember colorBuffer
   printIntMember depthTexture
   printIntMember depthBuffer
+  printChar ')'
+end
+
+struct Shader
+  cstring varyingSource
+  cstring vertexSource
+  cstring fragmentSource
+end
+
+func cstring Shader:parseTLExpr(ast* code)
+  template nthId n
+    getField(ast:child(code, #n), id)
+  end
+
+  template matches pattern
+    ast:matchesShape(code, ${#pattern})
+  end
+
+  if2 matches(varying _ _) then
+    ret ("varying " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
+  elseif matches(uniform _ _)
+    ret ("uniform " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
+  elseif matches(void main() __)
+    ret "main function"
+  elseif matches(_ _(_...) __)
+    funcName := ast:child ast:child(code, 1) 0
+    ret ("function " ++ funcName.id ++ " : " ++ nthId 0 ++ "\n")
+  end
+
+  ret "unknow expression\n"
+end
+
+func cstring Shader:parse(ast* code)
+  source := ""
+
+  forEachAstChild child code
+    newSource := Shader:parseTLExpr(child)
+    source = source ++ newSource
+  end
+
+  ret source
+end
+
+macro shaderVar varName code
+  printlnString "Creating shader from"
+  ast:print code 0
+  ret ${#varName := Shader:parse ${#code}}
+end
+
+testf
+  shaderVar vertexSource
+    varying float x
+    uniform vec3 normal
+
+    vec3 invert(vec3 v)
+      return minus(v)
+    end
+
+    void main()
+      gl_Vertex = ftransform()
+    end
+  end
+
+  printHLine '-' 40
+  printlnString vertexSource
+  printHLine '-' 40
 end
 
 func int main()
