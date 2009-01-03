@@ -1,0 +1,19 @@
+/**
+ * Testing the testing framework
+
+!verify off
+ */
+
+func int main()
+  unittest:assert true
+  unittest:assertAll
+    true
+    true
+    true
+  end
+
+  //TODO: find a way to check for negative test results
+
+  ret 0
+end
+

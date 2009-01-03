@@ -9,9 +9,9 @@ include ../makefile.config
 ################################################################################
 
 all: sexpr.test structs.test minimal.test simple-func.test variables.test \
-astmatch.test cee.test bug-macro-func-samemodule.test strings.test
+astmatch.test cee.test bug-macro-func-samemodule.test strings.test prelude.test\
+selftest.test
 
-# all: sexpr.test
 fail: fail.test crash.test
 
 clean:

@@ -1,0 +1,52 @@
+/**
+ * Testing functions of the prelude
+!syntax indent
+ */
+
+var int MAX_INT 2147483647
+var int MIN_INT -2147483648
+
+func void testMinMax()
+  unittest:assertAll
+    int:min 0 1 == 0
+    int:min 10 10 == 10
+    int:min 100 101 == 100
+
+    int:min -10 10 == -10
+    int:min -1 0 == -1
+    int:min -1 1 == -1
+
+    int:max 0 0 == 0
+    int:max 1 2 == 2
+    int:max 101 100 == 101
+
+    int:max -20 0 == 0
+    int:max -10 10 == 10
+    int:max -123 -987 == -123
+  end
+end
+
+func void testMinMaxPerformance()
+  var2 count 100000000
+  var2 nums malloc(int, count)
+  var2 min MAX_INT
+  var2 max MIN_INT
+
+  for repeat 0 10
+    var2 addr nums
+    for i 0 count
+      var2 val load(addr)
+      assign min int:min(min, val)
+      assign max int:max(max, val)
+      assign addr ptradd(addr, 1)
+    end
+  end
+end
+
+func int main()
+  testMinMax()
+
+  ret 0
+end
+
+

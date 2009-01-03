@@ -6,3 +6,4 @@ tools
 /tests/temp2.zomp
 /llvmtest/string.ll
 /*.dylib
+/examples/gmon.out

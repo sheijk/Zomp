@@ -641,21 +641,20 @@
       ()
       // else
       ((printHLine '-' 40)
-       (printlnString "Assertion failed")
+       (printlnString "error: Assertion failed")
        (ast:print `#testCode 0)))
      ))
   ))
 
 /// Calls unittest:assert on all childs of the passed
 /// sequence expression
-(macro unittest:assertAll checks ... (
+(macro unittest:assertAll checks (
   (var (ptr ast) code `())
   (forEachAstChild check checks (
     (if (cstring:equal (getField check id) "opseq")
       (printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported") ())
     (addChild code `(unittest:assert #check))
     ))
-  (ast:print code 0)
   (ret code)
   ))
 
@@ -906,6 +905,7 @@
     )))
   ))
 
+// TODO: replace this with branchless impl once this makes a difference
 (compareFunc int int:max op>)
 (compareFunc int int:min op<)
 

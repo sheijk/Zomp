@@ -13,11 +13,19 @@ func bool increaseAndRet(bool result)
 end
 
 func void testLazyOps()
-  unittest:assert
-    counter = 0
-    increaseAndRet true && increaseAndRet true
-    counter == 1
+  template expectCount num code
+    unittest:assert
+      counter = 0
+      #code
+      counter == #num
+    end
   end
+
+  expectCount 1 (increaseAndRet false && increaseAndRet true)
+  expectCount 2 (increaseAndRet true && increaseAndRet true)
+  expectCount 2 (increaseAndRet true && increaseAndRet false)
+  expectCount 1 (increaseAndRet true || increaseAndRet false)
+  expectCount 2 (increaseAndRet false || increaseAndRet true)
 end
 
 func int main()
