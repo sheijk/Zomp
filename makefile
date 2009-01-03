@@ -72,7 +72,7 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 ################################################################################
 
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png alltests
-libbindings: gencode opengl20.zomp glfw.zomp glut.zomp glut.dylib
+libbindings: gencode opengl20.zomp glfw.zomp glut.zomp glut.dylib quicktext.zomp libquicktext.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
@@ -293,6 +293,7 @@ clean:
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
 	rm -f expandertests.cm? alltests.cm? alltests
+	rm -f libquicktext.dylib glut.dylib
 	cd examples/ && make clean
 	cd testsuite/ && make clean
 

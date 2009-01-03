@@ -242,10 +242,29 @@ void glQuickText::stringBox(
 		if(x1>box[2]) box[2]= x1;
 		if(y1>box[3]) box[3]= y1;
 		x+= fontChar->o*scale;
-	    }
+		}
 	}
-    }
+	}
 }
+
+extern "C" {
+	void glqtStringBox(float* box, float scale, const char* text) {
+        double dbox[4];
+		glQuickText::stringBox(dbox, scale, "%s", text);
+        for( int i = 0; i < 4; ++i ) {
+            box[i] = (float)dbox[i];
+        }
+	}
+
+	void glqtPrintfAt(float xpos, float ypos, float zpos, float scale, const char* text) {
+		glQuickText::printfAt(xpos, ypos, zpos, scale, "%s", text);
+	}
+
+	float glqtGetFontHeight(float scale) {
+		return glQuickText::getFontHeight(scale);
+	}
+}
+
 
 static Char c00 = {  87,    0,  11,  29,  -70616,   20370,   0,  256 };
 static Char c01 = {  23,  234,  16,  13,  -47530, -122220,  24,  256 };

@@ -33,5 +33,11 @@
         );
     };
 
+extern "C" {
+    void glqtStringBox(float* box, float scale, const char* text);
+    void glqtPrintfAt(float xpos, float ypos, float zpos, float scale, const char* text);
+    float glqtGetFontHeight(float scale = 1.0);
+}
+
 #endif // _glQuickText_H_
 

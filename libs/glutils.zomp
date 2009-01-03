@@ -163,15 +163,23 @@ func void renderStripes(float count, float size, float alpha)
 end
 
 func void drawPausedOverlay()
-  saveAttribs GL_BLEND
-    glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+  saveAttribs
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
     glScalef 0.75 1. 1.
     glRotatef 45.0 0. 0. 1.
-    renderStripes 10.0 2.0 0.125
+    glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+    glEnable GL_SCISSOR_TEST
+    var int border 20
+    var int windowWidth 0
+    var int windowHeight 0
+    glfwGetWindowSize (ptr windowWidth) (ptr windowHeight)
+    glScissor 0 0 windowWidth border
+    renderStripes 100.0 2.0 1.0
+    glScissor 0 (windowHeight - border) windowWidth border
+    renderStripes 100.0 2.0 1.0
     glPopAttrib()
   end
   glfwSwapBuffers()
