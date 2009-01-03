@@ -117,6 +117,10 @@ glut.dylib:
 	@echo Building $@ ...
 	gcc -dynamiclib -framework GLUT -o $@
 
+libquicktext.dylib: glQuickText.o
+	@echo Building $@ ...
+	g++ -dynamiclib -o $@ glQuickText.o -framework OpenGL
+
 # opengl.dylib: opengl.c
 # 	echo Building $@ ...
 # 	gcc -c opengl.c -o opengl.o
