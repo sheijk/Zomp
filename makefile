@@ -103,6 +103,8 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 	@echo Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
 
+tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
+
 ################################################################################
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o
