@@ -14,6 +14,69 @@ include "glut.zomp"
 include "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
+/// shader compilation ///
+
+func cstring Shader:parseTLExpr(ast* code)
+  template nthId n
+    getField(ast:child(code, #n), id)
+  end
+
+  template matches pattern
+    ast:matchesShape(code, ${#pattern})
+  end
+
+  if2 matches(varying _ _) then
+    ret ("varying " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
+  elseif matches(uniform _ _)
+    ret ("uniform " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
+  elseif matches(void main() __)
+    ret "main function"
+  elseif matches(_ _(_...) __)
+    funcName := ast:child ast:child(code, 1) 0
+    ret ("function " ++ funcName.id ++ " : " ++ nthId 0 ++ "\n")
+  end
+
+  ret "unknow expression\n"
+end
+
+func cstring Shader:parse(ast* code)
+  source := ""
+
+  forEachAstChild child code
+    newSource := Shader:parseTLExpr(child)
+    source = source ++ newSource
+  end
+
+  ret source
+end
+
+macro shaderVar varName code
+  printlnString "Creating shader from"
+  ast:print code 0
+  ret ${#varName := Shader:parse ${#code}}
+end
+
+// testf
+//   shaderVar vertexSource
+//     varying float x
+//     uniform vec3 normal
+//
+//     vec3 invert(vec3 v)
+//       return minus(v)
+//     end
+//
+//     void main()
+//       gl_Vertex = ftransform()
+//     end
+//   end
+//
+//   printHLine '-' 40
+//   printlnString vertexSource
+//   printHLine '-' 40
+// end
+
+
+//------------------------------------------------------------------------------
 /// utils ///
 
 var int windowWidth 400
@@ -84,6 +147,8 @@ macro mainloop body...
     startTime := double:toFloat glfwGetTime()
     running := true
 
+    glfwSetWindowTitle "Zomp"
+
     while running
       lastTime = time
       time = double:toFloat glfwGetTime()
@@ -108,7 +173,9 @@ macro mainloop body...
     printlnString " fps"
 
     drawPausedOverlay()
+    glfwSetWindowTitle "-paused-"
     glfwSwapBuffers()
+    glfwSleep (1.0d /_d 10.0d)
     glfwPollEvents()
   end}
 end
@@ -123,65 +190,6 @@ end
 //------------------------------------------------------------------------------
 // Section main
 
-func cstring Shader:parseTLExpr(ast* code)
-  template nthId n
-    getField(ast:child(code, #n), id)
-  end
-
-  template matches pattern
-    ast:matchesShape(code, ${#pattern})
-  end
-
-  if2 matches(varying _ _) then
-    ret ("varying " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
-  elseif matches(uniform _ _)
-    ret ("uniform " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
-  elseif matches(void main() __)
-    ret "main function"
-  elseif matches(_ _(_...) __)
-    funcName := ast:child ast:child(code, 1) 0
-    ret ("function " ++ funcName.id ++ " : " ++ nthId 0 ++ "\n")
-  end
-
-  ret "unknow expression\n"
-end
-
-func cstring Shader:parse(ast* code)
-  source := ""
-
-  forEachAstChild child code
-    newSource := Shader:parseTLExpr(child)
-    source = source ++ newSource
-  end
-
-  ret source
-end
-
-macro shaderVar varName code
-  printlnString "Creating shader from"
-  ast:print code 0
-  ret ${#varName := Shader:parse ${#code}}
-end
-
-// testf
-//   shaderVar vertexSource
-//     varying float x
-//     uniform vec3 normal
-//
-//     vec3 invert(vec3 v)
-//       return minus(v)
-//     end
-//
-//     void main()
-//       gl_Vertex = ftransform()
-//     end
-//   end
-//
-//   printHLine '-' 40
-//   printlnString vertexSource
-//   printHLine '-' 40
-// end
-
 func int main()
   init()
 
@@ -190,26 +198,26 @@ func int main()
   glowShader := createShader /*varying*/"
   #version 120
   varying vec2 texCoord;
+  varying vec3 color;
   " /*vertex*/"
   void main(void) {
     gl_Position = ftransform();
     texCoord = (gl_MultiTexCoord0.xy - vec2(0.5, 0.5)) * 2.0;
+    color = gl_Color.rgb;
     }
   " /*fragment*/"
-  const float innerRing = 0.6;
+  const float innerRing = 0.7;
   const float alpha = 0.8;
-  const float glowStrength = min(alpha, 0.4);
+  const float glowStrength = min(alpha, 0.5);
 
   void main(void) {
     float d = texCoord.x * texCoord.x + texCoord.y * texCoord.y;
-    vec3 color = vec3(1.0, 1.0, 0.0);
+    // vec3 color = vec3(1.0, 1.0, 0.0);
     if( d < innerRing ) {
       gl_FragColor = vec4(color * alpha, alpha);
     } else if( d < 1.0 ) {
-      // float alpha = 0.5 * (1.0 - smoothstep(innerRing, 1.0, d));
       float glow = (1.0 - smoothstep(innerRing, 1.0, d)) * glowStrength;
       gl_FragColor = vec4(color * glow, 0.0);
-      // gl_FragColor = vec4(glow, glow, glow, 1.0);
     } else {
       gl_FragColor = vec4(0.0);
       }
@@ -230,7 +238,7 @@ func int main()
     float d = dot(normal, vec3(0.,1.,0.));
     d = 0.5 * d + 0.5;
     gl_FragColor = vec4(d,d,d,1.0);
-    gl_FragColor = mix(vec4(0.,0.5,0.25,1.0), color, d);
+    gl_FragColor = mix(vec4(0.,0.5,0.5,1.0), color, d);
     }"
   assert (hemiShader != 0)
 
@@ -241,7 +249,7 @@ func int main()
   glDepthFunc GL_LEQUAL
 
   mainloop
-    angle = angle +_f 128.0 *_f frameDuration
+    angle = angle +_f 32.0 *_f frameDuration
 
     glClearColor 0. 0.125 0.25 0.0
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -258,20 +266,33 @@ func int main()
       glTranslatef 0. -4. -20.0
       glRotatef angle 0. 1. 0.
       drawCoordSys 8.0
-      glColor3f 0.0 0.5 0.25
+      glColor3f 0.0 0.5 0.5
       renderXZQuad 8.0
       glTranslatef 0. (2. +_f 1.) 0.
       glColor3f 1.0 0.5 0.0
       glUseProgram hemiShader
       glutSolidTeapot 4.0d
-      // glutSolidSphere 4.0d 20 20
     end
 
-    glTranslatef 4. 0. -10.0
     glUseProgram glowShader
-    renderQuad 4.0
-    glUseProgram 0
 
+    saveAttribs
+      glDepthMask GL_FALSE
+
+      saveTransforms
+        glTranslatef 2.0 -2.0 (-10.0 -_f 1.0)
+        glColor4f 0.0 0.5 0.0 1.0
+        renderQuad 2.0
+      end
+
+      saveTransforms
+        glTranslatef 4. 0. -10.0
+        glColor4f 1.0 0.25 0.0 1.0
+        renderQuad 4.0
+      end
+    end
+
+    glUseProgram 0
   end
 
   glDeleteShader glowShader
