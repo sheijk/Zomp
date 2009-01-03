@@ -143,6 +143,7 @@ struct
 
       "true & false", `Return [se2 "op&" "true" "false"];
       "a|b", `Return [se2 "op|" "a" "b"];
+      "1 | 2 | 3", `Return [se "op|" ["1"; "2"; "3"]];
       "a&&b", `Return [se2 "op&&" "a" "b"];
       "c || d", `Return [se2 "op||" "c" "d"];
       "a^b", `Return [se2 "op^" "a" "b"];
@@ -176,8 +177,6 @@ struct
       "line1; line2", `Return [se2 "op;" "line1" "line2"];
       "line1;line2", `Return [se2 "op;" "line1" "line2"];
       "line1 ; line2", `Return [se2 "op;" "line1" "line2"];
-
-      
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];

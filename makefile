@@ -72,7 +72,7 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 ################################################################################
 
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png alltests
-libbindings: gencode opengl20.zomp glfw.zomp
+libbindings: gencode opengl20.zomp glfw.zomp glut.zomp glut.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 

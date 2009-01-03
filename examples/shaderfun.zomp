@@ -1,0 +1,282 @@
+/**
+ * Experimental translation of zomp expressions to GLSL
+!syntax indent
+!load libglfw.dylib
+!load libGLEW.dylib
+!load glut.dylib
+ */
+
+include "opengl20.zomp"
+include "glfw.zomp"
+include "libs/glutils.zomp"
+include "glut.zomp"
+
+include "libs/libcee.zomp"
+
+//------------------------------------------------------------------------------
+/// utils ///
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if2 bool:not(initCalled) then
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+func void reopenWindow()
+  glfwCloseWindow()
+  glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+  glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+  glfwSetWindowPos 100 1400
+  ret void
+end
+
+func void drawPausedOverlay()
+  saveTransforms
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    saveAttribs
+      glDisable GL_BLEND
+      glDisable GL_DEPTH_TEST
+      heightB := -1.0 +_f 1.0 /_f 10.0
+      heightT := 1.0 -_f 1.0 /_f 10.0
+      rendergl GL_QUADS
+        glColor3f 1. 1. 1.
+        glVertex2f -1.0 -1.0
+        glVertex2f 1.0 -1.0
+        glVertex2f 1.0 heightB
+        glVertex2f -1.0 heightB
+
+        glVertex2f -1.0 1.0
+        glVertex2f 1.0 1.0
+        glVertex2f 1.0 heightT
+        glVertex2f -1.0 heightT
+      end
+    end
+  end
+  glfwSwapBuffers()
+end
+
+// avoid writing it over and over, part of utils lib
+macro mainloop body...
+  ret ${
+    time := 0.0
+    lastTime := 0.0
+    frameDuration := 0.0
+    frameNum := 0
+    startTime := double:toFloat glfwGetTime()
+    running := true
+
+    while running
+      lastTime = time
+      time = double:toFloat glfwGetTime()
+      frameDuration = time -_f lastTime
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = bool:not isPressed(GLFW_KEY_ESC)
+      ++frameNum
+    end
+
+    endTime := double:toFloat glfwGetTime()
+
+    println()
+    printFloat (endTime -_f startTime)
+    printString "s, "
+    printInt frameNum
+    printString " frames, "
+    printFloat (int:toFloat frameNum /_f (endTime -_f startTime))
+    printlnString " fps"
+
+    drawPausedOverlay()
+    glfwSwapBuffers()
+    glfwPollEvents()
+  end}
+end
+
+macro assert code
+  ret ${if2 (bool:not #code) then
+    printlnString "error: Assertion failed"
+    ast:print ${#code} 0
+  end}
+end
+
+//------------------------------------------------------------------------------
+// Section main
+
+func cstring Shader:parseTLExpr(ast* code)
+  template nthId n
+    getField(ast:child(code, #n), id)
+  end
+
+  template matches pattern
+    ast:matchesShape(code, ${#pattern})
+  end
+
+  if2 matches(varying _ _) then
+    ret ("varying " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
+  elseif matches(uniform _ _)
+    ret ("uniform " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
+  elseif matches(void main() __)
+    ret "main function"
+  elseif matches(_ _(_...) __)
+    funcName := ast:child ast:child(code, 1) 0
+    ret ("function " ++ funcName.id ++ " : " ++ nthId 0 ++ "\n")
+  end
+
+  ret "unknow expression\n"
+end
+
+func cstring Shader:parse(ast* code)
+  source := ""
+
+  forEachAstChild child code
+    newSource := Shader:parseTLExpr(child)
+    source = source ++ newSource
+  end
+
+  ret source
+end
+
+macro shaderVar varName code
+  printlnString "Creating shader from"
+  ast:print code 0
+  ret ${#varName := Shader:parse ${#code}}
+end
+
+// testf
+//   shaderVar vertexSource
+//     varying float x
+//     uniform vec3 normal
+//
+//     vec3 invert(vec3 v)
+//       return minus(v)
+//     end
+//
+//     void main()
+//       gl_Vertex = ftransform()
+//     end
+//   end
+//
+//   printHLine '-' 40
+//   printlnString vertexSource
+//   printHLine '-' 40
+// end
+
+func int main()
+  init()
+
+  angle := 0.0
+
+  glowShader := createShader /*varying*/"
+  #version 120
+  varying vec2 texCoord;
+  " /*vertex*/"
+  void main(void) {
+    gl_Position = ftransform();
+    texCoord = (gl_MultiTexCoord0.xy - vec2(0.5, 0.5)) * 2.0;
+    }
+  " /*fragment*/"
+  const float innerRing = 0.6;
+  const float alpha = 0.8;
+  const float glowStrength = min(alpha, 0.4);
+
+  void main(void) {
+    float d = texCoord.x * texCoord.x + texCoord.y * texCoord.y;
+    vec3 color = vec3(1.0, 1.0, 0.0);
+    if( d < innerRing ) {
+      gl_FragColor = vec4(color * alpha, alpha);
+    } else if( d < 1.0 ) {
+      // float alpha = 0.5 * (1.0 - smoothstep(innerRing, 1.0, d));
+      float glow = (1.0 - smoothstep(innerRing, 1.0, d)) * glowStrength;
+      gl_FragColor = vec4(color * glow, 0.0);
+      // gl_FragColor = vec4(glow, glow, glow, 1.0);
+    } else {
+      gl_FragColor = vec4(0.0);
+      }
+    }"
+  assert (glowShader != 0)
+
+  hemiShader := createShader /*varying*/"
+  varying vec3 normal;
+  varying vec4 color;
+  "/*vertex*/"
+  void main(void) {
+    gl_Position = ftransform();
+    normal = gl_NormalMatrix * gl_Normal;
+    color = gl_Color;
+    }
+  "/*fragment*/"
+  void main(void) {
+    float d = dot(normal, vec3(0.,1.,0.));
+    d = 0.5 * d + 0.5;
+    gl_FragColor = vec4(d,d,d,1.0);
+    gl_FragColor = mix(vec4(0.,0.5,0.25,1.0), color, d);
+    }"
+  assert (hemiShader != 0)
+
+  glEnable GL_BLEND
+  glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
+
+  glEnable GL_DEPTH_TEST
+  glDepthFunc GL_LEQUAL
+
+  mainloop
+    angle = angle +_f 128.0 *_f frameDuration
+
+    glClearColor 0. 0.125 0.25 0.0
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := int:toDouble windowWidth /_d int:toDouble windowHeight
+    gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+
+    saveTransforms
+      glTranslatef 0. -4. -20.0
+      glRotatef angle 0. 1. 0.
+      drawCoordSys 8.0
+      glColor3f 0.0 0.5 0.25
+      renderXZQuad 8.0
+      glTranslatef 0. (2. +_f 1.) 0.
+      glColor3f 1.0 0.5 0.0
+      glUseProgram hemiShader
+      glutSolidTeapot 4.0d
+      // glutSolidSphere 4.0d 20 20
+    end
+
+    glTranslatef 4. 0. -10.0
+    glUseProgram glowShader
+    renderQuad 4.0
+    glUseProgram 0
+
+  end
+
+  glDeleteShader glowShader
+  glDeleteShader hemiShader
+
+  ret 0
+end
+

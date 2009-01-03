@@ -683,6 +683,13 @@ von http://lambda-the-ultimate.org/node/2884
    indent current line first, then decide about auto insertions
 ** TODO [#A] zomp-newline
    also check for words in zomp-unindent-keywords (like for end)
+** TODO [#A] branchless min/max operation
+   int foo(int p0, int p1) {
+     return p1 + ((p0 - p1) & ((p0 - p1) >> 31));
+   }
+** TODO [#A] zomp-newline fails when at last line of buffer          :bug:emacs:
+** TODO [#A] red an imbiss bronko erinnern
+   SCHEDULED: <2009-01-02 Fri>
 
 * Use Cases                                                            :usecase:
 

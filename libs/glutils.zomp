@@ -192,11 +192,26 @@ func void renderQuad(float size)
   end
 end
 
+func void renderXZQuad(float size)
+  var float nsize (float:sub 0. size)
+
+  rendergl GL_QUADS
+    glTexCoord2f 0. 0.
+    glVertex3f nsize 0. nsize
+    glTexCoord2f 0. 1.
+    glVertex3f nsize 0. size
+    glTexCoord2f 1. 1.
+    glVertex3f size 0. size
+    glTexCoord2f 1. 0.
+    glVertex3f size 0. nsize
+  end
+end
+
 func void drawCoordSys(float length)
   template lineTo x y z
     glColor4f #x #y #z 1.
     glVertex3f 0.0 0.0 0.0
-    glVertex3f #x #y #z
+    glVertex3f (length *_f #x) (length *_f #y) (length *_f #z)
   end
 
   rendergl GL_LINES

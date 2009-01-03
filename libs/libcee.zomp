@@ -74,6 +74,14 @@ macro if2 cond then onTrue remArgs...
   ret code
 end
 
+template op| l r
+  int:or #l #r
+end
+
+template op& l r
+  int:and #l #r
+end
+
 macro op|| l r
   uniqueId result "||"
 
