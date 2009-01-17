@@ -1,0 +1,19 @@
+type GLenum int
+type GLuint int
+type GLbitfield int
+type GLint int
+type GLboolean bool
+type GLfloat float
+type GLdouble double
+type GLclampf float
+type GLsizei int
+type GLchar char
+
+
+
+
+
+
+func void glqtStringBox((ptr float) box, float scale, (ptr char) text)
+func void glqtPrintfAt(float xpos, float ypos, float zpos, float scale, (ptr char) text)
+func float glqtGetFontHeight(float scale)

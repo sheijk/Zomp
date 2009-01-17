@@ -1,0 +1,6 @@
+QUICKTEXT_1_0
+	void glqtStringBox (float* box, float scale, char* text)
+	void glqtPrintfAt (float xpos, float ypos, float zpos, float scale, char* text)
+	float glqtGetFontHeight (float scale)
+
+
