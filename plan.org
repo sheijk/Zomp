@@ -691,6 +691,7 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] red an imbiss bronko erinnern
    SCHEDULED: <2009-01-02 Fri>
 ** TODO [#A] update imenu on changes                                     :emacs:
+** TODO decide between struct and record name and stick to one
 
 * Use Cases                                                            :usecase:
 
