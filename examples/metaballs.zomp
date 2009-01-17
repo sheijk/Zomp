@@ -6,11 +6,13 @@
 
 !load libglfw.dylib
 !load libGLEW.dylib
+!load glut.dylib
 !syntax indent
 */
 
 include "opengl20.zomp"
 include "glfw.zomp"
+include "glut.zomp"
 include "libs/glutils.zomp"
 
 include "libs/libcee.zomp"
@@ -232,8 +234,8 @@ end
 
 //------------------------------------------------------------------------------
 
-var int windowWidth 400
-var int windowHeight 300
+var int windowWidth 1280
+var int windowHeight 720
 var bool initCalled false
 
 func void init()
@@ -754,24 +756,59 @@ struct Shader
   cstring fragmentSource
 end
 
-func int main()
-  init()
-  // resizeWindow 1440 900
+// #define gauss_width 7
+//  
+// sumr=0;
+// sumg=0;
+// sumb=0;
+//     
+// int gauss_fact[gauss_width]={1,6,15,20,15,6,1};
+// int gauss_sum=64;
+//  
+// for(i=1;i<temp->w-1;i++){
+//   for(j=1;j<temp->h-1;j++){
+//     sumr=0;
+//     sumg=0;
+//     sumb=0;
+//     for(k=0;k<gauss_width;k++){
+//       color=getpixel(temp,i-((gauss_width-1)>>1)+k,j);
+//       r=getr32(color);
+//       g=getg32(color);
+//       b=getb32(color);
+//       sumr+=r*gauss_fact[k];
+//       sumg+=g*gauss_fact[k];
+//       sumb+=b*gauss_fact[k];
+// 
+//     }
+//     putpixel(temp1,i,j,makecol(sumr/gauss_sum,sumg/gauss_sum,
+//       sumb/gauss_sum));
+//   } 
+// }
+//  
+// for(i=1;i<temp->w-1;i++){
+//   for(j=1;j<temp->h-1;j++){
+//     sumr=0;
+//     sumg=0;
+//     sumb=0;
+//     for(k=0;k<gauss_width;k++){
+//       color=getpixel(temp1,i,j-((gauss_width-1)>>1)+k);
+//       r=getr32(color);
+//       g=getg32(color);
+//       b=getb32(color);
+// 
+//       sumr+=r*gauss_fact[k];
+//       sumg+=g*gauss_fact[k];
+//       sumb+=b*gauss_fact[k];
+//     }
+//     sumr/=gauss_sum;
+//     sumg/=gauss_sum;
+//     sumb/=gauss_sum;
+// 
+//     putpixel(temp2,i,j,makecol(sumr,sumg,sumb));
+//   } 
+// } 
 
-  glfwSetMousePosCallback (cast void* &onMouseMove)
-  glfwSetWindowSizeCallback (cast void* &onWindowResize)
-
-  glMatrixMode( GL_PROJECTION )
-  glLoadIdentity()
-  aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
-  gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
-
-  cam := new SpaceballCamera
-  cam.distance = 100.0f
-
-  field := new Field3D (float:toInt sideLengthf)
-  mballs := new Metaballs 50
-
+func GLint makeGlowShader()
   glowShader := createShader /*varying*/"
   #version 120
   varying vec2 texCoord;
@@ -783,23 +820,47 @@ func int main()
   " /*fragment*/"
   uniform sampler2D tex;
   const int offsetCount = 21;
-  uniform float offsetx[offsetCount];
-  uniform float offsety[offsetCount];
-  uniform float weights[offsetCount];
+  uniform float offsetx[2*offsetCount+1];
+  uniform float offsety[2*offsetCount+1];
+  uniform float weights[2*offsetCount+1];
 
   void main(void) {
     float pixx = 1.0/800.0;
     float pixy = 1.0/600.0;
 
     vec4 color = vec4(0.0);
-    for(int i = 0; i < offsetCount; ++i) {
-        float d = float(1 + abs(i - (offsetCount/2)));
-        float scale = 1.0 / d;
-        color += scale * texture2D(tex, texCoord + vec2(offsetx[i], offsety[i]));
+    for(int i = -offsetCount; i < offsetCount+1; ++i) {
+    // for(int i = 0; i < offsetCount; ++i) {
+      // float d = float(1 + abs(i - (offsetCount/2)));
+      float d = float(i);
+      float pi = 3.14159265;
+      float e = 2.718281828459;
+      // float o = offsetCount;
+      float o = 8.0;
+      float scale = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
+      color += scale * texture2D(tex, texCoord + vec2(offsetx[i], offsety[i]));
       }
+    color.a = 1.0;
     gl_FragColor = color;
     }"
   assert (glowShader != 0)
+
+  ret glowShader
+end
+
+func int main()
+  init()
+
+  glfwSetMousePosCallback (cast void* &onMouseMove)
+  glfwSetWindowSizeCallback (cast void* &onWindowResize)
+
+  cam := new SpaceballCamera
+  cam.distance = 100.0f
+
+  field := new Field3D (float:toInt sideLengthf)
+  mballs := new Metaballs 50
+
+  glowShader := makeGlowShader()
 
   template initRenderTarget target
     #target = framebuffer:new(windowWidth, windowHeight)
@@ -837,19 +898,24 @@ func int main()
     offsetx2[h] = 0.0
     offsety2[l] = float:neg(pixh *_f s)
     offsety2[h] = pixh *_f s
-
-    // weights[l] = 1.0 /_f int:toFloat i
-    // weights[h] = 1.0 /_f int:toFloat i
   end
   offsetCountH := offsetCount/2
   offsetx1[offsetCountH] = 0.0
   offsety1[offsetCountH] = 0.0
   offsetx2[offsetCountH] = 0.0
   offsety2[offsetCountH] = 0.0
-  // weights[offsetCountH] = 1.0
   for wi 0 offsetCount
     weights[offsetCount] = 1.0
   end
+
+  glMatrixMode GL_PROJECTION
+  glLoadIdentity()
+  aspect := int:toDouble(windowWidth) /_d int:toDouble windowHeight
+  gluPerspective 90.0d aspect 1.0d 200.0d
+
+  // glEnable GL_BLEND
+  glDisable GL_BLEND
+  glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
   mainloop
     if2 resizeDirty then
@@ -878,28 +944,40 @@ func int main()
       Metaballs:applyToField mballs field
     end
 
-    renderToTarget target
-      glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+    sideLength := 0
+    scale := 0.0
 
+    template renderScene
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
 
       drawCoordSys 8.0
 
+      glutSolidTeapot 10.0d
+
       saveTransforms
-        sideLength := field.sideLength
-        scale := 100.0 /_f int:toFloat(sideLength)
+        sideLength = field.sideLength
+        scale = 100.0 /_f int:toFloat(sideLength)
         glScalef scale scale scale
 
         Field3D:show field
         Metaballs:show mballs
       end
     end
+
+    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    // renderScene
+
+    renderToTarget target
+      glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+      renderScene
+    end
     framebuffer:makeColorTexture target
 
     glUseProgram glowShader
     renderToTarget target2
+      glClear GL_COLOR_BUFFER_BIT
       glBindTexture2D getField(target, colorTexture)
       gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
       gl:uniform1fv glowShader "offsety" offsetCount offsety1
@@ -907,7 +985,8 @@ func int main()
       drawFullscreenQuad()
     end
 
-    glBindTexture2D getField(target2, colorTexture)
+    glBindTexture2D target2.colorTexture
+    glUseProgram glowShader
     gl:uniform1fv glowShader "offsetx" offsetCount offsetx2
     gl:uniform1fv glowShader "offsety" offsetCount offsety2
     gl:uniform1fv glowShader "weights" offsetCount weights

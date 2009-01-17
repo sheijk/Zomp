@@ -695,6 +695,9 @@ von http://lambda-the-ultimate.org/node/2884
    ldn := l.dot n
    ldn' := (ldn+adjVal)/(1.0+adjVal)
    diffuse := max(0, ldn')
+** TODO [#A] fbo + multisampling
+   GL_EXT_framebuffer_blit
+   GL_EXT_framebuffer_multisample
 
 * Use Cases                                                            :usecase:
 
