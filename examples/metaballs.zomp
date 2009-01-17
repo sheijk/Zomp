@@ -819,7 +819,7 @@ func GLint makeGlowShader()
     }
   " /*fragment*/"
   uniform sampler2D tex;
-  const int offsetCount = 21;
+  const int offsetCount = 3;
   uniform float offsetx[2*offsetCount+1];
   uniform float offsety[2*offsetCount+1];
   uniform float weights[2*offsetCount+1];
@@ -889,7 +889,7 @@ func int main()
     target2 := nullptr framebuffer
     initRenderTarget target2
 
-    offsetCount := 21
+    offsetCount := 7
     pixw := 1.0 /_f int:toFloat(windowWidth)
     pixh := 1.0 /_f int:toFloat(windowHeight)
 
@@ -982,7 +982,7 @@ func int main()
       end
 
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-      // renderScene
+      renderScene
 
       renderToTarget target
         glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
