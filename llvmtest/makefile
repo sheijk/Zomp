@@ -23,6 +23,10 @@ clean:
 misc.ll: misc.bc
 	$(LLVM_DIS) -f $< -o $@
 
+loopopt.bc: loopopt.c
+	$(LLVM_GCC) -c --emit-llvm -O3 $< -o $@
+	$(LLVM_DIS) -f $@
+
 # Faketarget, "make foo.run" fuehrt Bytecodedatei foo.bc aus
 # (und erzeugt sie bei Bedarf)
 %.run: %.bc

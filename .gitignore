@@ -7,3 +7,8 @@ tools
 /llvmtest/string.ll
 /*.dylib
 /examples/gmon.out
+/.DS_Store
+/extlibs/.DS_Store
+/extlibs/assimp-beta1-full
+/extlibs/assimp-beta1-full.zip
+/llvmtest/loopopt.ll
