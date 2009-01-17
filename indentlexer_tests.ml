@@ -113,6 +113,7 @@ struct
       (* quotes *)
       "$", `Return [QUOTE "$"; END];
       "#", `Return [QUOTE "#"; END];
+      "$$", `Return [QUOTE "$$"; END];
 
       "${foo}", `Return [QUOTE "$"; OPEN_CURLY; id "foo"; CLOSE_CURLY; END];
       "${class\n  child1\nend}",

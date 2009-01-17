@@ -12,6 +12,7 @@
   let quoteId = function
     | "`" -> "quote"
     | "$" -> "quote"
+    | "$$" -> "quoteasis"
     | "``" -> "quoteasis"
     | "#" -> "antiquote"
     | invalidString ->

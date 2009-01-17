@@ -393,8 +393,8 @@ struct
 
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];
-      "a.b.c", `Return [expr "op." [id "a"; se2 "op." "b" "c"]];
-      "x.y.z.w", `Return [expr "op." [id "x"; expr "op." [id "y"; se2 "op." "z" "w"]]];
+      "a.b.c", `Return [expr "op." [se2 "op." "a" "b"; id "c"]];
+      "x.y.z.w", `Return [expr "op." [expr "op." [se2 "op." "x" "y"; id "z"]; id "w"]];
       "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
 
       (* "foo.print(1, 2)", *)
@@ -437,6 +437,7 @@ struct
 
       (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];
+      "$$blah", `Return [se1 "quoteasis" "blah"];
       "${}", `Return [se1 "quote" "seq"];
       "${foo}", `Return [se1 "quote" "foo"];
       "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];

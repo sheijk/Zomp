@@ -157,6 +157,7 @@ let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
     regexpRule " *, *" COMMA;
     regexpRule "\\." DOT;
     quoteRule "$";
+    quoteRule "$$";
     quoteRule "#";
     postfixRule "...";
     postfixRule "*";
