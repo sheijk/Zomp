@@ -407,17 +407,16 @@ indent the next line when they occur at the beginning of a line"
          (t prefix))))
 
 (defun zomp-setup ()
-;;   (setq comment-start "/*")
-;;   (setq comment-end "*/")
   (setq comment-start "//")
   (setq comment-start-skip "// *")
   (setq comment-end "")
+
+  (modify-syntax-entry ?: "w")
 
   (setq indent-tabs-mode nil)
 
   ;; indexing of current file (control-')
   (setq imenu-generic-expression zomp-imenu-generic-expression)
-  ;; (local-set-key [(control ?')] 'imenu)
 
   ;; display documentation for methods/macros/... in status line
   (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
@@ -575,17 +574,6 @@ indent the next line when they occur at the beginning of a line"
       (insert-file-contents zomp-symbol-file nil nil nil t))
     (zomp-tl-do (concat "!silent !writeSymbols " zomp-symbol-file))
     ))
-
-;; (defun zomp-symbol-at-point ()
-;;   (interactive)
-;;   (save-excursion
-;;     (goto-match-paren 0)
-;;     (forward-char)
-;;     (let ((startpos (point)))
-;;       (search-forward-regexp "[ )\n]")
-;;       (backward-char)
-;;       (buffer-substring startpos (point))
-;;       )))
 
 (defconst zomp-identifier-chars "a-zA-Z0-9:*")
 (defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*]*")
