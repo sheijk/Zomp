@@ -840,7 +840,7 @@ func GLint makeGlowShader()
       float scale = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
       color += scale * texture2D(tex, texCoord + vec2(offsetx[i], offsety[i]));
       }
-    color.a = 1.0;
+    color.a = 0.0;
     gl_FragColor = color;
     }"
   assert (glowShader != 0)
@@ -848,175 +848,190 @@ func GLint makeGlowShader()
   ret glowShader
 end
 
+macro tracing:instrument code
+  var ast* instrumentedCode simpleAst("seq")
+
+  forEachAstChild expr code
+    addChild instrumentedCode ${printlnString "=> entering"}
+    addChild instrumentedCode ${ast:print $${#expr} 0}
+    addChild instrumentedCode expr
+    addChild instrumentedCode ${printlnString "<= leaving"}
+  end
+
+  ret instrumentedCode
+end
+
 func int main()
   init()
 
-  glfwSetMousePosCallback (cast void* &onMouseMove)
-  glfwSetWindowSizeCallback (cast void* &onWindowResize)
+  tracing:instrument
+    glfwSetMousePosCallback (cast void* &onMouseMove)
+    glfwSetWindowSizeCallback (cast void* &onWindowResize)
 
-  cam := new SpaceballCamera
-  cam.distance = 100.0f
+    cam := new SpaceballCamera
+    cam.distance = 100.0f
 
-  field := new Field3D (float:toInt sideLengthf)
-  mballs := new Metaballs 50
+    field := new Field3D (float:toInt sideLengthf)
+    mballs := new Metaballs 50
 
-  glowShader := makeGlowShader()
+    glowShader := makeGlowShader()
 
-  template initRenderTarget target
-    #target = framebuffer:new(windowWidth, windowHeight)
-    assert (#target !=_ptr nullptr framebuffer)
-    framebuffer:attachColorTexture #target
-    framebuffer:create #target
-  end
-
-  target := nullptr framebuffer
-  initRenderTarget target
-  target2 := nullptr framebuffer
-  initRenderTarget target2
-
-  offsetCount := 21
-  pixw := 1.0 /_f int:toFloat(windowWidth)
-  pixh := 1.0 /_f int:toFloat(windowHeight)
-
-  offsetx1 := malloc float offsetCount
-  offsetx2 := malloc float offsetCount
-  offsety1 := malloc float offsetCount
-  offsety2 := malloc float offsetCount
-  weights := malloc float offsetCount
-
-  for i 1 ((offsetCount+1)/2)
-    s := int:toFloat i
-    h := offsetCount/2 + i
-    l := offsetCount/2 - i
-
-    offsetx1[l] = float:neg(pixw *_f s)
-    offsetx1[h] = pixw *_f s
-    offsety1[l] = 0.0
-    offsety1[h] = 0.0
-
-    offsetx2[l] = 0.0
-    offsetx2[h] = 0.0
-    offsety2[l] = float:neg(pixh *_f s)
-    offsety2[h] = pixh *_f s
-  end
-  offsetCountH := offsetCount/2
-  offsetx1[offsetCountH] = 0.0
-  offsety1[offsetCountH] = 0.0
-  offsetx2[offsetCountH] = 0.0
-  offsety2[offsetCountH] = 0.0
-  for wi 0 offsetCount
-    weights[offsetCount] = 1.0
-  end
-
-  glMatrixMode GL_PROJECTION
-  glLoadIdentity()
-  aspect := int:toDouble(windowWidth) /_d int:toDouble windowHeight
-  gluPerspective 90.0d aspect 1.0d 200.0d
-
-  // glEnable GL_BLEND
-  glDisable GL_BLEND
-  glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
-
-  mainloop
-    if2 resizeDirty then
-      initRenderTarget target
-      initRenderTarget target2
-
-      resizeDirty = false
+    template initRenderTarget target
+      #target = framebuffer:new(windowWidth, windowHeight)
+      assert (#target !=_ptr nullptr framebuffer)
+      framebuffer:attachColorTexture #target
+      framebuffer:create #target
     end
 
-    glClearColor(0.0, 0.0, 0.0, 1.0)
-    glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+    target := nullptr framebuffer
+    initRenderTarget target
 
-    if2 (abs mouseXDelta > abs mouseYDelta) then
-      mouseYDelta = 0
-    else
-      mouseXDelta = 0
+    target2 := nullptr framebuffer
+    initRenderTarget target2
+
+    offsetCount := 21
+    pixw := 1.0 /_f int:toFloat(windowWidth)
+    pixh := 1.0 /_f int:toFloat(windowHeight)
+
+    offsetx1 := malloc float offsetCount
+    offsetx2 := malloc float offsetCount
+    offsety1 := malloc float offsetCount
+    offsety2 := malloc float offsetCount
+    weights := malloc float offsetCount
+
+    for i 1 ((offsetCount+1)/2)
+      s := int:toFloat i
+      h := offsetCount/2 + i
+      l := offsetCount/2 - i
+
+      offsetx1[l] = float:neg(pixw *_f s)
+      offsetx1[h] = pixw *_f s
+      offsety1[l] = 0.0
+      offsety1[h] = 0.0
+
+      offsetx2[l] = 0.0
+      offsetx2[h] = 0.0
+      offsety2[l] = float:neg(pixh *_f s)
+      offsety2[h] = pixh *_f s
     end
-    cam.longitude = cam.longitude +_f int:toFloat(mouseXDelta)
-    cam.latitude = cam.latitude +_f int:toFloat(mouseYDelta)
-    SpaceballCamera:restrictParams cam
-    mouseXDelta = 0
-    mouseYDelta = 0
-
-    if2 (time -_f startTime >_f 1.0) then
-      Metaballs:update mballs frameDuration
-      Metaballs:applyToField mballs field
+    offsetCountH := offsetCount/2
+    offsetx1[offsetCountH] = 0.0
+    offsety1[offsetCountH] = 0.0
+    offsetx2[offsetCountH] = 0.0
+    offsety2[offsetCountH] = 0.0
+    for wi 0 offsetCount
+      weights[offsetCount] = 1.0
     end
 
-    sideLength := 0
-    scale := 0.0
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := int:toDouble(windowWidth) /_d int:toDouble windowHeight
+    gluPerspective 90.0d aspect 1.0d 200.0d
 
-    template renderScene
-      glMatrixMode GL_MODELVIEW
-      glLoadIdentity()
-      SpaceballCamera:applyToGL cam
+    // glEnable GL_BLEND
+    glDisable GL_BLEND
+    glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
-      drawCoordSys 8.0
+    mainloop
+      if2 resizeDirty then
+        initRenderTarget target
+        initRenderTarget target2
 
-      glutSolidTeapot 10.0d
-
-      saveTransforms
-        sideLength = field.sideLength
-        scale = 100.0 /_f int:toFloat(sideLength)
-        glScalef scale scale scale
-
-        Field3D:show field
-        Metaballs:show mballs
+        resizeDirty = false
       end
-    end
 
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    // renderScene
-
-    renderToTarget target
+      glClearColor(0.0, 0.0, 0.0, 1.0)
       glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
-      renderScene
-    end
-    framebuffer:makeColorTexture target
 
-    glUseProgram glowShader
-    renderToTarget target2
-      glClear GL_COLOR_BUFFER_BIT
-      glBindTexture2D getField(target, colorTexture)
-      gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
-      gl:uniform1fv glowShader "offsety" offsetCount offsety1
+      if2 (abs mouseXDelta > abs mouseYDelta) then
+        mouseYDelta = 0
+      else
+        mouseXDelta = 0
+      end
+      cam.longitude = cam.longitude +_f int:toFloat(mouseXDelta)
+      cam.latitude = cam.latitude +_f int:toFloat(mouseYDelta)
+      SpaceballCamera:restrictParams cam
+      mouseXDelta = 0
+      mouseYDelta = 0
+
+      if2 (time -_f startTime >_f 1.0) then
+        Metaballs:update mballs frameDuration
+        Metaballs:applyToField mballs field
+      end
+
+      sideLength := 0
+      scale := 0.0
+
+      template renderScene
+        glMatrixMode GL_MODELVIEW
+        glLoadIdentity()
+        SpaceballCamera:applyToGL cam
+
+        drawCoordSys 8.0
+
+        glutSolidTeapot 10.0d
+
+        saveTransforms
+          sideLength = field.sideLength
+          scale = 100.0 /_f int:toFloat(sideLength)
+          glScalef scale scale scale
+
+          Field3D:show field
+          Metaballs:show mballs
+        end
+      end
+
+      glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+      // renderScene
+
+      renderToTarget target
+        glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+        renderScene
+      end
+      framebuffer:makeColorTexture target
+
+      glUseProgram glowShader
+      renderToTarget target2
+        glClear GL_COLOR_BUFFER_BIT
+        glBindTexture2D getField(target, colorTexture)
+        gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
+        gl:uniform1fv glowShader "offsety" offsetCount offsety1
+        gl:uniform1fv glowShader "weights" offsetCount weights
+        drawFullscreenQuad()
+      end
+
+      glBindTexture2D target2.colorTexture
+      glUseProgram glowShader
+      gl:uniform1fv glowShader "offsetx" offsetCount offsetx2
+      gl:uniform1fv glowShader "offsety" offsetCount offsety2
       gl:uniform1fv glowShader "weights" offsetCount weights
       drawFullscreenQuad()
+      glBindTexture2D 0
+
+      glUseProgram 0
     end
 
-    glBindTexture2D target2.colorTexture
-    glUseProgram glowShader
-    gl:uniform1fv glowShader "offsetx" offsetCount offsetx2
-    gl:uniform1fv glowShader "offsety" offsetCount offsety2
-    gl:uniform1fv glowShader "weights" offsetCount weights
-    drawFullscreenQuad()
-    glBindTexture2D 0
+    drawPausedOverlay()
+    glfwSwapBuffers()
+    glfwPollEvents()
 
-    glUseProgram 0
+    println()
+    printFloat (endTime -_f startTime)
+    printString "s, "
+    printInt frameNum
+    printString " frames, "
+    printFloat (int:toFloat frameNum /_f (endTime -_f startTime))
+    printlnString " fps"
+
+    glDeleteShader glowShader
+    delete field
+    delete mballs
+
+    delete offsetx1
+    delete offsety1
+    delete offsetx2
+    delete offsety2
   end
-
-  drawPausedOverlay()
-  glfwSwapBuffers()
-  glfwPollEvents()
-
-  println()
-  printFloat (endTime -_f startTime)
-  printString "s, "
-  printInt frameNum
-  printString " frames, "
-  printFloat (int:toFloat frameNum /_f (endTime -_f startTime))
-  printlnString " fps"
-
-  glDeleteShader glowShader
-  delete field
-  delete mballs
-
-  delete offsetx1
-  delete offsety1
-  delete offsetx2
-  delete offsety2
-
   //TODO: release target, target2
 
   ret 0
