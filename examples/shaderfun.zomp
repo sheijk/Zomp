@@ -4,17 +4,34 @@
 !load libglfw.dylib
 !load libGLEW.dylib
 !load glut.dylib
+!load libquicktext.dylib
  */
 
 include "opengl20.zomp"
 include "glfw.zomp"
 include "libs/glutils.zomp"
 include "glut.zomp"
+include "quicktext.zomp"
 
 include "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
 /// shader compilation ///
+
+// func cstring Shader:parseExpr()
+//   template nthId n
+//     getField(ast:child(code, #n), id)
+//   end
+//   template matches pattern
+//     ast:matchesShape(code, ${#pattern})
+//   end
+// 
+//   if2 matches(_ _(_...) __) then
+//     ret (nthId 0 ++ nthId 1 ++ "("
+//   end
+// 
+//   ret "unknown nested expression\n"
+// end
 
 func cstring Shader:parseTLExpr(ast* code)
   template nthId n
@@ -60,16 +77,16 @@ end
 //   shaderVar vertexSource
 //     varying float x
 //     uniform vec3 normal
-//
+// 
 //     vec3 invert(vec3 v)
 //       return minus(v)
 //     end
-//
+// 
 //     void main()
 //       gl_Vertex = ftransform()
 //     end
 //   end
-//
+// 
 //   printHLine '-' 40
 //   printlnString vertexSource
 //   printHLine '-' 40
@@ -79,8 +96,8 @@ end
 //------------------------------------------------------------------------------
 /// utils ///
 
-var int windowWidth 400
-var int windowHeight 300
+var int windowWidth 1280
+var int windowHeight 720
 var bool initCalled false
 
 func void init()
@@ -107,34 +124,6 @@ func void reopenWindow()
   glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
   glfwSetWindowPos 100 1400
   ret void
-end
-
-func void drawPausedOverlay()
-  saveTransforms
-    glMatrixMode GL_PROJECTION
-    glLoadIdentity()
-    glMatrixMode GL_MODELVIEW
-    glLoadIdentity()
-    saveAttribs
-      glDisable GL_BLEND
-      glDisable GL_DEPTH_TEST
-      heightB := -1.0 +_f 1.0 /_f 10.0
-      heightT := 1.0 -_f 1.0 /_f 10.0
-      rendergl GL_QUADS
-        glColor3f 1. 1. 1.
-        glVertex2f -1.0 -1.0
-        glVertex2f 1.0 -1.0
-        glVertex2f 1.0 heightB
-        glVertex2f -1.0 heightB
-
-        glVertex2f -1.0 1.0
-        glVertex2f 1.0 1.0
-        glVertex2f 1.0 heightT
-        glVertex2f -1.0 heightT
-      end
-    end
-  end
-  glfwSwapBuffers()
 end
 
 // avoid writing it over and over, part of utils lib
@@ -207,13 +196,14 @@ func int main()
     }
   " /*fragment*/"
   const float innerRing = 0.7;
-  const float alpha = 0.8;
+  const float alpha = 0.4;
   const float glowStrength = min(alpha, 0.5);
 
   void main(void) {
     float d = texCoord.x * texCoord.x + texCoord.y * texCoord.y;
-    // vec3 color = vec3(1.0, 1.0, 0.0);
-    if( d < innerRing ) {
+    if( d < 0.25 * innerRing && d > 0.15 * innerRing && -texCoord.x > texCoord.y ) {
+      gl_FragColor = vec4(color, 1.0);
+    } else if( d < innerRing ) {
       gl_FragColor = vec4(color * alpha, alpha);
     } else if( d < 1.0 ) {
       float glow = (1.0 - smoothstep(innerRing, 1.0, d)) * glowStrength;
@@ -238,7 +228,7 @@ func int main()
     float d = dot(normal, vec3(0.,1.,0.));
     d = 0.5 * d + 0.5;
     gl_FragColor = vec4(d,d,d,1.0);
-    gl_FragColor = mix(vec4(0.,0.5,0.5,1.0), color, d);
+    gl_FragColor = mix(vec4(0.,0.5,0.5,1.0), vec4(0.0,0.0,0.0,1.0), d);
     }"
   assert (hemiShader != 0)
 
@@ -289,10 +279,16 @@ func int main()
         glTranslatef 4. 0. -10.0
         glColor4f 1.0 0.25 0.0 1.0
         renderQuad 4.0
+
+        glUseProgram 0
+        glColor4f 1. 1. 1. 1.
+        // glqtPrintfAt 0.0d 0.0d 0.0d (1.0d /_d 10.0d) "hello!"
       end
+
     end
 
     glUseProgram 0
+
   end
 
   glDeleteShader glowShader
