@@ -78,6 +78,23 @@ let toggleVerifyCommand args _ =
     | ["off"] -> Zompvm.zompVerifyCode false
     | _ -> eprintf "Expected on|off\n"; flush stderr
 
+let notifyTimeThreshold = ref 0.5
+
+let setNotifyTimeThresholdCommand args _ =
+  match args with
+    | [timeStr] ->
+        begin try
+          let newTime = float_of_string timeStr in
+          if newTime >= 0.0 then
+            notifyTimeThreshold := newTime
+          else
+            printf "Given time must not be less than zero\n"
+        with Failure "float_of_string" ->
+          printf "Could not parse '%s' as float\n" timeStr
+        end
+    | _ ->
+        printf "Expected only one argument\n"
+
 let matchAnyRegexp patterns =
   match patterns with
     | [] -> Str.regexp ".*"
@@ -258,6 +275,7 @@ let commands =
     "syntax", [], toggleParseFunc, "Choose a syntax";
     "help", ["h"], printHelp, "List all toplevel commands";
     "prompt", [], promptCommand, "Set prompt";
+    "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information"
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
   in
@@ -332,6 +350,12 @@ let rec readExpr prompt previousLines bindings =
     expr
   end
 
+let recordTiming f =
+  let startTime = Sys.time() in
+  let result = f() in
+  let endTime = Sys.time() in
+  result, (endTime -. startTime)
+
 let () =
   let rec step bindings () =
     Compileutils.catchingErrorsDo
@@ -362,10 +386,16 @@ let () =
          in
 
          try
-           let newBindings, simpleforms, llvmCode =
-             Parseutils.compileExpr Expander.translateTL bindings expr
+           let newBindings, time = recordTiming
+             (fun () ->
+                let newBindings, simpleforms, llvmCode =
+                  Parseutils.compileExpr Expander.translateTL bindings expr
+                in
+                onSuccess newBindings simpleforms llvmCode;
+                newBindings)
            in
-           onSuccess newBindings simpleforms llvmCode;
+           if (time > !notifyTimeThreshold) then
+             printf "Compiling expression took %fs\n" time;
            step newBindings ()
 
          with originalException ->
@@ -431,14 +461,6 @@ let () =
   message "Initializing...";
   init();
 
-  let recordTiming name f =
-    let startTime = Sys.time() in
-    let result = f() in
-    let endTime = Sys.time() in
-    printf "%s took %fs\n" name (endTime -. startTime);
-    result
-  in
-
   let includePath = ref ["."] in
   let handleLLVMCode code = () in
   let translateInclude = Expander.translateInclude includePath handleLLVMCode in
@@ -446,7 +468,8 @@ let () =
   Hashtbl.add Expander.toplevelBaseInstructions "seq" (Expander.translateSeqTL handleLLVMCode);
 
   message "Loading prelude...";
-  let initialBindings = recordTiming "Loading prelude" loadPrelude in
+  let initialBindings, preludeLoadTime = recordTiming loadPrelude in
+  printf "Loading prelude took %fs\n" preludeLoadTime;
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
   run initialBindings
