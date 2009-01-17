@@ -1,0 +1,37 @@
+/**
+ * Developing a simple instrumentation macro
+!syntax indent
+ */
+
+macro tracing:instrument code
+  var ast* instrumentedCode simpleAst("seq")
+
+  forEachAstChild expr code
+    addChild instrumentedCode ${printlnString "=> entering"}
+    addChild instrumentedCode ${ast:print $${#expr} 0}
+    addChild instrumentedCode expr
+    addChild instrumentedCode ${printlnString "<= leaving"}
+  end
+
+  mret instrumentedCode
+end
+
+func int main()
+  tracing:instrument
+    var int x 10
+    assign x (x + 10)
+    printlnInt x
+
+    var cstring foo "xxx"
+    ast:print ${lalal #foo} 0
+
+    template foo param
+      printString #param
+    end
+
+    foo "bar"
+  end
+
+  ret 0
+end
+
