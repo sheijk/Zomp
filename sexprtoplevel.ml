@@ -63,7 +63,7 @@ let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 
-let parseFunc = ref Parseutils.parseSExpr
+let parseFunc = ref Parseutils.parseIExpr
 
 let toggleParseFunc args _ =
   let confirm syntax = printf "Changed syntax to %s\n" syntax in
@@ -161,21 +161,12 @@ let runMain args bindings =
 let loadLLVMFile filename _ =
   Zompvm.loadLLVMFile filename
 
-let loadCDll pathAndName _ =
-  let handle = Zompvm.zompLoadLib pathAndName in
-  if handle = 0 then
-    printf "Could not load %s\n" pathAndName
-  else
-    printf "Succesfully loaded %s\n" pathAndName
-
 let loadCode args bindings =
   let matches re string = Str.string_match (Str.regexp re) string 0 in
   List.iter
     (fun name ->
        if matches ".*\\.ll" name then
          loadLLVMFile name bindings
-       else if matches ".*\\.\\(dylib\\|so\\|dll\\)" name then
-         loadCDll name bindings
        else
          printf "Unsupported file extension\n" )
     args
@@ -356,6 +347,33 @@ let recordTiming f =
   let endTime = Sys.time() in
   result, (endTime -. startTime)
 
+
+module CompilerInstructions =
+struct
+  open Expander
+  open Ast2
+
+  let translateLinkCLib env = function
+    | { args = [{id = fileName; args = []}] } ->
+        begin
+          let fileName = Common.removeQuotes fileName in
+          let dllExtensions = ["dylib"; "so"; "dll"] in
+          let matches re string = Str.string_match (Str.regexp re) string 0 in
+          let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
+          if not (matches dllPattern fileName) then
+            Error [sprintf "%s has invalid extension for a dll. Supported: %s"
+                     fileName (Common.combine ", " dllExtensions)]
+          else
+            let handle = Zompvm.zompLoadLib fileName in
+            if handle = 0 then
+              Error [sprintf "Could not load C library '%s'\n" fileName]
+            else
+              Result (env.Expander.bindings, [])
+        end
+    | invalidExpr ->
+        Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id]
+end
+
 let () =
   let rec step bindings () =
     Compileutils.catchingErrorsDo
@@ -464,8 +482,10 @@ let () =
   let includePath = ref ["."] in
   let handleLLVMCode code = () in
   let translateInclude = Expander.translateInclude includePath handleLLVMCode in
-  Hashtbl.add Expander.toplevelBaseInstructions "include" translateInclude;
-  Hashtbl.add Expander.toplevelBaseInstructions "seq" (Expander.translateSeqTL handleLLVMCode);
+  let addToplevelInstr = Hashtbl.add Expander.toplevelBaseInstructions in
+  addToplevelInstr "include" translateInclude;
+  addToplevelInstr "seq" (Expander.translateSeqTL handleLLVMCode);
+  addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
 
   message "Loading prelude...";
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in

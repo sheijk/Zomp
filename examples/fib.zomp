@@ -2,8 +2,8 @@
  * Calculating fibonacci numbers the sane way
 
 !verify off
- */
 !syntax indent
+ */
 
 template op:= name value
   var2 #name #value
@@ -22,7 +22,7 @@ func int fib(int n)
   ret prev
 end
 
-func void test()
+func int main()
   printlnString "Fibonaccis without the waiting"
 
   for i 1 47
@@ -32,5 +32,7 @@ func void test()
     printInt fib(i)
     println()
   end
+
+  ret 0
 end
 

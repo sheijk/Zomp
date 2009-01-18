@@ -8,6 +8,8 @@
 !load libGLEW.dylib
 */
 
+TODO: does not compile anymore, but Mesh handling code etc. should be ported
+
 !syntax indent
 
 include "opengl20.zomp"

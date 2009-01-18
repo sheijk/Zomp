@@ -1,20 +1,19 @@
+!syntax sexpr
 /**
-Demonstrates using OpenGL.
+ * Demonstrates using OpenGL.
+ *
+ * You will need to copy the file libglfw.dylib from the lib/macosx dir
+ * of GLFW 2.6 into the zomp main dir
+ *
+ * Conventions for function names:
+ *  send* - sending vertex data (to be included in glbegin/end)
+ *  render* - send geometry (outside of glBegin/glEnd)
+ *  draw* - setup material and render
+ */
 
-!verify off
+TODO: does not compile anymore. Should be ported
 
-Enter this into toplevel to load libs:
-!load libglfw.dylib
-!load libGLEW.dylib
-
-You will need to copy the file libglfw.dylib from the lib/macosx dir
-of GLFW 2.6 into the zomp main dir
-
-Conventions for function names:
-  send* - sending vertex data (to be included in glbegin/end)
-  render* - send geometry (outside of glBegin/glEnd)
-  draw* - setup material and render
-*/
+(linkclib "libglfw.dylib" "libGLEW.dylib")
 
 (include "opengl20.zomp")
 (include "glfw.zomp")

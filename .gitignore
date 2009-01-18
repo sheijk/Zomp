@@ -14,3 +14,4 @@ tools
 /llvmtest/loopopt.ll
 /tests/timing.txt
 /perf_results.png
+/tests/scratch.zomp

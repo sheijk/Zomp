@@ -1,11 +1,8 @@
 /**
  * Experimental translation of zomp expressions to GLSL
-!syntax indent
-!load libglfw.dylib
-!load libGLEW.dylib
-!load glut.dylib
-!load libquicktext.dylib
  */
+
+linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib" "libquicktext.dylib"
 
 include "opengl20.zomp"
 include "glfw.zomp"

@@ -1056,7 +1056,11 @@
 (deprecated astChild ast:child parent index)
 (deprecated printAst ast:print t indent)
 
-
+(macro linkclib fileNames ... (
+  (var astp code (seqAst))
+  (forEachAstChild fileName fileNames
+    (addChild code `(zmp:compiler:linkclib #fileName)))
+  (ret code)))
 
 // /// Given an ast and an ast containing placeholders _/__ the
 // /// shapes of both ast's are matched against each other. They match if they have

@@ -1,90 +1,14 @@
 /**
+ * A simple OpenGL example
+ */
 
-!verify off
-
-* A simple .obj loader
-
-!load libglfw.dylib
-!load libGLEW.dylib
-*/
-
-!syntax indent
-
-//------------------------------------------------------------------------------
-// basic control flow
-
-template macro:failUnless cond
-  unless #{cond}
-    ret ${error expression is false #{cond}}
-  end
-end
-
-macro uniqueIds purpose ids...
-  var ast* code ${seq}
-
-  forEachAstChild child ids
-    addChild code ${uniqueIds #child #purpose}
-  end
-
-  ret code
-end
-
-/// if statement
-///
-/// Usage example:
-/// 
-/// if a > 10 then
-///   print "It's bigger!"
-/// else if a < 5 then
-///   print "It's smaller!"
-/// else
-///   print "Neither to big nor to small. Purrfect"
-/// end
-macro if2 cond then onTrue remArgs...
-  println()
-
-  macro:failUnless cstring:equal(getField(then, id), "then")
-
-  uniqueId endLabel "if_end"
-
-  var astp code ${seq}
-
-  addChild code ${when #cond
-    #onTrue
-    branch #endLabel
-  end}
-
-  var int currentArg 0
-  const int argCount getField(remArgs, childCount)
-
-  while (currentArg+3 <= argCount)
-    var astp econd ast:child(remArgs, currentArg+1)
-    var astp eexpr ast:child(remArgs, currentArg+2)
-
-    addChild code ${seq
-      when #econd
-        #eexpr
-        branch #endLabel
-      end
-    end}
-
-    currentArg = currentArg + 3
-  end
-
-  when (currentArg+1 < argCount)
-    var astp elseCode ast:child(remArgs, currentArg+1)
-
-    addChild code elseCode
-  end
-
-  addChild code ${label #endLabel}
-
-  ret code
-end
+linkclib "libglfw.dylib"
+linkclib "libGLEW.dylib"
 
 include "opengl20.zomp"
 include "glfw.zomp"
-include "tests/glutils.zomp"
+include "libs/glutils.zomp"
+include "libs/libcee.zomp"
 
 var int windowWidth 400
 var int windowHeight 300

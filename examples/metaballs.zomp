@@ -1,14 +1,8 @@
 /**
+ * Nearly metaballs
+ */
 
-!verify off
-
-* A simple OpenGL app
-
-!load libglfw.dylib
-!load libGLEW.dylib
-!load glut.dylib
-!syntax indent
-*/
+linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib"
 
 include "opengl20.zomp"
 include "glfw.zomp"
@@ -83,6 +77,8 @@ macro unittest:assert testCode
       end
     end}
   end
+
+  ret ${}
 end
 
 /// redefine to work with indent based syntax expressions
@@ -864,7 +860,8 @@ end
 func int main()
   init()
 
-  tracing:instrument
+  // tracing:instrument
+  seq
     glfwSetMousePosCallback (cast void* &onMouseMove)
     glfwSetWindowSizeCallback (cast void* &onWindowResize)
 

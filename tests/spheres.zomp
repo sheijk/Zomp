@@ -14,6 +14,8 @@ Conventions for function names:
   draw* - setup material and render
 */
 
+TODO: does not compile anymore, but code should be ported
+
 (include "opengl20.zomp")
 (include "glfw.zomp")
 
