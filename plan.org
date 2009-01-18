@@ -698,6 +698,11 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] fbo + multisampling
    GL_EXT_framebuffer_blit
    GL_EXT_framebuffer_multisample
+** TODO [#A] support matrix literals
+   { 1, 0, 0, 0;
+     0, 1, 0, 0;
+     0, 0, 1, 0;
+     0, 0, 0, 1 }
 
 * Use Cases                                                            :usecase:
 

@@ -22,16 +22,20 @@ checkall: $(TESTPROGS:.zomp=.check)
 
 build: $(WORKING:.zomp=.bc)
 
-FUNCTION_COUNTS=10 100 1000 1200 1400 1600 1800 2000 2200 2400
+# FUNCTION_COUNTS=10 100 1000 1200 1400 1600 1800 2000 2200 2400
+FUNCTION_COUNTS=10 100 1000 4000
+
+LLVM_GCC_BIN_DIR=$(PWD)/../tools/llvm-gcc/bin
+LLVM_BIN_DIR=$(PWD)/../tools/llvm/Release/bin
+PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
 compileperftest:
+	@rm -f timing.txt
 	@for funcs in $(FUNCTION_COUNTS); \
 	do \
 	  rm -f compileperf.zomp; \
-	  echo; \
 	  ocaml genperftest.ml $$funcs compileperf.zomp; \
-	  echo Measuring compile time of simple program: `wc -l compileperf.zomp`; \
-	  time ../zomp-check-syntax.sh compileperf.zomp; \
+	  ./logtiming.sh timing.txt $$funcs '../zomp-check-syntax.sh compileperf.zomp'; \
 	done
 
 GLAPP_LIBS = -framework Carbon -framework CoreFoundation -framework OpenGL -framework AGL ../libglfw.a ../libGLEW.a

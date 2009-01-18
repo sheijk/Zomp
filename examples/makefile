@@ -1,8 +1,12 @@
 
 include ../makefile.config
 
+LLVM_GCC_BIN_DIR=$(PWD)/../tools/llvm-gcc/bin
+LLVM_BIN_DIR=$(PWD)/../tools/llvm/Release/bin
+PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
+
 clean:
-	rm -f *.bc *.ll
+	rm -f *.bc *.ll *.exe
 
 ################################################################################
 # Rules

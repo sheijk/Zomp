@@ -12,3 +12,5 @@ tools
 /extlibs/assimp-beta1-full
 /extlibs/assimp-beta1-full.zip
 /llvmtest/loopopt.ll
+/tests/timing.txt
+/perf_results.png

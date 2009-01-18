@@ -179,10 +179,12 @@ runtestsuite: all
 	cd testsuite && time make all
 
 perftest: zompc.native zompc
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 4000 8000 16000"
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 3000 4000 5000 6000 7000 8000"
+	gnuplot makeperfgraph.gnuplot || echo "Could not execute gnuplot"
 
 perftest_quick: zompc.native zompc
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="1000 2000"
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="10 1000 2000"
+	gnuplot makeperfgraph.gnuplot || echo "Could not execute gnuplot"
 
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
