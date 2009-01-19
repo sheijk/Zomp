@@ -16,7 +16,7 @@ clean:
 
 %.ll: %.zomp ../zompc.native
 	$(ECHO) Compiling $(<) to .ll...
-	../zomp-check-syntax.sh $<
+	../zomp-check-syntax.sh $< || rm -f $@
 
 %.bc: %.ll ../stdlib.zomp ../stdlib.c
 	echo Compiling $< to $@
@@ -24,5 +24,8 @@ clean:
 	llvm-link -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
 
 %.exe: %.bc
-	llvm-ld -native -o $@ $<
+	llvm-ld -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS)
+
+opengl.exe: opengl.bc
+	llvm-ld -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL
 

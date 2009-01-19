@@ -91,30 +91,29 @@ let compile fileName instream outstream =
 
   if not( Zompvm.zompInit() ) then begin
     eprintf "Could not init ZompVM\n";
-    exit 3;
-  end;
-  Zompvm.zompVerifyCode false;
-  let exitCode =
-    Compileutils.catchingErrorsDo
-      (fun () -> begin
-         let bindings :Bindings.t =
-           Compileutils.loadPrelude
-             ~dir:preludeDir
-             ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                             output_string outstream llvmCode)
-         in
-         match Compileutils.compileCode bindings input outstream fileName with
-           | Some _ -> 0
-           | None -> 2
-       end)
-      ~onError:(fun msg ->
-                  printf "Failed compilation: %s" msg;
-                  1)
-  in
-  Zompvm.zompShutdown();
-  if exitCode <> 0 then
-    eprintf "Failed to compile\n";
-  exit exitCode
+    4
+  end else begin
+    Zompvm.zompVerifyCode false;
+    let exitCode =
+      Compileutils.catchingErrorsDo
+        (fun () -> begin
+           let bindings :Bindings.t =
+             Compileutils.loadPrelude
+               ~dir:preludeDir
+               ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                               output_string outstream llvmCode)
+           in
+           match Compileutils.compileCode bindings input outstream fileName with
+             | Some _ -> 0
+             | None -> 2
+         end)
+        ~onError:(fun msg ->
+                    printf "Failed compilation: %s" msg;
+                    1)
+    in
+    Zompvm.zompShutdown();
+    exitCode
+  end
 
 let includePath = ref ["."]
 
@@ -124,6 +123,40 @@ let addIncludePath path = function
   | `Front ->
       includePath := path :: !includePath
 
+module CompilerInstructions =
+struct
+  open Expander
+  open Ast2
+
+  let clibPath = ref ["."; ".."]
+
+  let translateLinkCLib env = function
+    | { args = [{id = fileName; args = []}] } ->
+        begin
+          let fileName = Common.removeQuotes fileName in
+          let dllExtensions = ["dylib"; "so"; "dll"] in
+          let matches re string = Str.string_match (Str.regexp re) string 0 in
+          let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
+          if not (matches dllPattern fileName) then
+            Error [sprintf "%s has invalid extension for a dll. Supported: %s"
+                     fileName (Common.combine ", " dllExtensions)]
+          else
+            match Common.findFileIn fileName !clibPath with
+              | None ->
+                  Error [sprintf "Could not find library '%s' in paths %s"
+                           fileName
+                           (Common.combine ", " !clibPath)]
+              | Some absoluteFileName ->
+                  let handle = Zompvm.zompLoadLib absoluteFileName in
+                  if handle = 0 then
+                    Error [sprintf "Could not load C library '%s'\n" fileName]
+                  else
+                    Result (env.Expander.bindings, [])
+        end
+    | invalidExpr ->
+        Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id]
+end
+
 let () =
   match Sys.argv with
       [| execNameAndPath; "-c"; fileName |] ->
@@ -131,26 +164,37 @@ let () =
           match getBasename fileName with
             | Some baseName ->
                 begin
-                  let inStream = open_in (baseName ^ ".zomp")
-                  and outStream = open_out (baseName ^ ".ll")
+                  let inputFileName = baseName ^ ".zomp" in
+                  let outputFileName = baseName ^ ".ll" in
+                  let inStream = open_in inputFileName
+                  and outStream = open_out outputFileName
                   in
                   let compilerDir = Filename.dirname execNameAndPath in
                   addIncludePath compilerDir `Front;
                   let handleLLVMCode code = output_string outStream code in
                   let translateInclude = Expander.translateInclude includePath handleLLVMCode in
-                  Hashtbl.add Expander.toplevelBaseInstructions "include" translateInclude;
-                  Hashtbl.add Expander.toplevelBaseInstructions "seq"
-                    (Expander.translateSeqTL handleLLVMCode);
+                  let addToplevelInstr = Hashtbl.add Expander.toplevelBaseInstructions in
+                  addToplevelInstr "include" translateInclude;
+                  addToplevelInstr "seq" (Expander.translateSeqTL handleLLVMCode);
+                  addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
                   try
-                    compile (baseName ^ ".zomp") inStream outStream
+                    let exitCode = compile inputFileName inStream outStream in
+                    close_in inStream;
+                    close_out outStream;
+                    if exitCode <> 0 then begin
+                      eprintf "Failed to compile\n";
+                      Sys.remove outputFileName;
+                    end;
+                    exit exitCode
                   with
                     | Sexprlexer.Eof ->
                         close_in inStream;
                         close_out outStream;
+                        Sys.remove outputFileName
                     | _ as e ->
                         close_in inStream;
                         close_out outStream;
-                        Sys.remove (baseName ^ ".ll");
+                        Sys.remove outputFileName;
                         raise e
                 end
             | None ->

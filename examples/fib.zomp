@@ -1,8 +1,5 @@
 /**
  * Calculating fibonacci numbers the sane way
-
-!verify off
-!syntax indent
  */
 
 template op:= name value
