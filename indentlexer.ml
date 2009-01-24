@@ -533,6 +533,8 @@ let makeLexbuf fileName readCharFunc =
 
 let lexbufFromChannel fileName channel = makeLexbuf fileName (fun () -> input_char channel)
 
+let readChar lexstate = lexstate.readChar()
+
 let lexbufFromString fileName string =
   let endlineString = string ^ "\n" in
   let stringLength = String.length endlineString in
@@ -597,4 +599,13 @@ let printTokens tokens =
         worker newContext remTokens
   in
   worker (0, `DontIndent) tokens
+
+let runInternalTests() =
+  let l = lexbufFromString "d.zomp" "abcde" in
+  let expectChar chr = assert( chr = readChar l ) in
+  expectChar 'a';
+  expectChar 'b';
+  l.backTrack 2;
+  expectChar 'a';
+  expectChar 'b'
 

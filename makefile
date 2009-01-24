@@ -233,7 +233,7 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo "Compiling $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-%.cmo: %.ml
+%.cmo %.cmi: %.ml
 	echo "Compiling (bytecode) $< ..."
 	$(OCAMLC) $(CAML_FLAGS)  -c $<
 
@@ -245,10 +245,10 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
 
-CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml	\
-genllvm.ml indentlexer.ml indentlexer_tests.ml lang.ml machine.ml	\
-newparser_tests.ml parseutils.ml compileutils.ml semantic.ml		\
-sexprtoplevel.ml testing.ml typesystems.ml zompc.ml zompvm.ml
+CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml \
+indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml         \
+newparser_tests.ml parseutils.ml compileutils.ml semantic.ml sexprtoplevel.ml  \
+testing.ml typesystems.ml zompc.ml zompvm.ml
 
 makefile.depends: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...
@@ -264,6 +264,7 @@ newparser.ml: newparser.mly ast2.cmo
 newparser_tests.cmo: newparser.cmo
 newparser_tests.cmx: newparser.cmx
 indentlexer.cmo: newparser.ml
+indentlexer.cmi: newparser.ml
 
 sexprparser.ml: ast2.cmo common.cmo
 sexprlexer.ml: ast2.ml common.ml sexprparser.cmo
@@ -273,7 +274,7 @@ zompvm.cmo: machine.cmo
 zompvm.cmx: machine.cmx
 
 lang.cmi: common.cmo
-bindings.cmi: common.cmo
+bindings.cmi: common.cmo lang.cmo
 
 # Generate tags if otags exists #
 ################################################################################
@@ -303,7 +304,7 @@ clean:
 	rm -f machine.c machine.ml machine.cmi machine.cmo machine.o
 	rm -f forktest forktest.cmi forktest.cmo
 	rm -f dllzompvm.so libzompvm.a zompvm.o
-	rm -f testdll.o dlltest.dylib 
+	rm -f testdll.o dlltest.dylib
 	rm -f *_flymake.*
 	rm -f *.cmx *.native
 	rm -f deps.png deps.dot
@@ -312,8 +313,10 @@ clean:
 	rm -f opengl20.zomp glfw.zomp
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
+	rm -f indentlexer_tests.cmo indentlexer_tests.cmi
 	rm -f expandertests.cm? alltests.cm? alltests
-	rm -f libquicktext.dylib glut.dylib
+	rm -f glQuickText.o libquicktext.dylib glut.dylib
+	rm -f perflog.txt
 	cd examples/ && make clean
 	cd testsuite/ && make clean
 

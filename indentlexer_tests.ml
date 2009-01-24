@@ -3,6 +3,7 @@ open Indentlexer
 open Testing
 open Printf
 open Newparser
+open Common
 
 module IndentLexerTestCase : CASE_STRUCT =
 struct
@@ -223,15 +224,6 @@ let () =
   in
   List.iter testF testCases
 
-let () =
-  let l = lexbufFromString "d.zomp" "abcde" in
-  let expectChar chr = assert( chr = l.readChar() ) in
-  expectChar 'a';
-  expectChar 'b';
-  l.backTrack 2;
-(*   l.putbackString "x"; *)
-(*   l.putbackString "y"; *)
-  expectChar 'a';
-  expectChar 'b'
-  
+let () = Indentlexer.runInternalTests()
+
 
