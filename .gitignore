@@ -23,3 +23,9 @@ tools
 /tests/compileperf_buildlog.txt
 /tests/timing_iexpr.txt
 /tests/timing_sexpr.txt
+/mltests/flymake.log
+/mltests/*.cmi
+/mltests/*.cmo
+/mltests/*.cmx
+/mltests/*.exe
+/mltests/*.o

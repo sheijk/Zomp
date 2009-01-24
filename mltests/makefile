@@ -8,9 +8,12 @@ sexptest.cmo: sexptest.ml
 sexptest.exe: sexptest.cmo
 	ocamlc $(CAML_INCLUDE) bigarray.cma sexplib.a sexplib.cma sexptest.cmo -o $@
 
+%.exe: %.ml
+	ocamlopt bigarray.cmxa str.cmxa -o $@ $<
+
 clean:
 	rm -f sexptest.exe sexptest.cmo sexptest.cmi
 
-# check-syntax:
-# 	ocamlc -c +ocamlp4 -pp pa_sexp_conv $(CHK_SOURCES) -o /tmp/flymake_temp.cmo
+FLYMAKE_LOG=flymake.log
+include ../makefile.flymake
 

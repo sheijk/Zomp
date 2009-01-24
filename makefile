@@ -166,15 +166,13 @@ runmltests: alltests
 	$(OCAMLRUN) -b ./alltests
 
 PROF_COMP_TARGET=metaballs
+
 profile_comp: zompc zompc.native stdlib.bc opengl20.zomp glfw.zomp
 	cd examples && rm -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc && time make $(PROF_COMP_TARGET).bc
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
-# 	ocamlrun $(CAML_LIBS) $(LANG_CMOS) expander_tests.cmo
-# 	date +"Starting at %d.%m.20%y %H:%M:%S"
 	cd tests && time make clean_tests check
-# 	date +"Finished at %d.%m.20%y %H:%M:%S"
 
 runtestsuite: all
 	cd testsuite && time make all

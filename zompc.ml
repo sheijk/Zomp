@@ -163,7 +163,7 @@ end
 let () =
   at_exit Profiling.printTimings;
   match Sys.argv with
-      [| execNameAndPath; "-c"; fileName |] ->
+    | [| execNameAndPath; "-c"; fileName |] ->
         begin
           match getBasename fileName with
             | Some baseName ->

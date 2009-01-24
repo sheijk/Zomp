@@ -495,28 +495,28 @@ let makeLexbuf fileName readCharFunc =
         (String.length lexbuf.lastReadChars - count);
     in
     let preprocessedRead () =
-      let rec readSource() =
-        (* let readNextTwoChars() = readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) in *)
-        match readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
-        (* match readNextTwoChars() with *)
-          | '/', Some '/' -> readSingleLineComment()
-          | '/', Some '*' -> readMultiLineComment()
-          | lastCharInFile, None -> lastCharInFile
-          | char, Some _ ->
-              backTrack 1;
-              char
-      and readSingleLineComment() =
-        match readCharWithBuffer() with
-          | '\n' -> '\n'
-          | _ -> readSingleLineComment()
-      and readMultiLineComment() =
-        match  readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
-          | '*', Some '/' -> readSource()
-          | lastCharInFile, None -> lastCharInFile
-          | _, Some '*' -> backTrack 1; readMultiLineComment();
-          | _, Some _ -> readMultiLineComment()
-      in
-      readSource()
+      collectTimingInfo "stripping comments"
+        (fun () ->
+           let rec readSource() =
+             match readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
+               | '/', Some '/' -> readSingleLineComment()
+               | '/', Some '*' -> readMultiLineComment()
+               | lastCharInFile, None -> lastCharInFile
+               | char, Some _ ->
+                   backTrack 1;
+                   char
+           and readSingleLineComment() =
+             match readCharWithBuffer() with
+               | '\n' -> '\n'
+               | _ -> readSingleLineComment()
+           and readMultiLineComment() =
+             match  readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
+               | '*', Some '/' -> readSource()
+               | lastCharInFile, None -> lastCharInFile
+               | _, Some '*' -> backTrack 1; readMultiLineComment();
+               | _, Some _ -> readMultiLineComment()
+           in
+           readSource())
     in
     {
       readChar = preprocessedRead;
