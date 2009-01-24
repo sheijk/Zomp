@@ -315,6 +315,7 @@ indent the next line when they occur at the beginning of a line"
 
 (defun zomp-newline ()
   (interactive)
+
   (let ((isComment nil)
         (isStar nil)
         (isQuotation nil)
@@ -341,20 +342,22 @@ indent the next line when they occur at the beginning of a line"
       (end-of-line)
       (setq isQuotation (looking-back "${ *")))
 
-    (save-excursion
-      (let ((thisLineIndent (zomp-current-line-indent)))
-        (next-line)
-        (setq nextLineIndentDiff (- (zomp-current-line-indent) thisLineIndent))))
+    (unless (eobp)
+      (save-excursion
+        (let ((thisLineIndent (zomp-current-line-indent)))
+          (next-line)
+          (setq nextLineIndentDiff (- (zomp-current-line-indent) thisLineIndent)))))
 
     (save-excursion
       (back-to-indentation)
       (setq wordAtLineBeginning (zomp-symbol-at-point)))
 
-    (save-excursion
-      (next-line)
-      (beginning-of-line)
-      (setq endQuotationAtNextLine (looking-at " *end} *\\(//.*\\)?$"))
-      (setq endAtNextLine (looking-at " *end *\\(//.*\\)?$")))
+    (unless (eobp)
+      (save-excursion
+        (next-line)
+        (beginning-of-line)
+        (setq endQuotationAtNextLine (looking-at " *end} *\\(//.*\\)?$"))
+        (setq endAtNextLine (looking-at " *end *\\(//.*\\)?$"))))
 
     (indent-according-to-mode)
     (newline-and-indent)
