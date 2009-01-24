@@ -190,91 +190,104 @@ let restrictToSingleprecision double =
   Bigarray.Array1.set array 0 double;
   Bigarray.Array1.get array 0
 
-
-
-
 let dotimes count func =
   for i = 1 to count do func() done
 
+module Profiling =
+struct
+  type timingInfo = {
+    name :string;
+    mutable totalTime :float;
+    mutable childs : timingInfo list
+  }
 
-type timingInfo = {
-  name :string;
-  mutable totalTime :float;
-  mutable childs : timingInfo list
-}
+  let makeTimingInfo name = {
+    name = name;
+    totalTime = 0.0;
+    childs = [];
+  }
 
-let makeTimingInfo name = {
-  name = name;
-  totalTime = 0.0;
-  childs = [];
-}
+  let findOrCreate parent name =
+    try List.find (fun ti -> ti.name = name) parent.childs
+    with Not_found ->
+      begin
+        let newTimingInfo = makeTimingInfo name in
+        parent.childs <- newTimingInfo :: parent.childs;
+        newTimingInfo
+      end
 
-let findOrCreate parent name =
-  try List.find (fun ti -> ti.name = name) parent.childs
-  with Not_found ->
-    begin
-      let newTimingInfo = makeTimingInfo name in
-      parent.childs <- newTimingInfo :: parent.childs;
-      newTimingInfo
-    end
+  let toplevelTimingInfos = makeTimingInfo "toplevel"
+  let toplevelStartTime = Sys.time()
 
-let toplevelTimingInfos = makeTimingInfo "toplevel"
+  let rec totalTime timingInfo =
+    let childTimes = List.map totalTime timingInfo.childs in
+    let totalChildTimes = List.fold_left (+.) 0.0 childTimes in
+    totalChildTimes +. timingInfo.totalTime
 
-let rec totalTime timingInfo =
-  let childTimes = List.map totalTime timingInfo.childs in
-  let totalChildTimes = List.fold_left (+.) 0.0 childTimes in
-  totalChildTimes +. timingInfo.totalTime
-
-let printTimings () =
-  let rec worker prefix timingInfo =
-    printf "%s%f - %s\n" prefix timingInfo.totalTime timingInfo.name;
-    let sortedChilds =
-      List.sort (fun ti1 ti2 -> 1 - compare ti1.totalTime ti2.totalTime) timingInfo.childs
+  let printTimings () =
+    let rec worker prefix timingInfo =
+      printf "%s%f - %s\n" prefix timingInfo.totalTime timingInfo.name;
+      match timingInfo.childs with
+        | _ :: _ ->
+            let childTime = List.fold_left (fun sum ti -> sum +. ti.totalTime) 0.0 timingInfo.childs in
+            let minTime = 0.1 *. timingInfo.totalTime in
+            let relevantChilds = List.filter
+              (fun ti -> ti.totalTime > minTime || ti.totalTime > 0.1) timingInfo.childs in
+            let sortedChilds =
+              List.sort (fun ti1 ti2 -> 1 - compare ti1.totalTime ti2.totalTime)
+                ({ name = "unmeasured"; totalTime = timingInfo.totalTime -. childTime; childs = [] }
+                 :: relevantChilds)
+            in
+            List.iter (worker (prefix ^ "  ")) sortedChilds;
+        | [] ->
+            ()
     in
-    List.iter (worker (prefix ^ "  ")) sortedChilds
-  in
-  worker "" toplevelTimingInfos
+    let toplevelStopTime = Sys.time() in
+    toplevelTimingInfos.totalTime <- (toplevelStopTime -. toplevelStartTime);
+    worker "" toplevelTimingInfos
 
-let timingStack = ref []
+  let timingStack = ref []
 
-let parentTimingInfo() =
-  match !timingStack with
-    | top :: _ -> top
-    | [] -> toplevelTimingInfos
+  let parentTimingInfo() =
+    match !timingStack with
+      | top :: _ -> top
+      | [] -> toplevelTimingInfos
 
-let guarded f ~finally =
-  try
-    let result = f() in
-    let () = finally() in
-    result
-  with error ->
-    let () = finally() in
-    raise error
+  let guarded f ~finally =
+    try
+      let result = f() in
+      let () = finally() in
+      result
+    with error ->
+      let () = finally() in
+      raise error
 
-let pushTimingContext name =
-  let currentTimingInfo = findOrCreate (parentTimingInfo()) name in
-  timingStack := currentTimingInfo :: !timingStack;
-  let startTime = Sys.time() in
-  currentTimingInfo, startTime
+  let pushTimingContext name =
+    let currentTimingInfo = findOrCreate (parentTimingInfo()) name in
+    timingStack := currentTimingInfo :: !timingStack;
+    let startTime = Sys.time() in
+    currentTimingInfo, startTime
 
-let popTimingContext (currentTimingInfo, startTime) =
-  let duration = Sys.time() -. startTime in
-  currentTimingInfo.totalTime <- currentTimingInfo.totalTime +. duration;
-  timingStack := match !timingStack with
-    | _ :: rem -> rem
-    | [] -> []
+  let popTimingContext (currentTimingInfo, startTime) =
+    let duration = Sys.time() -. startTime in
+    currentTimingInfo.totalTime <- currentTimingInfo.totalTime +. duration;
+    timingStack := match !timingStack with
+      | _ :: rem -> rem
+      | [] -> []
 
-let collectTimingInfo name f =
-  let currentTimingInfo, startTime = pushTimingContext name in
-  guarded (fun () ->
-             let result = f() in
-             popTimingContext (currentTimingInfo, startTime);
-             result)
-    ~finally:(fun () -> popTimingContext (currentTimingInfo, startTime) )
+  let collectTimingInfo name f =
+    let currentTimingInfo, startTime = pushTimingContext name in
+    guarded f
+      ~finally:(fun () -> popTimingContext (currentTimingInfo, startTime) )
+end
+
+(* let collectTimingInfo _ f = f() *)
+let collectTimingInfo = Profiling.collectTimingInfo
 
 let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
 let sampleFunc3 name f arg0 arg1 arg2 = collectTimingInfo name (fun () -> f arg0 arg1 arg2)
+let sampleFunc4 name f arg0 arg1 arg2 arg3 = collectTimingInfo name (fun () -> f arg0 arg1 arg2 arg3)
 
 let listIteri f list =
   let rec iterWithIndex index = function

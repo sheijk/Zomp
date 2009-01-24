@@ -29,12 +29,14 @@ LLVM_GCC_BIN_DIR=$(PWD)/../tools/llvm-gcc/bin
 LLVM_BIN_DIR=$(PWD)/../tools/llvm/Release/bin
 PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
+PERFTEST_GEN=genperftest
+
 compileperftest:
 	@rm -f timing.txt
 	@for funcs in $(FUNCTION_COUNTS); \
 	do \
 	  rm -f compileperf.zomp; \
-	  ocaml genperftest.ml $$funcs compileperf.zomp; \
+	  ocaml $(PERFTEST_GEN).ml $$funcs compileperf.zomp; \
 	  ./logtiming.sh timing.txt $$funcs '../zomp-check-syntax.sh compileperf.zomp'; \
 	done
 

@@ -16,3 +16,10 @@ tools
 /perf_results.png
 /tests/scratch.zomp
 /examples/*.exe
+/perf_results2.png
+/perf_results_iexpr.png
+/stdlib.orig.ll
+/tests/compileperf.zomp
+/tests/compileperf_buildlog.txt
+/tests/timing_iexpr.txt
+/tests/timing_sexpr.txt

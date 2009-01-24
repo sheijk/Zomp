@@ -402,18 +402,19 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
           | _ -> None
 
 
-let translateMacro translateF (bindings :bindings) = function
-  | { id = macroName; args = args; } as expr ->
-      match lookup bindings macroName with
-        | MacroSymbol macro ->
-            begin try
-              let transformedExpr = macro.mtransformFunc bindings args in
-              Some (translateF bindings transformedExpr)
-            with
-              | Failure msg ->
-                  raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
-            end
-        | _ -> None
+let translateMacro translateF (bindings :bindings) expr =
+  match expr with
+    | { id = macroName; args = args; } as expr ->
+        match lookup bindings macroName with
+          | MacroSymbol macro ->
+              begin try
+                let transformedExpr = macro.mtransformFunc bindings args in
+                Some (translateF bindings transformedExpr)
+              with
+                | Failure msg ->
+                    raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
+              end
+          | _ -> None
 
 let astType = `Record [
   "id", `Pointer `Char;
@@ -1421,21 +1422,23 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
   translateF bindings
 
 let translateAndEval handleLLVMCodeF env exprs =
-  let newBindings, tlexprsFromFile =
-    List.fold_left
-      (fun (bindings,prevExprs) sexpr ->
-         let newBindings, newExprs = env.translateF bindings sexpr in
-         List.iter
-           (fun form ->
-              let llvmCode = Genllvm.gencodeTL form in
-              Zompvm.evalLLVMCode bindings [form] llvmCode;
-              handleLLVMCodeF llvmCode)
-           newExprs;
-         newBindings, prevExprs @ newExprs )
-      (env.bindings, [])
-      exprs
-  in
-  Result (newBindings, [])
+  collectTimingInfo "translateAndEval"
+    (fun () ->
+       let newBindings, tlexprsFromFile =
+         List.fold_left
+           (fun (bindings,prevExprs) sexpr ->
+              let newBindings, newExprs = env.translateF bindings sexpr in
+              List.iter
+                (fun form ->
+                   let llvmCode = Genllvm.gencodeTL form in
+                   Zompvm.evalLLVMCode bindings [form] llvmCode;
+                   handleLLVMCodeF llvmCode)
+                newExprs;
+              newBindings, prevExprs @ newExprs )
+           (env.bindings, [])
+           exprs
+       in
+       Result (newBindings, []))
 
 let translateSeqTL handleLLVMCodeF env expr =
   translateAndEval handleLLVMCodeF env expr.args
@@ -1658,15 +1661,13 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
 
 and translateTL bindings expr = translate raiseIllegalExpression
   [
-    translateFromDict toplevelBaseInstructions;
-    translateGlobalVar;
-    translateFunc;
-    translateTypedef;
-    translateDefineMacro translateNested;
-    translateMacro;
-    translateCompileTimeVar;
-    (* translateSeqTL; *)
-    (* translateInclude; *)
+    sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions);
+    sampleFunc3 "translateGlobalVar" translateGlobalVar;
+    sampleFunc3 "translateFunc" translateFunc;
+    sampleFunc3 "translateTypedef" translateTypedef;
+    sampleFunc3 "translateDefineMacro" (translateDefineMacro translateNested);
+    sampleFunc3 "translateMacro" translateMacro;
+    sampleFunc3 "translateCompileTimeVar" translateCompileTimeVar;
   ]
   bindings expr
 
@@ -1674,21 +1675,30 @@ let translateTL = Common.sampleFunc2 "translateTL" translateTL
 
 let translateInclude includePath handleLLVMCodeF env expr =
   let importFile fileName =
-    let fileContent = Common.readFile ~paths:!includePath fileName in
-    let exprs = Parseutils.parseIExprsNoCatch fileContent in
-    translateAndEval handleLLVMCodeF env exprs
+    let fileContent =
+      collectTimingInfo "readFileContent"
+        (fun () -> Common.readFile ~paths:!includePath fileName)
+    in
+    let exprs =
+      collectTimingInfo "parse"
+        (fun () -> Parseutils.parseIExprsNoCatch fileContent)
+    in
+    collectTimingInfo "translateAndEval"
+      (fun () -> translateAndEval handleLLVMCodeF env exprs)
   in
-  match expr with
-    | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
-        begin
-          try
-            let fileName = Common.removeQuotes fileName in
-            importFile fileName
-          with error ->
-            eprintf "While compiling included file '%s'\n" fileName;
-            raise error
-        end
-    | _ ->
-        Error ["Expecting 'include \"fileName.zomp\"'"]
+  collectTimingInfo "translateInclude"
+    (fun () ->
+       match expr with
+         | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
+             begin
+               try
+                 let fileName = Common.removeQuotes fileName in
+                 importFile fileName
+               with error ->
+                 eprintf "While compiling included file '%s'\n" fileName;
+                 raise error
+             end
+         | _ ->
+             Error ["Expecting 'include \"fileName.zomp\"'"])
 
 

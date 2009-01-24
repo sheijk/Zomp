@@ -79,10 +79,12 @@ let compileCode bindings input outstream fileName =
   in
   let parseAndCompile parseF =
     let exprs =
-      match parseF input with
-        | Some exprs -> exprs
-        | None ->
-            raiseCouldNotParse (sprintf "%s:%d: error: Could not parse file\n" fileName 0)
+      collectTimingInfo "parsing"
+        (fun () ->
+           match parseF input with
+             | Some exprs -> exprs
+             | None ->
+                 raiseCouldNotParse (sprintf "%s:%d: error: Could not parse file\n" fileName 0))
     in
     let leftExprs = ref exprs in
     let readExpr _ =
@@ -92,12 +94,14 @@ let compileCode bindings input outstream fileName =
             Some next
         | [] -> None
     in
-    compile
-      ~readExpr
-      ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                    Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                    output_string outstream llvmCode)
-      bindings
+    collectTimingInfo "compiling"
+      (fun () ->
+         compile
+           ~readExpr
+           ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                         Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
+                         output_string outstream llvmCode)
+           bindings)
   in
   tryAllCollectingErrors
     [lazy (parseAndCompile Parseutils.parseIExprs);

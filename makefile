@@ -165,8 +165,9 @@ runmltests: alltests
 	@echo Running all tests ...
 	$(OCAMLRUN) -b ./alltests
 
-run_metaballs: zompc zompc.native stdlib.bc opengl20.zomp glfw.zomp
-	cd examples && rm -f metaballs.ll metaballs.bc && time make metaballs.bc
+PROF_COMP_TARGET=metaballs
+profile_comp: zompc zompc.native stdlib.bc opengl20.zomp glfw.zomp
+	cd examples && rm -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc && time make $(PROF_COMP_TARGET).bc
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
@@ -178,13 +179,26 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 runtestsuite: all
 	cd testsuite && time make all
 
-perftest: zompc.native zompc
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="100 1000 2000 3000 4000 5000 6000 7000 8000"
-	gnuplot makeperfgraph.gnuplot || echo "Could not execute gnuplot"
+# FUNCTION_COUNTS=10 1000
+PERFTEST_GEN=
+# PERFTEST_GEN=_iexpr
+FUNCTION_COUNTS=100 1000 2000 3000 4000 5000 6000 7000 8000
 
-perftest_quick: zompc.native zompc
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="10 1000 2000"
+perftest: zompc.native zompc
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest$(PERFTEST_GEN)
 	gnuplot makeperfgraph.gnuplot || echo "Could not execute gnuplot"
+	mv temp.png perf_results$(PERFTEST_GEN).png
+
+perftest2: zompc.native zompc
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest
+	cp tests/timing.txt tests/timing_sexpr.txt
+	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
+	cp tests/timing.txt tests/timing_iexpr.txt
+	gnuplot makeperfgraph2.gnuplot || echo "Could not execute gnuplot"
+
+# perftest_quick: zompc.native zompc
+# 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="10 1000 2000 4000"
+# 	gnuplot makeperfgraph.gnuplot || echo "Could not execute gnuplot"
 
 stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
@@ -213,9 +227,13 @@ deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
 	echo Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-%.cmi: %.ml
-	echo Compiling $< triggered by .cmi ...
-	$(OCAMLC) $(CAML_FLAGS)  -c $<
+# %.cmi: %.ml
+# 	echo Compiling $< triggered by $@ ...
+# 	$(OCAMLC) $(CAML_FLAGS)  -c $<
+
+%.cmi: %.mli
+	echo "Compiling $@ ..."
+	$(OCAMLC) $(CAML_FLAGS) -c $<
 
 %.cmo: %.ml
 	echo "Compiling (bytecode) $< ..."
@@ -256,6 +274,8 @@ machine.cmx: machine.skel dllzompvm.so
 zompvm.cmo: machine.cmo
 zompvm.cmx: machine.cmx
 
+lang.cmi: common.cmo
+bindings.cmi: common.cmo
 
 # Generate tags if otags exists #
 ################################################################################

@@ -130,34 +130,38 @@ struct
 
   let clibPath = ref ["."; ".."]
 
-  let translateLinkCLib env = function
-    | { args = [{id = fileName; args = []}] } ->
-        begin
-          let fileName = Common.removeQuotes fileName in
-          let dllExtensions = ["dylib"; "so"; "dll"] in
-          let matches re string = Str.string_match (Str.regexp re) string 0 in
-          let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
-          if not (matches dllPattern fileName) then
-            Error [sprintf "%s has invalid extension for a dll. Supported: %s"
-                     fileName (Common.combine ", " dllExtensions)]
-          else
-            match Common.findFileIn fileName !clibPath with
-              | None ->
-                  Error [sprintf "Could not find library '%s' in paths %s"
-                           fileName
-                           (Common.combine ", " !clibPath)]
-              | Some absoluteFileName ->
-                  let handle = Zompvm.zompLoadLib absoluteFileName in
-                  if handle = 0 then
-                    Error [sprintf "Could not load C library '%s'\n" fileName]
-                  else
-                    Result (env.Expander.bindings, [])
-        end
-    | invalidExpr ->
-        Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id]
+  let translateLinkCLib env expr =
+    collectTimingInfo "translateLinkCLib"
+      (fun () ->
+         match expr with
+           | { args = [{id = fileName; args = []}] } ->
+               begin
+                 let fileName = Common.removeQuotes fileName in
+                 let dllExtensions = ["dylib"; "so"; "dll"] in
+                 let matches re string = Str.string_match (Str.regexp re) string 0 in
+                 let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
+                 if not (matches dllPattern fileName) then
+                   Error [sprintf "%s has invalid extension for a dll. Supported: %s"
+                            fileName (Common.combine ", " dllExtensions)]
+                 else
+                   match Common.findFileIn fileName !clibPath with
+                     | None ->
+                         Error [sprintf "Could not find library '%s' in paths %s"
+                                  fileName
+                                  (Common.combine ", " !clibPath)]
+                     | Some absoluteFileName ->
+                         let handle = Zompvm.zompLoadLib absoluteFileName in
+                         if handle = 0 then
+                           Error [sprintf "Could not load C library '%s'\n" fileName]
+                         else
+                           Result (env.Expander.bindings, [])
+               end
+           | invalidExpr ->
+               Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id])
 end
 
 let () =
+  at_exit Profiling.printTimings;
   match Sys.argv with
       [| execNameAndPath; "-c"; fileName |] ->
         begin

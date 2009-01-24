@@ -257,115 +257,125 @@ let token (lexbuf : token lexerstate) : token =
       raise Eof;
 
     if isNewline currentChar then begin
-      let rec consumeWhitespaceAndReturnIndent indent =
-        let eof, nextChar =
-          try false, lexbuf.readChar()
-          with Eof -> true, '\n'
-        in
-        if eof then
-          indent
-        else if isWhitespace nextChar then
-          consumeWhitespaceAndReturnIndent (indent+1)
-        else if isNewline nextChar then
-          consumeWhitespaceAndReturnIndent 0
-        else begin
-          lexbuf.backTrack 1;
-          indent
-        end
-      in
-      let indent = consumeWhitespaceAndReturnIndent 0 in
-      let prevIndent = lexbuf.prevIndent in
-      lexbuf.prevIndent <- indent;
+      collectTimingInfo "newline"
+        (fun () ->
+           let rec consumeWhitespaceAndReturnIndent indent =
+             let eof, nextChar =
+               try false, lexbuf.readChar()
+               with Eof -> true, '\n'
+             in
+             if eof then
+               indent
+             else if isWhitespace nextChar then
+               consumeWhitespaceAndReturnIndent (indent+1)
+             else if isNewline nextChar then
+               consumeWhitespaceAndReturnIndent 0
+             else begin
+               lexbuf.backTrack 1;
+               indent
+             end
+           in
+           let indent = consumeWhitespaceAndReturnIndent 0 in
+           let prevIndent = lexbuf.prevIndent in
+           lexbuf.prevIndent <- indent;
 
-      if lexbuf.readTokenBefore = false then begin
-        if indent = prevIndent then worker ()
-        else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
-
-      end else begin
-        (* lookup forward for `Ignore and possibly reset indent? *)
-        if indent = prevIndent then begin
-          `Token END
-        end else if indent = prevIndent + 2 then begin
-          `Token BEGIN_BLOCK
-        end else if indent > prevIndent then begin
-          raiseIndentError lexbuf.location
-            (sprintf "Indentation was increased by %d spaces but only 2 are legal" (indent - prevIndent))
-        end else if indent = prevIndent - 2 then begin
-          let line = readUntil isNewline lexbuf in
-          if isBlockEndLine line then begin
-            putback lexbuf "\n";
-            if line =~ "^end\\(.*\\)$" then
-              match List.rev (Str.split whitespaceRE (nthmatch 1)) with
-                | "}" :: args ->
-                    returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args); CLOSE_CURLY]
-                | args ->
-                    returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args)]
-            else
-              failwith "splitting block end line failed"
-          end else begin
-            putback lexbuf (line ^ "\n");
-            returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
-          end
-        end else begin (* indent is more than one level less than in previous line *)
-          raiseIndentError lexbuf.location
-            (sprintf "Indentation was reduced by %d spaces but only steps of 2 are legal" (prevIndent - indent))
-        end
-      end
+           if lexbuf.readTokenBefore = false then begin
+             if indent = prevIndent then worker ()
+             else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
+           end else begin
+             (** lookup forward for `Ignore and possibly reset indent? *)
+             if indent = prevIndent then begin
+               `Token END
+             end else if indent = prevIndent + 2 then begin
+               `Token BEGIN_BLOCK
+             end else if indent > prevIndent then begin
+               raiseIndentError lexbuf.location
+                 (sprintf "Indentation was increased by %d spaces but only 2 are legal" (indent - prevIndent))
+             end else if indent = prevIndent - 2 then begin
+               let line = readUntil isNewline lexbuf in
+               if isBlockEndLine line then begin
+                 putback lexbuf "\n";
+                 if line =~ "^end\\(.*\\)$" then
+                   match List.rev (Str.split whitespaceRE (nthmatch 1)) with
+                     | "}" :: args ->
+                         returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args); CLOSE_CURLY]
+                     | args ->
+                         returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args)]
+                 else
+                   failwith "splitting block end line failed"
+               end else begin
+                 putback lexbuf (line ^ "\n");
+                 returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
+               end
+             end else begin (* indent is more than one level less than in previous line *)
+               raiseIndentError lexbuf.location
+                 (sprintf "Indentation was reduced by %d spaces but only steps of 2 are legal" (prevIndent - indent))
+             end
+           end)
 
     (** no newline *)
     end else begin
-      let rec findToken prevInput prevFullMatches =
-        let actualChar = lexbuf.readChar() in
-        let input = prevInput ^ String.make 1 actualChar in
-        let prevChar = String.make 1 lexbuf.endOfLastToken in
-        assert( String.length prevChar = 1);
-        let beginMatches = List.filter (ruleBeginMatches prevChar input) rules in
-        let fullMatches =
-          match List.filter (ruleMatches prevChar input) rules with
-            | [] -> prevFullMatches
-            | fullMatches ->
-                let inputLength = String.length input in
-                List.map (fun m -> inputLength, m) fullMatches
-        in
-        let tokenFromRule length makeToken =
-          let spareInput = Str.string_after input length in
-          let consumedInput = Str.string_before input length in
-          putback lexbuf spareInput;
-          let token : [`Ignore | `Token of token] =
-            match (makeToken consumedInput : tokenOrAction) with
-              | `PutBack(token, prefetched) ->
-                  putback lexbuf prefetched;
-                  (`Token token :> [`Ignore|`Token of token])
-              | `Ignore -> `Ignore
-              | `Token token -> ((`Token token) : [`Ignore | `Token of token])
-          in
-          token
-        in
-        match beginMatches with
-          | [] ->
-              begin match fullMatches with
-                | [] -> raiseUnknownToken lexbuf.location input
-                    (sprintf "no matching rule (after '%s')" prevChar)
-                | [length, (_, makeToken)] ->
-                    tokenFromRule length makeToken
-                | multi ->
-                    begin
-                      match List.filter (ruleMatches prevChar (prevInput ^ " ")) rules with
-                        | [_, makeToken] ->
-                            tokenFromRule (String.length input + 1) makeToken
-                        | [] ->
-                            raiseUnknownToken lexbuf.location input
-                              (sprintf "no matching rules at end of line (after '%s')" prevChar)
-                        | multi ->
-                            raiseUnknownToken lexbuf.location input
-                              (sprintf "multiple rules matching (after '%s')" prevChar)
-                    end
-              end
-          | oneOrMoreBeginMatches ->
-              findToken input fullMatches
-      in
-      lexbuf.backTrack 1;
-      findToken "" []
+      collectTimingInfo "no newline"
+        (fun () ->
+           let rec findToken prevInput prevFullMatches rules =
+             let actualChar = lexbuf.readChar() in
+             let input = prevInput ^ String.make 1 actualChar in
+             let prevChar = String.make 1 lexbuf.endOfLastToken in
+             assert( String.length prevChar = 1);
+             let beginMatches =
+               collectTimingInfo "beginMatches"
+                 (fun () ->
+                    List.filter (ruleBeginMatches prevChar input) rules)
+             in
+             let fullMatches =
+               collectTimingInfo "fullMatches"
+                 (fun () ->
+                    match List.filter (ruleMatches prevChar input) beginMatches with
+                      | [] -> prevFullMatches
+                      | fullMatches ->
+                          let inputLength = String.length input in
+                          List.map (fun m -> inputLength, m) fullMatches)
+             in
+             let tokenFromRule length makeToken =
+               let spareInput = Str.string_after input length in
+               let consumedInput = Str.string_before input length in
+               putback lexbuf spareInput;
+               let token : [`Ignore | `Token of token] =
+                 match (makeToken consumedInput : tokenOrAction) with
+                   | `PutBack(token, prefetched) ->
+                       putback lexbuf prefetched;
+                       (`Token token :> [`Ignore|`Token of token])
+                   | `Ignore -> `Ignore
+                   | `Token token -> ((`Token token) : [`Ignore | `Token of token])
+               in
+               token
+             in
+             let tokenFromRule = sampleFunc2 "tokenFromRule" tokenFromRule in
+             match beginMatches with
+               | [] ->
+                   begin match fullMatches with
+                     | [] -> raiseUnknownToken lexbuf.location input
+                         (sprintf "no matching rule (after '%s')" prevChar)
+                     | [length, (_, makeToken)] ->
+                         tokenFromRule length makeToken
+                     | multi ->
+                         begin
+                           match List.filter (ruleMatches prevChar (prevInput ^ " ")) rules with
+                             | [_, makeToken] ->
+                                 tokenFromRule (String.length input + 1) makeToken
+                             | [] ->
+                                 raiseUnknownToken lexbuf.location input
+                                   (sprintf "no matching rules at end of line (after '%s')" prevChar)
+                             | multi ->
+                                 raiseUnknownToken lexbuf.location input
+                                   (sprintf "multiple rules matching (after '%s')" prevChar)
+                         end
+                   end
+               | oneOrMoreBeginMatches ->
+                   findToken input fullMatches oneOrMoreBeginMatches
+           in
+           lexbuf.backTrack 1;
+           findToken "" [] rules)
     end
   in
   let rec getNextToken() =

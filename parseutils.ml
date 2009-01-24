@@ -42,6 +42,7 @@ let parseIExprsNoCatch source =
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   let lexFunc _ = Indentlexer.token lexstate in
+  let lexFunc = sampleFunc1 "lexing" lexFunc in
   let rec read acc =
     try
       let expr = Newparser.main lexFunc lexbuf in
