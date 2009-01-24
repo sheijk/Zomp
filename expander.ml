@@ -1410,16 +1410,28 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
     translateFuncCall;
     translateMacro;
     translateDefineMacro translateNested;
-    (* translateAssignVar; *)
-    (*     translateTypedef; *)
     translateGenericIntrinsic;
     translateRecord;
     translateReturn;
     translateLabel;
     translateBranch;
-(*     translateAntiquote; *)
   ]
+  (* [ *)
+  (*   sampleFunc3 "nested.translateFromDict" <<= translateFromDict baseInstructions; *)
+  (*   sampleFunc3 "nested.translateSeq" <<= translateSeq; *)
+  (*   sampleFunc3 "nested.translateDefineVar" <<= translateDefineVar; *)
+  (*   sampleFunc3 "nested.translateSimpleExpr" <<= translateSimpleExpr; *)
+  (*   sampleFunc3 "nested.translateFuncCall" <<= translateFuncCall; *)
+  (*   sampleFunc3 "nested.translateMacro" <<= translateMacro; *)
+  (*   sampleFunc3 "nested.translateDefineMacro" <<= translateDefineMacro translateNested; *)
+  (*   sampleFunc3 "nested.translateGenericIntrinsic" <<= translateGenericIntrinsic; *)
+  (*   sampleFunc3 "nested.translateRecord" <<= translateRecord; *)
+  (*   sampleFunc3 "nested.translateReturn" <<= translateReturn; *)
+  (*   sampleFunc3 "nested.translateLabel" <<= translateLabel; *)
+  (*   sampleFunc3 "nested.translateBranch" <<= translateBranch; *)
+  (* ] *)
   translateF bindings
+let translateNested = sampleFunc2 "translateNested" translateNested
 
 let translateAndEval handleLLVMCodeF env exprs =
   collectTimingInfo "translateAndEval"
@@ -1430,9 +1442,16 @@ let translateAndEval handleLLVMCodeF env exprs =
               let newBindings, newExprs = env.translateF bindings sexpr in
               List.iter
                 (fun form ->
-                   let llvmCode = Genllvm.gencodeTL form in
-                   Zompvm.evalLLVMCode bindings [form] llvmCode;
-                   handleLLVMCodeF llvmCode)
+                   let llvmCode =
+                     collectTimingInfo "gencode"
+                       (fun () ->
+                          Genllvm.gencodeTL form) in
+                   collectTimingInfo "Zompvm.evalLLVMCode"
+                     (fun () ->
+                        Zompvm.evalLLVMCode bindings [form] llvmCode);
+                   collectTimingInfo "handleLLVMCodeF"
+                     (fun () ->
+                        handleLLVMCodeF llvmCode))
                 newExprs;
               newBindings, prevExprs @ newExprs )
            (env.bindings, [])

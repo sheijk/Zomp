@@ -375,6 +375,7 @@ struct
 end
 
 let () =
+  at_exit Profiling.printTimings;
   let rec step bindings () =
     Compileutils.catchingErrorsDo
       (fun () -> begin

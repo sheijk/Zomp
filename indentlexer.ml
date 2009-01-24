@@ -460,66 +460,94 @@ type preprocessorState =
   | OneLineComment
   | MultiLineComment
 
-let makeLexbuf fileName readCharFunc =
-  let buffer = ref "" in
-  let eof = ref false in
+let fakeLocation = { line = 0; fileName = "fake" }
+
+let stripComments source =
+  let sourceLength = String.length source in
+  let readPos = ref 0 in
+  let strippedSource = String.make (sourceLength+1) '\n' in
+  let writePos = ref 0 in
+  let writeChar chr =
+    strippedSource.[!writePos] <- chr;
+    incr writePos
+  in
+  let unexpectedEofInComment() =
+    raiseIndentError fakeLocation "Unexpected Eof while parsing comment"
+  in
+  let rec copySource() =
+    if !readPos <= sourceLength - 2 then begin
+      readPos := !readPos + 2;
+      match source.[!readPos-2], source.[!readPos-1] with
+        | '/', '/' ->
+            skipSingleLineComment()
+        | '/', '*' ->
+            skipMultiLineComment()
+        | chr1, '/' ->
+            writeChar chr1;
+            readPos := !readPos - 1;
+            copySource();
+        | chr1, chr2 ->
+            writeChar chr1;
+            writeChar chr2;
+            copySource()
+    end else begin
+      if !readPos = sourceLength - 1 then
+        writeChar source.[sourceLength - 1]
+    end
+  and skipSingleLineComment() =
+    if !readPos <= sourceLength - 1 then
+      let chr = source.[!readPos] in
+      incr readPos;
+      if chr = '\n' then begin
+        writeChar '\n';
+        copySource()
+      end else
+        skipSingleLineComment()
+    else
+      unexpectedEofInComment()
+  and skipMultiLineComment() =
+    if !readPos <= sourceLength - 2 then begin
+      readPos := !readPos + 2;
+      match source.[!readPos-2], source.[!readPos-1] with
+        | '*', '/' -> copySource()
+        | chr, '*' ->
+            decr readPos;
+            skipMultiLineComment()
+        | _, _ ->
+            skipMultiLineComment()
+    end else
+      unexpectedEofInComment()
+  in
+  copySource();
+  String.sub strippedSource 0 (!writePos + 1)
+  
+let makeLexbuf fileName source =
+  let buffer = ref (stripComments source) in
+
+  (* hide source param to avoid accidental usage *)
+  let source = 10 in
+  ignore source;
 
   let rec lexbuf =
-    let readCharExtraNewline () =
-      if !eof then
+    let sourceLength = String.length !buffer in
+    let position = ref 0 in
+    let readCharFunc() =
+      if !position < sourceLength then begin
+        let chr = !buffer.[!position] in
+        incr position;
+        lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
+        chr
+      end else
         raise Eof
-      else
-        try
-          readCharFunc()
-        with Eof ->
-          eof := true;
-          '\n'
     in
-    let readCharWithBuffer () =
-      let chr =
-        if String.length !buffer > 0 then begin
-          let chr = !buffer.[0] in
-          buffer := String.sub !buffer 1 (max (String.length !buffer -1) 0);
-          chr
-        end else
-          readCharExtraNewline()
-      in
-      if isNewline chr then
-        lexbuf.location <- { lexbuf.location with line = lexbuf.location.line + 1 };
-      lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
-      chr
-    in
-    let backTrack count =
-      buffer := Str.last_chars lexbuf.lastReadChars count ^ !buffer;
+
+    let backTrack n =
+      position := !position - n;
       lexbuf.lastReadChars <- Str.first_chars lexbuf.lastReadChars
-        (String.length lexbuf.lastReadChars - count);
-    in
-    let preprocessedRead () =
-      collectTimingInfo "stripping comments"
-        (fun () ->
-           let rec readSource() =
-             match readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
-               | '/', Some '/' -> readSingleLineComment()
-               | '/', Some '*' -> readMultiLineComment()
-               | lastCharInFile, None -> lastCharInFile
-               | char, Some _ ->
-                   backTrack 1;
-                   char
-           and readSingleLineComment() =
-             match readCharWithBuffer() with
-               | '\n' -> '\n'
-               | _ -> readSingleLineComment()
-           and readMultiLineComment() =
-             match  readCharWithBuffer(), (try Some(readCharWithBuffer()) with Eof -> None) with
-               | '*', Some '/' -> readSource()
-               | lastCharInFile, None -> lastCharInFile
-               | _, Some '*' -> backTrack 1; readMultiLineComment();
-               | _, Some _ -> readMultiLineComment()
-           in
-           readSource())
+        (String.length lexbuf.lastReadChars - n);
     in
     {
-      readChar = preprocessedRead;
+      readChar = readCharFunc;
       backTrack = backTrack;
       location = { line = 0; fileName = fileName };
       prevIndent = 0;
@@ -531,25 +559,16 @@ let makeLexbuf fileName readCharFunc =
   in
   lexbuf
 
-let lexbufFromChannel fileName channel = makeLexbuf fileName (fun () -> input_char channel)
+let lexbufFromString fileName string =
+  let sourceWithEOL = string ^ "\n" in
+  makeLexbuf fileName sourceWithEOL
+
+let lexbufFromChannel fileName channel =
+  let source = Common.readChannel channel in
+  lexbufFromString fileName source
+
 
 let readChar lexstate = lexstate.readChar()
-
-let lexbufFromString fileName string =
-  let endlineString = string ^ "\n" in
-  let stringLength = String.length endlineString in
-  let position = ref 0 in
-  let readCharFunc() =
-    if !position < stringLength then begin
-      let chr = endlineString.[!position] in
-      incr position;
-      chr
-    end else
-      raise Eof
-  in
-  makeLexbuf fileName readCharFunc
-
-(* Main --------------------------------------------------------------------- *)
 
 let dummymllexbuf =
   {

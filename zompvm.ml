@@ -22,16 +22,24 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
   in
   let removeFunctionBody name = Machine.zompRemoveFunctionBody name in
   let recompileAndRelinkFunction name = Machine.zompRecompileAndRelinkFunction name in
-  tryApplyToAll
-    removeFunctionBody
-    redefinedFunctions
-    ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not remove function body: " ^ msg));
-  if not (Machine.zompSendCode llvmCode targetModuleName) then
-    raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate";
-  tryApplyToAll
-    recompileAndRelinkFunction
-    redefinedFunctions
-    ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not recompile and relink function: " ^ msg))
+  (* let removeFunctionBody = sampleFunc1 "removeFunctionBody" removeFunctionBody in *)
+  (* let recompileAndRelinkFunction = sampleFunc1 "recompileAndRelinkFunction" recompileAndRelinkFunction in *)
+  collectTimingInfo "removeFunctionBodies"
+    (fun () ->
+       tryApplyToAll
+         removeFunctionBody
+         redefinedFunctions
+         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not remove function body: " ^ msg)));
+  collectTimingInfo "send code"
+    (fun () ->
+       if not (Machine.zompSendCode llvmCode targetModuleName) then
+         raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate");
+  collectTimingInfo "recompile and relink functions"
+    (fun () ->
+       tryApplyToAll
+         recompileAndRelinkFunction
+         redefinedFunctions
+         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not recompile and relink function: " ^ msg)))
 
 let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
   let isDefinedFunction func =
@@ -42,7 +50,8 @@ let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
             | Bindings.FuncSymbol _ -> true
             | _ -> false
   in
-  let redefinedFunctions = List.fold_left
+  let redefinedFunctions =
+    List.fold_left
     (fun redefinedFunctions toplevelForm ->
        match toplevelForm with
          | `DefineFunc func when isDefinedFunction func -> func.fname :: redefinedFunctions

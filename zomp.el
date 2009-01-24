@@ -115,7 +115,8 @@ indent the next line when they occur at the beginning of a line"
   (let ((oldwin (selected-window)))
     (shell "*zomp-toplevel*")
     (zomp-tl-do (concat "cd " zomp-basedir))
-    (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
+    (zomp-tl-do "./sexprtoplevel.native; exit")
+    ;; (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
     (message "Started zomp toplevel")
     (select-window oldwin)))
 
