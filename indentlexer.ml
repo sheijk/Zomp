@@ -38,152 +38,207 @@ let trimLinefeed str =
   let noLineFeeds = mapString (function '\n' -> ' ' | c -> c) str in
   trim noLineFeeds
 
-(**
- * each rule consists of two regexps (one for the string allowed to precede the expression
- * and one which matches the token) and a function turning the matched string into a token
- *)
-let rules : ((Str.regexp * Str.regexp) * tokenBuilder) list =
-  let opSymbols = "-+\\*/&.><=!:|" in
-  let re regexpString = Str.regexp "\\(.\\|\n\\)", Str.regexp regexpString in
-  let idFunc s = `Token (IDENTIFIER s) in
-  let regexpRule str token =
-    re str,
-    (fun matchedStr -> `Token token)
-  in
-  let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
-  let validIdentifierChars = "a-zA-Z0-9:_" in
-  let validIdentifierFirstChar = "a-zA-Z_" in
-  let validIdentifierLastChar = "a-zA-Z0-9_" in
-  let opRule symbol (tokenF :string -> token) =
-    (Str.regexp "[a-z)]",
-     Str.regexp (opre symbol ^ (sprintf "[^) \n%s]" opSymbols))),
-    (fun str ->
-       let lastChar = str.[String.length str - 1] in
-       let str2 = Str.string_before str (String.length str - 1) in
-       `PutBack( tokenF (trim str2), String.make 1 lastChar ) )
-  in
-  let opRuleWS symbol (tokenF :string -> token) =
-    re (sprintf " +%s\\( +\\|\n\\)" (opre symbol)),
-    (fun str ->
-       let token = (tokenF (trimLinefeed str)) in
-       if lastChar str = '\n' then
-         `PutBack(token, "\n")
-       else
-         `Token token)
-  in
-  let opRules symbol (tokenF :string -> token) =
-    [opRule symbol tokenF;
-     opRuleWS symbol tokenF]
-  in
-  let opRulesMultiSym symbols tokenF =
-    let rules = List.map (fun symbol -> opRules symbol tokenF) symbols in
-    List.flatten rules
-  in
-  let contextInsensitiveOp symbol f =
-    (Str.regexp "", Str.regexp symbol), (fun t -> `Token (f t))
-  in
-  let postfixRule symbol =
-    re (sprintf "%s\\( +\\|\n\\|)\\|[%s]\\)" (Str.quote symbol) opSymbols),
-    (fun s ->
-       if String.length s >= 1 && Str.last_chars s 1 = "\n" then
-         `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
-       else
-         let trimmed, putbackString = splitAt s (FromFront (String.length symbol)) in
-         `PutBack (POSTFIX_OP trimmed, putbackString) )
-  in
-  let prefixRule symbol =
-    (Str.regexp "\\(\n\\| +\\)", Str.regexp (sprintf "%s" (Str.quote symbol))),
-    (fun s -> `Token (PREFIX_OP (trim s)))
-  in
-  let stringRule = re "\"[^\"]*\"", idFunc in
-  let charRule = re "'[^']+'", idFunc in
-  let intRule = re "-?[0-9]+[a-zA-Z]*", idFunc in
-  let floatRule = re "-?\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
-  let identifierRE =
-    sprintf "\\([%s][%s]*[%s]" validIdentifierFirstChar validIdentifierChars validIdentifierLastChar
-    ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
- in
-  let identifierRule =
-    re identifierRE, (fun str -> `Token (IDENTIFIER str));
-  in
-  let quoteRule str =
-    re (Str.quote str),
-    (fun foundStr ->
-       assert( str = foundStr );
-       `Token (QUOTE str))
-  in
-  let whitespaceRule = (Str.regexp ".*", whitespaceRE), (fun _ -> `Ignore) in
-  let opfuncRule prefix =
-    re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z]+\\)? *" opSymbols),
-    (fun (str:string) -> `Token (IDENTIFIER (trim str)))
-  in
-  let keywordRule =
-    re (identifierRE ^ ":\\( \\| *\n\\)"),
-    (fun id ->
-       let keyword, colon = Common.splitAt id (FromBack 2) in
-       let token = KEYWORD_ARG keyword in
-       if lastChar colon = '\n' then
-         `PutBack( token, "\n" )
-       else
-         `Token token)
-  in
-  let opbracketRules =
-    [re "op\\[\\]", (fun s -> `Token (IDENTIFIER s));
-     re "postop\\[\\]", (fun s -> `Token (IDENTIFIER s))]
-  in
-  let whitespaceDependentToken chr afterWhitepace afterId =
-    let idChars = "a-zA-Z0-9_" in
-    [
-      (Str.regexp (sprintf "[^%s]" idChars), Str.regexp_string chr),
-      (fun _ -> `Token afterWhitepace);
-      (Str.regexp (sprintf "[%s]" idChars), Str.regexp_string chr),
-      (fun s -> `Token afterId);
+module Rules : sig
+  type rule
+
+  val rules : (rule * tokenBuilder) list
+
+  val ruleBeginMatches : string -> string -> rule * tokenBuilder -> bool
+  val ruleMatches : string -> string -> rule * tokenBuilder -> bool
+end = struct
+
+  type charre =
+    | Any
+    | NoWSOrOp
+    | Whitespace
+    | Identifier
+    | Not of charre
+
+  type rule = (charre * Str.regexp)
+
+  let rec charreMatch cre charStr =
+    let isIdentifier char =
+      (char >= 'a' && char <= 'z') ||
+        (char >= 'A' && char <= 'Z') ||
+        (char >= '0' && char <= '9') ||
+        (char = '_')
+    in
+    match cre with
+      | Any -> true
+      | NoWSOrOp ->
+          (String.length charStr = 1) &&
+            (let char = charStr.[0] in
+             isIdentifier char ||
+               (char = ')') ||
+               (char = ']'))
+      | Whitespace ->
+          (String.length charStr = 1 &&
+              let char = charStr.[0] in
+              (char = ' ') || (char = '\n'))
+      | Not icre ->
+          not (charreMatch icre charStr)
+      | Identifier ->
+          (String.length charStr = 1) &&
+            isIdentifier charStr.[0]
+
+  (**
+     * each rule consists of two regexps (one for the string allowed to precede the expression
+     * and one which matches the token) and a function turning the matched string into a token
+  *)
+  let rules : ((charre * Str.regexp) * tokenBuilder) list =
+    let opSymbols = "-+\\*/&.><=!:|" in
+    let re regexpString =
+      Any, Str.regexp regexpString
+    in
+    let idFunc s = `Token (IDENTIFIER s) in
+    let regexpRule str token =
+      re str,
+      (fun matchedStr -> `Token token)
+    in
+    let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
+    let validIdentifierChars = "a-zA-Z0-9:_" in
+    let validIdentifierFirstChar = "a-zA-Z_" in
+    let validIdentifierLastChar = "a-zA-Z0-9_" in
+    let opRule symbol (tokenF :string -> token) =
+      (NoWSOrOp,
+       Str.regexp (opre symbol ^ (sprintf "[^) \n%s]" opSymbols))),
+      (fun str ->
+         let lastChar = str.[String.length str - 1] in
+         let str2 = Str.string_before str (String.length str - 1) in
+         `PutBack( tokenF (trim str2), String.make 1 lastChar ) )
+    in
+    let opRuleWS symbol (tokenF :string -> token) =
+      re (sprintf " +%s\\( +\\|\n\\)" (opre symbol)),
+      (fun str ->
+         let token = (tokenF (trimLinefeed str)) in
+         if lastChar str = '\n' then
+           `PutBack(token, "\n")
+         else
+           `Token token)
+    in
+    let opRules symbol (tokenF :string -> token) =
+      [opRule symbol tokenF;
+       opRuleWS symbol tokenF]
+    in
+    let opRulesMultiSym symbols tokenF =
+      let rules = List.map (fun symbol -> opRules symbol tokenF) symbols in
+      List.flatten rules
+    in
+    let contextInsensitiveOp symbol f =
+      (Any, Str.regexp symbol), (fun t -> `Token (f t))
+    in
+    let postfixRule symbol =
+      re (sprintf "%s\\( +\\|\n\\|)\\|[%s]\\)" (Str.quote symbol) opSymbols),
+      (fun s ->
+         if String.length s >= 1 && Str.last_chars s 1 = "\n" then
+           `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
+         else
+           let trimmed, putbackString = splitAt s (FromFront (String.length symbol)) in
+           `PutBack (POSTFIX_OP trimmed, putbackString) )
+    in
+    let prefixRule symbol =
+      (Whitespace, Str.regexp (sprintf "%s" (Str.quote symbol))),
+      (fun s -> `Token (PREFIX_OP (trim s)))
+    in
+    let stringRule = re "\"[^\"]*\"", idFunc in
+    let charRule = re "'[^']+'", idFunc in
+    let intRule = re "-?[0-9]+[a-zA-Z]*", idFunc in
+    let floatRule = re "-?\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
+    let identifierRE =
+      sprintf "\\([%s][%s]*[%s]" validIdentifierFirstChar validIdentifierChars validIdentifierLastChar
+      ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
+    in
+    let identifierRule =
+      re identifierRE, (fun str -> `Token (IDENTIFIER str));
+    in
+    let quoteRule str =
+      re (Str.quote str),
+      (fun foundStr ->
+         assert( str = foundStr );
+         `Token (QUOTE str))
+    in
+    let whitespaceRule = (Any, whitespaceRE), (fun _ -> `Ignore) in
+    let opfuncRule prefix =
+      re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z]+\\)? *" opSymbols),
+      (fun (str:string) -> `Token (IDENTIFIER (trim str)))
+    in
+    let keywordRule =
+      re (identifierRE ^ ":\\( \\| *\n\\)"),
+      (fun id ->
+         let keyword, colon = Common.splitAt id (FromBack 2) in
+         let token = KEYWORD_ARG keyword in
+         if lastChar colon = '\n' then
+           `PutBack( token, "\n" )
+         else
+           `Token token)
+    in
+    let opbracketRules =
+      [re "op\\[\\]", (fun s -> `Token (IDENTIFIER s));
+       re "postop\\[\\]", (fun s -> `Token (IDENTIFIER s))]
+    in
+    let whitespaceDependentToken chr afterWhitepace afterId =
+      [
+        (Not Identifier, Str.regexp_string chr),
+        (fun _ -> `Token afterWhitepace);
+        (Identifier, Str.regexp_string chr),
+        (fun s -> `Token afterId);
+      ]
+    in
+    whitespaceDependentToken "(" OPEN_PAREN OPEN_ARGLIST
+    @ whitespaceDependentToken "[" OPEN_BRACKET OPEN_BRACKET_POSTFIX
+    @ opbracketRules
+    @ [
+      identifierRule;
+      whitespaceRule;
+      keywordRule;
+      opfuncRule "op";
+      opfuncRule "preop";
+      opfuncRule "postop";
+      regexpRule ")" CLOSE_PAREN;
+      regexpRule "{" OPEN_CURLY;
+      regexpRule "}" CLOSE_CURLY;
+      regexpRule "]" CLOSE_BRACKET;
+      regexpRule " *, *" COMMA;
+      regexpRule "\\." DOT;
+      quoteRule "$";
+      quoteRule "$$";
+      quoteRule "#";
+      postfixRule "...";
+      postfixRule "*";
+      prefixRule "*";
+      prefixRule "&";
+      postfixRule "++";
+      postfixRule "--";
+      prefixRule "++";
+      prefixRule "--";
+      stringRule;
+      charRule;
+      intRule;
+      floatRule;
+      contextInsensitiveOp ";" (fun s -> LAZY_BOOL_OP s);
     ]
-  in
-  whitespaceDependentToken "(" OPEN_PAREN OPEN_ARGLIST
-  @ whitespaceDependentToken "[" OPEN_BRACKET OPEN_BRACKET_POSTFIX
-  @ opbracketRules
-  @ [
-    identifierRule;
-    whitespaceRule;
-    keywordRule;
-    opfuncRule "op";
-    opfuncRule "preop";
-    opfuncRule "postop";
-    regexpRule ")" CLOSE_PAREN;
-    regexpRule "{" OPEN_CURLY;
-    regexpRule "}" CLOSE_CURLY;
-    regexpRule "]" CLOSE_BRACKET;
-    regexpRule " *, *" COMMA;
-    regexpRule "\\." DOT;
-    quoteRule "$";
-    quoteRule "$$";
-    quoteRule "#";
-    postfixRule "...";
-    postfixRule "*";
-    prefixRule "*";
-    prefixRule "&";
-    postfixRule "++";
-    postfixRule "--";
-    prefixRule "++";
-    prefixRule "--";
-    stringRule;
-    charRule;
-    intRule;
-    floatRule;
-    contextInsensitiveOp ";" (fun s -> LAZY_BOOL_OP s);
-  ]
-  @ opRules "+" (fun s -> ADD_OP s)
-  @ opRules "-" (fun s -> ADD_OP s)
-  @ opRules "*" (fun s -> MULT_OP s)
-  @ opRules "/" (fun s -> MULT_OP s)
-  @ opRules "**" (fun s -> MULT_OP s)
-  @ opRules "++" (fun s -> ADD_OP s)
-  @ opRulesMultiSym ["="; ":="] (fun s -> ASSIGN_OP s)
-  @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> COMPARE_OP s)
-  @ opRulesMultiSym ["&&"; "||"] (fun s -> LAZY_BOOL_OP s)
-  @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
-    (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
+    @ opRules "+" (fun s -> ADD_OP s)
+    @ opRules "-" (fun s -> ADD_OP s)
+    @ opRules "*" (fun s -> MULT_OP s)
+    @ opRules "/" (fun s -> MULT_OP s)
+    @ opRules "**" (fun s -> MULT_OP s)
+    @ opRules "++" (fun s -> ADD_OP s)
+    @ opRulesMultiSym ["="; ":="] (fun s -> ASSIGN_OP s)
+    @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> COMPARE_OP s)
+    @ opRulesMultiSym ["&&"; "||"] (fun s -> LAZY_BOOL_OP s)
+    @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
+      (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
+
+  let ruleBeginMatches prevChar string ((prevCharRE, regexp), _) =
+    charreMatch prevCharRE prevChar &&
+      Str.string_partial_match regexp string 0 &&
+      String.length (Str.matched_group 0 string) = String.length string
+
+  let ruleMatches prevChar string ((prevCharRE, regexp), _) =
+    charreMatch prevCharRE prevChar &&
+      Str.string_match regexp string 0 &&
+      String.length (Str.matched_group 0 string) = String.length string
+end
 
 type 'token lexerstate = {
   readChar : unit -> char;
@@ -231,6 +286,37 @@ let readUntil abortOnChar state =
   with Eof -> () end;
   !acc
 
+type stats = {
+  foundTokens :int ref;
+  beginmatchCalcCount :int ref;
+  beginmatchMatchNums :int ref;
+  fullmatchCalcCount :int ref;
+  fullmatchMatchNums :int ref;
+}
+
+let stats = {
+  foundTokens = ref 0;
+  beginmatchCalcCount = ref 0;
+  beginmatchMatchNums = ref 0;
+  fullmatchCalcCount = ref 0;
+  fullmatchMatchNums = ref 0;
+}
+
+let printStats() =
+  printf "----- lexer stats:\n";
+  printf "  %d tokens found\n" !(stats.foundTokens);
+  printf "  %d times made begin match set\n" !(stats.beginmatchCalcCount);
+  printf "  %d total begin matches\n" !(stats.beginmatchMatchNums);
+  printf "  %d total matches calculated\n" !(stats.fullmatchMatchNums);
+  printf "  %d total full matches\n" !(stats.fullmatchMatchNums);
+  printf "  %f%% begin matches average\n"
+    (float !(stats.beginmatchMatchNums) /. float !(stats.beginmatchCalcCount));
+  printf "  %f%% full matches average\n"
+    (float !(stats.fullmatchMatchNums) /. float !(stats.fullmatchCalcCount));
+  printf "-----\n"
+
+(* let () = at_exit printStats *)
+
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
     let len = String.length string in
@@ -239,16 +325,6 @@ let token (lexbuf : token lexerstate) : token =
       assert false;
     end;
     lexbuf.backTrack len
-  in
-
-  let ruleBeginMatches prevChar string ((prevCharRE, regexp), _) =
-    Str.string_match prevCharRE prevChar 0 &&
-      Str.string_partial_match regexp string 0 &&
-      String.length (Str.matched_group 0 string) = String.length string
-  and ruleMatches prevChar string ((prevCharRE, regexp), _) =
-    Str.string_match prevCharRE prevChar 0 &&
-      Str.string_match regexp string 0 &&
-      String.length (Str.matched_group 0 string) = String.length string
   in
 
   let rec worker () =
@@ -315,6 +391,9 @@ let token (lexbuf : token lexerstate) : token =
 
     (** no newline *)
     end else begin
+      let incrn r n =
+        r := !r + n
+      in
       collectTimingInfo "no newline"
         (fun () ->
            let rec findToken prevInput prevFullMatches rules =
@@ -325,17 +404,21 @@ let token (lexbuf : token lexerstate) : token =
              let beginMatches =
                collectTimingInfo "beginMatches"
                  (fun () ->
-                    List.filter (ruleBeginMatches prevChar input) rules)
+                    List.filter (Rules.ruleBeginMatches prevChar input) rules)
              in
+             incr stats.beginmatchCalcCount;
+             incrn stats.beginmatchMatchNums (List.length beginMatches);
              let fullMatches =
                collectTimingInfo "fullMatches"
                  (fun () ->
-                    match List.filter (ruleMatches prevChar input) beginMatches with
+                    match List.filter (Rules.ruleMatches prevChar input) beginMatches with
                       | [] -> prevFullMatches
                       | fullMatches ->
                           let inputLength = String.length input in
                           List.map (fun m -> inputLength, m) fullMatches)
              in
+             incr stats.fullmatchCalcCount;
+             incrn stats.fullmatchMatchNums (List.length fullMatches);
              let tokenFromRule length makeToken =
                let spareInput = Str.string_after input length in
                let consumedInput = Str.string_before input length in
@@ -360,7 +443,7 @@ let token (lexbuf : token lexerstate) : token =
                          tokenFromRule length makeToken
                      | multi ->
                          begin
-                           match List.filter (ruleMatches prevChar (prevInput ^ " ")) rules with
+                           match List.filter (Rules.ruleMatches prevChar (prevInput ^ " ")) rules with
                              | [_, makeToken] ->
                                  tokenFromRule (String.length input + 1) makeToken
                              | [] ->
@@ -375,7 +458,8 @@ let token (lexbuf : token lexerstate) : token =
                    findToken input fullMatches oneOrMoreBeginMatches
            in
            lexbuf.backTrack 1;
-           findToken "" [] rules)
+           incr stats.foundTokens;
+           findToken "" [] Rules.rules)
     end
   in
   let rec getNextToken() =
