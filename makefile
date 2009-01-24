@@ -5,13 +5,17 @@
 # Config #
 ################################################################################
 
+ifndef DEBUG
+DEBUG=1
+endif
+
 OCAMLPATH=
 OCAMLLEX=$(OCAMLPATH)ocamllex.opt
 OCAMLYACC=$(OCAMLPATH)ocamlyacc
 MENHIR=$(OCAMLPATH)menhir
 OCAML=$(OCAMLPATH)ocaml
 OCAMLRUN=$(OCAMLPATH)ocamlrun
-OCAMLC=$(OCAMLPATH)ocamlc.opt -dtypes -warn-error A -g
+OCAMLC=$(OCAMLPATH)ocamlc.opt -dtypes -warn-error A
 OCAMLOPT=$(OCAMLPATH)ocamlopt.opt -dtypes -warn-error A
 OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
 OCAMLDEP=$(OCAMLPATH)ocamldep.opt
@@ -47,7 +51,14 @@ CAML_PP=
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
 
-CXX_FLAGS=-pg -g -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR)
+CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR)
+
+ifeq ($(DEBUG), 1)
+OCAMLC += -g
+CXX_FLAGS += -pg -g
+else
+CXX_FLAGS += -O5
+endif
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
@@ -272,6 +283,9 @@ machine.cmo: machine.skel dllzompvm.so
 machine.cmx: machine.skel dllzompvm.so
 zompvm.cmo: machine.cmo
 zompvm.cmx: machine.cmx
+
+# genllvm.cmo: genllvm.cmi
+# genllvm.cmx: genllvm.cmi
 
 lang.cmi: common.cmo
 bindings.cmi: common.cmo lang.cmo
