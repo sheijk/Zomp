@@ -14,6 +14,7 @@ tools
 /llvmtest/loopopt.ll
 /tests/timing.txt
 /perf_results.png
+/perflog.txt
 /tests/scratch.zomp
 /examples/*.exe
 /perf_results2.png
