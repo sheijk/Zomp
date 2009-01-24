@@ -61,7 +61,7 @@ let loadLLVMFile filename =
       Sys_error message ->
         eprintf "Could not load file %s: %s\n" filename message
 
-let currentBindings :Bindings.t ref = ref (Bindings.addTypedef [] "asdf" `Int8)
+let currentBindings :Bindings.t ref = ref (Bindings.addTypedef Bindings.defaultBindings "asdf" `Int8)
 
 (** Callbacks which can be called from Zomp *)
 module MeshCache : sig

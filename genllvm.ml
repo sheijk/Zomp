@@ -433,8 +433,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let toFunc (name, _, typ, args) =
       name, FuncSymbol (funcDecl name typ args)
     in
-    (List.map toFunc intrinsicFuncs)
-    @ builtinMacros
+    Bindings.fromSymbolList
+      ((List.map toFunc intrinsicFuncs)
+       @ builtinMacros)
   in
   let externalFuncDecls =
     let rec defs = function

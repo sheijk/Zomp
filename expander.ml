@@ -71,7 +71,7 @@ let rec findTypeName bindings = function
   | `Record components as typ ->
       try
         let name, _ =
-          List.find
+          Bindings.find
             (function
                | (_, TypedefSymbol t) when typ = t -> true
                | _ -> false)

@@ -10,14 +10,16 @@ type symbol =
 and bindings = (string * symbol) list
 
 type t = bindings
-    
+
 let defaultBindings : bindings = []
+
+let fromSymbolList (symbolList : (string * symbol) list) = symbolList
 
 let addVar bindings var : bindings = (var.vname, VarSymbol var) :: bindings
 
 let addFunc bindings func : bindings = (func.fname, FuncSymbol func) :: bindings
 
-let addTypedef bindings name typ = (name, TypedefSymbol typ) :: bindings
+let addTypedef (bindings :bindings) name typ = (name, TypedefSymbol typ) :: bindings
 
 let addLabel bindings name = (name, LabelSymbol { lname = name }) :: bindings
 
@@ -36,4 +38,9 @@ let isFunction bindings name =
   match lookup bindings name with
     | FuncSymbol _ -> true
     | _ -> false
-        
+
+let find testF bindings =
+  List.find testF bindings
+
+let iter = List.iter
+

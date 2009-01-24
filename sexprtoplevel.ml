@@ -124,7 +124,7 @@ let printBindings args (bindings :bindings) =
             printf "undefined %s\n" name
   in
   print_newline();
-  List.iter printSymbol bindings;
+  Bindings.iter printSymbol bindings;
   print_newline()
 
 let runFunction bindings funcname =
@@ -193,7 +193,7 @@ let writeSymbols args (bindings : Bindings.bindings) =
             let print = fprintf stream in
             let typeName = Expander.findTypeName bindings in
             print "Symbol table\n";
-            List.iter (fun (name, symbol) ->
+            Bindings.iter (fun (name, symbol) ->
                          fprintf stream "%s =" name;
                          begin match symbol with
                            | VarSymbol var ->

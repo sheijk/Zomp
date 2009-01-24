@@ -529,16 +529,6 @@ func void Point:init(Point* this, float x, float y, float z)
   this.z = z
 end
 
-func void Point:print(Point* this)
-  printString "Point ("
-  printFloat this.x
-  printString ", "
-  printFloat this.y
-  printString ", "
-  printFloat this.z
-  printString ")"
-end
-
 func void printsi(cstring str, int i)
   printString str
   printChar ' '
@@ -1034,7 +1024,7 @@ func int main()
   ret 0
 end
 
-func void test()
-  runMain()
-end
+// func void test()
+//   runMain()
+// end
 
