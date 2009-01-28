@@ -689,6 +689,24 @@ func void onMouseMove(int x, int y)
   lastMouseY = y
 end
 
+var bool windowOnUpperScreen true
+
+func void onKey(int key, int action)
+  printString "Received key action: "
+  printsi "key = " key
+  printsi ", action = " action
+  println()
+
+  if2 ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS)) then
+    if2 windowOnUpperScreen then
+      glfwSetWindowPos 100 1250
+    else
+      glfwSetWindowPos 100 100
+    end
+    windowOnUpperScreen = bool:not windowOnUpperScreen
+  end
+end
+
 func char* char:toCString(char c)
   str := "X"
   store (cast char* str) c
@@ -805,27 +823,30 @@ func GLint makeGlowShader()
     }
   " /*fragment*/"
   uniform sampler2D tex;
-  const int offsetCount = 3;
-  uniform float offsetx[2*offsetCount+1];
-  uniform float offsety[2*offsetCount+1];
-  uniform float weights[2*offsetCount+1];
+  const int offsetSpan = 7;
+  uniform float offsetx[2*offsetSpan+1];
+  uniform float offsety[2*offsetSpan+1];
+  uniform float weights[2*offsetSpan+1];
 
   void main(void) {
     float pixx = 1.0/800.0;
     float pixy = 1.0/600.0;
 
     vec4 color = vec4(0.0);
-    for(int i = -offsetCount; i < offsetCount+1; ++i) {
-    // for(int i = 0; i < offsetCount; ++i) {
-      // float d = float(1 + abs(i - (offsetCount/2)));
-      float d = float(i);
-      float pi = 3.14159265;
-      float e = 2.718281828459;
-      // float o = offsetCount;
+    for(int i = -offsetSpan; i < offsetSpan+1; ++i) {
+      // float d = float(i);
+      // float pi = 3.14159265;
+      // float e = 2.718281828459;
+      // float o = offsetSpan;
       float o = 8.0;
-      float scale = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
-      color += scale * texture2D(tex, texCoord + vec2(offsetx[i], offsety[i]));
+      // float w = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
+      int n = i + offsetSpan;
+      float w = weights[n];
+      // float w = 1.0;
+      color += w * texture2D(tex, texCoord + vec2(offsetx[n], offsety[n]));
       }
+    // color *= 0.5;
+    // color += texture2D(tex, texCoord);
     color.a = 0.0;
     gl_FragColor = color;
     }"
@@ -847,6 +868,17 @@ macro tracing:instrument code
   ret instrumentedCode
 end
 
+var float math:e 2.71828182845904523536028747135266250
+var float math:log2e 1.44269504088896340735992468100189214
+var float math:log10e 0.434294481903251827651128918916605082
+var float math:ln2 0.693147180559945309417232121458176568
+var float math:ln10 2.30258509299404568401799145468436421
+var float math:pi 3.14159265358979323846264338327950288
+var float math:pi_2 1.57079632679489661923132169163975144
+var float math:pi_4 0.785398163397448309615660845819875721
+var float math:sqrt2 1.41421356237309504880168872420969808
+var float math:sqrt1_2 0.707106781186547524400844362104849039
+
 func int main()
   init()
 
@@ -854,6 +886,7 @@ func int main()
   seq
     glfwSetMousePosCallback (cast void* &onMouseMove)
     glfwSetWindowSizeCallback (cast void* &onWindowResize)
+    glfwSetKeyCallback (cast void* &onKey)
 
     cam := new SpaceballCamera
     cam.distance = 100.0f
@@ -876,7 +909,8 @@ func int main()
     target2 := nullptr framebuffer
     initRenderTarget target2
 
-    offsetCount := 7
+    offsetSpan := 7
+    offsetCount := 2 * offsetSpan + 1
     pixw := 1.0 /_f int:toFloat(windowWidth)
     pixh := 1.0 /_f int:toFloat(windowHeight)
 
@@ -886,10 +920,10 @@ func int main()
     offsety2 := malloc float offsetCount
     weights := malloc float offsetCount
 
-    for i 1 ((offsetCount+1)/2)
+    for i 1 offsetSpan
       s := int:toFloat i
-      h := offsetCount/2 + i
-      l := offsetCount/2 - i
+      h := offsetSpan + i
+      l := offsetSpan - i
 
       offsetx1[l] = float:neg(pixw *_f s)
       offsetx1[h] = pixw *_f s
@@ -900,15 +934,19 @@ func int main()
       offsetx2[h] = 0.0
       offsety2[l] = float:neg(pixh *_f s)
       offsety2[h] = pixh *_f s
+
+      // float w = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
+      // w := 1.0 /_f sqrtf(2 *_f math:PI
+      weights[i] = 1.0
     end
-    offsetCountH := offsetCount/2
-    offsetx1[offsetCountH] = 0.0
-    offsety1[offsetCountH] = 0.0
-    offsetx2[offsetCountH] = 0.0
-    offsety2[offsetCountH] = 0.0
-    for wi 0 offsetCount
-      weights[offsetCount] = 1.0
-    end
+    weights[offsetSpan] = 1.0
+    offsetx1[offsetSpan] = 0.0
+    offsety1[offsetSpan] = 0.0
+    offsetx2[offsetSpan] = 0.0
+    offsety2[offsetSpan] = 0.0
+    // for wi 0 offsetCount
+    //   weights[wi] = 1.0
+    // end
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
@@ -918,6 +956,11 @@ func int main()
     // glEnable GL_BLEND
     glDisable GL_BLEND
     glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
+
+    glEnable GL_DEPTH_TEST
+    glDepthFunc GL_LEQUAL
+
+    glPointSize 1.0
 
     mainloop
       if2 resizeDirty then
@@ -956,7 +999,10 @@ func int main()
 
         drawCoordSys 8.0
 
-        glutSolidTeapot 10.0d
+        saveTransforms
+          glTranslatef 0. 50. 0.
+          glutSolidTeapot 10.0d
+        end
 
         saveTransforms
           sideLength = field.sideLength
@@ -979,7 +1025,7 @@ func int main()
 
       glUseProgram glowShader
       renderToTarget target2
-        glClear GL_COLOR_BUFFER_BIT
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glBindTexture2D getField(target, colorTexture)
         gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
         gl:uniform1fv glowShader "offsety" offsetCount offsety1
@@ -1024,7 +1070,7 @@ func int main()
   ret 0
 end
 
-// func void test()
-//   runMain()
-// end
+func void test()
+  runMain()
+end
 
