@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <iostream>
+#include <sstream>
 
 #include "llvm/Module.h"
 #include "llvm/Constants.h"
@@ -12,10 +13,12 @@
 #include "llvm/Assembly/Parser.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/CallingConv.h"
-
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/PassManager.h"
 #include "llvm/Target/TargetData.h"
 #include "llvm/LinkAllPasses.h"
+#include "llvm/Support/MathExtras.h"
 
 extern "C" {
 #include <caml/mlvalues.h>
@@ -59,32 +62,31 @@ namespace ZompCallbacks {
       lookupCB != NULL;
   }
 
+  extern "C" {
 
-extern "C" {
+    bool isBound(char* name) {
+      ZOMP_ASSERT(ZompCallbacks::isBoundCB != NULL);
 
-  bool isBound(char* name) {
-    ZOMP_ASSERT(ZompCallbacks::isBoundCB != NULL);
+      value result = caml_callback(*ZompCallbacks::isBoundCB, caml_copy_string(name));
+      return Bool_val(result);
+    }
 
-    value result = caml_callback(*ZompCallbacks::isBoundCB, caml_copy_string(name));
-    return Bool_val(result);
-  }
+    enum { // also defined in zompvm.ml
+      ZOMP_SYMBOL_UNDEFINED = 0,
+      ZOMP_SYMBOL_VAR = 1,
+      ZOMP_SYMBOL_FUNC = 2,
+      ZOMP_SYMBOL_MACRO = 3,
+      ZOMP_SYMBOL_TYPEDEF = 4,
+      ZOMP_SYMBOL_LABEL = 5
+    };
 
-  enum { // also defined in zompvm.ml
-    ZOMP_SYMBOL_UNDEFINED = 0,
-    ZOMP_SYMBOL_VAR = 1,
-    ZOMP_SYMBOL_FUNC = 2,
-    ZOMP_SYMBOL_MACRO = 3,
-    ZOMP_SYMBOL_TYPEDEF = 4,
-    ZOMP_SYMBOL_LABEL = 5
-  };
+    int zompLookup(char* name) {
+      ZOMP_ASSERT( ZompCallbacks::lookupCB != NULL );
+      value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
+      return Int_val(result);
+    }
 
-  int zompLookup(char* name) {
-    ZOMP_ASSERT( ZompCallbacks::lookupCB != NULL );
-    value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
-    return Int_val(result);
-  }
-
-} // extern "C"
+  } // extern "C"
 }
 
 ///}}}
@@ -290,8 +292,22 @@ extern "C" {
   bool zompDoesVerifyCode() {
     return verifyCode;
   }
-} // extern C
 
+  const char* float2string(double d) {
+    // see WriteConstantInt in llvm lib/VMCore/AsmPrinter.cpp for more details
+    APFloat apfloat((float)d);
+    d = apfloat.convertToFloat();
+
+    std::string str = utohexstr(DoubleToBits(d));
+    const unsigned int BUFFER_SIZE = 1000;
+    static char buffer[BUFFER_SIZE];
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    strncpy(buffer+2, str.c_str(), BUFFER_SIZE-2);
+
+    return buffer;
+  }
+} // extern C
 
 llvm::GenericValue runFunctionWithArgs(
   const char* name,

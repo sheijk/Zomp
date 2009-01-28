@@ -30,3 +30,4 @@ tools
 /mltests/*.cmx
 /mltests/*.exe
 /mltests/*.o
+/llvmtest/floats.ll

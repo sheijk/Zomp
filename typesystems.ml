@@ -1,6 +1,6 @@
 
 open Printf
-  
+
 module type TYPE_SYSTEM =
 sig
   type typ
@@ -24,7 +24,7 @@ struct
   | `Int32
   | `Int64
   ]
-      
+
   type integralType = [
   | `Void
   | intType
@@ -46,7 +46,7 @@ struct
     returnType :typ;
     argTypes :typ list;
   }
-     
+
   type value =
     | VoidVal
     | Int8Val of Int32.t
@@ -61,7 +61,7 @@ struct
     | PointerVal of typ * int option
     | RecordVal of (string * value) list
     | FunctionVal of functionType * int option
-      
+
   exception CouldNotParseType of string
 
   let rec canonicType lookupType = function
@@ -78,7 +78,7 @@ struct
         let canonicFields = List.map canonicField components in
         `Record canonicFields
     | t -> t
-    
+
   (* val typeOf : value -> typ *)
   let rec typeOf = function
     | VoidVal -> `Void
@@ -96,7 +96,7 @@ struct
         let convert (name, value) = name, typeOf value in
         `Record (List.map convert components)
     | FunctionVal (t, _) -> `Function t
-          
+
   (* val typeName : typ -> string *)
   let rec typeName : typ -> string = function
     | `Void -> "void"
@@ -147,7 +147,7 @@ struct
       | FunctionVal (_, target) -> pointerValueName target
 
   (* val parseType : string -> typ *)
-  let rec parseType (str :string) :typ = 
+  let rec parseType (str :string) :typ =
     let len = String.length str in
     if len >= 1 && str.[len-1] = '*' then
       `Pointer (parseType (Str.string_before str (len - 1)))
@@ -163,7 +163,7 @@ struct
         | "char" -> `Char
         | "void" -> `Void
         | _ as name -> raise (CouldNotParseType name)
-        
+
   (* val parseValue : typ -> string -> value *)
   let parseValue (typ :typ) str :value =
     let unquoted quoteChar str =
@@ -172,7 +172,7 @@ struct
       in
       let length = String.length str in
       if length < 2 then
-        error();        
+        error();
       let value = String.sub str 1 (length-2) in
       if str.[0] <> quoteChar || str.[length-1] <> quoteChar then
         error();
@@ -195,7 +195,7 @@ struct
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
       | `Record _ -> raise (Failure (sprintf "Cannot parse records (value was %s)" str))
       | `Function _ -> raise (Failure (sprintf "Cannot parse function ptr values (value was %s)" str))
-          
+
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
     | `TypeRef name -> failwith (sprintf "No default value for type %s referred by name" name)
@@ -223,5 +223,5 @@ struct
 
   module TestZomp = TypesysTest(Zomp)
 (*   module TestLlvm = TypesysTest(Llvm) *)
-end  
-  
+end
+

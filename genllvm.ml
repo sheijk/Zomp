@@ -564,7 +564,10 @@ let gencodeVariable v =
 
 let gencodeConstant c =
   {
-    rvname = Lang.valueString c;
+    rvname =
+      (match c with
+         | FloatVal f -> Machine.float2string f
+         | _ -> Lang.valueString c);
     rvtypename = llvmTypeName (Lang.typeOf c);
   },
   ""
@@ -863,11 +866,16 @@ let gencodeGlobalVar var =
             contentVar.rvname
         in
         stringStorageSrc ^ stringPointerSrc
-    | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | FloatVal _ | DoubleVal _ | CharVal _ ->
+    | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | CharVal _ ->
         sprintf "@%s = constant %s %s"
           varname
           (llvmTypeName var.typ)
           (Lang.valueString var.vdefault)
+    | FloatVal f | DoubleVal f ->
+        sprintf "@%s = constant %s %s"
+          varname
+          (llvmTypeName var.typ)
+          (Machine.float2string f)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
     | PointerVal _ | FunctionVal _ ->
