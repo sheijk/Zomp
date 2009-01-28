@@ -82,4 +82,16 @@ int rectypeTest(struct rectype* foo) {
   return foo->num;
 }
 
+void printflaat(float x) {
+    printf("%f\n", x);
+}
+
+void floattest() {
+    /* 0x1.19999ap+0 */
+    /* 0X1.19999AP+0 */
+    float x = 1.1f;
+    printflaat(x);
+}
+
+
 

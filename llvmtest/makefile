@@ -16,12 +16,15 @@ clean:
 	$(LLVM_AS) $<
 
 # C File nach Bytecode
-%.bc: %.c
-	$(LLVM_GCC) -c --emit-llvm -O0 $< -o $@
-	$(LLVM_DIS) -f $@
+%.ll: %.c
+	$(LLVM_GCC) -c --emit-llvm -O0 $< -o ${@:.ll=.bc}
+	$(LLVM_DIS) -f ${@:.ll=.bc}
 
-misc.ll: misc.bc
-	$(LLVM_DIS) -f $< -o $@
+# misc.ll: misc.bc
+# 	$(LLVM_DIS) -f -o $@ < $f
+
+ll2bc:
+	$(LLVM_AS) -f -o $(FILE).bc < $(FILE).ll
 
 loopopt.bc: loopopt.c
 	$(LLVM_GCC) -c --emit-llvm -O3 $< -o $@
