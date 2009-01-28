@@ -281,8 +281,8 @@ struct
       ~finally:(fun () -> popTimingContext (currentTimingInfo, startTime) )
 end
 
-let collectTimingInfo _ f = f()
-(* let collectTimingInfo = Profiling.collectTimingInfo *)
+(* let collectTimingInfo _ f = f() *)
+let collectTimingInfo = Profiling.collectTimingInfo
 
 let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
