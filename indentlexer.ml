@@ -287,6 +287,7 @@ let readUntil abortOnChar state =
   !acc
 
 type stats = {
+  ruleCount :int;
   foundTokens :int ref;
   beginmatchCalcCount :int ref;
   beginmatchMatchNums :int ref;
@@ -295,6 +296,7 @@ type stats = {
 }
 
 let stats = {
+  ruleCount = List.length Rules.rules;
   foundTokens = ref 0;
   beginmatchCalcCount = ref 0;
   beginmatchMatchNums = ref 0;
@@ -303,19 +305,22 @@ let stats = {
 }
 
 let printStats() =
-  printf "----- lexer stats:\n";
-  printf "  %d tokens found\n" !(stats.foundTokens);
-  printf "  %d times made begin match set\n" !(stats.beginmatchCalcCount);
-  printf "  %d total begin matches\n" !(stats.beginmatchMatchNums);
-  printf "  %d total matches calculated\n" !(stats.fullmatchMatchNums);
-  printf "  %d total full matches\n" !(stats.fullmatchMatchNums);
-  printf "  %f%% begin matches average\n"
-    (float !(stats.beginmatchMatchNums) /. float !(stats.beginmatchCalcCount));
-  printf "  %f%% full matches average\n"
-    (float !(stats.fullmatchMatchNums) /. float !(stats.fullmatchCalcCount));
-  printf "-----\n"
+  if !(stats.beginmatchCalcCount) > 0 then begin
+    printf "----- lexer stats:\n";
+    printf "  %d rules\n" stats.ruleCount;
+    printf "  %d tokens found\n" !(stats.foundTokens);
+    printf "  %d times made begin match set\n" !(stats.beginmatchCalcCount);
+    printf "  %d total begin matches\n" !(stats.beginmatchMatchNums);
+    printf "  %d total matches calculated\n" !(stats.fullmatchMatchNums);
+    printf "  %d total full matches\n" !(stats.fullmatchMatchNums);
+    printf "  %f%% begin matches average\n"
+      (float !(stats.beginmatchMatchNums) /. float !(stats.beginmatchCalcCount));
+    printf "  %f%% full matches average\n"
+      (float !(stats.fullmatchMatchNums) /. float !(stats.fullmatchCalcCount));
+    printf "-----\n"
+  end
 
-(* let () = at_exit printStats *)
+let () = at_exit printStats
 
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
