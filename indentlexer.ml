@@ -320,8 +320,6 @@ let printStats() =
     printf "-----\n"
   end
 
-let () = at_exit printStats
-
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
     let len = String.length string in

@@ -44,3 +44,5 @@ val tokensToString : Newparser.token list -> string
 val printTokens : Newparser.token list -> unit
 val runInternalTests : unit -> unit
 
+val printStats : unit -> unit
+

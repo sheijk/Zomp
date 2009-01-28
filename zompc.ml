@@ -160,12 +160,37 @@ struct
                Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id])
 end
 
+type options = {
+  execNameAndPath :string;
+  fileName :string;
+  printTimings :bool;
+}
+
+let extractOptions = function
+  | [| execNameAndPath; "-c"; fileName |] ->
+      Some {
+        execNameAndPath = execNameAndPath;
+        fileName = fileName;
+        printTimings = false;
+      }
+  | [| execNameAndPath; "-c"; fileName; "--print-timings" |] ->
+      Some {
+        execNameAndPath = execNameAndPath;
+        fileName = fileName;
+        printTimings = true;
+      }
+  | _ ->
+      None
+
 let () =
-  at_exit Profiling.printTimings;
-  match Sys.argv with
-    | [| execNameAndPath; "-c"; fileName |] ->
+  match extractOptions Sys.argv with
+    | Some options ->
+        if options.printTimings then
+          at_exit (fun () ->
+                     Profiling.printTimings();
+                     Indentlexer.printStats());
         begin
-          match getBasename fileName with
+          match getBasename options.fileName with
             | Some baseName ->
                 begin
                   let inputFileName = baseName ^ ".zomp" in
@@ -173,7 +198,7 @@ let () =
                   let inStream = open_in inputFileName
                   and outStream = open_out outputFileName
                   in
-                  let compilerDir = Filename.dirname execNameAndPath in
+                  let compilerDir = Filename.dirname options.execNameAndPath in
                   addIncludePath compilerDir `Front;
                   let handleLLVMCode code = output_string outStream code in
                   let translateInclude = Expander.translateInclude includePath handleLLVMCode in
@@ -204,6 +229,6 @@ let () =
             | None ->
                 reportError "Invalid file name. Expected *.zomp"
         end
-    | _ ->
+    | None ->
         printInstructions()
 
