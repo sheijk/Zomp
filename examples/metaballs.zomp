@@ -351,7 +351,7 @@ func void Field3D:show(Field3D* this)
         g := float:mix v 0.0 0.25
         b := float:mix v 0.0 0.0
 
-        glColor3f r g b
+        glColor4f r g b 0.0
         glVertex3i x y z
       end
     end
@@ -504,7 +504,7 @@ func void Metaballs:show(Metaballs* this)
   strengths := this.strengths
 
   rendergl GL_POINTS
-    glColor3f 1.0 0.0 0.0
+    glColor4f 1.0 1.0 1.0 1.0
     Metaballs:foreach ballnum this
       glVertex3f xs[ballnum] ys[ballnum] zs[ballnum]
     end
@@ -823,7 +823,7 @@ func GLint makeGlowShader()
     }
   " /*fragment*/"
   uniform sampler2D tex;
-  const int offsetSpan = 7;
+  const int offsetSpan = 5;
   uniform float offsetx[2*offsetSpan+1];
   uniform float offsety[2*offsetSpan+1];
   uniform float weights[2*offsetSpan+1];
@@ -833,14 +833,15 @@ func GLint makeGlowShader()
     float pixy = 1.0/600.0;
 
     vec4 color = vec4(0.0);
-    for(int i = -offsetSpan; i < offsetSpan+1; ++i) {
+    for(int n = 0; n < offsetSpan*2+1; ++n) {
+    // for(int i = -offsetSpan; i < offsetSpan+1; ++i) {
       // float d = float(i);
       // float pi = 3.14159265;
       // float e = 2.718281828459;
       // float o = offsetSpan;
-      float o = 8.0;
+      // float o = 8.0;
       // float w = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
-      int n = i + offsetSpan;
+      // int n = i + offsetSpan;
       float w = weights[n];
       // float w = 1.0;
       color += w * texture2D(tex, texCoord + vec2(offsetx[n], offsety[n]));
@@ -879,6 +880,10 @@ var float math:pi_4 0.785398163397448309615660845819875721
 var float math:sqrt2 1.41421356237309504880168872420969808
 var float math:sqrt1_2 0.707106781186547524400844362104849039
 
+func bool keyDown(GLint key)
+  ret(glfwGetKey key == GL_TRUE)
+end
+
 func int main()
   init()
 
@@ -909,7 +914,7 @@ func int main()
     target2 := nullptr framebuffer
     initRenderTarget target2
 
-    offsetSpan := 7
+    offsetSpan := 5
     offsetCount := 2 * offsetSpan + 1
     pixw := 1.0 /_f int:toFloat(windowWidth)
     pixh := 1.0 /_f int:toFloat(windowHeight)
@@ -920,7 +925,7 @@ func int main()
     offsety2 := malloc float offsetCount
     weights := malloc float offsetCount
 
-    for i 1 offsetSpan
+    for i 1 (offsetSpan+1)
       s := int:toFloat i
       h := offsetSpan + i
       l := offsetSpan - i
@@ -935,26 +940,63 @@ func int main()
       offsety2[l] = float:neg(pixh *_f s)
       offsety2[h] = pixh *_f s
 
-      // float w = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
-      // w := 1.0 /_f sqrtf(2 *_f math:PI
-      weights[i] = 1.0
+      o := int:toFloat offsetSpan
+      d := int:toFloat i
+      w := 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o) *_f powf(math:e, float:neg (d *_f d /_f (2.0 *_f o *_f o)))
+      weights[l] = w
+      weights[h] = w
     end
-    weights[offsetSpan] = 1.0
+    o2 := int:toFloat offsetSpan
+    d2 := 0.0
+    weights[offsetSpan] = 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o2) *_f powf(math:e, float:neg (d2 *_f d2 /_f (2.0 *_f o2 *_f o2)))
     offsetx1[offsetSpan] = 0.0
     offsety1[offsetSpan] = 0.0
     offsetx2[offsetSpan] = 0.0
     offsety2[offsetSpan] = 0.0
-    // for wi 0 offsetCount
-    //   weights[wi] = 1.0
-    // end
+
+    weightSum := 0.0
+    for wi 0 offsetCount
+      weightSum = weightSum +_f weights[wi]
+    end
+
+    printsf "weightSum = " weightSum
+    println()
+
+    weightSumInv := 1.0 /_f weightSum
+    weightSum = 0.0
+    for wi2 0 offsetCount
+      weights[wi2] = weights[wi2] *_f weightSumInv
+      weightSum = weightSum +_f weights[wi2]
+      printString " w["
+      printInt wi2
+      printString "] = "
+      printFloat weights[wi2]
+      println()
+    end
+
+    printsf "new weightSum = " weightSum
+    println()
+
+    for i2 0 offsetCount
+      printsi "i = " i2
+      printString ", (x1,y1) = "
+      printFloat( offsetx1[i2] *_f pixw )
+      printString ","
+      printFloat( offsety1[i2] *_f pixh )
+      printString ", (x2,y2) = "
+      printFloat( offsetx2[i2] *_f pixw )
+      printString ","
+      printFloat( offsety2[i2] *_f pixh )
+      println()
+    end
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     aspect := int:toDouble(windowWidth) /_d int:toDouble windowHeight
     gluPerspective 90.0d aspect 1.0d 200.0d
 
-    // glEnable GL_BLEND
-    glDisable GL_BLEND
+    glEnable GL_BLEND
+    // glDisable GL_BLEND
     glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
     glEnable GL_DEPTH_TEST
@@ -1015,10 +1057,13 @@ func int main()
       end
 
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-      renderScene
+      if2 keyDown(GLFW_KEY_LSHIFT) then
+        renderScene
+        glClear GL_DEPTH_BUFFER_BIT
+      end
 
       renderToTarget target
-        glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         renderScene
       end
       framebuffer:makeColorTexture target
@@ -1026,7 +1071,7 @@ func int main()
       glUseProgram glowShader
       renderToTarget target2
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glBindTexture2D getField(target, colorTexture)
+        glBindTexture2D target.colorTexture
         gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
         gl:uniform1fv glowShader "offsety" offsetCount offsety1
         gl:uniform1fv glowShader "weights" offsetCount weights
