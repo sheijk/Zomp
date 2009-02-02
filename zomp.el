@@ -72,7 +72,7 @@ indent the next line when they occur at the beginning of a line"
 
 (defvar zomp-imenu-generic-expression nil)
 (defun zomp-id (str)
-  (replace-regexp-in-string "ID" "\\([a-zA-Z0-9:*+-/!=><_|&]\\|\\[\\|\\]\\)+" str t t))
+  (replace-regexp-in-string "ID" "\\(?:[a-zA-Z0-9:*+-/!=><_|&]\\|\\[\\|\\]\\)+" str t t))
 (setq zomp-imenu-generic-expression
       `((nil ,(zomp-id "^(?macro +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?func +ID +\\(ID\\)") 1)

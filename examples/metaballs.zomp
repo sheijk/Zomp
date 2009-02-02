@@ -704,11 +704,6 @@ end
 var bool windowOnUpperScreen true
 
 func void onKey(int key, int action)
-  printString "Received key action: "
-  printsi "key = " key
-  printsi ", action = " action
-  println()
-
   if2 ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS)) then
     if2 windowOnUpperScreen then
       glfwSetWindowPos 100 1250
@@ -810,6 +805,17 @@ func void FilterEffect:delete(FilterEffect* this)
   this.next = nullptr FilterEffect
 end
 
+func void FilterEffect:bind(FilterEffect* this)
+  glUseProgram this.shader
+  gl:uniform1fv this.shader "xoffsets" this.size this.xoffsets
+  gl:uniform1fv this.shader "yoffsets" this.size this.yoffsets
+  gl:uniform1fv this.shader "weights" this.size this.weights
+end
+
+func void FilterEffect:unbind(FilterEffect* this)
+  glUseProgram 0
+end
+
 // #define gauss_width 7
 //  
 // sumr=0;
@@ -862,7 +868,7 @@ end
 //   } 
 // } 
 
-func GLint makeGlowShader(int size)
+func GLint makeFilterShader(int size)
   varyingSource := "
   #version 120
   varying vec2 texCoord;"
@@ -874,8 +880,8 @@ func GLint makeGlowShader(int size)
   fragmentSource := "
   uniform sampler2D tex;
   const int offsetSpan = " ++ int2cstring size ++ ";
-  uniform float offsetx[2*offsetSpan+1];
-  uniform float offsety[2*offsetSpan+1];
+  uniform float xoffsets[2*offsetSpan+1];
+  uniform float yoffsets[2*offsetSpan+1];
   uniform float weights[2*offsetSpan+1];
 
   void main(void) {
@@ -885,7 +891,7 @@ func GLint makeGlowShader(int size)
     vec4 color = vec4(0.0);
     for(int n = 0; n < offsetSpan*2+1; ++n) {
       float w = weights[n];
-      color += w * texture2D(tex, texCoord + vec2(offsetx[n], offsety[n]));
+      color += w * texture2D(tex, texCoord + vec2(xoffsets[n], yoffsets[n]));
       }
     color.a = 0.0;
     gl_FragColor = color;
@@ -903,7 +909,7 @@ end
 func FilterEffect* makeGlowFilter(int offsetSpan)
   offsetCount := 2 * offsetSpan + 1
 
-  glowShader := makeGlowShader offsetCount
+  glowShader := makeFilterShader offsetCount
   horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
   vertPass := new FilterEffect offsetCount glowShader horPass
 
@@ -1109,22 +1115,15 @@ func int main()
       end
       Framebuffer:makeColorTexture target
 
-      glUseProgram glowFilter.shader
       renderToTarget target2
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glBindTexture2D target.colorTexture
-        gl:uniform1fv glowFilter.shader "offsetx" glowFilter.size glowFilter.xoffsets
-        gl:uniform1fv glowFilter.shader "offsety" glowFilter.size glowFilter.yoffsets
-        gl:uniform1fv glowFilter.shader "weights" glowFilter.size glowFilter.weights
+        FilterEffect:bind glowFilter
         drawFullscreenQuad()
       end
 
-      f2 := glowFilter.next
       glBindTexture2D target2.colorTexture
-      glUseProgram f2.shader
-      gl:uniform1fv glowFilter.shader "offsetx" glowFilter.size f2.xoffsets
-      gl:uniform1fv glowFilter.shader "offsety" glowFilter.size f2.yoffsets
-      gl:uniform1fv glowFilter.shader "weights" glowFilter.size f2.weights
+      FilterEffect:bind glowFilter.next
       drawFullscreenQuad()
       glBindTexture2D 0
 
