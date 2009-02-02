@@ -83,6 +83,7 @@
 
 (funcln printlnInt int (printInt v))
 (funcln printlnString (ptr char) (printString v))
+(funcln printlnFloat float (printFloat v))
 
 (macroReplace getField record componentName (
   (load (fieldptr record componentName))
