@@ -338,20 +338,7 @@ end
 
 //------------------------------------------------------------------------------
 
-/// will call type:new params...
-/// TODO: replace all uses with new from shprog
-macro new type params...
-  var cstring factoryName (cstrings:append (getField type id) ":new")
-  var (ptr ast) code (simpleAst factoryName)
-  forEachAstChild child params
-    addChild code child
-  end
-  ret code
-end
-
-//------------------------------------------------------------------------------
-
-type framebuffer
+type Framebuffer
   int width
   int height
   GLuint fbo
@@ -361,15 +348,23 @@ type framebuffer
   GLuint depthBuffer
 end
 
-func framebuffer* framebuffer:new(int width, int height)
-  var framebuffer* fbo (malloc framebuffer)
+func void Framebuffer:init(Framebuffer* this, int width, int height)
   setFieldsTo 0 fbo colorTexture colorBuffer depthTexture depthBuffer
   setField fbo width width
   setField fbo height height
-  ret fbo
 end
 
-func void framebuffer:attachColorTexture(framebuffer* fbo)
+func void Framebuffer:delete(Framebuffer* this)
+  setField this width 0
+  setField this height 0
+  glDeleteFramebuffersEXT 1 (fieldptr this fbo)
+  glDeleteTextures 1 (fieldptr this colorTexture)
+  glDeleteRenderbuffersEXT 1 (fieldptr this colorBuffer)
+  glDeleteTextures 1 (fieldptr this depthTexture)
+  glDeleteRenderbuffersEXT 1 (fieldptr this depthBuffer)
+end
+
+func void Framebuffer:attachColorTexture(Framebuffer* fbo)
   var GLuint texture (makeTexture)
   glBindTexture2D texture
   template texParam param value
@@ -381,7 +376,7 @@ func void framebuffer:attachColorTexture(framebuffer* fbo)
   setField fbo colorTexture texture
 end
 
-func void framebuffer:create(framebuffer* fbo)
+func void Framebuffer:create(Framebuffer* fbo)
   var GLuint fboName (makeFramebuffer)
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName
   
@@ -399,16 +394,16 @@ func void framebuffer:create(framebuffer* fbo)
   setField fbo depthBuffer depthBuffer
 end
 
-func void framebuffer:bind(framebuffer* fbo)
+func void Framebuffer:bind(Framebuffer* fbo)
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT (getField fbo fbo)
   glViewport 0 0 (getField fbo width) (getField fbo height)
 end
 
-func void framebuffer:unbind(framebuffer* fbo)
+func void Framebuffer:unbind(Framebuffer* fbo)
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0
 end
 
-func void framebuffer:makeColorTexture(framebuffer* fbo)
+func void Framebuffer:makeColorTexture(Framebuffer* fbo)
   glBindTexture2D (getField fbo colorTexture)
   glGenerateMipmapEXT GL_TEXTURE_2D
   glBindTexture2D 0
@@ -416,9 +411,9 @@ end
 
 template renderToTarget framebuffer code...
   saveAttribs GL_VIEWPORT_BIT
-    framebuffer:bind #framebuffer
+    Framebuffer:bind #framebuffer
     #code
-    framebuffer:unbind #framebuffer
+    Framebuffer:unbind #framebuffer
   end
 end
 

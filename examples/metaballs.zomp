@@ -741,7 +741,7 @@ func void onWindowResize(int newWidth, int newHeight)
   resizeDirty = true
 end
 
-func void framebuffer:print(framebuffer* this)
+func void Framebuffer:print(Framebuffer* this)
   macro printMember name printF
     quoteStr := char:toCString '"' // '"' dumb emacs parser \o/
     text := quoteStr ++ " " ++ name.id ++ "=" ++ quoteStr
@@ -755,7 +755,7 @@ func void framebuffer:print(framebuffer* this)
     printMember #name printInt
   end
 
-  printString "(framebuffer"
+  printString "(Framebuffer"
   printIntMember width
   printIntMember height
   printIntMember fbo
@@ -1017,97 +1017,20 @@ func int main()
     field := new Field3D (float:toInt sideLengthf)
     mballs := new Metaballs 50
 
-    // offsetSpan := 5
-    // offsetCount := 2 * offsetSpan + 1
-    // glowShader := makeGlowShader(offsetSpan)
     glowFilter := makeGlowFilter(5)
 
     template initRenderTarget target
-      #target = framebuffer:new(windowWidth, windowHeight)
-      assert (#target !=_ptr nullptr framebuffer)
-      framebuffer:attachColorTexture #target
-      framebuffer:create #target
+      #target = Framebuffer:new(windowWidth, windowHeight)
+      assert (#target !=_ptr nullptr Framebuffer)
+      Framebuffer:attachColorTexture #target
+      Framebuffer:create #target
     end
 
-    target := nullptr framebuffer
+    target := nullptr Framebuffer
     initRenderTarget target
 
-    target2 := nullptr framebuffer
+    target2 := nullptr Framebuffer
     initRenderTarget target2
-
-    // pixw := 1.0 /_f int:toFloat(windowWidth)
-    // pixh := 1.0 /_f int:toFloat(windowHeight)
-    // 
-    // offsetx1 := malloc float offsetCount
-    // offsetx2 := malloc float offsetCount
-    // offsety1 := malloc float offsetCount
-    // offsety2 := malloc float offsetCount
-    // weights := malloc float offsetCount
-    // 
-    // for i 1 (offsetSpan+1)
-    //   s := int:toFloat i
-    //   h := offsetSpan + i
-    //   l := offsetSpan - i
-    // 
-    //   offsetx1[l] = float:neg(pixw *_f s)
-    //   offsetx1[h] = pixw *_f s
-    //   offsety1[l] = 0.0
-    //   offsety1[h] = 0.0
-    // 
-    //   offsetx2[l] = 0.0
-    //   offsetx2[h] = 0.0
-    //   offsety2[l] = float:neg(pixh *_f s)
-    //   offsety2[h] = pixh *_f s
-    // 
-    //   o := int:toFloat offsetSpan
-    //   d := int:toFloat i
-    //   w := 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o) *_f powf(math:e, float:neg (d *_f d /_f (2.0 *_f o *_f o)))
-    //   weights[l] = w
-    //   weights[h] = w
-    // end
-    // o2 := int:toFloat offsetSpan
-    // d2 := 0.0
-    // weights[offsetSpan] = 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o2) *_f powf(math:e, float:neg (d2 *_f d2 /_f (2.0 *_f o2 *_f o2)))
-    // offsetx1[offsetSpan] = 0.0
-    // offsety1[offsetSpan] = 0.0
-    // offsetx2[offsetSpan] = 0.0
-    // offsety2[offsetSpan] = 0.0
-    // 
-    // weightSum := 0.0
-    // for wi 0 offsetCount
-    //   weightSum = weightSum +_f weights[wi]
-    // end
-    // 
-    // printsf "weightSum = " weightSum
-    // println()
-    // 
-    // weightSumInv := 1.0 /_f weightSum
-    // weightSum = 0.0
-    // for wi2 0 offsetCount
-    //   weights[wi2] = weights[wi2] *_f weightSumInv
-    //   weightSum = weightSum +_f weights[wi2]
-    //   printString " w["
-    //   printInt wi2
-    //   printString "] = "
-    //   printFloat weights[wi2]
-    //   println()
-    // end
-    // 
-    // printsf "new weightSum = " weightSum
-    // println()
-    // 
-    // for i2 0 offsetCount
-    //   printsi "i = " i2
-    //   printString ", (x1,y1) = "
-    //   printFloat( offsetx1[i2] *_f pixw )
-    //   printString ","
-    //   printFloat( offsety1[i2] *_f pixh )
-    //   printString ", (x2,y2) = "
-    //   printFloat( offsetx2[i2] *_f pixw )
-    //   printString ","
-    //   printFloat( offsety2[i2] *_f pixh )
-    //   println()
-    // end
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
@@ -1115,7 +1038,6 @@ func int main()
     gluPerspective 90.0d aspect 1.0d 200.0d
 
     glEnable GL_BLEND
-    // glDisable GL_BLEND
     glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
     glEnable GL_DEPTH_TEST
@@ -1185,7 +1107,7 @@ func int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         renderScene
       end
-      framebuffer:makeColorTexture target
+      Framebuffer:makeColorTexture target
 
       glUseProgram glowFilter.shader
       renderToTarget target2
@@ -1226,8 +1148,9 @@ func int main()
     delete mballs
 
     FilterEffect:delete glowFilter
+    Framebuffer:delete target
+    Framebuffer:delete target2
   end
-  //TODO: release target, target2
 
   ret 0
 end
