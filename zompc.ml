@@ -183,6 +183,7 @@ let extractOptions = function
       None
 
 let () =
+  Printexc.record_backtrace true;
   match extractOptions Sys.argv with
     | Some options ->
         if options.printTimings then
@@ -224,6 +225,8 @@ let () =
                         close_in inStream;
                         close_out outStream;
                         Sys.remove outputFileName;
+                        eprintf "Failed to compile due to unknow exception\n";
+                        Printexc.print_backtrace stdout;
                         raise e
                 end
             | None ->

@@ -436,7 +436,6 @@ struct
   let gen_caml_code expressions =
     let helpers =
       "type double = float\n" ^
-        "external nand : bool -> bool = \"nand\"\n" ^
         "\n"
     in
     let expr2str = function
