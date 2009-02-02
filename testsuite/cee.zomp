@@ -12,6 +12,47 @@ func bool increaseAndRet(bool result)
   ret result
 end
 
+func void testDefineVar()
+  x := 10
+  y := 1.0
+  unittest:assertAll
+    x == 10
+    y ==_f 1.0
+  end
+end
+
+struct TestStruct
+  int x
+  float y
+  int* tenints
+end
+
+func void testDotOp()
+  p := malloc TestStruct
+  p.x = 23
+  p.y = 7.3
+  p.tenints = malloc int 10
+
+  for i 0 10
+    p.tenints[i] = i + 1
+  end
+
+  unittest:assertAll
+    p.x == 23
+    p.y ==_f 7.3
+    p.tenints[0] == 1
+    p.tenints[1] == 2
+    p.tenints[2] == 3
+    p.tenints[3] == 4
+    p.tenints[4] == 5
+    p.tenints[5] == 6
+    p.tenints[6] == 7
+    p.tenints[7] == 8
+    p.tenints[8] == 9
+    p.tenints[9] == 10
+  end
+end
+
 func void testLazyOps()
   template expectCount num code
     unittest:assert
@@ -29,6 +70,8 @@ func void testLazyOps()
 end
 
 func int main()
+  testDefineVar()
+  testDotOp()
   testLazyOps()
 
   ret 0

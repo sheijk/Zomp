@@ -116,8 +116,11 @@ template op!=_str left right
   strcmp(#left, #right) != 0
 end
 
-template op:= name value
-  var2 #name #value
+macro op:= name value
+  if2 (getField(name, childCount) == 0) then
+    ret ${var2 #name #value}
+  end
+  ret ${error "Expected a single identifier on left hand side" ${#name := #value}}
 end
 
 // macro dummy l r
@@ -218,6 +221,12 @@ func ast* getMemberAddress(ast* code)
     nestedPtr := getMemberAddress ast:child(code, 0)
     fieldName2 := getField ast:child(code, 1) id
     ret ${fieldptr #nestedPtr #fieldName2}
+  elseif ast:matchesShape(code, ${__._[__]})
+    structExpr := ast:child code 0
+    memberName := getField ast:child(ast:child(code, 1), 0) id
+    indexExpr := ast:child(ast:child(code, 1), 1)
+    memberPtr := getMemberAddress(${#structExpr.#memberName})
+    ret ${ptradd (load #memberPtr) #indexExpr}
   end
   ret ${error "Do not know how to get address of this expression" #code}
 end
@@ -225,16 +234,8 @@ end
 ///TODO: add support to call methods
 macro op. record component
   addr := getMemberAddress ${#record.#component}
-  ret ${load #addr}
 
-  // if2 (getField(component, childCount) == 0) then
-  //   ret ${getField(#record, #component)}
-  // elseif (getField(component, id) ==_str "op.")
-  //   ret ${dummy #record #component}
-  //   // ret ${getField(#record, #component)}
-  // end
-  // // else
-  // ret ${error "function calls with dot syntax not supported yet" in #component}
+  ret ${load #addr}
 end
 
 /// Assigning values. Supports
