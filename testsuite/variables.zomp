@@ -9,6 +9,11 @@ func int main()
   assign i 3
   assert (i == 3)
 
+  var void nothingToSeeHere
+  var void canCopyThem nothingToSeeHere
+  // TODO: support all operations on void variables (by ignoring them :))
+  // assign nothingToSeeHere canCopyThem
+
   // // TODO
   // var int* ptr &i
   // store ptr 99

@@ -753,10 +753,10 @@
     ))
   ))
 
-(macro setFieldsTo value fields ... (
+(macro setFieldsTo record value fields ... (
   (var (ptr ast) code `())
   (forEachAstChild field fields (
-    (addChild code `(setField fbo #field #value))
+    (addChild code `(setField #record #field #value))
     ))
   (ret code)
   ))

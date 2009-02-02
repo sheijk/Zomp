@@ -349,9 +349,9 @@ type Framebuffer
 end
 
 func void Framebuffer:init(Framebuffer* this, int width, int height)
-  setFieldsTo 0 fbo colorTexture colorBuffer depthTexture depthBuffer
-  setField fbo width width
-  setField fbo height height
+  setFieldsTo this 0 fbo colorTexture colorBuffer depthTexture depthBuffer
+  setField this width width
+  setField this height height
 end
 
 func void Framebuffer:delete(Framebuffer* this)

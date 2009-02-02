@@ -951,8 +951,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                     | TypeOf invalidType ->
                         raiseIllegalExpression expr
                           (sprintf "%s but found %s"
-                             ("Can only access struct members from a var of record type or " ^
-                                "an expression of type pointer to record atm")
+                             ("Can only access struct members from a var of [pointer to] record type")
                              (typeName invalidType))
                     | TypeError (m,f,e) ->
                         raiseIllegalExpressionFromTypeError expr (m,f,e)

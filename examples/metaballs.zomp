@@ -100,8 +100,27 @@ macro assert code
   end}
 end
 
+//------------------------------------------------------------------------------
+// pointer utils
+
 template op** base exp
   int:pow(#base, #exp)
+end
+
+template preop* ptr
+  (load #ptr)
+end
+
+template isNotNull ptr
+  #ptr !=_ptr nullptr void
+end
+
+macro ptrvars type names...
+  decls := seqAst()
+  forEachAstChild name names
+    addChild decls ${var #type #name nullptr(#type)}
+  end
+  ret decls
 end
 
 //------------------------------------------------------------------------------
@@ -1025,18 +1044,35 @@ func int main()
 
     glowFilter := makeGlowFilter(5)
 
-    template initRenderTarget target
-      #target = Framebuffer:new(windowWidth, windowHeight)
+    template initRenderTarget target width height
+      #target = new Framebuffer #width #height
       assert (#target !=_ptr nullptr Framebuffer)
       Framebuffer:attachColorTexture #target
       Framebuffer:create #target
     end
 
-    target := nullptr Framebuffer
-    initRenderTarget target
+    template deleteRenderTargets
+      Framebuffer:delete target
+      Framebuffer:delete target2
+      // Framebuffer:delete target1a
+      // Framebuffer:delete target1b
+      // Framebuffer:delete target2a
+      // Framebuffer:delete target2b
+    end
 
+    template createRenderTargets
+      initRenderTarget target windowWidth windowHeight
+      initRenderTarget target2 windowWidth windowHeight
+      // initRenderTarget target1a windowWidth windowHeight
+      // initRenderTarget target1b windowWidth windowHeight
+      // initRenderTarget target2a (windowWidth/2) (windowHeight/2)
+      // initRenderTarget target2b (windowWidth/2) (windowHeight/2)
+    end
+
+    // ptrvars Framebuffer target1a target1b target2a target2b
+    target := nullptr Framebuffer
     target2 := nullptr Framebuffer
-    initRenderTarget target2
+    createRenderTargets
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
@@ -1053,8 +1089,8 @@ func int main()
 
     mainloop
       if2 resizeDirty then
-        initRenderTarget target
-        initRenderTarget target2
+        deleteRenderTargets
+        createRenderTargets
 
         resizeDirty = false
       end
@@ -1147,8 +1183,7 @@ func int main()
     delete mballs
 
     FilterEffect:delete glowFilter
-    Framebuffer:delete target
-    Framebuffer:delete target2
+    deleteRenderTargets
   end
 
   ret 0
