@@ -849,7 +849,6 @@ let gencodeGlobalVar var =
         and escapedValue = llvmEscapedString value
         in
         if not (isValidLlvmString escapedValue) then begin
-          printf "blahblubber\n";
           raiseCodeGenError ~msg:(sprintf "%s is not a valid llvm string" escapedValue);
         end;
         let length = llvmStringLength escapedValue + 1 in
@@ -867,12 +866,12 @@ let gencodeGlobalVar var =
         in
         stringStorageSrc ^ stringPointerSrc
     | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | CharVal _ ->
-        sprintf "@%s = constant %s %s"
+        sprintf "@%s = constant %s %s\n"
           varname
           (llvmTypeName var.typ)
           (Lang.valueString var.vdefault)
     | FloatVal f | DoubleVal f ->
-        sprintf "@%s = constant %s %s"
+        sprintf "@%s = constant %s %s\n"
           varname
           (llvmTypeName var.typ)
           (Machine.float2string f)

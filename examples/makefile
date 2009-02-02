@@ -26,6 +26,6 @@ clean:
 %.exe: %.bc
 	llvm-ld -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS)
 
-opengl.exe: opengl.bc
-	llvm-ld -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL
+%.glexe: %.bc
+	llvm-ld -native -o $@ $< -L=.. -L-. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL -framework=GLUT
 
