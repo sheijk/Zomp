@@ -91,6 +91,7 @@ macro unittest:assertAll checks
 end
 
 //------------------------------------------------------------------------------
+// misc
 
 macro assert code
   ret ${if2 (bool:not #code) then
@@ -99,7 +100,12 @@ macro assert code
   end}
 end
 
-var float sideLengthf 20.0
+template op** base exp
+  int:pow(#base, #exp)
+end
+
+//------------------------------------------------------------------------------
+// random numbers
 
 // from libstdc
 func int rand()
@@ -117,6 +123,20 @@ func float float:srandom()
   return (float:random() *_f 2.0 -_f 1.0)
 end
 
+//------------------------------------------------------------------------------
+// math
+
+var float math:e 2.71828182845904523536028747135266250
+var float math:log2e 1.44269504088896340735992468100189214
+var float math:log10e 0.434294481903251827651128918916605082
+var float math:ln2 0.693147180559945309417232121458176568
+var float math:ln10 2.30258509299404568401799145468436421
+var float math:pi 3.14159265358979323846264338327950288
+var float math:pi_2 1.57079632679489661923132169163975144
+var float math:pi_4 0.785398163397448309615660845819875721
+var float math:sqrt2 1.41421356237309504880168872420969808
+var float math:sqrt1_2 0.707106781186547524400844362104849039
+
 func float powf(float base, float exp)
 func double pow(double base, double exp)
 
@@ -133,10 +153,6 @@ func int int:pow(int base, int exp)
   ret v
 end
 
-template op** base exp
-  int:pow(#base, #exp)
-end
-
 func float float:mix(float x, float a, float b)
   ret ( (1.0 -_f x) *_f a +_f x *_f b )
 end
@@ -147,6 +163,31 @@ unittest:testCasesFor float:mix
   float:mix 0.5 0.0 4.0 ==_f 2.0
   float:mix 0.25 0.0 8.0 ==_f 2.0
 end
+
+func float posmod(float x, float divisor)
+  mod := fmodf(x, divisor)
+
+  if2 (mod <_f 0.0) then
+    mod = divisor -_f float:neg(mod)
+  end
+
+  ret mod
+end
+
+unittest:testCasesFor posmod
+  posmod(0.0,2.0) ==_f 0.0
+  posmod(1.0,2.0) ==_f 1.0
+  posmod(2.0,2.0) ==_f 0.0
+
+  posmod(-1.0,3.0) ==_f 2.0
+  posmod(-2.0,3.0) ==_f 1.0
+
+  posmod(23.0, 4.0) ==_f 3.0
+  posmod(-61.0, 3.0) ==_f 2.0
+end
+
+//------------------------------------------------------------------------------
+// memory
 
 func void free(void* ptr)
 
@@ -229,6 +270,9 @@ macro Array:foreach array indexVar code
 end
 
 //------------------------------------------------------------------------------
+// application
+
+var float sideLengthf 20.0
 
 var int windowWidth 1280
 var int windowHeight 720
@@ -605,12 +649,6 @@ func void resizeWindow(int width, int height)
   glfwSetWindowSize windowWidth windowHeight
 end
 
-// macro executeOnce
-//   uniqueId alreadyRun "executeOnce"
-//   ret ${
-//   end}
-// end
-
 type degree float
 
 ///
@@ -638,36 +676,10 @@ func void SpaceballCamera:rotate(SpaceballCamera* this)
   glRotatef this.longitude 0. 1. 0.
 end
 
-// memberFunc void SpaceballCamera.rotate()
-// ...
-// end
-
 func void SpaceballCamera:applyToGL(SpaceballCamera* this)
   glMatrixMode GL_MODELVIEW
   glLoadIdentity()
   SpaceballCamera:rotate(this)
-end
-
-func float posmod(float x, float divisor)
-  mod := fmodf(x, divisor)
-
-  if2 (mod <_f 0.0) then
-    mod = divisor -_f float:neg(mod)
-  end
-
-  ret mod
-end
-
-unittest:testCasesFor posmod
-  posmod(0.0,2.0) ==_f 0.0
-  posmod(1.0,2.0) ==_f 1.0
-  posmod(2.0,2.0) ==_f 0.0
-
-  posmod(-1.0,3.0) ==_f 2.0
-  posmod(-2.0,3.0) ==_f 1.0
-
-  posmod(23.0, 4.0) ==_f 3.0
-  posmod(-61.0, 3.0) ==_f 2.0
 end
 
 func void SpaceballCamera:restrictParams(SpaceballCamera* this)
@@ -760,6 +772,44 @@ struct Shader
   cstring fragmentSource
 end
 
+
+//------------------------------------------------------------------------------
+// filtering effects
+
+struct FilterEffect
+  GLint shader
+  int size
+  float* xoffsets
+  float* yoffsets
+  float* weights
+  FilterEffect* next
+end
+
+func void FilterEffect:init(FilterEffect* this, int size, GLint shader, FilterEffect* next)
+  this.shader = shader
+  this.size = size
+  this.xoffsets = malloc float size
+  this.yoffsets = malloc float size
+  this.weights = malloc float size
+  this.next = next
+end
+
+func void FilterEffect:delete(FilterEffect* this)
+  glDeleteShader this.shader
+  this.shader = 0
+  this.size = 0
+  free (cast void* this.xoffsets)
+  this.xoffsets = nullptr float
+  free (cast void* this.yoffsets)
+  this.yoffsets = nullptr float
+  free (cast void* this.weights)
+  this.weights = nullptr float
+  unless (this.next ==_ptr nullptr(FilterEffect))
+    FilterEffect:delete this.next
+  end
+  this.next = nullptr FilterEffect
+end
+
 // #define gauss_width 7
 //  
 // sumr=0;
@@ -812,18 +862,18 @@ end
 //   } 
 // } 
 
-func GLint makeGlowShader()
-  glowShader := createShader /*varying*/"
+func GLint makeGlowShader(int size)
+  varyingSource := "
   #version 120
-  varying vec2 texCoord;
-  " /*vertex*/"
+  varying vec2 texCoord;"
+  vertexSource := "
   void main(void) {
     gl_Position = ftransform();
     texCoord = gl_MultiTexCoord0.xy;
-    }
-  " /*fragment*/"
+    }"
+  fragmentSource := "
   uniform sampler2D tex;
-  const int offsetSpan = 5;
+  const int offsetSpan = " ++ int2cstring size ++ ";
   uniform float offsetx[2*offsetSpan+1];
   uniform float offsety[2*offsetSpan+1];
   uniform float weights[2*offsetSpan+1];
@@ -834,27 +884,106 @@ func GLint makeGlowShader()
 
     vec4 color = vec4(0.0);
     for(int n = 0; n < offsetSpan*2+1; ++n) {
-    // for(int i = -offsetSpan; i < offsetSpan+1; ++i) {
-      // float d = float(i);
-      // float pi = 3.14159265;
-      // float e = 2.718281828459;
-      // float o = offsetSpan;
-      // float o = 8.0;
-      // float w = 1.0 / (sqrt(2*pi)*o) * pow(e, - d*d / (2*o*o));
-      // int n = i + offsetSpan;
       float w = weights[n];
-      // float w = 1.0;
       color += w * texture2D(tex, texCoord + vec2(offsetx[n], offsety[n]));
       }
-    // color *= 0.5;
-    // color += texture2D(tex, texCoord);
     color.a = 0.0;
     gl_FragColor = color;
     }"
+
+  printString fragmentSource
+  println()
+
+  glowShader := createShader varyingSource vertexSource fragmentSource
   assert (glowShader != 0)
 
   ret glowShader
 end
+
+func FilterEffect* makeGlowFilter(int offsetSpan)
+  offsetCount := 2 * offsetSpan + 1
+
+  glowShader := makeGlowShader offsetCount
+  horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
+  vertPass := new FilterEffect offsetCount glowShader horPass
+
+  pixw := 1.0 /_f int:toFloat(windowWidth)
+  pixh := 1.0 /_f int:toFloat(windowHeight)
+
+  for i 1 (offsetSpan+1)
+    s := int:toFloat i
+    h := offsetSpan + i
+    l := offsetSpan - i
+
+    printFloat horPass.xoffsets[0]
+    horPass.xoffsets[l] = float:neg(pixw *_f s)
+    horPass.xoffsets[h] = pixw *_f s
+    horPass.yoffsets[l] = 0.0
+    horPass.yoffsets[h] = 0.0
+
+    vertPass.xoffsets[l] = 0.0
+    vertPass.xoffsets[h] = 0.0
+    vertPass.yoffsets[l] = float:neg(pixh *_f s)
+    vertPass.yoffsets[h] = pixh *_f s
+
+    o := int:toFloat offsetSpan
+    d := int:toFloat i
+    w := 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o) *_f powf(math:e, float:neg (d *_f d /_f (2.0 *_f o *_f o)))
+    horPass.weights[l] = w
+    horPass.weights[h] = w
+    vertPass.weights[l] = w
+    vertPass.weights[h] = w
+  end
+  o2 := int:toFloat offsetSpan
+  d2 := 0.0
+  horPass.weights[offsetSpan] = 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o2) *_f powf(math:e, float:neg (d2 *_f d2 /_f (2.0 *_f o2 *_f o2)))
+  vertPass.weights[offsetSpan] = horPass.weights[offsetSpan]
+  horPass.xoffsets[offsetSpan] = 0.0
+  horPass.yoffsets[offsetSpan] = 0.0
+  vertPass.xoffsets[offsetSpan] = 0.0
+  vertPass.yoffsets[offsetSpan] = 0.0
+
+  weightSum := 0.0
+  for wi 0 offsetCount
+    weightSum = weightSum +_f horPass.weights[wi]
+  end
+
+  printsf "weightSum = " weightSum
+  println()
+
+  weightSumInv := 1.0 /_f weightSum
+  weightSum = 0.0
+  for wi2 0 offsetCount
+    horPass.weights[wi2] = horPass.weights[wi2] *_f weightSumInv
+    vertPass.weights[wi2] = vertPass.weights[wi2] *_f weightSumInv
+    weightSum = weightSum +_f horPass.weights[wi2]
+    printString " w["
+    printInt wi2
+    printString "] = "
+    printFloat horPass.weights[wi2]
+    println()
+  end
+
+  printsf "new weightSum = " weightSum
+  println()
+
+  for i2 0 offsetCount
+    printsi "i = " i2
+    printString ", (x1,y1) = "
+    printFloat( horPass.xoffsets[i2] *_f pixw )
+    printString ","
+    printFloat( horPass.yoffsets[i2] *_f pixh )
+    printString ", (x2,y2) = "
+    printFloat( vertPass.xoffsets[i2] *_f pixw )
+    printString ","
+    printFloat( vertPass.yoffsets[i2] *_f pixh )
+    println()
+  end
+
+  ret vertPass
+end
+
+//------------------------------------------------------------------------------
 
 macro tracing:instrument code
   var ast* instrumentedCode simpleAst("seq")
@@ -868,17 +997,6 @@ macro tracing:instrument code
 
   ret instrumentedCode
 end
-
-var float math:e 2.71828182845904523536028747135266250
-var float math:log2e 1.44269504088896340735992468100189214
-var float math:log10e 0.434294481903251827651128918916605082
-var float math:ln2 0.693147180559945309417232121458176568
-var float math:ln10 2.30258509299404568401799145468436421
-var float math:pi 3.14159265358979323846264338327950288
-var float math:pi_2 1.57079632679489661923132169163975144
-var float math:pi_4 0.785398163397448309615660845819875721
-var float math:sqrt2 1.41421356237309504880168872420969808
-var float math:sqrt1_2 0.707106781186547524400844362104849039
 
 func bool keyDown(GLint key)
   ret(glfwGetKey key == GL_TRUE)
@@ -899,7 +1017,10 @@ func int main()
     field := new Field3D (float:toInt sideLengthf)
     mballs := new Metaballs 50
 
-    glowShader := makeGlowShader()
+    // offsetSpan := 5
+    // offsetCount := 2 * offsetSpan + 1
+    // glowShader := makeGlowShader(offsetSpan)
+    glowFilter := makeGlowFilter(5)
 
     template initRenderTarget target
       #target = framebuffer:new(windowWidth, windowHeight)
@@ -914,81 +1035,79 @@ func int main()
     target2 := nullptr framebuffer
     initRenderTarget target2
 
-    offsetSpan := 5
-    offsetCount := 2 * offsetSpan + 1
-    pixw := 1.0 /_f int:toFloat(windowWidth)
-    pixh := 1.0 /_f int:toFloat(windowHeight)
-
-    offsetx1 := malloc float offsetCount
-    offsetx2 := malloc float offsetCount
-    offsety1 := malloc float offsetCount
-    offsety2 := malloc float offsetCount
-    weights := malloc float offsetCount
-
-    for i 1 (offsetSpan+1)
-      s := int:toFloat i
-      h := offsetSpan + i
-      l := offsetSpan - i
-
-      offsetx1[l] = float:neg(pixw *_f s)
-      offsetx1[h] = pixw *_f s
-      offsety1[l] = 0.0
-      offsety1[h] = 0.0
-
-      offsetx2[l] = 0.0
-      offsetx2[h] = 0.0
-      offsety2[l] = float:neg(pixh *_f s)
-      offsety2[h] = pixh *_f s
-
-      o := int:toFloat offsetSpan
-      d := int:toFloat i
-      w := 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o) *_f powf(math:e, float:neg (d *_f d /_f (2.0 *_f o *_f o)))
-      weights[l] = w
-      weights[h] = w
-    end
-    o2 := int:toFloat offsetSpan
-    d2 := 0.0
-    weights[offsetSpan] = 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o2) *_f powf(math:e, float:neg (d2 *_f d2 /_f (2.0 *_f o2 *_f o2)))
-    offsetx1[offsetSpan] = 0.0
-    offsety1[offsetSpan] = 0.0
-    offsetx2[offsetSpan] = 0.0
-    offsety2[offsetSpan] = 0.0
-
-    weightSum := 0.0
-    for wi 0 offsetCount
-      weightSum = weightSum +_f weights[wi]
-    end
-
-    printsf "weightSum = " weightSum
-    println()
-
-    weightSumInv := 1.0 /_f weightSum
-    weightSum = 0.0
-    for wi2 0 offsetCount
-      weights[wi2] = weights[wi2] *_f weightSumInv
-      weightSum = weightSum +_f weights[wi2]
-      printString " w["
-      printInt wi2
-      printString "] = "
-      printFloat weights[wi2]
-      println()
-    end
-
-    printsf "new weightSum = " weightSum
-    println()
-
-    for i2 0 offsetCount
-      printsi "i = " i2
-      printString ", (x1,y1) = "
-      printFloat( offsetx1[i2] *_f pixw )
-      printString ","
-      printFloat( offsety1[i2] *_f pixh )
-      printString ", (x2,y2) = "
-      printFloat( offsetx2[i2] *_f pixw )
-      printString ","
-      printFloat( offsety2[i2] *_f pixh )
-      println()
-    end
+    // pixw := 1.0 /_f int:toFloat(windowWidth)
+    // pixh := 1.0 /_f int:toFloat(windowHeight)
+    // 
+    // offsetx1 := malloc float offsetCount
+    // offsetx2 := malloc float offsetCount
+    // offsety1 := malloc float offsetCount
+    // offsety2 := malloc float offsetCount
+    // weights := malloc float offsetCount
+    // 
+    // for i 1 (offsetSpan+1)
+    //   s := int:toFloat i
+    //   h := offsetSpan + i
+    //   l := offsetSpan - i
+    // 
+    //   offsetx1[l] = float:neg(pixw *_f s)
+    //   offsetx1[h] = pixw *_f s
+    //   offsety1[l] = 0.0
+    //   offsety1[h] = 0.0
+    // 
+    //   offsetx2[l] = 0.0
+    //   offsetx2[h] = 0.0
+    //   offsety2[l] = float:neg(pixh *_f s)
+    //   offsety2[h] = pixh *_f s
+    // 
+    //   o := int:toFloat offsetSpan
+    //   d := int:toFloat i
+    //   w := 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o) *_f powf(math:e, float:neg (d *_f d /_f (2.0 *_f o *_f o)))
+    //   weights[l] = w
+    //   weights[h] = w
+    // end
+    // o2 := int:toFloat offsetSpan
+    // d2 := 0.0
+    // weights[offsetSpan] = 1.0 /_f (sqrtf(2.0 *_f math:pi) *_f o2) *_f powf(math:e, float:neg (d2 *_f d2 /_f (2.0 *_f o2 *_f o2)))
+    // offsetx1[offsetSpan] = 0.0
+    // offsety1[offsetSpan] = 0.0
+    // offsetx2[offsetSpan] = 0.0
+    // offsety2[offsetSpan] = 0.0
+    // 
+    // weightSum := 0.0
+    // for wi 0 offsetCount
+    //   weightSum = weightSum +_f weights[wi]
+    // end
+    // 
+    // printsf "weightSum = " weightSum
+    // println()
+    // 
+    // weightSumInv := 1.0 /_f weightSum
+    // weightSum = 0.0
+    // for wi2 0 offsetCount
+    //   weights[wi2] = weights[wi2] *_f weightSumInv
+    //   weightSum = weightSum +_f weights[wi2]
+    //   printString " w["
+    //   printInt wi2
+    //   printString "] = "
+    //   printFloat weights[wi2]
+    //   println()
+    // end
+    // 
+    // printsf "new weightSum = " weightSum
+    // println()
+    // 
+    // for i2 0 offsetCount
+    //   printsi "i = " i2
+    //   printString ", (x1,y1) = "
+    //   printFloat( offsetx1[i2] *_f pixw )
+    //   printString ","
+    //   printFloat( offsety1[i2] *_f pixh )
+    //   printString ", (x2,y2) = "
+    //   printFloat( offsetx2[i2] *_f pixw )
+    //   printString ","
+    //   printFloat( offsety2[i2] *_f pixh )
+    //   println()
+    // end
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
@@ -1068,21 +1187,22 @@ func int main()
       end
       framebuffer:makeColorTexture target
 
-      glUseProgram glowShader
+      glUseProgram glowFilter.shader
       renderToTarget target2
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glBindTexture2D target.colorTexture
-        gl:uniform1fv glowShader "offsetx" offsetCount offsetx1
-        gl:uniform1fv glowShader "offsety" offsetCount offsety1
-        gl:uniform1fv glowShader "weights" offsetCount weights
+        gl:uniform1fv glowFilter.shader "offsetx" glowFilter.size glowFilter.xoffsets
+        gl:uniform1fv glowFilter.shader "offsety" glowFilter.size glowFilter.yoffsets
+        gl:uniform1fv glowFilter.shader "weights" glowFilter.size glowFilter.weights
         drawFullscreenQuad()
       end
 
+      f2 := glowFilter.next
       glBindTexture2D target2.colorTexture
-      glUseProgram glowShader
-      gl:uniform1fv glowShader "offsetx" offsetCount offsetx2
-      gl:uniform1fv glowShader "offsety" offsetCount offsety2
-      gl:uniform1fv glowShader "weights" offsetCount weights
+      glUseProgram f2.shader
+      gl:uniform1fv glowFilter.shader "offsetx" glowFilter.size f2.xoffsets
+      gl:uniform1fv glowFilter.shader "offsety" glowFilter.size f2.yoffsets
+      gl:uniform1fv glowFilter.shader "weights" glowFilter.size f2.weights
       drawFullscreenQuad()
       glBindTexture2D 0
 
@@ -1101,21 +1221,18 @@ func int main()
     printFloat (int:toFloat frameNum /_f (endTime -_f startTime))
     printlnString " fps"
 
-    glDeleteShader glowShader
+    glDeleteShader glowFilter.shader
     delete field
     delete mballs
 
-    delete offsetx1
-    delete offsety1
-    delete offsetx2
-    delete offsety2
+    FilterEffect:delete glowFilter
   end
   //TODO: release target, target2
 
   ret 0
 end
 
-func void test()
-  runMain()
-end
+// func void test()
+//   runMain()
+// end
 
