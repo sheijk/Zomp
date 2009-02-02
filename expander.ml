@@ -1386,12 +1386,12 @@ let translateFromDict
           None
       | Result (bindings, tlexprs) ->
           Some (bindings, tlexprs)
-  with _ ->
+  with Not_found ->
     None
 
 let rec translate errorF translators bindings expr =
   let rec t = function
-    | [] -> errorF expr "Expression can not be translated"
+    | [] -> errorF expr "No translator matched expression"
     | f :: remf -> begin
         Zompvm.currentBindings := bindings;
         match f (translate errorF translators) bindings expr with
