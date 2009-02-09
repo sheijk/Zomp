@@ -235,8 +235,8 @@ end
 // Quick and dirty arrays
 
 macro defineArrayType type
-  arrayTypeName := "Array_" ++ type.id
-  initFuncName := "Array_" ++ type.id ++ ":init"
+  arrayTypeName := type.id ++  "_Array"
+  initFuncName := arrayTypeName ++ ":init"
 
   // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
   initDecl := simpleAst("opcall")
@@ -855,21 +855,6 @@ macro List:foreach list indexVar dataVar code
   end}
 end
 
-// testf
-//   l := makeList int 2 3 4
-//   List:foreach l i n
-//     printInt i
-//     printChar '='
-//     printInt n
-//     printString ", "
-//   end
-//   println()
-// 
-//   fl := makeList float 4.0 5.0 6.0 7.0
-//   List:foreach fl _ f printlnFloat(f)
-//   println()
-// end
-
 //------------------------------------------------------------------------------
 // filtering effects
 
@@ -999,9 +984,6 @@ func GLint makeFilterShader(int size)
     gl_FragColor = color;
     }"
 
-  printString fragmentSource
-  println()
-
   glowShader := createShader varyingSource vertexSource fragmentSource
   assert (glowShader != 0)
 
@@ -1127,13 +1109,67 @@ end
 //   end
 // end
 
-struct FramebufferList
-  Framebuffer data
-  FramebufferList* next
+type FramebufferPtr Framebuffer*
+defineListType FramebufferPtr
+
+func Framebuffer* makeColorRenderTarget2(int width, int height)
+  target := new Framebuffer width height
+  Framebuffer:attachColorTexture target
+  Framebuffer:create target
+  ret target
+end
+
+func Framebuffer** makeMipmapRenderTargets(int width, int height, int levels)
+  targets := malloc Framebuffer* levels
+
+  w := width
+  h := height
+  for i 0 levels
+    targets[i] = makeColorRenderTarget2(w, h)
+    w = w/2
+    h = h/2
+  end
+
+  ret targets
+end
+
+func void deleteRenderTargetArray(Framebuffer** targets, int count)
+  for i 0 count
+    Framebuffer:delete targets[i]
+    delete targets[i]
+  end
+end
+
+struct RendererInfo
+  cstring name
+  cstring version
+  cstring vendor
+end
+
+func void RendererInfo:init(RendererInfo* this)
+  this.name = glGetString GL_RENDERER
+  this.version = glGetString GL_VERSION
+  this.vendor = glGetString GL_VENDOR
+end
+
+func void RendererInfo:print(RendererInfo* this)
+  printString "OpenGL renderer: "
+  printString this.name
+  println()
+  printString "       version:  "
+  printString this.version
+  println()
+  printString "       vendor:   "
+  printString this.vendor
+  println()
 end
 
 func int main()
   init()
+
+  rendererInfo := new RendererInfo
+  RendererInfo:print rendererInfo
+  dealloc rendererInfo
 
   // tracing:instrument
   seq
@@ -1148,35 +1184,20 @@ func int main()
     mballs := new Metaballs 50
 
     glowFilter := makeGlowFilter(5)
-
-    template initRenderTarget target width height
-      #target = new Framebuffer #width #height
-      assert (#target !=_ptr nullptr Framebuffer)
-      Framebuffer:attachColorTexture #target
-      Framebuffer:create #target
-    end
+    glowSteps := 2
+    renderTargetsA := nullptr Framebuffer*
+    renderTargetsB := nullptr Framebuffer*
 
     template deleteRenderTargets
-      Framebuffer:delete target
-      Framebuffer:delete target2
-      // Framebuffer:delete target1a
-      // Framebuffer:delete target1b
-      // Framebuffer:delete target2a
-      // Framebuffer:delete target2b
+      deleteRenderTargetArray renderTargetsA glowSteps
+      deleteRenderTargetArray renderTargetsB glowSteps
     end
 
     template createRenderTargets
-      initRenderTarget target windowWidth windowHeight
-      initRenderTarget target2 windowWidth windowHeight
-      // initRenderTarget target1a windowWidth windowHeight
-      // initRenderTarget target1b windowWidth windowHeight
-      // initRenderTarget target2a (windowWidth/2) (windowHeight/2)
-      // initRenderTarget target2b (windowWidth/2) (windowHeight/2)
+      renderTargetsA = makeMipmapRenderTargets windowWidth windowHeight glowSteps
+      renderTargetsB = makeMipmapRenderTargets windowWidth windowHeight glowSteps
     end
 
-    // ptrvars Framebuffer target1a target1b target2a target2b
-    target := nullptr Framebuffer
-    target2 := nullptr Framebuffer
     createRenderTargets
 
     glMatrixMode GL_PROJECTION
@@ -1250,6 +1271,12 @@ func int main()
         glClear GL_DEPTH_BUFFER_BIT
       end
 
+      target := nullptr Framebuffer
+      target2 := nullptr Framebuffer
+
+      target = renderTargetsA[0]
+      target2 = renderTargetsB[0]
+
       renderToTarget target
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         renderScene
@@ -1263,10 +1290,50 @@ func int main()
         drawFullscreenQuad()
       end
 
+      for targetNum 1 glowSteps
+        renderToTarget renderTargetsA[targetNum]
+          glClear(GL_COLOR_BUFFER_BIT)
+          glBindTexture2D renderTargetsB[targetNum - 1]*.colorTexture
+          FilterEffect:bind glowFilter
+          drawFullscreenQuad()
+        end
+
+        renderToTarget renderTargetsB[targetNum]
+          glClear(GL_COLOR_BUFFER_BIT)
+          glBindTexture2D renderTargetsA[targetNum]*.colorTexture
+          FilterEffect:bind glowFilter.next
+          drawFullscreenQuad()
+        end
+      end
+
+      glViewport 0 0 windowWidth windowHeight
       glBindTexture2D target2.colorTexture
+      // glBindTexture2D renderTargetsB[glowSteps - 1]*.colorTexture
       FilterEffect:bind glowFilter.next
       drawFullscreenQuad()
       glBindTexture2D 0
+
+      // glClearColor 0.0 0.0 0.0 1.0
+      // glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
+      // saveTransforms
+      //   saveAttribs
+      //     makeGLIdentityTransforms
+      //     glScalef 0.75 1.0 1.0
+      //     scale2 := 1.0 /_f int:toFloat(glowSteps)
+      //     glScalef scale2 scale2 1.0
+      //     glEnable GL_TEXTURE_2D
+      //     glColor4f 1. 1. 1. 1.
+      //     for targetnumx 0 glowSteps
+      //       glBindTexture2D renderTargetsA[targetnumx]*.colorTexture
+      //       renderQuad 0.9
+      //       glTranslatef 1.0 0.0 0.0
+      //     end
+      //     glBindTexture2D 0
+      //   end
+      // end
+
+      // glClear(GL_COLOR_BUFFER_BIT)
+      // showTexture renderTargetsB[1].colorTexture
 
       glUseProgram 0
     end

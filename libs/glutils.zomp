@@ -433,7 +433,7 @@ func void drawFullscreenQuad()
 end
 
 func void showTexture(GLuint textureName)
-  glClearColor 0.125 0.125 0.125 1.0
+  glClearColor 0.0 0.0 0.0 1.0
   glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
   saveTransforms
     saveAttribs
