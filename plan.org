@@ -706,6 +706,7 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] support % operator
 ** TODO [#A] make prefix operators have lowest precedence
    &foo[7].bar[3].x should get address of x
+** TODO [#A] imenu: auf face testen, funktionen in comments/strings ignorieren
 
 * Use Cases                                                            :usecase:
 

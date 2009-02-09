@@ -975,19 +975,18 @@ func GLint makeFilterShader(int size)
     }"
   fragmentSource := "
   uniform sampler2D tex;
+  uniform vec2 pixSize = vec2(0.0);
   const int offsetSpan = " ++ int2cstring size ++ ";
   uniform float xoffsets[2*offsetSpan+1];
   uniform float yoffsets[2*offsetSpan+1];
   uniform float weights[2*offsetSpan+1];
 
   void main(void) {
-    float pixx = 1.0/800.0;
-    float pixy = 1.0/600.0;
-
+    vec2 ps = pixSize;
     vec4 color = vec4(0.0);
     for(int n = 0; n < offsetSpan*2+1; ++n) {
       float w = weights[n];
-      color += w * texture2D(tex, texCoord + vec2(xoffsets[n], yoffsets[n]));
+      color += w * texture2D(tex, texCoord + vec2(ps.x*xoffsets[n], ps.y*yoffsets[n]));
       }
     color.a = 0.0;
     gl_FragColor = color;
@@ -999,9 +998,10 @@ func GLint makeFilterShader(int size)
   ret glowShader
 end
 
+/*
 func FilterEffect* makeGlowFilter(int offsetSpan)
-  // offsetCount := 3
-  offsetCount := 1
+  offsetCount := 3
+  // offsetCount := 1
   glowShader := makeFilterShader offsetCount
 
   horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
@@ -1010,39 +1010,39 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
   pixw := 1.0 /_f int:toFloat(windowWidth)
   pixh := 1.0 /_f int:toFloat(windowHeight)
 
-  vertPass.xoffsets[0] = 0.0
-  vertPass.yoffsets[0] = 0.0
-  vertPass.weights[0] = 1.0
-
-  horPass.xoffsets[0] = 0.0
-  horPass.yoffsets[0] = 0.0
-  horPass.weights[0] = 1.0
-
-  // vertPass.xoffsets[0] = float:neg pixw
+  // vertPass.xoffsets[0] = 0.0
   // vertPass.yoffsets[0] = 0.0
-  // vertPass.xoffsets[1] = 0.0
-  // vertPass.yoffsets[1] = 0.0
-  // vertPass.xoffsets[2] = pixw
-  // vertPass.yoffsets[2] = 0.0
+  // vertPass.weights[0] = 1.0
   // 
   // horPass.xoffsets[0] = 0.0
-  // horPass.yoffsets[0] = float:neg pixh
-  // horPass.xoffsets[1] = 0.0
-  // horPass.yoffsets[1] = 0.0
-  // horPass.xoffsets[2] = 0.0
-  // horPass.yoffsets[2] = pixh
-  // 
-  // horPass.weights[0] = 0.25
-  // horPass.weights[1] = 0.5
-  // horPass.weights[2] = 0.25
-  // vertPass.weights[0] = 0.25
-  // vertPass.weights[1] = 0.5
-  // vertPass.weights[2] = 0.25
+  // horPass.yoffsets[0] = 0.0
+  // horPass.weights[0] = 1.0
+
+  vertPass.xoffsets[0] = float:neg pixw
+  vertPass.yoffsets[0] = 0.0
+  vertPass.xoffsets[1] = 0.0
+  vertPass.yoffsets[1] = 0.0
+  vertPass.xoffsets[2] = pixw
+  vertPass.yoffsets[2] = 0.0
+
+  horPass.xoffsets[0] = 0.0
+  horPass.yoffsets[0] = float:neg pixh
+  horPass.xoffsets[1] = 0.0
+  horPass.yoffsets[1] = 0.0
+  horPass.xoffsets[2] = 0.0
+  horPass.yoffsets[2] = pixh
+
+  horPass.weights[0] = 0.25
+  horPass.weights[1] = 0.5
+  horPass.weights[2] = 0.25
+  vertPass.weights[0] = 0.25
+  vertPass.weights[1] = 0.5
+  vertPass.weights[2] = 0.25
 
   ret vertPass
 end
+*/
 
-/*
 func FilterEffect* makeGlowFilter(int offsetSpan)
   offsetCount := 2 * offsetSpan + 1
 
@@ -1125,7 +1125,6 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
 
   ret vertPass
 end
-*/
 
 //------------------------------------------------------------------------------
 
@@ -1180,8 +1179,8 @@ func Framebuffer** makeMipmapRenderTargets(int width, int height, int levels)
   h := height
   for i 0 levels
     targets[i] = makeColorRenderTarget2(w, h)
-    // w = w/2
-    // h = h/2
+    w = w/2
+    h = h/2
   end
 
   ret targets
@@ -1194,28 +1193,49 @@ func void deleteRenderTargetArray(Framebuffer** targets, int count)
   end
 end
 
-struct RendererInfo
-  cstring name
-  cstring version
-  cstring vendor
+// macro xstruct name fields
+//   decl := ast:fromString name.id
+//   printerImpl := seqAst()
+// 
+//   forEachAstChild field fields
+//     type := ast:child field 0
+//     name := ast:child field 1
+//     ast:addChild decl ${#type #name}
+//     ast:addChild printerImpl ${print
+//   end
+// 
+//   printer := ${
+//     func void #printerName(#name* this)
+//       #printerImpl
+//     end
+//   end}
+// 
+//   ret ${
+//     #decl
+//     #printer
+//   end}
+// end
+
+struct TextureInfo
+  int width
+  int height
+  GLenum magFilter
+  GLenum minFilter
+  GLenum wrapS
+  GLenum wrapT
 end
 
-func void RendererInfo:init(RendererInfo* this)
-  this.name = glGetString GL_RENDERER
-  this.version = glGetString GL_VERSION
-  this.vendor = glGetString GL_VENDOR
-end
+func void TextureInfo:init(TextureInfo* this, GLenum texture)
+  glBindTexture2D texture
+  glGetTexParameteriv GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER &(this.magFilter)
+  glGetTexParameteriv GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER &(this.minFilter)
+  glGetTexParameteriv GL_TEXTURE_2D GL_TEXTURE_WRAP_S &(this.wrapS)
+  glGetTexParameteriv GL_TEXTURE_2D GL_TEXTURE_WRAP_T &(this.wrapT)
 
-func void RendererInfo:print(RendererInfo* this)
-  printString "OpenGL renderer: "
-  printString this.name
-  println()
-  printString "       version:  "
-  printString this.version
-  println()
-  printString "       vendor:   "
-  printString this.vendor
-  println()
+  glGetTexLevelParameteriv GL_TEXTURE_2D 0 GL_TEXTURE_WIDTH &(this.width)
+  glGetTexLevelParameteriv GL_TEXTURE_2D 0 GL_TEXTURE_HEIGHT &(this.height)
+
+  glBindTexture2D 0
 end
 
 func int main()
@@ -1238,7 +1258,7 @@ func int main()
     mballs := new Metaballs 50
 
     glowFilter := makeGlowFilter(5)
-    glowSteps := 3
+    glowSteps := 5
     renderTargetsA := nullptr Framebuffer*
     renderTargetsB := nullptr Framebuffer*
 
@@ -1274,9 +1294,6 @@ func int main()
 
         resizeDirty = false
       end
-
-      glClearColor(0.0, 0.0, 0.0, 1.0)
-      glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
 
       if2 (abs mouseXDelta > abs mouseYDelta) then
         mouseYDelta = 0
@@ -1319,72 +1336,82 @@ func int main()
         end
       end
 
+      glClearColor 0.0 0.0 0.0 1.0
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
       if2 keyDown(GLFW_KEY_LSHIFT) then
         renderScene
-        glClear GL_DEPTH_BUFFER_BIT
       end
 
-      target := nullptr Framebuffer
-      target2 := nullptr Framebuffer
-
-      target = renderTargetsA[0]
-      target2 = renderTargetsB[0]
-
-      renderToTarget target
+      renderToTarget renderTargetsA[0]
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         renderScene
       end
-      Framebuffer:makeColorTexture target
+      // Framebuffer:makeColorTexture renderTargetsA[0]
 
-      renderToTarget target2
+      pixelScale := 1.0
+
+      renderToTarget renderTargetsB[0]
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glBindTexture2D target.colorTexture
-        FilterEffect:bind glowFilter
+        glBindTexture2D renderTargetsA[0]*.colorTexture
+        FilterEffect:bind glowFilter.next
+        gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
         drawFullscreenQuad()
       end
 
       for targetNum 1 glowSteps
         renderToTarget renderTargetsA[targetNum]
-          glClear(GL_COLOR_BUFFER_BIT)
+          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
           glBindTexture2D renderTargetsB[targetNum - 1]*.colorTexture
           FilterEffect:bind glowFilter
+          gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
           drawFullscreenQuad()
         end
 
         renderToTarget renderTargetsB[targetNum]
-          glClear(GL_COLOR_BUFFER_BIT)
+          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
           glBindTexture2D renderTargetsA[targetNum]*.colorTexture
           FilterEffect:bind glowFilter.next
+          gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
           drawFullscreenQuad()
         end
+
+        pixelScale = pixelScale *_f 2.0
       end
 
       glViewport 0 0 windowWidth windowHeight
-      glBindTexture2D target2.colorTexture
-      FilterEffect:bind glowFilter.next
+      glBindTexture2D renderTargetsB[glowSteps - 1]*.colorTexture
+      FilterEffect:bind glowFilter
+      gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
       drawFullscreenQuad()
       glBindTexture2D 0
-
       glUseProgram 0
 
-      glClearColor 0.0 0.0 0.1 1.0
-      glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
-      showTarget := int:clamp 0 (glowSteps - 1) debugNum
-      debugNum = showTarget
-      assert (showTarget >= 0)
-      assert (showTarget < glowSteps)
-      saveTransforms
-        makeGLIdentityTransforms
-        draw2dOrientationGrid()
-        if2 keyDown(GLFW_KEY_LSHIFT) then
-          showTextureAt renderTargetsB[debugNum]*.colorTexture -1.0 -1.0 2.0 2.0
-        else
-          showTextureAt renderTargetsA[debugNum]*.colorTexture -1.0 -1.0 2.0 2.0
+      if2 keyDown(GLFW_KEY_LALT) then
+        glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
+        showTarget := int:clamp 0 (2 * glowSteps - 1) debugNum
+        debugNum = showTarget
+        assert (showTarget >= 0)
+        assert (showTarget < glowSteps * 2)
+        saveTransforms
+          makeGLIdentityTransforms
+          draw2dOrientationGrid()
+          if2 (int:mod showTarget 2 == 1) then
+            showTextureAt renderTargetsB[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
+          else
+            showTextureAt renderTargetsA[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
+          end
+
+          glColor3f 1. 1. 1.
+          saveAttribs
+            glqtPrintfAt -0.8 0.8 0.0 0.01 int:toCString(showTarget / 2)
+            targetName := "A"
+            if2 (int:mod showTarget 2 == 1) then
+              targetName = "B"
+            end
+            glqtPrintfAt -1.0 0.8 0.0 0.01 targetName
+          end
         end
-        // showTextureAt renderTargetsA[debugNum]*.colorTexture -1.0 -0.5 0.99 0.99
-        // showTextureAt renderTargetsB[debugNum]*.colorTexture 0.01 -0.5 0.99 0.99
-        glqtPrintfAt -0.9 0.8 0.0 0.01 int:toCString(showTarget)
       end
 
       // glClearColor 0.0 0.0 0.0 1.0

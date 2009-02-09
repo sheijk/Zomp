@@ -323,8 +323,9 @@ template postop-- int
   #int + 1
 end
 
-template preop& obj
-  ptr #obj
+macro preop& obj
+  code := getMemberAddress obj
+  ret code
 end
 
 macro struct name members...

@@ -97,14 +97,19 @@ func void gl:uniform1fv(GLuint shader, cstring name, int count, float* value)
   glUniform1fv loc count value
 end
 
-func void gl:uniform4f(GLuint shader, cstring name, float a, float b, float c, float d)
-  const GLuint loc (glGetUniformLocation shader name)
-  glUniform4f loc a b c d
+func void gl:uniform2f(GLuint shader, cstring name, float a, float b)
+  const GLuint loc glGetUniformLocation(shader,name)
+  glUniform2f loc a b
 end
 
 func void gl:uniform3f(GLuint shader, cstring name, float a, float b, float c)
   const GLuint loc (glGetUniformLocation shader name)
   glUniform3f loc a b c
+end
+
+func void gl:uniform4f(GLuint shader, cstring name, float a, float b, float c, float d)
+  const GLuint loc (glGetUniformLocation shader name)
+  glUniform4f loc a b c d
 end
 
 func void gl:uniform4fv(GLuint shader, cstring name, float* vals)
@@ -558,5 +563,32 @@ func void showTextureAt(GLuint textureName, float x, float y, float width, float
     // renderQuad (float:sub 1.0 (float:fdiv 1.0 10.0))
     glBindTexture2D 0
   end
+end
+
+//------------------------------------------------------------------------------
+// renderer information + caps
+
+struct RendererInfo
+  cstring name
+  cstring version
+  cstring vendor
+end
+
+func void RendererInfo:init(RendererInfo* this)
+  this.name = glGetString GL_RENDERER
+  this.version = glGetString GL_VERSION
+  this.vendor = glGetString GL_VENDOR
+end
+
+func void RendererInfo:print(RendererInfo* this)
+  printString "OpenGL renderer: "
+  printString this.name
+  println()
+  printString "       version:  "
+  printString this.version
+  println()
+  printString "       vendor:   "
+  printString this.vendor
+  println()
 end
 
