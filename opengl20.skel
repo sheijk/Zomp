@@ -525,7 +525,7 @@ GL_VERSION_1_1
 	GL_T2F_N3F_V3F 0x2A2B
 	GL_T2F_C4F_N3F_V3F 0x2A2C
 	GL_T4F_C4F_N3F_V4F 0x2A2D
-	GL_LOGIC_OP GL_INDEX_LOGIC_OP 0x0BF1
+	GL_LOGIC_OP GL_INDEX_LOGIC_OP
 	GL_TEXTURE_COMPONENTS 0x1003
 
 	void glDisable (GLenum cap)
@@ -545,7 +545,7 @@ GL_VERSION_1_1
 
 	void glDrawElements (GLenum mode, GLsizei count, GLenum type, const GLvoid* indices)
 
-	const GLubyte*  glGetString (GLenum name)
+	const GLubyte* glGetString (GLenum name)
 
 	void glGetTexImage (GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels)
 
@@ -1354,7 +1354,7 @@ http://www.opengl.org/documentation/specs/version2.0/glspec20.pdf
 	GL_STENCIL_BACK_REF 0x8CA3
 	GL_STENCIL_BACK_VALUE_MASK 0x8CA4
 	GL_STENCIL_BACK_WRITEMASK 0x8CA5
-	typedef char GLchar
+#	typedef char GLchar
 	void glBlendEquationSeparate (GLenum, GLenum)
 	void glDrawBuffers (GLsizei n, const GLenum* bufs)
 	void glStencilOpSeparate (GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
@@ -1370,8 +1370,8 @@ http://www.opengl.org/documentation/specs/version2.0/glspec20.pdf
 	void glDetachShader (GLuint program, GLuint shader)
 	void glDisableVertexAttribArray (GLuint)
 	void glEnableVertexAttribArray (GLuint)
-!	void glGetActiveAttrib (GLuint program, GLuint index, GLsizei maxLength, GLsizei* length, GLint* size, GLenum* type, GLchar* name)
-!	void glGetActiveUniform (GLuint program, GLuint index, GLsizei maxLength, GLsizei* length, GLint* size, GLenum* type, GLchar* name)
+	void glGetActiveAttrib (GLuint program, GLuint index, GLsizei maxLength, GLsizei* length, GLint* size, GLenum* type, GLchar* name)
+	void glGetActiveUniform (GLuint program, GLuint index, GLsizei maxLength, GLsizei* length, GLint* size, GLenum* type, GLchar* name)
 	void glGetAttachedShaders (GLuint program, GLsizei maxCount, GLsizei* count, GLuint* shaders)
 	GLint glGetAttribLocation (GLuint program, const GLchar* name)
 	void glGetProgramiv (GLuint program, GLenum pname, GLint* param)
@@ -1543,7 +1543,7 @@ GLEW
     
 #	GLuint glcGenTexture ()
 # 	void glcDeleteTexture (GLuint texture)
-#	void glcTexImage2D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint # border, GLenum format, GLenum dataType)
+#	void glcTexImage2D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum dataType)
 # 	void glcShaderSource (GLuint shader, const char* source)
 #     GLint glcGetShaderiv (GLuint obj, GLenum typ)
 #     GLint glcGetProgramiv (GLuint obj, GLenum typ)
