@@ -77,6 +77,11 @@ struct
       "(a + b)*c", `Return [
         OPEN_PAREN; id "a"; ADD_OP "+"; id "b"; CLOSE_PAREN;
         MULT_OP "*"; id "c"; END];
+      "10*(a+b)", `Return [
+        id "10"; MULT_OP "*";
+        OPEN_PAREN;
+        id "a"; ADD_OP "+"; id "b";
+        CLOSE_PAREN; END];
 
       "space... ", `Return [id "space"; POSTFIX_OP "..."; END];
       "lineend...", `Return [id "lineend"; POSTFIX_OP "..."; END];
@@ -195,6 +200,11 @@ struct
       "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo"; KEYWORD_ARG "then"; END];
       (* "this is a line:", `Return [id "this"; id "is"; id "a"; id "line"; *)
       (*                             EXTENDED_INDENT; END]; *)
+
+      (** reproduce various bugs *)
+      "(num--)", `Return [OPEN_PAREN; id "num"; POSTFIX_OP "--"; CLOSE_PAREN; END];
+      "${foo*}", `Return [QUOTE "$"; OPEN_CURLY; id "foo"; POSTFIX_OP "*"; CLOSE_CURLY; END];
+      "[i++]", `Return [OPEN_BRACKET; id "i"; POSTFIX_OP "++"; CLOSE_BRACKET; END];
     ]
     @ infixOp "+" (ADD_OP "+")
     @ infixOp "-" (ADD_OP "-")

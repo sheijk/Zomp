@@ -1611,8 +1611,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         | _ as expr ->
             raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
-    let params = List.map expr2param paramExprs in
-    sanityChecks typ params;
     let rec localBinding bindings = function
       | [] -> bindings
       | (name, typ) :: tail ->
@@ -1626,6 +1624,9 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           in
           localBinding (addVar bindings var) tail
     in
+
+    let params = List.map expr2param paramExprs in
+    sanityChecks typ params;
     let innerBindings = localBinding bindings params in
     let nestedTLForms, impl = match implExprOption with
       | Some implExpr ->
@@ -1639,7 +1640,11 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let f = func name typ params impl in
     match Semantic.functionIsValid f with
       | `Ok ->
-          let newBindings = addFunc bindings f in
+          let newBindings =
+            match impl with
+              | None -> addFunc bindings f
+              | _ -> bindings
+          in
           let funcDef = `DefineFunc f in
           newBindings, nestedTLForms, funcDef
       | `Errors messages -> raiseIllegalExpression

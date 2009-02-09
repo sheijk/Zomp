@@ -70,7 +70,8 @@ end = struct
             (let char = charStr.[0] in
              isIdentifier char ||
                (char = ')') ||
-               (char = ']'))
+               (char = ']') ||
+               (char = '}'))
       | Whitespace ->
           (String.length charStr = 1 &&
               let char = charStr.[0] in
@@ -101,7 +102,7 @@ end = struct
     let validIdentifierLastChar = "a-zA-Z0-9_" in
     let opRule symbol (tokenF :string -> token) =
       (NoWSOrOp,
-       Str.regexp (opre symbol ^ (sprintf "[^) \n%s]" opSymbols))),
+       Str.regexp (opre symbol ^ (sprintf "[%s0-9.({[]" validIdentifierFirstChar))),
       (fun str ->
          let lastChar = str.[String.length str - 1] in
          let str2 = Str.string_before str (String.length str - 1) in
@@ -128,7 +129,7 @@ end = struct
       (Any, Str.regexp symbol), (fun t -> `Token (f t))
     in
     let postfixRule symbol =
-      re (sprintf "%s\\( +\\|\n\\|)\\|[%s]\\)" (Str.quote symbol) opSymbols),
+      re (sprintf "%s\\( +\\|\n\\|)\\|}\\|]\\|[%s]\\)" (Str.quote symbol) opSymbols),
       (fun s ->
          if String.length s >= 1 && Str.last_chars s 1 = "\n" then
            `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
