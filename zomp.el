@@ -145,6 +145,14 @@ indent the next line when they occur at the beginning of a line"
      (zomp-toplevel)
      (get-buffer-process zomp-toplevel-buffer-name))))
 
+(defun zomp-start-or-show-toplevel ()
+  (interactive)
+  (if (not (zomp-get-toplevel-buffer))
+      (zomp-toplevel)
+    (let ((oldwin (selected-window)))
+      (switch-to-buffer-other-window (get-buffer zomp-toplevel-buffer-name))
+      (select-window oldwin))))
+
 (defun zomp-tl-do (code &optional create-if-not-existing)
   "Send some text to the zomp toplevel. If
   `create-if-not-existing' is 'create then the toplevel will be
@@ -503,7 +511,7 @@ indent the next line when they occur at the beginning of a line"
 
   (zomp-add-seperator zomp-sep-1)
   (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
-  (zomp-add-action zomp-toplevel [(control c)(control s)] "Start toplevel")
+  (zomp-add-action zomp-start-or-show-toplevel [(control c)(control s)] "Start toplevel")
 
   ;; set additional keys on OS X
   (local-set-key [(alt r)] '(lambda () (interactive)
@@ -611,6 +619,15 @@ indent the next line when they occur at the beginning of a line"
                 (search-forward-regexp zomp-identifier-regexp)
               (error nil))
             (buffer-substring linestart (point))))
+    (setq exprsym
+          (save-excursion
+            (when (search-backward-regexp " [:=/*+-]+ " linestart t)
+              (forward-char 1)
+              (search-forward-regexp "[ a-aA-Z0-9]")
+              (forward-word 1)
+              (let ((wordend (point)))
+                (backward-word 1)
+                (buffer-substring (point) wordend)))))
     (setq funcsym
           (save-excursion
             (condition-case nil
@@ -631,7 +648,7 @@ indent the next line when they occur at the beginning of a line"
               (error nil))))
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
-    (or funcsym linesym "nothing found")))
+    (or exprsym funcsym linesym "nothing found")))
 
 (defun zomp-get-eldoc-string ()
   (let ((symbol "unknown"))
