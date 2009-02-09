@@ -20,12 +20,12 @@
 (printCode (foo bar))
 
 (func (ptr ast) astSeq () (
-  (simpleAst "seq") ))
+  (ast:fromString "seq") ))
 
 (macro makeIntVars baseName count (
   (var (ptr ast) vars (astSeq))
   (for i 0 4 (
-    (addChild vars `(var int #(simpleAst (newUniqueNameFor "var")) 0)) ))
+    (addChild vars `(var int #(ast:fromString (newUniqueNameFor "var")) 0)) ))
   (printAst vars 2)
   (ret vars)
   ))

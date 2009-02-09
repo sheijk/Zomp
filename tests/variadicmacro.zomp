@@ -23,7 +23,7 @@
 // (macro print2 p (ret ``((printInt #p) (printInt #p))))
 
 (macro alias name replacement (
-  (var (ptr ast) code (simpleAst "template"))
+  (var (ptr ast) code (ast:fromString "template"))
   (addChild code name)
   (addChild code replacement)
   (ret code)

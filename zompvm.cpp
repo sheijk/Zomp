@@ -155,7 +155,7 @@ namespace {
       simpleAst = Function::Create(
         FuncTy_73,
         GlobalValue::ExternalLinkage,
-        "simpleAst", llvmModule);
+        "ast:fromString", llvmModule);
       simpleAst->setCallingConv(CallingConv::C);
     }
 

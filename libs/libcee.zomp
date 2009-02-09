@@ -278,8 +278,8 @@ end
 macro new type args...
   uniqueId name "new"
 
-  var ast* initCall astFromString(cstring:concat(getField(type, id), ":init"))
-  addChild initCall astFromString(name)
+  var ast* initCall ast:fromString(cstring:concat(getField(type, id), ":init"))
+  addChild initCall ast:fromString(name)
   forEachAstChild arg args
     addChild initCall arg
   end
@@ -287,7 +287,7 @@ macro new type args...
   var ast* code ${seq}
   addChild code ${var (ptr #type) #name (malloc #type)}
   addChild code initCall
-  addChild code astFromString(name)
+  addChild code ast:fromString(name)
 
   ret code
 end
@@ -328,7 +328,7 @@ template preop& obj
 end
 
 macro struct name members...
-  code := simpleAst("type")
+  code := ast:fromString("type")
   addChild code name
 
   forEachAstChild member members

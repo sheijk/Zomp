@@ -399,8 +399,8 @@ macro makeGLFactory glgenF factoryName
   var ast* funcCall glgenF
   addChild funcCall ${1}
   addChild funcCall ${ptr name}
-  var ast* nameAndParams simpleAst("opcall")
-  addChild nameAndParams simpleAst(getField factoryName id)
+  var ast* nameAndParams ast:fromString("opcall")
+  addChild nameAndParams ast:fromString(getField factoryName id)
   ret ${func GLuint #nameAndParams
     var GLuint name 0
     #funcCall

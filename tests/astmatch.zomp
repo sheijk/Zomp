@@ -16,7 +16,7 @@
     (var astp child (astChild nameAndArgs childnum))
     (if (ast:matchesShape child `(opjux _ _))
       (
-        (var astp arg (astFromString (getField (astChild child 0) id)))
+        (var astp arg (ast:fromString (getField (astChild child 0) id)))
         (addChild arg (astChild child 1))
         (addChild args arg)
         )

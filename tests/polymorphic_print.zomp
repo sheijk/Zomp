@@ -25,7 +25,7 @@
 
 (macro callOverloadedFunc name typeName arg (
   (var cstring funcName (cstring:concat (getField name id) "_" (getField typeName id)))
-  (var astp call (astFromString funcName))
+  (var astp call (ast:fromString funcName))
   (addChild call arg)
   (ret call)
   ))

@@ -4,7 +4,7 @@
  */
 
 macro tracing:instrument code
-  var ast* instrumentedCode simpleAst("seq")
+  var ast* instrumentedCode ast:fromString("seq")
 
   forEachAstChild expr code
     addChild instrumentedCode ${printlnString "=> entering"}

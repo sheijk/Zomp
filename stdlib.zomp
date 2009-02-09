@@ -233,28 +233,22 @@
 
 (func cstring cstrings:append ((cstring l) (cstring r)))
 
-(func (ptr ast) simpleAst ((cstring name)) (
-  // (checkId name "simpleAst")
-
+(func (ptr ast) ast:fromString ((cstring name)) (
   (var (ptr ast) a (malloc ast))
 
   (store (fieldptr a id) (cstrings:append name ""))
   (store (fieldptr a childCount) 0)
   (store (fieldptr a childs) (nullptr (ptr ast)))
 
-  // (registerAst a)
   (ret a)
   ))
 
-(func (ptr ast) astFromString ((cstring name)) (
-  (simpleAst name) ))
-
 (func (ptr ast) seqAst () (
-  (astFromString "seq") ))
+  (ast:fromString "seq") ))
 
-(func (ptr ast) astFromInt ((int i)) (
+(func (ptr ast) ast:fromInt ((int i)) (
   (var cstring asString (int2cstring i))
-  (simpleAst asString) ))
+  (ast:fromString asString) ))
 
 (func void ast:print (((ptr ast) a) (int indent)) (
   (printIndent indent)
@@ -554,7 +548,7 @@
 /// use antiquotes to calculate parts of the ast from arbitrary
 /// code expressions
 (macro template name argsAndImpl ... (
-  (var (ptr ast) t (simpleAst "macro"))
+  (var (ptr ast) t (ast:fromString "macro"))
   (addChild t name)
 
   (const int argCount (getField argsAndImpl childCount))
@@ -563,9 +557,9 @@
     (if (int:uless argnum (int:sub argCount 1))
       (addChild t arg)
       (addChild t (
-        (var (ptr ast) foo (simpleAst "quote"))
+        (var (ptr ast) foo (ast:fromString "quote"))
         (addChild foo arg)
-        (var (ptr ast) reti (simpleAst "ret"))
+        (var (ptr ast) reti (ast:fromString "ret"))
         (addChild reti foo)
         reti))
       )
@@ -664,7 +658,7 @@
 (macro unittest:testCasesFor name testCases ... (
   (var cstring testName (cstring:concat "test_" (getField name id) "_" (int:toCString (newUniqueId))))
 
-  (var astp impl (astFromString "unittest:assertAll"))
+  (var astp impl (ast:fromString "unittest:assertAll"))
   (forEachAstChild testCase testCases (
     (addChild impl testCase)
     ))
@@ -768,7 +762,7 @@
 
 (macro float:aliasNoQNAN funcName (
   (var cstring macroName (cstrings:append "float:" (getField funcName id)))
-  (var astp orderedName (simpleAst (cstrings:append "float:o" (getField funcName id))))
+  (var astp orderedName (ast:fromString (cstrings:append "float:o" (getField funcName id))))
   (addChild orderedName ``#l)
   (addChild orderedName ``#r)
 
@@ -827,7 +821,7 @@
 (macro addMappedChilds parent mapf childs ... (
   (var (ptr ast) code `())
   (forEachAstChild child childs (
-    (var (ptr ast) map (simpleAst (getField mapf id)))
+    (var (ptr ast) map (ast:fromString (getField mapf id)))
     (addChild map child)
     (addChild code `(addChild #parent #map))
     ))
@@ -846,8 +840,8 @@
 
 (macro defineOp op func (
   (var (ptr ast) def `(template))
-  (addChild def (simpleAst (getField op id)))
-  (addMappedChilds def simpleAst "l" "r")
+  (addChild def (ast:fromString (getField op id)))
+  (addMappedChilds def ast:fromString "l" "r")
   (var (ptr ast) impl func)
   (addChild impl ``#l)
   (addChild impl ``#r)
@@ -944,7 +938,7 @@
 
   (addChild impl `(compiler:printWarning #warning))
 
-  (var astp call (astFromString (getField replacementName id)))
+  (var astp call (ast:fromString (getField replacementName id)))
   (forEachAstChild arg2 args (
     (var astp antiquoteArg ``(antiquote))
     (addChild antiquoteArg arg2)
@@ -965,7 +959,7 @@
   (addChild impl `(
     (compiler:printWarning #warning)
 
-    (var astp call (astFromString #replName))
+    (var astp call (ast:fromString #replName))
     (forEachAstChild child args (
       (addChild call child)
       ))
@@ -1055,6 +1049,7 @@
 // (deprecated unittest.assertAll unittest:assertAll "blah" check ...)
 
 (deprecated astChild ast:child parent index)
+(deprecated simpleAst ast:fromString name)
 (deprecated printAst ast:print t indent)
 
 (macro linkclib fileNames ... (

@@ -7,15 +7,15 @@
 
   (printlnString "Printing handcrafted ast:")
   (var (ptr ast) tst (seq
-    (var (ptr ast) t (simpleAst "foo"))
-    (addChild t (simpleAst "a"))
-    (addChild t (simpleAst "b"))
+    (var (ptr ast) t (ast:fromString "foo"))
+    (addChild t (ast:fromString "a"))
+    (addChild t (ast:fromString "b"))
     t ))
   (printAst tst 0)
   ))
 
 (func void printBuilder ((cstring name)) (
-  (var (ptr ast) tree `(print #(simpleAst name)))
+  (var (ptr ast) tree `(print #(ast:fromString name)))
   (printString "Printing ast for ") (printString name) (println)
   (printAst tree 1)
   ))
@@ -28,9 +28,9 @@
 (func int main () (
   (printlnString "hello, ast")
 
-  (var (ptr ast) tree (simpleAst "simple"))
+  (var (ptr ast) tree (ast:fromString "simple"))
   (template extraChild name (
-    (addChild tree (simpleAst #name))
+    (addChild tree (ast:fromString #name))
     ))
   (extraChild "child")
   (extraChild "child2")

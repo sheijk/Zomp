@@ -36,17 +36,17 @@ include "libs/libcee.zomp"
 ///
 macro unittest:assert testCode
   isCompare := false
-  printF := simpleAst "internalErrorIn unittest:assert"
-  compareF := simpleAst "internalErrorIn unittest:assert"
+  printF := ast:fromString "internalErrorIn unittest:assert"
+  compareF := ast:fromString "internalErrorIn unittest:assert"
 
   if2 ast:matchesShape(testCode, ${__ ==_f __}) then
     isCompare = true
-    printF = simpleAst "printFloat"
-    compareF = simpleAst "op==_f"
+    printF = ast:fromString "printFloat"
+    compareF = ast:fromString "op==_f"
   elseif ast:matchesShape(testCode, ${__ == __})
     isCompare = true
-    printF = simpleAst "printInt"
-    compareF = simpleAst "op=="
+    printF = ast:fromString "printInt"
+    compareF = ast:fromString "op=="
   end
 
   if2 isCompare then
@@ -240,8 +240,8 @@ macro defineArrayType type
   initFuncName := arrayTypeName ++ ":init"
 
   // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
-  initDecl := simpleAst("opcall")
-  addChild initDecl simpleAst(initFuncName)
+  initDecl := ast:fromString("opcall")
+  addChild initDecl ast:fromString(initFuncName)
   addChild initDecl ${#arrayTypeName* this}
   addChild initDecl ${int size}
 
@@ -803,7 +803,7 @@ func cstring List:listTypeName(cstring memberType)
 end
 
 macro defineListType memberT
-  listT := simpleAst List:listTypeName(memberT.id)
+  listT := ast:fromString List:listTypeName(memberT.id)
   code := ${
     struct #listT
       #memberT data
@@ -814,7 +814,7 @@ macro defineListType memberT
       this.next = next
     end
   end}
-  ast:replace code "INITFUNCNAME" simpleAst(listT.id ++ ":init")
+  ast:replace code "INITFUNCNAME" ast:fromString(listT.id ++ ":init")
   ret code
 end
 
@@ -822,7 +822,7 @@ defineListType int
 defineListType float
 
 macro makeList type nums...
-  listT := simpleAst(type.id ++ "_List")
+  listT := ast:fromString(type.id ++ "_List")
   list := ${nullptr #listT}
   i := nums.childCount - 1
   while (i >= 0)
@@ -1130,7 +1130,7 @@ end
 //------------------------------------------------------------------------------
 
 macro tracing:instrument code
-  var ast* instrumentedCode simpleAst("seq")
+  var ast* instrumentedCode ast:fromString("seq")
 
   forEachAstChild expr code
     addChild instrumentedCode ${printlnString "=> entering"}

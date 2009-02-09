@@ -184,9 +184,9 @@ let newUniqueName() =
 let sexpr2codeNoAntiquotes recursion = function
   | { id = id; args = [] } ->
       if id = "'\\0'" then
-        simpleExpr "simpleAst" ["\"'!'\""]
+        simpleExpr "ast:fromString" ["\"'!'\""]
       else
-        simpleExpr "simpleAst" ["\"" ^ id ^ "\""]
+        simpleExpr "ast:fromString" ["\"" ^ id ^ "\""]
   | sexprWithArgs ->
       let tempVarName = newUniqueName() in
       let defVarExpr =
@@ -194,7 +194,7 @@ let sexpr2codeNoAntiquotes recursion = function
           args = [
             simpleExpr "ptr" ["ast"];
             idExpr tempVarName;
-            simpleExpr "simpleAst" ["\"" ^ sexprWithArgs.id ^ "\""]]
+            simpleExpr "ast:fromString" ["\"" ^ sexprWithArgs.id ^ "\""]]
         }
       in
       let returnExpr = idExpr tempVarName in
@@ -227,9 +227,9 @@ let insertAstConstructors bindings =
       | [] ->
           begin match lookup bindings id with
             | VarSymbol { typ = `Int32 } ->
-                { id = "astFromInt"; args = [idExpr id] }
+                { id = "ast:fromInt"; args = [idExpr id] }
             | VarSymbol { typ = `Pointer `Char } ->
-                { id = "astFromString"; args = [idExpr id] }
+                { id = "ast:fromString"; args = [idExpr id] }
             | _ -> default
           end
       | _ -> default
@@ -349,7 +349,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         (fun bindings args ->
            match args with
              | [quotedExpr] -> sexpr2code ~antiquoteF:(insertAstConstructors bindings) quotedExpr
-             | [] -> simpleExpr "simpleAst" ["seq"]
+             | [] -> simpleExpr "ast:fromString" ["seq"]
              | args -> { id = "quote"; args = args }
         )
     in
@@ -358,7 +358,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         (fun bindings args ->
            match args with
              | [quotedExpr] -> sexpr2codeasis quotedExpr
-             | [] -> simpleExpr "simpleAst" ["seq"]
+             | [] -> simpleExpr "ast:fromString" ["seq"]
              | args -> { id = "quote"; args = args }
         )
     in
