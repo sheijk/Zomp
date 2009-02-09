@@ -95,41 +95,7 @@ indent the next line when they occur at the beginning of a line"
   (cond ((not (looking-at "("))
           (goto-match-paren 0)))
    (set-mark (point))
-   (goto-match-paren 0)
-  )
-
-(defun zomp-onkey-do (key code)
-  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
-
-
-(defun zomp-tl-run (funcname)
-  (interactive "MName of function: ")
-  (zomp-tl-do (concat "!run " funcname)) )
-
-(defun zomp-tl-list-bindings (regexps)
-  (interactive "MList bindings matching: ")
-  (zomp-tl-do (concat "!bindings " regexps)) )
-
-(defun zomp-toplevel ()
-  (interactive)
-  (let ((oldwin (selected-window)))
-    (shell "*zomp-toplevel*")
-    (zomp-tl-do (concat "cd " zomp-basedir))
-    (zomp-tl-do "./sexprtoplevel.native; exit")
-    ;; (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
-    (message "Started zomp toplevel")
-    (select-window oldwin)))
-
-(defun zomp-tl-do (code)
-  (process-send-string (get-buffer-process "*zomp-toplevel*") (concat code ""))
-  )
-
-(defun zomp-tl-eval-region ()
-  (interactive)
-  (message "Evaluating region")
-  (process-send-region (get-buffer-process "*zomp-toplevel*") (region-beginning) (region-end))
-  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
-  )
+   (goto-match-paren 0))
 
 (defun zomp-mark-current ()
   "Marks the current toplevel function/(macro/"
@@ -148,14 +114,65 @@ indent the next line when they occur at the beginning of a line"
         (if (looking-at "end")
             (forward-word)
           (goto-char next-line-pos)))
-    )))
+      )))
+
+(defun zomp-onkey-do (key code)
+  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; toplevel interaction
+
+(defvar zomp-toplevel-buffer-name "*zomp-toplevel*"
+  "The name of the buffer in which the zomp toplevel runs")
+
+(defun zomp-toplevel ()
+  (interactive)
+  (let ((oldwin (selected-window)))
+    (shell "*zomp-toplevel*")
+    (zomp-tl-do (concat "cd " zomp-basedir))
+    (zomp-tl-do "./sexprtoplevel.native; exit")
+    ;; (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
+    (message "Started zomp toplevel")
+    (select-window oldwin)))
+
+(defun zomp-get-toplevel-buffer (&optional create-if-not-existing)
+  "Get the zomp toplevel interaction buffer. If
+  `create-if-not-existing' is equal to 'create the toplevel will
+  be started if it is not not running, yet"
+  (or
+   (get-buffer-process zomp-toplevel-buffer-name)
+   (when (equal create-if-not-existing 'create)
+     (zomp-toplevel)
+     (get-buffer-process zomp-toplevel-buffer-name))))
+
+(defun zomp-tl-do (code &optional create-if-not-existing)
+  "Send some text to the zomp toplevel. If
+  `create-if-not-existing' is 'create then the toplevel will be
+  started if it is not running, yet"
+  (process-send-string
+   (zomp-get-toplevel-buffer create-if-not-existing)
+   (concat code "")))
+
+(defun zomp-tl-run (funcname)
+  (interactive "MName of function: ")
+  (zomp-tl-do (concat "!run " funcname)))
+
+(defun zomp-tl-list-bindings (regexps)
+  (interactive "MList bindings matching: ")
+  (zomp-tl-do (concat "!bindings " regexps)))
+
+(defun zomp-tl-eval-region ()
+  (interactive)
+  (message "Evaluating region")
+  (process-send-region (zomp-get-toplevel-buffer 'create) (region-beginning) (region-end))
+  (process-send-string (zomp-get-toplevel-buffer) ""))
 
 (defun zomp-tl-eval-current ()
   (interactive)
   (message "Evaluating function at point")
   (save-excursion
     (zomp-mark-current)
-    (zomp-tl-eval-region) ))
+    (zomp-tl-eval-region)))
 
 (defun zomp-next-tl-expr ()
   (interactive)
@@ -179,15 +196,15 @@ indent the next line when they occur at the beginning of a line"
 (defun zomp-tl-eval-buffer ()
   (interactive)
   (message "Evaluating buffer")
-  (process-send-region (get-buffer-process "*zomp-toplevel*") (buffer-end -1) (buffer-end 1))
-  (process-send-string (get-buffer-process "*zomp-toplevel*") "")
-  )
+  (process-send-region (zomp-get-toplevel-buffer 'create) (buffer-end -1) (buffer-end 1))
+  (process-send-string (zomp-get-toplevel-buffer) ""))
 
 (defun zomp-tl-run-test ()
   (interactive)
   (message "Running function test")
-  (zomp-tl-do "!run test")
-  )
+  (zomp-tl-do "!run test"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro zomp-add-seperator (seperator-id)
   `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
