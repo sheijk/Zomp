@@ -2,11 +2,12 @@
  * Nearly metaballs
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib"
+linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib" "libquicktext.dylib"
 
 include "opengl20.zomp"
 include "glfw.zomp"
 include "glut.zomp"
+include "quicktext.zomp"
 include "libs/glutils.zomp"
 
 include "libs/libcee.zomp"
@@ -722,6 +723,8 @@ end
 
 var bool windowOnUpperScreen true
 
+var int debugNum 0
+
 func void onKey(int key, int action)
   if2 ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS)) then
     if2 windowOnUpperScreen then
@@ -730,6 +733,12 @@ func void onKey(int key, int action)
       glfwSetWindowPos 100 100
     end
     windowOnUpperScreen = bool:not windowOnUpperScreen
+  elseif (action == GLFW_PRESS)
+    if2 (key == GLFW_KEY_UP) then
+      ++debugNum
+    elseif (key == GLFW_KEY_DOWN)
+      --debugNum
+    end
   end
 end
 
@@ -991,6 +1000,50 @@ func GLint makeFilterShader(int size)
 end
 
 func FilterEffect* makeGlowFilter(int offsetSpan)
+  // offsetCount := 3
+  offsetCount := 1
+  glowShader := makeFilterShader offsetCount
+
+  horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
+  vertPass := new FilterEffect offsetCount glowShader horPass
+
+  pixw := 1.0 /_f int:toFloat(windowWidth)
+  pixh := 1.0 /_f int:toFloat(windowHeight)
+
+  vertPass.xoffsets[0] = 0.0
+  vertPass.yoffsets[0] = 0.0
+  vertPass.weights[0] = 1.0
+
+  horPass.xoffsets[0] = 0.0
+  horPass.yoffsets[0] = 0.0
+  horPass.weights[0] = 1.0
+
+  // vertPass.xoffsets[0] = float:neg pixw
+  // vertPass.yoffsets[0] = 0.0
+  // vertPass.xoffsets[1] = 0.0
+  // vertPass.yoffsets[1] = 0.0
+  // vertPass.xoffsets[2] = pixw
+  // vertPass.yoffsets[2] = 0.0
+  // 
+  // horPass.xoffsets[0] = 0.0
+  // horPass.yoffsets[0] = float:neg pixh
+  // horPass.xoffsets[1] = 0.0
+  // horPass.yoffsets[1] = 0.0
+  // horPass.xoffsets[2] = 0.0
+  // horPass.yoffsets[2] = pixh
+  // 
+  // horPass.weights[0] = 0.25
+  // horPass.weights[1] = 0.5
+  // horPass.weights[2] = 0.25
+  // vertPass.weights[0] = 0.25
+  // vertPass.weights[1] = 0.5
+  // vertPass.weights[2] = 0.25
+
+  ret vertPass
+end
+
+/*
+func FilterEffect* makeGlowFilter(int offsetSpan)
   offsetCount := 2 * offsetSpan + 1
 
   glowShader := makeFilterShader offsetCount
@@ -1072,6 +1125,7 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
 
   ret vertPass
 end
+*/
 
 //------------------------------------------------------------------------------
 
@@ -1126,8 +1180,8 @@ func Framebuffer** makeMipmapRenderTargets(int width, int height, int levels)
   h := height
   for i 0 levels
     targets[i] = makeColorRenderTarget2(w, h)
-    w = w/2
-    h = h/2
+    // w = w/2
+    // h = h/2
   end
 
   ret targets
@@ -1184,7 +1238,7 @@ func int main()
     mballs := new Metaballs 50
 
     glowFilter := makeGlowFilter(5)
-    glowSteps := 2
+    glowSteps := 3
     renderTargetsA := nullptr Framebuffer*
     renderTargetsB := nullptr Framebuffer*
 
@@ -1308,34 +1362,62 @@ func int main()
 
       glViewport 0 0 windowWidth windowHeight
       glBindTexture2D target2.colorTexture
-      // glBindTexture2D renderTargetsB[glowSteps - 1]*.colorTexture
       FilterEffect:bind glowFilter.next
       drawFullscreenQuad()
       glBindTexture2D 0
+
+      glUseProgram 0
+
+      glClearColor 0.0 0.0 0.1 1.0
+      glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
+      showTarget := int:clamp 0 (glowSteps - 1) debugNum
+      debugNum = showTarget
+      assert (showTarget >= 0)
+      assert (showTarget < glowSteps)
+      saveTransforms
+        makeGLIdentityTransforms
+        draw2dOrientationGrid()
+        if2 keyDown(GLFW_KEY_LSHIFT) then
+          showTextureAt renderTargetsB[debugNum]*.colorTexture -1.0 -1.0 2.0 2.0
+        else
+          showTextureAt renderTargetsA[debugNum]*.colorTexture -1.0 -1.0 2.0 2.0
+        end
+        // showTextureAt renderTargetsA[debugNum]*.colorTexture -1.0 -0.5 0.99 0.99
+        // showTextureAt renderTargetsB[debugNum]*.colorTexture 0.01 -0.5 0.99 0.99
+        glqtPrintfAt -0.9 0.8 0.0 0.01 int:toCString(showTarget)
+      end
 
       // glClearColor 0.0 0.0 0.0 1.0
       // glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
       // saveTransforms
       //   saveAttribs
       //     makeGLIdentityTransforms
-      //     glScalef 0.75 1.0 1.0
+      //     draw2dOrientationGrid()
       //     scale2 := 1.0 /_f int:toFloat(glowSteps)
       //     glScalef scale2 scale2 1.0
+      //     glTranslatef (1.0 -_f int:toFloat glowSteps) 0. 0.
       //     glEnable GL_TEXTURE_2D
+      //     glDisable GL_DEPTH_TEST
       //     glColor4f 1. 1. 1. 1.
+      //     glTranslatef 0.0 -1.0 0.0
       //     for targetnumx 0 glowSteps
+      //       glTranslatef 0.0 2.0 0.0
       //       glBindTexture2D renderTargetsA[targetnumx]*.colorTexture
       //       renderQuad 0.9
-      //       glTranslatef 1.0 0.0 0.0
+      //       glBindTexture2D 0
+      //       renderQuadOutline 0.9
+      // 
+      //       glTranslatef 0.0 -2.0 0.0
+      //       glBindTexture2D renderTargetsB[targetnumx]*.colorTexture
+      //       renderQuad 0.9
+      //       glBindTexture2D 0
+      //       renderQuadOutline 0.9
+      // 
+      //       glTranslatef 2.0 0.0 0.0
       //     end
       //     glBindTexture2D 0
       //   end
       // end
-
-      // glClear(GL_COLOR_BUFFER_BIT)
-      // showTexture renderTargetsB[1].colorTexture
-
-      glUseProgram 0
     end
 
     drawPausedOverlay()

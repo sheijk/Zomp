@@ -200,6 +200,36 @@ func void renderQuad(float size)
   end
 end
 
+func void renderQuadOutline(float size)
+  var float nsize (float:sub 0. size)
+
+  rendergl GL_LINE_LOOP
+    glTexCoord2f 0. 0.
+    glVertex3f nsize nsize 0.
+    glTexCoord2f 0. 1.
+    glVertex3f nsize size 0.
+    glTexCoord2f 1. 1.
+    glVertex3f size size 0.
+    glTexCoord2f 1. 0.
+    glVertex3f size nsize 0.
+  end
+end
+
+func void renderQuadOutline01(float size)
+  var float nsize 0.0
+
+  rendergl GL_LINE_LOOP
+    glTexCoord2f 0. 0.
+    glVertex3f nsize nsize 0.
+    glTexCoord2f 0. 1.
+    glVertex3f nsize size 0.
+    glTexCoord2f 1. 1.
+    glVertex3f size size 0.
+    glTexCoord2f 1. 0.
+    glVertex3f size nsize 0.
+  end
+end
+
 func void renderXZQuad(float size)
   var float nsize (float:sub 0. size)
 
@@ -214,6 +244,21 @@ func void renderXZQuad(float size)
     glVertex3f size 0. nsize
   end
 end
+
+func void sendCircle()
+  template vertex x y (glVertex3f #x #y 0.0)
+
+  const float float:pi (float:mul 2.0 (acosf 0.0))
+  const float step (float:fdiv 1.0 10.0)
+  var float fangle 0.0
+  while (float:lessEqual fangle (float:add step (float:mul 2.0 float:pi))) 
+    vertex (sinf fangle) (cosf fangle)
+    assign fangle (float:add fangle step)
+  end
+end
+
+///-----------------------------------------------------------------------------
+/// orientation functions
 
 func void drawCoordSys(float length)
   template lineTo x y z
@@ -269,15 +314,62 @@ func void drawOrientationGrid()
   end
 end
 
-func void sendCircle()
-  template vertex x y (glVertex3f #x #y 0.0)
+macro ffor index min max step code
+  uniqueId startLabel "for2_start"
+  uniqueId endLabel "for2_exit"
+  uniqueId testResult "for2_testvar"
+  uniqueId execLabel "for2_body"
 
-  const float float:pi (float:mul 2.0 (acosf 0.0))
-  const float step (float:fdiv 1.0 10.0)
-  var float fangle 0.0
-  while (float:lessEqual fangle (float:add step (float:mul 2.0 float:pi))) 
-    vertex (sinf fangle) (cosf fangle)
-    assign fangle (float:add fangle step)
+  ret ${
+    var float #index #min
+    var bool #testResult false
+
+    label #startLabel
+
+    assign #testResult (float:less #index #max)
+    branch #testResult #execLabel #endLabel
+
+    label #execLabel
+    #code
+    assign #index (float:add #index #step)
+    branch #startLabel
+
+    label #endLabel
+  end}
+end
+
+func void draw2dOrientationGrid()
+  template lineTo c x y z
+    glColor4f (#c *_f #x) (#c *_f #y) (#c *_f #z) 1.
+    glVertex3f 0.0 0.0 0.0
+    glVertex3f #x #y #z
+  end
+
+  rendergl GL_LINES
+    lineTo 1. 1. 0. 0.
+    lineTo -0.5 -1. 0. 0.
+    lineTo 1. 0. 1. 0.
+    lineTo -0.5 0. -1. 0.
+
+    ffor p 0.0 1.0 0.1
+      var float mp float:neg(p)
+
+      glColor3f 1. 0. 0.
+      glVertex3f p 0.02 0.0
+      glVertex3f p -0.02 0.0
+
+      glColor3f 0.5 0.0 0.0
+      glVertex3f mp 0.02 0.0
+      glVertex3f mp -0.02 0.0
+
+      glColor3f 0. 1. 0.
+      glVertex3f 0.02 p 0.0
+      glVertex3f -0.02 p 0.0
+
+      glColor3f 0. 0.5 0.
+      glVertex3f 0.02 mp 0.0
+      glVertex3f -0.02 mp 0.0
+    end
   end
 end
 
@@ -448,4 +540,23 @@ func void showTexture(GLuint textureName)
   end
 end
 
+func void showTextureAt(GLuint textureName, float x, float y, float width, float height)
+  saveAttribs
+    glEnable GL_TEXTURE_2D
+    glBindTexture2D textureName
+    glColor4f 1. 1. 1. 1.
+    rendergl GL_QUADS
+      glTexCoord2f 0. 0.
+      glVertex3f x y 0.
+      glTexCoord2f 1. 0.
+      glVertex3f (x +_f width) y 0.
+      glTexCoord2f 1. 1.
+      glVertex3f (x +_f width) (y +_f height) 0.
+      glTexCoord2f 0. 1.
+      glVertex3f x (y +_f height) 0.0
+    end
+    // renderQuad (float:sub 1.0 (float:fdiv 1.0 10.0))
+    glBindTexture2D 0
+  end
+end
 
