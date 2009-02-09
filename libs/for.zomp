@@ -9,7 +9,7 @@ macro uniqueIds purpose ids...
   var ast* code ${seq}
 
   forEachAstChild child ids
-    addChild code ${uniqueId #child #purpose}
+    ast:addChild code ${uniqueId #child #purpose}
   end
 
   ret code

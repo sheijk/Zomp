@@ -16,7 +16,7 @@ macro uniqueIds purpose ids...
   var ast* code ${seq}
 
   forEachAstChild child ids
-    addChild code ${uniqueIds #child #purpose}
+    ast:addChild code ${uniqueIds #child #purpose}
   end
 
   ret code
@@ -41,7 +41,7 @@ macro if2 cond then onTrue remArgs...
 
   var astp code ${seq}
 
-  addChild code ${when #cond
+  ast:addChild code ${when #cond
     #onTrue
     branch #endLabel
   end}
@@ -53,7 +53,7 @@ macro if2 cond then onTrue remArgs...
     var astp econd ast:child(remArgs, currentArg+1)
     var astp eexpr ast:child(remArgs, currentArg+2)
 
-    addChild code ${seq
+    ast:addChild code ${seq
       when #econd
         #eexpr
         branch #endLabel
@@ -66,10 +66,10 @@ macro if2 cond then onTrue remArgs...
   when (currentArg+1 < argCount)
     var astp elseCode ast:child(remArgs, currentArg+1)
 
-    addChild code elseCode
+    ast:addChild code elseCode
   end
 
-  addChild code ${label #endLabel}
+  ast:addChild code ${label #endLabel}
 
   ret code
 end
@@ -279,15 +279,15 @@ macro new type args...
   uniqueId name "new"
 
   var ast* initCall ast:fromString(cstring:concat(getField(type, id), ":init"))
-  addChild initCall ast:fromString(name)
+  ast:addChild initCall ast:fromString(name)
   forEachAstChild arg args
-    addChild initCall arg
+    ast:addChild initCall arg
   end
 
   var ast* code ${seq}
-  addChild code ${var (ptr #type) #name (malloc #type)}
-  addChild code initCall
-  addChild code ast:fromString(name)
+  ast:addChild code ${var (ptr #type) #name (malloc #type)}
+  ast:addChild code initCall
+  ast:addChild code ast:fromString(name)
 
   ret code
 end
@@ -329,10 +329,15 @@ end
 
 macro struct name members...
   code := ast:fromString("type")
-  addChild code name
+  ast:addChild code name
 
   forEachAstChild member members
-    addChild code member
+    ast:addChild code member
+  end
+
+  ret code
+end
+
 func bool isMultipleOf(int x, int m)
   ret (int:mod(x,m) == 0)
 end

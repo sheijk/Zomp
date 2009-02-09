@@ -7,14 +7,6 @@
 
 include "libs/libcee.zomp"
 
-macro unittest:assertAll checks
-  var ast* code ${}
-  forEachAstChild check checks
-    addChild code ${unittest:assert #check}
-  end
-  ret code
-end
-
 func int main()
   /// testing ast:matchesShape
   unittest:assertAll

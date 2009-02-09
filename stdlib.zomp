@@ -269,11 +269,8 @@
   (branch start)
   (label end)
   ))
-
-(func void addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
-  // (checkAst tree "addChild")
-  // (checkAst child "addChild")
-
+ 
+(func void ast:addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
   (var int oldChildCount (getField tree childCount))
   (var int newChildCount (int:add 1 oldChildCount))
   (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
@@ -381,7 +378,7 @@
   (label start)
 
   (var (ptr ast) child (ast:child args index))
-  (addChild code child)
+  (ast:addChild code child)
 
   (assign index (int:add index 1))
   (var bool test (int:uless index count))
@@ -407,7 +404,7 @@
 
   (label continue)
   (println)
-  (addChild code arg)
+  (ast:addChild code arg)
   (ast:print code 4)
   (ret code)
   ))
@@ -549,18 +546,18 @@
 /// code expressions
 (macro template name argsAndImpl ... (
   (var (ptr ast) t (ast:fromString "macro"))
-  (addChild t name)
+  (ast:addChild t name)
 
   (const int argCount (getField argsAndImpl childCount))
   (for argnum 0 argCount (
     (const (ptr ast) arg (ast:child argsAndImpl argnum))
     (if (int:uless argnum (int:sub argCount 1))
-      (addChild t arg)
-      (addChild t (
+      (ast:addChild t arg)
+      (ast:addChild t (
         (var (ptr ast) foo (ast:fromString "quote"))
-        (addChild foo arg)
+        (ast:addChild foo arg)
         (var (ptr ast) reti (ast:fromString "ret"))
-        (addChild reti foo)
+        (ast:addChild reti foo)
         reti))
       )
     ))
@@ -611,13 +608,13 @@
   (var (ptr ast) code `())
   (uniqueId resultString "cstring_concat")
 
-  (addChild code `(var cstring #resultString #firstString))
+  (ast:addChild code `(var cstring #resultString #firstString))
 
   (forEachAstChild string strings (
-    (addChild code `(assign #resultString (cstrings:append #resultString #string)))
+    (ast:addChild code `(assign #resultString (cstrings:append #resultString #string)))
     ))
 
-  (addChild code `(#resultString))
+  (ast:addChild code `(#resultString))
 
   (ret code)
   ))
@@ -648,7 +645,7 @@
   (forEachAstChild check checks (
     (if (cstring:equal (getField check id) "opseq")
       (printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported") ())
-    (addChild code `(unittest:assert #check))
+    (ast:addChild code `(unittest:assert #check))
     ))
   (ret code)
   ))
@@ -660,7 +657,7 @@
 
   (var astp impl (ast:fromString "unittest:assertAll"))
   (forEachAstChild testCase testCases (
-    (addChild impl testCase)
+    (ast:addChild impl testCase)
     ))
   (var astp funcDecl `(func void #testName () (#impl)))
 
@@ -751,7 +748,7 @@
 (macro setFieldsTo record value fields ... (
   (var (ptr ast) code `())
   (forEachAstChild field fields (
-    (addChild code `(setField #record #field #value))
+    (ast:addChild code `(setField #record #field #value))
     ))
   (ret code)
   ))
@@ -763,8 +760,8 @@
 (macro float:aliasNoQNAN funcName (
   (var cstring macroName (cstrings:append "float:" (getField funcName id)))
   (var astp orderedName (ast:fromString (cstrings:append "float:o" (getField funcName id))))
-  (addChild orderedName ``#l)
-  (addChild orderedName ``#r)
+  (ast:addChild orderedName ``#l)
+  (ast:addChild orderedName ``#r)
 
   (var astp macroDef `(macro #macroName l r (
                         (ret `(orderedName)))) )
@@ -822,30 +819,30 @@
   (var (ptr ast) code `())
   (forEachAstChild child childs (
     (var (ptr ast) map (ast:fromString (getField mapf id)))
-    (addChild map child)
-    (addChild code `(addChild #parent #map))
+    (ast:addChild map child)
+    (ast:addChild code `(ast:addChild #parent #map))
     ))
   (ret code)
   ))
 
 (template static:id foo (#foo))
 
-(macro addChilds parent childs ... (
+(macro ast:addChilds parent childs ... (
   (var (ptr ast) code `(addMappedChilds #parent static:id))
   (forEachAstChild child childs (
-    (addChild code child)
+    (ast:addChild code child)
     ))
   (ret code)
   ))
 
 (macro defineOp op func (
   (var (ptr ast) def `(template))
-  (addChild def (ast:fromString (getField op id)))
+  (ast:addChild def (ast:fromString (getField op id)))
   (addMappedChilds def ast:fromString "l" "r")
   (var (ptr ast) impl func)
-  (addChild impl ``#l)
-  (addChild impl ``#r)
-  (addChild def impl)
+  (ast:addChild impl ``#l)
+  (ast:addChild impl ``#r)
+  (ast:addChild def impl)
   (ret def)
   ))
 
@@ -861,7 +858,7 @@
 (macro defineFloatOps postfix namespace (
   (var (ptr ast) code `())
 
-  (addChilds code
+  (ast:addChilds code
     `(defineOpNS op+ #postfix add #namespace)
     `(defineOpNS op- #postfix sub #namespace)
     `(defineOpNS op* #postfix mul #namespace)
@@ -888,7 +885,7 @@
   (var cstring typeName (getField type id))
 
   (var (ptr ast) compareCode compareF)
-  (addChilds compareCode `l `r)
+  (ast:addChilds compareCode `l `r)
 
   (ret `(func #typeName #name ((#typeName l) (#typeName r)) (
     (var bool cmp #compareCode)
@@ -930,21 +927,21 @@
 (macro deprecatedNoVarArgs name replacementName warning args ... (
   (var astp code `(macro #name))
   (forEachAstChild arg args (
-    (addChild code arg)
+    (ast:addChild code arg)
     ))
 
   (var astp impl `())
-  (addChild code impl)
+  (ast:addChild code impl)
 
-  (addChild impl `(compiler:printWarning #warning))
+  (ast:addChild impl `(compiler:printWarning #warning))
 
   (var astp call (ast:fromString (getField replacementName id)))
   (forEachAstChild arg2 args (
     (var astp antiquoteArg ``(antiquote))
-    (addChild antiquoteArg arg2)
-    (addChild call antiquoteArg)
+    (ast:addChild antiquoteArg arg2)
+    (ast:addChild call antiquoteArg)
     ))
-  (addChild impl `(ret `(#call)))
+  (ast:addChild impl `(ret `(#call)))
 
   (ret code)
   ))
@@ -955,13 +952,13 @@
   (var cstring replName (cstring:quote (getField replacementName id)))
 
   (var astp impl `())
-  (addChild code impl)
-  (addChild impl `(
+  (ast:addChild code impl)
+  (ast:addChild impl `(
     (compiler:printWarning #warning)
 
     (var astp call (ast:fromString #replName))
     (forEachAstChild child args (
-      (addChild call child)
+      (ast:addChild call child)
       ))
 
     (ret call)
@@ -998,7 +995,7 @@
     (
       (code = `(deprecatedNoVarArgs #name #replacementName #warning))
       (forEachAstChild arg args (
-        (addChild code arg)
+        (ast:addChild code arg)
         ))
       )
     )
@@ -1016,7 +1013,7 @@
 (macro opjux first args ... (
   (var astp code first)
   (forEachAstChild child args (
-    (addChild code child)
+    (ast:addChild code child)
     ))
 
   (ret code)
@@ -1027,7 +1024,7 @@
 //   (ast:print args 12)
 //   (var astp code first)
 //   (forEachAstChild child args (
-//     (addChild code child)
+//     (ast:addChild code child)
 //     ))
 
 //   (ast:print code 0)
@@ -1037,7 +1034,7 @@
 (macro opcall first args ... (
   (var astp code first)
   (forEachAstChild child args (
-    (addChild code child)))
+    (ast:addChild code child)))
   (ret code)
   ))
 
@@ -1051,11 +1048,12 @@
 (deprecated astChild ast:child parent index)
 (deprecated simpleAst ast:fromString name)
 (deprecated printAst ast:print t indent)
+(deprecated addChild ast:addChild tree child)
 
 (macro linkclib fileNames ... (
   (var astp code (seqAst))
   (forEachAstChild fileName fileNames
-    (addChild code `(zmp:compiler:linkclib #fileName)))
+    (ast:addChild code `(zmp:compiler:linkclib #fileName)))
   (ret code)))
 
 // /// Given an ast and an ast containing placeholders _/__ the

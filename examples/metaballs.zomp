@@ -86,7 +86,7 @@ end
 macro unittest:assertAll checks
   var ast* code ${}
   forEachAstChild check checks
-    addChild code ${unittest:assert #check}
+    ast:addChild code ${unittest:assert #check}
   end
   ret code
 end
@@ -119,7 +119,7 @@ end
 macro ptrvars type names...
   decls := seqAst()
   forEachAstChild name names
-    addChild decls ${var #type #name nullptr(#type)}
+    ast:addChild decls ${var #type #name nullptr(#type)}
   end
   ret decls
 end
@@ -241,9 +241,9 @@ macro defineArrayType type
 
   // initDecl := ${func void NAME(#arrayTypeName* this, int size)}
   initDecl := ast:fromString("opcall")
-  addChild initDecl ast:fromString(initFuncName)
-  addChild initDecl ${#arrayTypeName* this}
-  addChild initDecl ${int size}
+  ast:addChild initDecl ast:fromString(initFuncName)
+  ast:addChild initDecl ${#arrayTypeName* this}
+  ast:addChild initDecl ${int size}
 
   code := ${
     struct #arrayTypeName
@@ -1133,10 +1133,10 @@ macro tracing:instrument code
   var ast* instrumentedCode ast:fromString("seq")
 
   forEachAstChild expr code
-    addChild instrumentedCode ${printlnString "=> entering"}
-    addChild instrumentedCode ${ast:print $${#expr} 0}
-    addChild instrumentedCode expr
-    addChild instrumentedCode ${printlnString "<= leaving"}
+    ast:addChild instrumentedCode ${printlnString "=> entering"}
+    ast:addChild instrumentedCode ${ast:print $${#expr} 0}
+    ast:addChild instrumentedCode expr
+    ast:addChild instrumentedCode ${printlnString "<= leaving"}
   end
 
   ret instrumentedCode
@@ -1154,7 +1154,7 @@ end
 //   template := ast:child(args, args.childCount - 1)
 //   nodes := seqAst()
 //   for i 0 (args.childCount - 1)
-//     addChild nodes ast:child(args, i)
+//     ast:addChild nodes ast:child(args, i)
 //   end
 // 
 //   forEachAstChild node nodes

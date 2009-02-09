@@ -7,10 +7,10 @@ macro tracing:instrument code
   var ast* instrumentedCode ast:fromString("seq")
 
   forEachAstChild expr code
-    addChild instrumentedCode ${printlnString "=> entering"}
-    addChild instrumentedCode ${ast:print $${#expr} 0}
-    addChild instrumentedCode expr
-    addChild instrumentedCode ${printlnString "<= leaving"}
+    ast:addChild instrumentedCode ${printlnString "=> entering"}
+    ast:addChild instrumentedCode ${ast:print $${#expr} 0}
+    ast:addChild instrumentedCode expr
+    ast:addChild instrumentedCode ${printlnString "<= leaving"}
   end
 
   mret instrumentedCode

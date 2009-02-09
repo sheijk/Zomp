@@ -161,7 +161,7 @@ namespace {
 
     { // addChild decl
       addChild = Function::Create(
-        FuncTy_80, GlobalValue::ExternalLinkage, "addChild", llvmModule);
+        FuncTy_80, GlobalValue::ExternalLinkage, "ast:addChild", llvmModule);
       addChild->setCallingConv(CallingConv::C);
     }
 

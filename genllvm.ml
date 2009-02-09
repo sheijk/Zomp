@@ -199,7 +199,7 @@ let sexpr2codeNoAntiquotes recursion = function
       in
       let returnExpr = idExpr tempVarName in
       let addChildExpr childExpr =
-        { id = "addChild"; args = [
+        { id = "ast:addChild"; args = [
             idExpr tempVarName;
             childExpr;
           ] }

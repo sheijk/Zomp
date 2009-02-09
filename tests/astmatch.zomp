@@ -4,7 +4,6 @@
 !verify off
  */
 
-
 (macro ifunc type nameAndArgs impl (
   (if (bool.not (cstring.equal (getField nameAndArgs id) "opcall"))
     (ret `(error "Invalid syntax")) ())
@@ -17,8 +16,8 @@
     (if (ast:matchesShape child `(opjux _ _))
       (
         (var astp arg (ast:fromString (getField (astChild child 0) id)))
-        (addChild arg (astChild child 1))
-        (addChild args arg)
+        (ast:addChild arg (ast:child child 1))
+        (ast:addChild args arg)
         )
       (ret `(compiler:error "Child nr." #childnum #child "is invalid"))
       )
