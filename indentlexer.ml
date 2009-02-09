@@ -102,7 +102,7 @@ end = struct
     let validIdentifierLastChar = "a-zA-Z0-9_" in
     let opRule symbol (tokenF :string -> token) =
       (NoWSOrOp,
-       Str.regexp (opre symbol ^ (sprintf "[%s0-9.({[]" validIdentifierFirstChar))),
+       Str.regexp (opre symbol ^ (sprintf "[%s0-9({[]" validIdentifierFirstChar))),
       (fun str ->
          let lastChar = str.[String.length str - 1] in
          let str2 = Str.string_before str (String.length str - 1) in

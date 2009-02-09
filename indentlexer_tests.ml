@@ -205,6 +205,7 @@ struct
       "(num--)", `Return [OPEN_PAREN; id "num"; POSTFIX_OP "--"; CLOSE_PAREN; END];
       "${foo*}", `Return [QUOTE "$"; OPEN_CURLY; id "foo"; POSTFIX_OP "*"; CLOSE_CURLY; END];
       "[i++]", `Return [OPEN_BRACKET; id "i"; POSTFIX_OP "++"; CLOSE_BRACKET; END];
+      "structptr*.member", `Return [id "structptr"; POSTFIX_OP "*"; DOT; id "member"; END];
     ]
     @ infixOp "+" (ADD_OP "+")
     @ infixOp "-" (ADD_OP "-")
