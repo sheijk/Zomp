@@ -902,14 +902,14 @@ func void FilterEffect:delete(FilterEffect* this)
 end
 
 func void FilterEffect:bind(FilterEffect* this)
-  glUseProgram this.shader
+  // glUseProgram this.shader
   gl:uniform1fv this.shader "xoffsets" this.size this.xoffsets
   gl:uniform1fv this.shader "yoffsets" this.size this.yoffsets
   gl:uniform1fv this.shader "weights" this.size this.weights
 end
 
 func void FilterEffect:unbind(FilterEffect* this)
-  glUseProgram 0
+  // glUseProgram 0
 end
 
 // #define gauss_width 7
@@ -976,6 +976,7 @@ func GLint makeFilterShader(int size)
   fragmentSource := "
   uniform sampler2D tex;
   uniform vec2 pixSize = vec2(0.0);
+  uniform float factor = 1.0;
   const int offsetSpan = " ++ int2cstring size ++ ";
   uniform float xoffsets[2*offsetSpan+1];
   uniform float yoffsets[2*offsetSpan+1];
@@ -988,6 +989,7 @@ func GLint makeFilterShader(int size)
       float w = weights[n];
       color += w * texture2D(tex, texCoord + vec2(ps.x*xoffsets[n], ps.y*yoffsets[n]));
       }
+    color *= factor;
     color.a = 0.0;
     gl_FragColor = color;
     }"
@@ -1324,6 +1326,7 @@ func int main()
         saveTransforms
           glTranslatef 0. 50. 0.
           glutSolidTeapot 10.0d
+          // glutSolidSphere 10.0d 30 30
         end
 
         saveTransforms
@@ -1339,32 +1342,34 @@ func int main()
       glClearColor 0.0 0.0 0.0 1.0
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-      if2 keyDown(GLFW_KEY_LSHIFT) then
-        renderScene
-      end
+      // if2 keyDown(GLFW_KEY_LSHIFT) then
+      //   renderScene
+      // end
 
       renderToTarget renderTargetsA[0]
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        renderScene
+        // renderScene
       end
       // Framebuffer:makeColorTexture renderTargetsA[0]
 
       pixelScale := 1.0
 
-      renderToTarget renderTargetsB[0]
+      unfilteredTexture := renderTargetsB[0]
+
+      renderToTarget unfilteredTexture
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glBindTexture2D renderTargetsA[0]*.colorTexture
-        FilterEffect:bind glowFilter.next
-        gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
-        drawFullscreenQuad()
+        renderScene
       end
 
+      glUseProgram glowFilter.shader
       for targetNum 1 glowSteps
         renderToTarget renderTargetsA[targetNum]
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-          glBindTexture2D renderTargetsB[targetNum - 1]*.colorTexture
+          // glBindTexture2D renderTargetsB[targetNum - 1]*.colorTexture
+          glBindTexture2D unfilteredTexture.colorTexture
           FilterEffect:bind glowFilter
           gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
+          gl:uniform1f glowFilter.shader "factor" 0.5
           drawFullscreenQuad()
         end
 
@@ -1373,19 +1378,29 @@ func int main()
           glBindTexture2D renderTargetsA[targetNum]*.colorTexture
           FilterEffect:bind glowFilter.next
           gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
+          gl:uniform1f glowFilter.shader "factor" 1.0
           drawFullscreenQuad()
         end
 
         pixelScale = pixelScale *_f 2.0
       end
 
-      glViewport 0 0 windowWidth windowHeight
-      glBindTexture2D renderTargetsB[glowSteps - 1]*.colorTexture
-      FilterEffect:bind glowFilter
-      gl:uniform2f glowFilter.shader "pixSize" pixelScale pixelScale
-      drawFullscreenQuad()
-      glBindTexture2D 0
       glUseProgram 0
+      glViewport 0 0 windowWidth windowHeight
+      glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+      saveAttribs
+        // renderScene
+
+        glEnable GL_BLEND
+        glBlendFunc GL_ONE GL_ONE
+        glDisable GL_DEPTH_TEST
+        glEnable GL_TEXTURE_2D
+
+        for tn2 0 glowSteps
+          glBindTexture2D renderTargetsB[tn2]*.colorTexture
+          drawFullscreenQuad()
+        end
+      end
 
       if2 keyDown(GLFW_KEY_LALT) then
         glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
