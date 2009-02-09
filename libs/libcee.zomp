@@ -206,6 +206,9 @@ end
 ///
 /// Will return code to get the address of the denoted element
 /// Accepts code of the form id(.id)*
+/// Also accepts array expressions like foo[10]
+/// Will probably evolve into a general way to get the address of a
+/// left hand side expression
 ///
 /// Example:
 ///   getMemberAddress(${a.b.c}) => (fieldptr (fieldptr a b) c)
@@ -227,6 +230,14 @@ func ast* getMemberAddress(ast* code)
     indexExpr := ast:child(ast:child(code, 1), 1)
     memberPtr := getMemberAddress(${#structExpr.#memberName})
     ret ${ptradd (load #memberPtr) #indexExpr}
+  elseif ast:matchesShape(code, ${_[__]})
+    arrayExpr := ast:child code 0
+    indexExpr2 := ast:child code 1
+    arrayPtr := getMemberAddress(arrayExpr)
+    ret ${ptradd (load #arrayPtr) #indexExpr2}
+  elseif ast:matchesShape(code, ${__*})
+    ptrExpr := ast:child code 0
+    ret ${load #ptrExpr}
   end
   ret ${error "Do not know how to get address of this expression" #code}
 end
@@ -280,6 +291,9 @@ macro new type args...
 
   ret code
 end
+
+func void free(void* ptr)
+template dealloc ptr free(cast void* #ptr)
 
 template return value
   ret #value

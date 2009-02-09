@@ -69,6 +69,102 @@ func void testDotOp()
   end
 end
 
+struct IntArrays
+  int size
+  int* a
+  Point* points
+end
+
+func void IntArrays:init(IntArrays* this, int size)
+  this.size = size
+  this.a = malloc int size
+  this.points = malloc Point size
+end
+
+func void IntArrays:delete(IntArrays* this)
+  dealloc this.a
+  dealloc this.points
+  dealloc this
+end
+
+func void testDotArray()
+  size := 4
+  arr := new IntArrays size
+
+  for i 0 size
+    arr.a[i] = i + 1
+    arr.points[i].x = i * 2
+    arr.points[i].y = 1 - i
+  end
+
+  unittest:assertAll
+    arr.a[0] == 1
+    arr.a[1] == 2
+    arr.a[2] == 3
+    arr.a[3] == 4
+    arr.points[0].x == 0
+    arr.points[0].y == 1
+    arr.points[1].x == 2
+    arr.points[1].y == 0
+    arr.points[2].x == 4
+    arr.points[2].y == -1
+    arr.points[3].x == 6
+    arr.points[3].y == -2
+  end
+
+  IntArrays:delete arr
+end
+
+func void testArrayDot()
+  size := 3
+  points := malloc Point 3
+
+  for i 0 size
+    points[i].x = i
+    points[i].y = size - i
+  end
+
+  unittest:assertAll
+    points[0].x == 0
+    points[0].y == 3
+    points[1].x == 1
+    points[1].y == 2
+    points[2].x == 2
+    points[2].y == 1
+  end
+
+  dealloc points
+end
+
+template postop* ptr
+  load #ptr
+end
+
+func void testArrayPtrDot()
+  size := 3
+  points := malloc Point* 3
+  for i 0 size
+    points[i] = malloc Point
+
+    points[i]*.x = i * i
+    points[i]*.y = 10 * i
+  end
+
+  unittest:assertAll
+    points[0]*.x == 0
+    points[0]*.y == 0
+    points[1]*.x == 1
+    points[1]*.y == 10
+    points[2]*.x == 4
+    points[2]*.y == 20
+  end
+
+  for i2 0 size
+    dealloc points[i2]
+  end
+  dealloc points
+end
+
 func void testLazyOps()
   template expectCount num code
     unittest:assert
@@ -88,6 +184,8 @@ end
 func int main()
   testDefineVar()
   testDotOp()
+  testArrayDot()
+  testDotArray()
   testLazyOps()
 
   ret 0
