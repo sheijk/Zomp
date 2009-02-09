@@ -165,6 +165,26 @@ func void testArrayPtrDot()
   dealloc points
 end
 
+func int getValFromSwitch(int x)
+  switch (10+x)
+    void
+  case 10
+    ret 1
+  case 12
+    ret 2
+  end
+
+  ret 123
+end
+
+func void testSwitch()
+  unittest:assertAll
+    getValFromSwitch 0 == 1
+    getValFromSwitch 2 == 2
+    getValFromSwitch 99 == 123
+  end
+end
+
 func void testLazyOps()
   template expectCount num code
     unittest:assert
@@ -187,6 +207,7 @@ func int main()
   testArrayDot()
   testDotArray()
   testLazyOps()
+  testSwitch()
 
   ret 0
 end

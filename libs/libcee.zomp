@@ -333,7 +333,80 @@ macro struct name members...
 
   forEachAstChild member members
     addChild code member
+func bool isMultipleOf(int x, int m)
+  ret (int:mod(x,m) == 0)
+end
+
+macro ast:foreach3 t0 t1 t2 tree code
+  if2 (bool:not isMultipleOf(tree.childCount, 3)) then
+    ret ${error "Can only iterate over 3-tuples if child count is a multiple of 3" tree}
   end
+
+  uniqueId childnum "ast:foreach3"
+
+  ret ${
+    #childnum := 0
+    while (#childnum + 2 < #tree.childCount)
+      #t0 := ast:child #tree (#childnum+0)
+      #t1 := ast:child #tree (#childnum+1)
+      #t2 := ast:child #tree (#childnum+2)
+      #code
+      #childnum = #childnum + 3
+    end
+  end}
+end
+
+///
+/// Will transform an expression of the form (<jux someId (<arg 0>) ..>) to
+/// (<someId (<arg 0>) ...>)
+///
+func ast* ast:shiftLeft(ast* code)
+  assert (code.childCount >= 1)
+  assert (getField ast:child(code,0) childCount == 0)
+
+  firstChild := ast:child code 0
+  newcode := ast:fromString firstChild.id
+  for i 1 code.childCount
+    ast:addChild newcode ast:child(code,i)
+  end
+  ret newcode
+end
+
+///
+/// switch statement
+///
+/// Example:
+///
+/// switch _intExpression
+///   void
+/// case _intExpression
+///   _code
+/// ...
+/// end
+///
+macro switch intvalue default cases...
+  uniqueId value "the_value"
+
+  first := true
+  code := ${if2 false then
+    println()
+  end}
+
+  ast:foreach3 case caseval casecode cases
+    unless ast:matchesShape(case, ${case})
+      caseNode := ast:shiftLeft ${#case #caseval #casecode}
+      ret ${error "Expected 'case VAL EXPR'" #caseNode}
+    end
+
+    ast:addChild code $elseif
+    ast:addChild code ${#value == #caseval}
+    ast:addChild code casecode
+  end
+
+  code = ${
+    var int #value #intvalue
+    #code
+  end}
 
   ret code
 end
