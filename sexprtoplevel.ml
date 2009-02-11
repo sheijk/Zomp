@@ -313,6 +313,16 @@ let nthChar num string =
   else
     None
 
+let isWhitespaceString str =
+  let strLength = String.length str in
+  let rec worker n =
+    if n >= strLength then true
+    else
+      let c = str.[n] in
+      (c == ' ' || c == '\n') && worker (n+1)
+  in
+  worker 0
+
 let rec readExpr prompt previousLines bindings =
   printf "%s" prompt; flush stdout;
 
@@ -336,7 +346,11 @@ let rec readExpr prompt previousLines bindings =
       let input = previousLines ^ line ^ "\n" in
       match !parseFunc input with
         | Some expr -> expr
-        | None -> readExpr !continuedPrompt input bindings
+        | None ->
+            if isWhitespaceString input then
+              readExpr prompt "" bindings
+            else
+              readExpr !continuedPrompt input bindings
     in
     expr
   end
