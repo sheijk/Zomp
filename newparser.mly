@@ -218,6 +218,8 @@ exprArg:
 
 | head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
   { callExpr (idExpr head) args }
+| q = QUOTE; head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
+  { callExpr (expr (quoteId q) [idExpr head]) args }
 
 | head = IDENTIFIER; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
   { expr "postop[]" [idExpr head; arg] }

@@ -480,6 +480,8 @@ struct
 
       "left + $right", `Return [expr "op+" [id "left"; se1 "quote" "right"]];
 
+      "#funcName(10)", `Return [expr "opcall" [se1 "antiquote" "funcName"; id "10"]];
+
       (** keyword arguments **)
       "assert: a != b",
       `Return [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]];
