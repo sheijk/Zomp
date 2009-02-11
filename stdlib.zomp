@@ -1003,42 +1003,6 @@
   ))
 
 ///-----------------------------------------------------------------------------
-/// Support for indent syntax
-///-----------------------------------------------------------------------------
-
-(macro opseq args ... (
-  (ret args)
-  ))
-
-(macro opjux first args ... (
-  (var astp code first)
-  (forEachAstChild child args (
-    (ast:addChild code child)
-    ))
-
-  (ret code)
-  ))
-
-// (macro opjux first args ... (
-//   (ast:print first 8)
-//   (ast:print args 12)
-//   (var astp code first)
-//   (forEachAstChild child args (
-//     (ast:addChild code child)
-//     ))
-
-//   (ast:print code 0)
-//   (ret code)
-//   ))
-
-(macro opcall first args ... (
-  (var astp code first)
-  (forEachAstChild child args (
-    (ast:addChild code child)))
-  (ret code)
-  ))
-
-///-----------------------------------------------------------------------------
 /// Deprecated functions
 ///-----------------------------------------------------------------------------
 

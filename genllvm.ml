@@ -421,12 +421,29 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
            end
         )
     in
+    let opjuxMacro =
+      macro "opjux" "opjux id args..."
+        (fun bindings args -> Ast2.shiftLeft args)
+    in
+    let opcallMacro =
+      macro "opcall" "opcall id args..."
+        (fun bindings args -> Ast2.shiftLeft args)
+    in
+    let opseqMacro =
+      macro "opseq" "opseq args..."
+        (fun bindings args -> Ast2.seqExpr args)
+    in
     [
       testMacro;
       quoteMacro;
       quoteasisMacro;
       bindingsIsNameUsed;
       bindingsLookupVar;
+
+      (** macros to support indent expressions *)
+      opjuxMacro;
+      opcallMacro;
+      opseqMacro;
     ]
   in
   let defaultBindings =
