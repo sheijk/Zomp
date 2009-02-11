@@ -565,30 +565,4 @@ func void showTextureAt(GLuint textureName, float x, float y, float width, float
   end
 end
 
-//------------------------------------------------------------------------------
-// renderer information + caps
-
-struct RendererInfo
-  cstring name
-  cstring version
-  cstring vendor
-end
-
-func void RendererInfo:init(RendererInfo* this)
-  this.name = glGetString GL_RENDERER
-  this.version = glGetString GL_VERSION
-  this.vendor = glGetString GL_VENDOR
-end
-
-func void RendererInfo:print(RendererInfo* this)
-  printString "OpenGL renderer: "
-  printString this.name
-  println()
-  printString "       version:  "
-  printString this.version
-  println()
-  printString "       vendor:   "
-  printString this.vendor
-  println()
-end
 

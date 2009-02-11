@@ -909,6 +909,7 @@ func void FilterEffect:bind(FilterEffect* this)
 end
 
 func void FilterEffect:unbind(FilterEffect* this)
+  void
   // glUseProgram 0
 end
 
@@ -1240,6 +1241,33 @@ func void TextureInfo:init(TextureInfo* this, GLenum texture)
   glBindTexture2D 0
 end
 
+//------------------------------------------------------------------------------
+// renderer information + caps
+
+struct RendererInfo
+  cstring name
+  cstring version
+  cstring vendor
+end
+
+func void RendererInfo:init(RendererInfo* this)
+  this.name = glGetString GL_RENDERER
+  this.version = glGetString GL_VERSION
+  this.vendor = glGetString GL_VENDOR
+end
+
+func void RendererInfo:print(RendererInfo* this)
+  printString "OpenGL renderer: "
+  printString this.name
+  println()
+  printString "       version:  "
+  printString this.version
+  println()
+  printString "       vendor:   "
+  printString this.vendor
+  println()
+end
+
 func int main()
   init()
 
@@ -1260,7 +1288,7 @@ func int main()
     mballs := new Metaballs 50
 
     glowFilter := makeGlowFilter(5)
-    glowSteps := 5
+    glowSteps := 4
     renderTargetsA := nullptr Framebuffer*
     renderTargetsB := nullptr Framebuffer*
 
