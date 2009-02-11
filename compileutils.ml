@@ -126,8 +126,11 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
      (fun () -> Zompvm.loadLLVMFile llvmPreludeFile));
 
   let zompPreludeFile = dir ^ "stdlib.zomp" in
-  let lexbuf = Lexing.from_channel (open_in zompPreludeFile) in
-  let parseF = Sexprparser.main Sexprlexer.token in
+  let source = Common.readFile zompPreludeFile in
+  let lexbuf = Lexing.from_string source in
+  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  let lexFunc _ = Indentlexer.token lexstate in
+  let parseF = Newparser.main lexFunc in
   let exprs =
     collectTimingInfo "parsing"
       (fun () -> ref (parse parseF lexbuf []))

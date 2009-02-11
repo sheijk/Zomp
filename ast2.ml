@@ -109,7 +109,7 @@ let rec equals l r =
   l.id = r.id
   && List.length l.args = List.length r.args
   && List.for_all2 equals l.args r.args
-  
+
 let rec replaceParams params args expr =
   let argCount = List.length args
   and paramCount = List.length params
@@ -121,9 +121,10 @@ let rec replaceParams params args expr =
     try List.assoc name replacementList
     with Not_found -> { id = name; args = [] }
   in
-  match replace expr.id with
-    | { id = name; args = [] } -> { id = name; args = List.map (replaceParams params args) expr.args; }
-    | _ as head -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
+  match replace expr.id, expr.args with
+    | replacement, [] -> replacement
+    | { id = name; args = [] }, _ -> { id = name; args = List.map (replaceParams params args) expr.args; }
+    | head, (_::_) -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
 
 
 let shiftId = function

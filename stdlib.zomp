@@ -7,617 +7,617 @@
 !verify off
 */
 
-(type int u32)
+type int u32
 
 ///-----------------------------------------------------------------------------
 /// Content of stdlib.c
 ///-----------------------------------------------------------------------------
 
-(func void printInt ((int i)))
-(func void printString (((ptr char) s)))
-(func void printFloat ((float f)))
-(func void printDouble ((double d)))
-(func void printChar ((char c)))
-(func void printNewline ())
+func void printInt(int i)
+func void printString(char* s)
+func void printFloat(float f)
+func void printDouble(double d)
+func void printChar(char c)
+func void printNewline()
 
-(func (ptr char) int2cstring ((int i)))
+func char* int2cstring(int i)
 
-(func int zompLoadLib (((ptr char) libname)))
+func int zompLoadLib(char* libname)
 // (func bool zompCheckNativeSymbol (((ptr char) libname)))
 
-(func void stdlibHello ())
+func void stdlibHello()
 // (func void zompHello ())
 
 ///-----------------------------------------------------------------------------
 /// C library
 ///-----------------------------------------------------------------------------
 
-(func void exit ((int exitCode)))
+func void exit(int exitCode)
 
-(func double sin ((double x)))
-(func double cos ((double x)))
-(func float sinf ((float x)))
-(func float cosf ((float x)))
+func double sin(double x)
+func double cos(double x)
+func float sinf(float x)
+func float cosf(float x)
 
-(func float atanf ((float x)))
-(func float asinf ((float x)))
-(func float acosf ((float x)))
+func float atanf(float x)
+func float asinf(float x)
+func float acosf(float x)
 
-(func int abs ((int x)))
-(func float fabsf ((float l)))
+func int abs(int x)
+func float fabsf(float l)
 
-(func float fmodf ((float num) (float divisor)))
+func float fmodf(float num, float divisor)
 
-(func float sqrtf ((float x)))
+func float sqrtf(float x)
 
 ///-----------------------------------------------------------------------------
 /// Utility functions
 ///-----------------------------------------------------------------------------
 
-(func bool bool:not ((bool b)) ((bool:xor true b)))
+func bool bool:not(bool b)
+  bool:xor true b
+end
 
-(func int square((int x)) ((int:mul x x)))
-(func float squaref((float x)) ((float:mul x x)))
+func int square(int x)
+  int:mul x x
+end
 
-(func void printBool ((bool b)) (
-  (branch b true false)
+func float squaref(float x)
+  float:mul x x
+end
 
-  (label true)
-  (printChar 't')
-  (branch end)
+func void printBool(bool b)
+  branch b true false
 
-  (label false)
-  (printChar 'f')
+  label true
+  printChar 't'
+  branch end
 
-  (label end)
-  ))
+  label false
+  printChar 'f'
 
-(macroReplace funcln name type code
-  (func void name ((type v)) (
-    code
-    (printNewline)
-    ))
-  )
+  label end
+end
 
-(func void println () ((printNewline)))
+macroReplace funcln name type printF
+  func void name(type v)
+    printF v
+    printNewline()
+  end
+end
 
-(funcln printlnInt int (printInt v))
-(funcln printlnString (ptr char) (printString v))
-(funcln printlnFloat float (printFloat v))
+func void println()
+  printNewline()
+end
 
-(macroReplace getField record componentName (
-  (load (fieldptr record componentName))
-  ))
+funcln printlnInt int printInt
+funcln printlnString char* printString
+funcln printlnFloat float printFloat
 
-(macroReplace setField record componentName value (
-  (store (fieldptr record componentName) value)
-  ))
+macroReplace getField record componentName
+  load (fieldptr record componentName)
+end
+
+macroReplace setField record componentName value
+  store (fieldptr record componentName) value
+end
 
 ///-----------------------------------------------------------------------------
 /// String functions
 ///-----------------------------------------------------------------------------
 
-(type cstring (ptr char))
 
-(func int strcmp ((cstring l) (cstring r)))
-(func cstring strcpy ((cstring dest) (cstring source)))
+type cstring (ptr char)
 
-(func cstring int:toCString ((int x)) ((int2cstring x) ))
+func int strcmp(cstring l, cstring r)
+func cstring strcpy(cstring dest, cstring source)
 
-(type string
-  (int length)
-  ((ptr char) chars)
-  )
-(type pstring (ptr string))
+func cstring int:toCString(int x)
+  int2cstring x
+end
 
-(func int length ((cstring s)) (
-  (var (ptr char) ptr s)
-  (var int count -1)
+type string
+  int length
+  char* chars
+end
 
-  (var char c 'x')
-  (var bool b true)
+type pstring string*
 
-  (label start)
-  (assign c (load ptr))
+func int length(cstring s)
+  var char* ptr s
+  var int count -1
 
-  (assign ptr (ptradd ptr 1))
-  (assign count (int:add count 1))
-  (assign b (char:equal c '\0'))
-  (branch b end start)
+  var char c 'x'
+  var bool b true
 
-  (label end)
+  label start
+  assign c (load ptr)
 
-  (ret count)
-  ))
+  assign ptr (ptradd ptr 1)
+  assign count (int:add count 1)
+  assign b (char:equal c '\0')
+  branch b end start
 
-(func (ptr string) makestring ((cstring cstr)) (
-  (var (ptr string) pstr (malloc string))
-  (store (fieldptr pstr length) (length cstr))
-  (store (fieldptr pstr chars) cstr)
-  (ret pstr)
-  ))
+  label end
 
-(func (ptr string) newString ((int length) (char init)) (
-  (var (ptr char) chars (malloc char (int:add 1 length)))
-  (store (ptradd chars length) '\0')
-  (var int index 0)
-  (var bool reachedEnd false)
-  (label start)
-  (store (ptradd chars index) init)
-  (assign index (int:add index 1))
-  (assign reachedEnd (int:ugreaterEqual index length))
-  (branch reachedEnd end start)
-  (label end)
+  ret count
+end
 
-  (var (ptr string) result (malloc string))
-  (store (fieldptr result length) length)
-  (store (fieldptr result chars) chars)
-  (ret result)
-  ))
+func string* makestring(cstring cstr)
+  var (ptr string) pstr (malloc string)
+  store (fieldptr pstr length) (length cstr)
+  store (fieldptr pstr chars) cstr
+  ret pstr
+end
 
-(func (ptr string) append (((ptr string) l) ((ptr string) r)) (
-  (var int length (int:add (getField l length) (getField r length)))
-  (var (ptr string) result (newString length 'x'))
-  (var (ptr char) chars (getField result chars))
-  (var (ptr char) leftChars (getField l chars))
-  (var int leftLength (getField l length))
-  (var (ptr char) rightChars (getField r chars))
-  (var int rightLength (getField r length))
+func string* newString(int length, char init)
+  var (ptr char) chars (malloc char (int:add 1 length))
+  store (ptradd chars length) '\0'
+  var int index 0
+  var bool reachedEnd false
+  label start
+  store (ptradd chars index) init
+  assign index (int:add index 1)
+  assign reachedEnd (int:ugreaterEqual index length)
+  branch reachedEnd end start
+  label end
 
-  (var int index 0)
+  var (ptr string) result (malloc string)
+  store (fieldptr result length) length
+  store (fieldptr result chars) chars
+  ret result
+end
 
-  (label lbegin)
-  (store (ptradd chars index) (load (ptradd leftChars index)))
-  (assign index (int:add index 1))
-  (var bool test (int:uless index leftLength))
-  (branch test lbegin lend)
-  (label lend)
+func string* append(string* l, string* r)
+  var int length (int:add (getField l length) (getField r length))
+  var (ptr string) result (newString length 'x')
+  var (ptr char) chars (getField result chars)
+  var (ptr char) leftChars (getField l chars)
+  var int leftLength (getField l length)
+  var (ptr char) rightChars (getField r chars)
+  var int rightLength (getField r length)
 
-  (assign index 0)
-  (label rbegin)
-  (store (ptradd chars (int:add leftLength index)) (load (ptradd rightChars index)))
-  (assign index (int:add index 1))
-  (var bool test2 (int:uless index rightLength))
-  (branch test2 rbegin rend)
-  (label rend)
+  var int index 0
 
-  (ret result)
-  ))
+  label lbegin
+  store (ptradd chars index) (load (ptradd leftChars index))
+  assign index (int:add index 1)
+  var bool test (int:uless index leftLength)
+  branch test lbegin lend
+  label lend
+
+  assign index 0
+  label rbegin
+  store (ptradd chars (int:add leftLength index)) (load (ptradd rightChars index))
+  assign index (int:add index 1)
+  var bool test2 (int:uless index rightLength)
+  branch test2 rbegin rend
+  label rend
+
+  ret result
+end
 
 
 /// print 2*count spaces
-(func void printIndent ((int count)) (
-  (var int counter count)
-  (label start)
-  (var bool t (int:ugreater counter 0))
-  (branch t goon end)
-  (label goon)
-  (printChar ' ') (printChar ' ')
-  (assign counter (int:sub counter 1))
-  (branch start)
-  (label end)
-  ))
+func void printIndent(int count)
+  var int counter count
+  label start
+  var bool t (int:ugreater counter 0)
+  branch t goon end
+  label goon
+  printChar ' '
+  printChar ' '
+  assign counter (int:sub counter 1)
+  branch start
+  label end
+end
 
-(func bool cstring:equal ((cstring l) (cstring r)) (
-  (ret (int:equal 0 (strcmp l r)))
-  ))
+func bool cstring:equal(cstring l, cstring r)
+  ret (int:equal 0 (strcmp l r))
+end
 
-(func cstring cstring:quote ((cstring unquoted)) (
-  (var int unquotedLength (length unquoted))
-  (var cstring quoted (malloc char (int:add unquotedLength 3)))
+func cstring cstring:quote(cstring unquoted)
+  var int unquotedLength (length unquoted)
+  var cstring quoted (malloc char (int:add unquotedLength 3))
 
-  (strcpy (ptradd quoted 1) unquoted)
-  (store quoted '"')
-  (store (ptradd quoted (int:add unquotedLength 1)) '"')
-  (store (ptradd quoted (int:add unquotedLength 2)) '\0')
+  strcpy (ptradd quoted 1) unquoted
+  store quoted '"' // "
+  store (ptradd quoted (int:add unquotedLength 1)) '"' // "
+  store (ptradd quoted (int:add unquotedLength 2)) '\0'
 
-  (ret quoted)
-  ))
+  ret quoted
+end
 
 
 ///-----------------------------------------------------------------------------
 /// Abstract syntax tree representation
 ///-----------------------------------------------------------------------------
 
-// (type Dummy)
-// (func void checkAst (((ptr Dummy) ast) (cstring func)))
-// (func void registerAst (((ptr Dummy) ast)))
+type ast
+  cstring id
+  int childCount
+  ast** childs
+end
+type astp ast*
 
-(type ast
-  (cstring id)
-  (int childCount)
-  ((ptr (ptr ast)) childs) )
-(type astp (ptr ast))
+func cstring cstrings:append(cstring l, cstring r)
 
-// (func void checkId ((cstring id) (cstring func)))
+func ast* ast:fromString(cstring name)
+  var ast* a (malloc ast)
 
-(func cstring cstrings:append ((cstring l) (cstring r)))
+  store (fieldptr a id) (cstrings:append name "")
+  store (fieldptr a childCount) 0
+  store (fieldptr a childs) (nullptr ast*)
 
-(func (ptr ast) ast:fromString ((cstring name)) (
-  (var (ptr ast) a (malloc ast))
+  ret a
+end
 
-  (store (fieldptr a id) (cstrings:append name ""))
-  (store (fieldptr a childCount) 0)
-  (store (fieldptr a childs) (nullptr (ptr ast)))
+func (ptr ast) seqAst()
+  ast:fromString "seq"
+end
 
-  (ret a)
-  ))
+func (ptr ast) ast:fromInt(int i)
+  var cstring asString (int2cstring i)
+  ast:fromString asString
+end
 
-(func (ptr ast) seqAst () (
-  (ast:fromString "seq") ))
+func void ast:print((ptr ast) a, int indent)
+  printIndent indent
+  printString (load (fieldptr a id))
+  printString " ["
+  printInt (getField a childCount)
+  printString " childs]"
+  println
 
-(func (ptr ast) ast:fromInt ((int i)) (
-  (var cstring asString (int2cstring i))
-  (ast:fromString asString) ))
+  var int index 0
+  label start
+  var bool t (int:uless index (getField a childCount))
+  branch t goon end
+  label goon
+  var (ptr ast) child (load (ptradd (getField a childs) index))
+  ast:print child (int:add indent 1)
+  assign index (int:add index 1)
+  branch start
+  label end
+end
 
-(func void ast:print (((ptr ast) a) (int indent)) (
-  (printIndent indent)
-  (printString (load (fieldptr a id)))
-  (printString " [")
-  (printInt (getField a childCount))
-  (printString " childs]")
-  (println)
+func void ast:addChild((ptr ast) tree, (ptr ast) child)
+  var int oldChildCount (getField tree childCount)
+  var int newChildCount (int:add 1 oldChildCount)
+  var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount)
 
-  (var int index 0)
-  (label start)
-  (var bool t (int:uless index (getField a childCount)))
-  (branch t goon end)
-  (label goon)
-  (var (ptr ast) child (load (ptradd (getField a childs) index)))
-  (ast:print child (int:add indent 1))
-  (assign index (int:add index 1))
-  (branch start)
-  (label end)
-  ))
- 
-(func void ast:addChild ( ((ptr ast) tree) ((ptr ast) child) ) (
-  (var int oldChildCount (getField tree childCount))
-  (var int newChildCount (int:add 1 oldChildCount))
-  (var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount))
+  var int index 0
+  label start
+  var bool t (int:uless index oldChildCount)
+  branch t goon end
+  label goon
+  store (ptradd newChilds index) (load (ptradd (getField tree childs) index))
+  assign index (int:add index 1)
+  branch start
+  label end
 
-  (var int index 0)
-  (label start)
-  (var bool t (int:uless index oldChildCount))
-  (branch t goon end)
-  (label goon)
-  (store (ptradd newChilds index) (load (ptradd (getField tree childs) index)))
-  (assign index (int:add index 1))
-  (branch start)
-  (label end)
+  store (ptradd newChilds oldChildCount) child
 
-  (store (ptradd newChilds oldChildCount) child)
-
-  (setField tree childs newChilds)
-  (setField tree childCount newChildCount)
-  ))
-
-// (func cstring astId (((ptr ast) t)) (
-//   (ret (getField t id))
-//   ))
-
-// (func int astChildCount (((ptr ast) t)) (
-//   (ret (getField t childCount))
-//   ))
-
-// (func astp getChild (((ptr ast) parent) (int index)) (
-//   (var (ptr ast) child (load (ptradd (getField parent childs) index)))
-//   (ret child) ))
+  setField tree childs newChilds
+  setField tree childCount newChildCount
+end
 
 /// get pointer to index-th child of parent
-(func astp ast:child (((ptr ast) parent) (int index)) (
-  (var (ptr ast) child (load (ptradd (getField parent childs) index)))
-  (ret child) ))
+func astp ast:child((ptr ast) parent, int index)
+  var (ptr ast) child (load (ptradd (getField parent childs) index))
+  ret child
+end
 
 ///-----------------------------------------------------------------------------
 /// Macro support
 ///-----------------------------------------------------------------------------
 
-(var cstring macroRest "postop...")
+var cstring macroRest "postop..."
 
-(func cstring macroAstId ((int macroCurrentAst)) (
-  // (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
-  (var cstring name (getField (cast (ptr ast) macroCurrentAst) id))
-  // (checkId name "macroAstId")
-  (ret name)
-  ))
+func cstring macroAstId(int macroCurrentAst)
+  var cstring name (getField (cast (ptr ast) macroCurrentAst) id)
+  ret name
+end
 
-(func int macroAstChildCount ((int macroCurrentAst)) (
-  // (checkAst (cast (ptr ast) macroCurrentAst) "macroAstId")
-  (getField (cast (ptr ast) macroCurrentAst) childCount) ))
+func int macroAstChildCount(int macroCurrentAst)
+  getField (cast (ptr ast) macroCurrentAst) childCount
+end
 
-(func int macroAstChild ((int treeaddr) (int num)) (
-  // (checkAst (cast (ptr ast) treeaddr) "macroAstId")
-  (var (ptr ast) tree (cast (ptr ast) treeaddr))
-  (var (ptr ast) child (load (ptradd (getField tree childs) num)))
-  (var int i (cast int child))
-  (ret i)
-  ))
+func int macroAstChild(int treeaddr, int num)
+  var (ptr ast) tree (cast (ptr ast) treeaddr)
+  var (ptr ast) child (load (ptradd (getField tree childs) num))
+  var int i (cast int child)
+  ret i
+end
 
-(func astp testMacro2 ((astp lastArg)) (
-  (ret `(native (nested tree) (with (args a b c #lastArg))))
-  ))
+func astp testMacro2(astp lastArg)
+  ret ${native (nested tree) (with (args a b c #lastArg))}
+end
 
-(func int macroExec () (
-  (var astp tree (testMacro2 `(foo bar)))
-  (var int i (cast int tree))
-  (ret i)
-  ))
+func int macroExec()
+  var astp tree (testMacro2 ${foo bar})
+  var int i (cast int tree)
+  ret i
+end
 
-(func astp macroTest () (
-  (ret `(macro test))
-  ))
+func astp macroTest()
+  ret ${macro test}
+end
 
-(var int lastid 0)
+var int lastid 0
 
-(func int newUniqueId () (
-  (assign lastid (int:add lastid 1))
-  (ret lastid) ))
+func int newUniqueId()
+  assign lastid (int:add lastid 1)
+  ret lastid
+end
 
-(func cstring cstrings:append ((cstring l) (cstring r)) (
-  (var (ptr string) lstr (makestring l))
-  (var (ptr string) rstr (makestring r))
-  (var (ptr string) appended (append lstr rstr))
-  (ret (getField appended chars))
-  ))
+func cstring cstrings:append(cstring l, cstring r)
+  var (ptr string) lstr (makestring l)
+  var (ptr string) rstr (makestring r)
+  var (ptr string) appended (append lstr rstr)
+  ret (getField appended chars)
+end
 
-(func cstring newUniqueName () (
-  (var int id (newUniqueId))
-  (var cstring numstr (int2cstring id))
-  (ret (cstrings:append "_tmp_" numstr)) ))
+func cstring newUniqueName()
+  var int id (newUniqueId)
+  var cstring numstr (int2cstring id)
+  ret (cstrings:append "_tmp_" numstr)
+end
 
-(func cstring newUniqueNameFor ((cstring purpose)) (
-  (var cstring name (newUniqueName))
-  (ret (cstrings:append (cstrings:append name "_") purpose)) ))
+func cstring newUniqueNameFor(cstring purpose)
+  var cstring name (newUniqueName)
+  ret (cstrings:append (cstrings:append name "_") purpose)
+end
 
+macro testmacro args...
+  var astp code ${was}
 
-(macro testmacro args ... (
-  (var astp code `(was))
+  var int count (getField args childCount)
+  var int index 0
+  label start
 
-  (var int count (getField args childCount))
-  (var int index 0)
-  (label start)
+  var (ptr ast) child (ast:child args index)
+  ast:addChild code child
 
-  (var (ptr ast) child (ast:child args index))
-  (ast:addChild code child)
+  assign index (int:add index 1)
+  var bool test (int:uless index count)
+  branch test start end
+  label end
 
-  (assign index (int:add index 1))
-  (var bool test (int:uless index count))
-  (branch test start end)
-  (label end)
+  ret code
+end
 
-  (ret code)
-  ))
+macro testmacro0
+  ret ${foo bar}
+end
 
-(macro testmacro0 (
-  (ret `(foo bar))
-  ))
+macro testmacro1 arg
+  var astp code ${foo bar}
+  printInt (cast int arg)
 
-(macro testmacro1 arg (
-  (var astp code `(foo bar))
-  (printInt (cast int arg))
+  var bool test (int:equal 0 (cast int arg))
+  branch test error continue
 
-  (var bool test (int:equal 0 (cast int arg)))
-  (branch test error continue)
+  label error
+  ret ${arg is 0}
 
-  (label error)
-  (ret `(arg is 0))
+  label continue
+  println
+  ast:addChild code arg
+  ast:print code 4
+  ret code
+end
 
-  (label continue)
-  (println)
-  (ast:addChild code arg)
-  (ast:print code 4)
-  (ret code)
-  ))
+macro uniqueId name purpose
+  ret ${var cstring #name (newUniqueNameFor #purpose)}
+end
 
-// (macro macrotst (
-//   (ret `(3))
-//   (printlnString "Applying macro macrotst")
-//   (ret `(printlnString "Running code"))
-//   ))
-// (macro ymacrotst (
-//   (ret `(printInt 999))
-//   ))
+macro if test onTrue onFalse
+  uniqueId trueLabel "iftrue"
+  uniqueId falseLabel "iffalse"
+  uniqueId endLabel "ifend"
+  uniqueId testResult "iftestresult"
 
-(macro uniqueId name purpose (
-  (ret `(var cstring #name (newUniqueNameFor #purpose)))
-  ))
-
-(macro if test onTrue onFalse (
-  (uniqueId trueLabel "iftrue")
-  (uniqueId falseLabel "iffalse")
-  (uniqueId endLabel "ifend")
-  (uniqueId testResult "iftestresult")
-
-  (var (ptr ast) result `(
-    (var bool #testResult #test)
-    (branch #testResult #trueLabel #falseLabel)
-    (label #trueLabel)
+  var (ptr ast) result ${
+    var bool #testResult #test
+    branch #testResult #trueLabel #falseLabel
+    label #trueLabel
     #onTrue
-    (branch #endLabel)
-    (label #falseLabel)
+    branch #endLabel
+    label #falseLabel
     #onFalse
-    (label #endLabel)
-    ))
-  (ret result)
-  ))
+    label #endLabel
+  end}
+  ret result
+end
 
-(macro ift condition onTrue (
-  `(if #condition #onTrue ())))
+macro ift condition onTrue
+  ${if #condition #onTrue void}
+end
 
-(macro ifnot condition onFalse (
-  `(if (bool:not #condition) #onFalse ())))
+macro ifnot condition onFalse
+  ${if (bool:not #condition) #onFalse void}
+end
 
 ///TODO: generalize for arbitrary types once this is possible in zomp
-(macro ifExprInt test onTrue onFalse (
-  (uniqueId trueLabel "iftrue")
-  (uniqueId falseLabel "iffalse")
-  (uniqueId endLabel "ifend")
-  (uniqueId testResult "iftestresult")
-  (uniqueId resultVar "ifResult")
+macro ifExprInt test onTrue onFalse
+  uniqueId trueLabel "iftrue"
+  uniqueId falseLabel "iffalse"
+  uniqueId endLabel "ifend"
+  uniqueId testResult "iftestresult"
+  uniqueId resultVar "ifResult"
 
-  (var (ptr ast) result `(
-    (var int #resultVar 0)
-    (var bool #testResult #test)
-    (branch #testResult #trueLabel #falseLabel)
+  var (ptr ast) result ${
+    var int #resultVar 0
+    var bool #testResult #test
+    branch #testResult #trueLabel #falseLabel
 
-    (label #trueLabel)
-    (assign #resultVar #onTrue)
-    (branch #endLabel)
+    label #trueLabel
+    assign #resultVar #onTrue
+    branch #endLabel
 
-    (label #falseLabel)
-    (assign #resultVar #onFalse)
+    label #falseLabel
+    assign #resultVar #onFalse
 
-    (label #endLabel)
+    label #endLabel
     #resultVar
-    ))
-  (ret result)
-  ))
+  end}
+  ret result
+end
 
-(macro for index min max code (
-  (uniqueId startLabel "for_start")
-  (uniqueId endLabel "for_exit")
-  (uniqueId testResult "for_testvar")
-  (uniqueId execLabel "for_body")
+macro for index min max code
+  uniqueId startLabel "for_start"
+  uniqueId endLabel "for_exit"
+  uniqueId testResult "for_testvar"
+  uniqueId execLabel "for_body"
 
-  (ret `(
-    (var int #index #min)
-    (var bool #testResult false)
+  ret ${
+    var int #index #min
+    var bool #testResult false
 
-    (label #startLabel)
+    label #startLabel
 
-    (assign #testResult (int:sless #index #max))
-    (branch #testResult #execLabel #endLabel)
+    assign #testResult (int:sless #index #max)
+    branch #testResult #execLabel #endLabel
 
-    (label #execLabel)
+    label #execLabel
     #code
-    (assign #index (int:add #index 1))
-    (branch #startLabel)
+    assign #index (int:add #index 1)
+    branch #startLabel
 
-    (label #endLabel)
-    ))
-  ))
+    label #endLabel
+  end}
+end
 
-(macro while test body ... (
-  (uniqueId begin "while_begin")
-  (uniqueId exit "while_exit")
-  (uniqueId goon "while_body")
-  (uniqueId testVar "while_testvar")
+macro while test body...
+  uniqueId begin "while_begin"
+  uniqueId exit "while_exit"
+  uniqueId goon "while_body"
+  uniqueId testVar "while_testvar"
 
-  (ret `(
-    (var bool #testVar true)
-    (label #begin)
-    (assign #testVar (#test))
-    (branch #testVar #goon #exit)
-    (label #goon)
+  ret ${
+    var bool #testVar true
+    label #begin
+    assign #testVar (#test)
+    branch #testVar #goon #exit
+    label #goon
     #body
-    (branch #begin)
-    (label #exit)
-    ))
-  ))
+    branch #begin
+    label #exit
+  end}
+end
 
-(macro times count code ... (
-  (uniqueId counterVar "timesCounter")
-  (ret `(for #counterVar 0 #count #code))
-  ))
+macro times count code...
+  uniqueId counterVar "timesCounter"
+  ret ${for #counterVar 0 #count #code}
+end
 
 /// execute code for each node of ast
-(macro forEachAstChild childVar tree code (
-  (uniqueId count "count")
-  (uniqueId index "index")
+macro forEachAstChild childVar tree code
+  uniqueId count "count"
+  uniqueId index "index"
 
-  (ret `(
-    (const int #count (getField #tree childCount))
-    (for #index 0 #count (
-      (const (ptr ast) #childVar (ast:child #tree #index))
+  ret ${
+    const int #count (getField #tree childCount)
+    for #index 0 #count
+      const (ptr ast) #childVar (ast:child #tree #index)
       #code
-      ))
-    ))
-  ))
+    end
+  end}
+end
 
 /// workaround until "const" is properly supported
-(macro const type name default (
-  (ret `(var #type #name #default))
-  ))
+macro const type name default
+  ret ${var #type #name #default}
+end
+
+macro when cond onTrue
+  ret ${if #cond #onTrue void}
+end
+
+macro unless cond onFalse
+  ret ${if #cond void #onFalse}
+end
 
 /// A template is like a macro but is defined in another way.
 /// Instead of writing a function which produces the final ast
 /// you simply write down the produced ast directly. You can
 /// use antiquotes to calculate parts of the ast from arbitrary
 /// code expressions
-(macro template name argsAndImpl ... (
-  (var (ptr ast) t (ast:fromString "macro"))
-  (ast:addChild t name)
+macro template name argsAndImpl...
+  var (ptr ast) t (ast:fromString "macro")
+  ast:addChild t name
 
-  (const int argCount (getField argsAndImpl childCount))
-  (for argnum 0 argCount (
-    (const (ptr ast) arg (ast:child argsAndImpl argnum))
-    (if (int:uless argnum (int:sub argCount 1))
-      (ast:addChild t arg)
-      (ast:addChild t (
-        (var (ptr ast) foo (ast:fromString "quote"))
-        (ast:addChild foo arg)
-        (var (ptr ast) reti (ast:fromString "ret"))
-        (ast:addChild reti foo)
-        reti))
-      )
-    ))
+  const int argCount (getField argsAndImpl childCount)
+  for argnum 0 argCount
+    const (ptr ast) arg (ast:child argsAndImpl argnum)
+    var bool firstArg (int:uless argnum (int:sub argCount 1))
+    when firstArg
+      ast:addChild t arg
+    end
+    unless firstArg
+      var (ptr ast) foo (ast:fromString "quote")
+      ast:addChild foo arg
+      var (ptr ast) reti (ast:fromString "ret")
+      ast:addChild reti foo
+      ast:addChild t reti
+    end
+  end
 
-  (ret t)
-  ))
+  ret t
+end
 
-(template when cond onTrue (if #cond #onTrue ()))
-(template unless cond onFalse (if #cond () #onFalse))
+macro compilerMessage text...
+  printString "[message] "
+  forEachAstChild child text
+    printString (getField child id)
+    printString " "
+  end
+  println()
+  ret ${}
+end
 
-(macro compilerMessage text ... (
-  (printString "[message] ")
-  (forEachAstChild child text (
-    (printString (getField child id))
-    (printString " ") ))
-  (println)
-  (ret `())
-  ))
+func void compiler:printWarning(cstring message)
+  printString "Warning: "
+  printString message
+  println()
+end
 
-(func void compiler:printWarning ((cstring message)) (
-  (printString "Warning: ")
-  (printString message)
-  (println)
-  ))
-
-(template compiler:error message ... ((ret `(error #message))))
+template compiler:error message... (ret ${error #message})
 
 /// quickly define a test function to be run with C-c,t in emacs
-(template testf impl ...
-  (func void test () #impl) )
+template testf impl... (func void test seq #impl)
 
-(macro assert checkCode (
-  (ret `(
-    (if (bool:not (#checkCode))
-      ((printlnString "Assertion failed")
-       (ast:print `#checkCode 0)
-       (exit 1))
-      ())
-    ))
-  ))
+macro assert checkCode
+  ret ${
+    when (bool:not (#checkCode))
+      printlnString "Assertion failed"
+      ast:print ${#checkCode} 0
+      exit 1
+    end
+  end}
+end
 
-(func void printHLine ((char chr) (int count)) (
-  (times count (printChar chr))
-  (println)
-  ))
+func void printHLine(char chr, int count)
+  times count (printChar chr)
+  println()
+end
 
-(macro cstring:concat firstString strings ... (
-  (var (ptr ast) code `())
-  (uniqueId resultString "cstring_concat")
+macro cstring:concat firstString strings...
+  var (ptr ast) code ${}
+  uniqueId resultString "cstring_concat"
 
-  (ast:addChild code `(var cstring #resultString #firstString))
+  ast:addChild code ${var cstring #resultString #firstString}
 
-  (forEachAstChild string strings (
-    (ast:addChild code `(assign #resultString (cstrings:append #resultString #string)))
-    ))
+  forEachAstChild string strings
+    ast:addChild code ${assign #resultString (cstrings:append #resultString #string)}
+  end
 
-  (ast:addChild code `(#resultString))
+  ast:addChild code ${#resultString}
 
-  (ret code)
-  ))
+  ret code
+end
+
 
 ///-----------------------------------------------------------------------------
 /// Unit tests
@@ -626,53 +626,59 @@
 /// Executes the given expression and prints an error
 /// message containing the passed ast if it does not
 /// evaluate to true
-(macro unittest:assert testCode (
-  (ret `(
-    (if #testCode
-      // then
-      ()
-      // else
-      ((printHLine '-' 40)
-       (printlnString "error: Assertion failed")
-       (ast:print `#testCode 0)))
-     ))
-  ))
+macro unittest:assert testCode
+  ret ${
+    unless #testCode
+      printHLine '-' 40
+      printlnString "error: Assertion failed"
+      ast:print ${#testCode} 0
+    end
+  end}
+end
 
 /// Calls unittest:assert on all childs of the passed
 /// sequence expression
-(macro unittest:assertAll checks (
-  (var (ptr ast) code `())
-  (forEachAstChild check checks (
-    (if (cstring:equal (getField check id) "opseq")
-      (printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported") ())
-    (ast:addChild code `(unittest:assert #check))
-    ))
-  (ret code)
-  ))
+macro unittest:assertAll checks
+  var (ptr ast) code ${}
+  forEachAstChild check checks
+    when (cstring:equal (getField check id) "opseq")
+      printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported"
+    end
+    ast:addChild code ${unittest:assert #check}
+  end
+
+  ret code
+end
+
 
 /// Will define a function name_tests_nr which will
 /// call all unittest:assert on all given testCases
-(macro unittest:testCasesFor name testCases ... (
-  (var cstring testName (cstring:concat "test_" (getField name id) "_" (int:toCString (newUniqueId))))
+macro unittest:testCasesFor name testCases...
+  var cstring testName (cstring:concat "test_" (getField name id) "_" (int:toCString (newUniqueId)))
 
-  (var astp impl (ast:fromString "unittest:assertAll"))
-  (forEachAstChild testCase testCases (
-    (ast:addChild impl testCase)
-    ))
-  (var astp funcDecl `(func void #testName () (#impl)))
+  var astp impl (ast:fromString "unittest:assertAll")
+  forEachAstChild testCase testCases
+    ast:addChild impl testCase
+  end
+  var ast* decl ast:fromString("opcall")
+  ast:addChild decl ast:fromString(testName)
+  var astp funcDecl ${func void #decl
+    #impl
+  end}
 
-  (ret funcDecl)
-  ))
+  ret funcDecl
+end
 
-(func cstring unittest:newTestFuncNameFor ((cstring funcName)) (
-  (cstring:concat "test_" funcName "_" (int:toCString (newUniqueId)))
-  ))
+func cstring unittest:newTestFuncNameFor(cstring funcName)
+  cstring:concat "test_" funcName "_" (int:toCString (newUniqueId))
+end
 
-(macro unittest:testFunc funcName impl (
-  (var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id)))
-
-  (ret `(func void #testFuncName () #impl))
-  ))
+macro unittest:testFunc funcName impl
+  var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id))
+  var ast* decl ast:fromString("opcall")
+  ast:addChild decl ast:fromString(testFuncName)
+  ret ${func void #decl #impl}
+end
 
 ///-----------------------------------------------------------------------------
 /// More
@@ -681,382 +687,334 @@
 /// Prints the passed ast to stdout at compile time
 /// and will return it at run time. Can be used to debug
 /// a specific macro using mret instead of ret
-(macro mret code (
-  (ret `(
-    (ast:print #code 0)
-    (ret #code)
-    ))
-  ))
+macro mret code
+  ret ${
+    ast:print #code 0
+    ret #code
+  end}
+end
 
-/// Will define a function which will be executed only on
-/// the first call and will print a warning on subsequent calls
-(macro runOnceFunc rettype name args impl (
-  (uniqueId initialized (cstrings:append (getField name id) "_already_called"))
-
-  (ret `(
-    (var bool #initialized false)
-    (func #rettype #name #args (
-      (if #initialized
-        ((printString (getField `#name id))
-          (printString " was already called before!")
-          (println))
-        ((assign #initialized true)
-          #impl))
-      ))
-    ))
-  ))
-
+// not supported for now
+// /// Will define a function which will be executed only on
+// /// the first call and will print a warning on subsequent calls
+// macro runOnceFunc rettype name args impl
+//   uniqueId initialized (cstrings:append (getField name id) "_already_called")
+//
+//   ret ${
+//     var bool #initialized false
+//     func #rettype #name #args
+//       when #initialized
+//         printString (getField ${#name} id)
+//         printString " was already called before!"
+//         println
+//       end
+//       unless #initialized
+//         assign #initialized true
+//         #impl
+//       end
+//     end
+//   end}
+// end
 
 ///-----------------------------------------------------------------------------
 /// Additional AST functions
 ///-----------------------------------------------------------------------------
 
-(func void ast:setChild
-  (((ptr ast) parent) (int index) ((ptr ast) newChild))
-  (
-  (assert (int:uless index (getField parent childCount)))
-  (var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index))
-  (store childptrAddr newChild)
-  ))
+func void ast:setChild(ast* parent, int index, ast* newChild)
+  assert (int:uless index (getField parent childCount))
+  var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index)
+  store childptrAddr newChild
+end
 
-(func void ast:replace (
-  ((ptr ast) tree)
-  (cstring placeholder)
-  ((ptr ast) replacement) )
-  (
-  (const int count (getField tree childCount))
-  (for childNum 0 count (
-    (var (ptr ast) child (ast:child tree childNum))
-    (if (cstring:equal placeholder (getField child id))
-      ( (ast:setChild tree childNum replacement) )
-      ())
-    ))
-  (forEachAstChild c tree (
-    (ast:replace c placeholder replacement)
-    ))
-  ))
+func void ast:replace(ast* tree, cstring placeholder, ast* replacement)
+  const int count (getField tree childCount)
+  for childNum 0 count
+    var (ptr ast) child (ast:child tree childNum)
+    when (cstring:equal placeholder (getField child id))
+      ast:setChild tree childNum replacement
+    end
+  end
 
-(func void ast:replaceId ((astp tree) (cstring placeholder) (cstring newid)) (
-  (if (cstring:equal (getField tree id) placeholder)
-    (setField tree id newid) ())
+  forEachAstChild c tree
+    ast:replace c placeholder replacement
+  end
+end
 
-  (forEachAstChild child tree (
-    (ast:replaceId child placeholder newid)
-    ))
-  ))
+func void ast:replaceId(ast* tree, cstring placeholder, cstring newid)
+  when (cstring:equal (getField tree id) placeholder)
+    setField tree id newid
+  end
 
-(macro setFieldsTo record value fields ... (
-  (var (ptr ast) code `())
-  (forEachAstChild field fields (
-    (ast:addChild code `(setField #record #field #value))
-    ))
-  (ret code)
-  ))
+  forEachAstChild child tree
+    ast:replaceId child placeholder newid
+  end
+end
+
+macro setFieldsTo record value fields...
+  var (ptr ast) code ${}
+  forEachAstChild field fields
+    ast:addChild code ${setField #record #field #value}
+  end
+
+  ret code
+end
 
 ///-----------------------------------------------------------------------------
 /// Floating point support
 ///-----------------------------------------------------------------------------
 
-(macro float:aliasNoQNAN funcName (
-  (var cstring macroName (cstrings:append "float:" (getField funcName id)))
-  (var astp orderedName (ast:fromString (cstrings:append "float:o" (getField funcName id))))
-  (ast:addChild orderedName ``#l)
-  (ast:addChild orderedName ``#r)
+macro float:aliasNoQNAN funcName
+  var cstring macroName (cstrings:append "float:" (getField funcName id))
+  var astp orderedName (ast:fromString (cstrings:append "float:o" (getField funcName id)))
+  ast:addChild orderedName $${#l}
+  ast:addChild orderedName $${#r}
 
-  (var astp macroDef `(macro #macroName l r (
-                        (ret `(orderedName)))) )
-  (ast:replace macroDef "orderedName" orderedName)
-  (ret macroDef)
-  ))
+  var astp macroDef ${macro #macroName l r
+    ret ${orderedName}
+  end}
+  ast:replace macroDef "orderedName" orderedName
+  ret macroDef
+end
 
-(float:aliasNoQNAN equal)
-(float:aliasNoQNAN notEqual)
-(float:aliasNoQNAN less)
-(float:aliasNoQNAN greater)
-(float:aliasNoQNAN lessEqual)
-(float:aliasNoQNAN greaterEqual)
+float:aliasNoQNAN equal
+float:aliasNoQNAN notEqual
+float:aliasNoQNAN less
+float:aliasNoQNAN greater
+float:aliasNoQNAN lessEqual
 
-(func int main ())
 
-(func void runMain () (
-  (const int retval (main))
-  (println)
-  (printString "main() returned ") (printlnInt retval)
-  ))
+func int main()
 
-(testf (runMain))
+func void runMain()
+  const int retval main()
+  println()
+  printString "main() returned "
+  printlnInt retval
+end
 
-(template float:neg x (float:sub 0. #x))
+testf runMain()
+
+template float:neg x (float:sub 0. #x)
 
 ///-----------------------------------------------------------------------------
 /// Additional operators and basic math functions
 ///-----------------------------------------------------------------------------
 
-(func int int:mod ((int v) (int div)) (
-  (int:urem v div)
-  ))
-(macro int:neg x ((ret `(int:sub 0 #x))))
+func int int:mod(int v, int div)
+  int:urem v div
+end
 
-(template op+ l r (int:add #l #r))
-(template op- l r (int:sub #l #r))
-(template op* l r (int:mul #l #r))
-(template op/ l r (int:sdiv #l #r))
+macro int:neg x
+  ret ${int:sub 0 #x}
+end
 
-(template op== l r (int:equal #l #r))
-(template op!= l r (int:notEqual #l #r))
+template op+ l r (int:add #l #r)
+template op- l r (int:sub #l #r)
+template op* l r (int:mul #l #r)
+template op/ l r (int:sdiv #l #r)
 
-(template op> l r (int:sgreater #l #r))
-(template op< l r (int:sless #l #r))
-(template op>= l r (int:sgreaterEqual #l #r))
-(template op<= l r (int:slessEqual #l #r))
+template op== l r (int:equal #l #r)
+template op!= l r (int:notEqual #l #r)
 
-(template op==_ptr l r
-  ((cast int #l) == (cast int #r)))
-(template op!=_ptr l r
-  ((cast int #l) != (cast int #r)))
+template op> l r (int:sgreater #l #r)
+template op< l r (int:sless #l #r)
+template op>= l r (int:sgreaterEqual #l #r)
+template op<= l r (int:slessEqual #l #r)
 
-(macro addMappedChilds parent mapf childs ... (
-  (var (ptr ast) code `())
-  (forEachAstChild child childs (
-    (var (ptr ast) map (ast:fromString (getField mapf id)))
-    (ast:addChild map child)
-    (ast:addChild code `(ast:addChild #parent #map))
-    ))
-  (ret code)
-  ))
+template op==_ptr l r (cast int #l == cast int #r)
+template op!=_ptr l r (cast int #l != cast int #r)
 
-(template static:id foo (#foo))
+macro addMappedChilds parent mapf childs...
+  var (ptr ast) code ${}
+  forEachAstChild child childs
+    var (ptr ast) map (ast:fromString (getField mapf id))
+    ast:addChild map child
+    ast:addChild code ${ast:addChild #parent #map}
+  end
+  ret code
+end
 
-(macro ast:addChilds parent childs ... (
-  (var (ptr ast) code `(addMappedChilds #parent static:id))
-  (forEachAstChild child childs (
-    (ast:addChild code child)
-    ))
-  (ret code)
-  ))
+template static:id foo #foo
 
-(macro defineOp op func (
-  (var (ptr ast) def `(template))
-  (ast:addChild def (ast:fromString (getField op id)))
-  (addMappedChilds def ast:fromString "l" "r")
-  (var (ptr ast) impl func)
-  (ast:addChild impl ``#l)
-  (ast:addChild impl ``#r)
-  (ast:addChild def impl)
-  (ret def)
-  ))
+macro ast:addChilds parent childs...
+  var (ptr ast) code ${addMappedChilds #parent static:id}
+  forEachAstChild child childs
+    ast:addChild code child
+  end
+  ret code
+end
 
-(macro defineOpNS op postfix func namespace (
-  (template id astx (getField #astx id))
+macro defineOp op func
+  var (ptr ast) def $template
+  ast:addChild def (ast:fromString (getField op id))
+  addMappedChilds def ast:fromString "l" "r"
+  var (ptr ast) impl func
+  ast:addChild impl $${#l}
+  ast:addChild impl $${#r}
+  ast:addChild def impl
+  ret def
+end
 
-  (var cstring funcName (cstring:concat (id namespace) ":" (id func)))
-  (var cstring opName (cstring:concat (id op) (id postfix)))
+macro defineOpNS op postfix func namespace
+  template id astx (getField #astx id)
 
-  (ret `(defineOp #opName #funcName))
-  ))
+  var cstring funcName (cstring:concat (id namespace) ":" (id func))
+  var cstring opName (cstring:concat (id op) (id postfix))
 
-(macro defineFloatOps postfix namespace (
-  (var (ptr ast) code `())
+  ret ${defineOp #opName #funcName}
+end
 
-  (ast:addChilds code
-    `(defineOpNS op+ #postfix add #namespace)
-    `(defineOpNS op- #postfix sub #namespace)
-    `(defineOpNS op* #postfix mul #namespace)
-    `(defineOpNS op/ #postfix fdiv #namespace)
+macro defineFloatOps postfix namespace
+  ret ${
+    defineOpNS op+ #postfix add #namespace
+    defineOpNS op- #postfix sub #namespace
+    defineOpNS op* #postfix mul #namespace
+    defineOpNS op/ #postfix fdiv #namespace
 
-    `(defineOpNS op== #postfix equal #namespace)
-    `(defineOpNS op!= #postfix notEqual #namespace)
+    defineOpNS op== #postfix equal #namespace
+    defineOpNS op!= #postfix notEqual #namespace
 
-    `(defineOpNS op> #postfix ogreater #namespace)
-    `(defineOpNS op>= #postfix ogreaterEqual #namespace)
-    `(defineOpNS op< #postfix oless #namespace)
-    `(defineOpNS op<= #postfix olessEqual #namespace)
-    )
+    defineOpNS op> #postfix ogreater #namespace
+    defineOpNS op>= #postfix ogreaterEqual #namespace
+    defineOpNS op< #postfix oless #namespace
+    defineOpNS op<= #postfix olessEqual #namespace
+  end}
+end
 
-  (ret code)
-  ))
+defineFloatOps _f float
+defineFloatOps _d double
 
-(defineFloatOps _f float)
-(defineFloatOps _d double)
+template op= l r (assign #l #r)
 
-(template op= l r (assign #l #r))
+macro compareFunc type name compareF
+  var cstring typeName (getField type id)
 
-(macro compareFunc type name compareF (
-  (var cstring typeName (getField type id))
+  var (ptr ast) compareCode compareF
+  ast:addChilds compareCode $l $r
 
-  (var (ptr ast) compareCode compareF)
-  (ast:addChilds compareCode `l `r)
-
-  (ret `(func #typeName #name ((#typeName l) (#typeName r)) (
-    (var bool cmp #compareCode)
-    (branch cmp lgreater rgreater)
-    (label lgreater)
-    (ret l)
-    (label rgreater)
-    (ret r)
-    )))
-  ))
+  ret ${func #typeName #name(#typeName l, #typeName r)
+    var bool cmp #compareCode
+    branch cmp lgreater rgreater
+    label lgreater
+    ret l
+    label rgreater
+    ret r
+  end}
+end
 
 // TODO: replace this with branchless impl once this makes a difference
-(compareFunc int int:max op>)
-(compareFunc int int:min op<)
+compareFunc int int:max op>
+compareFunc int int:min op<
 
-(compareFunc float float:max op>_f)
-(compareFunc float float:min op<_f)
+compareFunc float float:max op>_f
+compareFunc float float:min op<_f
 
-(compareFunc double double:max op>_d)
-(compareFunc double double:min op<_d)
+compareFunc double double:max op>_d
+compareFunc double double:min op<_d
 
-(func float float:clamp((float min) (float max) (float x)) (
-  (float:min max (float:max min x))
-  ))
+func float float:clamp(float min, float max, float x)
+  float:min max (float:max min x)
+end
 
-(func int int:clamp((int min) (int max) (int x)) (
-  (int:min max (int:max min x))
-  ))
+func int int:clamp(int min, int max, int x)
+  int:min max (int:max min x)
+end
 
-(func bool float:equalDelta ((float delta) (float l) (float r)) (
-  (const float diff (fabsf (l -_f r)))
-  (ret (diff <=_f delta))
-  ))
+func bool float:equalDelta(float delta, float l, float r)
+  const float diff (fabsf (l -_f r))
+  ret (diff <=_f delta)
+end
 
 ///-----------------------------------------------------------------------------
 /// Deprecation
 ///-----------------------------------------------------------------------------
 
-(macro deprecatedNoVarArgs name replacementName warning args ... (
-  (var astp code `(macro #name))
-  (forEachAstChild arg args (
-    (ast:addChild code arg)
-    ))
+macro deprecatedNoVarArgs name replacementName warning args...
+  var astp code ${macro #name}
+  forEachAstChild arg args
+    ast:addChild code arg
+  end
 
-  (var astp impl `())
-  (ast:addChild code impl)
+  var astp impl ${}
+  ast:addChild code impl
 
-  (ast:addChild impl `(compiler:printWarning #warning))
+  ast:addChild impl ${compiler:printWarning #warning}
 
-  (var astp call (ast:fromString (getField replacementName id)))
-  (forEachAstChild arg2 args (
-    (var astp antiquoteArg ``(antiquote))
-    (ast:addChild antiquoteArg arg2)
-    (ast:addChild call antiquoteArg)
-    ))
-  (ast:addChild impl `(ret `(#call)))
+  var astp call (ast:fromString (getField replacementName id))
+  forEachAstChild arg2 args
+    var astp antiquoteArg $${antiquote}
+    ast:addChild antiquoteArg arg2
+    ast:addChild call antiquoteArg
+  end
+  ast:addChild impl ${ret ${#call}}
 
-  (ret code)
-  ))
+  ret code
+end
 
-(macro deprecatedVarArgs name replacementName warning (
-  (var astp code `(macro #name args ...))
+macro deprecatedVarArgs name replacementName warning
+  var astp code ${macro #name args...}
 
-  (var cstring replName (cstring:quote (getField replacementName id)))
+  var cstring replName (cstring:quote (getField replacementName id))
 
-  (var astp impl `())
-  (ast:addChild code impl)
-  (ast:addChild impl `(
-    (compiler:printWarning #warning)
+  var astp impl ${}
+  ast:addChild code impl
+  ast:addChild impl ${
+    compiler:printWarning #warning
 
-    (var astp call (ast:fromString #replName))
-    (forEachAstChild child args (
-      (ast:addChild call child)
-      ))
+    var astp call (ast:fromString #replName)
+    forEachAstChild child args
+      ast:addChild call child
+    end
 
-    (ret call)
-    ))
+    ret call
+  end}
 
-  (ret code)
-  ))
+  ret code
+end
 
+macro deprecated name replacementName args...
+  var cstring warning (cstring:quote (cstring:concat (getField name id) " is deprecated. Use " (getField replacementName id) " instead."))
 
-(macro deprecated name replacementName args ... (
-  (var cstring warning (cstring:quote (cstring:concat
-    (getField name id)
-    " is deprecated. Use "
-    (getField replacementName id)
-    " instead."
-    )))
+  var bool isVarArg false
 
-  (var bool isVarArg false)
+  const int argsChildCount (getField args childCount)
 
-  (const int argsChildCount (getField args childCount))
+  when (argsChildCount > 0)
+    when (cstring:equal macroRest (getField (ast:child args (argsChildCount - 1)) id))
+      isVarArg = true
+    end
+  end
 
-  (if (argsChildCount > 0)
-    (if (cstring:equal macroRest (getField (ast:child args (argsChildCount - 1)) id))
-      (isVarArg = true)
-      () )
-    () )
+  var astp code (nullptr ast)
 
-  (var astp code (nullptr ast))
+  when isVarArg
+    code = ${deprecatedVarArgs #name #replacementName #warning}
+  end
+  unless isVarArg
+    code = ${deprecatedNoVarArgs #name #replacementName #warning}
+    forEachAstChild arg args
+      ast:addChild code arg
+    end
+  end
 
-  (if isVarArg
-    (
-      (code = `(deprecatedVarArgs #name #replacementName #warning))
-      )
-    (
-      (code = `(deprecatedNoVarArgs #name #replacementName #warning))
-      (forEachAstChild arg args (
-        (ast:addChild code arg)
-        ))
-      )
-    )
-  (ret code)
-  ))
+  ret code
+end
 
 ///-----------------------------------------------------------------------------
 /// Deprecated functions
 ///-----------------------------------------------------------------------------
 
-// (deprecated unittest.assert unittest:assert check)
-// (deprecated unittest.assertAll unittest:assertAll "blah" check ...)
+deprecated astChild ast:child parent index
+deprecated simpleAst ast:fromString name
+deprecated printAst ast:print t indent
+deprecated addChild ast:addChild tree child
 
-(deprecated astChild ast:child parent index)
-(deprecated simpleAst ast:fromString name)
-(deprecated printAst ast:print t indent)
-(deprecated addChild ast:addChild tree child)
+macro linkclib fileNames...
+  var astp code seqAst()
+  forEachAstChild fileName fileNames
+    ast:addChild code ${zmp:compiler:linkclib #fileName}
+  end
 
-(macro linkclib fileNames ... (
-  (var astp code (seqAst))
-  (forEachAstChild fileName fileNames
-    (ast:addChild code `(zmp:compiler:linkclib #fileName)))
-  (ret code)))
-
-// /// Given an ast and an ast containing placeholders _/__ the
-// /// shapes of both ast's are matched against each other. They match if they have
-// /// the same name, same number of children and all their children are matching.
-// ///
-// /// The _ placeholder matches expressions without children (like 'a') while
-// /// the __ placeholder matches any other ast
-// ///
-// /// Examples:
-// ///   ast:matchesShape `(foo bar) `(foo bar) => true
-// ///   ast:matchesShape `(a b c) `(__) => true
-// ///   ast:matchesShape `(foo (some child) bar) `(foo __ bar) => true
-// ///   ast:matchesShape `(a b) `(a) => false
-// ///   ast:matchesShape `(a b c) `(a b) => false
-// ///   ast:matchesShape `(a b) `(a b _) => false
-// (func bool ast:matchesShape ((astp code) (astp template)) (
-//   (if (bool:and (cstring:equal (getField template id) "_") (getField code childCount == 0))
-//     (ret true) ())
-// 
-//   (if (cstring:equal (getField template id) "__")
-//     (ret true) ())
-// 
-//   (if
-//     (bool:and
-//       (getField code childCount == getField template childCount)
-//       (cstring:equal (getField code id) (getField template id)))
-//     (
-//       (const int childCount (getField code childCount))
-//       (for childNum 0 childCount (
-//         (if (ast:matchesShape (ast:child code childNum) (ast:child template childNum))
-//           () // else
-//           (ret false)
-//           )
-//         ))
-//       (ret true)
-//       )
-//     ())
-//   (ret false)
-//   ))
-
+  ret code
+end
 
