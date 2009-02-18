@@ -401,3 +401,9 @@ let splitLastChar str =
   let front = Str.string_before str (strLength-1) in
   front, lastChar
 
+let endsWith string ending =
+  let stringLength = String.length string in
+  let endingLength = String.length ending in
+  stringLength >= endingLength &&
+    Str.string_after string (stringLength-endingLength) = ending
+

@@ -1712,14 +1712,18 @@ let translateInclude includePath handleLLVMCodeF env expr =
   collectTimingInfo "translateInclude"
     (fun () ->
        match expr with
-         | { id = id; args = [{ id = fileName; args = []}] } when id = macroInclude ->
+         | { id = id; args = [{ id = quotedFileName; args = []}] } when id = macroInclude ->
              begin
+               let fileName =
+                 let fileName = Common.removeQuotes quotedFileName in
+                 if Common.endsWith fileName ".zomp" then fileName
+                 else fileName ^ ".zomp"
+               in
                try
-                 let fileName = Common.removeQuotes fileName in
                  importFile fileName
                with error ->
-                 eprintf "While compiling included file '%s'\n" fileName;
-                 raise error
+                 let msg = Printexc.to_string error in
+                 Error [sprintf "%s, while compiling included file %s" msg fileName]
              end
          | _ ->
              Error ["Expecting 'include \"fileName.zomp\"'"])

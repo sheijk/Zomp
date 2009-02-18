@@ -32,3 +32,8 @@ tools
 /mltests/*.exe
 /mltests/*.o
 /llvmtest/floats.ll
+/extlibs/assimp-r281--sdk
+/extlibs/boost_1_38_0
+/extlibs/*.bz2
+/extlibs/*.gz
+/extlibs/*.zip
