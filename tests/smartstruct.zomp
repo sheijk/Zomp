@@ -1,0 +1,78 @@
+/**
+ * A smart struct which automatically defines a printing function
+ */
+
+include "libs/libcee"
+
+template macro:fail errormsg astVarName
+  ret ${error #errormsg #astVarName}
+end
+
+// macro macro:fail errormsg more...
+//   code := $${error}
+//   ast:addChild code errormsg
+//   forEachAstChild arg more
+//     ast:addChild code arg
+//   end
+//   mret ${ret ${#code}}
+// end
+
+// template macro:expectForm expr form
+//   unless ast:matchesShape(#expr, #form)
+//     macro:fail "Expected form" #form in #expr
+//   end
+// end
+
+macro pstruct name members
+  unless (name.childCount == 0)
+    ret ${error "Expected id" #name}
+  end
+
+  decl := ast:fromString("type")
+  printCode := ast:fromString "opseq"
+
+  ast:addChild decl name
+
+  forEachAstChild member members
+    if2 ast:matchesShape(member, ${__ _}) then
+      ast:addChild decl member
+      fieldName := ast:child member 1
+      fieldType := ast:child member 0
+      fieldTypeName := fieldType.id
+      fieldPrinterName := fieldTypeName ++ ":print"
+      ast:addChild printCode ${#fieldPrinterName this.#fieldName}
+    else
+      macro:fail "Expected 'typeExpr id'" member
+    end
+  end
+
+  printerName := name.id ++ ":print"
+  printF := ${func void #printerName(#name* this) #printCode}
+
+  ret ${
+    #decl
+    #printF
+  end}
+end
+
+func void int:print(int i)
+  printInt i
+end
+
+func void float:print(float f)
+  printFloat f
+end
+
+func void Bar:print(Bar* this)
+  int:print this.x
+end
+
+pstruct Foo
+  int nat
+  float real
+end
+
+func int main()
+  ret 0
+end
+
