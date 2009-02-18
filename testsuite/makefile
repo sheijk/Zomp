@@ -8,9 +8,11 @@ include ../makefile.config
 # Targets
 ################################################################################
 
-all: sexpr.test structs.test minimal.test simple-func.test variables.test \
-astmatch.test cee.test bug-macro-func-samemodule.test strings.test prelude.test\
-selftest.test float.test
+TEST_CASES = sexpr.zomp structs.zomp minimal.zomp simple-func.zomp \
+variables.zomp astmatch.zomp cee.zomp bug-macro-func-samemodule.zomp \
+strings.zomp prelude.zomp selftest.zomp float.zomp std_bindings.zomp
+
+all: $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.test))
 
 fail: fail.test crash.test
 

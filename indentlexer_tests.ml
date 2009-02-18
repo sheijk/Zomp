@@ -50,6 +50,9 @@ struct
       isValidId "_";
       isValidId "_1";
       isValidId "foo_";
+      isValidId "0x123";
+      isValidId "0x1f";
+      isValidId "0b1011";
 
       "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
                              ADD_OP "+"; id "1"; END];

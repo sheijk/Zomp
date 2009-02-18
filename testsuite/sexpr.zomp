@@ -1,6 +1,6 @@
-
-// (func void println () (
-//   (printNewline)))
+/**
+ * Check that the s-expr syntax still works
+ */
 
 (func int main () (
   (printString "foo?")

@@ -1,0 +1,91 @@
+/**
+ * Testing the std:bindings API which allows access to the symbol table from
+ * Zomp
+ */
+
+
+macro printNameUsage name
+  var cstring messageFound (cstring:quote (cstring:concat (getField name id) " is bound!\n"))
+  var cstring messageNotFound (cstring:quote (cstring:concat (getField name id) ", where art thou?\n"))
+
+  ret ${
+    if2 (std:bindings:isNameUsed #name) then
+      printString #messageFound
+      printString #messageNotFound
+    end
+  end}
+end
+
+
+func void someFuncYes()
+  printlnString "foobar!"
+end
+
+type someIntTypeYes int
+
+template someMacroYes void
+
+var int someVarYes 0
+
+func int main()
+  template used name (std:bindings:isNameUsed #name)
+  template notUsed name (bool:not (std:bindings:isNameUsed #name))
+
+  var int localYes 0
+
+  unittest:assertAll
+    used someIntTypeYes
+    used someMacroYes
+    used someVarYes
+    used localYes
+
+    notUsed isnichtdaNo
+  end
+
+  ret 0
+end
+
+/* Experimental types for std:bindings API
+
+(macro xtype name typeExpr ... (
+  (var (ptr ast) defs (seqAst))
+
+  (var cstring ptrname (cstrings.append (getField name id) "ptr"))
+
+  (var (ptr ast) te `(type #name))
+  (forEachAstChild child typeExpr (
+    (addChild te child)
+    ))
+
+  (addChild defs te)
+  (addChild defs `(type #ptrname (ptr #name)))
+  (ret defs)
+  ))
+
+(type Type
+  (cstring name)
+  (int dummy)
+  )
+
+(type Var
+  (cstring name)
+  (Type type)
+  )
+
+(type Macro
+  (cstring name)
+  (int argCount)
+  ((ptr cstring) args)
+  (bool isVariadic)
+  )
+
+(type Func
+  (cstring name)
+  (Type resultType)
+  (int argCount)
+  ((ptr cstring) argNames)
+  ((ptr Type) argTypes)
+  )
+
+*/
+
