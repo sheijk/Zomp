@@ -1417,16 +1417,19 @@ func int main()
       glViewport 0 0 windowWidth windowHeight
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       saveAttribs
-        // renderScene
-
         glEnable GL_BLEND
         glBlendFunc GL_ONE GL_ONE
         glDisable GL_DEPTH_TEST
         glEnable GL_TEXTURE_2D
 
-        for tn2 0 glowSteps
-          glBindTexture2D renderTargetsB[tn2]*.colorTexture
+        if2 keyDown(GLFW_KEY_LSHIFT) then
+          glBindTexture2D renderTargetsB[0]*.colorTexture
           drawFullscreenQuad()
+        else
+          for tn2 0 glowSteps
+            glBindTexture2D renderTargetsB[tn2]*.colorTexture
+            drawFullscreenQuad()
+          end
         end
       end
 
