@@ -9,29 +9,7 @@ ifndef DEBUG
 DEBUG=1
 endif
 
-OCAMLPATH=
-OCAMLLEX=$(OCAMLPATH)ocamllex.opt
-OCAMLYACC=$(OCAMLPATH)ocamlyacc
-MENHIR=$(OCAMLPATH)menhir
-OCAML=$(OCAMLPATH)ocaml
-OCAMLRUN=$(OCAMLPATH)ocamlrun
-OCAMLC=$(OCAMLPATH)ocamlc.opt -dtypes -warn-error A
-OCAMLOPT=$(OCAMLPATH)ocamlopt.opt -dtypes -warn-error A
-OCAMLMKLIB=$(OCAMLPATH)ocamlmklib
-OCAMLDEP=$(OCAMLPATH)ocamldep.opt
-
-UPDATE=cp
-SED=sed
-
-LLVM_BIN_DIR=$(PWD)/tools/llvm/Release/bin
-LLVM_INCLUDE_DIR=$(PWD)/tools/llvm/include
-LLVM_LIB_DIR=$(PWD)/tools/llvm/Release/lib
-LLVM_GCC_BIN_DIR=$(PWD)/tools/llvm-gcc/bin
-
-LLVM_CONFIG=$(LLVM_BIN_DIR)/llvm-config
-LLVM_CC=$(LLVM_GCC_BIN_DIR)/llvm-gcc
-LLVM_CXX=$(LLVM_GCC_BIN_DIR)/llvm-g++
-LLVM_DIS=$(LLVM_BIN_DIR)/llvm-dis
+include config.mk
 
 PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
@@ -117,12 +95,7 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 
 ################################################################################
-
-dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o
-	echo Building $@ ...
-	$(LLVM_CXX) $(CXX_FLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
-	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+# External libraries
 
 glut.dylib:
 	@echo Building $@ ...
@@ -132,10 +105,27 @@ libquicktext.dylib: glQuickText.o
 	@echo Building $@ ...
 	g++ -dynamiclib -o $@ glQuickText.o -framework OpenGL
 
+EXTLIB_DIR = extlibs
+ASSIMP_DIR = $(EXTLIB_DIR)/assimp-r281--sdk
+
+libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a Makefile
+	$(CP) $< $@
+
+assimp.dylib: libassimp.a Makefile forcelinkassimp.c
+	g++ -dynamiclib -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
+
 # opengl.dylib: opengl.c
 # 	echo Building $@ ...
 # 	gcc -c opengl.c -o opengl.o
 # 	gcc -dynamiclib -framework OpenGL opengl.o -o $@
+
+################################################################################
+
+dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o
+	echo Building $@ ...
+	$(LLVM_CXX) $(CXX_FLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
+	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
+	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 
 sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
 	echo Building $@ ...
