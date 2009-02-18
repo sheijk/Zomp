@@ -48,7 +48,7 @@
 ** TODO [#A] mehr auf einfachheit / schnelle umsetzbarkeit optimieren
 ** TODO [#A] more friendly name for sexpr? (itree? codetree?)
 ** TODO [#A] doch benutzerdefinierbare syntax?
-   
+
    anfang + ende definiert durch ein token
    ende definiert durch indent level?
    tokens koennen in namespaces leben
@@ -56,31 +56,31 @@
    matches = zomp.db.sql
      SELECT foo, bar FROM WHERE foo > bar
 
-   zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >> 
-   
+   zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >>
+
 ** TODO [#A] alle tests auf neue syntax umstellen, tests organisieren, moeglichkeit zum fehler pruefen einbauen
 ** TODO referenzen fuer hot-swapping
 
-   A. Baumann, J. Kerr, J. Appavoo, D. Da Silva, O. Krieger, and R. W. Wisniewski. 
-   Module hot-swapping for dynamic update and reconfiguration in K42. 
-   In Proceedings of the 6th Linux.Conf.Au, Canberra, Australia, Apr. 2005. 
+   A. Baumann, J. Kerr, J. Appavoo, D. Da Silva, O. Krieger, and R. W. Wisniewski.
+   Module hot-swapping for dynamic update and reconfiguration in K42.
+   In Proceedings of the 6th Linux.Conf.Au, Canberra, Australia, Apr. 2005.
    To appear.
-   
+
    C. A. N. Soules, J. Appavoo, K. Hui, R. W. Wisniewski, D. D. Silva,
    G. R. Ganger, O. Krieger, M. Stumm, M. Auslander, M. Ostrowski,
    B. Rosenburg, and J. Xenidis.
-   System support for online reconfigura- tion. 
+   System support for online reconfigura- tion.
    In Proc. of the Usenix Technical Conference, 2003.
 
-   M. Hicks. 
-   Dynamic Software Updating. 
-   PhD thesis, Department of Computer and Information Science, University of Pennsylvania, August 2001.   
-   
+   M. Hicks.
+   Dynamic Software Updating.
+   PhD thesis, Department of Computer and Information Science, University of Pennsylvania, August 2001.
+
 ** TODO [#A] object system with composition as a primitive? (mixins / entity part scene graph like?)
 ** TODO [#A] ownership types
 ** TODO [#A] automatically derive data parallel code?
 ** TODO [#A] cee: 'a, b = 1, 2' should be possible
-  
+
 ** TODO [#A] deref operator precedence
 
    c - c precedence rules, *foo, lowest precedence
@@ -107,9 +107,9 @@
    | int (*)()          | int()^             |              | *int()             |          |
    | int* (*)()         | int^()^            |              | *(*int)()          |          |
    | todo               |                    |              |                    |          |
- 
+
    [Anderson 80]. Sethi [Sethi 81] http://www.cs.bell-labs.com/who/dmr/chist.html
-   
+
 ** TODO [#A] get "inspiration" from tango: http://www.dsource.org/projects/tango/wiki/Manual
 ** TODO [#A] how to integrate OOP and concepts nicely?
 
@@ -159,10 +159,10 @@
    mit praedikaten oder pattern matching?
 
    pattern: define matches, on match return some(..) else none
-   
+
    pattern id =
      case: {id = name; args=[]} => name
-     
+
    pattern boundType =
      case: { id = name; args = [] } => bindings.lookupType name
 
@@ -305,7 +305,7 @@
 
    class DerivedClonable
      override type(this)* clone()
-   
+
    void test(Cloneable* c, DerivedClonable* d)
      c*.clone() :: Cloneable*
      d*.clone() :: DerivedClonable*
@@ -323,7 +323,7 @@
 
    for i in 10 .. 20
      print i
-   
+
    print "done"
 
 
@@ -344,7 +344,7 @@
      int y
    end class Blah
 ** TODO [#A] type classes / overloaded functions
-   
+
    -- not legal
    class Foo x where
        xxx :: x -> x
@@ -399,12 +399,12 @@ A PORTABLE RESEARCH FRAMEWORK FOR THE EXECUTION OF JAVA BYTECODE
 A No-Frills Introduction to Lua 5.1 VM Instructions
 
 von http://lambda-the-ultimate.org/node/2884
-   
+
 ** TODO next steps                                                        :next:
    - provide support for function pointers
    - provide simple dynamic oop system
    - use it to implement compiler services
-     
+
    - rename all build-ins to std:base:...
    - simplify them to only one valid form
    - provide var,.. wrappers which redirect to the std:base forms
@@ -423,7 +423,7 @@ von http://lambda-the-ultimate.org/node/2884
 
    sum(1..100)
    average(20..30)
-   
+
    print (the sum)
    print (the average)
 ** TODO [#A] sml-like integer types
@@ -465,7 +465,7 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] smooth integration of other languages
    extractDefs(LLVM::Module*)
    Will parse the module and add Zomp definitions for all found types and functions
-   
+
    parseC(string) -> LLVM::Module*
    Invoke Clang to JIT C-code from a string or file
 ** TODO [#A] source code annotation language
@@ -514,11 +514,11 @@ von http://lambda-the-ultimate.org/node/2884
    first occurence of yield
 ** TODO [#A] Codegen tries to get address of parameter                     :bug:
    Without the printFLocal this fails:
-   
+
    struct concept_Printable
      (fptr void void* ) printF
    end
-      
+
    func void concept_Printable:init(concept_Printable* this, (fptr void void* ) printF)
      printFLocal := printF
      this.printF = printFLocal
@@ -533,7 +533,7 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO syntax for generic/polymorphic functions
 
    func void print<Printable P>(P p) vs. print(Printable[P] p)
-   
+
    func P add<Number P>(P l, P r) vs. Number[P] add(P l, P r)
 
    add :: Number P => (P, P)->P
@@ -723,14 +723,14 @@ von http://lambda-the-ultimate.org/node/2884
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
-   
+
    - [ ] parsing strings (regexp?)
    - [ ] reading from a file
 
-** shader system [1/2]
-   
+** shader system [2/4]
+
    Turn a shader description into a class:
-   
+
    shader Phong
      uniform float exponent
 
@@ -748,34 +748,35 @@ von http://lambda-the-ultimate.org/node/2884
    class Phong extends Shader
    {
        float exponent
-    
+
        void vertex(Vertex v, out bla)
-    
+
        void Pass0()
        {
        	state.blendenble = true
        	state.vs = vertex;
        	if ()
        }
-    
+
    float bla[32];
    Texture t;
    Sampler1D blaSampler = {mode = Sampler.Mode.WRAP, filter = POINT, texure = t}
-    
+
    void Simulate
    void Render(float t)
-    
+
       - [X] opengl bindings
-      - [ ] function pointers
+      - [X] function pointers
       - [ ] classes
+      - [ ] mapping shaders to classes
 
 ** persistent camera in toplevel [0/2]
 
    It should be possible to store the camera pos after main() returned
-   
+
    - [ ] global pointers
    - [ ] module level init code (run on load)
-         
+
 ** overloaded functions
    It should be possible to supply support for overloaded functions as macros
 
@@ -832,14 +833,14 @@ von http://lambda-the-ultimate.org/node/2884
 *** TODO types [4/7]
 **** DONE int
 **** TODO fixed size int (int8, int16, ..., int128)
-**** DONE float 
+**** DONE float
 **** TODO double
 **** DONE structs
 **** TODO signed/unsigned
 **** DONE bool
-          
+
 *** TODO strings [1/3]
-    
+
 **** DONE concatentate
      CLOSED: [2008-07-01 Tue 02:12]
 **** TODO literals
@@ -857,7 +858,7 @@ von http://lambda-the-ultimate.org/node/2884
      type Vector
        float x, y, z
      end
-     
+
 *** TODO enums [0/4]
 **** TODO define them
      enum Primitive
@@ -930,7 +931,7 @@ von http://lambda-the-ultimate.org/node/2884
      args ::=
      args ::= comma-seperated-list(arg)
      arg ::= Type name
-     
+
 **** DONE declare them
      func RetType name(args)
      // no impl
@@ -1012,7 +1013,7 @@ end macro
 
 In macro expansion the \0 will be replaced by an !
 *** TODO [#A] speichermanagement fixen!!! (ast.id wird manchmal geloescht.. im ocaml ffi?) :bug:
-   
+
 *** TODO [#B] check where `DefineVariable for void vars comes from
 *** DONE [#A] "" is not parsed as a string
     CLOSED: [2008-01-11 Fri 01:28]
@@ -1038,10 +1039,10 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#C] default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not) :bug:
 
 *** DONE [#A] emit warning on missing ret		:bug:
-    CLOSED: [2007-12-04 Tue 02:35] 
+    CLOSED: [2007-12-04 Tue 02:35]
 
 *** DONE [#A] BUG: (ret (load (ptradd (getField parent childs) index))) :bug:
-    in function returning (ptr ast) is not accepted 
+    in function returning (ptr ast) is not accepted
    CLOSED: [2007-12-05 Wed 20:35]
 
 *** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily :bug:
@@ -1060,10 +1061,10 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#B] Turn more things into expressions
 **** TODO if is not an expression
 **** DONE Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
-     CLOSED: [2008-02-23 Sat 03:48]      
-     
+     CLOSED: [2008-02-23 Sat 03:48]
+
      Local labels are not needed to turn if/for/.. into expressions
-     
+
 *** TODO [#C] place all external c functions in 'c' namespace?
    Export only functions defined in c namespace?
    Rename all other functions(?) like zomp_${name}
@@ -1079,7 +1080,7 @@ In macro expansion the \0 will be replaced by an !
 
 *** DONE check return type in functions!		:improve:
     CLOSED: [2007-12-06 Thu 02:01]
-    
+
 *** DONE [#A] macros need a way to signal errors
     CLOSED: [2008-03-15 Sat 14:45]
     Repeat (compiler:error ...)?
@@ -1089,34 +1090,34 @@ In macro expansion the \0 will be replaced by an !
     (twice (printInt #i))
 
 *** TODO [#B] int representations: 0xff 0b1001 etc.	:features:
-    
+
 *** TODO [#B] nested quotes and antiquotes don't work :bug:
-    
+
 *** DONE Allow getting pointer to variables
-    
+
 *** DONE Fix record support: allow writing to record fields
     CLOSED: [2007-10-06 Sat 21:36]
-    
+
 *** DONE Correctly parse ((ptr int) foo) in arguments/types
     CLOSED: [2007-10-08 Mon 01:45]
-    
+
 *** DONE Add support for characters
     CLOSED: [2007-10-09 Tue 23:51]
-    
+
 *** DONE Add support for arrays
     CLOSED: [2007-10-11 Thu 00:29]
-    
+
 *** DONE Disallow strings as constants in simpleform
     CLOSED: [2007-10-16 Tue 19:04]
     Let the expander turn them into global strings
-    
+
 *** DONE Use bindings / semantics checking in expander.ml
     CLOSED: [2007-10-16 Tue 19:04]
 
 *** TODO [#B] Support more data types
 
 **** DONE double
-     CLOSED: [2007-11-26 Mon 01:26] 
+     CLOSED: [2007-11-26 Mon 01:26]
 
 **** TODO unsigned ints
 
@@ -1138,12 +1139,12 @@ In macro expansion the \0 will be replaced by an !
       (foreach arg in args
         (addChild tree arg) )
       (ret tree) )
-    
+
     (template uniqueLabel name purpose (
       (var cstring #name (newUniqueNameFor #purpose)) ))
 
 ** Refactorings                                                   :refactorings:
-   
+
 *** TODO [#A] unit tests still use identifiers with dots (line 'int.add') - change this to colon (int:add) :refactorings:quick:
 *** TODO [#B] reduce to llvm bindings and macros (mixed ocaml/zomp macro system for now) :refactorings:
 *** TODO [#A] simplify all base language forms so only one syntax is allowed and support variants using macros :refactorings:
@@ -1152,14 +1153,14 @@ In macro expansion the \0 will be replaced by an !
     CLOSED: [2008-06-08 Sun 23:40]
 *** TODO [#A] change all types to Capitalized case in stdlib
 *** TODO [#B] Allow nested expressions in branch instruction
-    
+
 *** TODO [#C] Turn value type into polymorphic variant type
-    
+
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
 
 *** TODO [#A] Change expander.ml: dispatching only done by the expression's id
     Then make all operations available as fake-macros (zmp:compiler:macroExpand etc.)
-    
+
 ** Testing
 
 *** TODO [#C] generate more realistic compiler performance tests
@@ -1191,12 +1192,12 @@ In macro expansion the \0 will be replaced by an !
     Oder einfach addF(3,4) in einen function call umwandeln wenn addF ein function pointer ist
 
 **** Zu Bedenken:
-    
+
     let x + y = ...
     if cond(arg) then ...
 
     sin x + cos y
-    
+
 **** Evtl
      if: expr* then: expr*
 
@@ -1269,7 +1270,7 @@ In macro expansion the \0 will be replaced by an !
 **** DONE [#A] foo(bar baz) auch als call parsen?
      :PROPERTIES:
      :ARCHIVE_TIME: 2008-08-17 Sun 19:23
-     :END: 
+     :END:
 ** Compiler
 
 *** TODO [#B] proper support for compile time variables               :compiler:
@@ -1309,9 +1310,9 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#A] support records as first class var types
     (allow them to be params, retvals, local vars, global vars)
 *** TODO [#A] fix initialization of global vars
-*** TODO [#A] support global pointers									   :bug:
+*** TODO [#A] support global pointers                                      :bug:
 *** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) ) :bug:
-*** TODO [#A] support paths for include / import / etc.                 
+*** TODO [#A] support paths for include / import / etc.
 *** TODO [#B] refactor: make all compiler functionality available from zomp expressions
 *** TODO Indent-sensitive syntax
 
@@ -1351,11 +1352,11 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#C] Generate nice and readable LLVM code
 
 **** TODO [#C] Let functions in genllvm.ml return a string list instead of strings with newlines
-     
+
 **** TODO [#C] Add empty line(s) between functions
-     
+
 **** TODO [#C] Fix useless newlines which appear on some operations
-     
+
 **** DONE Fix missing line breaks
     CLOSED: [2007-09-28 Fri 23:17]
 
@@ -1383,48 +1384,48 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#B] let toplevel send feedback to emacs + handle errors (abort eval etc.)
 
 *** TODO [#B] fast navigation
-    
+
 *** TODO [#B] zomp toplevel in emacs: don't switch to buffer on C-c,C-s
-    
+
 *** DONE print var/func/macro declaration in toplevel
     CLOSED: [2007-12-03 Mon 01:25]
-    
+
 *** DONE make printing parsed s-expr optional
     CLOSED: [2007-12-03 Mon 01:25]
-    
+
 *** DONE Create C interface
     CLOSED: [2007-09-30 Sun 01:53]
     Reuse native function generator from opengl bindings(?)
-    
+
 *** DONE Create inferiour llvm machine
     CLOSED: [2007-09-30 Sun 01:53]
     Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
-    
+
 *** DONE Read-Eval-Print loop
     CLOSED: [2007-09-30 Sun 01:53]
-    
+
 *** DONE Make it run stable and be usable
     CLOSED: [2007-10-03 Wed 03:33]
-    
+
 *** [#B] Support loading DLLs and calling their functions
-    
+
 **** DONE Load DLLs
      CLOSED: [2007-11-04 Sun 03:35]
-     
+
 **** DONE Call functions in them
      CLOSED: [2007-11-04 Sun 03:35]
-     
+
 **** TODO [#C] Add search paths
-     
+
 *** TODO [#B] Fork to avoid crashes
-    
+
 **** TODO [#B] Find a way to keep connection to stdin on crash in other process
-     
+
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]
-    
+
 *** TODO [#C] Redefine/change variables
-    
+
 ** Emacs support
 
 *** TODO [#A] folding -> hs-special-modes-alist
@@ -1439,7 +1440,7 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#B] also auto-insert // on newline
 *** TODO [#B] /// <enter> <backspace> -> remove inserted ///
 *** DONE [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
-    CLOSED: [2008-02-21 Thu 14:24] 
+    CLOSED: [2008-02-21 Thu 14:24]
 *** TODO [#C] alt-k => mark current word first, then sexpr
 *** TODO [#C] emacs: navigate to error caused by evaluating code in toplevel
 *** TODO [#C] fix wrong promts in emacs inferior zomp mode
@@ -1471,7 +1472,7 @@ In macro expansion the \0 will be replaced by an !
      CLOSED: [2007-10-16 Tue 22:11]
 
 *** DONE [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
-     CLOSED: [2007-11-16 Fri 02:33] 
+     CLOSED: [2007-11-16 Fri 02:33]
 
 ** Macros
 
@@ -1484,13 +1485,13 @@ In macro expansion the \0 will be replaced by an !
       Variable :Type
       Function :Args * Type
       Macro : Ast * Bindings -> [Ast]
-     
+
     type Bindings:
       Id => Symbol
-     
+
     Gibt am Ende AST zurueck der nur noch aus Instructions besteht
     Kann dann auch zum kompilieren von Shadern benutzt werden
-   
+
 *** TODO [#B] implicit arguments for macros (source location from where it was invoked etc.)
 *** TODO [#C] hygienic macros: ast* qualify(ast*, bindings) will fully qualify all identifiers in the given ast
 *** TODO [#A] better error message on `(ret `(...)) in macro
@@ -1498,7 +1499,7 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c)
     Reevaluate!
     (at least if foo does not have any arguments)
-    
+
 *** TODO [#B] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
 
 *** TODO [#A] name collisions of macros and functions (?) causes problems
@@ -1510,37 +1511,37 @@ Put macro functions into seperate module
      :PROPERTIES:
      :ARCHIVE_TIME: 2008-04-14 Mon 01:34
      :END:
-     
+
 **** DONE Allow running code inside macros
       CLOSED: [2007-10-29 Mon 15:48]
      :PROPERTIES:
       :ARCHIVE_TIME: 2008-04-14 Mon 01:35
      :END:
-     
+
 **** DONE Query existing functions and variables
       CLOSED: [2007-11-16 Fri 02:33]
      :PROPERTIES:
       :ARCHIVE_TIME: 2008-04-14 Mon 01:35
      :END:
-     
+
 **** DONE Write "for i min max" macro
       CLOSED: [2007-11-02 Fri 02:50]
      :PROPERTIES:
       :ARCHIVE_TIME: 2008-04-14 Mon 01:35
      :END:
-     
+
 **** DONE Write "if then else" macro
       CLOSED: [2007-12-04 Tue 00:23]
      :PROPERTIES:
       :ARCHIVE_TIME: 2008-04-14 Mon 01:35
      :END:
-     
+
 **** DONE Allow macros to call any ordinary function
       CLOSED: [2007-11-02 Fri 02:50]
      :PROPERTIES:
       :ARCHIVE_TIME: 2008-04-14 Mon 01:35
      :END:
-     
+
 **** DONE Insert astFromInt or astFromString if a var/func returns int/string
       CLOSED: [2007-11-02 Fri 02:46]
      :PROPERTIES:
@@ -1564,7 +1565,7 @@ Put macro functions into seperate module
 
      type Point:
        float x, y
-       
+
      Point.derive Printer, XMLSerializer
 
      => print, toXML, fromXML Methoden generieren
@@ -1600,11 +1601,11 @@ Put macro functions into seperate module
 
     class PointerInfo:
       list<offset> pointers
-      
+
     class GarbageCollected:
       PointerInfo* pointerInfo
       static list<GarbageCollected> roots
-    
+
     class Bar extends GarbageCollected:
       int x
       Foo* target
@@ -1653,7 +1654,7 @@ Put macro functions into seperate module
 
 **** std:ast:reflection
         type, typeOf(ast)
-        
+
 **** std:ast:detect
         isLabel, isBranch, ...
 
@@ -1667,7 +1668,7 @@ Put macro functions into seperate module
      type Var
        String name
        Type type
-       
+
      type Macro
        String name
        Array<String> args
@@ -1695,7 +1696,7 @@ Put macro functions into seperate module
      matchCase ::= pattern
      matchCase ::= var = pattern
      matchCase ::= var varName : type
-     
+
      pattern ::= "expectId"
      pattern ::= (matchCase+)
 
@@ -1738,7 +1739,7 @@ Put macro functions into seperate module
 *** TODO [#A] Some simple generic/C++-style-template support
 
 **** std:generic
-  
+
   type (param+) name decl
   => macro name, expanding into expandType
 
@@ -1821,37 +1822,37 @@ Put macro functions into seperate module
 
 *** TODO [#B] Allow testing macros
     (running them on code and printing the resulting AST)
-    
+
 *** TODO [#B] Object system
-    
+
 **** vtable calls
 
      class Foo
        Foo(int arg) / constructor(int arg)
        var int x
        method float bar (int y) barImpl
-      
+
      =>
-      
+
      type Foo:vtable
        (Foo* -> void)* destructor
        (int -> float)* bar
-      
+
      type Foo
        Foo:vtable* vtable
        int x
        (int -> float)* bar
-      
+
      func float Foo:bar(Foo* this, int y)
        barImpl
-      
+
      macro bar (var Foo f) y
        f.vtable.bar( f, y )
-      
+
      func Foo:constructor(Foo* this, int arg)
        this.vtable = & Foo:vtable
-      
-      
+
+
      new Foo(args*) => (Foo* f = malloc Foo; Foo:constructor(f, args); f)
 
 **** Interfaces
@@ -1861,7 +1862,7 @@ Put macro functions into seperate module
 **** Syntax support
 
      Is anything special needed?
-     
+
 **** Represent them in zomp ast type <- what does this mean? :)
 
 **** Message passing (on top of this)
@@ -1871,7 +1872,7 @@ Put macro functions into seperate module
 **** mixins
 
 *** TODO [#C] Compile multi file projects
-    
+
 **** Realize definition of project files
      A central project file which will list all linked in modules,
      settings etc.
@@ -1879,7 +1880,7 @@ Put macro functions into seperate module
      "zompc project.zomp release" should be enough to build the whole project
 
 **** Define .zobj format
-    
+
 *** TODO [#A] named params: copy(from: file1, to: file2)
 
     foo: bar baz
@@ -1891,21 +1892,21 @@ Put macro functions into seperate module
 
     zomp:core:add
     infix: fuer namespaces
-   
+
     auch sowas:?
-   
+
     obj print: "fooo" to: stderr
     (jux (op: print "foo") (op: to stderr))
-    
+
     (foo bar) op: blah
     (seq (jux foo bar) (op: blah))
-   
+
 
 *** TODO [#A] Tests
     einheitliches system fuer tests
 
 *** TODO [#C] Exceptions
-    
+
 **** TODO [#C] exceptions: restartable conditions
 
 **** TODO [#C] Specify exceptions using attributes?
@@ -1920,11 +1921,11 @@ Put macro functions into seperate module
 **** TODO [#A] zugriffsrechte per ACLs: auch fuer class member / einzelne parameter?
 
 *** DONE [#A] template
-    CLOSED: [2007-11-24 Sat 20:12]     
+    CLOSED: [2007-11-24 Sat 20:12]
     Implemented as macro
-      
+
 *** DONE [#A] OpenGL support
-    CLOSED: [2007-11-25 Sun 00:35] 
+    CLOSED: [2007-11-25 Sun 00:35]
 
 ** Public
 
@@ -1985,22 +1986,22 @@ let x :int = 10
 
 ** ; / expression separation
    Let ; be an operator/macro?
-   
+
    print "1+1="; print 2;
-   
+
    =>
-   
+
    (op; (print "1+1=") (print 2))
-   
+
    ;-macro evaluates each expression + returns value of the last one
    (problem: requires macro expansion at run time. maybe instead create a sequence expression (evalseq (print "1+1=") (print 2)) and return that?)
-   
+
    Then monads are probably possible without expanding the syntax (and possibly even without any/too much runtime overhead because no closures need to be passed around)
 
 ** Annotations
 
    See the declare statement in lisp
-   
+
    Use @attrib( valueExpr ) syntax?
 
 ** python's doctest clone
@@ -2014,18 +2015,18 @@ let x :int = 10
    - funktionen beeinflussen linear eigenschaft?
 
 *** Composable type system?
-    
+
 **** multiple lanes/rails/...
 
      - independent from each other
      - type checking done on each of them
 
      - default property: shape (binary representation)
-       
+
 *** Arithmetic types (sum, product types)
 *** Generic types
 *** How much in kernel language, how much as macros?
-     
+
 *** checked/unchecked vars im type system (checked = auf konsistenz usw. geprueft)
     Als ADT realisieren?
 
@@ -2061,12 +2062,12 @@ let x :int = 10
         do stuff // (2)
       end
     end func
-     
+
     =>
-     
+
     Error:dummy.zomp:(2): File should be closed
       cfa:invariant fileIsOpen set to true on line (1), expected to be false on ret
-       
+
 ** Packages / Projects
 *** compilation model
 **** Use an VM-only approach?
@@ -2084,18 +2085,18 @@ let x :int = 10
     one toplevel file, drawing in all libs, settings etc.
 
     project.zomp
-     
+
       application RadiositySolver
-     
+
       libpath ./extlib
       require ./extlib/*
       replaceLib std.strings with extlib.unicodeStrings
-     
+
       sourcepath ./src
       sources
         src/utils/*.zomp
 
-    
+
 ** Readings
 *** ruby syntax, fortress syntax fuer nested function calls             :syntax:
 *** haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
