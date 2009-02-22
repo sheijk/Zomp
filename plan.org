@@ -719,6 +719,9 @@ von http://lambda-the-ultimate.org/node/2884
    map char -> CharClass
    Lexing nur basierend auf Charclass
 ** TODO [#A] ||=, &&=, %, %= operators
+** TODO [#A] compiler error with unknown var type not fatal                :bug:
+   'var int (array int 10) numbers' yields an error message but but does not
+   result in a failed compilation
 
 * Use Cases                                                            :usecase:
 

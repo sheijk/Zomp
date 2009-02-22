@@ -37,6 +37,7 @@ struct
   type typ = [
   | integralType
   | `Pointer of typ
+  | `Array of typ * int
   | `Record of recordType
   | `TypeRef of string
   | `Function of functionType
@@ -59,6 +60,7 @@ struct
     | BoolVal of bool
     | CharVal of char
     | PointerVal of typ * int option
+    | ArrayVal of typ * value list
     | RecordVal of (string * value) list
     | FunctionVal of functionType * int option
 
@@ -92,6 +94,9 @@ struct
     | BoolVal _ -> `Bool
     | CharVal _ -> `Char
     | PointerVal (t, _) -> t
+    | ArrayVal (typ, values) ->
+        assert (List.for_all (fun value -> typ = typeOf value) values);
+        typ
     | RecordVal components ->
         let convert (name, value) = name, typeOf value in
         `Record (List.map convert components)
@@ -110,6 +115,8 @@ struct
     | `Char -> "char"
     | `TypeRef name -> name
     | `Pointer t -> (typeName t) ^ "*"
+    | `Array (baseType, size) ->
+        sprintf "%s[%d]" (typeName baseType) size
     | `Record components ->
         let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
         let componentStrings = List.map component2String components in
@@ -137,6 +144,8 @@ struct
       | BoolVal b -> string_of_bool b
       | CharVal c -> string_of_int (int_of_char c)
       | PointerVal (_, target) -> pointerValueName target
+      | ArrayVal (_, values) ->
+          sprintf "[%s]" (Common.combine ", " (List.map valueString values))
       | RecordVal components ->
           let rec convert = function
             | [] -> ""
@@ -193,6 +202,7 @@ struct
       | `Pointer t -> if str == "null"
         then PointerVal (t, None)
         else raise (Failure (sprintf "%s is not a valid pointer value" str))
+      | `Array _ -> raise (Failure (sprintf "Cannot parse arrays (value was %s)" str))
       | `Record _ -> raise (Failure (sprintf "Cannot parse records (value was %s)" str))
       | `Function _ -> raise (Failure (sprintf "Cannot parse function ptr values (value was %s)" str))
 
@@ -211,6 +221,8 @@ struct
     | `Record components ->
         let convert (name, typ) = name, defaultValue typ in
         RecordVal (List.map convert components)
+    | `Array (memberType, size) ->
+        ArrayVal (memberType, Common.listCreate size (defaultValue memberType))
     | `Function t -> FunctionVal (t, None)
 end
 

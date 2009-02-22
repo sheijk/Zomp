@@ -926,6 +926,18 @@ func bool float:equalDelta(float delta, float l, float r)
 end
 
 ///-----------------------------------------------------------------------------
+/// Arrays
+///-----------------------------------------------------------------------------
+
+template zmp:array:get array index
+  load ptradd(zmp:array:addr ptr(#array), #index)
+end
+
+template zmp:array:set array index value
+  store ptradd(zmp:array:addr ptr(#array), #index) #value
+end
+
+///-----------------------------------------------------------------------------
 /// Deprecation
 ///-----------------------------------------------------------------------------
 

@@ -330,6 +330,10 @@ let listFold2i f initial list1 list2 =
   in
   foldWithIndex 0 initial list1 list2
 
+let rec listCreate size value =
+  if (size <= 0) then []
+  else value :: listCreate (size-1) value
+
 let mapFilter func list =
   let rec worker acc = function
     | [] -> List.rev acc

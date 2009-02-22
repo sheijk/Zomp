@@ -37,6 +37,7 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `TypeRef name -> "%" ^ name
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
+  | `Array (memberType, size) -> sprintf "[%d x %s]" size (llvmTypeName memberType)
   | `Record components ->
       let componentNames = List.map (fun (_, t) -> llvmTypeName t) components in
       "{ " ^ combine ", " componentNames ^ "}"
@@ -421,6 +422,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
            end
         )
     in
+
     let opjuxMacro =
       macro "opjux" "opjux id args..."
         (fun bindings args -> Ast2.shiftLeft args)
@@ -527,7 +529,7 @@ let gencodeDefineVariable gencode var default =
         begin
           let zeroElement = function
             | `Pointer _ | `Function _ -> Some "null"
-            | `Record _ | `TypeRef _ -> None
+            | `Record _ | `TypeRef _ | `Array _ -> None
             | #integralType as t -> Some (Lang.valueString (defaultValue t))
           in
           let initInstr = function
@@ -898,6 +900,8 @@ let gencodeGlobalVar var =
         raiseCodeGenError ~msg:"global pointers not supported, yet"
     | RecordVal _ ->
         raiseCodeGenError ~msg:"global constant of record type not supported, yet"
+    | ArrayVal _ ->
+        raiseCodeGenError ~msg:"global constant of array type not supported, yet"
 
 let gencodeDefineFunc func =
   match func.impl with

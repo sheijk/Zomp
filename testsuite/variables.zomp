@@ -2,24 +2,63 @@
  * Demonstrates very basic usage of variables
  */
 
-func int main()
+func void testBasics()
   var int i 10
-  assert (i == 10)
+  unittest:assert (i == 10)
 
   assign i 3
-  assert (i == 3)
+  unittest:assert (i == 3)
+end
 
+func void testVoidVars()
   var void nothingToSeeHere
   var void canCopyThem nothingToSeeHere
   // TODO: support all operations on void variables (by ignoring them :))
   // assign nothingToSeeHere canCopyThem
+end
 
-  // // TODO
-  // var int* ptr &i
-  // store ptr 99
-  // assert (i == 99)
+func void testPointers()
+  var int i 10
+  var int* ptr (ptr i)
+  store ptr 99
+  unittest:assert (i == 99)
+end
+
+func void testArrays()
+  var (array int 10) numbers
+  var int[5] numbers2
+
+  zmp:array:set numbers2 3 7
+
+  for i 0 10
+    zmp:array:set numbers i (2*i)
+  end
+
+  unittest:assertAll
+    zmp:array:size numbers == 10
+    zmp:array:size numbers2 == 5
+
+    zmp:array:get numbers2 3 == 7
+
+    zmp:array:get numbers 0 == 0
+    zmp:array:get numbers 1 == 2
+    zmp:array:get numbers 2 == 4
+    zmp:array:get numbers 3 == 6
+    zmp:array:get numbers 4 == 8
+    zmp:array:get numbers 5 == 10
+    zmp:array:get numbers 6 == 12
+    zmp:array:get numbers 7 == 14
+    zmp:array:get numbers 8 == 16
+    zmp:array:get numbers 9 == 18
+  end
+end
+
+func int main()
+  testBasics()
+  testVoidVars()
+  testPointers()
+  testArrays()
 
   ret 0
 end
-
 

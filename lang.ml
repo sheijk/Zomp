@@ -94,6 +94,16 @@ let rec validateValue = function
   | FloatVal _ | DoubleVal _ as value ->
       let valueString = Typesystems.Zomp.valueString value in
       Typesystems.Zomp.parseValue (Typesystems.Zomp.typeOf value) valueString
+  | ArrayVal (memberType, values) as arrayValue ->
+      let validateMemberVal value =
+        if (typeOf value <> memberType) then
+          failwith (sprintf "Member of %s array had type %s"
+                      (typeName memberType)
+                      (typeName (typeOf value)));
+        ignore (validateValue value);
+      in
+      List.iter validateMemberVal values;
+      arrayValue
   | RecordVal components ->
       let validateComponent (name, value) =
         name, validateValue value

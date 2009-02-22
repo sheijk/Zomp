@@ -47,21 +47,8 @@ and macroJuxOp = "opjux"
 and macroSeqOp = "opseq"
 and macroCallOp = "opcall"
 
-exception IllegalExpression of sexpr * string
-
-let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
-
-let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
-  raiseIllegalExpression expr (sprintf "Expected type %s but found %s: %s"
-                                 (typeName expected)
-                                 (typeName found)
-                                 msg )
-
-let raiseInvalidType typeExpr =
-  raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
-
 let rec findTypeName bindings = function
-  | #Lang.integralType as integralType -> Lang.typeName integralType
+  | #Lang.integralType | `Array _ as integralType -> Lang.typeName integralType
   | `Pointer targetType -> findTypeName bindings targetType ^ "*"
   | `Function ft ->
       sprintf "%s -> %s"
@@ -82,13 +69,24 @@ let rec findTypeName bindings = function
         Lang.typeName typ
 
 let typeErrorMessage bindings (msg, foundType, expectedType) =
+  let typeName = function
+    | `Any description -> description
+    | #Lang.typ as t -> findTypeName bindings t
+  in
   sprintf "Type error: %s, expected %s but found %s"
     msg
-    (findTypeName bindings expectedType)
-    (findTypeName bindings foundType)
+    (typeName expectedType)
+    (typeName foundType)
 
+exception IllegalExpression of sexpr * string
 
+let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
+let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
+  raiseIllegalExpression expr (typeErrorMessage Bindings.defaultBindings (msg,found,expected))
+
+let raiseInvalidType typeExpr =
+  raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
 
 (* TODO: use in translateDefineVar and translateGlobalVar + test *)
 let determineStorage typ =
@@ -111,6 +109,21 @@ let rec translateType bindings typeExpr =
       | Some t -> Some (`Pointer t)
       | None -> None
   in
+  let translateArray memberTypeExpr sizeExpr =
+    let potentialSize =
+      match sizeExpr with
+        | { id = number; args = [] } ->
+            begin try
+              Some(int_of_string number)
+            with Failure _ ->
+              None
+            end
+        | _ -> None
+    in
+    match translateType bindings memberTypeExpr, potentialSize with
+      | Some t, Some size -> Some (`Array(t, size))
+      | _, _ -> None
+  in
   match typeExpr with
     | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
         begin try
@@ -121,19 +134,21 @@ let rec translateType bindings typeExpr =
           in
           begin
             Some (`Pointer (`Function {
-              returnType = translate returnTypeExpr;
-              argTypes = List.map translate argTypeExprs;
-            }))
+                              returnType = translate returnTypeExpr;
+                              argTypes = List.map translate argTypeExprs;
+                            }))
           end
         with Failure _ ->
           None
         end
     | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
         translateType bindings (shiftId args)
-    | { id = "postop*"; args = [targetTypeExpr] } ->
+    | { id = "postop*"; args = [targetTypeExpr] }
+    | { id = "ptr"; args = [targetTypeExpr]; } ->
         translatePtr targetTypeExpr
-    | { id = "ptr"; args = [targetTypeExpr]; } (* when id = macroPtr *) ->
-        translatePtr targetTypeExpr
+    | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
+    | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
+        translateArray memberTypeExpr sizeExpr
     | { id = name; args = [] } ->
         begin
           lookupType bindings name
@@ -235,6 +250,20 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
             match typeCheck bindings defvar with
               | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
               | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+          end
+      | `Array(memberType, size) as typ ->
+          begin
+            match valueExpr with
+              | None ->
+                  begin
+                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    let defvar = `DefineVariable (var, None) in
+                    match typeCheck bindings defvar with
+                      | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
+                      | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+                  end
+              | Some valueExpr ->
+                  raiseIllegalExpression valueExpr "Array type var may not have a default value"
           end
       | (`Record _ as typ) ->
           begin
@@ -1312,6 +1341,8 @@ struct
             end
         | `TypeRef _ ->
             raiseIllegalExpression expr "Internal error: received unexpected type ref"
+        | `Array _ ->
+            raiseIllegalExpression expr "Array vars not supported, yet"
     in
     match expr with
       | { args = [
@@ -1353,7 +1384,52 @@ struct
           doTranslation id varName rightHandExpr
       | _ ->
           Error ["Expected 'assign varName valueExpr'"]
+end
 
+module Array =
+struct
+  let arraySize (env: exprTranslateF env) expr =
+    match expr with
+      | { id = _; args = [arrayExpr] } ->
+          begin
+            let _, rightHandForm, toplevelForms =
+              translateToForms env.translateF env.bindings arrayExpr
+            in
+            match typeCheck env.bindings rightHandForm with
+              | TypeOf `Array(_, size) ->
+                  Result (env.bindings,
+                          toplevelForms @ [(rightHandForm :> formWithTLsEmbedded);
+                                           `Constant (Int32Val (Int32.of_int size))])
+              | TypeOf invalidType ->
+                  Error [sprintf "Expected array type but found %s" (typeName invalidType)]
+              | TypeError (m,f,e) ->
+                  Error [sprintf "Type error: %s" m]
+          end
+      | _ ->
+          Error ["Expected 'zmp:array:size arrayExpr'"]
+
+  let arrayAddr (env: exprTranslateF env) = function
+    | {args = [arrayPtrExpr]} ->
+        begin
+          let _, arrayPtrForm, tlforms =
+            translateToForms env.translateF env.bindings arrayPtrExpr
+          in
+          match typeCheck env.bindings arrayPtrForm with
+            | TypeOf `Pointer `Array(memberType,_) ->
+                begin
+                  Result(
+                    env.bindings, tlforms @ [
+                      `CastIntrinsic(`Pointer memberType, arrayPtrForm)])
+                end
+            | TypeOf invalidType ->
+                Error [typeErrorMessage env.bindings
+                         ("Cannot get address of first element",
+                          invalidType, `Any "Pointer to array")]
+            | TypeError (m,f,e) ->
+                Error [typeErrorMessage env.bindings (m,f,e)]
+        end
+    | _ ->
+        Error ["Expected 'zmp:array:addrOf arrayExpr indexExpr'"]
 end
 
 let baseInstructions =
@@ -1362,6 +1438,8 @@ let baseInstructions =
   add "dummy" translateDummy;
   add "std:base:localVar" Base.translateDefineLocalVar;
   add macroAssign Base.translateAssignVar;
+  add "zmp:array:size" Array.arraySize;
+  add "zmp:array:addr" Array.arrayAddr;
   table
 
 let translateFromDict

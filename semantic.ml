@@ -175,6 +175,7 @@ let rec typeCheck bindings form : typecheckResult =
         end
     | `Pointer t -> `Pointer (removeTypeRefs bindings t)
     | `Record _ | #integralType as t -> t
+    | `Array (memberType, size) -> `Array (removeTypeRefs bindings memberType, size)
     | `Function ft ->
         `Function { returnType = removeTypeRefs bindings ft.returnType;
                     argTypes = List.map (removeTypeRefs bindings) ft.argTypes }
