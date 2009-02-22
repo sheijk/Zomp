@@ -14,7 +14,7 @@ let typeOfForm = Semantic.typeOfForm
   ~onError:(fun ~msg ~found ~expected ->
               raiseCodeGenError ~msg:(sprintf "%s: expected %s but found %s"
                                    msg
-                                   (Typesystems.Zomp.typeName expected)
+                                   (Semantic.typeRequirementToString expected)
                                    (Typesystems.Zomp.typeName found) ) )
 
 let escapeName name = "\"" ^ name ^ "\""

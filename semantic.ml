@@ -3,10 +3,19 @@ open Printf
 open Lang
 open Common
 
+type formOrAst = Form of Lang.form | Ast of Ast2.t
+type typeRequirement = [
+| `Any of string
+| composedType ]
+
+let typeRequirementToString = function
+  | `Any description -> sprintf "<%s>" description
+  | #composedType as t -> Lang.typeName t
+
 type typecheckResult =
   | TypeOf of composedType
-      (** error message, found type, expected type *)
-  | TypeError of string * composedType * composedType
+      (** faulty expression, error message, found type, expected type *)
+  | TypeError of formOrAst * string * composedType * typeRequirement
 
 let rec equalTypes bindings ltype rtype =
   let rec lookupType name =
@@ -39,14 +48,21 @@ let rec typeCheck bindings form : typecheckResult =
   let result =
     let expectPointerType form =
       match typeCheck bindings form with
-        | TypeOf (`Pointer _ as pointerType) -> TypeOf pointerType
-        | TypeOf invalidType -> TypeError ("Expected pointer type", invalidType, `Pointer `Void)
+        | TypeOf (`Pointer _ as pointerType) ->
+            TypeOf pointerType
+        | TypeOf invalidType ->
+            TypeError (Form form,
+                       "Expected pointer type",
+                       invalidType,
+                       `Pointer `Void)
         | _ as e -> e
     in
     let expectType form expectType =
       match typeCheck bindings form with
         | TypeOf typ when typ = expectType -> TypeOf typ
-        | TypeOf invalidType -> TypeError ("Invalid type in 2nd parameter", invalidType, `Int32)
+        | TypeOf invalidType ->
+            TypeError (
+              Form form, "Invalid type in 2nd parameter", invalidType, `Int32)
         | _ as e -> e
     in
     let (>>) l r =
@@ -58,26 +74,36 @@ let rec typeCheck bindings form : typecheckResult =
       | `Sequence [] -> TypeOf `Void
       | `Sequence [expr] -> typeCheck bindings expr
       | `Sequence (_ :: tail) -> typeCheck bindings (`Sequence tail)
-      | `DefineVariable (var, expr) -> begin
-          match expr with
-            | Some expr ->
+      | `DefineVariable (var, maybeForm) -> begin
+          match maybeForm with
+            | Some form ->
                 begin
-                  match typeCheck bindings expr with
-                    | TypeOf exprType when equalTypes bindings exprType var.typ -> TypeOf `Void
-                    | TypeOf wrongType -> TypeError (
-                        "variable definition requires same type for var and default value", wrongType, var.typ)
+                  match typeCheck bindings form with
+                    | TypeOf exprType when equalTypes bindings exprType var.typ ->
+                        TypeOf `Void
+                    | TypeOf wrongType ->
+                        TypeError (
+                          Form form,
+                          "variable definition requires same type for var " ^
+                            "and default value",
+                          wrongType,
+                          (var.typ :> typeRequirement))
                     | TypeError _ as typeError -> typeError
                 end
             | None -> TypeOf `Void
         end
       | `Variable var -> TypeOf var.typ
       | `Constant value -> TypeOf (typeOf value)
-      | `FuncCall call ->
+      | `FuncCall call as funcallForm ->
           begin
             let paramCount = List.length call.fcparams
             and argCount = List.length call.fcargs in
             if paramCount != argCount then
-              TypeError (sprintf "Expected %d params, but used with %d args" paramCount argCount, `Void, `Void)
+              TypeError (
+                Form funcallForm,
+                sprintf "Expected %d params, but used with %d args" paramCount argCount,
+                `Void,
+                `Void)
             else
               listFold2i
                 (fun argNum prevResult typ arg ->
@@ -86,11 +112,13 @@ let rec typeCheck bindings form : typecheckResult =
                          prevResult
                      | TypeOf invalidType ->
                          TypeError (
+                           Form funcallForm,
                            sprintf "type for argument %d does not match" argNum,
                            invalidType,
-                           typ)
-                     | TypeError(msg, invalidType, expectedType) ->
+                           (typ :> typeRequirement))
+                     | TypeError(form, msg, invalidType, expectedType) ->
                          TypeError (
+                           form,
                            sprintf "Argument %d does not typecheck: %s" argNum msg,
                            invalidType,
                            expectedType)
@@ -98,12 +126,14 @@ let rec typeCheck bindings form : typecheckResult =
                 (TypeOf (call.fcrettype :> composedType))
                 call.fcparams call.fcargs
           end
-      | `AssignVar (v, expr) -> begin
+      | `AssignVar (v, expr) as assignVarForm -> begin
           match typeCheck bindings expr with
             | TypeOf exprType when equalTypes bindings exprType v.typ -> TypeOf `Void
             | TypeOf exprType -> TypeError (
+                Form assignVarForm,
                 "Cannot assign result of expression to var because types differ",
-                exprType, v.typ)
+                exprType,
+                (v.typ :> typeRequirement))
             | _ as typeError -> typeError
         end
       | `Return expr -> typeCheck bindings expr
@@ -112,48 +142,62 @@ let rec typeCheck bindings form : typecheckResult =
       | `Branch _ -> TypeOf `Void
       | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
       | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
-      | `GetAddrIntrinsic var ->
+      | `GetAddrIntrinsic var as getaddrForm ->
           begin
             match var.vstorage with
               | MemoryStorage ->
                   TypeOf (`Pointer var.typ)
               | RegisterStorage ->
-                  TypeError ("Cannot get address of variable with register storage",
-                             var.typ, var.typ)
+                  TypeError (
+                    Form getaddrForm,
+                    "Cannot get address of variable with register storage",
+                    var.typ,
+                    `Any "pointer")
           end
-      | `StoreIntrinsic (ptrExpr, valueExpr) ->
+      | `StoreIntrinsic (ptrExpr, valueExpr) as storeForm ->
           begin
             match typeCheck bindings ptrExpr, typeCheck bindings valueExpr with
               | TypeOf `Pointer ptrTargetType, TypeOf valueType
-                  when equalTypes bindings ptrTargetType valueType
-                    ->
+                  when equalTypes bindings ptrTargetType valueType ->
                   TypeOf `Void
               | TypeOf (#typ as invalidPointerType), TypeOf valueType ->
-                  TypeError ("tried to store value to pointer of mismatching type",
-                             invalidPointerType,
-                             `Pointer valueType)
+                  TypeError (
+                    Form storeForm,
+                    "tried to store value to pointer of mismatching type",
+                    invalidPointerType,
+                    `Pointer valueType)
               | (_ as l), (_ as r) ->
                   l >> r
           end
-      | `LoadIntrinsic expr ->
+      | `LoadIntrinsic expr as loadform ->
           begin
             match typeCheck bindings expr with
-              | TypeOf `Pointer targetType -> TypeOf targetType
-              | TypeOf invalid -> TypeError ("Expected pointer", invalid, `Pointer `Void)
+              | TypeOf `Pointer targetType ->
+                  TypeOf targetType
+              | TypeOf invalid ->
+                  TypeError (
+                    Form loadform, "Expected pointer", invalid, `Any "pointer")
               | TypeError _ as t -> t
           end
-      | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
+      | `GetFieldPointerIntrinsic (recordForm, fieldName) as getfieldForm ->
           begin
             match typeCheck bindings recordForm with
               | TypeOf `Pointer `Record components ->
                   begin
                     match componentType components fieldName with
-                      | Some t -> TypeOf (`Pointer t)
-                      | None -> TypeError("Component not found", `Void, `Void)
+                      | Some t ->
+                          TypeOf (`Pointer t)
+                      | None ->
+                          TypeError(
+                            Form getfieldForm,
+                            "Component not found",
+                            `Void, `Void)
                   end
               | TypeOf nonPtrToRecord ->
-                  TypeError
-                    ("Expected pointer to record type", nonPtrToRecord, `Pointer (`Record []))
+                  TypeError (
+                    Form getfieldForm,
+                    "Expected pointer to record type",
+                    nonPtrToRecord, `Any "pointer to record")
               | _ as typeError ->
                   typeError
           end
@@ -334,23 +378,25 @@ let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ
   | `DefineFunc f ->
       match f.impl with
-        | None -> TypeOf f.rettype
+        | None ->
+            TypeOf f.rettype
         | Some impl ->
             match typeCheck bindings impl with
               | TypeOf implType when implType = f.rettype ->
                   TypeOf f.rettype
               | TypeOf wrongType ->
                   TypeError (
+                    Form impl,
                     "Function's return type is not equal to it's implementation",
                     f.rettype,
-                    wrongType)
+                    (wrongType :> typeRequirement))
               | TypeError _ as e ->
                   e
 
 let typeOfForm ~onError bindings form =
   match typeCheck bindings form with
     | TypeOf typ -> typ
-    | TypeError (msg, found, expected) ->
+    | TypeError (form, msg, found, expected) ->
         onError ~msg ~found ~expected
 
 let functionIsValid func =

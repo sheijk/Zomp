@@ -68,22 +68,26 @@ let rec findTypeName bindings = function
       with Not_found ->
         Lang.typeName typ
 
-let typeErrorMessage bindings (msg, foundType, expectedType) =
+let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
   let typeName = function
     | `Any description -> description
     | #Lang.typ as t -> findTypeName bindings t
   in
-  sprintf "Type error: %s, expected %s but found %s"
+  sprintf "Type error: %s, expected %s but found %s in expression %s"
     msg
     (typeName expectedType)
     (typeName foundType)
+    (match fe with
+       | Semantic.Form form -> Lang.formToString form
+       | Semantic.Ast ast -> Ast2.toString ast)
 
 exception IllegalExpression of sexpr * string
 
 let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
-let raiseIllegalExpressionFromTypeError expr (msg, found, expected) =
-  raiseIllegalExpression expr (typeErrorMessage Bindings.defaultBindings (msg,found,expected))
+let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
+  raiseIllegalExpression expr
+    (typeErrorMessage Bindings.defaultBindings (formOrExpr, msg,found,expected))
 
 let raiseInvalidType typeExpr =
   raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
@@ -225,7 +229,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
               let toplevelForms, implForms = extractToplevelForms simpleform in
               match typeCheck bindings (`Sequence implForms) with
                 | TypeOf t -> Some t, toplevelForms, implForms
-                | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (m,f,e)
+                | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
             end
         | None -> None, [], []
     in
@@ -235,7 +239,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
             declaredType
         | Some declaredType, Some valueType ->
             raiseIllegalExpressionFromTypeError expr
-              ("Types do not match",declaredType,valueType)
+              (Semantic.Ast expr, "Types do not match",declaredType,valueType)
         | None, Some valueType -> valueType
         | Some declaredType, None -> declaredType
         | None, None ->
@@ -249,7 +253,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
             in
             match typeCheck bindings defvar with
               | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-              | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+              | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
           end
       | `Array(memberType, size) as typ ->
           begin
@@ -260,7 +264,7 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
                     let defvar = `DefineVariable (var, None) in
                     match typeCheck bindings defvar with
                       | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-                      | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+                      | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
                   end
               | Some valueExpr ->
                   raiseIllegalExpression valueExpr "Array type var may not have a default value"
@@ -405,8 +409,8 @@ let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
     match typeCheck bindings funccall with
       | TypeOf _ ->
           Some( bindings, toplevelForms @ [funccall] )
-      | TypeError (msg,f,e) ->
-          raiseIllegalExpression expr (typeErrorMessage bindings (msg,f,e))
+      | TypeError (fe,msg,f,e) ->
+          raiseIllegalExpression expr (typeErrorMessage bindings (fe,msg,f,e))
   in
   match expr with
     | { id = name; args = args; } ->
@@ -907,8 +911,8 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
     match typeCheck bindings mallocForm with
       | TypeOf _ -> Some( bindings, toplevelForms @ [mallocForm] )
-      | TypeError (m,f,e) ->
-          raiseIllegalExpressionFromTypeError expr (m,f,e)
+      | TypeError (fe,m,f,e) ->
+          raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
   in
   let buildStoreInstruction ptrExpr rightHandExpr =
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
@@ -917,8 +921,8 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     match typeCheck bindings storeInstruction with
       | TypeOf _ ->
           Some( bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
-      | TypeError (m,f,e) ->
-          raiseIllegalExpressionFromTypeError rightHandExpr (m,f,e)
+      | TypeError (fe,m,f,e) ->
+          raiseIllegalExpressionFromTypeError rightHandExpr (fe,m,f,e)
   in
   let buildLoadInstruction ptrExpr =
     let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
@@ -926,8 +930,8 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     match typeCheck bindings loadForm with
       | TypeOf _ ->
           Some( bindings, toplevelForms @ [loadForm] )
-      | TypeError (m,f,e) ->
-          raiseIllegalExpressionFromTypeError expr (m,f,e)
+      | TypeError (fe,m,f,e) ->
+          raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
   in
   match expr with
     | { id = id; args = [typeExpr] } when id = macroNullptr ->
@@ -957,8 +961,8 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
           let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
           match typeCheck bindings ptradd with
             | TypeOf _ -> Some( bindings, toplevelForms @ toplevelForms2 @ [ptradd] )
-            | TypeError (m,f,e) ->
-                raiseIllegalExpressionFromTypeError expr (m,f,e)
+            | TypeError (fe,m,f,e) ->
+                raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
         end
     | { id = id; args = [
           recordExpr;
@@ -982,16 +986,16 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
                           (sprintf "%s but found %s"
                              ("Can only access struct members from a var of [pointer to] record type")
                              (typeName invalidType))
-                    | TypeError (m,f,e) ->
-                        raiseIllegalExpressionFromTypeError expr (m,f,e)
+                    | TypeError (fe,m,f,e) ->
+                        raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
                   end
           in
           let fieldptr = `GetFieldPointerIntrinsic (recordForm', fieldName) in
           match typeCheck bindings fieldptr with
             | TypeOf _ -> Some( bindings, toplevelForms @ moreForms @ [fieldptr] )
-            | TypeError (m,f,e) ->
+            | TypeError (fe,m,f,e) ->
                 begin
-                  raiseIllegalExpressionFromTypeError expr (m,f,e)
+                  raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
                 end
         end
     | { id = id; args = [targetTypeExpr; valueExpr] } when id = macroCast ->
@@ -1300,8 +1304,10 @@ struct
                 let _, simpleform = env.translateF env.bindings valueExpr in
                 let toplevelForms, implForms = extractToplevelForms simpleform in
                 match typeCheck env.bindings (`Sequence implForms) with
-                  | TypeOf t -> Some t, toplevelForms, implForms
-                  | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (m,f,e)
+                  | TypeOf t ->
+                      Some t, toplevelForms, implForms
+                  | TypeError (fe,m,f,e) ->
+                      raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
               end
           | None -> None, [], []
       in
@@ -1312,7 +1318,7 @@ struct
                 -> declaredType
           | Some declaredType, Some valueType ->
               raiseIllegalExpressionFromTypeError
-                expr ("Types do not match",declaredType,valueType)
+                expr (Semantic.Ast expr, "Types do not match",declaredType,valueType)
           | None, Some valueType ->
               valueType
           | Some declaredType, None ->
@@ -1329,7 +1335,7 @@ struct
               in
               match typeCheck env.bindings defvar with
                 | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
-                | TypeError (m,f,e) -> raiseIllegalExpressionFromTypeError expr (m,f,e)
+                | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe, m,f,e)
             end
         | (`Record _ as typ) ->
             begin
@@ -1370,8 +1376,8 @@ struct
                 | TypeOf invalidRhsType ->
                     Error [sprintf "Type error: cannot assign %s to %s"
                              (typeName invalidRhsType) (typeName lhsVar.typ)]
-                | TypeError (m,f,e) ->
-                    Error [typeErrorMessage env.bindings (m,f,e)]
+                | TypeError (fe,m,f,e) ->
+                    Error [typeErrorMessage env.bindings (fe,m,f,e)]
             end
         | _ -> Error [sprintf "Could not find variable %s" varName]
     in
@@ -1401,15 +1407,20 @@ struct
                           toplevelForms @ [(rightHandForm :> formWithTLsEmbedded);
                                            `Constant (Int32Val (Int32.of_int size))])
               | TypeOf invalidType ->
-                  Error [sprintf "Expected array type but found %s" (typeName invalidType)]
-              | TypeError (m,f,e) ->
-                  Error [sprintf "Type error: %s" m]
+                  Error [typeErrorMessage
+                           env.bindings
+                           (Semantic.Ast expr,
+                            "Cannot get size of array",
+                            invalidType,
+                            `Any "array")]
+              | TypeError (fe,m,f,e) ->
+                  Error [typeErrorMessage env.bindings (fe,m,f,e)]
           end
       | _ ->
           Error ["Expected 'zmp:array:size arrayExpr'"]
 
   let arrayAddr (env: exprTranslateF env) = function
-    | {args = [arrayPtrExpr]} ->
+    | {args = [arrayPtrExpr]} as expr ->
         begin
           let _, arrayPtrForm, tlforms =
             translateToForms env.translateF env.bindings arrayPtrExpr
@@ -1423,10 +1434,11 @@ struct
                 end
             | TypeOf invalidType ->
                 Error [typeErrorMessage env.bindings
-                         ("Cannot get address of first element",
+                         (Semantic.Ast expr,
+                          "Cannot get address of first element",
                           invalidType, `Any "Pointer to array")]
-            | TypeError (m,f,e) ->
-                Error [typeErrorMessage env.bindings (m,f,e)]
+            | TypeError (fe, m,f,e) ->
+                Error [typeErrorMessage env.bindings (fe,m,f,e)]
         end
     | _ ->
         Error ["Expected 'zmp:array:addrOf arrayExpr indexExpr'"]
@@ -1739,10 +1751,10 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
                 in
                 match typeCheckTL newBindings funcDef with
                   | TypeOf _ -> Some( newBindings, toplevelForms @ [funcDef] )
-                  | TypeError (msg, declaredType, returnedType) ->
+                  | TypeError (fe, msg, declaredType, returnedType) ->
                       raiseIllegalExpression
                         expr
-                        (typeErrorMessage bindings (msg, returnedType, declaredType))
+                        (typeErrorMessage bindings (fe, msg, returnedType, declaredType))
               end
             | None -> raiseInvalidType typeExpr
         end
