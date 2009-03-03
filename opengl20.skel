@@ -798,6 +798,19 @@ GL_VERSION_1_1
 	void glVertex4i (GLint x, GLint y, GLint z, GLint w)
 	void glVertex4s (GLshort x, GLshort y, GLshort z, GLshort w)
 
+    void glVertex2dv (GLdouble* x)
+	void glVertex2fv (GLfloat* vals)
+	void glVertex2iv (GLint* vals)
+	void glVertex2sv (GLshort* vals)
+	void glVertex3dv (GLdouble* vals)
+	void glVertex3fv (GLfloat* vals)
+	void glVertex3iv (GLint* vals)
+	void glVertex3sv (GLshort* vals)
+	void glVertex4dv (GLdouble* vals)
+	void glVertex4fv (GLfloat* vals)
+	void glVertex4iv (GLint* vals)
+	void glVertex4sv (GLshort* vals)
+
 	GLboolean glIsEnabled (GLenum cap)
 
 	void glAccum (GLenum op, GLfloat value)
