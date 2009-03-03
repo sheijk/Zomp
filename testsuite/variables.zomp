@@ -53,6 +53,19 @@ func void testArrays()
   end
 end
 
+func int testChangeFuncParam(int i)
+  i = i + 1
+  ret i
+end
+
+func void testModify()
+  var int i testChangeFuncParam(10)
+
+  unittest:assertAll
+    i == 11
+  end
+end
+
 func int main()
   testBasics()
   testVoidVars()

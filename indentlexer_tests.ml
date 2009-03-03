@@ -95,6 +95,7 @@ struct
       "3.toInt", `Return [id "3"; DOT; id "toInt"; END];
 
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
+      "foo(&x)", `Return [id "foo"; OPEN_ARGLIST; PREFIX_OP "&"; id "x"; CLOSE_PAREN];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];
@@ -112,6 +113,8 @@ struct
       "[10]", `Return [OPEN_BRACKET; id "10"; CLOSE_BRACKET; END];
       "array[3]", `Return [id "array"; OPEN_BRACKET_POSTFIX; id "3"; CLOSE_BRACKET; END];
       "_[_]", `Return [id "_"; OPEN_BRACKET_POSTFIX; id "_"; CLOSE_BRACKET; END];
+
+      "int*[10]", `Return [id "int"; POSTFIX_OP "*"; OPEN_BRACKET_POSTFIX; id "10"; CLOSE_BRACKET];
 
       (* strings and numbers *)
       "1337", `Return [id "1337"; END];
