@@ -23,6 +23,19 @@ end
 //   end
 // end
 
+
+func void int:print(int* i)
+  printInt *i
+end
+
+func void float:print(float* f)
+  printFloat *f
+end
+
+func void char:print(char* c)
+  printChar *c
+end
+
 macro pstruct name members
   unless (name.childCount == 0)
     ret ${error "Expected id" #name}
@@ -33,6 +46,10 @@ macro pstruct name members
 
   ast:addChild decl name
 
+  nameQuoted := cstring:quote name.id
+  ast:addChild printCode ${printString #nameQuoted}
+  ast:addChild printCode ${printString "("}
+
   forEachAstChild member members
     if2 ast:matchesShape(member, ${__ _}) then
       ast:addChild decl member
@@ -40,11 +57,17 @@ macro pstruct name members
       fieldType := ast:child member 0
       fieldTypeName := fieldType.id
       fieldPrinterName := fieldTypeName ++ ":print"
-      ast:addChild printCode ${#fieldPrinterName this.#fieldName}
+      fieldNameQuoted := cstring:quote fieldName.id
+      ast:addChild printCode ${printString " "}
+      ast:addChild printCode ${printString #fieldNameQuoted}
+      ast:addChild printCode ${printString "="}
+      ast:addChild printCode ${#fieldPrinterName &(this.#fieldName)}
     else
       macro:fail "Expected 'typeExpr id'" member
     end
   end
+
+  ast:addChild printCode ${printString ")"}
 
   printerName := name.id ++ ":print"
   printF := ${func void #printerName(#name* this) #printCode}
@@ -55,24 +78,26 @@ macro pstruct name members
   end}
 end
 
-func void int:print(int i)
-  printInt i
-end
-
-func void float:print(float f)
-  printFloat f
-end
-
-func void Bar:print(Bar* this)
-  int:print this.x
+pstruct Bar
+  char c
+  char x
 end
 
 pstruct Foo
   int nat
   float real
+  Bar b
 end
 
 func int main()
+  var Foo f
+  f.nat = 10
+  f.real = 3.7
+  f.b.c = 'c'
+  f.b.x = 'x'
+
+  Foo:print &f
+
   ret 0
 end
 
