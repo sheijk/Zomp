@@ -177,6 +177,7 @@ struct
       "line1; line2", `Return [se2 "op;" "line1" "line2"];
       "line1;line2", `Return [se2 "op;" "line1" "line2"];
       "line1 ; line2", `Return [se2 "op;" "line1" "line2"];
+      "macro op; l r", `Return [jux ["macro"; "op;"; "l"; "r"]];
 
       (** indexed operators *)
       "x +_f y", `Return [se2 "op+_f" "x" "y"];
