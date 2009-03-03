@@ -277,6 +277,18 @@ template postop[] array index
   load(ptradd #array #index)
 end
 
+template op+_ptr ptr offset
+  ptradd #ptr #offset
+end
+
+template zmp:array:get array index
+  load ptradd(zmp:array:addr &(#array), #index)
+end
+
+template zmp:array:set array index value
+  store ptradd(zmp:array:addr &(#array), #index) #value
+end
+
 /// Allocate storage and initialize variable
 /// `new Foo a b c' does the same as `Foo:init(malloc Foo, a, b, c)'
 macro new type args...
