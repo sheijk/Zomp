@@ -722,6 +722,41 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] compiler error with unknown var type not fatal                :bug:
    'var int (array int 10) numbers' yields an error message but but does not
    result in a failed compilation
+** TODO [#A] support numeric limits (min/max float/int, nan, +/-infinity)
+** TODO [#A] begin/end for special indenting behaviour?
+
+   switch i begin
+   case 1
+     foo
+   case 2
+   case 3
+     bar
+   end
+
+   class Blah begin
+   public void foo()
+   private int bar
+   end
+
+   switch i {
+   case 1
+     foo
+   case 2
+   case 3
+     bar
+   }
+
+   switch i:
+   case 1
+     foo
+   case 2
+   case 3
+     bar
+   end
+
+   if cond
+     onTrue()
+   next(expression, here)
 
 * Use Cases                                                            :usecase:
 

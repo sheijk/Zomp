@@ -33,14 +33,79 @@ end
 
 func void printsi(cstring str, int i)
   printString str
-  printChar ' '
   printInt i
 end
 
 func void printsf(cstring str, float f)
   printString str
-  printChar ' '
   printFloat f
+end
+
+func void printss(cstring s1, cstring s2)
+  printString s1
+  printString s2
+end
+
+///-----------------------------------------------------------------------------
+/// Section: math functions
+///-----------------------------------------------------------------------------
+
+func float sqrf(float x)
+  x *_f x
+end
+
+///-----------------------------------------------------------------------------
+/// Section: vector math
+///-----------------------------------------------------------------------------
+
+struct float3
+  float x y z
+end
+
+func void float3:print(float3* this)
+  printString "float3("
+  printsf "x=" this.x
+  printsf ", y=" this.y
+  printsf ", z=" this.z
+  printString ")"
+end
+
+func float float3:length(float3* this)
+  ret sqrtf(sqrf this.x +_f sqrf this.y +_f sqrf this.z)
+end
+
+///-----------------------------------------------------------------------------
+/// Section: geometric data types
+///-----------------------------------------------------------------------------
+
+struct AABB
+  float3 min max
+end
+
+func void AABB:init(AABB* this)
+  this.min.x = 0.0
+  this.min.y = 0.0
+  this.min.z = 0.0
+  this.max.x = 0.0
+  this.max.y = 0.0
+  this.max.z = 0.0
+end
+
+func void AABB:print(AABB* this)
+  printString "AABB("
+  printsf "min: x=" this.min.x
+  printsf ", y=" this.min.y
+  printsf ", z=" this.min.z
+  printsf " max: x=" this.max.x
+  printsf ", y=" this.max.y
+  printsf ", z=" this.max.z
+  printString ")"
+end
+
+func void AABB:diagonal(float3* result, AABB* this)
+  result.x = this.max.x -_f this.min.x
+  result.y = this.max.y -_f this.min.y
+  result.z = this.max.z -_f this.min.z
 end
 
 ///-----------------------------------------------------------------------------
@@ -68,6 +133,10 @@ funcd int aiGetVersionRevision()
 // var int aiComponent_MATERIALS 0x800
 // var int _aiComponent_Force32Bit 0x9ffffff
 
+var int aiPrimitiveType_POINT 1
+var int aiPrimitiveType_LINE 2
+var int aiPrimitiveType_TRIANGLE 4
+var int aiPrimitiveType_POLYGON 8
 
 var int aiProcess_CalcTangentSpace 1
 var int aiProcess_JoinIdenticalVertices 2
@@ -290,6 +359,187 @@ funcd void aiReleaseImport(aiScene* scene)
 
 funcd cstring aiGetErrorString()
 
+func void GLenum:print(GLenum e)
+  printInt e
+end
+
+///-----------------------------------------------------------------------------
+/// Section: Meshes
+///-----------------------------------------------------------------------------
+
+struct VertexStream
+  int size
+  int components
+  cstring name
+  GLenum type
+  void* data
+end
+
+func void VertexStream:init(VertexStream* this, cstring name, int components, int size, GLenum type)
+  this.size = size
+  this.components = components
+  this.name = name
+  this.type = type
+
+  if2 (type == GL_FLOAT) then
+    this.data = cast void* malloc(float, size * components)
+  else
+    printString "Warning: unsupported data type: "
+    GLenum:print type
+    println()
+    this.size = 0
+    this.components = 0
+    this.name = "<error>"
+    this.type = GL_INVALID_ENUM
+    this.data = nullptr void
+  end
+end
+
+func void VertexStream:print(VertexStream* this)
+  printString "VertexStream("
+  printss "name=" this.name
+  printsi ", size=" this.size
+  printsi ", components=" this.components
+  printString ", type="
+  GLenum:print this.type
+  printString ")"
+end
+
+macro VertexStream:foreach this type dataPtr code
+  uniqueId index "vertexIndex"
+  ret ${
+    for #index 0 this.size
+      #dataPtr := ptradd(cast #type* #this.data, #index * #this.components)
+      #code
+    end
+  end}
+end
+
+func void VertexStream:printDetailed(VertexStream* this)
+  VertexStream:foreach this float f
+    printString "    "
+    for cnum 0 this.components
+      printFloat load(f +_ptr cnum)
+      printChar ' '
+    end
+    println()
+  end
+end
+
+/// A mesh is a collection of vertex streams. Streams will be bound to GLSL
+/// vertex attributes of the same name. By convention the first stream will
+/// always contain the vertex positions and be called gl_Position
+struct Mesh
+  int streamCount
+  VertexStream* streams
+end
+
+template Mesh:init m args...
+  error "Cannot use new to define mesh. Use Mesh:define instead"
+end
+
+func void Mesh:print(Mesh* this)
+  printlnString "Mesh"
+  printsi "  streamCount=" this.streamCount
+  println()
+  for streamnum 0 this.streamCount
+    printString "  "
+    VertexStream:print ptradd(this.streams, streamnum)
+    println()
+  end
+end
+
+func void Mesh:printDetailed(Mesh* this)
+  printlnString "Mesh"
+  for snum 0 this.streamCount
+    printString "  "
+    VertexStream:print (ptradd this.streams snum)
+    println()
+    VertexStream:printDetailed (ptradd this.streams snum)
+  end
+end
+
+macro Mesh:define mesh size streams
+  streamCount := streams.childCount
+
+  code := ${
+    #mesh := malloc Mesh
+    #mesh.streamCount = #streamCount
+    #mesh.streams = malloc(VertexStream, #streamCount)
+    // VertexStream:init (ptradd #mesh.streams 0) "gl_Position" 100 GL_FLOAT
+  end}
+
+  for streamnum 0 streamCount
+    stream := ast:child streams streamnum
+    if2 ast:matchesShape(stream, ${_ _ _}) then
+      name := ast:child stream 0
+      nameQ := cstring:quote name.id
+      type := ast:child stream 1
+      components := ast:child stream 2
+      ast:addChild code ${VertexStream:init (ptradd #mesh.streams #streamnum) #nameQ #components #size #type}
+    else
+      ret ${error "Expected 'name type components'" stream}
+    end
+  end
+
+  ret code
+end
+
+func Mesh* aiScene:toMesh(aiScene* this)
+  aim := load(ptradd this.mMeshes 0)
+
+  Mesh:define m aim.mNumVertices
+    gl_Position GL_FLOAT 3
+    // texcoords0 GL_FLOAT 4
+  end
+
+  stream := ptradd m.streams 0
+  vertexPtr := cast float* stream.data
+  sourceVec := aim.mVertices
+  for i 0 stream.size
+    store (vertexPtr +_ptr 0) sourceVec*.x
+    store (vertexPtr +_ptr 1) sourceVec*.y
+    store (vertexPtr +_ptr 2) sourceVec*.z
+    vertexPtr = vertexPtr +_ptr 3
+    sourceVec = sourceVec +_ptr 1
+  end
+
+  ret m
+end
+
+func void Mesh:render(Mesh* this)
+  positions := cast float* (this.streams)*.data
+  for i 0 (this.streams)*.size
+    glVertex3fv positions
+    positions = positions +_ptr 3
+  end
+end
+
+func void Mesh:calcAABB(AABB* result, Mesh* this)
+  var AABB bb
+  AABB:init &bb
+
+  posStream := this.streams
+  positions := cast float* posStream.data
+
+  for vnum 0 posStream*.size
+    x := load(positions +_ptr 0)
+    y := load(positions +_ptr 1)
+    z := load(positions +_ptr 2)
+
+    bb.min.x = float:min bb.min.x x
+    bb.min.y = float:min bb.min.y y
+    bb.min.z = float:min bb.min.z z
+    bb.max.x = float:max bb.max.x x
+    bb.max.y = float:max bb.max.y y
+    bb.max.z = float:max bb.max.z z
+
+    positions = positions +_ptr 3
+  end
+
+  store result bb
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: Application
 ///-----------------------------------------------------------------------------
@@ -351,21 +601,59 @@ end
 
 var bool firstRun true
 
+func int objShader()
+  varyingSource := ""
+  vertexSource := "
+  void main(void) {
+    gl_Position = ftransform();
+    }"
+  fragmentSource := "
+  void main(void) {
+    gl_FragColor = vec4(1.0,0.5,0.0,1.0);
+    }"
+  shader := createShader varyingSource vertexSource fragmentSource
+  assert (shader != 0)
+  ret shader
+end
+
 func int main()
   init()
 
   angle := 0.0
 
-  scene := aiImportFile "data/rifle.obj" (aiProcess_Triangulate | aiProcess_SortByPType)
+  sceneFilename := "data/assimp/OBJ/rifle.obj"
+  scene := aiImportFile sceneFilename (aiProcess_Triangulate | aiProcess_SortByPType)
   if2 (scene ==_ptr nullptr(aiScene)) then
     printString "Error while loading file: "
     printlnString aiGetErrorString()
+    ret 0
   else
     printString "Loaded "
     aiScene:print scene
     flushStdout()
   end
+  mesh := aiScene:toMesh scene
   aiReleaseImport scene
+  if2 isNull(mesh) then
+    printlnString "Generated mesh is null"
+    ret 0
+  end
+
+  var AABB meshBB
+  Mesh:calcAABB &meshBB mesh
+
+  var float3 bbdiag
+  AABB:diagonal &bbdiag &meshBB
+  meshSize := float3:length &bbdiag
+
+  AABB:print &meshBB
+  println()
+  printsf "meshSize = " meshSize
+  println()
+
+  if2 ((mesh.streams)*.size < 40) then
+    Mesh:printDetailed mesh
+  end
 
   maxRunTime := 2.0
 
@@ -373,6 +661,8 @@ func int main()
     firstRun = false
     maxRunTime = 0.0
   end
+
+  material := objShader()
 
   mainloop
     angle = angle +_f 128.0 *_f frameDuration
@@ -382,19 +672,25 @@ func int main()
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
-    aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+    aspect := int:toDouble windowWidth /_d int:toDouble windowHeight
     gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    glTranslatef 0. -4. -20.0
+    glTranslatef 0. -0.2 (-0.8 *_f meshSize)
     glRotatef angle 0. 1. 0.
 
     drawOrientationGrid()
+    glColor4f 1. 0.5 0.0 1.0
+    rendergl GL_TRIANGLES
+      Mesh:render mesh
+    end
   end
 
   drawPausedOverlay()
   glfwSwapBuffers()
+
+  glDeleteProgram material
 
   ret 0
 end
