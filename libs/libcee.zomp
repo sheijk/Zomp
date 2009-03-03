@@ -344,9 +344,6 @@ macro preop& obj
   ret code
 end
 
-macro struct name members...
-  code := ast:fromString("type")
-  ast:addChild code name
 template preop* ptr
   (load #ptr)
 end
@@ -359,11 +356,27 @@ template isNull ptr
   #ptr ==_ptr nullptr void
 end
 
-  forEachAstChild member members
-    ast:addChild code member
+macro struct name members
+  unless (name.childCount == 0)
+    ret ${error "Expected id" #name}
   end
 
-  ret code
+  decl := ast:fromString "type"
+  ast:addChild decl name
+
+  forEachAstChild memberList members
+    if2 ast:matchesShape(memberList, ${__ _...}) then
+      memberType := ast:child memberList 0
+      for memberNum 1 memberList.childCount
+        memberName := ast:child memberList memberNum
+        ast:addChild decl ${#memberType #memberName}
+      end
+    else
+      ret ${error "Expected 'typeExpr id..." #memberList}
+    end
+  end
+
+  ret decl
 end
 
 func bool isMultipleOf(int x, int m)
