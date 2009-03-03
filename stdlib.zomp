@@ -10,7 +10,7 @@
 type int u32
 
 ///-----------------------------------------------------------------------------
-/// Content of stdlib.c
+/// Section: Content of stdlib.c
 ///-----------------------------------------------------------------------------
 
 func void printInt(int i)
@@ -29,7 +29,7 @@ func void stdlibHello()
 // (func void zompHello ())
 
 ///-----------------------------------------------------------------------------
-/// C library
+/// Section: C library
 ///-----------------------------------------------------------------------------
 
 func void exit(int exitCode)
@@ -51,7 +51,7 @@ func float fmodf(float num, float divisor)
 func float sqrtf(float x)
 
 ///-----------------------------------------------------------------------------
-/// Utility functions
+/// Section: Utility functions
 ///-----------------------------------------------------------------------------
 
 func bool bool:not(bool b)
@@ -103,7 +103,7 @@ macroReplace setField record componentName value
 end
 
 ///-----------------------------------------------------------------------------
-/// String functions
+/// Section: String functions
 ///-----------------------------------------------------------------------------
 
 
@@ -230,7 +230,7 @@ end
 
 
 ///-----------------------------------------------------------------------------
-/// Abstract syntax tree representation
+/// Section: Abstract syntax tree representation
 ///-----------------------------------------------------------------------------
 
 type ast
@@ -309,7 +309,7 @@ func astp ast:child((ptr ast) parent, int index)
 end
 
 ///-----------------------------------------------------------------------------
-/// Macro support
+/// Section: Macro support
 ///-----------------------------------------------------------------------------
 
 var cstring macroRest "postop..."
@@ -620,7 +620,7 @@ end
 
 
 ///-----------------------------------------------------------------------------
-/// Unit tests
+/// Section: Unit tests
 ///-----------------------------------------------------------------------------
 
 /// Executes the given expression and prints an error
@@ -681,7 +681,7 @@ macro unittest:testFunc funcName impl
 end
 
 ///-----------------------------------------------------------------------------
-/// More
+/// Section: More
 ///-----------------------------------------------------------------------------
 
 /// Prints the passed ast to stdout at compile time
@@ -717,7 +717,7 @@ end
 // end
 
 ///-----------------------------------------------------------------------------
-/// Additional AST functions
+/// Section: Additional AST functions
 ///-----------------------------------------------------------------------------
 
 func void ast:setChild(ast* parent, int index, ast* newChild)
@@ -760,7 +760,7 @@ macro setFieldsTo record value fields...
 end
 
 ///-----------------------------------------------------------------------------
-/// Floating point support
+/// Section: Floating point support
 ///-----------------------------------------------------------------------------
 
 macro float:aliasNoQNAN funcName
@@ -797,7 +797,7 @@ testf runMain()
 template float:neg x (float:sub 0. #x)
 
 ///-----------------------------------------------------------------------------
-/// Additional operators and basic math functions
+/// Section: Additional operators and basic math functions
 ///-----------------------------------------------------------------------------
 
 func int int:mod(int v, int div)
@@ -926,7 +926,7 @@ func bool float:equalDelta(float delta, float l, float r)
 end
 
 ///-----------------------------------------------------------------------------
-/// Arrays
+/// Section: Arrays
 ///-----------------------------------------------------------------------------
 
 template zmp:array:get array index
@@ -938,7 +938,7 @@ template zmp:array:set array index value
 end
 
 ///-----------------------------------------------------------------------------
-/// Deprecation
+/// Section: Deprecation
 ///-----------------------------------------------------------------------------
 
 macro deprecatedNoVarArgs name replacementName warning args...
@@ -1013,7 +1013,7 @@ macro deprecated name replacementName args...
 end
 
 ///-----------------------------------------------------------------------------
-/// Deprecated functions
+/// Section: Deprecated functions
 ///-----------------------------------------------------------------------------
 
 deprecated astChild ast:child parent index
