@@ -19,6 +19,7 @@ func void printFloat(float f)
 func void printDouble(double d)
 func void printChar(char c)
 func void printNewline()
+func void flushStdout()
 
 func char* int2cstring(int i)
 
@@ -198,14 +199,13 @@ func string* append(string* l, string* r)
 end
 
 
-/// print 2*count spaces
+/// print count spaces
 func void printIndent(int count)
   var int counter count
   label start
   var bool t (int:ugreater counter 0)
   branch t goon end
   label goon
-  printChar ' '
   printChar ' '
   assign counter (int:sub counter 1)
   branch start

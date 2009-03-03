@@ -31,6 +31,10 @@ void printNewline() {
   printf( "\n" );
 }
 
+void flushStdout() {
+  fflush(stdout);
+}
+
 /* int* nullptr() { */
 /*   return NULL; */
 /* } */

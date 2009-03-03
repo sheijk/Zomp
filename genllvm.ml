@@ -320,10 +320,10 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   let intrinsicFuncs =
      [
-      (*     twoArgIntrinsic "int:shl" "shl" `Int; *)
-      (*     twoArgIntrinsic "int:lshr" "lshr" `Int; *)
-      (*     twoArgIntrinsic "int:ashr" "ashr" `Int; *)
-      "void", `Intrinsic void, `Void, [];
+       twoArgIntrinsic "int:shl" "shl" `Int32;
+       twoArgIntrinsic "int:lshr" "lshr" `Int32;
+       twoArgIntrinsic "int:ashr" "ashr" `Int32;
+       "void", `Intrinsic void, `Void, [];
 
       convertIntr "float:toInt" "fptosi" `Float `Int32;
       convertIntr "int:toFloat" "sitofp" `Int32 `Float;
