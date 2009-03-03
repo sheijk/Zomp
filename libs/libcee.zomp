@@ -347,6 +347,17 @@ end
 macro struct name members...
   code := ast:fromString("type")
   ast:addChild code name
+template preop* ptr
+  (load #ptr)
+end
+
+template isNotNull ptr
+  #ptr !=_ptr nullptr void
+end
+
+template isNull ptr
+  #ptr ==_ptr nullptr void
+end
 
   forEachAstChild member members
     ast:addChild code member
