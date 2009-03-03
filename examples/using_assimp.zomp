@@ -1,0 +1,403 @@
+/**
+ * Example demonstrating the use of the assimp library to load 3d scenes
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib" "assimp.dylib"
+
+include "opengl20.zomp"
+include "glfw.zomp"
+include "libs/glutils.zomp"
+
+include "libs/libcee.zomp"
+
+///
+/// Declares a function. Use this to prevent emacs indentation in next line :)
+///
+template funcd rettype nameAndArgs
+  func #rettype #nameAndArgs
+end
+
+///-----------------------------------------------------------------------------
+/// Section: printing utilities
+///-----------------------------------------------------------------------------
+
+func void printBits(int bitmask)
+  printString "0b"
+  for i 0 32
+    bitnum := 31 - i
+    mask := int:shl 1 bitnum
+    bit := int:lshr (bitmask & mask) bitnum
+    printInt bit
+  end
+end
+
+func void printsi(cstring str, int i)
+  printString str
+  printChar ' '
+  printInt i
+end
+
+func void printsf(cstring str, float f)
+  printString str
+  printChar ' '
+  printFloat f
+end
+
+///-----------------------------------------------------------------------------
+/// Section: assimp bindings
+///-----------------------------------------------------------------------------
+
+// aiConfig.h
+
+funcd cstring aiGetLegalString()
+funcd int aiGetVersionMinor()
+funcd int aiGetVersionMajor()
+funcd int aiGetVersionRevision()
+
+
+// var int aiComponent_NORMALS 0x2u
+// var int aiComponent_TANGENTS_AND_BITANGENTS 0x4u
+// var int aiComponent_COLORS 0x8
+// var int aiComponent_TEXCOORDS 0x10
+// var int aiComponent_BONEWEIGHTS 0x20
+// var int aiComponent_ANIMATIONS 0x40
+// var int aiComponent_TEXTURES 0x80
+// var int aiComponent_LIGHTS 0x100
+// var int aiComponent_CAMERAS 0x200
+// var int aiComponent_MESHES 0x400
+// var int aiComponent_MATERIALS 0x800
+// var int _aiComponent_Force32Bit 0x9ffffff
+
+
+var int aiProcess_CalcTangentSpace 1
+var int aiProcess_JoinIdenticalVertices 2
+var int aiProcess_ConvertToLeftHanded 4
+var int aiProcess_Triangulate 8
+var int aiProcess_RemoveComponent 16
+var int aiProcess_GenNormals 32
+var int aiProcess_GenSmoothNormals 64
+var int aiProcess_SplitLargeMeshes 128
+var int aiProcess_PreTransformVertices 256
+var int aiProcess_LimitBoneWeights 512
+var int aiProcess_ValidateDataStructure 1024
+var int aiProcess_ImproveCacheLocality 2048
+var int aiProcess_RemoveRedundantMaterials 4096
+var int aiProcess_FixInfacingNormals 8192
+var int aiProcess_OptimizeGraph 16384
+var int aiProcess_SortByPType 32768
+var int aiProcess_FindDegenerates 65536
+var int aiProcess_FindInvalidData 131072
+var int aiProcess_GenUVCoords 262144
+var int aiProcess_TransformUVCoords 524288
+
+type uint int
+
+struct aiVector2D
+  float x y
+end
+
+struct aiVector3D
+  float x y z
+end
+
+struct aiMatrix3x3
+  float a1 a2 a3
+  float b1 b2 b3
+  float c1 c2 c3
+end
+
+struct aiMatrix4x4
+  float a1 a2 a3 a4
+  float b1 b2 b3 b4
+  float c1 c2 c3 c4
+  float d1 d2 d3 d4
+end
+
+
+const int assimp:MAXLEN 1024
+struct aiString
+  uint length
+  char[1024] data
+end
+
+func void aiString:print(aiString* this)
+  printString zmp:array:addr( &(this.data) )
+end
+
+struct aiNode
+  aiString mName
+  aiMatrix4x4 mTransformation
+  aiNode* mParent
+  uint mNumChildren
+  aiNode** mChildren
+  uint mNumMeshes
+  uint* mMeshes
+end
+
+func void aiNode:print(aiNode* this, int indent)
+  times indent printChar(' ')
+  printString "aiNode mName="
+  aiString:print &(this.mName)
+  printString ", mNumChildren="
+  printInt this.mNumChildren
+  printString ", mNumMeshes="
+  printInt this.mNumMeshes
+
+  printString ", mMeshes="
+  for meshnum 0 this.mNumMeshes
+    if2 (meshnum > 0) then
+      printString " "
+    end
+    printInt load(ptradd this.mMeshes meshnum)
+  end
+
+  println()
+
+  for childnum 0 this.mNumChildren
+    aiNode:print(load(ptradd this.mChildren childnum), indent+2)
+  end
+end
+
+struct aiVertexWeight
+  uint mVertexId
+  float mWeight
+end
+
+struct aiBone
+  aiString mName
+  uint mNumWeights
+  aiVertexWeight* mWeights
+  aiMatrix4x4 mOffsetMatrix
+end
+
+struct aiFace
+  uint mNumIndices
+  uint* mIndices
+end
+
+
+struct aiMesh
+  uint mPrimitiveTypes
+  uint mNumVertices
+  uint mNumFaces
+  aiVector3D* mVertices
+  aiVector3D* mNormals
+  aiVector3D* mTangents
+  aiVector3D* mBitangents
+  (array aiVector3D* 4) mColors
+  (array aiVector3D* 4) mTextureCoords
+  uint[4] mNumUVComponents
+  aiFace* mFaces
+  uint mNumBones
+  aiBone** mBones
+  uint mMaterialIndex
+end
+
+macro printField printF fieldName
+  fieldNameQuoted := cstring:quote fieldName.id
+  ret ${
+    times indent printChar(' ')
+    printString #fieldNameQuoted
+    printString " = "
+    #printF this.#fieldName
+    println()
+  end}
+end
+
+template printFieldi fieldName
+  printField printInt #fieldName
+end
+
+func void aiMesh:print(aiMesh* this, int startIndent)
+  indent := startIndent
+  printIndent indent
+  printlnString "aiMesh="
+  indent = indent + 2
+  printFieldi mPrimitiveTypes
+  printFieldi mNumVertices
+  printFieldi mNumFaces
+
+  printIndent indent
+  printString "mNumUVComponents={"
+  for i 0 4
+    if2 (i > 0) then
+      printString ", "
+    end
+    printInt zmp:array:get(this.mNumUVComponents, i)
+  end
+  printlnString "}"
+
+  printFieldi mNumBones
+  printFieldi mMaterialIndex
+end
+
+type aiMaterial
+type aiAnimation
+type aiTexture
+type aiLight
+type aiCamera
+
+func void aiMaterial:print(aiMaterial* this, int indent)
+  times indent printChar(' ')
+  printlnString "aiMaterial"
+end
+
+struct aiScene
+  int mFlags
+  aiNode* mRootNode
+  int mNumMeshes
+  aiMesh** mMeshes
+  int mNumMaterials
+  aiMaterial** mMaterials
+  int mNumAnimations
+  aiAnimation** mAnimations
+  int mNumTextures
+  aiTexture** mTextures
+  int mNumLights
+  aiLight** mLights
+  int mNumCameras
+  aiCamera** mCameras
+end
+
+func void aiScene:print(aiScene* this)
+  indent := 2
+
+  printlnString "aiScene"
+  printString "  mFlags="
+  printBits this.mFlags
+  println()
+  printFieldi mNumMeshes
+  printFieldi mNumMaterials
+  printFieldi mNumAnimations
+  printFieldi mNumTextures
+  printFieldi mNumLights
+  printFieldi mNumCameras
+  printlnString "  mRootNode="
+  aiNode:print this.mRootNode 4
+  printlnString "  mMeshes="
+  for meshnum 0 this.mNumMeshes
+    aiMesh:print load(this.mMeshes +_ptr meshnum) 4
+  end
+  // printlnString "  mMaterials="
+  // for matnum 0 this.mNumMaterials
+  //   aiMaterial:print load(ptradd this.mMaterials matnum) 4
+  // end
+  println()
+end
+
+funcd aiScene* aiImportFile(cstring fileName, int flags)
+funcd void aiReleaseImport(aiScene* scene)
+
+funcd cstring aiGetErrorString()
+
+///-----------------------------------------------------------------------------
+/// Section: Application
+///-----------------------------------------------------------------------------
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if2 bool:not(initCalled) then
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+// avoid writing it over and over, should be part of utils lib
+macro mainloop body...
+  ret ${
+    time := 0.0
+    lastTime := 0.0
+    frameDuration := 0.0
+    frameNum := 0
+    startTime := double:toFloat glfwGetTime()
+    running := true
+
+    while running
+      autoSetupViewport()
+      glfwGetWindowSize &windowWidth &windowHeight
+      // aspectRatio := int:toFloat windowWidth /_f int:toFloat windowHeight
+      lastTime = time
+      time = double:toFloat glfwGetTime()
+      frameDuration = time -_f lastTime
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = bool:not isPressed(GLFW_KEY_ESC)
+      if2 (maxRunTime !=_f 0.0) then
+        running = running && (time -_f startTime <_f maxRunTime)
+      end
+      ++frameNum
+    end
+
+    endTime := double:toFloat glfwGetTime()
+  end}
+end
+
+var bool firstRun true
+
+func int main()
+  init()
+
+  angle := 0.0
+
+  scene := aiImportFile "data/rifle.obj" (aiProcess_Triangulate | aiProcess_SortByPType)
+  if2 (scene ==_ptr nullptr(aiScene)) then
+    printString "Error while loading file: "
+    printlnString aiGetErrorString()
+  else
+    printString "Loaded "
+    aiScene:print scene
+    flushStdout()
+  end
+  aiReleaseImport scene
+
+  maxRunTime := 2.0
+
+  if2 firstRun then
+    firstRun = false
+    maxRunTime = 0.0
+  end
+
+  mainloop
+    angle = angle +_f 128.0 *_f frameDuration
+
+    glClearColor 0. 0. 0. 0.
+    glClear(int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
+    gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. -4. -20.0
+    glRotatef angle 0. 1. 0.
+
+    drawOrientationGrid()
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  ret 0
+end
+
+
+
