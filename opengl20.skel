@@ -621,6 +621,12 @@ GL_VERSION_1_1
 	void glIndexs (GLshort c)
 	void glIndexub (GLubyte c)
 
+	void glIndexdv (GLdouble* v)
+	void glIndexfv (GLfloat* v)
+	void glIndexiv (GLint* v)
+	void glIndexsv (GLshort* v)
+	void glIndexubv (GLubyte* v)
+
 	void glDrawArrays (GLenum mode, GLint first, GLsizei count)
 
 	void glViewport (GLint x, GLint y, GLsizei width, GLsizei height)
@@ -646,6 +652,23 @@ GL_VERSION_1_1
 	void glColor4ub (GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha)
 	void glColor4ui (GLuint red, GLuint green, GLuint blue, GLuint alpha)
 	void glColor4us (GLushort red, GLushort green, GLushort blue, GLushort alpha)
+
+	void glColor3bv (GLbyte* v)
+	void glColor3dv (GLdouble* v)
+	void glColor3fv (GLfloat* v)
+	void glColor3iv (GLint* v)
+	void glColor3sv (GLshort* v)
+	void glColor3ubv (GLubyte* v)
+	void glColor3uiv (GLuint* v)
+	void glColor3usv (GLushort* v)
+	void glColor4bv (GLbyte* v)
+	void glColor4dv (GLdouble* v)
+	void glColor4fv (GLfloat* v)
+	void glColor4iv (GLint* v)
+	void glColor4sv (GLshort* v)
+	void glColor4ubv (GLubyte* v)
+	void glColor4uiv (GLuint* v)
+	void glColor4usv (GLushort* v)
 
 	void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 
@@ -743,6 +766,23 @@ GL_VERSION_1_1
 	void glTexCoord4i (GLint s, GLint t, GLint r, GLint q)
 	void glTexCoord4s (GLshort s, GLshort t, GLshort r, GLshort q)
 
+	void glTexCoord1dv (GLdouble* v)
+	void glTexCoord1fv (GLfloat* v)
+	void glTexCoord1iv (GLint* v)
+	void glTexCoord1sv (GLshort* v)
+	void glTexCoord2dv (GLdouble* v)
+	void glTexCoord2fv (GLfloat* v)
+	void glTexCoord2iv (GLint* v)
+	void glTexCoord2sv (GLshort* v)
+	void glTexCoord3dv (GLdouble* v)
+	void glTexCoord3fv (GLfloat* v)
+	void glTexCoord3iv (GLint* v)
+	void glTexCoord3sv (GLshort* v)
+	void glTexCoord4dv (GLdouble* v)
+	void glTexCoord4fv (GLfloat* v)
+	void glTexCoord4iv (GLint* v)
+	void glTexCoord4sv (GLshort* v)
+
 	void glGetPointerv (GLenum pname, GLvoid** params)
 
 	void glPixelZoom (GLfloat xfactor, GLfloat yfactor)
@@ -763,6 +803,8 @@ GL_VERSION_1_1
 	void glBindTexture (GLenum target, GLuint texture)
 
 	void glEdgeFlag (GLboolean flag)
+
+	void glEdgeFlagv (GLboolean* v)
 
 	void glCopyTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
 
@@ -851,6 +893,12 @@ GL_VERSION_1_1
 	void glNormal3f (GLfloat nx, GLfloat ny, GLfloat nz)
 	void glNormal3i (GLint nx, GLint ny, GLint nz)
 	void glNormal3s (GLshort nx, GLshort ny, GLshort nz)
+
+	void glNormal3bv (GLbyte* v)
+	void glNormal3dv (GLdouble* v)
+	void glNormal3fv (GLfloat* v)
+	void glNormal3iv (GLint* v)
+	void glNormal3sv (GLshort* v)
 
 	void glTexSubImage1D (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid* pixels)
 
@@ -1171,6 +1219,7 @@ GL_VERSION_1_4
 	void glMultiDrawElements (GLenum mode, GLsizei* count, GLenum type, const GLvoid** indices, GLsizei primcount)
 	void glPointParameterf (GLenum pname, GLfloat param)
 	void glPointParameterfv (GLenum pname, GLfloat* params)
+
 	void glSecondaryColor3b (GLbyte red, GLbyte green, GLbyte blue)
 	void glSecondaryColor3bv (const GLbyte* v)
 	void glSecondaryColor3d (GLdouble red, GLdouble green, GLdouble blue)
@@ -1188,6 +1237,25 @@ GL_VERSION_1_4
 	void glSecondaryColor3us (GLushort red, GLushort green, GLushort blue)
 	void glSecondaryColor3usv (const GLushort* v)
 	void glSecondaryColorPointer (GLint size, GLenum type, GLsizei stride, GLvoid* pointer)
+
+	void glSecondaryColor3bv (GLbyte* v)
+	void glSecondaryColor3bvv (const* v)
+	void glSecondaryColor3dv (GLdouble* v)
+	void glSecondaryColor3dvv (const* v)
+	void glSecondaryColor3fv (GLfloat* v)
+	void glSecondaryColor3fvv (const* v)
+	void glSecondaryColor3iv (GLint* v)
+	void glSecondaryColor3ivv (const* v)
+	void glSecondaryColor3sv (GLshort* v)
+	void glSecondaryColor3svv (const* v)
+	void glSecondaryColor3ubv (GLubyte* v)
+	void glSecondaryColor3ubvv (const* v)
+	void glSecondaryColor3uiv (GLuint* v)
+	void glSecondaryColor3uivv (const* v)
+	void glSecondaryColor3usv (GLushort* v)
+	void glSecondaryColor3usvv (const* v)
+	void glSecondaryColorPointerv (GLint* v)
+
 	void glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
 	void glWindowPos2d (GLdouble x, GLdouble y)
 	void glWindowPos2f (GLfloat x, GLfloat y)
