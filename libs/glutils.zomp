@@ -14,6 +14,17 @@ func void printGLError()
   end
 end
 
+func int flushGLErrors()
+  error := 0
+  count := 0
+
+  while (seq (error = glGetError()) (error != 0))
+    assign count (count + 1)
+  end
+
+  ret count
+end
+
 func void printGlfwVersion()
   var int major 0
   var int minor 0

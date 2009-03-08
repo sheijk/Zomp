@@ -873,7 +873,7 @@ GL_VERSION_1_1
 
 	void glBlendFunc (GLenum sfactor, GLenum dfactor)
 
-	void glColorPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glColorPointer (GLint components, GLenum type, GLsizei stride, const GLvoid* pointer)
 
 	void glIndexMask (GLuint mask)
 
@@ -946,7 +946,7 @@ GL_VERSION_1_1
 
 	void glCullFace (GLenum mode)
 
-	void glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glTexCoordPointer (GLint components, GLenum type, GLsizei stride, const GLvoid* pointer)
 
 	void glRectd (GLdouble x1, GLdouble y1, GLdouble x2, GLdouble y2)
 	void glRectf (GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
@@ -973,7 +973,7 @@ GL_VERSION_1_1
 
 	void glFeedbackBuffer (GLsizei size, GLenum data, GLfloat* buffer)
 
-	void glVertexPointer (GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
+	void glVertexPointer (GLint components, GLenum type, GLsizei stride, const GLvoid* pointer)
 
 GL_VERSION_1_2
 	GL_UNSIGNED_BYTE_3_3_2 0x8032
@@ -1236,7 +1236,7 @@ GL_VERSION_1_4
 	void glSecondaryColor3uiv (const GLuint* v)
 	void glSecondaryColor3us (GLushort red, GLushort green, GLushort blue)
 	void glSecondaryColor3usv (const GLushort* v)
-	void glSecondaryColorPointer (GLint size, GLenum type, GLsizei stride, GLvoid* pointer)
+	void glSecondaryColorPointer (GLint components, GLenum type, GLsizei stride, GLvoid* pointer)
 
 	void glSecondaryColor3bv (GLbyte* v)
 	void glSecondaryColor3bvv (const* v)
