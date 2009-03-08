@@ -143,7 +143,7 @@ struct
 
       "true & false", `Return [se2 "op&" "true" "false"];
       "a|b", `Return [se2 "op|" "a" "b"];
-      "1 | 2 | 3", `Return [se "op|" ["1"; "2"; "3"]];
+      "1 | 2 | 3", `Return [expr "op|" [se2 "op|" "1" "2"; id "3"]];
       "a&&b", `Return [se2 "op&&" "a" "b"];
       "c || d", `Return [se2 "op||" "c" "d"];
       "a^b", `Return [se2 "op^" "a" "b"];

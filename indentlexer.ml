@@ -87,7 +87,7 @@ end = struct
      * and one which matches the token) and a function turning the matched string into a token
   *)
   let rules : ((charre * Str.regexp) * tokenBuilder) list =
-    let opSymbols = "-+\\*/&.><=!:|" in
+    let opSymbols = "-+\\*/&.><=!|:;," in
     let re regexpString =
       Any, Str.regexp regexpString
     in

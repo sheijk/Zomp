@@ -123,7 +123,7 @@
 
 %nonassoc COMPARE_OP
 %nonassoc ASSIGN_OP
-%nonassoc STRICT_BOOL_OP LAZY_BOOL_OP
+%left STRICT_BOOL_OP LAZY_BOOL_OP
 %left ADD_OP
 %left MULT_OP
 %left DOT
