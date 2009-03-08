@@ -17,12 +17,53 @@ template funcd rettype nameAndArgs
   func #rettype #nameAndArgs
 end
 
-/// no hard aborts on assertion errors, please :)
-macro assert code
-  ret ${if2 (bool:not #code) then
-    printlnString "error: Assertion failed"
-    ast:print ${#code} 0
-  end}
+/// no hard aborts on assertion errors, please :) + print better messages
+macro assert testCode
+  isCompare := false
+  printF := ast:fromString "internalErrorIn unittest:assert"
+  compareF := ast:fromString "internalErrorIn unittest:assert"
+
+  if2 ast:matchesShape(testCode, ${__ ==_f __}) then
+    isCompare = true
+    printF = ast:fromString "printFloat"
+    compareF = ast:fromString "op==_f"
+  elseif ast:matchesShape(testCode, ${__ == __})
+    isCompare = true
+    printF = ast:fromString "printInt"
+    compareF = ast:fromString "op=="
+  end
+
+  if2 isCompare then
+    uniqueId lvar "lvar"
+    uniqueId rvar "rvar"
+    l := ast:child(testCode, 0)
+    r := ast:child(testCode, 1)
+    ret ${
+      #lvar := #l
+      #rvar := #r
+      unless (#compareF #lvar #rvar)
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        printString "left = "
+        #printF #lvar
+        println()
+        printString "right = "
+        #printF #rvar
+        println()
+        ast:print ${#testCode} 0
+      end
+    end}
+  else
+    ret ${
+      unless #testCode
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        ast:print ${#testCode} 0
+      end
+    end}
+  end
+
+  ret ${}
 end
 
 ///-----------------------------------------------------------------------------
@@ -459,10 +500,23 @@ struct VertexStream
   void* data
 end
 
+var cstring VertexStream:positionStream "gl_Position"
+var cstring VertexStream:normalStream "gl_Normals"
+
+func cstring VertexStream:internalizeDefaultName(cstring streamName)
+  if2 (streamName ==_str VertexStream:positionStream) then
+    ret VertexStream:positionStream
+  elseif (streamName ==_str VertexStream:normalStream)
+    ret VertexStream:normalStream
+  end
+
+  ret streamName
+end
+
 func void VertexStream:init(VertexStream* this, cstring name, int components, int size, GLenum type)
   this.size = size
   this.components = components
-  this.name = name
+  this.name = VertexStream:internalizeDefaultName name
   this.type = type
 
   if2 (type == GL_FLOAT) then
@@ -482,6 +536,9 @@ end
 func void VertexStream:print(VertexStream* this)
   printString "VertexStream("
   printss "name=" this.name
+  if2 (VertexStream:internalizeDefaultName this.name !=_ptr this.name) then
+    printString " (attention: default name name not internalized)"
+  end
   printsi ", size=" this.size
   printsi ", components=" this.components
   printString ", type="
@@ -550,7 +607,6 @@ macro Mesh:define mesh size streams
     #mesh := malloc Mesh
     #mesh.streamCount = #streamCount
     #mesh.streams = malloc(VertexStream, #streamCount)
-    // VertexStream:init (ptradd #mesh.streams 0) "gl_Position" 100 GL_FLOAT
   end}
 
   for streamnum 0 streamCount
@@ -622,21 +678,16 @@ func Mesh* aiScene:toMesh(aiScene* this)
 
   VertexStream:copyFromVector3D ptradd(m.streams,0) aim.mVertices
   VertexStream:copyFromVector3D ptradd(m.streams,1) aim.mNormals
-  // stream := ptradd m.streams 0
-  // vertexPtr := cast float* stream.data
-  // sourceVec := aim.mVertices
-  // for i 0 stream.size
-  //   store (vertexPtr +_ptr 0) sourceVec*.x
-  //   store (vertexPtr +_ptr 1) sourceVec*.y
-  //   store (vertexPtr +_ptr 2) sourceVec*.z
-  //   vertexPtr = vertexPtr +_ptr 3
-  //   sourceVec = sourceVec +_ptr 1
-  // end
 
   ret m
 end
 
-func void Mesh:render(Mesh* this)
+// func void Mesh:renderWS(Mesh* this, GLint shader)
+//   positions := cast float* (ptradd this.streams 0)*.data
+//   normals := cast float* (ptradd this.streams 1)*.data
+// end
+
+func void Mesh:send(Mesh* this)
   positions := cast float* (ptradd this.streams 0)*.data
   normals := cast float* (ptradd this.streams 1)*.data
   for i 0 (this.streams)*.size
@@ -645,6 +696,69 @@ func void Mesh:render(Mesh* this)
     positions = positions +_ptr 3
     normals = normals +_ptr 3
   end
+end
+
+func void Mesh:renderFFP(Mesh* this, GLint mode)
+  positions := ptradd this.streams 0
+  normals := ptradd this.streams 1
+
+  glEnableClientState GL_VERTEX_ARRAY
+  glEnableClientState GL_NORMAL_ARRAY
+
+  glNormalPointer normals.type 0 normals.data
+  glVertexPointer 3 positions.type 0 positions.data
+  glDrawArrays GL_TRIANGLES 0 positions.size
+
+  glDisableClientState GL_VERTEX_ARRAY
+  glDisableClientState GL_NORMAL_ARRAY
+end
+
+func void Mesh:render(Mesh* this, GLint mode, GLint shader)
+  foundpos := 0
+  foundnormals := 0
+
+  //*
+  Mesh:foreachStream this stream
+    if2 (stream.name ==_ptr VertexStream:positionStream) then
+      glEnableClientState GL_VERTEX_ARRAY
+      glVertexPointer stream.components stream.type 0 stream.data
+      ++foundpos
+    elseif (stream.name ==_ptr VertexStream:normalStream)
+      glEnableClientState GL_NORMAL_ARRAY
+      glNormalPointer stream.type 0 stream.data
+      ++foundnormals
+    else
+      flushGLErrors()
+      loc := glGetAttribLocation shader stream.name
+      printGLError()
+      glEnableVertexAttribArray loc
+      glVertexAttribPointer loc stream.size stream.type false 0 stream.data
+    end
+  end
+
+  glDrawArrays mode 0 (getField (this.streams) size)
+  glDisableClientState GL_VERTEX_ARRAY
+  glDisableClientState GL_NORMAL_ARRAY
+
+  assert (foundpos == 1)
+  assert (foundnormals == 1)
+
+  /*/
+
+  positions := ptradd this.streams 0
+  normals := ptradd this.streams 1
+
+  glEnableClientState GL_VERTEX_ARRAY
+  glVertexPointer 3 positions.type 0 positions.data
+
+  glEnableClientState GL_NORMAL_ARRAY
+  glNormalPointer normals.type 0 normals.data
+
+  glDrawArrays mode 0 positions.size
+
+  glDisableClientState GL_VERTEX_ARRAY
+  glDisableClientState GL_NORMAL_ARRAY
+  /**/
 end
 
 func void Mesh:calcAABB(AABB* result, Mesh* this)
@@ -820,6 +934,8 @@ func int main()
 
   if2 ((mesh.streams)*.size < 40) then
     Mesh:printDetailed mesh
+  else
+    Mesh:print mesh
   end
 
   maxRunTime := 2.0
@@ -853,9 +969,7 @@ func int main()
     drawOrientationGrid()
     glColor4f 1. 0.5 0.0 1.0
     glUseProgram material
-    rendergl GL_TRIANGLES
-      Mesh:render mesh
-    end
+    Mesh:render mesh GL_TRIANGLES material
     glUseProgram 0
     AABB:render &meshBB
   end
