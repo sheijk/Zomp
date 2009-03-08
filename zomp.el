@@ -164,6 +164,8 @@ indent the next line when they occur at the beginning of a line"
 
 (defun zomp-tl-run (funcname)
   (interactive "MName of function: ")
+  (when (= 0 (length funcname))
+    (setq funcname "main"))
   (zomp-tl-do (concat "!run " funcname)))
 
 (defun zomp-tl-list-bindings (regexps)
