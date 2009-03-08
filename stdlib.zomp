@@ -465,7 +465,7 @@ macro ifExprInt test onTrue onFalse
   ret result
 end
 
-macro for index min max code
+macro for index min supremum code
   uniqueId startLabel "for_start"
   uniqueId endLabel "for_exit"
   uniqueId testResult "for_testvar"
@@ -477,7 +477,7 @@ macro for index min max code
 
     label #startLabel
 
-    assign #testResult (int:sless #index #max)
+    assign #testResult (int:sless #index #supremum)
     branch #testResult #execLabel #endLabel
 
     label #execLabel
