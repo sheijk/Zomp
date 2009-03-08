@@ -830,7 +830,9 @@ struct
       str
     in
     let cTypeName = trim cTypeName in
-    if lastChar cTypeName = '*' then
+    if String.length cTypeName <= 0 then
+      None
+    else if lastChar cTypeName = '*' then
       match zompTypename (withoutLastChar cTypeName) with
         | Some zompTypeName -> Some (sprintf "(ptr %s)" zompTypeName)
         | None -> None
@@ -912,6 +914,7 @@ and errorSystemError = 3
 and errorCompilerError = 4
 
 let _ =
+  Printexc.record_backtrace true;
   let processFileF, moduleName =
     match Sys.argv with
       | [| _; moduleName |] ->
@@ -936,11 +939,13 @@ let _ =
     | Sys_error msg ->
         begin
           printf "System error: %s\n" msg;
+          Printexc.print_backtrace stdout;
           exit 1;
         end
     | Compile_error command ->
         begin
           print_string ("Generating bindings failed: " ^ command);
+          Printexc.print_backtrace stdout;
           exit 2;
         end
 
