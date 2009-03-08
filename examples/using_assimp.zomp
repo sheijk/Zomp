@@ -17,6 +17,14 @@ template funcd rettype nameAndArgs
   func #rettype #nameAndArgs
 end
 
+/// no hard aborts on assertion errors, please :)
+macro assert code
+  ret ${if2 (bool:not #code) then
+    printlnString "error: Assertion failed"
+    ast:print ${#code} 0
+  end}
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: printing utilities
 ///-----------------------------------------------------------------------------
@@ -74,6 +82,18 @@ func float float3:length(float3* this)
   ret sqrtf(sqrf this.x +_f sqrf this.y +_f sqrf this.z)
 end
 
+//------------------------------------------------------------------------------
+// OpenGL utils
+
+func void float3:sendgl(float3* this)
+  glVertex3f this.x this.y this.z
+end
+
+func void float3:sendLine(float3* start, float3* end)
+  float3:sendgl start
+  float3:sendgl end
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: geometric data types
 ///-----------------------------------------------------------------------------
@@ -106,6 +126,50 @@ func void AABB:diagonal(float3* result, AABB* this)
   result.x = this.max.x -_f this.min.x
   result.y = this.max.y -_f this.min.y
   result.z = this.max.z -_f this.min.z
+end
+
+template pret code
+  ast:print #code 0
+  ret ${}
+end
+
+macro defineArray type varname values...
+  size := values.childCount
+  arrayType := ast:fromString "postop[]"
+  ast:addChild arrayType type
+  ast:addChild arrayType ${#size}
+
+  code := ${
+    var #arrayType #varname
+  end}
+
+  valnum := 0
+  forEachAstChild value values
+    ast:addChild code ${zmp:array:set #varname #valnum #value}
+    ++valnum
+  end
+
+  ret code
+end
+
+func void AABB:render(AABB* this)
+  defineArray float x this.min.x this.max.x
+  defineArray float y this.min.y this.max.y
+  defineArray float z this.min.z this.max.z
+
+  rendergl GL_LINES
+    glColor4f 1. 1. 1. 1.
+    for a 0 2
+      for b 0 2
+        glVertex3f this.min.x (zmp:array:get y a) (zmp:array:get z b)
+        glVertex3f this.max.x (zmp:array:get y a) (zmp:array:get z b)
+        glVertex3f (zmp:array:get x a) this.min.y (zmp:array:get z b)
+        glVertex3f (zmp:array:get x a) this.max.y (zmp:array:get z b)
+        glVertex3f (zmp:array:get x a) (zmp:array:get y b) this.min.z
+        glVertex3f (zmp:array:get x a) (zmp:array:get y b) this.max.z
+      end
+    end
+  end
 end
 
 ///-----------------------------------------------------------------------------
@@ -286,6 +350,26 @@ func void aiMesh:print(aiMesh* this, int startIndent)
   printFieldi mNumVertices
   printFieldi mNumFaces
 
+  times indent printChar(' ')
+  printString "components="
+
+  macro printUnlessNull fieldName
+    fieldNameQ := cstring:quote fieldName.id
+
+    ret ${
+      if2 isNotNull(this.#fieldName) then
+        printString #fieldNameQ
+        printChar ' '
+      end
+    end}
+  end
+
+  printUnlessNull mVertices
+  printUnlessNull mNormals
+  printUnlessNull mTangents
+  printUnlessNull mBitangents
+  println()
+
   printIndent indent
   printString "mNumUVComponents={"
   for i 0 4
@@ -405,11 +489,11 @@ func void VertexStream:print(VertexStream* this)
   printString ")"
 end
 
-macro VertexStream:foreach this type dataPtr code
+macro VertexStream:foreach stream type dataPtr code
   uniqueId index "vertexIndex"
   ret ${
-    for #index 0 this.size
-      #dataPtr := ptradd(cast #type* #this.data, #index * #this.components)
+    for #index 0 #stream.size
+      #dataPtr := ptradd(cast #type* #stream.data, #index * #stream.components)
       #code
     end
   end}
@@ -485,33 +569,81 @@ macro Mesh:define mesh size streams
   ret code
 end
 
-func Mesh* aiScene:toMesh(aiScene* this)
-  aim := load(ptradd this.mMeshes 0)
-
-  Mesh:define m aim.mNumVertices
-    gl_Position GL_FLOAT 3
-    // texcoords0 GL_FLOAT 4
-  end
-
-  stream := ptradd m.streams 0
-  vertexPtr := cast float* stream.data
-  sourceVec := aim.mVertices
-  for i 0 stream.size
+func void VertexStream:copyFromVector3D(VertexStream* this, aiVector3D* sourceVec_in)
+  vertexPtr := cast float* this.data
+  sourceVec := sourceVec_in
+  for i 0 this.size
     store (vertexPtr +_ptr 0) sourceVec*.x
     store (vertexPtr +_ptr 1) sourceVec*.y
     store (vertexPtr +_ptr 2) sourceVec*.z
     vertexPtr = vertexPtr +_ptr 3
     sourceVec = sourceVec +_ptr 1
   end
+end
+
+macro swap a b
+  uniqueId t "swap"
+  ret ${
+    t := #a
+    #a = #b
+    #b = t
+  end}
+end
+
+func void VertexStream:swapComponents(VertexStream* this, int from, int to)
+  VertexStream:foreach this float ptr
+    swap ptr[to] ptr[from]
+  end
+end
+
+macro Mesh:foreachStream mesh streamptr code
+  uniqueId streamnum "Mesh:foreachStream"
+  ret ${
+    for #streamnum 0 #mesh.streamCount
+      #streamptr := ptradd #mesh.streams #streamnum
+      #code
+    end
+  end}
+end
+
+func void Mesh:swapComponents(Mesh* this, int from, int to)
+  Mesh:foreachStream this stream
+    VertexStream:swapComponents stream from to
+  end
+end
+
+func Mesh* aiScene:toMesh(aiScene* this)
+  aim := load(ptradd this.mMeshes 0)
+
+  Mesh:define m aim.mNumVertices
+    gl_Position GL_FLOAT 3
+    gl_Normals GL_FLOAT 3
+  end
+
+  VertexStream:copyFromVector3D ptradd(m.streams,0) aim.mVertices
+  VertexStream:copyFromVector3D ptradd(m.streams,1) aim.mNormals
+  // stream := ptradd m.streams 0
+  // vertexPtr := cast float* stream.data
+  // sourceVec := aim.mVertices
+  // for i 0 stream.size
+  //   store (vertexPtr +_ptr 0) sourceVec*.x
+  //   store (vertexPtr +_ptr 1) sourceVec*.y
+  //   store (vertexPtr +_ptr 2) sourceVec*.z
+  //   vertexPtr = vertexPtr +_ptr 3
+  //   sourceVec = sourceVec +_ptr 1
+  // end
 
   ret m
 end
 
 func void Mesh:render(Mesh* this)
-  positions := cast float* (this.streams)*.data
+  positions := cast float* (ptradd this.streams 0)*.data
+  normals := cast float* (ptradd this.streams 1)*.data
   for i 0 (this.streams)*.size
+    glNormal3fv normals
     glVertex3fv positions
     positions = positions +_ptr 3
+    normals = normals +_ptr 3
   end
 end
 
@@ -569,11 +701,11 @@ end
 // avoid writing it over and over, should be part of utils lib
 macro mainloop body...
   ret ${
-    time := 0.0
-    lastTime := 0.0
     frameDuration := 0.0
     frameNum := 0
     startTime := double:toFloat glfwGetTime()
+    lastTime := startTime
+    time := startTime
     running := true
 
     while running
@@ -602,18 +734,40 @@ end
 var bool firstRun true
 
 func int objShader()
-  varyingSource := ""
+  varyingSource := "
+  varying vec3 normal;
+  "
   vertexSource := "
   void main(void) {
     gl_Position = ftransform();
+    // normal = gl_NormalMatrix * gl_Normal;
+    normal = gl_Normal;
     }"
   fragmentSource := "
   void main(void) {
-    gl_FragColor = vec4(1.0,0.5,0.0,1.0);
+    // float brightness = normal.z * 0.5 + 0.5;
+    // gl_FragColor = vec4(0.0,1.0,0.0,1.0) * brightness;
+    gl_FragColor = vec4(normalize(normal)*0.5 + vec3(0.5), 1.0);
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
   ret shader
+end
+
+macro measureAndReport actionDescr code
+  uniqueId startTime "measureAndReport"
+  uniqueId stopTime "measureAndReport"
+
+  ret ${
+    #startTime := glfwGetTime()
+    #code
+    #stopTime := glfwGetTime()
+    printString #actionDescr
+    printString " took "
+    printDouble (#stopTime -_d #startTime)
+    printChar 's'
+    println()
+  end}
 end
 
 func int main()
@@ -621,23 +775,36 @@ func int main()
 
   angle := 0.0
 
-  sceneFilename := "data/assimp/OBJ/rifle.obj"
-  scene := aiImportFile sceneFilename (aiProcess_Triangulate | aiProcess_SortByPType)
+  // sceneFilename := "data/assimp/OBJ/rifle.obj"
+  sceneFilename := "data/ModernStructure.3ds"
+  loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
+
+  measureAndReport "Loading scene"
+    scene := aiImportFile sceneFilename loadOptions
+  end
+
   if2 (scene ==_ptr nullptr(aiScene)) then
     printString "Error while loading file: "
     printlnString aiGetErrorString()
     ret 0
-  else
+  end
+
+  if2 (scene.mNumMeshes <= 2) then
     printString "Loaded "
     aiScene:print scene
     flushStdout()
   end
-  mesh := aiScene:toMesh scene
+
+  measureAndReport "Converting to mesh"
+    mesh := aiScene:toMesh scene
+  end
   aiReleaseImport scene
   if2 isNull(mesh) then
     printlnString "Generated mesh is null"
     ret 0
   end
+
+  Mesh:swapComponents mesh 2 1
 
   var AABB meshBB
   Mesh:calcAABB &meshBB mesh
@@ -664,27 +831,33 @@ func int main()
 
   material := objShader()
 
+  glEnable GL_DEPTH_TEST
+  glDepthFunc GL_LEQUAL
+
   mainloop
-    angle = angle +_f 128.0 *_f frameDuration
+    angle = angle +_f 90.0 *_f frameDuration
 
     glClearColor 0. 0. 0. 0.
-    glClear(int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     aspect := int:toDouble windowWidth /_d int:toDouble windowHeight
-    gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
+    gluPerspective 90.0d aspect 1.0d (1.5d *_d float:toDouble meshSize)
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    glTranslatef 0. -0.2 (-0.8 *_f meshSize)
+    glTranslatef 0. (meshSize *_f -0.1) (-0.8 *_f meshSize)
     glRotatef angle 0. 1. 0.
 
     drawOrientationGrid()
     glColor4f 1. 0.5 0.0 1.0
+    glUseProgram material
     rendergl GL_TRIANGLES
       Mesh:render mesh
     end
+    glUseProgram 0
+    AABB:render &meshBB
   end
 
   drawPausedOverlay()
