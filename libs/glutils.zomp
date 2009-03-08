@@ -117,8 +117,9 @@ func void gl:uniform4fv(GLuint shader, cstring name, float* vals)
   glUniform4fv loc 1 vals
 end
 
-//------------------------------------------------------------------------------
-// rendering utils
+///-----------------------------------------------------------------------------
+/// Section: rendering utils
+///-----------------------------------------------------------------------------
 
 template rendergl primitiveType code...
   glBegin #primitiveType
@@ -126,7 +127,7 @@ template rendergl primitiveType code...
   glEnd
 end
 
-template saveTransforms code... 
+template saveTransforms code...
   glMatrixMode GL_TEXTURE
   glPushMatrix
   glMatrixMode GL_PROJECTION
@@ -142,7 +143,7 @@ template saveTransforms code...
   glPopMatrix
 end
 
-template saveAttribs code... 
+template saveAttribs code...
   glPushAttrib GL_ALL_ATTRIB_BITS
   #code
   glPopAttrib
@@ -205,6 +206,7 @@ func void renderQuad(float size)
   end
 end
 
+/// render a quad (lines only) from (-size,-size) to (size, size)
 func void renderQuadOutline(float size)
   var float nsize (float:sub 0. size)
 
@@ -220,6 +222,7 @@ func void renderQuadOutline(float size)
   end
 end
 
+/// render a quad (lines only) from (0,0) to (size, size)
 func void renderQuadOutline01(float size)
   var float nsize 0.0
 
@@ -250,20 +253,26 @@ func void renderXZQuad(float size)
   end
 end
 
+func void sendLine(float sx, float sy, float sz, float ex, float ey, float ez)
+  glVertex3f sx sy sz
+  glVertex3f ex ey ez
+end
+
 func void sendCircle()
   template vertex x y (glVertex3f #x #y 0.0)
 
   const float float:pi (float:mul 2.0 (acosf 0.0))
   const float step (float:fdiv 1.0 10.0)
   var float fangle 0.0
-  while (float:lessEqual fangle (float:add step (float:mul 2.0 float:pi))) 
+  while (float:lessEqual fangle (float:add step (float:mul 2.0 float:pi)))
     vertex (sinf fangle) (cosf fangle)
     assign fangle (float:add fangle step)
   end
 end
 
 ///-----------------------------------------------------------------------------
-/// orientation functions
+/// Section: orientation functions
+///-----------------------------------------------------------------------------
 
 func void drawCoordSys(float length)
   template lineTo x y z
@@ -297,7 +306,7 @@ func void drawOrientationGrid()
     lineTo 1. 0. 0.
     lineTo 0. 1. 0.
     lineTo 0. 0. 1.
-    for d -10 10 
+    for d -10 10
       var float df (int:toFloat d)
       glColor3f 1. 0. 0.
       line 0. msize df to 0. size df
@@ -380,14 +389,14 @@ end
 
 //------------------------------------------------------------------------------
 
-func void autoSetupViewport() 
+func void autoSetupViewport()
   var int width 0
   var int height 0
   glfwGetWindowSize (ptr width) (ptr height)
   glViewport 0 0 width height
 end
 
-func void makeGLIdentityTransforms() 
+func void makeGLIdentityTransforms()
   template loadIdentity matrix
     glMatrixMode #matrix
     glLoadIdentity()
@@ -433,7 +442,9 @@ func float gl:getFloat(GLenum param)
   ret result
 end
 
-//------------------------------------------------------------------------------
+///-----------------------------------------------------------------------------
+/// Section: framebuffer objects
+///-----------------------------------------------------------------------------
 
 type Framebuffer
   int width
@@ -476,17 +487,17 @@ end
 func void Framebuffer:create(Framebuffer* fbo)
   var GLuint fboName (makeFramebuffer)
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName
-  
+
   var GLuint depthBuffer (makeRenderbuffer)
   glBindRenderbufferEXT GL_RENDERBUFFER_EXT depthBuffer
   glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height)
   glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT depthBuffer
   glBindRenderbufferEXT GL_RENDERBUFFER_EXT 0
-  
+
   glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D (getField fbo colorTexture) 0
 
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0
-  
+
   setField fbo fbo fboName
   setField fbo depthBuffer depthBuffer
 end
