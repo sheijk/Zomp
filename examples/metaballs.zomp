@@ -4,13 +4,13 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib" "libquicktext.dylib"
 
+include "libs/libcee.zomp"
+
 include "opengl20.zomp"
 include "glfw.zomp"
 include "glut.zomp"
 include "quicktext.zomp"
 include "libs/glutils.zomp"
-
-include "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
 // Improved unit tests

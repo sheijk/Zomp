@@ -37,3 +37,4 @@ tools
 /extlibs/*.bz2
 /extlibs/*.gz
 /extlibs/*.zip
+/examples/shaderfun.glexe.s

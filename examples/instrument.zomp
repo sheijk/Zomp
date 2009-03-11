@@ -13,7 +13,7 @@ macro tracing:instrument code
     ast:addChild instrumentedCode ${printlnString "<= leaving"}
   end
 
-  mret instrumentedCode
+  ret instrumentedCode
 end
 
 func int main()

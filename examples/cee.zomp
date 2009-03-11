@@ -156,7 +156,7 @@ include "libs/stdio.zomp"
 //   end
 // end
 
-func void test()
+func void test2()
   var int x 10
 
   template printDefinitionInfo name

@@ -166,6 +166,10 @@ runmltests: alltests
 	@echo Running all tests ...
 	$(OCAMLRUN) -b ./alltests
 
+exampletests:
+	@echo Compiling examples ...
+	cd examples && make test
+
 PROF_COMP_TARGET=metaballs
 
 profile_comp: zompc zompc.native stdlib.bc opengl20.zomp glfw.zomp
