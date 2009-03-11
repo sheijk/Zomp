@@ -855,7 +855,7 @@ GL_VERSION_1_1
 
 	GLboolean glIsEnabled (GLenum cap)
 
-	void glAccum (GLenum op, GLfloat value)
+	void glAccum (GLenum operation, GLfloat value)
 
 	void glDepthRange (GLclampd zNear, GLclampd zFar)
 
