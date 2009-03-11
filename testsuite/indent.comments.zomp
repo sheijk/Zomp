@@ -10,6 +10,6 @@ func int main()
   /* foo */
 
   /// this single line doc tells you the function will return 123. It's a lie
-  ret 100
+  ret 0
 end
 
