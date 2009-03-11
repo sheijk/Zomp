@@ -225,6 +225,20 @@ func void testLazyOps()
   expectCount 2 (increaseAndRet false || increaseAndRet true)
 end
 
+func void testAssign()
+  floatp := malloc float 2
+
+  floatp* = 1.0
+  (ptradd floatp 1)* = 10.0
+
+  unittest:assertAll
+    floatp* ==_f 1.0
+    load (ptradd floatp 1) ==_f 10.0
+  end
+
+  free (cast void* floatp)
+end
+
 func int main()
   testDefineVar()
   testDotOp()
@@ -234,6 +248,7 @@ func int main()
   testSwitch()
   testFor()
   testNestedFor()
+  testAssign()
 
   ret 0
 end
