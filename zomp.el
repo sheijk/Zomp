@@ -128,8 +128,12 @@ indent the next line when they occur at the beginning of a line"
 
 (defun zomp-toplevel ()
   (interactive)
-  (let ((oldwin (selected-window)))
-    (shell "*zomp-toplevel*")
+  (let ((zomp-new-tl-buffer-name zomp-toplevel-buffer-name) (oldwin (selected-window)))
+    (shell zomp-toplevel-buffer-name)
+    ;; in case zomp-toplevel-buffer-name is buffer local we need to be sure it
+    ;; has the same value in the toplevel buffer as in the zomp buffer invoking
+    ;; the toplevel
+    (set (make-local-variable 'zomp-toplevel-buffer-name) zomp-new-tl-buffer-name)
     (zomp-tl-do (concat "cd " zomp-basedir))
     (zomp-tl-do "./sexprtoplevel.native; exit")
     ;; (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
