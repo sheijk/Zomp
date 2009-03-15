@@ -265,6 +265,9 @@ macro op= l r
   elseif ast:matchesShape(l, ${__.__})
     laddr := getMemberAddress(l)
     ret ${store #laddr #r}
+  elseif ast:matchesShape(l, ${__*})
+    addr := ast:child l 0
+    ret ${store #addr #r}
   else
     ret ${assign #l #r}
   end
@@ -345,6 +348,10 @@ macro preop& obj
 end
 
 template preop* ptr
+  (load #ptr)
+end
+
+template postop* ptr
   (load #ptr)
 end
 
