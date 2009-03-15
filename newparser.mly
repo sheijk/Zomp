@@ -128,7 +128,7 @@
 %left MULT_OP
 %left DOT
 %left POSTFIX_OP
-%right PREFIX_OP
+(* %right PREFIX_OP *)
 
 %start <Ast2.sexpr> main
 
@@ -206,7 +206,7 @@ alternateExprArgsAndBlock:
     args @ [block] @ rem, terminators }
 
 
-exprArg:
+exprArgInner:
 | id = IDENTIFIER;
   { idExpr id }
 
@@ -224,13 +224,11 @@ exprArg:
 | head = IDENTIFIER; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
   { expr "postop[]" [idExpr head; arg] }
 
-| l = exprArg; DOT; r = exprArg;
+| l = exprArgInner; DOT; r = exprArgInner;
   { expr "op." [l; r] }
 
-| e = exprArg; s = POSTFIX_OP;
+| e = exprArgInner; s = POSTFIX_OP;
   { expr ("post" ^ opName s) [e] }
-| s = PREFIX_OP; e = exprArg;
-  { expr ("pre" ^ opName s) [e] }
 
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id] }
@@ -243,6 +241,11 @@ exprArg:
     expectNoTerminators terminators;
     expr (quoteId q) [block] }
 
+exprArg:
+| s = PREFIX_OP; e = exprArg;
+  { expr ("pre" ^ opName s) [e] }
+| e = exprArgInner;
+  { e }
 
 %inline block:
 | BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
