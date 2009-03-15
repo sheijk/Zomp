@@ -10,7 +10,8 @@ include ../makefile.config
 
 TEST_CASES = sexpr.zomp structs.zomp minimal.zomp simple-func.zomp \
 variables.zomp astmatch.zomp cee.zomp bug-macro-func-samemodule.zomp \
-strings.zomp prelude.zomp selftest.zomp float.zomp std_bindings.zomp
+strings.zomp prelude.zomp selftest.zomp float.zomp std_bindings.zomp \
+indent.comments.zomp
 
 all: $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.test))
 

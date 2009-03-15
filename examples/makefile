@@ -5,8 +5,18 @@ LLVM_GCC_BIN_DIR=$(PWD)/../tools/llvm-gcc/bin
 LLVM_BIN_DIR=$(PWD)/../tools/llvm/Release/bin
 PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
+default:
+	@echo There is no default build target here
+	@exit 1
+
 clean:
-	rm -f *.bc *.ll *.exe
+	rm -f *.bc *.ll *.exe *.glexe
+
+SIMPLE_PROGRAMS=cee.zomp fib.zomp instrument.zomp
+GL_PROGRAMS=opengl.zomp
+NOT_WORKING_PROGRAMS=static.zomp metaballs.zomp using_assimp.zomp shaderfun.zomp
+
+test: $(SIMPLE_PROGRAMS:.zomp=.exe) $(GL_PROGRAMS:.zomp=.glexe)
 
 ################################################################################
 # Rules

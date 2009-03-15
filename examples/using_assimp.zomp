@@ -4,11 +4,12 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib" "assimp.dylib"
 
+include "libs/libcee.zomp"
+
 include "opengl20.zomp"
 include "glfw.zomp"
 include "libs/glutils.zomp"
 
-include "libs/libcee.zomp"
 
 ///
 /// Declares a function. Use this to prevent emacs indentation in next line :)
