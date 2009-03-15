@@ -392,6 +392,13 @@ struct
       (* (\*                    jux ["log"; "p"]; *\) *)
       (* (\*                  ]]]; *\) *)
 
+      "main blah\n\
+      \  nested\n\
+      \    body\n\
+      \  nested2\n\
+      end main",
+      `Exception "Should fail because \"nested\" has no end terminator";
+
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];
       "a.b.c", `Return [expr "op." [se2 "op." "a" "b"; id "c"]];

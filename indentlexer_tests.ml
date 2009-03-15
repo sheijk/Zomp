@@ -54,6 +54,29 @@ struct
       isValidId "0x1f";
       isValidId "0b1011";
 
+      (* floating point numbers *)
+      isValidId "0.0";
+      isValidId "20.031";
+      isValidId "1.";
+      isValidId "856.";
+      isValidId ".3";
+      isValidId "1.0d";
+      isValidId "7.0f";
+      isValidId ".3d";
+      isValidId "10.3";
+      isValidId ".01";
+
+      (* strings and numbers *)
+      isValidId "1337";
+      isValidId "-20";
+      isValidId "\"foobar\"";
+      isValidId "\"windows\\\\path\"";
+      isValidId "'x'";
+      isValidId "'\\n'";
+      isValidId "'\\0'";
+      isValidId "'\\\\'";
+
+      (* operators *)
       "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
                              ADD_OP "+"; id "1"; END];
 
@@ -96,9 +119,12 @@ struct
 
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
       "foo(&x)", `Return [id "foo";
-                          OPEN_ARGLIST; PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
-      "foo( &x )", `Return [id "foo";
-                            OPEN_ARGLIST; PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
+                          OPEN_ARGLIST;
+                          PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
+      "foo( &x )", `Return [id "foo"; OPEN_ARGLIST;
+                            PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
+      "blah(*x)", `Return [id "blah"; OPEN_ARGLIST;
+                           PREFIX_OP "*"; id "x"; CLOSE_PAREN; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];
@@ -125,6 +151,8 @@ struct
       (let semi = LAZY_BOOL_OP ";" in
       "a;b;c",  `Return [id "a"; semi; id "b"; semi; id "c"; END]);
 
+      "l +. r", `Return [id "l"; ADD_OP "+."; id "r"; END];
+
       "a op+ b", `Return [id "a"; id "op+"; id "b"; END];
       "a op* b", `Return [id "a"; id "op*"; id "b"; END];
       "a op/ b", `Return [id "a"; id "op/"; id "b"; END];
@@ -132,18 +160,6 @@ struct
       "a op; b", `Return [id "a"; id "op;"; id "b"; END];
       "a op, b", `Return [id "a"; id "op,"; id "b"; END];
       "foo op:= bar", `Return [id "foo"; id "op:="; id "bar"; END];
-
-      (* strings and numbers *)
-      "1337", `Return [id "1337"; END];
-      "10.3", `Return [id "10.3"; END];
-      "100.", `Return [id "100."; END];
-      ".01", `Return [id ".01"; END];
-      "\"foobar\"", `Return [id "\"foobar\""; END];
-      "\"windows\\\\path\"", `Return [id "\"windows\\\\path\""; END];
-      "'x'", `Return [id "'x'"; END];
-      "'\\n'", `Return [id "'\\n'"; END];
-      "'\\0'", `Return [id "'\\0'"; END];
-      "'\\\\'", `Return [id "'\\\\'"; END];
 
       (* quotes *)
       "$", `Return [QUOTE "$"; END];
@@ -204,13 +220,6 @@ struct
       \    body\n\
       next\n",
       `Exception "Should fail because indent level is reduced too much";
-
-      "main blah\n\
-      \  nested\n\
-      \    body\n\
-      \  nested2\n\
-      end main",
-      `Exception "Should fail because \"nested\" has no end terminator";
 
       parsedAsId "op&&";
       parsedAsId "op||";

@@ -51,10 +51,15 @@ end = struct
     | Any
     | NoWSOrOp
     | Whitespace
+    | OpenParen
     | Identifier
     | Not of charre
+    | Operator
+    | Or of (charre * charre)
 
   type rule = (charre * Str.regexp)
+
+  let opSymbols = "-+\\*/&.><=!|:;,"
 
   let rec charreMatch cre charStr =
     let isIdentifier char =
@@ -78,20 +83,40 @@ end = struct
               (char = ' ') || (char = '\n'))
       | Not icre ->
           not (charreMatch icre charStr)
+      | Or (l, r) ->
+          charreMatch l charStr || charreMatch r charStr
       | Identifier ->
           (String.length charStr = 1) &&
             isIdentifier charStr.[0]
+      | OpenParen ->
+          (String.length charStr = 1 &&
+              let char = charStr.[0] in
+              (char = '(' || char = '[' || char = '{'))
+      | Operator ->
+          (String.length charStr = 1 &&
+              let char = charStr.[0] in
+              String.contains opSymbols char)
 
   (**
      * each rule consists of two regexps (one for the string allowed to precede the expression
      * and one which matches the token) and a function turning the matched string into a token
   *)
   let rules : ((charre * Str.regexp) * tokenBuilder) list =
-    let opSymbols = "-+\\*/&.><=!|:;," in
     let re regexpString =
       Any, Str.regexp regexpString
     in
     let idFunc s = `Token (IDENTIFIER s) in
+    let trimIdFunc s =
+      let rec trimNewlines str =
+        let str = Common.trim str in
+        let strLength = String.length str in
+        if strLength > 0 && str.[strLength-1] = '\n' then begin
+          str.[strLength-1] <- ' ';
+          trimNewlines str
+        end else
+          str
+      in
+      `Token (IDENTIFIER (trimNewlines s)) in
     let regexpRule str token =
       re str,
       (fun matchedStr -> `Token token)
@@ -100,9 +125,16 @@ end = struct
     let validIdentifierChars = "a-zA-Z0-9:_" in
     let validIdentifierFirstChar = "a-zA-Z_" in
     let validIdentifierLastChar = "a-zA-Z0-9_" in
+    let identifierRE =
+      sprintf "\\([%s][%s]*[%s]" validIdentifierFirstChar validIdentifierChars validIdentifierLastChar
+      ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
+    in
+    let identifierRule =
+      re identifierRE, (fun str -> `Token (IDENTIFIER str));
+    in
     let opRule symbol (tokenF :string -> token) =
       (NoWSOrOp,
-       Str.regexp (opre symbol ^ (sprintf "[%s0-9({[]" validIdentifierFirstChar))),
+       Str.regexp (opre symbol ^ (sprintf "[%s0-9(]" validIdentifierFirstChar))),
       (fun str ->
          let lastChar = str.[String.length str - 1] in
          let str2 = Str.string_before str (String.length str - 1) in
@@ -129,7 +161,7 @@ end = struct
       (Any, Str.regexp symbol), (fun t -> `Token (f t))
     in
     let postfixRule symbol =
-      re (sprintf "%s\\( +\\|\n\\|)\\|}\\|]\\|[%s]\\)" (Str.quote symbol) opSymbols),
+      re (sprintf "%s\\( +\\|\n\\|)\\|}\\|]\\|\\[\\|[%s]\\)" (Str.quote symbol) opSymbols),
       (fun s ->
          if String.length s >= 1 && Str.last_chars s 1 = "\n" then
            `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
@@ -138,20 +170,11 @@ end = struct
            `PutBack (POSTFIX_OP trimmed, putbackString) )
     in
     let prefixRule symbol =
-      (Whitespace, Str.regexp (sprintf "%s" (Str.quote symbol))),
+      (Or (Whitespace, OpenParen), Str.regexp (sprintf "%s" (Str.quote symbol))),
       (fun s -> `Token (PREFIX_OP (trim s)))
     in
     let stringRule = re "\"[^\"]*\"", idFunc in
     let charRule = re "'[^']+'", idFunc in
-    let intRule = re "-?[0-9]+[a-zA-Z]*", idFunc in
-    let floatRule = re "-?\\([0-9]*\\.[0-9]+\\|[0-9]+\\.[0-9]*\\)[a-zA-Z]*", idFunc in
-    let identifierRE =
-      sprintf "\\([%s][%s]*[%s]" validIdentifierFirstChar validIdentifierChars validIdentifierLastChar
-      ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
-    in
-    let identifierRule =
-      re identifierRE, (fun str -> `Token (IDENTIFIER str));
-    in
     let quoteRule str =
       re (Str.quote str),
       (fun foundStr ->
@@ -186,8 +209,30 @@ end = struct
       ]
     in
     whitespaceDependentToken "(" OPEN_PAREN OPEN_ARGLIST
-    @ whitespaceDependentToken "[" OPEN_BRACKET OPEN_BRACKET_POSTFIX
+    @ (
+      let bracketRule =
+        (Or (Whitespace, OpenParen), Str.regexp_string "["), fun _ -> `Token OPEN_BRACKET
+      in
+      let postfixBracketRule =
+        (Or (Identifier, Operator), Str.regexp_string "["), fun _ -> `Token OPEN_BRACKET_POSTFIX
+      in
+      [bracketRule; postfixBracketRule])
     @ opbracketRules
+    @ (
+      let floatRule =
+        let dotnumRE = "[0-9]*\\.[0-9]+[a-zA-Z]*" in
+        let numdotRE = "[0-9]+\\.\\( \\| *\n\\)" in
+        (Not Identifier, Str.regexp (sprintf "-?\\(%s\\|%s\\)" dotnumRE numdotRE)),
+        trimIdFunc
+      in
+      [floatRule])
+    @ (
+      let numberRE = "\\(0x\\|0b\\)?[0-9]+[a-zA-Z]*" in
+      let intRule = re numberRE, idFunc in
+      let negIntRule =
+        (Or (Whitespace, OpenParen), Str.regexp ("-" ^ numberRE)), idFunc
+      in
+      [intRule; negIntRule])
     @ [
       identifierRule;
       whitespaceRule;
@@ -214,11 +259,10 @@ end = struct
       prefixRule "--";
       stringRule;
       charRule;
-      intRule;
-      floatRule;
       contextInsensitiveOp ";" (fun s -> LAZY_BOOL_OP s);
     ]
     @ opRules "+" (fun s -> ADD_OP s)
+    @ opRules "+." (fun s -> ADD_OP s)
     @ opRules "-" (fun s -> ADD_OP s)
     @ opRules "*" (fun s -> MULT_OP s)
     @ opRules "/" (fun s -> MULT_OP s)
@@ -363,15 +407,11 @@ let token (lexbuf : token lexerstate) : token =
              if indent = prevIndent then worker ()
              else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
            end else begin
-             (** lookup forward for `Ignore and possibly reset indent? *)
-             if indent = prevIndent then begin
+             let onSameIndent() =
                `Token END
-             end else if indent = prevIndent + 2 then begin
+             and onMoreIndent() =
                `Token BEGIN_BLOCK
-             end else if indent > prevIndent then begin
-               raiseIndentError lexbuf.location
-                 (sprintf "Indentation was increased by %d spaces but only 2 are legal" (indent - prevIndent))
-             end else if indent = prevIndent - 2 then begin
+             and onLessIndent() =
                let line = readUntil isNewline lexbuf in
                if isBlockEndLine line then begin
                  putback lexbuf "\n";
@@ -387,9 +427,24 @@ let token (lexbuf : token lexerstate) : token =
                  putback lexbuf (line ^ "\n");
                  returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
                end
-             end else begin (* indent is more than one level less than in previous line *)
+             in
+             (** lookup forward for `Ignore and possibly reset indent? *)
+             if indent = prevIndent then begin
+               onSameIndent()
+             end else if indent = prevIndent + 2 then begin
+               onMoreIndent()
+             end else if indent > prevIndent then begin
                raiseIndentError lexbuf.location
-                 (sprintf "Indentation was reduced by %d spaces but only steps of 2 are legal" (prevIndent - indent))
+                 (sprintf "Indentation was increased by %d spaces but only 2 are legal"
+                    (indent - prevIndent))
+             end else if indent = prevIndent - 2 then begin
+               onLessIndent()
+             (** indent is more than one level less than in previous line *)                 
+             end else begin
+               raiseIndentError lexbuf.location
+                 (sprintf
+                    "Indentation was reduced by %d spaces but only steps of 2 are legal"
+                    (prevIndent - indent))
              end
            end)
 
