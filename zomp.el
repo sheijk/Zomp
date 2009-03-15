@@ -674,4 +674,37 @@ indent the next line when they occur at the beginning of a line"
             ))
       (error nil))))
 
+(defun zomp-region-to-html (regbegin regend)
+  "Will replace the current region with html. Requires a matching
+  css section. To get it copy the css annotations from the
+  *html*<n> buffer and rename the 'body' section to '#code'"
+
+  (interactive "r")
+  (save-window-excursion
+    (save-excursion
+      (kill-region regbegin regend)
+      (switch-to-buffer (generate-new-buffer "*zomp-to-html*"))
+      (yank)
+      (zomp-mode)
+      (switch-to-buffer (htmlize-buffer))
+      (beginning-of-buffer)
+      (search-forward "<body>")
+      (next-line 2)
+      (beginning-of-line)
+      (let (htmlbegin htmlend)
+        (setq htmlbegin (point))
+        (search-forward "</body>")
+        (previous-line)
+        (beginning-of-line)
+        (setq htmlend (point))
+        (kill-ring-save htmlbegin htmlend)
+        ))
+    (insert "<pre id=\"code\"><code>")
+    (indent-according-to-mode)
+    (insert "\n")
+    (yank)
+    (insert "\n</code></pre>")
+    (indent-according-to-mode)
+    (insert "\n")))
+
 
