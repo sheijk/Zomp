@@ -411,3 +411,28 @@ let endsWith string ending =
   stringLength >= endingLength &&
     Str.string_after string (stringLength-endingLength) = ending
 
+let splitup oplist str =
+  let rec worker str accum =
+    let strLength = String.length str in
+    let rec findMatch = function
+      | [] ->
+          None
+      | op :: remOps ->
+          let opLength = String.length op in
+          if strLength >= opLength && Str.first_chars str opLength = op then
+            Some op
+          else
+            findMatch remOps
+    in
+    if strLength > 0 then
+      match findMatch oplist with
+        | Some nextOp ->
+            let remstr = Str.last_chars str (strLength - String.length nextOp) in
+            worker remstr (nextOp :: accum)
+        | None ->
+            None
+    else
+      Some (List.rev accum)
+  in
+  worker str []
+

@@ -164,6 +164,7 @@ struct
       "int**", `Return [expr "postop*" [expr "postop*" [id "int"]]];
       "(int*)*", `Return [expr "postop*" [expr "postop*" [id "int"]]];
       "*ptr", `Return [se1 "preop*" "ptr"];
+      "**p", `Return [expr "preop*" [expr "preop*" [id "p"]]];
       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       "(foo bar*)", `Return [juxExpr [id "foo"; se "postop*" ["bar"]]];
       (* todo post/prefix ops which work without additional whitespace *)
@@ -405,19 +406,19 @@ struct
       "x.y.z.w", `Return [expr "op." [expr "op." [se2 "op." "x" "y"; id "z"]; id "w"]];
       "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
 
-      (* "foo.print(1, 2)", *)
-      (* `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]]; *)
+      "foo.print(1, 2)",
+      `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]];
 
       "while cond.true do",
       `Return [juxExpr [id "while"; expr "op." [id "cond"; id "true"]; id "do"]];
 
-      (* "item.print()", `Return [expr "op." [id "item"; call ["print"]]]; *)
-      (* "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]]; *)
-      (* "x.add(2 * 3)", *)
-      (* `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]]; *)
+      "item.print()", `Return [expr "op." [id "item"; call ["print"]]];
+      "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]];
+      "x.add(2 * 3)",
+      `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]];
 
-      (* (\*       "*foo.print()", *\) *)
-      (* (\*       `Return [expr "op." [se1 "preop*" "foo"; call ["print"]]]; *\) *)
+      "*foo.print()",
+      `Return [expr "preop*" [expr "op." [id "foo"; call ["print"]]]];
 
       (** juxtaposition has highest priority *)
       "print 10 + 20",
@@ -425,23 +426,16 @@ struct
 
       "let x + y = 20",
       `Return [expr "op=" [expr "op+" [jux ["let"; "x"]; id "y"]; id "20"]];
-      (* `Return [juxExpr [id "let"; expr "op=" [se2 "op+" "x" "y"; id "20"]]]; *)
 
-      (* (\** precedence for s/m-expressions *\) *)
-      (* "x + add(1, 2)", *)
-      (* `Return[ expr "op+" [id "x"; call ["add"; "1"; "2"]] ]; *)
+      (** precedence for s/m-expressions *)
+      "x + add(1, 2)",
+      `Return[ expr "op+" [id "x"; call ["add"; "1"; "2"]] ];
 
-      (* "sqrt(1) * 10", *)
-      (* `Return[ expr "op*" [call ["sqrt"; "1"]; id "10"] ]; *)
+      "sqrt(1) * 10",
+      `Return[ expr "op*" [call ["sqrt"; "1"]; id "10"] ];
 
-      (* "add(1, 2) + add(3, 4)", *)
-      (* `Return [expr "op+" [call ["add"; "1"; "2"]; call ["add"; "3"; "4"]]]; *)
-
-      (* "if 2 > 3 then", *)
-      (* `Return [juxExpr [id "if"; se2 "op>" "2" "3"; id "then"]]; *)
-
-      (* (\*       "for i = 0 .. 100", *\) *)
-      (* (\*       `Return [juxExpr [id "for"; expr "op=" [id "i"; se2 "op.." "0" "100"]]]; *\) *)
+      "add(1, 2) + add(3, 4)",
+      `Return [expr "op+" [call ["add"; "1"; "2"]; call ["add"; "3"; "4"]]];
 
       (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];

@@ -118,6 +118,9 @@ struct
       "3.toInt", `Return [id "3"; DOT; id "toInt"; END];
 
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
+      "*&blah", `Return [PREFIX_OP "*"; PREFIX_OP "&"; id "blah"; END];
+      "ppInt**++", `Return [id "ppInt"; POSTFIX_OP "*"; POSTFIX_OP "*";
+                            POSTFIX_OP "++"; END];
       "foo(&x)", `Return [id "foo";
                           OPEN_ARGLIST;
                           PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
@@ -125,6 +128,11 @@ struct
                             PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
       "blah(*x)", `Return [id "blah"; OPEN_ARGLIST;
                            PREFIX_OP "*"; id "x"; CLOSE_PAREN; END];
+      "blup(x*)", `Return [id "blup"; OPEN_ARGLIST; id "x";
+                           POSTFIX_OP "*"; CLOSE_PAREN; END];
+      "blup(x*++)", `Return [id "blup"; OPEN_ARGLIST; id "x";
+                            POSTFIX_OP "*"; POSTFIX_OP "++";
+                           CLOSE_PAREN; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];

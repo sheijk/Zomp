@@ -30,6 +30,7 @@ type tokenOrAction = [
   | `Token of token
   | `Ignore
   | `PutBack of token * string
+  | `MultiTokens of token list
 ]
 
 type tokenBuilder = string -> tokenOrAction
@@ -160,19 +161,6 @@ end = struct
     let contextInsensitiveOp symbol f =
       (Any, Str.regexp symbol), (fun t -> `Token (f t))
     in
-    let postfixRule symbol =
-      re (sprintf "%s\\( +\\|\n\\|)\\|}\\|]\\|\\[\\|[%s]\\)" (Str.quote symbol) opSymbols),
-      (fun s ->
-         if String.length s >= 1 && Str.last_chars s 1 = "\n" then
-           `PutBack (POSTFIX_OP (trim (Str.first_chars s (String.length s - 1))), "\n")
-         else
-           let trimmed, putbackString = splitAt s (FromFront (String.length symbol)) in
-           `PutBack (POSTFIX_OP trimmed, putbackString) )
-    in
-    let prefixRule symbol =
-      (Or (Whitespace, OpenParen), Str.regexp (sprintf "%s" (Str.quote symbol))),
-      (fun s -> `Token (PREFIX_OP (trim s)))
-    in
     let stringRule = re "\"[^\"]*\"", idFunc in
     let charRule = re "'[^']+'", idFunc in
     let quoteRule str =
@@ -233,6 +221,36 @@ end = struct
         (Or (Whitespace, OpenParen), Str.regexp ("-" ^ numberRE)), idFunc
       in
       [intRule; negIntRule])
+    @ (
+      let postfixOps = ["++"; "--"; "..."; "*"] in
+      let prefixOps = ["*"; "&"; "++"; "--"] in
+      let buildRE oplist =
+        "\\(" ^ Common.combine "\\|" (List.map Str.quote oplist) ^ "\\)+"
+      in
+      let postfixRule =
+        (NoWSOrOp,
+         Str.regexp (buildRE postfixOps)),
+        (fun s ->
+           if String.length s >= 1 && (
+             let last = Str.last_chars s 1 in
+             String.contains "\n()[]{}" last.[0])
+           then
+             failwith (sprintf "Internal error at token \"%s\"" s)
+           else
+             match splitup postfixOps s with
+               | Some tokens -> `MultiTokens (List.map (fun n -> POSTFIX_OP n) tokens)
+               | None ->
+                   failwith (sprintf "Internal error in parser at token \"%s\"" s))
+      in
+      let prefixRule =
+        (Or (Whitespace, Or (OpenParen, Operator)),
+         Str.regexp (buildRE prefixOps)),
+        fun s ->
+          match splitup prefixOps s with
+            | Some tokens -> `MultiTokens (List.map (fun n -> PREFIX_OP n) tokens)
+            | None -> `Ignore
+      in
+      [postfixRule; prefixRule])
     @ [
       identifierRule;
       whitespaceRule;
@@ -249,14 +267,6 @@ end = struct
       quoteRule "$";
       quoteRule "$$";
       quoteRule "#";
-      postfixRule "...";
-      postfixRule "*";
-      prefixRule "*";
-      prefixRule "&";
-      postfixRule "++";
-      postfixRule "--";
-      prefixRule "++";
-      prefixRule "--";
       stringRule;
       charRule;
       contextInsensitiveOp ";" (fun s -> LAZY_BOOL_OP s);
@@ -368,8 +378,10 @@ let printStats() =
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
     let len = String.length string in
-    if Str.last_chars lexbuf.lastReadChars len <> string then begin
-      printf "Assertion failure";
+    let lastChars = Str.last_chars lexbuf.lastReadChars len in
+    if lastChars <> string then begin
+      printf
+        "Assertion failure: expected \"%s\" but found \"%s\"" lastChars string;
       assert false;
     end;
     lexbuf.backTrack len
@@ -489,6 +501,9 @@ let token (lexbuf : token lexerstate) : token =
                        (`Token token :> [`Ignore|`Token of token])
                    | `Ignore -> `Ignore
                    | `Token token -> ((`Token token) : [`Ignore | `Token of token])
+                   | `MultiTokens (firstToken::remTokens) ->
+                       returnMultipleTokens lexbuf (`Token firstToken) remTokens
+                   | `MultiTokens [] -> `Ignore
                in
                token
              in
