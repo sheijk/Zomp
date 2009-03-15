@@ -95,7 +95,10 @@ struct
       "3.toInt", `Return [id "3"; DOT; id "toInt"; END];
 
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
-      "foo(&x)", `Return [id "foo"; OPEN_ARGLIST; PREFIX_OP "&"; id "x"; CLOSE_PAREN];
+      "foo(&x)", `Return [id "foo";
+                          OPEN_ARGLIST; PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
+      "foo( &x )", `Return [id "foo";
+                            OPEN_ARGLIST; PREFIX_OP "&"; id "x"; CLOSE_PAREN; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];
@@ -111,10 +114,24 @@ struct
       "opAtEndOfLine =", `Return [id "opAtEndOfLine"; ASSIGN_OP "="; END];
 
       "[10]", `Return [OPEN_BRACKET; id "10"; CLOSE_BRACKET; END];
-      "array[3]", `Return [id "array"; OPEN_BRACKET_POSTFIX; id "3"; CLOSE_BRACKET; END];
-      "_[_]", `Return [id "_"; OPEN_BRACKET_POSTFIX; id "_"; CLOSE_BRACKET; END];
+      "array[3]", `Return [id "array";
+                           OPEN_BRACKET_POSTFIX; id "3"; CLOSE_BRACKET; END];
+      "_[_]", `Return [id "_";
+                       OPEN_BRACKET_POSTFIX; id "_"; CLOSE_BRACKET; END];
 
-      "int*[10]", `Return [id "int"; POSTFIX_OP "*"; OPEN_BRACKET_POSTFIX; id "10"; CLOSE_BRACKET];
+      "int*[10]", `Return [id "int"; POSTFIX_OP "*";
+                           OPEN_BRACKET_POSTFIX; id "10"; CLOSE_BRACKET; END];
+
+      (let semi = LAZY_BOOL_OP ";" in
+      "a;b;c",  `Return [id "a"; semi; id "b"; semi; id "c"; END]);
+
+      "a op+ b", `Return [id "a"; id "op+"; id "b"; END];
+      "a op* b", `Return [id "a"; id "op*"; id "b"; END];
+      "a op/ b", `Return [id "a"; id "op/"; id "b"; END];
+      "a op+_foo b", `Return [id "a"; id "op+_foo"; id "b"; END];
+      "a op; b", `Return [id "a"; id "op;"; id "b"; END];
+      "a op, b", `Return [id "a"; id "op,"; id "b"; END];
+      "foo op:= bar", `Return [id "foo"; id "op:="; id "bar"; END];
 
       (* strings and numbers *)
       "1337", `Return [id "1337"; END];
@@ -188,12 +205,12 @@ struct
       next\n",
       `Exception "Should fail because indent level is reduced too much";
 
-(*       "main blah\n\ *)
-(*       \  nested\n\ *)
-(*       \    body\n\ *)
-(*       \  nested2\n\ *)
-(*       end main", *)
-(*       `Exception "Should fail because \"nested\" has no end terminator"; *)
+      "main blah\n\
+      \  nested\n\
+      \    body\n\
+      \  nested2\n\
+      end main",
+      `Exception "Should fail because \"nested\" has no end terminator";
 
       parsedAsId "op&&";
       parsedAsId "op||";
