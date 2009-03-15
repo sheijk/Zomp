@@ -841,23 +841,25 @@ von http://lambda-the-ultimate.org/node/2884
 ** zomp-cee                                                                :cee:
    Set of macros and functions providing a simple C like feeling
 
-*** TODO variables [3/9]
+*** TODO variables [3/4]
     Define a variable
 
     - [X] var int x
-    - [ ] var int x = 10
-    - [ ] var x = 10
     - [X] var x // not allowed
-    - [ ] var x = 10, y = 20.0
-    - [ ] var int x = 10, float y = 20.0
-    - [ ] var x = 10, float y = 20.0
     - [ ] var int x, y, z
     - [X] x := defaultValue
 
-**** Requirements [0/3]
+**** abandoned
+    - [ ] var x = 10, y = 20.0
+    - [ ] var int x = 10, float y = 20.0
+    - [ ] var x = 10, float y = 20.0
+    - [ ] var int x = 10
+    - [ ] var x = 10
+
+**** Requirements [1/3]
      - [ ] optional default value
      - [ ] multiple vars in one line
-     - [ ] optionally propagate type from default value
+     - [X] optionally propagate type from default value
 
 **** Properties
     - Legal forms
@@ -868,23 +870,24 @@ von http://lambda-the-ultimate.org/node/2884
 
     - Returns value of last var
 
-*** TODO types [4/7]
+*** TODO types [5/7]
 **** DONE int
 **** TODO fixed size int (int8, int16, ..., int128)
 **** DONE float
-**** TODO double
+**** DONE double
 **** DONE structs
 **** TODO signed/unsigned
 **** DONE bool
 
-*** TODO strings [1/3]
+*** TODO strings [2/3]
 
 **** DONE concatentate
      CLOSED: [2008-07-01 Tue 02:12]
-**** TODO literals
+**** DONE literals
+     CLOSED: [2009-03-12 Thu 22:43]
 **** TODO string type != char*
 
-*** TODO structs [1/2]
+*** TODO structs [2/2]
 
 **** DONE Simple case
      type IntArray
@@ -892,7 +895,8 @@ von http://lambda-the-ultimate.org/node/2884
        int* elements
      end
 
-**** TODO multiple members per line
+**** DONE multiple members per line
+     CLOSED: [2009-03-12 Thu 22:43]
      type Vector
        float x, y, z
      end
@@ -915,7 +919,8 @@ von http://lambda-the-ultimate.org/node/2884
      Primitive.cases :: list<string*int>
 
 *** TODO unions
-*** TODO operators for all basic types
+*** TODO operators for all basic types [0/3]
+**** TODO map 'a § b' to 'a §_t b' for operator § and type(a) == type(b) == t
 **** TODO infix +, -, *, /, **
 **** TODO prefix/postfix ++, --
 *** TODO control structures [2/7]
@@ -925,6 +930,8 @@ von http://lambda-the-ultimate.org/node/2884
 **** TODO do/while
 **** TODO do/until
 **** TODO switch / case
+***** DONE basic switch/case
+      CLOSED: [2009-03-12 Thu 23:36]
 ***** TODO support explicit fall-through
 
       switch someVar:
@@ -953,11 +960,13 @@ von http://lambda-the-ultimate.org/node/2884
       end
 
 **** TODO break, continue
-*** TODO pointers [0/4]
+*** TODO pointers [2/4]
     using postfix notation
 
-**** TODO &var
-**** TODO var*
+**** DONE &var
+     CLOSED: [2009-03-12 Thu 23:38]
+**** DONE var*
+     CLOSED: [2009-03-12 Thu 23:38]
 **** TODO (var+10)*
 **** TODO global pointers
 *** DONE functions [4/4]
@@ -977,12 +986,14 @@ von http://lambda-the-ultimate.org/node/2884
 
 **** DONE function pointers
      CLOSED: [2008-07-31 Thu 20:10]
-*** TODO Types
+*** TODO Types [2/3]
     How types can be specified
 
-    - simple type name (int, float, MyStruct, ...)
-    - pointer by appending a star (int*, float*, MyStruct**, ...)
-    - signed(int), sint, uint, slong, ulong, ...
+**** DONE simple type name (int, float, MyStruct, ...)
+     CLOSED: [2009-03-12 Thu 23:37]
+**** DONE pointer by appending a star (int*, float*, MyStruct**, ...)
+     CLOSED: [2009-03-12 Thu 23:37]
+**** TODO signed(int), sint, uint, slong, ulong, ...
 
 ** zomp-ceepp
    Extension of cee, featuring an object system, type classes etc.
