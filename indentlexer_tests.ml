@@ -164,9 +164,11 @@ struct
       "a op* b", `Return [id "a"; id "op*"; id "b"; END];
       "a op/ b", `Return [id "a"; id "op/"; id "b"; END];
       "a op+_foo b", `Return [id "a"; id "op+_foo"; id "b"; END];
+      "x op+_u32_u32 y", `Return [id "x"; id "op+_u32_u32"; id "y"; END];
       "a op; b", `Return [id "a"; id "op;"; id "b"; END];
       "a op, b", `Return [id "a"; id "op,"; id "b"; END];
       "foo op:= bar", `Return [id "foo"; id "op:="; id "bar"; END];
+      "l op+. r", `Return [id "l"; id "op+."; id "r"; END];
 
       (* quotes *)
       "$", `Return [QUOTE "$"; END];

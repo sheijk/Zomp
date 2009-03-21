@@ -171,7 +171,7 @@ end = struct
     in
     let whitespaceRule = (Any, whitespaceRE), (fun _ -> `Ignore) in
     let opfuncRule prefix =
-      re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z]+\\)? *" opSymbols),
+      re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z0-9_]+\\)? *" opSymbols),
       (fun (str:string) -> `Token (IDENTIFIER (trim str)))
     in
     let keywordRule =

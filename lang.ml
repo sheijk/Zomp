@@ -145,7 +145,7 @@ and branch = {
 
 let funcCallToString argToString fc =
   let argStrings : string list = List.map argToString fc.fcargs in
-  sprintf "%s(%s)" fc.fcname (Common.combine ", " argStrings)
+  sprintf "%s %s" fc.fcname (Common.combine ", " argStrings)
 
 let labelToString l = l.lname
 
@@ -242,8 +242,8 @@ let rec formToSExpr : form -> Ast2.t = function
       Ast2.expr "Comment" (List.map (Ast2.idExpr ++ addQuotes) strings)
 
 let rec formToString : form -> string = function
-  | `Variable var -> sprintf "Variable (%s)" (varToString var)
-  | `Constant c -> sprintf "Constant (%s)" (valueString c)
+  | `Variable var -> sprintf "Variable %s" (varToString var)
+  | `Constant c -> sprintf "Constant %s" (valueString c)
   | `Sequence s ->
       let strings = List.map formToString s in
       sprintf "Sequence(\n%s\n)" (Common.combine "\n  " strings)
