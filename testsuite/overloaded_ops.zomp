@@ -1,0 +1,85 @@
+/**
+ * Testing overloaded operators
+ */
+
+func int op+_u32_u32(int l, int r)
+  l + r
+end
+
+func int op-_u32_u32(int l, int r)
+  l - r
+end
+
+func int op*_u32_u32(int l, int r)
+  l * r
+end
+
+func int op/_u32_u32(int l, int r)
+  l / r
+end
+
+func bool op>_u32_u32(int l, int r)
+  l > r
+end
+
+func bool op>=_u32_u32(int l, int r)
+  l >= r
+end
+
+func bool op<_u32_u32(int l, int r)
+  l < r
+end
+
+func bool op<=_u32_u32(int l, int r)
+  l <= r
+end
+
+func bool op==_u32_u32(int l, int r)
+  l == r
+end
+
+func bool op!=_u32_u32(int l, int r)
+  l != r
+end
+
+func float op+_float_float(float l, float r)
+  l +_f r
+end
+
+func void testOps()
+  // var bool fail1 (zmp:cee:add 10 2.0)
+  var int iadd (zmp:cee:add 1 3)
+  var int isub (zmp:cee:sub 4 2)
+  var int imul (zmp:cee:mul 4 7)
+  var int idiv (zmp:cee:div 44 11)
+  var bool iequal (zmp:cee:equal 9 9)
+  var bool inotEqual (zmp:cee:notEqual 20 21)
+  var bool igreater (zmp:cee:greater 10 8)
+  var bool igreaterEqual (zmp:cee:greaterEqual 20 20)
+  var bool iless (zmp:cee:less 3 100)
+  var bool ilessEqual (zmp:cee:lessEqual 7 7)
+  var float fadd (zmp:cee:add 1.3 4.2)
+
+  unittest:assertAll
+    iadd == 4
+    isub == 2
+    imul == 28
+    idiv == 4
+    iequal
+    inotEqual
+    igreater
+    igreaterEqual
+    iless
+    ilessEqual
+
+    fadd ==_f 5.5
+  end
+end
+
+func int main()
+  testOps()
+
+  ret 0
+end
+
+

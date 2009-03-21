@@ -1459,6 +1459,61 @@ struct
 
 end
 
+module Overloaded_ops : Zomp_transformer =
+struct
+  let overloadedOperator baseName (env :exprTranslateF env) = function
+    | {args = [leftExpr; rightExpr]} ->
+        begin
+          let _, leftForm, toplevelFormsLeft =
+            translateToForms env.translateF env.bindings leftExpr
+          in
+          let _, rightForm, toplevelFormsRight =
+            translateToForms env.translateF env.bindings rightExpr
+          in
+          let tc = typeCheck env.bindings in
+          match tc leftForm, tc rightForm with
+            | TypeOf leftType, TypeOf rightType ->
+                begin
+                  let typenameL, typenameR = typeName leftType, typeName rightType in
+                  let funcName = baseName ^ "_" ^ typenameL ^ "_" ^ typenameR in
+                  match Bindings.lookup env.bindings funcName with
+                    | FuncSymbol func ->
+                        Result(env.bindings,
+                               toplevelFormsLeft @ toplevelFormsRight @
+                                 [`FuncCall { fcname = func.fname;
+                                              fcrettype = func.rettype;
+                                              fcparams = List.map snd func.fargs;
+                                              fcargs = [leftForm; rightForm];
+                                              fcptr = `NoFuncPtr; }])
+                    | _ ->
+                        Error [sprintf "No overload for %s(%s, %s) found (expected method %s)"
+                                 baseName typenameL typenameR funcName]
+                end
+            | lresult, rresult ->
+                let typeErrorMessagePotential potError =
+                  match potError with
+                    | TypeError (fe,msg,found,expected) ->
+                        typeErrorMessage env.bindings (fe, msg, found, expected)
+                    | _ ->
+                        ""
+                in
+                Error [typeErrorMessagePotential lresult ^
+                         typeErrorMessagePotential rresult]
+        end
+    | _ ->
+        Error ["Expected two arguments"]
+
+  let register addF =
+    addF "zmp:cee:add" (overloadedOperator "op+");
+    addF "zmp:cee:sub" (overloadedOperator "op-");
+    addF "zmp:cee:mul" (overloadedOperator "op*");
+    addF "zmp:cee:div" (overloadedOperator "op/");
+    addF "zmp:cee:equal" (overloadedOperator "op==");
+    addF "zmp:cee:notEqual" (overloadedOperator "op!=");
+    addF "zmp:cee:greater" (overloadedOperator "op>");
+    addF "zmp:cee:greaterEqual" (overloadedOperator "op>=");
+    addF "zmp:cee:less" (overloadedOperator "op<");
+    addF "zmp:cee:lessEqual" (overloadedOperator "op<=");
 end
 
 let baseInstructions =
@@ -1467,6 +1522,7 @@ let baseInstructions =
   add "dummy" translateDummy;
   Base.register add;
   Array.register add;
+  Overloaded_ops.register add;
   table
 
 let translateFromDict
