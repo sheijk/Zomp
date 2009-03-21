@@ -786,6 +786,7 @@ float:aliasNoQNAN notEqual
 float:aliasNoQNAN less
 float:aliasNoQNAN greater
 float:aliasNoQNAN lessEqual
+float:aliasNoQNAN greaterEqual
 
 
 func int main()

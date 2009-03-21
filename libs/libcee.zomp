@@ -464,3 +464,109 @@ macro switch intvalue default cases...
   ret code
 end
 
+///-----------------------------------------------------------------------------
+/// Section: support for overloaded operators
+///-----------------------------------------------------------------------------
+
+func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func)
+  funcname := type ++ ":" ++ func
+  oprname := opr ++ "_" ++ type ++ "_" ++ type
+
+  ret ${
+    func #rettype #oprname(#type l, #type r)
+      #funcname(l, r)
+    end
+  end}
+end
+
+alias u32:greater u32:sgreater l r
+alias u32:greaterEqual u32:sgreaterEqual l r
+alias u32:less u32:sless l r
+alias u32:lessEqual u32:slessEqual l r
+alias u32:div u32:sdiv l r
+
+alias float:div float:fdiv l r
+alias float:greater float:ogreater l r
+alias float:greaterEqual float:ogreaterEqual l r
+alias float:less float:oless l r
+alias float:lessEqual float:olessEqual l r
+
+alias double:equal double:oequal l r
+alias double:notEqual double:onotEqual l r
+alias double:div double:fdiv l r
+alias double:greater double:ogreater l r
+alias double:greaterEqual double:ogreaterEqual l r
+alias double:less double:oless l r
+alias double:lessEqual double:olessEqual l r
+
+macro overloadedOps type
+  macro defop_ rettype opr name
+    oprName := cstring:quote opr.id
+    funcName := cstring:quote name.id
+
+    ret ${
+      ast:addChild code (defineOpCode type.id #rettype #oprName #funcName)
+    end}
+  end
+
+  code := ${}
+
+  defop_ "bool" op== equal
+  defop_ "bool" op!= notEqual
+  defop_ "bool" op> greater
+  defop_ "bool" op>= greaterEqual
+  defop_ "bool" op< less
+  defop_ "bool" op<= lessEqual
+
+  defop_ type.id op+ add
+  defop_ type.id op- sub
+  defop_ type.id op* mul
+  defop_ type.id op/ div
+
+  ret code
+end
+
+overloadedOps u32
+overloadedOps float
+overloadedOps double
+
+template op+ l r
+  zmp:cee:add #l #r
+end
+
+template op- l r
+  zmp:cee:sub #l #r
+end
+
+template op* l r
+  zmp:cee:mul #l #r
+end
+
+template op/ l r
+  zmp:cee:div #l #r
+end
+
+template op== l r
+  zmp:cee:equal #l #r
+end
+
+template op!= l r
+  zmp:cee:notEqual #l #r
+end
+
+template op> l r
+  zmp:cee:greater #l #r
+end
+
+template op>= l r
+  zmp:cee:greaterEqual #l #r
+end
+
+template op< l r
+  zmp:cee:less #l #r
+end
+
+template op<= l r
+  zmp:cee:lessEqual #l #r
+end
+
