@@ -1284,7 +1284,13 @@ struct
 
 end
 
-module Base =
+(** A module defining various zomp transformations *)
+module type Zomp_transformer =
+sig
+  val register : (string -> (exprTranslateF env -> Ast2.t -> translationResult) -> unit) -> unit
+end
+
+module Base : Zomp_transformer =
 struct
   let translateDefineLocalVar env expr =
     let transform id name typeExpr valueExpr =
@@ -1390,9 +1396,13 @@ struct
           doTranslation id varName rightHandExpr
       | _ ->
           Error ["Expected 'assign varName valueExpr'"]
+
+  let register addF =
+    addF "std:base:localVar" translateDefineLocalVar;
+    addF macroAssign translateAssignVar;
 end
 
-module Array =
+module Array : Zomp_transformer =
 struct
   let arraySize (env: exprTranslateF env) expr =
     match expr with
@@ -1442,16 +1452,21 @@ struct
         end
     | _ ->
         Error ["Expected 'zmp:array:addrOf arrayExpr indexExpr'"]
+
+  let register addF =
+    addF "zmp:array:size" arraySize;
+    addF "zmp:array:addr" arrayAddr
+
+end
+
 end
 
 let baseInstructions =
   let table = Hashtbl.create 32 in
   let add = Hashtbl.add table in
   add "dummy" translateDummy;
-  add "std:base:localVar" Base.translateDefineLocalVar;
-  add macroAssign Base.translateAssignVar;
-  add "zmp:array:size" Array.arraySize;
-  add "zmp:array:addr" Array.arrayAddr;
+  Base.register add;
+  Array.register add;
   table
 
 let translateFromDict
@@ -1505,20 +1520,6 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
     translateLabel;
     translateBranch;
   ]
-  (* [ *)
-  (*   sampleFunc3 "nested.translateFromDict" <<= translateFromDict baseInstructions; *)
-  (*   sampleFunc3 "nested.translateSeq" <<= translateSeq; *)
-  (*   sampleFunc3 "nested.translateDefineVar" <<= translateDefineVar; *)
-  (*   sampleFunc3 "nested.translateSimpleExpr" <<= translateSimpleExpr; *)
-  (*   sampleFunc3 "nested.translateFuncCall" <<= translateFuncCall; *)
-  (*   sampleFunc3 "nested.translateMacro" <<= translateMacro; *)
-  (*   sampleFunc3 "nested.translateDefineMacro" <<= translateDefineMacro translateNested; *)
-  (*   sampleFunc3 "nested.translateGenericIntrinsic" <<= translateGenericIntrinsic; *)
-  (*   sampleFunc3 "nested.translateRecord" <<= translateRecord; *)
-  (*   sampleFunc3 "nested.translateReturn" <<= translateReturn; *)
-  (*   sampleFunc3 "nested.translateLabel" <<= translateLabel; *)
-  (*   sampleFunc3 "nested.translateBranch" <<= translateBranch; *)
-  (* ] *)
   translateF bindings
 let translateNested = sampleFunc2 "translateNested" translateNested
 
