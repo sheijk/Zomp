@@ -677,9 +677,9 @@ struct SpaceballCamera
 end
 
 func void SpaceballCamera:init(SpaceballCamera* this)
-  this.latitude = 0.f
-  this.longitude = 0.f
-  this.distance = 1.f
+  this.latitude = 0.0f
+  this.longitude = 0.0f
+  this.distance = 1.0f
 end
 
 func void SpaceballCamera:rotate(SpaceballCamera* this)

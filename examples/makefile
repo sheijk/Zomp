@@ -19,6 +19,16 @@ NOT_WORKING_PROGRAMS=static.zomp metaballs.zomp using_assimp.zomp shaderfun.zomp
 test: $(SIMPLE_PROGRAMS:.zomp=.exe) $(GL_PROGRAMS:.zomp=.glexe)
 
 ################################################################################
+# Dependencies
+################################################################################
+
+cee.ll: ../libs/libcee.zomp
+metaballs.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../glut.zomp ../quicktext.zomp ../libs/glutils.zomp
+opengl.ll: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glutils.zomp
+shaderfun.ll: ../opengl20.zomp ../glfw.zomp ../libs/glutils.zomp ../glut.zomp ../quicktext.zomp ../libs/libcee.zomp
+using_assimp.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glutils.zomp
+
+################################################################################
 # Rules
 ################################################################################
 

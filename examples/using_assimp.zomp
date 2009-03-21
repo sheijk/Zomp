@@ -170,11 +170,6 @@ func void AABB:diagonal(float3* result, AABB* this)
   result.z = this.max.z -_f this.min.z
 end
 
-template pret code
-  ast:print #code 0
-  ret ${}
-end
-
 macro defineArray type varname values...
   size := values.childCount
   arrayType := ast:fromString "postop[]"
