@@ -26,11 +26,11 @@ macro assert testCode
 
   if2 ast:matchesShape(testCode, ${__ ==_f __}) then
     isCompare = true
-    printF = ast:fromString "printFloat"
+    printF = ast:fromString "print"
     compareF = ast:fromString "op==_f"
   elseif ast:matchesShape(testCode, ${__ == __})
     isCompare = true
-    printF = ast:fromString "printInt"
+    printF = ast:fromString "print"
     compareF = ast:fromString "op=="
   end
 
@@ -101,7 +101,7 @@ end
 ///-----------------------------------------------------------------------------
 
 func float sqrf(float x)
-  x *_f x
+  x * x
 end
 
 ///-----------------------------------------------------------------------------
@@ -121,7 +121,7 @@ func void float3:print(float3* this)
 end
 
 func float float3:length(float3* this)
-  ret sqrtf(sqrf this.x +_f sqrf this.y +_f sqrf this.z)
+  ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
 end
 
 //------------------------------------------------------------------------------
@@ -165,9 +165,9 @@ func void AABB:print(AABB* this)
 end
 
 func void AABB:diagonal(float3* result, AABB* this)
-  result.x = this.max.x -_f this.min.x
-  result.y = this.max.y -_f this.min.y
-  result.z = this.max.z -_f this.min.z
+  result.x = this.max.x - this.min.x
+  result.y = this.max.y - this.min.y
+  result.z = this.max.z - this.min.z
 end
 
 macro defineArray type varname values...
@@ -835,18 +835,18 @@ macro mainloop body...
     while running
       autoSetupViewport()
       glfwGetWindowSize &windowWidth &windowHeight
-      // aspectRatio := int:toFloat windowWidth /_f int:toFloat windowHeight
+      // aspectRatio := int:toFloat windowWidth / int:toFloat windowHeight
       lastTime = time
       time = double:toFloat glfwGetTime()
-      frameDuration = time -_f lastTime
+      frameDuration = time - lastTime
 
       #body
 
       glfwSwapBuffers()
       glfwPollEvents()
       running = bool:not isPressed(GLFW_KEY_ESC)
-      if2 (maxRunTime !=_f 0.0) then
-        running = running && (time -_f startTime <_f maxRunTime)
+      if2 (maxRunTime != 0.0) then
+        running = running && (time - startTime < maxRunTime)
       end
       ++frameNum
     end
@@ -961,7 +961,7 @@ func int main()
   glDepthFunc GL_LEQUAL
 
   mainloop
-    angle = angle +_f 90.0 *_f frameDuration
+    angle = angle + 90.0 * frameDuration
 
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -973,7 +973,7 @@ func int main()
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    glTranslatef 0. (meshSize *_f -0.1) (-0.8 *_f meshSize)
+    glTranslatef 0. (meshSize * -0.1) (-0.8 * meshSize)
     glRotatef angle 0. 1. 0.
 
     drawOrientationGrid()

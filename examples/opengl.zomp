@@ -39,7 +39,7 @@ macro mainloop body...
     var bool running true
     while running
       time = double:toFloat(glfwGetTime())
-      angle = time *_f 128.0
+      angle = time * 128.0
 
       #body
 
