@@ -107,17 +107,6 @@ end = struct
       Any, Str.regexp regexpString
     in
     let idFunc s = `Token (IDENTIFIER s) in
-    let trimIdFunc s =
-      let rec trimNewlines str =
-        let str = Common.trim str in
-        let strLength = String.length str in
-        if strLength > 0 && str.[strLength-1] = '\n' then begin
-          str.[strLength-1] <- ' ';
-          trimNewlines str
-        end else
-          str
-      in
-      `Token (IDENTIFIER (trimNewlines s)) in
     let regexpRule str token =
       re str,
       (fun matchedStr -> `Token token)
@@ -208,8 +197,34 @@ end = struct
     @ opbracketRules
     @ (
       let floatRule =
+        let trimIdFunc s =
+          let trimNewlines str =
+            let isLegalNumChar chr =
+              let between min max = chr >= min && chr <= max in
+              let is c = chr = c in
+              between '0' '9' ||
+                between 'a' 'z' ||
+                between 'A' 'Z' ||
+                is '.' ||
+                is ' ' ||
+                is '\t'
+            in
+            let strLength = String.length str in
+            if strLength > 0 && not (isLegalNumChar str.[strLength-1]) then
+              let number, last = Common.splitLastChar str in
+              number, String.make 1 last
+            else
+              Common.trim str, ""
+          in
+          let trimmedS, putback = trimNewlines s in
+          let token = (IDENTIFIER trimmedS) in
+          if String.length putback = 0 then
+            `Token token
+          else
+            `PutBack (token, putback)
+        in
         let dotnumRE = "[0-9]*\\.[0-9]+[a-zA-Z]*" in
-        let numdotRE = "[0-9]+\\.\\( \\| *\n\\)" in
+        let numdotRE = "[0-9]+\\.\\([^a-zA-Z]\\| *\n\\)" in
         (Not Identifier, Str.regexp (sprintf "-?\\(%s\\|%s\\)" dotnumRE numdotRE)),
         trimIdFunc
       in

@@ -238,15 +238,24 @@ struct
       (* TODO: alle operatoren testen *)
 
       "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];
-      "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo"; KEYWORD_ARG "then"; END];
+      "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo";
+                                KEYWORD_ARG "then"; END];
       (* "this is a line:", `Return [id "this"; id "is"; id "a"; id "line"; *)
       (*                             EXTENDED_INDENT; END]; *)
 
       (** reproduce various bugs *)
-      "(num--)", `Return [OPEN_PAREN; id "num"; POSTFIX_OP "--"; CLOSE_PAREN; END];
-      "${foo*}", `Return [QUOTE "$"; OPEN_CURLY; id "foo"; POSTFIX_OP "*"; CLOSE_CURLY; END];
-      "[i++]", `Return [OPEN_BRACKET; id "i"; POSTFIX_OP "++"; CLOSE_BRACKET; END];
-      "structptr*.member", `Return [id "structptr"; POSTFIX_OP "*"; DOT; id "member"; END];
+      "(num--)", `Return [OPEN_PAREN; id "num"; POSTFIX_OP "--";
+                          CLOSE_PAREN; END];
+      "${foo*}", `Return [QUOTE "$"; OPEN_CURLY; id "foo";
+                          POSTFIX_OP "*"; CLOSE_CURLY; END];
+      "[i++]", `Return [OPEN_BRACKET; id "i"; POSTFIX_OP "++";
+                        CLOSE_BRACKET; END];
+      "structptr*.member", `Return [id "structptr"; POSTFIX_OP "*";
+                                    DOT; id "member"; END];
+
+      "foo 1.\nbar 2", `Return [id "foo"; id "1."; END; id "bar"; id "2"; END];
+      "foo(1.,0.)", `Return [id "foo"; OPEN_ARGLIST;
+                             id "1."; COMMA; id "0."; CLOSE_PAREN; END];
     ]
     @ infixOp "+" (ADD_OP "+")
     @ infixOp "-" (ADD_OP "-")
