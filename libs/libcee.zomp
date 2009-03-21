@@ -465,7 +465,7 @@ macro switch intvalue default cases...
 end
 
 ///-----------------------------------------------------------------------------
-/// Section: support for overloaded operators
+/// Section: Overloaded operators
 ///-----------------------------------------------------------------------------
 
 func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func)
@@ -570,3 +570,68 @@ template op<= l r
   zmp:cee:lessEqual #l #r
 end
 
+///-----------------------------------------------------------------------------
+/// Section: Overloaded printing
+///-----------------------------------------------------------------------------
+
+func void print_u32(int i)
+  printInt i
+end
+
+func void print_float(float f)
+  printFloat f
+end
+
+func void print_char(char c)
+  printChar c
+end
+
+func void print_bool(bool b)
+  printBool b
+end
+
+func void print_double(double d)
+  printDouble d
+end
+
+macro make_cstring_printer
+  var cstring fname "print_char*"
+  ret ${
+    func void #fname(char* s)
+      printString s
+    end
+  end}
+end
+
+make_cstring_printer
+
+macro print args...
+  var astp code ${}
+
+  forEachAstChild arg args
+    ast:addChild code ${zmp:cee:print #arg}
+  end
+
+  ret code
+end
+
+///-----------------------------------------------------------------------------
+/// Section: Overloaded conversion
+///-----------------------------------------------------------------------------
+
+alias toFloat zmp:cee:toFloat x
+alias toInt zmp:cee:toInt x
+alias toChar zmp:cee:toChar x
+alias toCString zmp:cee:toCString x
+
+func float toFloat_u32(u32 i)
+  int:toFloat i
+end
+
+func int toInt_float(float f)
+  float:toInt f
+end
+
+func int toInt_double(double d)
+  double:toInt d
+end

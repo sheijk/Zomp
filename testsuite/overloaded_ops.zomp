@@ -46,6 +46,14 @@ func float op+_float_float(float l, float r)
   l +_f r
 end
 
+func bool op==_float_float(float l, float r)
+  l ==_f r
+end
+
+template op== l r
+  zmp:cee:equal #l #r
+end
+
 func void testOps()
   // var bool fail1 (zmp:cee:add 10 2.0)
   var int iadd (zmp:cee:add 1 3)
@@ -72,12 +80,94 @@ func void testOps()
     iless
     ilessEqual
 
-    fadd ==_f 5.5
+    fadd == 5.5
+  end
+end
+
+func void print_u32(int i)
+  printInt i
+end
+
+func void print_float(float f)
+  printFloat f
+end
+
+func void print_char(char c)
+  printChar c
+end
+
+func void print_bool(bool b)
+  printBool b
+end
+
+func void print_double(double d)
+  printDouble d
+end
+
+macro make_cstring_printer
+  var cstring fname "print_char*"
+  ret ${
+    func void #fname(char* s)
+      printString s
+    end
+  end}
+end
+
+make_cstring_printer
+
+macro print args...
+  var astp code ${}
+
+  forEachAstChild arg args
+    ast:addChild code ${zmp:cee:print #arg}
+  end
+
+  ret code
+end
+
+func void testPrint()
+  var cstring nl "\n  "
+  print "Testing generic printing function:" nl
+  print "float: " 1.0 nl
+  print "double: " 2.0d nl
+  print "char: " '!' nl
+  print "int: " 999 nl
+  print "bool: " true nl
+end
+
+alias toFloat zmp:cee:toFloat x
+alias toInt zmp:cee:toInt x
+alias toChar zmp:cee:toChar x
+alias toCString zmp:cee:toCString x
+
+func float toFloat_u32(u32 i)
+  int:toFloat i
+end
+
+func int toInt_float(float f)
+  float:toInt f
+end
+
+func int toInt_double(double d)
+  double:toInt d
+end
+
+func void testConversion()
+  var float f toFloat(100)
+  var int i1 toInt(10.0)
+  var int i2 toInt(33.0d)
+
+  unittest:assertAll
+    f == 100.0
+    i1 == 10
+    i2 == 33
   end
 end
 
 func int main()
   testOps()
+  testPrint()
+  testConversion()
 
   ret 0
 end

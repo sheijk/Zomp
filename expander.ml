@@ -1486,7 +1486,7 @@ struct
                                               fcargs = [leftForm; rightForm];
                                               fcptr = `NoFuncPtr; }])
                     | _ ->
-                        Error [sprintf "No overload for %s(%s, %s) found (expected method %s)"
+                        Error [sprintf "No overload for %s(%s, %s) found (expected function %s)"
                                  baseName typenameL typenameR funcName]
                 end
             | lresult, rresult ->
@@ -1503,6 +1503,35 @@ struct
     | _ ->
         Error ["Expected two arguments"]
 
+  let overloadedFunction baseName (env :exprTranslateF env) = function
+    | {args = [argExpr]} ->
+        begin
+          let _, argForm, toplevelForms =
+            translateToForms env.translateF env.bindings argExpr
+          in
+          match typeCheck env.bindings argForm with
+            | TypeOf argType ->
+                begin
+                  let funcName = baseName ^ "_" ^ typeName argType in
+                  match Bindings.lookup env.bindings funcName with
+                    | FuncSymbol func ->
+                        Result(env.bindings,
+                               toplevelForms @
+                                 [`FuncCall { fcname = func.fname;
+                                              fcrettype = func.rettype;
+                                              fcparams = List.map snd func.fargs;
+                                              fcargs = [argForm];
+                                              fcptr = `NoFuncPtr; }])
+                    | _ ->
+                        Error [sprintf "No overload for %s(%s) found (expected function %s)"
+                                 baseName (typeName argType) funcName]
+                end
+            | TypeError (fe,m,f,e) ->
+                Error [typeErrorMessage env.bindings (fe,m,f,e)]
+        end
+    | _ ->
+        Error ["Expected one argument"]
+
   let register addF =
     addF "zmp:cee:add" (overloadedOperator "op+");
     addF "zmp:cee:sub" (overloadedOperator "op-");
@@ -1514,6 +1543,12 @@ struct
     addF "zmp:cee:greaterEqual" (overloadedOperator "op>=");
     addF "zmp:cee:less" (overloadedOperator "op<");
     addF "zmp:cee:lessEqual" (overloadedOperator "op<=");
+
+    addF "zmp:cee:print" (overloadedFunction "print");
+    addF "zmp:cee:toFloat" (overloadedFunction "toFloat");
+    addF "zmp:cee:toInt" (overloadedFunction "toInt");
+    addF "zmp:cee:toChar" (overloadedFunction "toChar");
+    addF "zmp:cee:toCString" (overloadedFunction "toCString");
 end
 
 let baseInstructions =
