@@ -320,9 +320,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
   let intrinsicFuncs =
      [
-       twoArgIntrinsic "int:shl" "shl" `Int32;
-       twoArgIntrinsic "int:lshr" "lshr" `Int32;
-       twoArgIntrinsic "int:ashr" "ashr" `Int32;
+       twoArgIntrinsic "u32:shl" "shl" `Int32;
+       twoArgIntrinsic "u32:lshr" "lshr" `Int32;
+       twoArgIntrinsic "u32:ashr" "ashr" `Int32;
        "void", `Intrinsic void, `Void, [];
 
       convertIntr "float:toInt" "fptosi" `Float `Int32;
@@ -335,11 +335,11 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
-    @ simpleTwoArgIntrinsincs `Int32 "int" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    @ simpleTwoArgIntrinsincs `Int32 "u32" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
     @ floatIntrinsics `Float
     @ floatIntrinsics `Double
-    @ compareIntrinsics `Int32 "int"
+    @ compareIntrinsics `Int32 "u32"
     @ compareIntrinsics `Char (typeName `Char)
   in
   let builtinMacros =

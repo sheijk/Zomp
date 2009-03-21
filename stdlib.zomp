@@ -60,7 +60,7 @@ func bool bool:not(bool b)
 end
 
 func int square(int x)
-  int:mul x x
+  u32:mul x x
 end
 
 func float squaref(float x)
@@ -113,7 +113,7 @@ type cstring (ptr char)
 func int strcmp(cstring l, cstring r)
 func cstring strcpy(cstring dest, cstring source)
 
-func cstring int:toCString(int x)
+func cstring u32:toCString(int x)
   int2cstring x
 end
 
@@ -135,7 +135,7 @@ func int length(cstring s)
   assign c (load ptr)
 
   assign ptr (ptradd ptr 1)
-  assign count (int:add count 1)
+  assign count (u32:add count 1)
   assign b (char:equal c '\0')
   branch b end start
 
@@ -152,14 +152,14 @@ func string* makestring(cstring cstr)
 end
 
 func string* newString(int length, char init)
-  var (ptr char) chars (malloc char (int:add 1 length))
+  var (ptr char) chars (malloc char (u32:add 1 length))
   store (ptradd chars length) '\0'
   var int index 0
   var bool reachedEnd false
   label start
   store (ptradd chars index) init
-  assign index (int:add index 1)
-  assign reachedEnd (int:ugreaterEqual index length)
+  assign index (u32:add index 1)
+  assign reachedEnd (u32:ugreaterEqual index length)
   branch reachedEnd end start
   label end
 
@@ -170,7 +170,7 @@ func string* newString(int length, char init)
 end
 
 func string* append(string* l, string* r)
-  var int length (int:add (getField l length) (getField r length))
+  var int length (u32:add (getField l length) (getField r length))
   var (ptr string) result (newString length 'x')
   var (ptr char) chars (getField result chars)
   var (ptr char) leftChars (getField l chars)
@@ -182,16 +182,16 @@ func string* append(string* l, string* r)
 
   label lbegin
   store (ptradd chars index) (load (ptradd leftChars index))
-  assign index (int:add index 1)
-  var bool test (int:uless index leftLength)
+  assign index (u32:add index 1)
+  var bool test (u32:uless index leftLength)
   branch test lbegin lend
   label lend
 
   assign index 0
   label rbegin
-  store (ptradd chars (int:add leftLength index)) (load (ptradd rightChars index))
-  assign index (int:add index 1)
-  var bool test2 (int:uless index rightLength)
+  store (ptradd chars (u32:add leftLength index)) (load (ptradd rightChars index))
+  assign index (u32:add index 1)
+  var bool test2 (u32:uless index rightLength)
   branch test2 rbegin rend
   label rend
 
@@ -203,27 +203,27 @@ end
 func void printIndent(int count)
   var int counter count
   label start
-  var bool t (int:ugreater counter 0)
+  var bool t (u32:ugreater counter 0)
   branch t goon end
   label goon
   printChar ' '
-  assign counter (int:sub counter 1)
+  assign counter (u32:sub counter 1)
   branch start
   label end
 end
 
 func bool cstring:equal(cstring l, cstring r)
-  ret (int:equal 0 (strcmp l r))
+  ret (u32:equal 0 (strcmp l r))
 end
 
 func cstring cstring:quote(cstring unquoted)
   var int unquotedLength (length unquoted)
-  var cstring quoted (malloc char (int:add unquotedLength 3))
+  var cstring quoted (malloc char (u32:add unquotedLength 3))
 
   strcpy (ptradd quoted 1) unquoted
   store quoted '"' // "
-  store (ptradd quoted (int:add unquotedLength 1)) '"' // "
-  store (ptradd quoted (int:add unquotedLength 2)) '\0'
+  store (ptradd quoted (u32:add unquotedLength 1)) '"' // "
+  store (ptradd quoted (u32:add unquotedLength 2)) '\0'
 
   ret quoted
 end
@@ -271,28 +271,28 @@ func void ast:print((ptr ast) a, int indent)
 
   var int index 0
   label start
-  var bool t (int:uless index (getField a childCount))
+  var bool t (u32:uless index (getField a childCount))
   branch t goon end
   label goon
   var (ptr ast) child (load (ptradd (getField a childs) index))
-  ast:print child (int:add indent 1)
-  assign index (int:add index 1)
+  ast:print child (u32:add indent 1)
+  assign index (u32:add index 1)
   branch start
   label end
 end
 
 func void ast:addChild((ptr ast) tree, (ptr ast) child)
   var int oldChildCount (getField tree childCount)
-  var int newChildCount (int:add 1 oldChildCount)
+  var int newChildCount (u32:add 1 oldChildCount)
   var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount)
 
   var int index 0
   label start
-  var bool t (int:uless index oldChildCount)
+  var bool t (u32:uless index oldChildCount)
   branch t goon end
   label goon
   store (ptradd newChilds index) (load (ptradd (getField tree childs) index))
-  assign index (int:add index 1)
+  assign index (u32:add index 1)
   branch start
   label end
 
@@ -347,7 +347,7 @@ end
 var int lastid 0
 
 func int newUniqueId()
-  assign lastid (int:add lastid 1)
+  assign lastid (u32:add lastid 1)
   ret lastid
 end
 
@@ -379,8 +379,8 @@ macro testmacro args...
   var (ptr ast) child (ast:child args index)
   ast:addChild code child
 
-  assign index (int:add index 1)
-  var bool test (int:uless index count)
+  assign index (u32:add index 1)
+  var bool test (u32:uless index count)
   branch test start end
   label end
 
@@ -395,7 +395,7 @@ macro testmacro1 arg
   var astp code ${foo bar}
   printInt (cast int arg)
 
-  var bool test (int:equal 0 (cast int arg))
+  var bool test (u32:equal 0 (cast int arg))
   branch test error continue
 
   label error
@@ -477,12 +477,12 @@ macro for index min supremum code
 
     label #startLabel
 
-    assign #testResult (int:sless #index #supremum)
+    assign #testResult (u32:sless #index #supremum)
     branch #testResult #execLabel #endLabel
 
     label #execLabel
     #code
-    assign #index (int:add #index 1)
+    assign #index (u32:add #index 1)
     branch #startLabel
 
     label #endLabel
@@ -551,7 +551,7 @@ macro template name argsAndImpl...
   const int argCount (getField argsAndImpl childCount)
   for argnum 0 argCount
     const (ptr ast) arg (ast:child argsAndImpl argnum)
-    var bool firstArg (int:uless argnum (int:sub argCount 1))
+    var bool firstArg (u32:uless argnum (u32:sub argCount 1))
     when firstArg
       ast:addChild t arg
     end
@@ -654,7 +654,7 @@ end
 /// Will define a function name_tests_nr which will
 /// call all unittest:assert on all given testCases
 macro unittest:testCasesFor name testCases...
-  var cstring testName (cstring:concat "test_" (getField name id) "_" (int:toCString (newUniqueId)))
+  var cstring testName (cstring:concat "test_" (getField name id) "_" (u32:toCString (newUniqueId)))
 
   var astp impl (ast:fromString "unittest:assertAll")
   forEachAstChild testCase testCases
@@ -670,7 +670,7 @@ macro unittest:testCasesFor name testCases...
 end
 
 func cstring unittest:newTestFuncNameFor(cstring funcName)
-  cstring:concat "test_" funcName "_" (int:toCString (newUniqueId))
+  cstring:concat "test_" funcName "_" (u32:toCString (newUniqueId))
 end
 
 macro unittest:testFunc funcName impl
@@ -692,6 +692,11 @@ macro mret code
     ast:print #code 0
     ret #code
   end}
+end
+
+template pret code
+  ast:print #code 0
+  ret ${}
 end
 
 // not supported for now
@@ -721,7 +726,7 @@ end
 ///-----------------------------------------------------------------------------
 
 func void ast:setChild(ast* parent, int index, ast* newChild)
-  assert (int:uless index (getField parent childCount))
+  assert (u32:uless index (getField parent childCount))
   var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index)
   store childptrAddr newChild
 end
@@ -800,26 +805,26 @@ template float:neg x (float:sub 0. #x)
 /// Section: Additional operators and basic math functions
 ///-----------------------------------------------------------------------------
 
-func int int:mod(int v, int div)
-  int:urem v div
+func int u32:mod(int v, int div)
+  u32:urem v div
 end
 
-macro int:neg x
-  ret ${int:sub 0 #x}
+macro u32:neg x
+  ret ${u32:sub 0 #x}
 end
 
-template op+ l r (int:add #l #r)
-template op- l r (int:sub #l #r)
-template op* l r (int:mul #l #r)
-template op/ l r (int:sdiv #l #r)
+template op+ l r (u32:add #l #r)
+template op- l r (u32:sub #l #r)
+template op* l r (u32:mul #l #r)
+template op/ l r (u32:sdiv #l #r)
 
-template op== l r (int:equal #l #r)
-template op!= l r (int:notEqual #l #r)
+template op== l r (u32:equal #l #r)
+template op!= l r (u32:notEqual #l #r)
 
-template op> l r (int:sgreater #l #r)
-template op< l r (int:sless #l #r)
-template op>= l r (int:sgreaterEqual #l #r)
-template op<= l r (int:slessEqual #l #r)
+template op> l r (u32:sgreater #l #r)
+template op< l r (u32:sless #l #r)
+template op>= l r (u32:sgreaterEqual #l #r)
+template op<= l r (u32:slessEqual #l #r)
 
 template op==_ptr l r (cast int #l == cast int #r)
 template op!=_ptr l r (cast int #l != cast int #r)
@@ -903,8 +908,8 @@ macro compareFunc type name compareF
 end
 
 // TODO: replace this with branchless impl once this makes a difference
-compareFunc int int:max op>
-compareFunc int int:min op<
+compareFunc int u32:max op>
+compareFunc int u32:min op<
 
 compareFunc float float:max op>_f
 compareFunc float float:min op<_f
@@ -916,8 +921,8 @@ func float float:clamp(float min, float max, float x)
   float:min max (float:max min x)
 end
 
-func int int:clamp(int min, int max, int x)
-  int:min max (int:max min x)
+func int u32:clamp(int min, int max, int x)
+  u32:min max (u32:max min x)
 end
 
 func bool float:equalDelta(float delta, float l, float r)
@@ -941,7 +946,7 @@ end
 /// Section: Deprecation
 ///-----------------------------------------------------------------------------
 
-macro deprecatedNoVarArgs name replacementName warning args...
+macro deprecatedNoVarArgs name replacementName warningCode args...
   var astp code ${macro #name}
   forEachAstChild arg args
     ast:addChild code arg
@@ -950,7 +955,8 @@ macro deprecatedNoVarArgs name replacementName warning args...
   var astp impl ${}
   ast:addChild code impl
 
-  ast:addChild impl ${compiler:printWarning #warning}
+  // ast:addChild impl ${compiler:printWarning #warning}
+  ast:addChild impl warningCode
 
   var astp call (ast:fromString (getField replacementName id))
   forEachAstChild arg2 args
@@ -963,7 +969,7 @@ macro deprecatedNoVarArgs name replacementName warning args...
   ret code
 end
 
-macro deprecatedVarArgs name replacementName warning
+macro deprecatedVarArgs name replacementName warningCode
   var astp code ${macro #name args...}
 
   var cstring replName (cstring:quote (getField replacementName id))
@@ -971,7 +977,8 @@ macro deprecatedVarArgs name replacementName warning
   var astp impl ${}
   ast:addChild code impl
   ast:addChild impl ${
-    compiler:printWarning #warning
+    #warningCode
+    // compiler:printWarning #warning
 
     var astp call (ast:fromString #replName)
     forEachAstChild child args
@@ -986,6 +993,7 @@ end
 
 macro deprecated name replacementName args...
   var cstring warning (cstring:quote (cstring:concat (getField name id) " is deprecated. Use " (getField replacementName id) " instead."))
+  var astp warningCode ${compiler:printWarning #warning}
 
   var bool isVarArg false
 
@@ -1000,10 +1008,10 @@ macro deprecated name replacementName args...
   var astp code (nullptr ast)
 
   when isVarArg
-    code = ${deprecatedVarArgs #name #replacementName #warning}
+    code = ${deprecatedVarArgs #name #replacementName #warningCode}
   end
   unless isVarArg
-    code = ${deprecatedNoVarArgs #name #replacementName #warning}
+    code = ${deprecatedNoVarArgs #name #replacementName #warningCode}
     forEachAstChild arg args
       ast:addChild code arg
     end
@@ -1029,4 +1037,64 @@ macro linkclib fileNames...
 
   ret code
 end
+
+///-----------------------------------------------------------------------------
+/// Section: Aliasing int to u32
+///-----------------------------------------------------------------------------
+
+macro alias name replacementName args...
+  var astp warningCode ${}
+  var bool isVarArg false
+
+  const int argsChildCount (getField args childCount)
+
+  when (argsChildCount > 0)
+    when (cstring:equal macroRest (getField (ast:child args (argsChildCount - 1)) id))
+      isVarArg = true
+    end
+  end
+
+  var astp code (nullptr ast)
+
+  when isVarArg
+    code = ${deprecatedVarArgs #name #replacementName #warningCode}
+  end
+  unless isVarArg
+    code = ${deprecatedNoVarArgs #name #replacementName #warningCode}
+    forEachAstChild arg args
+      ast:addChild code arg
+    end
+  end
+
+  ret code
+end
+
+alias int:equal u32:equal l r
+alias int:notEqual u32:notEqual l r
+alias int:less u32:less l r
+alias int:lessEqual u32:lessEqual l r
+alias int:greater u32:greater l r
+alias int:greaterEqual u32:greaterEqual l r
+alias int:shl u32:shl l r
+alias int:lshr u32:lshr l r
+alias int:ashr u32:ashr l r
+
+alias int:add u32:add l r
+alias int:sub u32:sub l r
+alias int:mul u32:mul l r
+alias int:sdiv u32:sdiv l r
+alias int:udif u32:udif l r
+alias int:urem u32:urem l r
+alias int:srem u32:srem l r
+alias int:and u32:and l r
+alias int:or u32:or l r
+alias int:xor u32:xor l r
+
+alias int:clamp u32:clamp min max x
+alias int:neg u32:neg x
+alias int:mod u32:mod l r
+alias int:toCString u32:toCString x
+alias int:min u32:min l r
+alias int:max u32:max l r
+
 
