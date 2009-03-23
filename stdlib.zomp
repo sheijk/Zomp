@@ -111,6 +111,7 @@ end
 type cstring (ptr char)
 
 func int strcmp(cstring l, cstring r)
+func int strncmp(cstring l, cstring r, int maxChars)
 func cstring strcpy(cstring dest, cstring source)
 
 func cstring u32:toCString(int x)

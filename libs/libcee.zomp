@@ -348,6 +348,23 @@ template postop-- int
   #int + 1
 end
 
+func int "op**"(int l, int r)
+  acc := 1
+  for i 0 r
+    acc = acc * l
+  end
+  ret acc
+end
+
+macro swap a b
+  uniqueId t "swap"
+  ret ${
+    t := #a
+    #a = #b
+    #b = t
+  end}
+end
+
 macro preop& obj
   code := getMemberAddress obj
   ret code

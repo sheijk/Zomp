@@ -3,6 +3,7 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO eval current defun fails on last func in file
 ** TODO snobol string matching ankucken
 ** TODO type degree := int in :=_type degree int umwandeln
    defkind name := definition+
@@ -20,7 +21,6 @@
      ))
 
 ** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
-** TODO [#A] cleanup stdlib :minor:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
 ** TODO [#A] GHCs newtype genauer ankucken
 ** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
@@ -871,12 +871,12 @@ von http://lambda-the-ultimate.org/node/2884
     - Returns value of last var
 
 *** TODO types [5/7]
-**** DONE int
 **** TODO fixed size int (int8, int16, ..., int128)
+**** TODO signed/unsigned
+**** DONE int
 **** DONE float
 **** DONE double
 **** DONE structs
-**** TODO signed/unsigned
 **** DONE bool
 
 *** TODO strings [2/3]
@@ -919,17 +919,20 @@ von http://lambda-the-ultimate.org/node/2884
      Primitive.cases :: list<string*int>
 
 *** TODO unions
-*** TODO operators for all basic types [0/3]
-**** TODO map 'a § b' to 'a §_t b' for operator § and type(a) == type(b) == t
-**** TODO infix +, -, *, /, **
-**** TODO prefix/postfix ++, --
-*** TODO control structures [2/7]
-**** DONE if then/else if/else
+*** TODO operators for all basic types [3/5]
+**** DONE map 'a § b' to 'a §_t b' for operator § and type(a) == type(b) == t
+     CLOSED: [2009-03-22 Sun 23:56]
+**** DONE infix +, -, *, /, **
+     CLOSED: [2009-03-23 Mon 00:01]
+**** DONE prefix/postfix ++, --
+     CLOSED: [2009-03-23 Mon 00:01]
+**** TODO ** for floats
+**** TODO ++, -- for floats
+*** TODO control structures [2/8]
 **** TODO c-style for
-**** DONE while
 **** TODO do/while
 **** TODO do/until
-**** TODO switch / case
+**** TODO switch / case [1/2]
 ***** DONE basic switch/case
       CLOSED: [2009-03-12 Thu 23:36]
 ***** TODO support explicit fall-through
@@ -960,6 +963,8 @@ von http://lambda-the-ultimate.org/node/2884
       end
 
 **** TODO break, continue
+**** DONE if then/else if/else
+**** DONE while
 *** TODO pointers [2/4]
     using postfix notation
 
