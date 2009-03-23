@@ -23,6 +23,5 @@ val addMacro :
 val lookup : bindings -> string -> symbol
 val isFunction : bindings -> string -> bool
 
-val find : ((string * symbol) -> bool) -> bindings -> (string * symbol)
 val iter : ((string * symbol) -> unit) -> bindings -> unit
 
