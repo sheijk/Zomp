@@ -117,7 +117,7 @@ let printBindings args (bindings :bindings) =
         | MacroSymbol m ->
             printf "macro %s %s\n" m.mname m.mdocstring
         | TypedefSymbol t ->
-            printf "type %s = %s\n" name (typeName t)
+            printf "type %s = %s\n" name (typeDescr t)
         | LabelSymbol { lname = name; } ->
             printf "label %s\n" name
         | UndefinedSymbol ->

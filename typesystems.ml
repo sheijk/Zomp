@@ -122,13 +122,18 @@ struct
         sprintf "%s[%d]" (typeName baseType) size
     | `Record record ->
         record.rname
-        (* let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in *)
-        (* let componentStrings = List.map component2String record.fields in *)
-        (* "(" ^ Common.combine ", " componentStrings ^ ")" *)
     | `Function ft ->
         let retName = typeName ft.returnType in
         let argNames = List.map typeName ft.argTypes in
         sprintf "%s -> %s" (Common.combine ", " argNames) retName
+
+  let typeDescr = function
+    | `Record record ->
+        let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
+        let componentStrings = List.map component2String record.fields in
+        "{" ^ Common.combine ", " componentStrings ^ "}"
+    | other ->
+        typeName other
 
   (* val valueString : value -> string *)
   let rec valueString : value -> string =

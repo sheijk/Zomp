@@ -309,7 +309,7 @@ let toplevelFormDeclToString = function
   | `DefineFunc func ->
       sprintf "func %s" (funcDeclToString func)
   | `Typedef (name, typ) ->
-      sprintf "type %s = %s" name (typeName typ)
+      sprintf "type %s = %s" name (typeDescr typ)
 
 let toplevelFormToString = function
   | `GlobalVar var ->
