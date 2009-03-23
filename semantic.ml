@@ -40,7 +40,8 @@ let rec equalTypes bindings ltype rtype =
           | _, _ ->
               false
         in
-        componentsEqual (l, r)
+        l.rname = r.rname &&
+            componentsEqual (l.fields, r.fields)
     | `Pointer l, `Pointer r when equalTypes bindings l r -> true
     | _, _ -> ltype = rtype
 
@@ -182,9 +183,9 @@ let rec typeCheck bindings form : typecheckResult =
       | `GetFieldPointerIntrinsic (recordForm, fieldName) as getfieldForm ->
           begin
             match typeCheck bindings recordForm with
-              | TypeOf `Pointer `Record components ->
+              | TypeOf `Pointer `Record record ->
                   begin
-                    match componentType components fieldName with
+                    match componentType record.fields fieldName with
                       | Some t ->
                           TypeOf (`Pointer t)
                       | None ->

@@ -38,14 +38,22 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | `Array (memberType, size) -> sprintf "[%d x %s]" size (llvmTypeName memberType)
-  | `Record components ->
-      let componentNames = List.map (fun (_, t) -> llvmTypeName t) components in
+  | `Record record ->
+      (* record.rname *)
+      let componentNames = List.map (fun (_, t) -> llvmTypeName t) record.fields in
       "{ " ^ combine ", " componentNames ^ "}"
   | `Function ft ->
       sprintf "%s (%s)"
         (llvmTypeName ft.returnType)
         (Common.combine ", " (List.map llvmTypeName ft.argTypes))
 
+let rec llvmTypeNameLong = function
+  | `Record record ->
+      let componentNames = List.map (fun (_, t) -> llvmTypeName t) record.fields in
+      "{ " ^ combine ", " componentNames ^ "}"
+  | _ as other ->
+      llvmTypeName other
+        
 let paramTypeName = function
   | `Char -> "i8 signext"
   | other -> llvmTypeName other
@@ -724,13 +732,13 @@ let gencodeGenericIntr (gencode : Lang.form -> resultvar * string) = function
       begin
         let fieldType, fieldIndex =
           match typeOfForm todoBindings recordForm with
-            | `Pointer `Record components ->
-                let fieldType = match componentType components fieldName with
+            | `Pointer `Record record ->
+                let fieldType = match componentType record.fields fieldName with
                   | Some fieldType -> fieldType
                   | None -> raiseCodeGenError ~msg:
                       (sprintf "Could not find field %s" fieldName)
                 in
-                let fieldIndex = componentNum components fieldName in
+                let fieldIndex = componentNum record.fields fieldName in
                 fieldType, fieldIndex
             | _ as invalidType -> raiseCodeGenError ~msg:
                 (sprintf "Expected pointer to record instead of %s" (typeName invalidType))
@@ -942,7 +950,7 @@ let gencodeDefineFunc func =
         "define " ^ decl ^ impl
 
 let gencodeTypedef name typ =
-  sprintf "%%%s = type %s\n\n" name (llvmTypeName typ)
+  sprintf "%%%s = type %s\n\n" name (llvmTypeNameLong typ)
 
 let gencodeTL = function
   | `GlobalVar var -> gencodeGlobalVar var

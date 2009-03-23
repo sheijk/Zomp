@@ -55,16 +55,9 @@ let rec findTypeName bindings = function
         (Common.combine ", " (List.map (findTypeName bindings) ft.argTypes))
         (findTypeName bindings ft.returnType)
   | `TypeRef name -> name
-  | `Record components as typ ->
+  | `Record record as typ ->
       try
-        let name, _ =
-          Bindings.find
-            (function
-               | (_, TypedefSymbol t) when typ = t -> true
-               | _ -> false)
-            bindings
-        in
-        name
+        record.rname
       with Not_found ->
         Lang.typeName typ
 
@@ -449,11 +442,13 @@ let translateMacro translateF (bindings :bindings) expr =
               end
           | _ -> None
 
-let astType = `Record [
-  "id", `Pointer `Char;
-  "childCount", `Int32;
-  "childs", `Pointer (`Pointer (`TypeRef "ast")) ]
-(* let astType = `TypeRef "ast" *)
+let astType = `Record {
+  rname = "ast";
+  fields = [
+    "id", `Pointer `Char;
+    "childCount", `Int32;
+    "childs", `Pointer (`Pointer (`TypeRef "ast"))
+  ] }
 let astPtrType = `Pointer astType
 
 let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
@@ -819,7 +814,7 @@ let translateTypedef translateF (bindings :bindings) =
         | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
     in
     let components = List.map expr2component componentExprs in
-    let recordType = `Record components in
+    let recordType = `Record { rname = typeName; fields = components } in
     Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
   in
   function
@@ -857,7 +852,7 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
       when id = macroRecord ->
       begin
         match lookup bindings name with
-          | TypedefSymbol `Record components ->
+          | TypedefSymbol `Record record ->
               begin
                 let recordInitFunc name components =
                   { fname = name ^ "_init";
@@ -866,7 +861,7 @@ let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
                     impl = None;
                   }
                 in
-                let initFunc = recordInitFunc name components in
+                let initFunc = recordInitFunc name record.fields in
                 let translate param compExpr = match (param, compExpr) with
                   | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
                       begin

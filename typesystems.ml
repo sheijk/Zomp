@@ -42,7 +42,10 @@ struct
   | `TypeRef of string
   | `Function of functionType
   ]
-  and recordType = (string * typ) list
+  and recordType = {
+    rname :string;
+    fields :(string * typ) list;
+  }
   and functionType = {
     returnType :typ;
     argTypes :typ list;
@@ -61,7 +64,7 @@ struct
     | CharVal of char
     | PointerVal of typ * int option
     | ArrayVal of typ * value list
-    | RecordVal of (string * value) list
+    | RecordVal of string * (string * value) list
     | FunctionVal of functionType * int option
 
   exception CouldNotParseType of string
@@ -74,11 +77,11 @@ struct
           | `NotFound -> (failwith "")
         end
     | `Pointer targetType -> `Pointer (canonicType lookupType targetType)
-    | `Record components ->
+    | `Record record ->
         (* TODO: apply2nd *)
         let canonicField (name, fieldType) = (name, canonicType lookupType fieldType) in
-        let canonicFields = List.map canonicField components in
-        `Record canonicFields
+        let canonicFields = List.map canonicField record.fields in
+        `Record { record with fields = canonicFields }
     | t -> t
 
   (* val typeOf : value -> typ *)
@@ -97,9 +100,9 @@ struct
     | ArrayVal (typ, values) ->
         assert (List.for_all (fun value -> typ = typeOf value) values);
         typ
-    | RecordVal components ->
+    | RecordVal (typeName, components) ->
         let convert (name, value) = name, typeOf value in
-        `Record (List.map convert components)
+        `Record { rname = typeName; fields = List.map convert components }
     | FunctionVal (t, _) -> `Function t
 
   (* val typeName : typ -> string *)
@@ -117,10 +120,11 @@ struct
     | `Pointer t -> (typeName t) ^ "*"
     | `Array (baseType, size) ->
         sprintf "%s[%d]" (typeName baseType) size
-    | `Record components ->
-        let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
-        let componentStrings = List.map component2String components in
-        "(" ^ Common.combine ", " componentStrings ^ ")"
+    | `Record record ->
+        record.rname
+        (* let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in *)
+        (* let componentStrings = List.map component2String record.fields in *)
+        (* "(" ^ Common.combine ", " componentStrings ^ ")" *)
     | `Function ft ->
         let retName = typeName ft.returnType in
         let argNames = List.map typeName ft.argTypes in
@@ -146,7 +150,7 @@ struct
       | PointerVal (_, target) -> pointerValueName target
       | ArrayVal (_, values) ->
           sprintf "[%s]" (Common.combine ", " (List.map valueString values))
-      | RecordVal components ->
+      | RecordVal (_, components) ->
           let rec convert = function
             | [] -> ""
             | (name, value) :: tail ->
@@ -218,9 +222,9 @@ struct
     | `Bool -> BoolVal false
     | `Char -> CharVal (char_of_int 0)
     | `Pointer t -> PointerVal (t, None)
-    | `Record components ->
+    | `Record record ->
         let convert (name, typ) = name, defaultValue typ in
-        RecordVal (List.map convert components)
+        RecordVal (record.rname, List.map convert record.fields)
     | `Array (memberType, size) ->
         ArrayVal (memberType, Common.listCreate size (defaultValue memberType))
     | `Function t -> FunctionVal (t, None)

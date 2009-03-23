@@ -104,11 +104,11 @@ let rec validateValue = function
       in
       List.iter validateMemberVal values;
       arrayValue
-  | RecordVal components ->
+  | RecordVal (rname, components) ->
       let validateComponent (name, value) =
         name, validateValue value
       in
-      RecordVal (List.map validateComponent components)
+      RecordVal (rname, List.map validateComponent components)
 
 let variable ~name ~typ ~default ~storage ~global = {
   vname = name;
