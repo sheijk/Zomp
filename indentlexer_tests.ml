@@ -182,6 +182,10 @@ struct
                id "class"; BEGIN_BLOCK; id "child1"; END; END_BLOCK [];
                CLOSE_CURLY; END];
 
+      "foo()", `Return [id "foo"; OPEN_ARGLIST; CLOSE_PAREN; END];
+      "\"strfun\"(a)", `Return [id "\"strfun\"";
+                                OPEN_ARGLIST; id "a"; CLOSE_PAREN; END];
+
       (* simple one-line expressions *)
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [END] );
       "var int x", `Return( ids ["var"; "int"; "x"] @ [END] );

@@ -217,7 +217,8 @@ struct
       "func(arg)", `Return [se2 "opcall" "func" "arg"];
       "plus(3, 5)", `Return [se "opcall" ["plus"; "3"; "5"]];
       "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]];
-
+      "\"strfun\"(10)", `Return [callExpr [id "\"strfun\""; id "10"]];
+      
       "func int get5()", `Return [juxExpr [id "func"; id "int"; call ["get5"]]];
 
       "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]];

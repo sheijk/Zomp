@@ -1759,7 +1759,7 @@ let matchFunc =
         `NotAFunc expr
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
-  let sanityChecks returnType params =
+  let sanityChecks returnType name params =
     (* (match returnType with *)
     (*    | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet" *)
     (*    | _ -> ()); *)
@@ -1774,9 +1774,14 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         StringSet.empty
         params
     in
+    let nameRE = "^[a-zA-Z0-9][^\"]*$" in
+    if not (name =~ nameRE) then
+      raiseIllegalExpression expr
+        (sprintf "Function names must match the following regexp: %s" nameRE);
     ()
   in
-  let buildFunction bindings typ name paramExprs implExprOption =
+  let buildFunction bindings typ uncheckedName paramExprs implExprOption =
+    let name = removeQuotes uncheckedName in
     let expr2param argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
@@ -1808,7 +1813,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     in
 
     let params = List.map expr2param paramExprs in
-    sanityChecks typ params;
+    sanityChecks typ name params;
     let innerBindings = localBinding bindings params in
     let nestedTLForms, impl = match implExprOption with
       | Some implExpr ->

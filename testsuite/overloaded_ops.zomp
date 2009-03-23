@@ -104,16 +104,10 @@ func void print_double(double d)
   printDouble d
 end
 
-macro make_cstring_printer
-  var cstring fname "print_char*"
-  ret ${
-    func void #fname(char* s)
-      printString s
-    end
-  end}
+func void "print_char*"(char* string)
+  printString string
 end
 
-make_cstring_printer
 
 macro print args...
   var astp code ${}

@@ -67,7 +67,8 @@ end = struct
       (char >= 'a' && char <= 'z') ||
         (char >= 'A' && char <= 'Z') ||
         (char >= '0' && char <= '9') ||
-        (char = '_')
+        (char = '_') ||
+        (char = '"')
     in
     match cre with
       | Any -> true
