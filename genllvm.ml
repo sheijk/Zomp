@@ -902,9 +902,13 @@ let gencodeGlobalVar var =
           varname
           (llvmTypeName var.typ)
           (Machine.float2string f)
+    | PointerVal _ ->
+        sprintf "@%s = constant %s null\n"
+          varname
+          (llvmTypeName var.typ)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
-    | PointerVal _ | FunctionVal _ ->
+    | FunctionVal _ ->
         raiseCodeGenError ~msg:"global pointers not supported, yet"
     | RecordVal _ ->
         raiseCodeGenError ~msg:"global constant of record type not supported, yet"
