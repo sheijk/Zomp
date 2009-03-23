@@ -5,7 +5,7 @@
 !syntax indent
  */
 
-include "libs/libcee.zomp"
+require "libs/libcee.zomp"
 
 func int main()
   /// testing ast:matchesShape

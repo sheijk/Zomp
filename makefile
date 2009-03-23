@@ -158,13 +158,15 @@ NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo
 
 TEST_CMOS = indentlexer_tests.cmo newparser_tests.cmo
 
-alltests: testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
+alltests: runmltests runtestsuite exampletests
+
+mltest: testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	echo Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 
-runmltests: alltests
+runmltests: mltest
 	@echo Running all tests ...
-	$(OCAMLRUN) -b ./alltests
+	$(OCAMLRUN) -b ./mltest
 
 exampletests:
 	@echo Compiling examples ...

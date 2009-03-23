@@ -4,13 +4,14 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib" "assimp.dylib"
 
-include "libs/libcee.zomp"
 
-include "opengl20.zomp"
-include "glfw.zomp"
-include "libs/glutils.zomp"
+require "opengl20.zomp"
+require "glfw.zomp"
+require "libs/glutils.zomp"
 
-include "libs/assimp.zomp"
+require "libs/libcee.zomp"
+
+require "libs/assimp.zomp"
 
 /// no hard aborts on assertion errors, please :) + print better messages
 macro assert testCode

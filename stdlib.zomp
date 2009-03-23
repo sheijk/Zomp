@@ -1099,4 +1099,62 @@ alias int:toCString u32:toCString x
 alias int:min u32:min l r
 alias int:max u32:max l r
 
+///-----------------------------------------------------------------------------
+/// Section: loading libraries once
+///-----------------------------------------------------------------------------
 
+type LoadedLibList
+  cstring name
+  LoadedLibList* next
+end
+
+var LoadedLibList* zmpx:lib:includedLibs null
+
+func void printAllLoadedLibs()
+  printlnString "Loaded libs:"
+
+  var LoadedLibList* list zmpx:lib:includedLibs
+  while (list !=_ptr nullptr LoadedLibList)
+    printString "  "
+    printlnString getField(list, name)
+
+    list = getField list next
+  end
+end
+
+macro zmpx:lib:requireLib lib
+  var cstring libName getField(lib, id)
+
+  var bool alreadyLoaded false
+
+  var LoadedLibList* list zmpx:lib:includedLibs
+  while (list !=_ptr nullptr LoadedLibList)
+    when (cstring:equal (getField list name) libName)
+      alreadyLoaded = true
+    end
+
+    list = getField list next
+  end
+
+  var ast* code ${}
+
+  unless alreadyLoaded
+    var LoadedLibList* newlist malloc(LoadedLibList)
+    setField newlist name libName
+    setField newlist next zmpx:lib:includedLibs
+    assign zmpx:lib:includedLibs newlist
+    assign code ${include #libName}
+  end
+
+  ret code
+end
+
+macro require libs...
+  var ast* code ${}
+
+  forEachAstChild lib libs
+    ast:addChild code ${zmpx:lib:requireLib #lib}
+  end
+
+  ret code
+end

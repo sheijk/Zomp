@@ -4,13 +4,13 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib" "libquicktext.dylib"
 
-include "opengl20.zomp"
-include "glfw.zomp"
-include "libs/glutils.zomp"
-include "glut.zomp"
-include "quicktext.zomp"
+require "opengl20.zomp"
+require "glfw.zomp"
+require "libs/glutils.zomp"
+require "glut.zomp"
+require "quicktext.zomp"
 
-include "libs/libcee.zomp"
+require "libs/libcee.zomp"
 
 //------------------------------------------------------------------------------
 /// shader compilation ///

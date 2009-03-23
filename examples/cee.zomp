@@ -8,17 +8,8 @@
 //------------------------------------------------------------------------------
 /// base lib
 
-include "libs/libcee.zomp"
-
-// TODO
-// macro dowhile block condition
-//   ret ${
-//     label #start
-//     var bool #testVar #condition
-//     branch #testVar #start
-//     label #exit
-//   end}
-// end
+require "libs/libcee.zomp"
+require "libs/stdio.zomp"
 
 func bool isBound(char* name)
 
@@ -110,8 +101,6 @@ end
 // 
 //   ret ${}
 // end
-
-include "libs/stdio.zomp"
 
 // macro defineArrayType type
 //   arrayTypeName := "Array_" ++ type.id

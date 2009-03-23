@@ -4,10 +4,10 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib"
 
-include "libs/libcee.zomp"
-include "opengl20.zomp"
-include "glfw.zomp"
-include "libs/glutils.zomp"
+require "libs/libcee.zomp"
+require "opengl20.zomp"
+require "glfw.zomp"
+require "libs/glutils.zomp"
 
 var int windowWidth 400
 var int windowHeight 300

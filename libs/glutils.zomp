@@ -1,4 +1,6 @@
 
+require "libs/libcee.zomp"
+
 func void glfwSetWindowTitle(cstring title)
 func cstring gluErrorString(GLenum error)
 
