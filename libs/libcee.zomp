@@ -10,6 +10,13 @@
 /// Section: Untested
 ///-----------------------------------------------------------------------------
 
+///
+/// Declares a function. Use this to prevent emacs indentation in next line :)
+///
+template funcd rettype nameAndArgs
+  func #rettype #nameAndArgs
+end
+
 template macro:failUnless cond
   unless #{cond}
     ret ${error expression is false #{cond}}
@@ -25,7 +32,6 @@ macro uniqueIds purpose ids...
 
   ret code
 end
-
 
 /// if statement
 ///
@@ -612,6 +618,28 @@ macro print args...
   ret code
 end
 
+macro printnl args...
+  var astp code ${}
+
+  forEachAstChild arg args
+    ast:addChild code ${zmp:cee:print #arg}
+  end
+
+  ast:addChild code ${println()}
+
+  ret code
+end
+
+func void printBits(int bitmask)
+  printString "0b"
+  for i 0 32
+    bitnum := 31 - i
+    mask := int:shl 1 bitnum
+    bit := int:lshr (bitmask & mask) bitnum
+    printInt bit
+  end
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: Overloaded conversion
 ///-----------------------------------------------------------------------------
@@ -632,3 +660,4 @@ end
 func int toInt_double(double d)
   double:toInt d
 end
+
