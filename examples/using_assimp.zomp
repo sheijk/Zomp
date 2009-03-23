@@ -44,11 +44,11 @@ macro assert testCode
       #rvar := #r
       unless (#compareF #lvar #rvar)
         printHLine '-' 40
-        printlnString "Assertion failed"
-        printString "left = "
+        print "Assertion failed\n"
+        print "left = "
         #printF #lvar
         println()
-        printString "right = "
+        print "right = "
         #printF #rvar
         println()
         ast:print ${#testCode} 0

@@ -108,6 +108,9 @@ func void "print_char*"(char* string)
   printString string
 end
 
+func void "print_ast*"(ast* code)
+  ast:print code 0
+end
 
 macro print args...
   var astp code ${}
@@ -127,6 +130,7 @@ func void testPrint()
   print "char: " '!' nl
   print "int: " 999 nl
   print "bool: " true nl
+  print "ast: " ${x := 10 * sin(x)}
 end
 
 alias toFloat zmp:cee:toFloat x
