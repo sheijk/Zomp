@@ -4,7 +4,8 @@
 !verify off
  */
 
-// requires "libs/libcee.zomp"
+require "libs/libcee.zomp"
+require "libs/mesh.zomp"
 
 // var int aiComponent_NORMALS 0x2u
 // var int aiComponent_TANGENTS_AND_BITANGENTS 0x4u
@@ -80,6 +81,17 @@ funcd int aiGetVersionMinor()
 funcd int aiGetVersionMajor()
 funcd int aiGetVersionRevision()
 
+func void VertexStream:copyFromVector3D(VertexStream* this, aiVector3D* sourceVec_in)
+  vertexPtr := cast float* this.data
+  sourceVec := sourceVec_in
+  for i 0 this.size
+    store (vertexPtr +_ptr 0) sourceVec*.x
+    store (vertexPtr +_ptr 1) sourceVec*.y
+    store (vertexPtr +_ptr 2) sourceVec*.z
+    vertexPtr = vertexPtr +_ptr 3
+    sourceVec = sourceVec +_ptr 1
+  end
+end
 
 func void aiString:print(aiString* this)
   printString zmp:array:addr( &(this.data) )
@@ -240,6 +252,11 @@ struct aiScene
   aiCamera** mCameras
 end
 
+funcd aiScene* aiImportFile(cstring fileName, int flags)
+funcd void aiReleaseImport(aiScene* scene)
+
+funcd cstring aiGetErrorString()
+
 func void aiScene:print(aiScene* this)
   indent := 2
 
@@ -266,9 +283,18 @@ func void aiScene:print(aiScene* this)
   println()
 end
 
-funcd aiScene* aiImportFile(cstring fileName, int flags)
-funcd void aiReleaseImport(aiScene* scene)
+func Mesh* aiScene:toMesh(aiScene* this)
+  aim := load(ptradd this.mMeshes 0)
 
-funcd cstring aiGetErrorString()
+  Mesh:define m aim.mNumVertices
+    gl_Position GL_FLOAT 3
+    gl_Normal GL_FLOAT 3
+  end
+
+  VertexStream:copyFromVector3D (m.streams + 0) aim.mVertices
+  VertexStream:copyFromVector3D (m.streams + 1) aim.mNormals
+
+  ret m
+end
 
 

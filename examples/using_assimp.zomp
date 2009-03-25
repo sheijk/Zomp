@@ -58,30 +58,6 @@ macro assert testCode
   ret ${}
 end
 
-///-----------------------------------------------------------------------------
-/// Section: math functions
-///-----------------------------------------------------------------------------
-
-func float sqrf(float x)
-  x * x
-end
-
-///-----------------------------------------------------------------------------
-/// Section: vector math
-///-----------------------------------------------------------------------------
-
-struct float3
-  float x y z
-end
-
-func void float3:print(float3* this)
-  print "float3(x=" this.x ", y=" this.y ", z=" this.z ")"
-end
-
-func float float3:length(float3* this)
-  ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
-end
-
 //------------------------------------------------------------------------------
 // OpenGL utils
 
@@ -92,34 +68,6 @@ end
 func void float3:sendLine(float3* start, float3* end)
   float3:glVertex start
   float3:glVertex end
-end
-
-///-----------------------------------------------------------------------------
-/// Section: geometric data types
-///-----------------------------------------------------------------------------
-
-struct AABB
-  float3 min max
-end
-
-func void AABB:init(AABB* this)
-  this.min.x = 0.0
-  this.min.y = 0.0
-  this.min.z = 0.0
-  this.max.x = 0.0
-  this.max.y = 0.0
-  this.max.z = 0.0
-end
-
-func void AABB:print(AABB* this)
-  print "AABB(min: x=" this.min.x ", y=" this.min.y ", z=" this.min.z
-  print " max: x=" this.max.x ", y=" this.max.y ", z=" this.max.z ")"
-end
-
-func void AABB:diagonal(float3* result, AABB* this)
-  result.x = this.max.x - this.min.x
-  result.y = this.max.y - this.min.y
-  result.z = this.max.z - this.min.z
 end
 
 macro defineArray type varname values...
@@ -178,53 +126,6 @@ func void AABB:render(AABB* this)
       end
     end
   end
-end
-
-///-----------------------------------------------------------------------------
-/// Section: assimp bindings
-///-----------------------------------------------------------------------------
-
-func void GLenum:print(GLenum e)
-  printInt e
-end
-
-func Mesh* aiScene:toMesh(aiScene* this)
-  aim := load(ptradd this.mMeshes 0)
-
-  Mesh:define m aim.mNumVertices
-    gl_Position GL_FLOAT 3
-    gl_Normal GL_FLOAT 3
-  end
-
-  VertexStream:copyFromVector3D ptradd(m.streams,0) aim.mVertices
-  VertexStream:copyFromVector3D ptradd(m.streams,1) aim.mNormals
-
-  ret m
-end
-
-func void Mesh:calcAABB(AABB* result, Mesh* this)
-  var AABB bb
-  AABB:init &bb
-
-  posStream := this.streams
-  positions := cast float* posStream.data
-
-  for vnum 0 posStream*.size
-    x := load(positions +_ptr 0)
-    y := load(positions +_ptr 1)
-    z := load(positions +_ptr 2)
-
-    bb.min.x = float:min bb.min.x x
-    bb.min.y = float:min bb.min.y y
-    bb.min.z = float:min bb.min.z z
-    bb.max.x = float:max bb.max.x x
-    bb.max.y = float:max bb.max.y y
-    bb.max.z = float:max bb.max.z z
-
-    positions = positions +_ptr 3
-  end
-
-  store result bb
 end
 
 ///-----------------------------------------------------------------------------
@@ -338,7 +239,7 @@ func int main()
     scene := aiImportFile sceneFilename loadOptions
   end
 
-  if (scene ==_ptr nullptr(aiScene))
+  if (scene == nullptr(aiScene))
     printString "Error while loading file: "
     printlnString aiGetErrorString()
     ret 0

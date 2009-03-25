@@ -6,6 +6,7 @@
 
 require "libs/libcee.zomp"
 require "opengl20.zomp"
+require "libs/math.zomp"
 
 ///-----------------------------------------------------------------------------
 /// Section: Meshes
@@ -211,18 +212,6 @@ macro Mesh:define mesh size streams
   ret code
 end
 
-func void VertexStream:copyFromVector3D(VertexStream* this, aiVector3D* sourceVec_in)
-  vertexPtr := cast float* this.data
-  sourceVec := sourceVec_in
-  for i 0 this.size
-    store (vertexPtr +_ptr 0) sourceVec*.x
-    store (vertexPtr +_ptr 1) sourceVec*.y
-    store (vertexPtr +_ptr 2) sourceVec*.z
-    vertexPtr = vertexPtr +_ptr 3
-    sourceVec = sourceVec +_ptr 1
-  end
-end
-
 func void VertexStream:swapComponents(VertexStream* this, int from, int to)
   VertexStream:foreach this float ptr
     swap (ptradd ptr to)* (ptradd ptr from)*
@@ -292,5 +281,30 @@ func void Mesh:render(Mesh* this, GLint mode, GLint shader)
   glDisableClientState GL_VERTEX_ARRAY
   glDisableClientState GL_NORMAL_ARRAY
   glDisableClientState GL_COLOR_ARRAY
+end
+
+func void Mesh:calcAABB(AABB* result, Mesh* this)
+  var AABB bb
+  AABB:init &bb
+
+  posStream := this.streams
+  positions := cast float* posStream.data
+
+  for vnum 0 posStream*.size
+    x := *(positions + 0)
+    y := *(positions + 1)
+    z := *(positions + 2)
+
+    bb.min.x = float:min bb.min.x x
+    bb.min.y = float:min bb.min.y y
+    bb.min.z = float:min bb.min.z z
+    bb.max.x = float:max bb.max.x x
+    bb.max.y = float:max bb.max.y y
+    bb.max.z = float:max bb.max.z z
+
+    positions = positions + 3
+  end
+
+  store result bb
 end
 

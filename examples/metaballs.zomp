@@ -104,10 +104,6 @@ end
 //------------------------------------------------------------------------------
 // pointer utils
 
-template op** base exp
-  int:pow(#base, #exp)
-end
-
 macro ptrvars type names...
   decls := seqAst()
   forEachAstChild name names
@@ -361,13 +357,13 @@ func float Field3D:get(Field3D* this, int x, int y, int z)
   index := Field3D:index(this, x, y, z)
 
   array := this.array
-  return load(ptradd(array, index))
+  return *(array + index)
 end
 
 func void Field3D:set(Field3D* this, int x, int y, int z, float value)
   index := Field3D:index(this, x, y, z)
   a := this.array
-  store ptradd(a, index) value
+  store (a + index) value
 end
 
 template Field3D:foreach field x y z value code...
@@ -386,7 +382,7 @@ func void Field3D:clear(Field3D* this)
   sideLength := this.sideLength
 
   for i 0 (sideLength ** 3)
-    store ptradd(array, i) 0.0
+    store (array + i) 0.0
   end
 end
 
@@ -887,7 +883,7 @@ func void FilterEffect:delete(FilterEffect* this)
   this.yoffsets = nullptr float
   free (cast void* this.weights)
   this.weights = nullptr float
-  unless (this.next ==_ptr nullptr(FilterEffect))
+  unless (this.next == nullptr(FilterEffect))
     FilterEffect:delete this.next
   end
   this.next = nullptr FilterEffect
