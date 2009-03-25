@@ -239,6 +239,25 @@ func void testAssign()
   free (cast void* floatp)
 end
 
+func void testLoop()
+  sum := 0
+  count := 0
+
+  loop
+    ++count
+    sum = sum + count
+    if (count > 9)
+      break
+    end
+  end
+
+  print "sum = " sum "\n"
+
+  unittest:assertAll
+    sum == 55
+  end
+end
+
 func int main()
   testDefineVar()
   testDotOp()
@@ -249,6 +268,7 @@ func int main()
   testFor()
   testNestedFor()
   testAssign()
+  testLoop()
 
   ret 0
 end
