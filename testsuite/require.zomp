@@ -1,0 +1,21 @@
+/**
+ * Simple library which prevents libs from being included twice
+
+!verify off
+ */
+
+zmpx:lib:requireLib "libs/libcee.zomp"
+zmpx:lib:requireLib "libs/libcee.zomp"
+zmpx:lib:requireLib "libs/libcee.zomp"
+zmpx:lib:requireLib "libs/libcee.zomp"
+
+zmpx:lib:requireLib "testsuite/require_lib.zomp"
+
+func int main()
+  unittest:assertAll
+    require5() == 5
+  end
+
+  ret 0
+end
+

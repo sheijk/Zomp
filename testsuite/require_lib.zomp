@@ -1,0 +1,12 @@
+/**
+ * Libary loaded by test require.zomp
+
+!verify off
+ */
+
+var int failWhenIncludedTwice 5
+
+func int require5()
+  ret failWhenIncludedTwice
+end
+

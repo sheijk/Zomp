@@ -38,3 +38,4 @@ tools
 /extlibs/*.gz
 /extlibs/*.zip
 /examples/shaderfun.glexe.s
+/mltest
