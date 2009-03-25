@@ -858,8 +858,8 @@ func int u32:mod(int v, int div)
   u32:urem v div
 end
 
-macro u32:neg x
-  ret ${u32:sub 0 #x}
+func int u32:neg(int x)
+  ret u32:sub(0, x)
 end
 
 template op+ l r (u32:add #l #r)

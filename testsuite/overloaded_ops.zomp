@@ -50,6 +50,14 @@ func bool op==_float_float(float l, float r)
   l ==_f r
 end
 
+template op+ l r
+  zmp:cee:add #l #r
+end
+
+template op- l r
+  zmp:cee:sub #l #r
+end
+
 template op== l r
   zmp:cee:equal #l #r
 end
@@ -162,10 +170,56 @@ func void testConversion()
   end
 end
 
+func void testPointerAdd()
+  const int hcount 3
+  var int* nums malloc(int, 2 * hcount)
+  var int* numsLast ptradd(nums, 2 * hcount - 1)
+
+  for i 0 hcount
+    store (nums + i) i
+  end
+
+  for i2 0 hcount
+    store (numsLast - i2) (10 * i2)
+  end
+
+  unittest:assertAll
+    hcount == 3
+    load(ptradd nums 0) == 0
+    load(ptradd nums 1) == 1
+    load(ptradd nums 2) == 2
+    load(ptradd nums 3) == 20
+    load(ptradd nums 4) == 10
+    load(ptradd nums 5) == 0
+  end
+end
+
+func bool op<_ptr_ptr(void* l, void* r)
+  ret u32:uless(cast int l, cast int r)
+end
+
+template op< l r
+  zmp:cee:less #l #r
+end
+
+func void testOpsWithPointers()
+  const int size 10
+  var int* nums malloc(int, size)
+  var int* num1 (nums + 1)
+  var int* num3 (nums + 3)
+
+  unittest:assertAll
+    nums < num1
+    num1 < num3
+  end
+end
+
 func int main()
   testOps()
   testPrint()
   testConversion()
+  testPointerAdd()
+  testOpsWithPointers()
 
   ret 0
 end

@@ -1466,25 +1466,51 @@ struct
             translateToForms env.translateF env.bindings rightExpr
           in
           let tc = typeCheck env.bindings in
-          match tc leftForm, tc rightForm with
-            | TypeOf leftType, TypeOf rightType ->
+          match baseName, tc leftForm, tc rightForm with
+            | "op+", TypeOf `Pointer _, TypeOf `Int32 ->
                 begin
-                  let typenameL, typenameR = typeName leftType, typeName rightType in
+                  Result(env.bindings,
+                         toplevelFormsLeft @ toplevelFormsRight @
+                         [`PtrAddIntrinsic (leftForm, rightForm)])
+                end
+            | "op-", TypeOf `Pointer _, TypeOf `Int32 ->
+                begin
+                  Result(env.bindings,
+                         toplevelFormsLeft @ toplevelFormsRight @
+                           [`PtrAddIntrinsic (leftForm,
+                                              `FuncCall { fcname = "u32:neg";
+                                                          fcrettype = `Int32;
+                                                          fcparams = [`Int32];
+                                                          fcargs = [rightForm];
+                                                          fcptr = `NoFuncPtr })])
+                end
+            | _, TypeOf leftType, TypeOf rightType ->
+                begin
+                  let postfixAndImplConv form = function
+                    | `Pointer _ ->
+                        "ptr", `CastIntrinsic(`Pointer `Void, form)
+                    | typ ->
+                        typeName typ, form
+                  in
+                  let typenameL, castFormL = postfixAndImplConv leftForm leftType in
+                  let typenameR, castFormR = postfixAndImplConv rightForm rightType in
                   let funcName = baseName ^ "_" ^ typenameL ^ "_" ^ typenameR in
                   match Bindings.lookup env.bindings funcName with
-                    | FuncSymbol func ->
+                    | FuncSymbol func -> begin
                         Result(env.bindings,
                                toplevelFormsLeft @ toplevelFormsRight @
                                  [`FuncCall { fcname = func.fname;
                                               fcrettype = func.rettype;
                                               fcparams = List.map snd func.fargs;
-                                              fcargs = [leftForm; rightForm];
+                                              fcargs = [castFormL; castFormR];
                                               fcptr = `NoFuncPtr; }])
-                    | _ ->
+                      end
+                    | _ -> begin
                         Error [sprintf "No overload for %s(%s, %s) found (expected function %s)"
                                  baseName typenameL typenameR funcName]
+                      end
                 end
-            | lresult, rresult ->
+            | _, lresult, rresult ->
                 let typeErrorMessagePotential potError =
                   match potError with
                     | TypeError (fe,msg,found,expected) ->

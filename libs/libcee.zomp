@@ -566,6 +566,30 @@ template op<= l r
   zmp:cee:lessEqual #l #r
 end
 
+func bool op<_ptr_ptr(void* l, void* r)
+  ret u32:uless(cast int l, cast int r)
+end
+
+func bool op>_ptr_ptr(void* l, void* r)
+  ret u32:ugreater(cast int l, cast int r)
+end
+
+func bool op<=_ptr_ptr(void* l, void* r)
+  ret u32:ulessEqual(cast int l, cast int r)
+end
+
+func bool op>=_ptr_ptr(void* l, void* r)
+  ret u32:ugreaterEqual(cast int l, cast int r)
+end
+
+func bool op!=_ptr_ptr(void* l, void* r)
+  ret u32:notEqual(cast int l, cast int r)
+end
+
+func bool op==_ptr_ptr(void* l, void* r)
+  ret u32:equal(cast int l, cast int r)
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: Overloaded printing
 ///-----------------------------------------------------------------------------
