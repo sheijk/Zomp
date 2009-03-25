@@ -9,6 +9,7 @@ ifndef DEBUG
 DEBUG=1
 endif
 
+ZOMP_TOOL_PATH=$(PWD)/tools
 include config.mk
 
 PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)

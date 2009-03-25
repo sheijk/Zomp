@@ -13,14 +13,18 @@ OCAMLDEP=$(OCAMLPATH)ocamldep.opt
 UPDATE=cp
 CP=cp
 SED=sed
+ECHO=echo
 
-LLVM_BIN_DIR=$(PWD)/tools/llvm/Release/bin
-LLVM_INCLUDE_DIR=$(PWD)/tools/llvm/include
-LLVM_LIB_DIR=$(PWD)/tools/llvm/Release/lib
-LLVM_GCC_BIN_DIR=$(PWD)/tools/llvm-gcc/bin
+LLVM_BIN_DIR=$(ZOMP_TOOL_PATH)/llvm/Release/bin
+LLVM_INCLUDE_DIR=$(ZOMP_TOOL_PATH)/llvm/include
+LLVM_LIB_DIR=$(ZOMP_TOOL_PATH)/llvm/Release/lib
+LLVM_GCC_BIN_DIR=$(ZOMP_TOOL_PATH)/llvm-gcc/bin
 
 LLVM_CONFIG=$(LLVM_BIN_DIR)/llvm-config
 LLVM_CC=$(LLVM_GCC_BIN_DIR)/llvm-gcc
 LLVM_CXX=$(LLVM_GCC_BIN_DIR)/llvm-g++
 LLVM_DIS=$(LLVM_BIN_DIR)/llvm-dis
+LLVM_AS=$(LLVM_BIN_DIR)/llvm-as
+LLVM_LINK=$(LLVM_BIN_DIR)/llvm-link
+LLVM_LLI=$(LLVM_BIN_DIR)/lli
 

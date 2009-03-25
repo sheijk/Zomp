@@ -2,7 +2,8 @@
 # Makefile to run the test suite
 #
 
-include ../makefile.config
+ZOMP_TOOL_PATH=$(PWD)/../tools
+include ../config.mk
 
 ################################################################################
 # Targets
@@ -44,12 +45,12 @@ astmatch.ll: ../libs/libcee.zomp
 
 %.bc: %.ll ../stdlib.zomp ../stdlib.c
 	@echo Compiling $< to $@
-	@llvm-as -f $< -o $(<:.ll=.o.bc)
-	@llvm-link -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
+	@$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
+	@$(LLVM_LINK) -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
 
 %.test: %.bc
 	@$(ECHO) Running test $(<:.bc=)...
-	@lli $<
+	@$(LLVM_LLI) $<
 	@touch $@
 
 ################################################################################
