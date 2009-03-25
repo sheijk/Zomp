@@ -15,7 +15,7 @@ macro assert testCode
   printF := ast:fromString "internalErrorIn unittest:assert"
   compareF := ast:fromString "internalErrorIn unittest:assert"
 
-  if2 ast:matchesShape(testCode, ${__ ==_f __}) then
+  if ast:matchesShape(testCode, ${__ ==_f __})
     isCompare = true
     printF = ast:fromString "print"
     compareF = ast:fromString "op==_f"
@@ -25,7 +25,7 @@ macro assert testCode
     compareF = ast:fromString "op=="
   end
 
-  if2 isCompare then
+  if isCompare
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
@@ -236,7 +236,7 @@ var int windowHeight 300
 var bool initCalled false
 
 func void init()
-  if2 bool:not(initCalled) then
+  if bool:not(initCalled)
     glfwInit()
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
@@ -276,7 +276,7 @@ macro mainloop body...
       glfwSwapBuffers()
       glfwPollEvents()
       running = bool:not isPressed(GLFW_KEY_ESC)
-      if2 (maxRunTime != 0.0) then
+      if (maxRunTime != 0.0)
         running = running && (time - startTime < maxRunTime)
       end
       ++frameNum
@@ -338,13 +338,13 @@ func int main()
     scene := aiImportFile sceneFilename loadOptions
   end
 
-  if2 (scene ==_ptr nullptr(aiScene)) then
+  if (scene ==_ptr nullptr(aiScene))
     printString "Error while loading file: "
     printlnString aiGetErrorString()
     ret 0
   end
 
-  if2 (scene.mNumMeshes <= 2) then
+  if (scene.mNumMeshes <= 2)
     printString "Loaded "
     aiScene:print scene
     flushStdout()
@@ -354,7 +354,7 @@ func int main()
     mesh := aiScene:toMesh scene
   end
   aiReleaseImport scene
-  if2 isNull(mesh) then
+  if isNull(mesh)
     printlnString "Generated mesh is null"
     ret 0
   end
@@ -373,7 +373,7 @@ func int main()
   print "meshSize = " meshSize
   println()
 
-  if2 ((mesh.streams)*.size < 40) then
+  if ((mesh.streams)*.size < 40)
     Mesh:printDetailed mesh
   else
     Mesh:print mesh
@@ -381,7 +381,7 @@ func int main()
 
   maxRunTime := 2.0
 
-  if2 firstRun then
+  if firstRun
     firstRun = false
     maxRunTime = 0.0
   end

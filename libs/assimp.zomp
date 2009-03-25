@@ -106,7 +106,7 @@ func void aiNode:print(aiNode* this, int indent)
 
   printString ", mMeshes="
   for meshnum 0 this.mNumMeshes
-    if2 (meshnum > 0) then
+    if (meshnum > 0)
       printString " "
     end
     printInt load(ptradd this.mMeshes meshnum)
@@ -185,7 +185,7 @@ func void aiMesh:print(aiMesh* this, int startIndent)
     fieldNameQ := cstring:quote fieldName.id
 
     ret ${
-      if2 isNotNull(this.#fieldName) then
+      if isNotNull(this.#fieldName)
         printString #fieldNameQ
         printChar ' '
       end
@@ -201,7 +201,7 @@ func void aiMesh:print(aiMesh* this, int startIndent)
   printIndent indent
   printString "mNumUVComponents={"
   for i 0 4
-    if2 (i > 0) then
+    if (i > 0)
       printString ", "
     end
     printInt zmp:array:get(this.mNumUVComponents, i)

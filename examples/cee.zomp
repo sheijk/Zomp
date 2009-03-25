@@ -22,7 +22,7 @@ const symbolKind ZOMP_SYMBOL_TYPEDEF 4
 const symbolKind ZOMP_SYMBOL_LABEL 5
 
 func char* symbolKind:toString(symbolKind kind)
-  if2 (kind == ZOMP_SYMBOL_UNDEFINED) then
+  if (kind == ZOMP_SYMBOL_UNDEFINED)
     ret "Undefined"
   elseif (kind == ZOMP_SYMBOL_VAR)
     ret "Variable"
@@ -122,7 +122,7 @@ end
 // func char* readFile(char* fileName)
 //   file := fopen(fileName, "r")
 // 
-//   if2 file ==_ptr nullptr(int) then
+//   if file ==_ptr nullptr(int)
 //     return nullptr(char)
 //   end
 // 
@@ -132,7 +132,7 @@ end
 
 
 // macro alias newName toName
-//   if2 isBound(getField(newName, id)) then
+//   if isBound(getField(newName, id))
 //     printString "Redefining "
 //     printString newName.id
 //     printString " => "

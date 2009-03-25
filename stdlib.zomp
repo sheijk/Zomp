@@ -413,58 +413,14 @@ macro uniqueId name purpose
   ret ${var cstring #name (newUniqueNameFor #purpose)}
 end
 
-macro if test onTrue onFalse
-  uniqueId trueLabel "iftrue"
-  uniqueId falseLabel "iffalse"
-  uniqueId endLabel "ifend"
-  uniqueId testResult "iftestresult"
-
-  var (ptr ast) result ${
-    var bool #testResult #test
-    branch #testResult #trueLabel #falseLabel
-    label #trueLabel
-    #onTrue
-    branch #endLabel
-    label #falseLabel
-    #onFalse
-    label #endLabel
-  end}
-  ret result
+/// workaround until "const" is properly supported
+macro const type name default
+  ret ${var #type #name #default}
 end
 
-macro ift condition onTrue
-  ${if #condition #onTrue void}
-end
-
-macro ifnot condition onFalse
-  ${if (bool:not #condition) #onFalse void}
-end
-
-///TODO: generalize for arbitrary types once this is possible in zomp
-macro ifExprInt test onTrue onFalse
-  uniqueId trueLabel "iftrue"
-  uniqueId falseLabel "iffalse"
-  uniqueId endLabel "ifend"
-  uniqueId testResult "iftestresult"
-  uniqueId resultVar "ifResult"
-
-  var (ptr ast) result ${
-    var int #resultVar 0
-    var bool #testResult #test
-    branch #testResult #trueLabel #falseLabel
-
-    label #trueLabel
-    assign #resultVar #onTrue
-    branch #endLabel
-
-    label #falseLabel
-    assign #resultVar #onFalse
-
-    label #endLabel
-    #resultVar
-  end}
-  ret result
-end
+///-----------------------------------------------------------------------------
+/// Section: control flow
+///-----------------------------------------------------------------------------
 
 macro for index min supremum code
   uniqueId startLabel "for_start"
@@ -508,6 +464,110 @@ macro while test body...
   end}
 end
 
+macro when test onTrue
+  uniqueId trueLabel "when_block"
+  uniqueId endLabel "when_end"
+  uniqueId testResult "when_testresult"
+
+  var ast* result ${
+    var bool #testResult #test
+    branch #testResult #trueLabel #endLabel
+    label #trueLabel
+    #onTrue
+    label #endLabel
+  end}
+  ret result
+end
+
+macro unless test onFalse
+  uniqueId testResult "unless_testresult"
+  uniqueId falseLabel "unless_block"
+  uniqueId endLabel "unless_end"
+
+  ret ${
+    var bool #testResult #test
+    branch #testResult #endLabel #falseLabel
+    label #falseLabel
+    #onFalse
+    label #endLabel
+  end}
+end
+
+/// if statement
+///
+/// Usage example:
+///
+/// if a > 10 then
+///   print "It's bigger!"
+/// else if a < 5 then
+///   print "It's smaller!"
+/// else
+///   print "Neither to big nor to small. Purrfect"
+/// end
+macro if cond onTrue remArgs...
+  uniqueId endLabel "if_end"
+
+  var astp code ${seq}
+
+  ast:addChild code ${when #cond
+    #onTrue
+    branch #endLabel
+  end}
+
+  var int currentArg 0
+  const int argCount getField(remArgs, childCount)
+
+  while (u32:slessEqual (u32:add currentArg 3) argCount)
+    var astp econd ast:child(remArgs, u32:add currentArg 1)
+    var astp eexpr ast:child(remArgs, u32:add currentArg 2)
+
+    ast:addChild code ${seq
+      when #econd
+        #eexpr
+        branch #endLabel
+      end
+    end}
+
+    assign currentArg u32:add(currentArg, 3)
+  end
+
+  when (u32:sless (u32:add currentArg 1) argCount)
+    var astp elseCode ast:child(remArgs, u32:add currentArg 1)
+
+    ast:addChild code elseCode
+  end
+
+  ast:addChild code ${label #endLabel}
+
+  ret code
+end
+
+///TODO: generalize for arbitrary types once this is possible in zomp
+macro ifExprInt test onTrue onFalse
+  uniqueId trueLabel "iftrue"
+  uniqueId falseLabel "iffalse"
+  uniqueId endLabel "ifend"
+  uniqueId testResult "iftestresult"
+  uniqueId resultVar "ifResult"
+
+  var (ptr ast) result ${
+    var int #resultVar 0
+    var bool #testResult #test
+    branch #testResult #trueLabel #falseLabel
+
+    label #trueLabel
+    assign #resultVar #onTrue
+    branch #endLabel
+
+    label #falseLabel
+    assign #resultVar #onFalse
+
+    label #endLabel
+    #resultVar
+  end}
+  ret result
+end
+
 macro times count code...
   uniqueId counterVar "timesCounter"
   ret ${for #counterVar 0 #count #code}
@@ -525,19 +585,6 @@ macro forEachAstChild childVar tree code
       #code
     end
   end}
-end
-
-/// workaround until "const" is properly supported
-macro const type name default
-  ret ${var #type #name #default}
-end
-
-macro when cond onTrue
-  ret ${if #cond #onTrue void}
-end
-
-macro unless cond onFalse
-  ret ${if #cond void #onFalse}
 end
 
 /// A template is like a macro but is defined in another way.

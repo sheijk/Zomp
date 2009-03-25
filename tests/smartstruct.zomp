@@ -51,7 +51,7 @@ macro pstruct name members
   ast:addChild printCode ${printString "("}
 
   forEachAstChild member members
-    if2 ast:matchesShape(member, ${__ _}) then
+    if ast:matchesShape(member, ${__ _})
       ast:addChild decl member
       fieldName := ast:child member 1
       fieldType := ast:child member 0

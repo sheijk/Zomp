@@ -33,57 +33,6 @@ macro uniqueIds purpose ids...
   ret code
 end
 
-/// if statement
-///
-/// Usage example:
-///
-/// if a > 10 then
-///   print "It's bigger!"
-/// else if a < 5 then
-///   print "It's smaller!"
-/// else
-///   print "Neither to big nor to small. Purrfect"
-/// end
-macro if2 cond then onTrue remArgs...
-  macro:failUnless cstring:equal(getField(then, id), "then")
-
-  uniqueId endLabel "if_end"
-
-  var astp code ${seq}
-
-  ast:addChild code ${when #cond
-    #onTrue
-    branch #endLabel
-  end}
-
-  var int currentArg 0
-  const int argCount getField(remArgs, childCount)
-
-  while (currentArg+3 <= argCount)
-    var astp econd ast:child(remArgs, currentArg+1)
-    var astp eexpr ast:child(remArgs, currentArg+2)
-
-    ast:addChild code ${seq
-      when #econd
-        #eexpr
-        branch #endLabel
-      end
-    end}
-
-    currentArg = currentArg + 3
-  end
-
-  when (currentArg+1 < argCount)
-    var astp elseCode ast:child(remArgs, currentArg+1)
-
-    ast:addChild code elseCode
-  end
-
-  ast:addChild code ${label #endLabel}
-
-  ret code
-end
-
 template op| l r
   int:or #l #r
 end
@@ -97,7 +46,7 @@ macro op|| l r
 
   ret ${
     #result := false
-    if2 #l then
+    if #l
       #result = true
     elseif #r
       #result = true
@@ -111,7 +60,7 @@ macro op&& l r
 
   ret ${
     #result := false
-    if2 #l then
+    if #l
       #result = #r
     end
     #result
@@ -127,7 +76,7 @@ template op!=_str left right
 end
 
 macro op:= name value
-  if2 (getField(name, childCount) == 0) then
+  if (getField(name, childCount) == 0)
     ret ${var2 #name #value}
   end
   ret ${error "Expected a single identifier on left hand side" ${#name := #value}}
@@ -181,17 +130,17 @@ func bool ast:matchesShape(ast* codeArg, ast* templateArg)
 
   varargs := false
   lastChild := nullptr ast
-  if2 (templateChildCount > 0) then
+  if (templateChildCount > 0)
     lastChild = ast:child template (templateChildCount - 1)
     assert (lastChild !=_ptr nullptr ast)
-    if2 ((getField(lastChild, childCount) == 1) && (getField(lastChild, id) ==_str "postop...")) then
+    if ((getField(lastChild, childCount) == 1) && (getField(lastChild, id) ==_str "postop..."))
       var ast* lastChildChild ast:child(lastChild, 0)
       varargs = (getField(lastChildChild, id) ==_str "_")
     end
   end
 
-  if2 varargs then
-    if2 ((codeChildCount >= templateChildCount - 1) && (codeId ==_str templateId)) then
+  if varargs
+    if ((codeChildCount >= templateChildCount - 1) && (codeId ==_str templateId))
       for childNum2 0 (templateChildCount - 1)
         unless (ast:matchesShape (ast:child code childNum2) (ast:child template childNum2))
           ret false
@@ -200,7 +149,7 @@ func bool ast:matchesShape(ast* codeArg, ast* templateArg)
       ret true
     end
   else
-    if2 ((codeChildCount == templateChildCount) && (codeId ==_str templateId)) then
+    if ((codeChildCount == templateChildCount) && (codeId ==_str templateId))
       for childNum 0 codeChildCount
         unless (ast:matchesShape (ast:child code childNum) (ast:child template childNum))
           ret false
@@ -224,7 +173,7 @@ end
 ///   getMemberAddress(${a.b.c}) => (fieldptr (fieldptr a b) c)
 ///
 func ast* getMemberAddress(ast* code)
-  if2 (getField code childCount == 0) then
+  if (getField code childCount == 0)
     ret ${ptr #code}
   elseif ast:matchesShape(code, ${_._})
     recordExpr := ast:child(code, 0)
@@ -264,7 +213,7 @@ end
 /// a.x = b - for struct members
 /// ptr[10] = b - for pointers
 macro op= l r
-  if2 ast:matchesShape(l, ${_[_]}) then
+  if ast:matchesShape(l, ${_[_]})
     var ast* array ast:child(l, 0)
     var ast* index ast:child(l, 1)
     ret ${store ptradd(#array, #index) #r}
@@ -395,7 +344,7 @@ macro struct name members
   ast:addChild decl name
 
   forEachAstChild memberList members
-    if2 ast:matchesShape(memberList, ${__ _...}) then
+    if ast:matchesShape(memberList, ${__ _...})
       memberType := ast:child memberList 0
       for memberNum 1 memberList.childCount
         memberName := ast:child memberList memberNum
@@ -414,7 +363,7 @@ func bool isMultipleOf(int x, int m)
 end
 
 macro ast:foreach3 t0 t1 t2 tree code
-  if2 (bool:not isMultipleOf(tree.childCount, 3)) then
+  if (bool:not isMultipleOf(tree.childCount, 3))
     ret ${error "Can only iterate over 3-tuples if child count is a multiple of 3" tree}
   end
 
@@ -464,7 +413,7 @@ macro switch intvalue default cases...
   uniqueId value "the_value"
 
   first := true
-  code := ${if2 false then
+  code := ${if false
     println()
   end}
 

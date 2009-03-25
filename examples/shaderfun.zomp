@@ -23,7 +23,7 @@ require "libs/libcee.zomp"
 //     ast:matchesShape(code, ${#pattern})
 //   end
 // 
-//   if2 matches(_ _(_...) __) then
+//   if matches(_ _(_...) __)
 //     ret (nthId 0 ++ nthId 1 ++ "("
 //   end
 // 
@@ -39,7 +39,7 @@ func cstring Shader:parseTLExpr(ast* code)
     ast:matchesShape(code, ${#pattern})
   end
 
-  if2 matches(varying _ _) then
+  if matches(varying _ _)
     ret ("varying " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
   elseif matches(uniform _ _)
     ret ("uniform " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
@@ -98,7 +98,7 @@ var int windowHeight 720
 var bool initCalled false
 
 func void init()
-  if2 bool:not(initCalled) then
+  if bool:not(initCalled)
     glfwInit()
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
@@ -167,7 +167,7 @@ macro mainloop body...
 end
 
 macro assert code
-  ret ${if2 (bool:not #code) then
+  ret ${if (bool:not #code)
     printlnString "error: Assertion failed"
     ast:print ${#code} 0
   end}

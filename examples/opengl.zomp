@@ -14,7 +14,7 @@ var int windowHeight 300
 var bool initCalled false
 
 func void init()
-  if2 bool:not(initCalled) then
+  if bool:not(initCalled)
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()

@@ -39,7 +39,7 @@ macro unittest:assert testCode
   printF := ast:fromString "internalErrorIn unittest:assert"
   compareF := ast:fromString "internalErrorIn unittest:assert"
 
-  if2 ast:matchesShape(testCode, ${__ ==_f __}) then
+  if ast:matchesShape(testCode, ${__ ==_f __})
     isCompare = true
     printF = ast:fromString "print"
     compareF = ast:fromString "op==_f"
@@ -49,7 +49,7 @@ macro unittest:assert testCode
     compareF = ast:fromString "op=="
   end
 
-  if2 isCompare then
+  if isCompare
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
@@ -95,7 +95,7 @@ end
 // misc
 
 macro assert code
-  ret ${if2 (bool:not #code) then
+  ret ${if (bool:not #code)
     printlnString "error: Assertion failed"
     ast:print ${#code} 0
   end}
@@ -179,7 +179,7 @@ end
 func float posmod(float x, float divisor)
   mod := fmodf(x, divisor)
 
-  if2 (mod < 0.0) then
+  if (mod < 0.0)
     mod = divisor - float:neg(mod)
   end
 
@@ -291,7 +291,7 @@ var int windowHeight 720
 var bool initCalled false
 
 func void init()
-  if2 bool:not(initCalled) then
+  if bool:not(initCalled)
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
@@ -481,17 +481,17 @@ func void Metaballs:update(Metaballs* this, float time)
 
     acc := 1.0 / 10.0 * float:random()
 
-    if2 (xs[ballnum] < minpos) then
+    if (xs[ballnum] < minpos)
       xvels[ballnum] = xvels[ballnum] + acc
     elseif (xs[ballnum] > maxpos)
       xvels[ballnum] = xvels[ballnum] - acc
     end
-    if2 (ys[ballnum] < minpos) then
+    if (ys[ballnum] < minpos)
       yvels[ballnum] = yvels[ballnum] + acc
     elseif (ys[ballnum] > maxpos)
       yvels[ballnum] = yvels[ballnum] - acc
     end
-    if2 (zs[ballnum] < minpos) then
+    if (zs[ballnum] < minpos)
       zvels[ballnum] = zvels[ballnum] + acc
     elseif (zs[ballnum] > maxpos)
       zvels[ballnum] = zvels[ballnum] - acc
@@ -718,15 +718,15 @@ var bool windowOnUpperScreen true
 var int debugNum 0
 
 func void onKey(int key, int action)
-  if2 ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS)) then
-    if2 windowOnUpperScreen then
+  if ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS))
+    if windowOnUpperScreen
       glfwSetWindowPos 100 1250
     else
       glfwSetWindowPos 100 100
     end
     windowOnUpperScreen = bool:not windowOnUpperScreen
   elseif (action == GLFW_PRESS)
-    if2 (key == GLFW_KEY_UP) then
+    if (key == GLFW_KEY_UP)
       ++debugNum
     elseif (key == GLFW_KEY_DOWN)
       --debugNum
@@ -1141,7 +1141,7 @@ func bool keyDown(GLint key)
 end
 
 // macro insertForEach args...
-//   if2 (args.childCount == 0) then
+//   if (args.childCount == 0)
 //     ret ${error "Expecting arguments: args... templateCode" ${insertForEach args}}
 //   end
 // 
@@ -1310,14 +1310,14 @@ func int main()
     glPointSize 1.0
 
     mainloop
-      if2 resizeDirty then
+      if resizeDirty
         deleteRenderTargets
         createRenderTargets
 
         resizeDirty = false
       end
 
-      if2 (abs mouseXDelta > abs mouseYDelta) then
+      if (abs mouseXDelta > abs mouseYDelta)
         mouseYDelta = 0
       else
         mouseXDelta = 0
@@ -1328,7 +1328,7 @@ func int main()
       mouseXDelta = 0
       mouseYDelta = 0
 
-      if2 (time - startTime > 1.0) then
+      if (time - startTime > 1.0)
         Metaballs:update mballs frameDuration
         Metaballs:applyToField mballs field
       end
@@ -1362,7 +1362,7 @@ func int main()
       glClearColor 0.0 0.0 0.0 1.0
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-      // if2 keyDown(GLFW_KEY_LSHIFT) then
+      // if keyDown(GLFW_KEY_LSHIFT)
       //   renderScene
       // end
 
@@ -1414,7 +1414,7 @@ func int main()
         glDisable GL_DEPTH_TEST
         glEnable GL_TEXTURE_2D
 
-        if2 keyDown(GLFW_KEY_LSHIFT) then
+        if keyDown(GLFW_KEY_LSHIFT)
           glBindTexture2D renderTargetsB[0]*.colorTexture
           drawFullscreenQuad()
         else
@@ -1425,7 +1425,7 @@ func int main()
         end
       end
 
-      if2 keyDown(GLFW_KEY_LALT) then
+      if keyDown(GLFW_KEY_LALT)
         glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
         showTarget := int:clamp 0 (2 * glowSteps - 1) debugNum
         debugNum = showTarget
@@ -1434,7 +1434,7 @@ func int main()
         saveTransforms
           makeGLIdentityTransforms
           draw2dOrientationGrid()
-          if2 (int:mod showTarget 2 == 1) then
+          if (int:mod showTarget 2 == 1)
             showTextureAt renderTargetsB[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
           else
             showTextureAt renderTargetsA[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
@@ -1444,7 +1444,7 @@ func int main()
           saveAttribs
             glqtPrintfAt -0.8 0.8 0.0 0.01 int:toCString(showTarget / 2)
             targetName := "A"
-            if2 (int:mod showTarget 2 == 1) then
+            if (int:mod showTarget 2 == 1)
               targetName = "B"
             end
             glqtPrintfAt -1.0 0.8 0.0 0.01 targetName
