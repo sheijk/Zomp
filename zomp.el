@@ -126,6 +126,12 @@ indent the next line when they occur at the beginning of a line"
 (defvar zomp-toplevel-buffer-name "*zomp-toplevel*"
   "The name of the buffer in which the zomp toplevel runs")
 
+(define-derived-mode zomp-tl-mode shell-mode "ZompTL"
+  "Major mode for a zomp toplevel in which you can interactively
+  compile and run zomp code"
+  (set (make-variable-buffer-local 'comint-use-prompt-regexp) t)
+  (set (make-variable-buffer-local 'comint-prompt-regexp) "  # "))
+
 (defun zomp-toplevel ()
   (interactive)
   (let ((zomp-new-tl-buffer-name zomp-toplevel-buffer-name) (oldwin (selected-window)))
@@ -133,10 +139,10 @@ indent the next line when they occur at the beginning of a line"
     ;; in case zomp-toplevel-buffer-name is buffer local we need to be sure it
     ;; has the same value in the toplevel buffer as in the zomp buffer invoking
     ;; the toplevel
+    (zomp-tl-mode)
     (set (make-local-variable 'zomp-toplevel-buffer-name) zomp-new-tl-buffer-name)
     (zomp-tl-do (concat "cd " zomp-basedir))
     (zomp-tl-do "./sexprtoplevel.native; exit")
-    ;; (zomp-tl-do "ocamlrun -b ./sexprtoplevel; exit")
     (message "Started zomp toplevel")
     (select-window oldwin)))
 
