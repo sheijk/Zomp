@@ -69,7 +69,7 @@ native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 # LLVM download and compilation
 ################################################################################
 
-LLVM_VERSION=2.4
+LLVM_VERSION=2.5
 
 tools/llvm-$(LLVM_VERSION).tar.gz:
 	@echo Downloading $@ ...

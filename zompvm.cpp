@@ -439,7 +439,7 @@ extern "C" {
       targetModule = macroModule;
     }
 
-    Module* parsedModule = ParseAssemblyString( code, targetModule, &errorInfo );
+    Module* parsedModule = ParseAssemblyString( code, targetModule, errorInfo );
     std::string errorMessage;
     if( parsedModule == NULL ) {
       printf( "Parsed module is NULL\n" );
@@ -457,7 +457,12 @@ extern "C" {
     }
 
     if( errorInfo.getRawMessage() != "none" ) {
-      fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
+      int line, column;
+      errorInfo.getErrorLocation(line, column);
+      fprintf( stderr, "%s:%d: error [LLVM]  %s\n",
+               errorInfo.getFilename().c_str(),
+               line,
+               errorInfo.getRawMessage().c_str() );
       fflush( stderr );
 
       errorsOccurred = true;
