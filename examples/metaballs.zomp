@@ -418,6 +418,10 @@ template Metaballs:foreach ballnum balls code...
   end
 end
 
+template postop[] ptr index
+  load(ptradd #ptr #index)
+end
+
 func void Metaballs:init(Metaballs* this, int count)
   template tempAndMemberArray name
     #name := malloc float count
@@ -433,10 +437,10 @@ func void Metaballs:init(Metaballs* this, int count)
   tempAndMemberArray yvels
   tempAndMemberArray zvels
   tempAndMemberArray strengths
-
+  
   max := 20.0
   offet := -10.0
-
+  
   Metaballs:foreach ballnum this
     xs[ballnum] = max * float:random() + offet
     ys[ballnum] = max * float:random() + offet
