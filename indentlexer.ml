@@ -193,8 +193,8 @@ module Rules : sig
 
   val rules : (rule * tokenBuilder) list
 
-  val ruleBeginMatches : string -> string -> rule * tokenBuilder -> bool
-  val ruleMatches : string -> string -> rule * tokenBuilder -> bool
+  val ruleMatchesAt : prevChar:string -> source:string -> pos:int -> rule * tokenBuilder ->
+    int option
 end = struct
 
   type charre =
@@ -449,15 +449,11 @@ end = struct
     @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
       (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
 
-  let ruleBeginMatches prevChar string ((prevCharRE, regexp), _) =
-    charreMatch prevCharRE prevChar &&
-      Str.string_partial_match regexp string 0 &&
-      String.length (Str.matched_group 0 string) = String.length string
-
-  let ruleMatches prevChar string ((prevCharRE, regexp), _) =
-    charreMatch prevCharRE prevChar &&
-      Str.string_match regexp string 0 &&
-      String.length (Str.matched_group 0 string) = String.length string
+  let ruleMatchesAt ~prevChar ~source ~pos ((prevCharRE, regexp), _) =
+    if (charreMatch prevCharRE prevChar && Str.string_match regexp source pos) then
+      Some (Str.match_end() - Str.match_beginning())
+    else
+      None
 end
 
 type 'token lexerstate = {
@@ -471,6 +467,15 @@ type 'token lexerstate = {
   mutable lastReadChars :string;
   mutable endOfLastToken :char;
 }
+
+let readChars lexbuf n =
+  if lexbuf.position + n < lexbuf.contentLength then begin
+    let str = String.sub lexbuf.content lexbuf.position n in
+    lexbuf.position <- lexbuf.position + n;
+    lexbuf.lastReadChars <- lexbuf.lastReadChars ^ str;
+    str
+  end else
+    raise Eof
 
 let readChar lexbuf =
   if lexbuf.position < lexbuf.contentLength then begin
@@ -622,7 +627,7 @@ let token (lexbuf : token lexerstate) : token =
                     (indent - prevIndent))
              end else if indent = prevIndent - 2 then begin
                onLessIndent()
-             (** indent is more than one level less than in previous line *)                 
+                 (** indent is more than one level less than in previous line *)                 
              end else begin
                raiseIndentError lexbuf.location
                  (sprintf
@@ -633,78 +638,60 @@ let token (lexbuf : token lexerstate) : token =
 
     (** no newline *)
     end else begin
-      let incrn r n =
-        r := !r + n
-      in
       collectTimingInfo "no newline"
         (fun () ->
-           let rec findToken prevInput prevFullMatches rules =
-             let actualChar = readChar lexbuf in
-             let input = prevInput ^ String.make 1 actualChar in
-             let prevChar = String.make 1 lexbuf.endOfLastToken in
-             assert( String.length prevChar = 1);
-             let beginMatches =
-               collectTimingInfo "beginMatches"
-                 (fun () ->
-                    List.filter (Rules.ruleBeginMatches prevChar input) rules)
-             in
-             incr stats.beginmatchCalcCount;
-             incrn stats.beginmatchMatchNums (List.length beginMatches);
-             let fullMatches =
-               collectTimingInfo "fullMatches"
-                 (fun () ->
-                    match List.filter (Rules.ruleMatches prevChar input) beginMatches with
-                      | [] -> prevFullMatches
-                      | fullMatches ->
-                          let inputLength = String.length input in
-                          List.map (fun m -> inputLength, m) fullMatches)
-             in
-             incr stats.fullmatchCalcCount;
-             incrn stats.fullmatchMatchNums (List.length fullMatches);
-             let tokenFromRule length makeToken =
-               let spareInput = Str.string_after input length in
-               let consumedInput = Str.string_before input length in
-               putback lexbuf spareInput;
-               let token : [`Ignore | `Token of token] =
-                 match (makeToken consumedInput : tokenOrAction) with
-                   | `PutBack(token, prefetched) ->
-                       putback lexbuf prefetched;
-                       (`Token token :> [`Ignore|`Token of token])
-                   | `Ignore -> `Ignore
-                   | `Token token -> ((`Token token) : [`Ignore | `Token of token])
-                   | `MultiTokens (firstToken::remTokens) ->
-                       returnMultipleTokens lexbuf (`Token firstToken) remTokens
-                   | `MultiTokens [] -> `Ignore
+           let prevChar = String.make 1 lexbuf.endOfLastToken in
+           let rec findToken() =
+             let matchingRules =
+               let unsorted =
+                 mapFilter
+                   (fun rule ->
+                      match
+                        Rules.ruleMatchesAt
+                          ~prevChar
+                          ~source:lexbuf.content
+                          ~pos:lexbuf.position
+                          rule
+                      with
+                        | Some len -> Some (len, rule)
+                        | None -> None)
+                   Rules.rules
                in
-               token
+               List.sort (fun (len1, _) (len2, _) -> 1 - compare len1 len2) unsorted
              in
-             let tokenFromRule = sampleFunc2 "tokenFromRule" tokenFromRule in
-             match beginMatches with
-               | [] ->
-                   begin match fullMatches with
-                     | [] -> raiseUnknownToken lexbuf.location input
-                         (sprintf "no matching rule (after '%s')" prevChar)
-                     | [length, (_, makeToken)] ->
-                         tokenFromRule length makeToken
-                     | multi ->
-                         begin
-                           match List.filter (Rules.ruleMatches prevChar (prevInput ^ " ")) rules with
-                             | [_, makeToken] ->
-                                 tokenFromRule (String.length input + 1) makeToken
-                             | [] ->
-                                 raiseUnknownToken lexbuf.location input
-                                   (sprintf "no matching rules at end of line (after '%s')" prevChar)
-                             | multi ->
-                                 raiseUnknownToken lexbuf.location input
-                                   (sprintf "multiple rules matching (after '%s')" prevChar)
-                         end
-                   end
-               | oneOrMoreBeginMatches ->
-                   findToken input fullMatches oneOrMoreBeginMatches
+             let input = String.sub lexbuf.content lexbuf.position 1 in
+             let length, (rule, makeToken) =
+               match matchingRules with
+                 | [] ->
+                     raiseUnknownToken lexbuf.location input
+                       (sprintf "no matching rules at end of line (after '%s')" prevChar)
+                 | [single] -> single
+                 | first :: second :: _ ->
+                     if (fst first > fst second) then
+                       first
+                     else
+                       raiseUnknownToken lexbuf.location input
+                         (sprintf "multiple rules matching (after '%s')" prevChar)
+             in
+             ignore rule;
+             let tokenString = readChars lexbuf length in
+
+             let token : [`Ignore | `Token of token] =
+               match (makeToken tokenString : tokenOrAction) with
+                 | `PutBack(token, prefetched) ->
+                     putback lexbuf prefetched;
+                     (`Token token :> [`Ignore|`Token of token])
+                 | `Ignore -> `Ignore
+                 | `Token token -> ((`Token token) : [`Ignore | `Token of token])
+                 | `MultiTokens (firstToken::remTokens) ->
+                     returnMultipleTokens lexbuf (`Token firstToken) remTokens
+                 | `MultiTokens [] -> `Ignore
+             in
+             token
            in
            backTrack lexbuf 1;
            incr stats.foundTokens;
-           findToken "" [] Rules.rules)
+           findToken())
     end
   in
   let rec getNextToken() =
