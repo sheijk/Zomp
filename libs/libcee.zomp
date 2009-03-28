@@ -504,6 +504,25 @@ alias u32:less u32:sless l r
 alias u32:lessEqual u32:slessEqual l r
 alias u32:div u32:sdiv l r
 
+alias char:greater char:sgreater l r
+alias char:greaterEqual char:sgreaterEqual l r
+alias char:less char:sless l r
+alias char:lessEqual char:slessEqual l r
+
+func char char:add(char l, char r)
+  ret '?'
+end
+func char char:sub(char l, char r)
+  ret '?'
+end
+func char char:mul(char l, char r)
+  ret '?'
+end
+func char char:div(char l, char r)
+  ret '?'
+end
+
+
 alias float:div float:fdiv l r
 alias float:greater float:ogreater l r
 alias float:greaterEqual float:ogreaterEqual l r
@@ -548,6 +567,7 @@ end
 overloadedOps u32
 overloadedOps float
 overloadedOps double
+overloadedOps char
 
 template op+ l r
   zmp:cee:add #l #r
