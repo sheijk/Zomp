@@ -1554,22 +1554,24 @@ struct
         Error ["Expected one argument"]
 
   let register addF =
-    addF "zmp:cee:add" (overloadedOperator "op+");
-    addF "zmp:cee:sub" (overloadedOperator "op-");
-    addF "zmp:cee:mul" (overloadedOperator "op*");
-    addF "zmp:cee:div" (overloadedOperator "op/");
-    addF "zmp:cee:equal" (overloadedOperator "op==");
-    addF "zmp:cee:notEqual" (overloadedOperator "op!=");
-    addF "zmp:cee:greater" (overloadedOperator "op>");
-    addF "zmp:cee:greaterEqual" (overloadedOperator "op>=");
-    addF "zmp:cee:less" (overloadedOperator "op<");
-    addF "zmp:cee:lessEqual" (overloadedOperator "op<=");
-
-    addF "zmp:cee:print" (overloadedFunction "print");
-    addF "zmp:cee:toFloat" (overloadedFunction "toFloat");
-    addF "zmp:cee:toInt" (overloadedFunction "toInt");
-    addF "zmp:cee:toChar" (overloadedFunction "toChar");
-    addF "zmp:cee:toCString" (overloadedFunction "toCString");
+    let addOp (name, op) =
+      addF ("zmp:cee:" ^ name) (overloadedOperator op)
+    in
+    List.iter addOp [
+      "add", "op+";
+      "sub", "op-";
+      "mul", "op*";
+      "div", "op/";
+      "equal", "op==";
+      "notEqual", "op!=";
+      "greater", "op>";
+      "greaterEqual", "op>=";
+      "less", "op<";
+      "lessEqual", "op<=";
+    ];
+    let addFun name = addF ("zmp:cee:" ^ name) (overloadedFunction name) in
+    List.iter addFun
+      ["print"; "toInt"; "toFloat"; "toDouble"; "toBool"; "toChar"];
 end
 
 let baseInstructions =
