@@ -105,7 +105,7 @@ namespace {
   static Module* llvmModule = 0;
   static Module* macroModule = 0;
   static ExistingModuleProvider* moduleProvider = 0;
-  //   FunctionPassManager* passManager = 0;
+  // static FunctionPassManager* passManager = 0;
 
   static bool verifyCode = true;
 
@@ -382,21 +382,21 @@ namespace
 
 extern "C" {
 
-//   void setupOptimizerPasses() {
-//     // Set up the optimizer pipeline.  Start with registering info about how the
-//     // target lays out data structures.
-//     passManager->add(new TargetData( *executionEngine->getTargetData()));
-//     // Do simple "peephole" optimizations and bit-twiddling optzns.
-//     passManager->add(createInstructionCombiningPass());
-//     // Reassociate expressions.
-//     passManager->add(createReassociatePass());
-//     // Eliminate Common SubExpressions.
-//     passManager->add(createGVNPass());
-//     // Simplify the control flow graph (deleting unreachable blocks, etc).
-//     passManager->add(createCFGSimplificationPass());
-//   }
-
-
+  // void setupOptimizerPasses() {
+  //   // Set up the optimizer pipeline.  Start with registering info about how the
+  //   // target lays out data structures.
+  //   passManager->add(new TargetData( *executionEngine->getTargetData()));
+  //   // Do simple "peephole" optimizations and bit-twiddling optzns.
+  //   // passManager->add(createInstructionCombiningPass());
+  //   // Reassociate expressions.
+  //   // passManager->add(createReassociatePass());
+  //   // Eliminate Common SubExpressions.
+  //   // passManager->add(createGVNPass());
+  //   // Simplify the control flow graph (deleting unreachable blocks, etc).
+  //   // passManager->add(createCFGSimplificationPass());
+  // 
+  //   // passManager->add(createAlwaysInlinerPass());
+  // }
 
   bool zompInit() {
 //     printf( "Initializing ZompVM\n" );
@@ -405,8 +405,8 @@ extern "C" {
     assureModuleExists();
     moduleProvider = new ExistingModuleProvider( llvmModule );
     executionEngine = ExecutionEngine::create( moduleProvider, false );
-//     passManager = new FunctionPassManager( moduleProvider );
-//     setupOptimizerPasses();
+    // passManager = new FunctionPassManager( moduleProvider );
+    // setupOptimizerPasses();
 
     // value* closure_f = NULL;
     // closure_f = caml_named_value("helloCallback");
@@ -447,8 +447,7 @@ extern "C" {
 
       errorsOccurred = true;
     }
-//     else if( true == verifyModule(*parsedModule, PrintMessageAction, &errorMessage) ) {
-    else if( verifyCode && true == verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
+    else if( verifyCode && verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
       printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
       fflush( stdout );
       fflush( stderr );
@@ -468,15 +467,19 @@ extern "C" {
       errorsOccurred = true;
     }
 
-//     // run optimizations
-//     if( ! errorsOccurred && parsedModule ) {
-//       llvm::Module::iterator currentFunc = parsedModule->begin();
-//       const llvm::Module::iterator funcsEnd = parsedModule->end();
-
-//       for( ; currentFunc != funcsEnd; ++currentFunc) {
-//         passManager->run( *currentFunc );
-//       }
-//     }
+    // run optimizations
+    // if( ! errorsOccurred && parsedModule ) {
+    //   llvm::Module::iterator currentFunc = parsedModule->begin();
+    //   const llvm::Module::iterator funcsEnd = parsedModule->end();
+    // 
+    //   for( ; currentFunc != funcsEnd; ++currentFunc) {
+    //     if( ! currentFunc->isDeclaration() ) {
+    //       // verifyFunction( *currentFunc );
+    //       passManager->run( *currentFunc );
+    //       // verifyFunction( *currentFunc );
+    //     }
+    //   }
+    // }
 
     return !errorsOccurred;
   }
