@@ -189,6 +189,11 @@ indent the next line when they occur at the beginning of a line"
     (zomp-mark-current)
     (zomp-tl-eval-region)))
 
+(defun zomp-tl-eval-current-and-goto-next ()
+  (interactive)
+  (call-interactively 'zomp-tl-eval-current)
+  (zomp-next-tl-expr))
+
 (defun zomp-next-tl-expr ()
   (interactive)
   (forward-char)
@@ -515,6 +520,9 @@ indent the next line when they occur at the beginning of a line"
   (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
   (zomp-add-action zomp-tl-eval-region [(control c)(control r)] "Eval region")
   (zomp-add-action zomp-tl-eval-current [(control c)(control e)] "Eval function at point")
+  (zomp-add-action zomp-tl-eval-current-and-goto-next
+                   [(control c)(control shift e)]
+                   "Eval function at point and goto next")
 
   (zomp-add-seperator zomp-sep-1)
   (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
@@ -525,6 +533,7 @@ indent the next line when they occur at the beginning of a line"
                               (zomp-tl-eval-current)
                               (zomp-tl-run-test) ))
   (local-set-key [(alt e)] 'zomp-tl-eval-current)
+  (local-set-key [(alt shift e)] 'zomp-tl-eval-current-and-goto-next)
   (local-set-key [(alt d)] 'zomp-tl-run)
   (local-set-key [(alt shift d)] 'zomp-tl-run-test)
 
