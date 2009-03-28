@@ -39,3 +39,4 @@ tools
 /extlibs/*.zip
 /examples/shaderfun.glexe.s
 /mltest
+/depends.mk

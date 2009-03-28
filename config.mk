@@ -20,6 +20,9 @@ LLVM_INCLUDE_DIR=$(ZOMP_TOOL_PATH)/llvm/include
 LLVM_LIB_DIR=$(ZOMP_TOOL_PATH)/llvm/Release/lib
 LLVM_GCC_BIN_DIR=$(ZOMP_TOOL_PATH)/llvm-gcc/bin
 
+LLVM_GCC=$(LLVM_GCC_BIN_DIR)/llvm-gcc
+LLVM_GXX=$(LLVM_GCC_BIN_DIR)/llvm-g++
+
 LLVM_CONFIG=$(LLVM_BIN_DIR)/llvm-config
 LLVM_CC=$(LLVM_GCC_BIN_DIR)/llvm-gcc
 LLVM_CXX=$(LLVM_GCC_BIN_DIR)/llvm-g++

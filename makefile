@@ -9,6 +9,10 @@ ifndef DEBUG
 DEBUG=1
 endif
 
+ifndef PWD
+PWD=`pwd`
+endif
+
 ZOMP_TOOL_PATH=$(PWD)/tools
 include config.mk
 
@@ -22,7 +26,7 @@ PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 #	echo LLVM_CONFIG $(LLVM_CONFIG)
 #	echo llvm config help `${LLVM_CONFIG} --help`
 
-FLYMAKE_LOG=flymake-log.temp
+FLYMAKE_LOG=flymake.log
 
 CAML_INCLUDE=
 CAML_PP=
