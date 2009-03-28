@@ -7,25 +7,20 @@ open Printf
 open Common
 
 exception Eof
-
-let lastMatchedString = ref ""
-let (=~) string regexp =
-  lastMatchedString := string;
-  Str.string_match (Str.regexp regexp) string  0
-let nthmatch n =
-  Str.matched_group n !lastMatchedString
-
-let whitespaceRE = Str.regexp " +"
-
 type location = {
   line :int;
   fileName :string;
 }
 
+exception UnknowToken of location * string * string
+let raiseUnknownToken loc str reason = raise (UnknowToken (loc, str, reason))
+
+exception IndentError of location * string
+let raiseIndentError loc str = raise (IndentError (loc, str))
+
 type token = Newparser.token
 open Newparser
 
-(* type tokenBuilder = string -> [token | `Ignore | `PutBack of token * string] *)
 type tokenOrAction = [
   | `Token of token
   | `Ignore
@@ -35,9 +30,163 @@ type tokenOrAction = [
 
 type tokenBuilder = string -> tokenOrAction
 
-let trimLinefeed str =
-  let noLineFeeds = mapString (function '\n' -> ' ' | c -> c) str in
-  trim noLineFeeds
+module Util =
+struct
+  let lastMatchedString = ref ""
+  let (=~) string regexp =
+    lastMatchedString := string;
+    Str.string_match (Str.regexp regexp) string  0
+  let nthmatch n =
+    Str.matched_group n !lastMatchedString
+
+  let whitespaceRE = Str.regexp " +"
+
+  let trimLinefeed str =
+    let noLineFeeds = mapString (function '\n' -> ' ' | c -> c) str in
+    trim noLineFeeds
+
+  let isNewline chr = chr = '\n'
+  let isWhitespace chr = chr = ' '
+
+  let isBlockEndLine line =
+    Str.string_match (Str.regexp "^end.*$") line 0
+
+  let appendChar string char = string ^ String.make 1 char
+
+end
+
+open Util
+
+let stripComments source =
+  let fakeLocation = { line = 0; fileName = "fake" } in
+  let sourceLength = String.length source in
+  let readPos = ref 0 in
+  let strippedSource = String.make (sourceLength+1) '\n' in
+  let writePos = ref 0 in
+  let writeChar chr =
+    strippedSource.[!writePos] <- chr;
+    incr writePos
+  in
+  let unexpectedEofInComment() =
+    raiseIndentError fakeLocation "Unexpected Eof while parsing comment"
+  in
+  let rec copySource() =
+    if !readPos <= sourceLength - 2 then begin
+      readPos := !readPos + 2;
+      match source.[!readPos-2], source.[!readPos-1] with
+        | '/', '/' ->
+            skipSingleLineComment()
+        | '/', '*' ->
+            skipMultiLineComment()
+        | chr1, '/' ->
+            writeChar chr1;
+            readPos := !readPos - 1;
+            copySource();
+        | chr1, chr2 ->
+            writeChar chr1;
+            writeChar chr2;
+            copySource()
+    end else begin
+      if !readPos = sourceLength - 1 then
+        writeChar source.[sourceLength - 1]
+    end
+  and skipSingleLineComment() =
+    if !readPos <= sourceLength - 1 then
+      let chr = source.[!readPos] in
+      incr readPos;
+      if chr = '\n' then begin
+        writeChar '\n';
+        copySource()
+      end else
+        skipSingleLineComment()
+    else
+      unexpectedEofInComment()
+  and skipMultiLineComment() =
+    if !readPos <= sourceLength - 2 then begin
+      readPos := !readPos + 2;
+      match source.[!readPos-2], source.[!readPos-1] with
+        | '*', '/' -> copySource()
+        | chr, '*' ->
+            decr readPos;
+            skipMultiLineComment()
+        | _, _ ->
+            skipMultiLineComment()
+    end else
+      unexpectedEofInComment()
+  in
+  copySource();
+  String.sub strippedSource 0 (!writePos + 1)
+
+let tokenToString (lineIndent, indentNext) (token :token) =
+  let indentString indent =
+    if indentNext = `Indent then
+      sprintf "%s" (String.make (4 * indent) ' ')
+    else
+      ""
+  in
+  match token with
+    | END_BLOCK args ->
+        indentString (lineIndent - 1) ^
+          begin
+            match args with
+              | [] -> "END_BLOCK"
+              | _ -> sprintf "END_BLOCK(%s)" (Common.combine ", " args)
+          end,
+        (lineIndent - 1, `Indent)
+    | _ as t ->
+        let noind = lineIndent, `DontIndent
+        and ind = lineIndent, `Indent
+        in
+        let str, (indent, doindent) =
+          match t with
+            | BEGIN_BLOCK ->
+                "BEGIN_BLOCK\n", (lineIndent + 1, `Indent)
+            | END_BLOCK _ -> failwith "match failure"
+            | END -> "END\n", ind
+            | IDENTIFIER str -> str, noind
+            | COMMA -> ",", noind
+            | ADD_OP arg
+            | MULT_OP arg
+            | ASSIGN_OP arg
+            | COMPARE_OP arg
+            | LAZY_BOOL_OP arg
+            | STRICT_BOOL_OP arg
+              -> "op" ^ arg, noind
+            | POSTFIX_OP arg -> "post" ^ arg, noind
+            | PREFIX_OP arg -> "pre" ^ arg, noind
+            | OPEN_PAREN -> "(", noind
+            | OPEN_ARGLIST -> "(`", noind
+            | CLOSE_PAREN -> ")", noind
+            | OPEN_CURLY -> "{", noind
+            | CLOSE_CURLY -> "}", noind
+            | DOT -> ".", noind
+            | QUOTE str -> "$" ^ str, noind
+            | KEYWORD_ARG str -> "`kwd(" ^ str ^ ")", noind
+            | OPEN_BRACKET -> "[", noind
+            | OPEN_BRACKET_POSTFIX -> "[_postfix", noind
+            | CLOSE_BRACKET -> "]", noind
+        in
+        indentString lineIndent ^ str, (indent, doindent)
+
+let tokensToString tokens =
+  let rec worker context acc = function
+    | [] -> acc
+    | t :: remTokens ->
+        let str, newContext = tokenToString context t in
+        worker newContext (str::acc) remTokens
+  in
+  let revLines = worker (0, `DontIndent) [] tokens in
+  Common.combine " " (List.rev revLines)
+
+let printTokens tokens =
+  let rec worker context = function
+    | [] -> ()
+    | t :: remTokens ->
+        let str, newContext = tokenToString context t in
+        printf "<%s> " str;
+        worker newContext remTokens
+  in
+  worker (0, `DontIndent) tokens
 
 module Rules : sig
   type rule
@@ -312,9 +461,9 @@ end = struct
 end
 
 type 'token lexerstate = {
-  readChar : unit -> char;
-  backTrack : int -> unit;
-(*   putbackString : string -> unit; *)
+  content : string;
+  contentLength : int;
+  mutable position : int;
   mutable location : location;
   mutable prevIndent : int;
   mutable pushedTokens : 'token list;
@@ -323,28 +472,28 @@ type 'token lexerstate = {
   mutable endOfLastToken :char;
 }
 
+let readChar lexbuf =
+  if lexbuf.position < lexbuf.contentLength then begin
+    let chr = lexbuf.content.[lexbuf.position] in
+    lexbuf.position <- lexbuf.position + 1;
+    lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
+    chr
+  end else
+    raise Eof
+
+let backTrack lexbuf n =
+  lexbuf.position <- lexbuf.position - n;
+  lexbuf.lastReadChars <- Str.first_chars lexbuf.lastReadChars
+    (String.length lexbuf.lastReadChars - n)
+
 let returnMultipleTokens state first remaining =
   state.pushedTokens <- remaining;
   first
 
-let isNewline chr = chr = '\n'
-let isWhitespace chr = chr = ' '
-
-let isBlockEndLine line =
-  Str.string_match (Str.regexp "^end.*$") line 0
-
-exception UnknowToken of location * string * string
-let raiseUnknownToken loc str reason = raise (UnknowToken (loc, str, reason))
-
-exception IndentError of location * string
-let raiseIndentError loc str = raise (IndentError (loc, str))
-
-let appendChar string char = string ^ String.make 1 char
-
 let readUntil abortOnChar state =
   let acc = ref "" in
   let rec worker () =
-    let nextChar = state.readChar() in
+    let nextChar = readChar state in
     if abortOnChar nextChar then begin
       ()
     end else begin
@@ -357,39 +506,45 @@ let readUntil abortOnChar state =
   with Eof -> () end;
   !acc
 
-type stats = {
-  ruleCount :int;
-  foundTokens :int ref;
-  beginmatchCalcCount :int ref;
-  beginmatchMatchNums :int ref;
-  fullmatchCalcCount :int ref;
-  fullmatchMatchNums :int ref;
-}
+module Stats =
+struct
+  type stats = {
+    ruleCount :int;
+    foundTokens :int ref;
+    beginmatchCalcCount :int ref;
+    beginmatchMatchNums :int ref;
+    fullmatchCalcCount :int ref;
+    fullmatchMatchNums :int ref;
+  }
 
-let stats = {
-  ruleCount = List.length Rules.rules;
-  foundTokens = ref 0;
-  beginmatchCalcCount = ref 0;
-  beginmatchMatchNums = ref 0;
-  fullmatchCalcCount = ref 0;
-  fullmatchMatchNums = ref 0;
-}
+  let stats = {
+    ruleCount = List.length Rules.rules;
+    foundTokens = ref 0;
+    beginmatchCalcCount = ref 0;
+    beginmatchMatchNums = ref 0;
+    fullmatchCalcCount = ref 0;
+    fullmatchMatchNums = ref 0;
+  }
 
-let printStats() =
-  if !(stats.beginmatchCalcCount) > 0 then begin
-    printf "----- lexer stats:\n";
-    printf "  %d rules\n" stats.ruleCount;
-    printf "  %d tokens found\n" !(stats.foundTokens);
-    printf "  %d times made begin match set\n" !(stats.beginmatchCalcCount);
-    printf "  %d total begin matches\n" !(stats.beginmatchMatchNums);
-    printf "  %d total matches calculated\n" !(stats.fullmatchMatchNums);
-    printf "  %d total full matches\n" !(stats.fullmatchMatchNums);
-    printf "  %f%% begin matches average\n"
-      (float !(stats.beginmatchMatchNums) /. float !(stats.beginmatchCalcCount));
-    printf "  %f%% full matches average\n"
-      (float !(stats.fullmatchMatchNums) /. float !(stats.fullmatchCalcCount));
-    printf "-----\n"
-  end
+  let printStats() =
+    if !(stats.beginmatchCalcCount) > 0 then begin
+      printf "----- lexer stats:\n";
+      printf "  %d rules\n" stats.ruleCount;
+      printf "  %d tokens found\n" !(stats.foundTokens);
+      printf "  %d times made begin match set\n" !(stats.beginmatchCalcCount);
+      printf "  %d total begin matches\n" !(stats.beginmatchMatchNums);
+      printf "  %d total matches calculated\n" !(stats.fullmatchMatchNums);
+      printf "  %d total full matches\n" !(stats.fullmatchMatchNums);
+      printf "  %f%% begin matches average\n"
+        (float !(stats.beginmatchMatchNums) /. float !(stats.beginmatchCalcCount));
+      printf "  %f%% full matches average\n"
+        (float !(stats.fullmatchMatchNums) /. float !(stats.fullmatchCalcCount));
+      printf "-----\n"
+    end
+end
+open Stats
+
+let printStats = Stats.printStats
 
 let token (lexbuf : token lexerstate) : token =
   let putback lexbuf string =
@@ -400,11 +555,11 @@ let token (lexbuf : token lexerstate) : token =
         "Assertion failure: expected \"%s\" but found \"%s\"" lastChars string;
       assert false;
     end;
-    lexbuf.backTrack len
+    backTrack lexbuf len
   in
 
   let rec worker () =
-    let currentChar = lexbuf.readChar() in
+    let currentChar = readChar lexbuf in
     if currentChar = '!' then (** hack to allow to abort within file *)
       raise Eof;
 
@@ -413,7 +568,7 @@ let token (lexbuf : token lexerstate) : token =
         (fun () ->
            let rec consumeWhitespaceAndReturnIndent indent =
              let eof, nextChar =
-               try false, lexbuf.readChar()
+               try false, readChar lexbuf
                with Eof -> true, '\n'
              in
              if eof then
@@ -423,7 +578,7 @@ let token (lexbuf : token lexerstate) : token =
              else if isNewline nextChar then
                consumeWhitespaceAndReturnIndent 0
              else begin
-               lexbuf.backTrack 1;
+               backTrack lexbuf 1;
                indent
              end
            in
@@ -484,7 +639,7 @@ let token (lexbuf : token lexerstate) : token =
       collectTimingInfo "no newline"
         (fun () ->
            let rec findToken prevInput prevFullMatches rules =
-             let actualChar = lexbuf.readChar() in
+             let actualChar = readChar lexbuf in
              let input = prevInput ^ String.make 1 actualChar in
              let prevChar = String.make 1 lexbuf.endOfLastToken in
              assert( String.length prevChar = 1);
@@ -547,7 +702,7 @@ let token (lexbuf : token lexerstate) : token =
                | oneOrMoreBeginMatches ->
                    findToken input fullMatches oneOrMoreBeginMatches
            in
-           lexbuf.backTrack 1;
+           backTrack lexbuf 1;
            incr stats.foundTokens;
            findToken "" [] Rules.rules)
     end
@@ -576,153 +731,13 @@ let token (lexbuf : token lexerstate) : token =
   lexbuf.lastReadChars <- Str.last_chars lexbuf.lastReadChars 1;
   token
 
-let tokenToString (lineIndent, indentNext) (token :token) =
-  let indentString indent =
-    if indentNext = `Indent then
-      sprintf "%s" (String.make (4 * indent) ' ')
-    else
-      ""
-  in
-  match token with
-    | END_BLOCK args ->
-        indentString (lineIndent - 1) ^
-          begin
-            match args with
-              | [] -> "END_BLOCK"
-              | _ -> sprintf "END_BLOCK(%s)" (Common.combine ", " args)
-          end,
-        (lineIndent - 1, `Indent)
-    | _ as t ->
-        let noind = lineIndent, `DontIndent
-        and ind = lineIndent, `Indent
-        in
-        let str, (indent, doindent) =
-        match t with
-          | BEGIN_BLOCK ->
-              "BEGIN_BLOCK\n", (lineIndent + 1, `Indent)
-          | END_BLOCK _ -> failwith "match failure"
-          | END -> "END\n", ind
-          | IDENTIFIER str -> str, noind
-(*           | Whitespace length -> "_", noind *)
-          | COMMA -> ",", noind
-          | ADD_OP arg
-          | MULT_OP arg
-          | ASSIGN_OP arg
-          | COMPARE_OP arg
-          | LAZY_BOOL_OP arg
-          | STRICT_BOOL_OP arg
-            -> "op" ^ arg, noind
-          | POSTFIX_OP arg -> "post" ^ arg, noind
-          | PREFIX_OP arg -> "pre" ^ arg, noind
-          | OPEN_PAREN -> "(", noind
-          | OPEN_ARGLIST -> "(`", noind
-          | CLOSE_PAREN -> ")", noind
-          | OPEN_CURLY -> "{", noind
-          | CLOSE_CURLY -> "}", noind
-          | DOT -> ".", noind
-          | QUOTE str -> "$" ^ str, noind
-          | KEYWORD_ARG str -> "`kwd(" ^ str ^ ")", noind
-          | OPEN_BRACKET -> "[", noind
-          | OPEN_BRACKET_POSTFIX -> "[_postfix", noind
-          | CLOSE_BRACKET -> "]", noind
-          (* | EXTENDED_INDENT -> "`extind", noind *)
-        in
-        indentString lineIndent ^ str, (indent, doindent)
-
-type preprocessorState =
-  | Source
-  | OneLineComment
-  | MultiLineComment
-
-let fakeLocation = { line = 0; fileName = "fake" }
-
-let stripComments source =
-  let sourceLength = String.length source in
-  let readPos = ref 0 in
-  let strippedSource = String.make (sourceLength+1) '\n' in
-  let writePos = ref 0 in
-  let writeChar chr =
-    strippedSource.[!writePos] <- chr;
-    incr writePos
-  in
-  let unexpectedEofInComment() =
-    raiseIndentError fakeLocation "Unexpected Eof while parsing comment"
-  in
-  let rec copySource() =
-    if !readPos <= sourceLength - 2 then begin
-      readPos := !readPos + 2;
-      match source.[!readPos-2], source.[!readPos-1] with
-        | '/', '/' ->
-            skipSingleLineComment()
-        | '/', '*' ->
-            skipMultiLineComment()
-        | chr1, '/' ->
-            writeChar chr1;
-            readPos := !readPos - 1;
-            copySource();
-        | chr1, chr2 ->
-            writeChar chr1;
-            writeChar chr2;
-            copySource()
-    end else begin
-      if !readPos = sourceLength - 1 then
-        writeChar source.[sourceLength - 1]
-    end
-  and skipSingleLineComment() =
-    if !readPos <= sourceLength - 1 then
-      let chr = source.[!readPos] in
-      incr readPos;
-      if chr = '\n' then begin
-        writeChar '\n';
-        copySource()
-      end else
-        skipSingleLineComment()
-    else
-      unexpectedEofInComment()
-  and skipMultiLineComment() =
-    if !readPos <= sourceLength - 2 then begin
-      readPos := !readPos + 2;
-      match source.[!readPos-2], source.[!readPos-1] with
-        | '*', '/' -> copySource()
-        | chr, '*' ->
-            decr readPos;
-            skipMultiLineComment()
-        | _, _ ->
-            skipMultiLineComment()
-    end else
-      unexpectedEofInComment()
-  in
-  copySource();
-  String.sub strippedSource 0 (!writePos + 1)
-  
 let makeLexbuf fileName source =
-  let buffer = ref (stripComments source) in
-
-  (* hide source param to avoid accidental usage *)
-  let source = 10 in
-  ignore source;
-
+  let buffer = stripComments source in
   let rec lexbuf =
-    let sourceLength = String.length !buffer in
-    let position = ref 0 in
-    let readCharFunc() =
-      if !position < sourceLength then begin
-        let chr = !buffer.[!position] in
-        incr position;
-        lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
-        chr
-      end else
-        raise Eof
-    in
-
-    let backTrack n =
-      position := !position - n;
-      lexbuf.lastReadChars <- Str.first_chars lexbuf.lastReadChars
-        (String.length lexbuf.lastReadChars - n);
-    in
     {
-      readChar = readCharFunc;
-      backTrack = backTrack;
+      content = buffer;
+      contentLength = String.length buffer;
+      position = 0;
       location = { line = 0; fileName = fileName };
       prevIndent = 0;
       pushedTokens = [];
@@ -740,9 +755,6 @@ let lexbufFromString fileName string =
 let lexbufFromChannel fileName channel =
   let source = Common.readChannel channel in
   lexbufFromString fileName source
-
-
-let readChar lexstate = lexstate.readChar()
 
 let dummymllexbuf =
   {
@@ -773,32 +785,12 @@ let lexString str =
   in
   worker []
 
-let tokensToString tokens =
-  let rec worker context acc = function
-    | [] -> acc
-    | t :: remTokens ->
-        let str, newContext = tokenToString context t in
-        worker newContext (str::acc) remTokens
-  in
-  let revLines = worker (0, `DontIndent) [] tokens in
-  Common.combine " " (List.rev revLines)
-
-let printTokens tokens =
-  let rec worker context = function
-    | [] -> ()
-    | t :: remTokens ->
-        let str, newContext = tokenToString context t in
-        printf "<%s> " str;
-        worker newContext remTokens
-  in
-  worker (0, `DontIndent) tokens
-
 let runInternalTests() =
   let l = lexbufFromString "d.zomp" "abcde" in
   let expectChar chr = assert( chr = readChar l ) in
   expectChar 'a';
   expectChar 'b';
-  l.backTrack 2;
+  backTrack l 2;
   expectChar 'a';
   expectChar 'b'
 
