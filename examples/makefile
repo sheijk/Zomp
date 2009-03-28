@@ -36,7 +36,7 @@ using_assimp.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glu
 
 %.ll: %.zomp ../zompc.native
 	$(ECHO) Compiling $(<) to .ll...
-	../zomp-check-syntax.sh $< || rm -f $@
+	../zomp-check-syntax.sh $< $(ZOMPCFLAGS) || rm -f $@
 
 %.bc: %.ll ../stdlib.zomp ../stdlib.c
 	echo Compiling $< to $@

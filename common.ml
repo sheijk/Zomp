@@ -173,6 +173,13 @@ let splitAfter firstLength list =
   let first, second = worker 0 [] list in
   List.rev first, second
 
+let rec partitionList keyF = function
+  | [] -> []
+  | first :: rem ->
+      let key = keyF first in
+      let withKey, otherKey = List.partition (fun ti -> key = keyF ti) rem in
+      (first :: withKey) :: partitionList keyF otherKey
+
 let removeQuotes str =
   let length = String.length str in
   if length > 1 && str.[0] = '"' && str.[length-1] = '"' then begin
@@ -219,6 +226,26 @@ struct
   let toplevelTimingInfos = makeTimingInfo "toplevel"
   let toplevelStartTime = Sys.time()
 
+  let printFlatTimings () =
+    let rec toList timingInfo =
+      let childLists = List.map toList timingInfo.childs in
+      timingInfo :: List.flatten childLists
+    in
+    let allTimingInfos = toList toplevelTimingInfos in
+    let byName = partitionList (fun ti -> ti.name) allTimingInfos in
+    let sumAndName =
+      List.fold_left
+        (fun (_,sum) ti ->
+           let childTimes = List.map (fun ti -> ti.totalTime) ti.childs in
+           let totalChildTime = List.fold_left (+.) 0. childTimes in
+           ti.name, sum +. ti.totalTime -. totalChildTime)
+        ("",0.)
+    in
+    let nameAndTimes = List.map sumAndName byName in
+    printf "Flat timings:\n";
+    List.iter (fun (name, time) -> printf "  %f - %s\n" time name)
+      (List.sort (fun (_, time1) (_, time2) -> 1 - compare time1 time2) nameAndTimes)
+
   let rec totalTime timingInfo =
     let childTimes = List.map totalTime timingInfo.childs in
     let totalChildTimes = List.fold_left (+.) 0.0 childTimes in
@@ -242,8 +269,11 @@ struct
         | [] ->
             ()
     in
+    toplevelTimingInfos.totalTime <- Sys.time() -. toplevelStartTime;
+    printFlatTimings();
     let toplevelStopTime = Sys.time() in
     toplevelTimingInfos.totalTime <- (toplevelStopTime -. toplevelStartTime);
+    printf "Hierarchical timings:\n";
     worker "" toplevelTimingInfos
 
   let timingStack = ref []
@@ -333,6 +363,13 @@ let listFold2i f initial list1 list2 =
 let rec listCreate size value =
   if (size <= 0) then []
   else value :: listCreate (size-1) value
+
+let listCreateF size f =
+  let rec worker rem =
+    if (rem <= 0) then []
+    else f (size-rem) :: worker (rem-1)
+  in
+  worker size
 
 let mapFilter func list =
   let rec worker acc = function

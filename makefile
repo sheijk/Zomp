@@ -180,7 +180,8 @@ exampletests:
 PROF_COMP_TARGET=metaballs
 
 profile_comp: zompc zompc.native stdlib.bc opengl20.zomp glfw.zomp
-	cd examples && rm -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
+	cd examples && rm -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
+	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
 runtests: $(LANG_CMOS) #expander_tests.cmo
 	echo Running tests ...
