@@ -4,8 +4,22 @@
 !verify off
  */
 
+///-----------------------------------------------------------------------------
+/// Section: Util functions
+///-----------------------------------------------------------------------------
+
 func float sqrf(float x)
   x * x
+end
+
+func float posmod(float x, float divisor)
+  mod := fmodf(x, divisor)
+
+  if (mod < 0.0)
+    mod = divisor - float:neg(mod)
+  end
+
+  ret mod
 end
 
 ///-----------------------------------------------------------------------------
@@ -51,4 +65,11 @@ func void AABB:diagonal(float3* result, AABB* this)
   result.y = this.max.y - this.min.y
   result.z = this.max.z - this.min.z
 end
+
+func float AABB:diagonalLength(AABB* this)
+  var float3 diag
+  AABB:diagonal &diag this
+  ret float3:length(&diag)
+end
+
 

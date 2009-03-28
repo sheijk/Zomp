@@ -57,6 +57,11 @@ func void VertexStream:init(VertexStream* this, cstring name, int components, in
   end
 end
 
+func void VertexStream:delete(VertexStream* this)
+  free this.data
+  this.name = "_already_deleted_"
+end
+
 func void VertexStream:print(VertexStream* this)
   print "VertexStream("
   print "name=" this.name
@@ -210,6 +215,19 @@ macro Mesh:define mesh size streams
   ast:addChild code ${Mesh:setupDefaultStreams #mesh}
 
   ret code
+end
+
+func void Mesh:delete(Mesh* this)
+  Mesh:foreachStream this stream
+    VertexStream:delete stream
+  end
+  nullstr := nullptr VertexStream
+  this.positions = nullstr
+  this.normals = nullstr
+  this.colors = nullstr
+  this.texCoordSetCount = 0
+  this.texCoords = nullstr
+  this.streams = nullstr
 end
 
 func void VertexStream:swapComponents(VertexStream* this, int from, int to)

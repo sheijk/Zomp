@@ -230,9 +230,32 @@ macro op= l r
   ret ${internal error}
 end
 
-/// Accessing pointers like C arrays
+// /// Accessing pointers like C arrays
+// template postop[] array index
+//   load(ptradd #array #index)
+// end
+
+macro defineArray type varname values...
+  size := values.childCount
+  arrayType := ast:fromString "postop[]"
+  ast:addChild arrayType type
+  ast:addChild arrayType ${#size}
+
+  code := ${
+    var #arrayType #varname
+  end}
+
+  valnum := 0
+  forEachAstChild value values
+    ast:addChild code ${zmp:array:set #varname #valnum #value}
+    valnum = valnum + 1
+  end
+
+  ret code
+end
+
 template postop[] array index
-  load(ptradd #array #index)
+  zmp:array:get #array #index
 end
 
 template op+_ptr ptr offset
@@ -658,13 +681,26 @@ end
 /// Section: Overloaded conversion
 ///-----------------------------------------------------------------------------
 
-alias toFloat zmp:cee:toFloat x
 alias toInt zmp:cee:toInt x
+alias toFloat zmp:cee:toFloat x
+alias toDouble zmp:cee:toDouble x
 alias toChar zmp:cee:toChar x
 alias toCString zmp:cee:toCString x
 
 func float toFloat_u32(u32 i)
   int:toFloat i
+end
+
+func float toFloat_double(double d)
+  double:toFloat d
+end
+
+func float toFloat_float(float f)
+  ret f
+end
+
+func int toInt_u32(int i)
+  ret i
 end
 
 func int toInt_float(float f)
@@ -673,5 +709,17 @@ end
 
 func int toInt_double(double d)
   double:toInt d
+end
+
+func double toDouble_u32(int i)
+  int:toDouble i
+end
+
+func double toDouble_float(float f)
+  float:toDouble f
+end
+
+func double toDouble_double(double d)
+  ret d
 end
 

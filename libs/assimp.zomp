@@ -4,6 +4,8 @@
 !verify off
  */
 
+linkclib "assimp.dylib"
+
 require "libs/libcee.zomp"
 require "libs/mesh.zomp"
 

@@ -11,6 +11,7 @@ require "glfw.zomp"
 require "glut.zomp"
 require "quicktext.zomp"
 require "libs/glutils.zomp"
+require "libs/spaceballcam.zomp"
 
 //------------------------------------------------------------------------------
 // Improved unit tests
@@ -170,16 +171,6 @@ unittest:testCasesFor float:mix
   float:mix 1.0 0.0 4.0 == 4.0
   float:mix 0.5 0.0 4.0 == 2.0
   float:mix 0.25 0.0 8.0 == 2.0
-end
-
-func float posmod(float x, float divisor)
-  mod := fmodf(x, divisor)
-
-  if (mod < 0.0)
-    mod = divisor - float:neg(mod)
-  end
-
-  ret mod
 end
 
 unittest:testCasesFor posmod
@@ -655,45 +646,6 @@ func void resizeWindow(int width, int height)
   windowWidth = width
   windowHeight = height
   glfwSetWindowSize windowWidth windowHeight
-end
-
-type degree float
-
-///
-/// A camera defined by longitude, latitude and distance
-///
-struct SpaceballCamera
-  /// angle between z-axis and rotation around y-axis
-  degree longitude
-
-  /// angle between z-axis and rotation around x-axis
-  degree latitude
-
-  degree distance
-end
-
-func void SpaceballCamera:init(SpaceballCamera* this)
-  this.latitude = 0.0f
-  this.longitude = 0.0f
-  this.distance = 1.0f
-end
-
-func void SpaceballCamera:rotate(SpaceballCamera* this)
-  glTranslatef 0. 0. float:neg(this.distance)
-  glRotatef this.latitude 1. 0. 0.
-  glRotatef this.longitude 0. 1. 0.
-end
-
-func void SpaceballCamera:applyToGL(SpaceballCamera* this)
-  glMatrixMode GL_MODELVIEW
-  glLoadIdentity()
-  SpaceballCamera:rotate(this)
-end
-
-func void SpaceballCamera:restrictParams(SpaceballCamera* this)
-  this.longitude = posmod this.longitude 360.0f
-  this.latitude = float:clamp float:neg(90.0) 90.0 this.latitude
-  this.distance = float:max 0.0 this.distance
 end
 
 var int lastMouseX 0
