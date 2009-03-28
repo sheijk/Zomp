@@ -34,9 +34,9 @@ end
 
 macro hello name
   printInt foo()
-  println()
+  printNewline()
   // printChar bar()
-  // println()
+  // printNewline()
   // printlnString baz()
   // printlnString char:toCString('x')
   var int num foo()

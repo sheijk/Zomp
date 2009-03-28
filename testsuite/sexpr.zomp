@@ -4,9 +4,9 @@
 
 (func int main () (
   (printString "foo?")
-  (println)
+  (printNewline)
   (printString "bar!")
-  (println)
+  (printNewline)
   (ret 0)
   ))
 

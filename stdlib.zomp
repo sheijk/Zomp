@@ -87,10 +87,6 @@ macroReplace funcln name type printF
   end
 end
 
-func void println()
-  printNewline()
-end
-
 funcln printlnInt int printInt
 funcln printlnString char* printString
 funcln printlnFloat float printFloat
@@ -269,7 +265,7 @@ func void ast:print((ptr ast) a, int indent)
   printString " ["
   printInt (getField a childCount)
   printString " childs]"
-  println
+  printNewline()
 
   var int index 0
   label start
@@ -369,45 +365,6 @@ end
 func cstring newUniqueNameFor(cstring purpose)
   var cstring name (newUniqueName)
   ret (cstrings:append (cstrings:append name "_") purpose)
-end
-
-macro testmacro args...
-  var astp code ${was}
-
-  var int count (getField args childCount)
-  var int index 0
-  label start
-
-  var (ptr ast) child (ast:child args index)
-  ast:addChild code child
-
-  assign index (u32:add index 1)
-  var bool test (u32:uless index count)
-  branch test start end
-  label end
-
-  ret code
-end
-
-macro testmacro0
-  ret ${foo bar}
-end
-
-macro testmacro1 arg
-  var astp code ${foo bar}
-  printInt (cast int arg)
-
-  var bool test (u32:equal 0 (cast int arg))
-  branch test error continue
-
-  label error
-  ret ${arg is 0}
-
-  label continue
-  println
-  ast:addChild code arg
-  ast:print code 4
-  ret code
 end
 
 macro uniqueId name purpose
@@ -622,14 +579,14 @@ macro compilerMessage text...
     printString (getField child id)
     printString " "
   end
-  println()
+  printNewline()
   ret ${}
 end
 
 func void compiler:printWarning(cstring message)
   printString "Warning: "
   printString message
-  println()
+  printNewline()
 end
 
 template compiler:error message... (ret ${error #message})
@@ -649,7 +606,7 @@ end
 
 func void printHLine(char chr, int count)
   times count (printChar chr)
-  println()
+  printNewline()
 end
 
 macro cstring:concat firstString strings...
@@ -760,7 +717,7 @@ end
 //       when #initialized
 //         printString (getField ${#name} id)
 //         printString " was already called before!"
-//         println
+//         printNewline
 //       end
 //       unless #initialized
 //         assign #initialized true
@@ -842,7 +799,7 @@ func int main()
 
 func void runMain()
   const int retval main()
-  println()
+  printNewline()
   printString "main() returned "
   printlnInt retval
 end
@@ -1206,3 +1163,4 @@ macro require libs...
 
   ret code
 end
+

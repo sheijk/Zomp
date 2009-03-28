@@ -6,7 +6,7 @@ func int main()
   var float f 1.1
   printString "Printing a funny floating point value: "
   printFloat f
-  println()
+  printNewline()
   ret 0
 end
 

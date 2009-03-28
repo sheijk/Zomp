@@ -461,7 +461,7 @@ macro switch intvalue default cases...
 
   first := true
   code := ${if false
-    println()
+    printNewline()
   end}
 
   ast:foreach3 case caseval casecode cases
@@ -675,14 +675,14 @@ macro print args...
   ret code
 end
 
-macro printnl args...
+macro println args...
   var astp code ${}
 
   forEachAstChild arg args
     ast:addChild code ${zmp:cee:print #arg}
   end
 
-  ast:addChild code ${println()}
+  ast:addChild code ${printNewline()}
 
   ret code
 end

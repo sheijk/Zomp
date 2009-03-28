@@ -27,7 +27,7 @@ func int main()
     printInt i
     printString ") = "
     printInt fib(i)
-    println()
+    printNewline()
   end
 
   ret 0
