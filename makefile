@@ -210,7 +210,9 @@ stdlib.bc stdlib.ll: stdlib.c
 	echo Building bytecode standard library $@ ...
 	$(LLVM_CC) --emit-llvm -c $< -o stdlib.bc
 	$(LLVM_DIS) < stdlib.bc > stdlib.orig.ll
-	$(SED) 's/nounwind//' < stdlib.orig.ll > stdlib.ll
+	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < stdlib.orig.ll > stdlib.ll
+	$(RM) -f stdlib.bc stdlib.orig.ll
+	$(LLVM_AS) < stdlib.ll > stdlib.bc
 
 # generate a file for graphviz which visualizes the dependencies
 # between modules
