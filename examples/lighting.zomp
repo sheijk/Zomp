@@ -4,11 +4,62 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib"
 
-require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
-require "libs/assimp.zomp"
 require "libs/libcee.zomp"
-require "libs/math.zomp" "libs/mathvis.zomp"
-require "libs/spaceballcam.zomp"
+
+func bool isQuoted(cstring text)
+  len := strlen text
+  if (len < 2)
+    ret false
+  end
+
+  ret ((load text == '"') && (load (text+len-1) == '"'))
+end
+
+func cstring unquote(cstring quoted)
+  if isQuoted(quoted)
+    len := strlen quoted
+    unquotedLen := len - 2 + 1
+    unquoted := malloc char unquotedLen
+    for pos 0 (unquotedLen-1)
+      store (unquoted+pos) load(quoted+pos+1)
+    end
+    store (unquoted + unquotedLen - 1) '\0'
+
+    ret unquoted
+  end
+
+  ret quoted
+end
+
+func cstring qualifyLibName(cstring name)
+  ret ("libs/" ++ unquote name ++ ".zomp")
+end
+
+macro require firstLibOrType libs...
+  var ast* code ${}
+
+  if isQuoted(firstLibOrType.id)
+    ast:addChild code ${zmpx:lib:requireLib #firstLibOrType}
+
+    forEachAstChild lib libs
+      ast:addChild code ${zmpx:lib:requireLib #lib}
+    end
+  else
+    if (firstLibOrType.id ==_str "lib")
+      forEachAstChild libName libs
+        qualifiedName := qualifyLibName libName.id
+        ast:addChild code ${zmpx:lib:requireLib #qualifiedName}
+      end
+    else
+      ret ${error firstLibOrType "Expected either quoted file name or 'lib'"}
+    end
+  end
+
+  ret code
+end
+
+require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
+require lib "assimp" "math" "mathvis" "spaceballcam"
 
 var int windowWidth 400
 var int windowHeight 300
