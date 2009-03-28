@@ -144,23 +144,23 @@ func void testArrayPtrDot()
   size := 3
   points := malloc Point* 3
   for i 0 size
-    points[i] = malloc Point
+    store (points + i) malloc(Point)
 
-    points[i]*.x = i * i
-    points[i]*.y = 10 * i
+    (*(points + i))*.x = i * i
+    (*(points + i))*.y = 10 * i
   end
 
   unittest:assertAll
-    points[0]*.x == 0
-    points[0]*.y == 0
-    points[1]*.x == 1
-    points[1]*.y == 10
-    points[2]*.x == 4
-    points[2]*.y == 20
+    (*(points + 0))*.x == 0
+    (*(points + 0))*.y == 0
+    (*(points + 1))*.x == 1
+    (*(points + 1))*.y == 10
+    (*(points + 2))*.x == 4
+    (*(points + 2))*.y == 20
   end
 
   for i2 0 size
-    dealloc points[i2]
+    dealloc *(points + i2)
   end
   dealloc points
 end
