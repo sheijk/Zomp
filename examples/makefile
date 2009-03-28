@@ -1,5 +1,5 @@
 
-include ../makefile.config
+include ../config.mk
 
 LLVM_GCC_BIN_DIR=$(PWD)/../tools/llvm-gcc/bin
 LLVM_BIN_DIR=$(PWD)/../tools/llvm/Release/bin

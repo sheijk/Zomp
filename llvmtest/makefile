@@ -37,5 +37,5 @@ loopopt.bc: loopopt.c
 
 FLYMAKE_LOG=flymake-log.temp
 
-include ../makefile.flymake
+include ../flymake.mk
 

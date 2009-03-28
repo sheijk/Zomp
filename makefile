@@ -109,10 +109,10 @@ libquicktext.dylib: glQuickText.o
 EXTLIB_DIR = extlibs
 ASSIMP_DIR = $(EXTLIB_DIR)/assimp-r281--sdk
 
-libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a Makefile
+libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
 	$(CP) $< $@
 
-assimp.dylib: libassimp.a Makefile forcelinkassimp.c
+assimp.dylib: libassimp.a makefile forcelinkassimp.c
 	g++ -dynamiclib -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
 # opengl.dylib: opengl.c
@@ -216,9 +216,9 @@ stdlib.bc stdlib.ll: stdlib.c
 
 # generate a file for graphviz which visualizes the dependencies
 # between modules
-deps.dot deps.png: makefile.depends $(CAMLDEP_INPUT)
+deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	echo Generating dependency graph for graphviz ...
-	ocamldot makefile.depends > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
+	ocamldot depends.mk > deps.dot || echo "ocamldot not found, no graphviz deps graph generated"
 	dot -Tpng deps.dot > deps.png || echo "dot not found, deps.png not generated"
 
 # Rules #
@@ -260,9 +260,9 @@ indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml         \
 newparser_tests.ml parseutils.ml compileutils.ml semantic.ml sexprtoplevel.ml  \
 testing.ml typesystems.ml zompc.ml zompvm.ml
 
-makefile.depends: $(CAMLDEP_INPUT)
+depends.mk: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...
-	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > makefile.depends
+	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
 
 # Additional/manual dependencies #
 ################################################################################
@@ -321,7 +321,7 @@ clean:
 	rm -f *_flymake.*
 	rm -f *.cmx *.native
 	rm -f deps.png deps.dot
-	rm -f makefile.depends
+	rm -f depends.mk
 	rm -f stdlib.ll
 	rm -f opengl20.zomp glfw.zomp
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
@@ -330,6 +330,7 @@ clean:
 	rm -f expandertests.cm? alltests.cm? alltests
 	rm -f glQuickText.o libquicktext.dylib glut.dylib
 	rm -f perflog.txt
+	rm -f mltest
 	cd examples/ && make clean
 	cd testsuite/ && make clean
 
@@ -341,6 +342,6 @@ clean_tags:
 
 clean_all: clean clean_tags
 
-include makefile.flymake
-include makefile.depends
+include flymake.mk
+include depends.mk
 
