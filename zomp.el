@@ -518,11 +518,11 @@ indent the next line when they occur at the beginning of a line"
                                            (zomp-tl-do "!syntax indent")))
 
   (zomp-add-seperator zomp-sep-3)
-  (zomp-add-action zomp-tl-run [(control c)(d)] "Run function...")
-  (zomp-add-action zomp-tl-run-test [(control c)(t)] "Run 'void test()'")
+  (zomp-add-action zomp-tl-run [(control c)(control d)] "Run function...")
+  (zomp-add-action zomp-tl-run-test [(control c)(control t)] "Run 'void test()'")
   (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
-  (zomp-add-action zomp-tl-list-bindings [(control c)(f)] "List bindings...")
-  (zomp-add-action zomp-tl-help [(control c)(h)] "Show toplevel help")
+  (zomp-add-action zomp-tl-list-bindings [(control c)(control f)] "List bindings...")
+  (zomp-add-action zomp-tl-help [(control c)(control h)] "Show toplevel help")
 
   (zomp-add-seperator zomp-sep4)
   (zomp-add-action zomp-indent-current [(meta q)] "Indent current")
