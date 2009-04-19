@@ -265,12 +265,12 @@ indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml         \
 newparser_tests.ml parseutils.ml compileutils.ml semantic.ml sexprtoplevel.ml  \
 testing.ml typesystems.ml zompc.ml zompvm.ml
 
+# Dependencies #
+################################################################################
+
 depends.mk: $(CAMLDEP_INPUT)
 	echo Calculating dependencies ...
 	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
-
-# Additional/manual dependencies #
-################################################################################
 
 glfw.zomp: gencode
 opengl20.zomp: gencode

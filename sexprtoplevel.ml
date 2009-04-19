@@ -389,7 +389,12 @@ struct
 end
 
 let () =
-  at_exit Profiling.printTimings;
+  at_exit (fun () ->
+             Profiling.printTimings();
+             Indentlexer.printStats();
+             flush stdout;
+             Zompvm.zompPrintStats());
+  Zompvm.zompVerifyCode false;
   let rec step bindings () =
     Compileutils.catchingErrorsDo
       (fun () -> begin

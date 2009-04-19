@@ -19,6 +19,7 @@
 #include "llvm/Target/TargetData.h"
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/System/TimeValue.h"
 
 extern "C" {
 #include <caml/mlvalues.h>
@@ -90,6 +91,33 @@ namespace ZompCallbacks {
 }
 
 ///}}}
+
+
+namespace {
+  struct Stats {
+    uint64_t parsingTimeMS;
+    uint64_t verifyTimeMS;
+
+    Stats() {
+      parsingTimeMS = 0;
+      verifyTimeMS = 0;
+    }
+
+    void print() {
+      printf("\nZompVM stats:\n");
+      log(parsingTimeMS, "Parsing");
+      log(verifyTimeMS, "Verifying");
+      fflush(stdout);
+    }
+
+  private:
+    void log(uint64_t time, const char* name) {
+      printf("  %f - %s LLVM code\n", float(time) / 1000.0f, name);
+    }
+  };
+
+  static Stats stats;
+}
 
 ///-----------------------------------------------------------------------------
 /// Virtual machine and execution environment
@@ -307,6 +335,10 @@ extern "C" {
 
     return buffer;
   }
+
+  void zompPrintStats() {
+    stats.print();
+  }
 } // extern C
 
 llvm::GenericValue runFunctionWithArgs(
@@ -439,7 +471,13 @@ extern "C" {
       targetModule = macroModule;
     }
 
+    using llvm::sys::TimeValue;
+
+    TimeValue parseStart = TimeValue::now();
     Module* parsedModule = ParseAssemblyString( code, targetModule, errorInfo );
+    TimeValue parseEnd = TimeValue::now();
+    stats.parsingTimeMS += (parseEnd - parseStart).msec();
+
     std::string errorMessage;
     if( parsedModule == NULL ) {
       printf( "Parsed module is NULL\n" );
@@ -447,12 +485,19 @@ extern "C" {
 
       errorsOccurred = true;
     }
-    else if( verifyCode && verifyModule(*targetModule, PrintMessageAction, &errorMessage) ) {
-      printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
-      fflush( stdout );
-      fflush( stderr );
+    else if( verifyCode ) {
+      TimeValue verifyStart = TimeValue::now();
+      bool isValid = ! verifyModule(*targetModule, PrintMessageAction, &errorMessage);
+      TimeValue verifyEnd = TimeValue::now();
+      stats.verifyTimeMS += (verifyEnd - verifyStart).msec();
 
-      errorsOccurred = true;
+      if( ! isValid ) {
+        printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
+        fflush( stdout );
+        fflush( stderr );
+
+        errorsOccurred = true;
+      }
     }
 
     if( errorInfo.getRawMessage() != "none" ) {

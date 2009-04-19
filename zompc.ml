@@ -189,7 +189,9 @@ let () =
         if options.printTimings then
           at_exit (fun () ->
                      Profiling.printTimings();
-                     Indentlexer.printStats());
+                     Indentlexer.printStats();
+                     flush stdout;
+                     Zompvm.zompPrintStats());
         begin
           match getBasename options.fileName with
             | Some baseName ->

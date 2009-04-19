@@ -46,4 +46,5 @@ http://sheijk.dword.org/zomp
     int zompCallMacro (int macroAddress)
 
     const char* float2string (double f)
+    void zompPrintStats ()
 
