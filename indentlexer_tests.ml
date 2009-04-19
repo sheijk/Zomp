@@ -112,6 +112,8 @@ struct
         id "a"; ADD_OP "+"; id "b";
         CLOSE_PAREN; END];
 
+      "10+*ptr", `Return [id "10"; ADD_OP "+"; PREFIX_OP "*"; id "ptr"];
+
       "space... ", `Return [id "space"; POSTFIX_OP "..."; END];
       "lineend...", `Return [id "lineend"; POSTFIX_OP "..."; END];
 

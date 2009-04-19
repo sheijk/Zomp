@@ -400,20 +400,19 @@ A No-Frills Introduction to Lua 5.1 VM Instructions
 
 von http://lambda-the-ultimate.org/node/2884
 
-** TODO next steps                                                        :next:
-   - provide support for function pointers
-   - provide simple dynamic oop system
-   - use it to implement compiler services
+** TODO next steps
+   - [X] provide support for function pointers
 
-   - rename all build-ins to std:base:...
-   - simplify them to only one valid form
-   - provide var,.. wrappers which redirect to the std:base forms
-     and add zomp-side meta information
-** TODO [#A] &, == operator precedence
+   - [ ] rename all build-ins to std:base:...
+   - [ ] simplify them to only one valid form
+   - [ ] provide var,.. wrappers which redirect to the std:base forms
+         and add zomp-side meta information
+** TODO [#A] &, == operator precedence                                    :next:
    & sollte hoehere prioritaet haben, damit "a & 0x00001001 == 0x00001001" geht
-** TODO [#A] consider latex style operators
+** DONE [#A] consider latex style operators
+   CLOSED: [2009-04-05 Sun 16:11]
    \x, \o, ...
-** TODO [#A] it/the foo um auf vorherige ergebnisse zuzugreifen
+** TODO [#A] it/the foo um auf vorherige ergebnisse zuzugreifen           :next:
    http://code.google.com/p/muvee-symbolic-expressions/wiki/TheAndIt
 
    sum [1, 2, 3, 4, 5]

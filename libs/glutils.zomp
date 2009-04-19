@@ -142,24 +142,30 @@ end
 
 template saveTransforms code...
   glMatrixMode GL_TEXTURE
-  glPushMatrix
+  glPushMatrix()
   glMatrixMode GL_PROJECTION
-  glPushMatrix
+  glPushMatrix()
   glMatrixMode GL_MODELVIEW
-  glPushMatrix
+  glPushMatrix()
   #code
   glMatrixMode GL_TEXTURE
-  glPopMatrix
+  glPopMatrix()
   glMatrixMode GL_PROJECTION
-  glPopMatrix
+  glPopMatrix()
   glMatrixMode GL_MODELVIEW
-  glPopMatrix
+  glPopMatrix()
 end
 
 template saveAttribs code...
   glPushAttrib GL_ALL_ATTRIB_BITS
   #code
   glPopAttrib
+end
+
+template withShader shader code
+  glUseProgram #shader
+  #code
+  glUseProgram 0
 end
 
 func void renderStripes(float count, float size, float alpha)
@@ -170,7 +176,11 @@ func void renderStripes(float count, float size, float alpha)
   var bool black false
   glBegin GL_QUADS
   while (float:less y size)
-    (if black (glColor4f 0. 0. 0. alpha) (glColor4f 1. 1. 0. alpha))
+    if black
+      glColor4f 0. 0. 0. alpha
+    else
+      glColor4f 1. 1. 0. alpha
+    end
     assign black (bool:not black)
     glVertex3f left y 0.0
     glVertex3f right y 0.0
@@ -189,6 +199,7 @@ func void drawPausedOverlay()
     glLoadIdentity()
     glScalef 0.75 1. 1.
     glRotatef 45.0 0. 0. 1.
+    glEnable GL_BLEND
     glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
     glEnable GL_SCISSOR_TEST
     var int border 20
