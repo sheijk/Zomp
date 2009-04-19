@@ -1,0 +1,28 @@
+/**
+ * Self-test of the unit test framework
+ */
+
+require "libs/unittest.zomp"
+
+unittest:testCase success
+  unittest:assert true
+end
+
+unittest:testCase fail
+  assign unittest:failedCount (unittest:failedCount + 1)
+end
+
+func int main()
+  assign unittest:failedCount 0
+
+  unittest:runAllTestCases
+
+  unittest:assertAll
+    unittest:failedCount == 1
+    unittest:testCaseCount == 2
+  end
+
+  --unittest:failedCount
+  ret unittest:printReport()
+end
+

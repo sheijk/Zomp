@@ -81,3 +81,75 @@ func int unittest:printReport()
   ret 0
 end
 
+struct TestCase
+  cstring name
+  cstring functionName
+  // (fptr void) function
+  TestCase* next
+end
+
+func void TestCase:print(TestCase* this)
+  printString "TestCase(name="
+  printString getField(this,name)
+  printString ", functionName="
+  printString getField(this,functionName)
+  printlnString ")"
+end
+
+func void TestCase:printAll(TestCase* this)
+  unless (this == nullptr TestCase)
+    TestCase:print this
+    TestCase:printAll getField(this,next)
+  end
+end
+
+func int TestCase:count(TestCase* this)
+  var TestCase* current this
+  var int count 0
+  while (current != nullptr TestCase)
+    assign count (count + 1)
+    assign current getField(current,next)
+  end
+  ret count
+end
+
+var TestCase* unittest:testCases null
+
+macro unittest:testCaseCount
+  ret ast:fromInt(TestCase:count unittest:testCases)
+end
+
+func TestCase* unittest:registerTestCase(cstring name)
+  var TestCase* case malloc(TestCase)
+
+  setField case name name
+  setField case functionName ("testcase_" ++ name ++ int:toCString newUniqueId())
+  setField case next unittest:testCases
+  assign unittest:testCases case
+
+  ret case
+end
+
+macro unittest:testCase name code
+  var TestCase* case unittest:registerTestCase(name.id)
+  var cstring funcName (getField case functionName)
+  ret ${
+    func void #funcName()
+      #code
+    end
+  end}
+end
+
+macro unittest:runAllTestCases
+  var ast* code ${}
+  var TestCase* case unittest:testCases
+  while (case != nullptr TestCase)
+    var cstring functionName getField(case, functionName)
+    ast:addChild code ${#functionName()}
+
+    assign case getField(case, next)
+  end
+
+  ret code
+end
+
