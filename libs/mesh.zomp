@@ -125,7 +125,7 @@ macro Mesh:foreachStream mesh streamptr code
 end
 
 func void Mesh:print(Mesh* this)
-  printnl "Mesh"
+  println "Mesh"
   print "  streamCount=" this.streamCount
   println()
 
