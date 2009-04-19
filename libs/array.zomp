@@ -1,0 +1,70 @@
+/**
+ * Defining simple heap-allocated arrays
+ */
+
+require "libs/libcee.zomp"
+
+func cstring Array:nameForType(cstring typeName)
+  typeName ++ "_Array"
+end
+
+macro defineArrayType type
+  arrayTypeName := Array:nameForType type.id
+  initFuncName := arrayTypeName ++ ":init"
+
+  initDecl := ast:fromString("opcall")
+  ast:addChild initDecl ast:fromString(initFuncName)
+  ast:addChild initDecl ${#arrayTypeName* this}
+  ast:addChild initDecl ${int size}
+
+  code := ${
+    struct #arrayTypeName
+      int length
+      #type* elements
+    end
+
+    // func void #initFuncName(#arrayTypeName* this, int length)
+    func void #initDecl
+      this.length = size
+      this.elements = malloc(#type, size)
+    end
+  end}
+
+  ret code
+end
+
+macro newArray type size
+  arrayTypeName := Array:nameForType type.id
+  ret ${
+    new #arrayTypeName #size
+  end}
+end
+
+template aget array index
+  load (ptradd getField(#array, elements) #index)
+end
+
+template aset array index value
+  store (ptradd getField(#array, elements) #index) #value
+end
+
+macro array:setAll array value
+  uniqueId size "lala"
+  uniqueId i "lala"
+
+  ret ${
+    size := getField(#array, length)
+    for #i 0 size
+      aset #array #i #value
+    end
+  end}
+end
+
+macro Array:foreach array indexVar code
+  uniqueId count "array_size"
+
+  ret ${for #indexVar 0 #array.length
+    #code
+  end}
+end
+

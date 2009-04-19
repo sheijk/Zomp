@@ -1,0 +1,68 @@
+/**
+ * Testing the array lib
+ */
+
+require "libs/array.zomp"
+
+defineArrayType int
+
+func void testPrimitiveTypeArray()
+  size := 10
+  nums := newArray int size
+
+  for i 0 size
+    aset nums i (i * 3)
+  end
+
+  unittest:assertAll
+    aget nums 0 == 0
+    aget nums 1 == 3
+    aget nums 2 == 6
+    aget nums 3 == 9
+    aget nums 4 == 12
+    aget nums 5 == 15
+    aget nums 6 == 18
+    aget nums 7 == 21
+    aget nums 8 == 24
+    aget nums 9 == 27
+  end
+end
+
+struct Point
+  int x
+  float y
+end
+
+func bool Point:is(Point* p, int x, float y)
+  true
+end
+
+defineArrayType Point
+
+func void testStructArray()
+  size := 2
+  points := newArray Point size
+
+  var Point a
+  a.x = 1
+  a.y = 3.0
+  aset points 0 a
+
+  var Point b
+  b.x = 33
+  b.y = 17.3
+  aset points 1 b
+
+  unittest:assertAll
+    Point:is (points.elements + 0) 1 3.0
+    Point:is (points.elements + 1) 33 17.3
+  end
+end
+
+func int main()
+  testPrimitiveTypeArray()
+  testStructArray()
+
+  ret 0
+end
+
