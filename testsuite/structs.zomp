@@ -25,8 +25,10 @@ unittest:testCase MallocStruct
   var int x getField(p,x)
   var int y getField(p,y)
 
-  unittest:assert (x == 1)
-  unittest:assert (y == 2)
+  unittest:assertAll
+    x == 1
+    y == 2
+  end
 end
 
 unittest:testCase OnstackAddrOf
@@ -39,8 +41,10 @@ unittest:testCase OnstackAddrOf
   var int x getField(pp,x)
   var int y getField(ptr(p),y)
 
-  unittest:assert (x == 4)
-  unittest:assert (y == 5)
+  unittest:assertAll
+    x == 4
+    y == 5
+  end
 end
 
 unittest:testCase Onstack
@@ -52,8 +56,10 @@ unittest:testCase Onstack
   var int x getField(p,x)
   var int y getField(p,y)
 
-  unittest:assert (x == 4)
-  unittest:assert (y == 5)
+  unittest:assertAll
+    x == 4
+    y == 5
+  end
 end
 
 unittest:testCase Assignment
@@ -64,8 +70,10 @@ unittest:testCase Assignment
   initPoint ptr(b) 1 2
   assign b a
 
-  unittest:assert (getField(b,x) == 10)
-  unittest:assert (getField(b,y) == 20)
+  unittest:assertAll
+    getField(b,x) == 10
+    getField(b,y) == 20
+  end
 end
 
 /// nested functions
@@ -84,8 +92,10 @@ unittest:testCase Nested
 
   setField n pos p
 
-  unittest:assert (getField getField(n, pos) x == 10)
-  unittest:assert (getField getField(n, pos) y == 30)
+  unittest:assertAll
+    getField getField(n, pos) x == 10
+    getField getField(n, pos) y == 30
+  end
 end
 
 /// not supported, yet

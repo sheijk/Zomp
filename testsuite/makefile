@@ -38,6 +38,8 @@ astmatch.ll: ../libs/libcee.zomp
 # Rules
 ################################################################################
 
+.PRECIOUS: .ll
+
 preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
 	@$(ECHO) Checking whether prelude compiles...
 	@rm -f $@.zomp $@.ll $@.o.bc $@.bc $@
