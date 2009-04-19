@@ -1674,7 +1674,8 @@ let toplevelBaseInstructions =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
     Hashtbl.create 32
   in
-  Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested);
+  (* Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested); *)
+  Hashtbl.add table "macro" (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested));
   (* Hashtbl.add table "seq" translateSeqTL; *)
   table
 
@@ -1808,8 +1809,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let expr2param argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
-          | Some `Record _ -> raiseIllegalExpression typeExpr
-              "Record types not allowed as function argument, yet"
           | Some typ -> (varName, typ)
           | None -> raiseInvalidType typeExpr
       in
@@ -1828,7 +1827,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
             variable
               ~name
               ~typ
-              ~storage:RegisterStorage
+              (** structs are copied into a local var by genllvm *)
+              ~storage:(match typ with | `Record _ -> MemoryStorage | _ -> RegisterStorage)
               ~global:false
               ~default:(Typesystems.Zomp.defaultValue typ)
           in

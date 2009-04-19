@@ -916,7 +916,7 @@ let gencodeGlobalVar var =
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
     | FunctionVal _ ->
-        raiseCodeGenError ~msg:"global pointers not supported, yet"
+        raiseCodeGenError ~msg:"global function pointers not supported, yet"
     | RecordVal _ ->
         raiseCodeGenError ~msg:"global constant of record type not supported, yet"
     | ArrayVal _ ->
@@ -935,10 +935,28 @@ let gencodeDefineFunc func =
         in
         "declare " ^ decl
     | Some impl ->
-        let param2string (name, typ) = (paramTypeName typ) ^ " " ^ (llvmName name) in
+        let structArgName name = name ^ "$struct_arg" in
+        let param2string (name, typ) =
+          let argName =
+            llvmName (match typ with | `Record _ -> structArgName name | _ -> name)
+          in
+          (paramTypeName typ) ^ " " ^ argName
+        in
         let paramString = combine ", " (List.map param2string func.fargs) in
         let decl = sprintf "%s @%s(%s) "
           (llvmTypeName func.rettype) (escapeName func.fname) paramString
+        in
+        let initStructCode =
+          Common.combine "\n"
+            (List.map (fun (name, typ) ->
+                        match typ with
+                          | `Record components ->
+                              sprintf "  %%%s = alloca %s\n" name (llvmTypeName typ)
+                              ^ sprintf "  store %s \"%s\", %s* \"%s\"\n"
+                                (llvmTypeName typ) (structArgName name)
+                                (llvmTypeName typ) name
+                          | _ -> "")
+              func.fargs)
         in
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
         let lastExpr = function
@@ -948,10 +966,10 @@ let gencodeDefineFunc func =
         let resultVar, implCode = gencode impl in
         let impl = match lastExpr impl with
           | `Return _ ->
-              sprintf "{\n\n%s\n\n}" implCode
+              sprintf "{\n\n%s\n%s\n\n}" initStructCode implCode
           | _ ->
               let isTypeName name = String.length name > 0 && name <> "void" in
-              (sprintf "{\n\n%s\n\n" implCode)
+              (sprintf "{\n\n%s\n%s\n\n" initStructCode implCode)
               ^ (if isTypeName resultVar.rvtypename then
                    (sprintf "  ret %s %s\n\n}"
                       resultVar.rvtypename
