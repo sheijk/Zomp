@@ -79,3 +79,5 @@ tools
 /tests/.DS_Store
 /zompc
 /zompc.native
+/testsuite/preludevalid
+/testsuite/preludevalid.zomp

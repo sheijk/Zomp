@@ -30,16 +30,24 @@ redo: clear-results all
 # Additional dependencies
 ################################################################################
 
-cee.ll: ../libs/libcee.zomp
+cee.ll: ../libs/libcee.zomp ../libs/unittest.zomp
 astmatch.ll: ../libs/libcee.zomp
 
 ################################################################################
 # Rules
 ################################################################################
 
-.PRECIOUS: %.ll
+preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
+	@$(ECHO) Checking whether prelude compiles...
+	@rm -f $@.zomp $@.ll $@.o.bc $@.bc $@
+	@echo "func int main()\n  ret 0\nend\n" > preludevalid.zomp
+	@../zomp-check-syntax.sh preludevalid.zomp
+	@$(LLVM_AS) -f preludevalid.ll -o preludevalid.o.bc
+	@$(LLVM_LINK) -f ../stdlib.bc preludevalid.o.bc -o preludevalid.bc
+	@$(LLVM_LLI) preludevalid.bc
+	@touch preludevalid
 
-%.ll: %.zomp ../zompc.native ../stdlib.zomp
+%.ll: %.zomp ../zompc.native ../stdlib.zomp preludevalid
 	@$(ECHO) Compiling $(<) to .ll...
 	@../zomp-check-syntax.sh $<
 
@@ -52,10 +60,4 @@ astmatch.ll: ../libs/libcee.zomp
 	@$(ECHO) Running test $(<:.bc=)...
 	@$(LLVM_LLI) $<
 	@touch $@
-
-################################################################################
-# Additional Dependencies
-################################################################################
-
-astmatch.ll: ../libs/libcee.zomp
 

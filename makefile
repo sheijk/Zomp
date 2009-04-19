@@ -126,7 +126,7 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 
 ################################################################################
 
-dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o
+dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o stdlib.ll
 	echo Building $@ ...
 	$(LLVM_CXX) $(CXX_FLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
 	gcc $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o

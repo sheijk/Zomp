@@ -1,0 +1,83 @@
+/**
+ * Tools for writing and running unit tests
+ */
+
+require "libs/libcee.zomp"
+
+///
+/// An assertion macro which detects certain kinds of expressions and inserts
+/// code printing the arguments for better error messages
+///
+/// Example:
+/// x := 20.0
+/// unittest:assert (sin 10.0 ==_f 20.0)
+///
+/// Will result in:
+///
+/// Assertion failed
+/// left = -0.544021
+/// right = 20.000000
+/// op==_f [2 childs]
+///   opjux [2 childs]
+///     sinf [0 childs]
+///     10.0 [0 childs]
+///   x [0 childs]
+///
+macro unittest:assert testCode
+  isCompare := false
+  compareF := ast:fromString "op=="
+
+  if ast:matchesShape(testCode, ${__ == __})
+    isCompare = true
+  elseif ast:matchesShape(testCode, ${__ ==_f __})
+    isCompare = true
+  elseif ast:matchesShape(testCode, ${__ ==_str __})
+    isCompare = true
+    compareF = ast:fromString "op==_str"
+  end
+
+  if isCompare
+    uniqueId lvar "lvar"
+    uniqueId rvar "rvar"
+    l := ast:child(testCode, 0)
+    r := ast:child(testCode, 1)
+    ret ${
+      #lvar := #l
+      #rvar := #r
+      unless (#compareF #lvar #rvar)
+        ++unittest:failedCount
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        printString "left = "
+        print #lvar
+        println()
+        printString "right = "
+        print #rvar
+        println()
+        ast:print ${#testCode} 0
+      end
+    end}
+  else
+    ret ${
+      unless #testCode
+        ++unittest:failedCount
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        ast:print ${#testCode} 0
+      end
+    end}
+  end
+
+  ret ${}
+end
+
+func int unittest:printReport()
+  if (unittest:failedCount > 0)
+    println unittest:failedCount " tests failed"
+    ret 1
+  end
+
+  println "All unit tests succeeded"
+  ret 0
+end
+
