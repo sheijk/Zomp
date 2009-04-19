@@ -153,3 +153,12 @@ macro unittest:runAllTestCases
   ret code
 end
 
+
+template unittest:main extraCode...
+  func int main()
+    #extraCode
+    unittest:runAllTestCases
+    ret unittest:printReport()
+  end
+end
+
