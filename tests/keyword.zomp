@@ -1,0 +1,133 @@
+/**
+ * Experimental support for keyword syntax
+ */
+
+require "libs/libcee.zomp"
+
+///-----------------------------------------------------------------------------
+/// Section: utils missing in stdlib
+///-----------------------------------------------------------------------------
+
+func ast* ast:copy(ast* tree)
+  newAst := ast:fromString tree.id
+  for childnum 0 tree.childCount
+    newChild := ast:copy ast:child(tree, childnum)
+    ast:addChild newAst newChild
+  end
+  ret newAst
+end
+
+macro ct:map transform exprs
+  code := ${}
+
+  forEachAstChild expr exprs
+    newExpr := ast:copy transform
+    ast:replace newExpr "_1" expr
+    ast:addChild code newExpr
+  end
+
+  ret code
+end
+
+macro ast:foreach2 t0 t1 tree code
+  if (bool:not isMultipleOf(tree.childCount, 2))
+    ret ${error "Can only iterate over pairs if child count is a multiple of 2" tree}
+  end
+
+  uniqueId childnum "ast:foreach2"
+
+  ret ${
+    #childnum := 0
+    while (#childnum + 1 < #tree.childCount)
+      #t0 := ast:child #tree (#childnum+0)
+      #t1 := ast:child #tree (#childnum+1)
+      #code
+      #childnum = #childnum + 2
+    end
+  end}
+end
+
+///-----------------------------------------------------------------------------
+/// Section: actual implementation
+///-----------------------------------------------------------------------------
+
+macro opkeyword rem...
+  code := ast:fromString "tobereplaced"
+
+  id := "kwd"
+
+  ast:foreach2 kwd block rem
+    id = id ++ "_" ++ kwd.id
+    ast:addChild code block
+  end
+
+  code.id = id
+
+  ret code
+end
+
+macro kwd_while juxCondBlock
+  code := ${error "Expected while: condExpr blockExpr"}
+
+  if ast:matchesShape(juxCondBlock, ${__ __})
+    cond := ast:child juxCondBlock 0
+    block := ast:child juxCondBlock 1
+    code = ${while #cond #block}
+  end
+
+  ret code
+end
+
+template kwd_default_unless block cond
+  unless #cond #block
+end
+
+macro kwd_if args
+  /// if cond onTrue elseClauses...
+  if ast:matchesShape(args, ${__ __ _...})
+    code := ${if}
+    forEachAstChild arg args
+      ast:addChild code arg
+    end
+    ret code
+  end
+
+  ret ${error "Expected if: condExpr onTrueExpr ..."}
+end
+
+template kwd_default_if block condition
+  if #condition #block
+end
+
+func int main()
+  i := 0
+  while: i < 10
+    ++i
+  end
+
+  if: i == 10
+    println "if: and while: work"
+  end
+
+  // TODO doesn't parse, yet
+  // if: i == 12345
+  //   println "if: internal wtf error"
+  // else
+  //   println "if: with else works"
+  // end
+
+  println "default:unless: works" unless: 10 > 100
+  println "default:if: works" if: true == true
+
+  // ct:map (ast:print ${_1} 4)
+  //   a b c d
+  //   a: b c d
+  //   a: b c: d
+  //   a b: c d
+  //   a b c: d
+  // end
+
+  ret 0
+end
+
+

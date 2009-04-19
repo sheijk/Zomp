@@ -375,6 +375,9 @@ struct
         "end main\n",
       `Exception "Should fail because 'nested' has no 'end' terminator";
 
+      "macro foo bar\n  nested code\nend invalid",
+      `Exception "Should fail because 'invalid' should be (macro|foo|bar)";
+
       "main foo\n" ^
         "  nested\n" ^
         "end wrong",
@@ -488,6 +491,8 @@ struct
       (** keyword arguments **)
       "assert: a != b",
       `Return [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]];
+      "${assert: a != b}",
+      `Return [expr "quote" [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]]];
 
       "if: a then: b",
       `Return [expr "opkeyword" [id "if"; id "a";
@@ -508,6 +513,23 @@ struct
                                  expr "opkeyword"
                                    [id "default"; jux ["print"; "x"];
                                     id "unless"; call ["moreCond"]]]];
+
+      "if: foo\n  onTrue\nelse\n  onFalse\nend",
+      `Return [expr "opkeyword"
+                 [id "if";
+                  juxExpr [id "foo";
+                           seqExpr [id "onTrue"];
+                           id "else";
+                           seqExpr [id "onFalse"]]]];
+
+      "if: a == b\n  onTrue\nelse\n  onFalse\nend",
+      `Return [expr "opkeyword"
+                 [id "if";
+                  juxExpr [
+                    se2 "op==" "a" "b";
+                    seqExpr [id "onTrue"];
+                    id "else";
+                    seqExpr [id "onFalse"]]]];
 
       "for: 1 to 2 do:\n\
       \  print x\n\
