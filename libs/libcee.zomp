@@ -707,17 +707,6 @@ alias toDouble zmp:cee:toDouble x
 alias toChar zmp:cee:toChar x
 alias toCString zmp:cee:toCString x
 
-func float toFloat_u32(u32 i)
-  int:toFloat i
-end
-
-func float toFloat_double(double d)
-  double:toFloat d
-end
-
-func float toFloat_float(float f)
-  ret f
-end
 
 func int toInt_u32(int i)
   ret i
@@ -731,6 +720,35 @@ func int toInt_double(double d)
   double:toInt d
 end
 
+func int toInt_char(char c)
+  ret char:zextToU32(c)
+end
+
+func int toInt_bool(bool b)
+  if b
+    ret 1
+  end
+  ret 0
+end
+
+
+func float toFloat_u32(u32 i)
+  int:toFloat i
+end
+
+func float toFloat_double(double d)
+  double:toFloat d
+end
+
+func float toFloat_float(float f)
+  ret f
+end
+
+func float toFloat_bool(bool b)
+  toFloat(toInt b)
+end
+
+
 func double toDouble_u32(int i)
   int:toDouble i
 end
@@ -741,5 +759,39 @@ end
 
 func double toDouble_double(double d)
   ret d
+end
+
+func double toDouble_bool(bool b)
+  toDouble(toInt b)
+end
+
+
+func char toChar_u32(int i)
+  ret u32:toChar(i)
+end
+
+
+func char* toCString_u32(int i)
+  int2cstring i
+end
+
+func char* toCString_float(float f)
+  float2cstring f
+end
+
+func char* toCString_double(double d)
+  double2cstring d
+end
+
+func char* toCString_char(char c)
+  char2cstring c
+end
+
+func char* toCString_bool(bool b)
+  ret bool2cstring(b)
+end
+
+func char* "toCString_char*"(char* c)
+  c
 end
 

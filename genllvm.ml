@@ -321,17 +321,21 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic func, toType, ["v", fromType]
   in
   let zextIntr fromType toType =
-    let name = sprintf "%s:zextTo%s" (typeName fromType) (String.capitalize (typeName toType)) in
+    let name = sprintf "%s:zextTo%s"
+      (typeName fromType)
+      (String.capitalize (typeName toType))
+    in
     let func = oneArgFunc name
-      (fun arg -> sprintf "zext %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
+      (fun arg -> sprintf "zext %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType))
+    in
     name, `Intrinsic func, toType, ["v", fromType]
   in
   let intrinsicFuncs =
-     [
-       twoArgIntrinsic "u32:shl" "shl" `Int32;
-       twoArgIntrinsic "u32:lshr" "lshr" `Int32;
-       twoArgIntrinsic "u32:ashr" "ashr" `Int32;
-       "void", `Intrinsic void, `Void, [];
+    [
+      twoArgIntrinsic "u32:shl" "shl" `Int32;
+      twoArgIntrinsic "u32:lshr" "lshr" `Int32;
+      twoArgIntrinsic "u32:ashr" "ashr" `Int32;
+      "void", `Intrinsic void, `Void, [];
 
       convertIntr "float:toInt" "fptosi" `Float `Int32;
       convertIntr "int:toFloat" "sitofp" `Int32 `Float;
@@ -339,6 +343,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       convertIntr "double:toInt" "fptosi" `Double `Int32;
       convertIntr "float:toDouble" "fpext" `Float `Double;
       convertIntr "double:toFloat" "fptrunc" `Double `Float;
+
+      truncIntIntr `Int32 `Char;
+      zextIntr `Char `Int32;
 
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;

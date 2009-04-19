@@ -39,15 +39,35 @@ void flushStdout() {
 /*   return NULL; */
 /* } */
 
+char* copyString(char* str) {
+    size_t charCount = strlen( str );
+    char* result = (char*) malloc( sizeof(char) * (charCount + 1) );
+    strcpy( result, str );
+    return result;
+}
+
+static char buffer[1000];
+
 char* int2cstring(int i) {
-  char buffer[1000];
-
   sprintf( buffer, "%d", i );
+  return copyString(buffer);
+}
 
-  size_t charCount = strlen( buffer );
-  char* result = (char*) malloc( sizeof(char) * (charCount + 1) );
-  strcpy( result, buffer );
-  return result;
+char* float2cstring(float f) {
+    sprintf( buffer, "%f", f );
+    return copyString(buffer);
+}
+
+char* double2cstring(double d) {
+    sprintf( buffer, "%f", d );
+    return copyString(buffer);
+}
+
+char* char2cstring(char c) {
+    char* str = (char*)malloc(sizeof(char) * 2);
+    str[0] = c;
+    str[1] = '\0';
+    return str;
 }
 
 void stdlibHello() {

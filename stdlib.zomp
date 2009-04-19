@@ -22,6 +22,11 @@ func void printNewline()
 func void flushStdout()
 
 func char* int2cstring(int i)
+func char* float2cstring(float f)
+func char* double2cstring(double d)
+func char* char2cstring(char c)
+
+func char* copyString(char* str)
 
 func int zompLoadLib(char* libname)
 // (func bool zompCheckNativeSymbol (((ptr char) libname)))
@@ -629,12 +634,15 @@ end
 /// Section: Unit tests
 ///-----------------------------------------------------------------------------
 
+var int unittest:failedCount 0
+
 /// Executes the given expression and prints an error
 /// message containing the passed ast if it does not
 /// evaluate to true
 macro unittest:assert testCode
   ret ${
     unless #testCode
+      assign unittest:failedCount (int:add unittest:failedCount 1)
       printHLine '-' 40
       printlnString "error: Assertion failed"
       ast:print ${#testCode} 0
@@ -818,6 +826,18 @@ end
 
 func int u32:neg(int x)
   ret u32:sub(0, x)
+end
+
+func char* bool2cstring(bool b)
+  var char* result nullptr(char)
+
+  if b
+    assign result "true"
+  else
+    assign result "false"
+  end
+
+  ret copyString(result)
 end
 
 template op+ l r (u32:add #l #r)

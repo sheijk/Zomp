@@ -4,6 +4,7 @@
  */
 
 require "libs/libcee.zomp"
+require "libs/unittest.zomp"
 
 var int counter 0
 
@@ -251,10 +252,68 @@ func void testLoop()
     end
   end
 
-  print "sum = " sum "\n"
-
   unittest:assertAll
     sum == 55
+  end
+end
+
+func void testOverloadedFuncs()
+  onefString := toCString(1.0)
+  unless (strncmp(onefString, "1.0", 3) == 0)
+    println "Assertion failed"
+    printHLine '-' 40
+    println "left = " onefString
+    println "right = " "1.0*"
+    printHLine '-' 40
+  end
+
+  fivedString := toCString(5.0d)
+  unless (strncmp(fivedString, "5.0", 3) == 0)
+    println "Assertion failed"
+    printHLine '-' 40
+    println "left = " fivedString
+    println "right = " "5.0*"
+    printHLine '-' 40
+  end
+
+  unittest:assertAll
+    toCString 10 ==_str "10"
+    toCString 'x' ==_str "x"
+    toCString true ==_str "true"
+    toCString false ==_str "false"
+    toCString "foo" ==_str "foo"
+  end
+
+  unittest:assertAll
+    toInt 10 == 10
+    toInt 4.0 == 4
+    toInt 8.0d == 8
+    toInt true == 1
+    toInt false == 0
+    toInt 'a' == 97
+  end
+
+  unittest:assertAll
+    toFloat 16 == 16.0
+    toFloat 1.0 == 1.0
+    toFloat 2.0d == 2.0
+    toFloat true == 1.0
+    toFloat false == 0.0
+    // not supported:
+    // toFloat 'a' == 40.0
+  end
+
+  unittest:assertAll
+    toDouble 64 == 64.0d
+    toDouble 10.0 == 10.0d
+    toDouble 7.0d == 7.0d
+    toDouble true == 1.0d
+    toDouble false == 0.0d
+  end
+
+  unittest:assertAll
+    toChar 66 == 'B'
+    // not supported: bool, float, double
   end
 end
 
@@ -269,8 +328,9 @@ func int main()
   testNestedFor()
   testAssign()
   testLoop()
+  testOverloadedFuncs()
 
-  ret 0
+  ret unittest:printReport()
 end
 
 
