@@ -26,6 +26,19 @@ end
 /// Section: vector math
 ///-----------------------------------------------------------------------------
 
+struct v3f
+  float x y z
+end
+
+func void v3f:print(v3f* this)
+  print "v3f(x=" this.x ", y=" this.y ", z=" this.z ")"
+end
+
+func float v3f:length(v3f* this)
+  ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
+end
+
+// deprecated
 struct float3
   float x y z
 end
@@ -43,7 +56,7 @@ end
 ///-----------------------------------------------------------------------------
 
 struct AABB
-  float3 min max
+  v3f min max
 end
 
 func void AABB:init(AABB* this)
@@ -60,16 +73,16 @@ func void AABB:print(AABB* this)
   print " max: x=" this.max.x ", y=" this.max.y ", z=" this.max.z ")"
 end
 
-func void AABB:diagonal(float3* result, AABB* this)
+func void AABB:diagonal(v3f* result, AABB* this)
   result.x = this.max.x - this.min.x
   result.y = this.max.y - this.min.y
   result.z = this.max.z - this.min.z
 end
 
 func float AABB:diagonalLength(AABB* this)
-  var float3 diag
+  var v3f diag
   AABB:diagonal &diag this
-  ret float3:length(&diag)
+  ret v3f:length(&diag)
 end
 
 

@@ -268,6 +268,13 @@ end
 //   glDisableClientState GL_NORMAL_ARRAY
 // end
 
+// func void VertexStream:send(VertexStream* this, GLint mode)
+//   glEnableClientState GL_VERTEX_ARRAY
+//   glVertexPointer this*.components this*.type 0 this*.data
+//   glDrawArrays mode 0 this*.size
+//   glDisableClientState GL_VERTEX_ARRAY
+// end
+
 func void Mesh:render(Mesh* this, GLint mode, GLint shader)
   if (this.positions !=_ptr nullptr VertexStream)
     glEnableClientState GL_VERTEX_ARRAY
@@ -300,6 +307,23 @@ func void Mesh:render(Mesh* this, GLint mode, GLint shader)
   glDisableClientState GL_NORMAL_ARRAY
   glDisableClientState GL_COLOR_ARRAY
 end
+
+func void Mesh:showNormals(Mesh* this)
+  vertex := cast float* (this*.positions)*.data
+  normal := cast float* (this*.normals)*.data
+
+  glColor3f 1. 1. 1.
+  rendergl GL_LINES
+    for normalNum 0 (this*.normals)*.size
+      glVertex3fv vertex
+      glVertex3f (*(vertex+0) + *(normal+0)) (*(vertex+1) + *(normal+1)) (*(vertex+2) + *(normal+2)) 
+
+      vertex = vertex + (this*.positions)*.components
+      normal = normal + (this*.normals)*.components
+    end
+  end
+end
+
 
 func void Mesh:calcAABB(AABB* result, Mesh* this)
   var AABB bb

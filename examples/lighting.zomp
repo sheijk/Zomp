@@ -3,6 +3,7 @@
  */
 
 require "libs/libcee.zomp"
+require "libs/array.zomp"
 
 func bool isQuoted(cstring text)
   len := strlen text
@@ -56,7 +57,7 @@ macro require firstLibOrType libs...
   ret code
 end
 
-require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
+require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp" "glut.zomp"
 require lib "assimp" "math" "mathvis" "spaceballcam"
 
 var int windowWidth 400
@@ -66,6 +67,7 @@ var bool initCalled false
 func void init()
   if bool:not(initCalled)
     glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
     times 2 glfwPollEvents()
@@ -99,7 +101,7 @@ macro mainloop body...
 
       glfwSwapBuffers()
       glfwPollEvents()
-      running = bool:not isPressed(GLFW_KEY_ESC)
+      running = running && bool:not isPressed(GLFW_KEY_ESC)
       ++frameNum
     end
 
@@ -149,6 +151,10 @@ func GLenum Material:showNormals()
   ret shader
 end
 
+defineArrayType v3f
+
+var SpaceballCamera* cam null
+
 func int main()
   init()
 
@@ -161,26 +167,37 @@ func int main()
   glEnable GL_BLEND
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
-  template abortIf cond message
+  template abortIf cond message onFail...
     if #cond
       print #message
+      #onFail
       ret 0
     end
   end
 
   // sceneFilename := "data/ModernStructure.3ds"
   // sceneFilename := "data/MonroeBar_SketchUpScene.obj"
+  // sceneFilename := "data/living1_max/modern_living_furn.3DS"
   sceneFilename := "data/house.obj"
-  loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
+  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals | aiProcess_PreTransformVertices
 
   scene := aiImportFile sceneFilename loadOptions
-  abortIf (isNull scene) "Error, scene could not be loaded"
+  abortIf (scene == nullptr aiScene) "Error while loading file: "
+    println aiGetErrorString()
+  end
 
   mesh := aiScene:toMesh scene
   abortIf (isNull mesh) "Failed to convert scene to mesh"
 
   aiReleaseImport scene
   scene = nullptr aiScene
+
+  normalStream := mesh.normals
+  VertexStream:foreach normalStream float normal
+    store (normal+0) (float:neg *(normal+0))
+    store (normal+1) (float:neg *(normal+1))
+    store (normal+2) (float:neg *(normal+2))
+  end
 
   Mesh:print mesh
   
@@ -189,14 +206,19 @@ func int main()
   meshSize := AABB:diagonalLength &meshBB
   viewDistance := float:max 2.0 (0.25 * meshSize)
 
-  cam := new SpaceballCamera
-  cam.distance = viewDistance
+  if isNull(cam)
+    cam = new SpaceballCamera
+    cam.distance = viewDistance
+  end
 
   material := Material:showNormals()
 
   angle := 0.0
 
   mainloop
+    /// updating
+    autoSetupViewport()
+    glfwGetWindowSize &windowWidth &windowHeight
     angle = angle + 128.0 * frameDuration
 
     if (abs mouseXDelta > abs mouseYDelta)
@@ -212,6 +234,7 @@ func int main()
     mouseYDelta = 0
     mouseWheelDelta = 0
 
+    /// rendering
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -223,18 +246,20 @@ func int main()
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
     SpaceballCamera:applyToGL cam
-    // glTranslatef 0. -4. (-0.8 * meshSize)
-    // glRotatef angle 0. 1. 0.
 
     drawOrientationGrid()
-    glUseProgram material
-    Mesh:render mesh GL_TRIANGLES 0
-    glUseProgram 0
+    withShader material
+      Mesh:render mesh GL_TRIANGLES 0
+      glutSolidSphere 1.0d 40 40
+    end
     AABB:render &meshBB
+    glColor3f 1. 1. 1.
+    Mesh:showNormals mesh
   end
 
+  // glClear (GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
   drawPausedOverlay()
-  glfwSwapBuffers()
+  // glfwSwapBuffers()
   glfwPollEvents()
 
   Mesh:delete mesh
