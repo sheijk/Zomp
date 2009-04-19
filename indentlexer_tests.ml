@@ -88,6 +88,9 @@ struct
       "a+b", `Return [id "a"; ADD_OP "+"; id "b"; END];
       "a   + b", `Return [id "a"; ADD_OP "+"; id "b"; END];
       "2+3", `Return [id "2"; ADD_OP "+"; id "3"; END];
+      "1.0 + 2.0", `Return [id "1.0"; ADD_OP "+"; id "2.0"; END];
+      "1. + 2.", `Return [id "1."; ADD_OP "+"; id "2."; END];
+      "1.+2.", `Return [id "1."; ADD_OP "+"; id "2."; END];
       "FOO*bar", `Return [id "FOO"; MULT_OP "*"; id "bar"; END];
       "x[1]-2", `Return [id "x"; OPEN_BRACKET_POSTFIX; id "1"; CLOSE_BRACKET;
                          ADD_OP "-"; id "2"; END];
