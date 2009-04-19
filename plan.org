@@ -3,7 +3,23 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO eval current defun fails on last func in file
+** TODO snobol string matching ankucken
+** TODO type degree := int in :=_type degree int umwandeln
+   defkind name := definition+
+   => :=_defkind name definition
+
+   varname := value
+   => var varname value
+
+   Will provide overloadable definitions / simulate keywords
 ** TODO optional + named parameters: c# modell taugt
+** TODO [#A] Causes invalid llvm code when omitting "ret"
+
+   (macro opseq args ... (
+     (ret args)
+     ))
+
 ** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
 ** TODO [#A] GHCs newtype genauer ankucken
@@ -385,6 +401,7 @@ A No-Frills Introduction to Lua 5.1 VM Instructions
 von http://lambda-the-ultimate.org/node/2884
 
 ** TODO next steps                                                        :next:
+   - provide support for function pointers
    - provide simple dynamic oop system
    - use it to implement compiler services
 
@@ -396,6 +413,19 @@ von http://lambda-the-ultimate.org/node/2884
    & sollte hoehere prioritaet haben, damit "a & 0x00001001 == 0x00001001" geht
 ** TODO [#A] consider latex style operators
    \x, \o, ...
+** TODO [#A] it/the foo um auf vorherige ergebnisse zuzugreifen
+   http://code.google.com/p/muvee-symbolic-expressions/wiki/TheAndIt
+
+   sum [1, 2, 3, 4, 5]
+   print it
+   => 15
+
+
+   sum(1..100)
+   average(20..30)
+
+   print (the sum)
+   print (the average)
 ** TODO [#A] sml-like integer types
    InfInt - integer with arbitrary size
    FixedInt - signed int which raises exceptions on overflow
@@ -433,8 +463,7 @@ von http://lambda-the-ultimate.org/node/2884
    =>
    (apply print (constant 10) (var x))
 
-   How to convert into constant and var forms? Calling an error function which
-   may return a transformed sexpr?
+   How to convert into constant and var forms? Calling an error function which may return a transformed sexpr?
 ** TODO [#A] smooth integration of other languages
    extractDefs(LLVM::Module*)
    Will parse the module and add Zomp definitions for all found types and functions
@@ -813,15 +842,7 @@ von http://lambda-the-ultimate.org/node/2884
 * Language design                                                  :design:lang:
 
 ** zomp-cee                                                                :cee:
-*** TODO type degree := int in :=_type degree int umwandeln    :improvement:cee:
-           defkind name := definition+
-           => :=_defkind name definition
-
-           varname := value
-           => var varname value
-
-           Will provide overloadable definitions / simulate keywords
- Set of macros and functions providing a simple C like feeling
+   Set of macros and functions providing a simple C like feeling
 
 *** TODO variables [3/4]
     Define a variable
@@ -1006,7 +1027,7 @@ von http://lambda-the-ultimate.org/node/2884
    - [ ] type classes
 
 *** Ideas
- int? => Option<int>
+    int? => Option<int>
 
 * Tasks                                                                   :zomp:
 
@@ -1020,12 +1041,7 @@ von http://lambda-the-ultimate.org/node/2884
 #+TBLFM: $3=@2$2/$2::$5=@2$4/$4
 
 ** BUGS
-*** TODO [#A] Causes invalid llvm code when omitting "ret"                 :bug:
 
-    (macro opseq args ... (
-      (ret args)
-      ))
-*** TODO eval current defun fails on last func in file               :bug:emacs:
 *** TODO [#C] keine fehler ausgabe im prelude?                             :bug:
 *** TODO [#B] bugs wenn innerhalb eines makros andere makros getriggert werden? :bug:
 *** TODO [#B] sometimes macros can't be parsed at the toplevel (might be related to the macro expansion string fuckup) :bug:
@@ -1211,6 +1227,18 @@ In macro expansion the \0 will be replaced by an !
     Rename files to foo.ret100.zomp, then check whether running foo returns 100
 
 ** Parser / Syntax                                               :parser:syntax:
+*** TODO smalltalk-style grouping mit keyword: arguments
+
+    Keyword identifer a la 'foo:' brechen expression in teile
+
+    print "oh noes" unless: everything.ok()
+    =>
+    (opkeyword leading (jux print "oh noes") unless (op. everything (opcall ok)))
+
+    do: some stuff until: endCondition
+    =>
+    (opkeyword do (jux some stuff) until endCondition)
+
 *** TODO [#A] if (*addF)(3, 4) > 10
     => jux (preop* addF) (op> (op, 3 4) 10)
     Sollte aber jux if (op> (opcall (preop* addF) 3 4) 10) sein
@@ -1243,6 +1271,7 @@ In macro expansion the \0 will be replaced by an !
     foo bar(a b) => jux (id foo) (call bar (jux a b))
 
 *** TODO [#A] list<int> => template, xml <node> -> xml like trees
+
 *** TODO [#B] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_? :operators:
     oder auch \+\ \+ +\
 
@@ -1264,9 +1293,13 @@ In macro expansion the \0 will be replaced by an !
    >   | _ => handleOther()
 
 *** TODO [#B] indent parser: support escaped linebreaks (\ at beginning/end of line) :quick:
+
+*** TODO [#B] only allow one dot in ids (and none at a later point)      :quick:
 *** TODO [#B] support "\"" in strings
 *** TODO [#A] add += -= *= /= etc. operators                         :operators:
+*** TODO [#A] / should be left associative: a / b / c => (a / b) / c       :bug:
 *** TODO [#B] parser: keep track of line and char number and add this to error messages
+
 *** Archive                                                            :ARCHIVE:
 **** DONE [#A] indent parser: skip comments
      CLOSED: [2008-06-04 Wed 02:52]
@@ -1295,21 +1328,6 @@ In macro expansion the \0 will be replaced by an !
      :PROPERTIES:
      :ARCHIVE_TIME: 2008-08-17 Sun 19:23
      :END:
-**** DONE smalltalk-style grouping mit keyword: arguments
-     CLOSED: [2009-03-29 Sun 03:56]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-
-     Keyword identifer a la 'foo:' brechen expression in teile
-
-     print "oh noes" unless: everything.ok()
-     =>
-     (opkeyword leading (jux print "oh noes") unless (op. everything (opcall ok)))
-
-     do: some stuff until: endCondition
-     =>
-     (opkeyword do (jux some stuff) until endCondition)
 ** Compiler
 
 *** TODO [#B] proper support for compile time variables               :compiler:
@@ -1409,30 +1427,45 @@ In macro expansion the \0 will be replaced by an !
     CLOSED: [2008-01-16 Wed 01:20]
 
 ** Interactive toplevel
-*** TODO [#A] it/the foo um auf vorherige ergebnisse zuzugreifen      :toplevel:
-    http://code.google.com/p/muvee-symbolic-expressions/wiki/TheAndIt
 
-    sum [1, 2, 3, 4, 5]
-    print it
-    => 15
-
-
-    sum(1..100)
-    average(20..30)
-
-    print (the sum)
-    print (the average)
 *** TODO [#B] support functions returning non-void on toplevel
 *** TODO [#A] better error reporting on immediate code execution in toplevel
 *** TODO [#B] macro/function to check whether running in toplevel        :quick:
 *** TODO [#A] add (ret void) to end of immediate functions in toplevel   :quick:
 *** TODO [#B] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
 *** TODO [#A] using invalid floating point constant will screw up LLVM for whole session :bug:
+*** DONE [#A] allow immediate execution of code
+    CLOSED: [2008-02-12 Tue 02:52]
+
 *** TODO [#B] proper error reporting when function/macro is redefined with different parameter count/types
 *** TODO [#B] let toplevel send feedback to emacs + handle errors (abort eval etc.)
+
 *** TODO [#B] fast navigation
+
 *** TODO [#B] zomp toplevel in emacs: don't switch to buffer on C-c,C-s
+
+*** DONE print var/func/macro declaration in toplevel
+    CLOSED: [2007-12-03 Mon 01:25]
+
+*** DONE make printing parsed s-expr optional
+    CLOSED: [2007-12-03 Mon 01:25]
+
+*** DONE Create C interface
+    CLOSED: [2007-09-30 Sun 01:53]
+    Reuse native function generator from opengl bindings(?)
+
+*** DONE Create inferiour llvm machine
+    CLOSED: [2007-09-30 Sun 01:53]
+    Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
+
+*** DONE Read-Eval-Print loop
+    CLOSED: [2007-09-30 Sun 01:53]
+
+*** DONE Make it run stable and be usable
+    CLOSED: [2007-10-03 Wed 03:33]
+
 *** [#B] Support loading DLLs and calling their functions
+
 **** DONE Load DLLs
      CLOSED: [2007-11-04 Sun 03:35]
 
@@ -1442,95 +1475,20 @@ In macro expansion the \0 will be replaced by an !
 **** TODO [#C] Add search paths
 
 *** TODO [#B] Fork to avoid crashes
+
 **** TODO [#B] Find a way to keep connection to stdin on crash in other process
+
+*** DONE Change/reevaluate functions
+    CLOSED: [2007-10-09 Tue 16:20]
+
 *** TODO [#C] Redefine/change variables
-*** Archive                                                            :ARCHIVE:
-**** DONE [#A] allow immediate execution of code
-     CLOSED: [2008-02-12 Tue 02:52]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:55
-     :END:
-**** DONE print var/func/macro declaration in toplevel
-     CLOSED: [2007-12-03 Mon 01:25]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
 
-**** DONE make printing parsed s-expr optional
-     CLOSED: [2007-12-03 Mon 01:25]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-
-**** DONE make printing parsed s-expr optional
-     CLOSED: [2007-12-03 Mon 01:25]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-
-**** DONE Create C interface
-     CLOSED: [2007-09-30 Sun 01:53]
-     Reuse native function generator from opengl bindings(?)
-
-**** DONE make printing parsed s-expr optional
-     CLOSED: [2007-12-03 Mon 01:25]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-
-**** DONE Create C interface
-     CLOSED: [2007-09-30 Sun 01:53]
-     Reuse native function generator from opengl bindings(?)
-
-**** DONE Create inferiour llvm machine
-     CLOSED: [2007-09-30 Sun 01:53]
-     Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
-
-**** DONE make printing parsed s-expr optional
-     CLOSED: [2007-12-03 Mon 01:25]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-
-**** DONE Create C interface
-     CLOSED: [2007-09-30 Sun 01:53]
-     Reuse native function generator from opengl bindings(?)
-
-**** DONE Create inferiour llvm machine
-     CLOSED: [2007-09-30 Sun 01:53]
-     Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
-
-**** DONE Read-Eval-Print loop
-     CLOSED: [2007-09-30 Sun 01:53]
-
-**** DONE make printing parsed s-expr optional
-     CLOSED: [2007-12-03 Mon 01:25]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-
-**** DONE Create C interface
-     CLOSED: [2007-09-30 Sun 01:53]
-     Reuse native function generator from opengl bindings(?)
-
-**** DONE Create inferiour llvm machine
-     CLOSED: [2007-09-30 Sun 01:53]
-     Startup llvm jit machine, allow vars + functions to be (re)defined, allow functions to be called
-
-**** DONE Read-Eval-Print loop
-     CLOSED: [2007-09-30 Sun 01:53]
-
-**** DONE Make it run stable and be usable
-     CLOSED: [2007-10-03 Wed 03:33]
-**** DONE Change/reevaluate functions
-     CLOSED: [2007-10-09 Tue 16:20]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:56
-     :END:
-** Emacs support                                                           :bug:
+** Emacs support
 
 *** TODO [#A] folding -> hs-special-modes-alist
 *** TODO [#B] indent: ignore parens in strings
+*** TODO [#B] zomp-newline: problem with indent (resetting pos)
+*** TODO [#B] emacs/toplevel: C-c C-s abfangen wenn toplevel schon laeuft
 *** TODO [#C] examples which can be browsed directly in emacs
 *** TODO [#B] correctly indent }
 *** TODO [#C] zomp: fast doc lookup
@@ -1538,15 +1496,23 @@ In macro expansion the \0 will be replaced by an !
 *** TODO [#B] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
 *** TODO [#B] also auto-insert // on newline
 *** TODO [#B] /// <enter> <backspace> -> remove inserted ///
+*** DONE [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
+    CLOSED: [2008-02-21 Thu 14:24]
 *** TODO [#C] alt-k => mark current word first, then sexpr
 *** TODO [#C] emacs: navigate to error caused by evaluating code in toplevel
 *** TODO [#C] fix wrong promts in emacs inferior zomp mode
 *** TODO [#C] emacs indenting: ignore parens in comments
 *** TODO [#B] (op+_d | => zomp eldoc does not work
-*
+
+*** DONE [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
+    CLOSED: [2008-01-11 Fri 17:17]
+*** TODO [#B] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
+    temporary fix: zomp-mode will now use /* ... */ instead of //
+
 *** TODO [#C] fix indent of }
 
 *** TODO [#C] fix cursor positioning on indent
+
 *** TODO [#B] indent: special treatment for lines containing only closing parentheses?
 
 *** TODO [#B] add hook to zomp-mode
@@ -1565,18 +1531,6 @@ In macro expansion the \0 will be replaced by an !
 *** DONE [#B] zomp.el eval current: go one char forward to capture *cursor.pos*(func foo...)
      CLOSED: [2007-11-16 Fri 02:33]
 
-*** Archive                                                            :ARCHIVE:
-**** DONE [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
-     CLOSED: [2008-02-21 Thu 14:24]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:55
-     :END:
-
-**** DONE [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
-     CLOSED: [2008-01-11 Fri 17:17]
-     :PROPERTIES:
-     :ARCHIVE_TIME: 2009-03-29 Sun 03:55
-     :END:
 ** Macros
 
 *** TODO [#B] konfigurierbare base language
@@ -2044,8 +1998,6 @@ Put macro functions into seperate module
 
 **** TODO [#A] (count-1) is being parsed incorrectly
 
-* New features and design inspiration
-** TODO snobol string matching ankucken                                 :design:
 * Notes                                                                   :zomp:
 
 ** Alternative names
