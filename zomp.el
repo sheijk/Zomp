@@ -244,10 +244,11 @@ indent the next line when they occur at the beginning of a line"
 (zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
 (zomp-dofun zomp-tl-toggle-decl-printing "!printDecl")
 (zomp-dofun zomp-tl-toggle-parsed-ast-printing "!printAst")
+(zomp-dofun zomp-tl-toggle-verify "!verify")
 
-(defmacro zomp-add-action (command key caption)
+(defmacro zomp-add-action (command key caption &rest path)
   `(list (local-set-key ,key (quote ,command))
-         (local-set-key [menu-bar zomp ,command] '(,caption . ,command))))
+         (local-set-key [menu-bar zomp ,@path ,command] '(,caption . ,command))))
 
 (defun zomp-forward-sexp ()
   (interactive)
@@ -496,13 +497,18 @@ indent the next line when they occur at the beginning of a line"
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
+  ;; create toggle sub menu
+  (local-set-key [menu-bar zomp toggle]
+                 (cons "Toggle" (make-sparse-keymap "Zomp/Toggle")))
+
   (zomp-add-action zomp-tl-toggle-llvm-printing
-                   [(control c) (?.) (l)] "Toggle LLVM code printing")
+                   [(control c) (?.) (l)] "Printing of LLVM code" toggle)
   (zomp-add-action zomp-tl-toggle-decl-printing
-                   [(control c) (?.) (d)] "Toggle printing of declarations")
+                   [(control c) (?.) (d)] "Printing of declarations" toggle)
   (zomp-add-action zomp-tl-toggle-parsed-ast-printing
-                   [(control c) (?.) (p)] "Toggle printing of parsed ASTs")
-  (zomp-add-action zomp-tl-toggle-eval [(control c) (?.) (e)] "Toggle code eval")
+                   [(control c) (?.) (p)] "Printing of parsed ASTs" toggle)
+  ;; (zomp-add-action zomp-tl-toggle-verify
+  ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
 
   (local-set-key [(control c) (?.) (?s)] '(lambda () (interactive)
                                             (zomp-tl-do "!")
