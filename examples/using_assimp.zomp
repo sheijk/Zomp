@@ -2,8 +2,6 @@
  * Example demonstrating the use of the assimp library to load 3d scenes
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib" "assimp.dylib"
-
 require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
 require "libs/libcee.zomp"
 require "libs/assimp.zomp"

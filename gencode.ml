@@ -121,6 +121,7 @@ struct
 
   type expr =
     | Include of string
+    | LinkLib of string
     | Constant of constant
     | Function of func
     | Unknown of string
@@ -157,16 +158,20 @@ struct
     let constantRE = Str.regexp "[\t ]*\\([A-Za-z0-9_]+\\) +\\([A-Za-z0-9_]+\\) *$"
     and functionRE = Str.regexp "[\t ]*\\([a-zA-Z0-9_ ]+\\*?\\) \\([a-zA-Z0-9_]+\\) (\\([^)]*\\))"
     and includeRE = Str.regexp "[\t ]*include \\([\"<][a-zA-Z0-9_\\./]*[\">]\\)"
+    and linklibRE = Str.regexp "[\t ]*lib +\\([^ \t]+\\) *$"
     in
-    if Str.string_match includeRE line 0 then
+    let lineMatches re = Str.string_match re line 0 in
+    if lineMatches includeRE then
       let filename = Str.matched_group 1 line in
       Include filename
-    else if Str.string_match constantRE line 0 then
+    else if lineMatches linklibRE then
+      LinkLib (Str.matched_group 1 line)
+    else if lineMatches constantRE then
       Constant {
         name = (Str.matched_group 1 line);
         value = (String.lowercase (Str.matched_group 2 line))
       }
-    else if Str.string_match functionRE line 0 then
+    else if lineMatches functionRE then
       let name = Str.matched_group 2 line
       and retval = Str.matched_group 1 line
       and params = Str.matched_group 3 line
@@ -233,6 +238,7 @@ struct
 
   let expr2string = function
     | Include filename -> "#include \"" ^ filename ^ "\""
+    | LinkLib libname -> "lib \"" ^ libname ^ "\""
     | Constant c -> constant2string c
     | Function f -> func2string f
     | Unknown str -> "Unknown: " ^ str
@@ -459,6 +465,7 @@ struct
     in
     let expr2str = function
       | Include filename -> "(* included " ^ filename ^ " *)"
+      | LinkLib libname -> "(* lib " ^ libname ^ " *)"
       | Constant c -> gencaml_constant c
       | Function f -> gencaml_function f
       | Unknown u -> gencaml_unknown u
@@ -847,6 +854,7 @@ struct
 
   let generate_zomp_code = function
     | Include fileName -> sprintf "/// include %s\n" fileName
+    | LinkLib libname -> "linkclib \"lib" ^ libname ^ ".dylib\""
     | Constant c ->
         let value = intToDecimal c.value previousConstants in
         previousConstants := (c.name, value) :: !previousConstants;

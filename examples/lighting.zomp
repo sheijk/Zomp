@@ -2,8 +2,6 @@
  * Some experiments with lighting algorithms
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib"
-
 require "libs/libcee.zomp"
 
 func bool isQuoted(cstring text)

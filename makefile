@@ -66,7 +66,7 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 ################################################################################
 
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest
-libbindings: gencode opengl20.zomp glfw.zomp glut.zomp glut.dylib quicktext.zomp libquicktext.dylib
+libbindings: gencode opengl20.zomp glfw.zomp glut.zomp libglut.dylib quicktext.zomp libquicktext.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
@@ -102,7 +102,7 @@ tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 ################################################################################
 # External libraries
 
-glut.dylib:
+libglut.dylib:
 	@echo Building $@ ...
 	gcc -dynamiclib -framework GLUT -o $@
 
@@ -333,7 +333,7 @@ clean:
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
 	rm -f indentlexer_tests.cmo indentlexer_tests.cmi
 	rm -f expandertests.cm? alltests.cm? alltests
-	rm -f glQuickText.o libquicktext.dylib glut.dylib
+	rm -f glQuickText.o libquicktext.dylib libglut.dylib
 	rm -f perflog.txt
 	rm -f mltest
 	cd examples/ && make clean

@@ -2,8 +2,6 @@
  * A simple OpenGL example
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib"
-
 require "libs/libcee.zomp"
 require "opengl20.zomp"
 require "glfw.zomp"

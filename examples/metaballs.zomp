@@ -2,8 +2,6 @@
  * Nearly metaballs
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib" "glut.dylib" "libquicktext.dylib"
-
 require "libs/libcee.zomp"
 
 require "opengl20.zomp"
