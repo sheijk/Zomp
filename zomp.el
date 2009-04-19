@@ -156,13 +156,19 @@ indent the next line when they occur at the beginning of a line"
      (zomp-toplevel)
      (get-buffer-process zomp-toplevel-buffer-name))))
 
-(defun zomp-start-or-show-toplevel ()
-  (interactive)
-  (if (not (zomp-get-toplevel-buffer))
-      (zomp-toplevel)
-    (let ((oldwin (selected-window)))
-      (switch-to-buffer-other-window (get-buffer zomp-toplevel-buffer-name))
-      (select-window oldwin))))
+(defun zomp-start-or-show-toplevel (prefix)
+  (interactive "P")
+  (cond ((null prefix)
+         (if (not (zomp-get-toplevel-buffer))
+             (zomp-toplevel)
+           (let ((oldwin (selected-window)))
+             (switch-to-buffer-other-window (get-buffer zomp-toplevel-buffer-name))
+             (select-window oldwin))))
+        (t
+         (make-variable-buffer-local 'zomp-toplevel-buffer-name)
+         (setq zomp-toplevel-buffer-name (format "*zomp-toplevel<%s>*" (buffer-name)))
+         (unless (zomp-get-toplevel-buffer)
+           (zomp-toplevel)))))
 
 (defun zomp-tl-do (code &optional create-if-not-existing)
   "Send some text to the zomp toplevel. If
