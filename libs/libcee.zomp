@@ -590,7 +590,7 @@ template op== l r
 end
 
 template op!= l r
-  zmp:cee:notEqual #l #r
+  bool:not (#l == #r)
 end
 
 template op> l r
@@ -631,6 +631,10 @@ end
 
 func bool op==_ptr_ptr(void* l, void* r)
   ret u32:equal(cast int l, cast int r)
+end
+
+func bool op==_bool_bool(bool l, bool r)
+  ret bool:not(bool:xor l r)
 end
 
 ///-----------------------------------------------------------------------------

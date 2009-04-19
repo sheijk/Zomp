@@ -317,6 +317,15 @@ func void testOverloadedFuncs()
   end
 end
 
+func void testOverloadedOps()
+  unittest:assertAll
+    true == true
+    true != false
+    false != true
+    false == false
+  end
+end
+
 func int main()
   testDefineVar()
   testDotOp()
@@ -329,6 +338,7 @@ func int main()
   testAssign()
   testLoop()
   testOverloadedFuncs()
+  testOverloadedOps()
 
   ret unittest:printReport()
 end

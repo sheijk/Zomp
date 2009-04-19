@@ -278,7 +278,7 @@ func void ast:print((ptr ast) a, int indent)
   branch t goon end
   label goon
   var (ptr ast) child (load (ptradd (getField a childs) index))
-  ast:print child (u32:add indent 1)
+  ast:print child (u32:add indent 4)
   assign index (u32:add index 1)
   branch start
   label end
@@ -701,14 +701,14 @@ end
 /// Prints the passed ast to stdout at compile time
 /// and will return it at run time. Can be used to debug
 /// a specific macro using mret instead of ret
-macro mret code
-  ret ${
-    ast:print #code 0
-    ret #code
-  end}
+template mret code
+  println()
+  ast:print #code 0
+  ret #code
 end
 
 template pret code
+  println()
   ast:print #code 0
   ret ${}
 end
