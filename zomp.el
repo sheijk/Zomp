@@ -230,6 +230,13 @@ indent the next line when they occur at the beginning of a line"
   (message "Running function test")
   (zomp-tl-do "!run test"))
 
+(defun zomp-run ()
+  (interactive)
+  (if (zomp-get-toplevel-buffer)
+      (zomp-tl-eval-current)
+    (zomp-tl-eval-buffer))
+  (zomp-tl-run-test) )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro zomp-add-seperator (seperator-id)
@@ -541,9 +548,7 @@ indent the next line when they occur at the beginning of a line"
   (zomp-add-action zomp-start-or-show-toplevel [(control c)(control s)] "Start toplevel")
 
   ;; set additional keys on OS X
-  (local-set-key [(alt r)] '(lambda () (interactive)
-                              (zomp-tl-eval-current)
-                              (zomp-tl-run-test) ))
+  (local-set-key [(alt r)]' zomp-run)
   (local-set-key [(alt e)] 'zomp-tl-eval-current)
   (local-set-key [(alt shift e)] 'zomp-tl-eval-current-and-goto-next)
   (local-set-key [(alt d)] 'zomp-tl-run)
