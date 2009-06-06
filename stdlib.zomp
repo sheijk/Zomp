@@ -1210,3 +1210,8 @@ macro require libs...
   ret code
 end
 
+/// Declare a function. Use this to avoid auto indentation on newline :)
+template dfunc returnType nameAndOps
+  func #returnType #nameAndOps
+end
+
