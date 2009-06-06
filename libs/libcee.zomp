@@ -835,3 +835,30 @@ func char* "toCString_char*"(char* c)
   c
 end
 
+macro ofunc rettype nameAndArgs impl
+  if ast:matchesShape(nameAndArgs, ${_(__...)})
+    name := getField(ast:child nameAndArgs 0, id)
+    newNameAndArgs := ${_()}
+
+    for i 1 nameAndArgs.childCount
+      param := ast:child nameAndArgs i
+
+      if ast:matchesShape(param, ${__ _})
+        paramType := ast:child param 0
+        paramName := ast:child param 1
+        ast:addChild newNameAndArgs ${#paramType #paramName}
+        name = name ++ "_" ++ paramType.id
+      else
+        ret ${error "Invalid parameter, expected 'TYPE_EXPR NAME" ${#param}}
+      end
+    end
+
+    nameAst := ast:child newNameAndArgs 0
+    nameAst.id = name
+    ret ${func #rettype #newNameAndArgs #impl}
+  end
+
+  ret ${error "Expected 'ofunc RETTYPE funcName(args...)'" ${ofunc #rettype #nameAndArgs "..."}}
+end
+
+

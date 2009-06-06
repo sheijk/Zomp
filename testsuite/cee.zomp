@@ -338,8 +338,27 @@ unittest:testCase MakeStructVar
   end
 end
 
+ofunc Point op+(Point l, Point r)
+  ret (structlit Point x (l.x+r.x) y (l.y+r.y))
 end
 
+ofunc bool op==(Point l, Point r)
+  ret ((l.x == r.x) && (l.y == r.y))
+end
+
+ofunc void print(Point p)
+  print "Point(x=" p.x ", y=" p.y ")"
+end
+
+func Point pt(int x, int y)
+  ret (structlit Point x x y y)
+end
+
+unittest:testCase DefineOverloadedFunc
+  unittest:assertAll
+    pt 3 4 + pt 12 24 == pt 15 28
+  end
+end
 
 unittest:main
 
