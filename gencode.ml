@@ -914,6 +914,22 @@ struct
                          else "")
                       supportedTypes) "\n"
     in
+    CodePrinter.printHeader() ^
+      typeDecls ^
+      Utils.concat lines "\n" ^ "\n\n"
+
+  let lang_extension = CodePrinter.langExtension
+end
+
+module ZompPrintGLCodegen : CODEGEN =
+struct
+  open BindingExpressions
+
+  let transform expr = expr
+
+  let generate_c_code _ = ""
+
+  let generate_lang_code exprs =
     let enums = Utils.mapFilter (function Constant c -> Some c | _ -> None) exprs in
     let enumToStringFunc =
       let elseifs = List.map
@@ -927,18 +943,15 @@ struct
       in
       sprintf "func cstring glenum2cstring(GLenum enum)\n%s\n  ret \"unknown\"\nend\n" impl
     in
-    CodePrinter.printHeader() ^
-      typeDecls ^
-      Utils.concat lines "\n" ^ "\n\n" ^
-      enumToStringFunc ^ "\n"
+    enumToStringFunc ^ "\n\n"
 
-  let lang_extension = CodePrinter.langExtension
+  let lang_extension = "zomp"
 end
-
 
 module CamlbindingsGen = Processor(GlewParser)(Camlcodegen)
 module ZompbindingsSExprGen = Processor(GlewParser)(ZompCodegen(ZompSExprPrinter))
 module ZompbindingsIndentGen = Processor(GlewParser)(ZompCodegen(ZompIndentPrinter))
+module ZombindingsGLPrinterGen = Processor(GlewParser)(ZompPrintGLCodegen)
 
 let errorInvalidLanguage = 1
 and errorInvalidParams = 2
@@ -957,6 +970,8 @@ let _ =
           ZompbindingsSExprGen.process_file, moduleName
       | [| _; "-lang"; "zomp"; moduleName |] ->
           ZompbindingsIndentGen.process_file, moduleName
+      | [| _; "-lang"; "zomp-glprinter"; moduleName |] ->
+          ZombindingsGLPrinterGen.process_file, moduleName
       | [| _; "-lang"; invalidLanguage; _ |] ->
           eprintf "Language %s is not supported. Try ml or zomp\n" invalidLanguage;
           exit errorInvalidLanguage;

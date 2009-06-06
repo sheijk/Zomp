@@ -66,7 +66,7 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 ################################################################################
 
 all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest
-libbindings: gencode opengl20.zomp glfw.zomp glut.zomp libglut.dylib quicktext.zomp libquicktext.dylib
+libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp libglut.dylib quicktext.zomp libquicktext.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
@@ -260,6 +260,12 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	echo Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
 
+opengl20print.zomp: opengl20.skel gencode
+	echo Generating OpenGL enum printer ...
+	cp opengl20.skel opengl20print.skel
+	./gencode -lang zomp-glprinter opengl20print
+	rm -f opengl20print.skel
+
 CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml \
 indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml         \
 newparser_tests.ml parseutils.ml compileutils.ml semantic.ml sexprtoplevel.ml  \
@@ -328,7 +334,7 @@ clean:
 	rm -f deps.png deps.dot
 	rm -f depends.mk
 	rm -f stdlib.ll
-	rm -f opengl20.zomp glfw.zomp
+	rm -f opengl20.zomp glfw.zomp opengl20print.zomp
 	rm -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	rm -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
 	rm -f indentlexer_tests.cmo indentlexer_tests.cmi

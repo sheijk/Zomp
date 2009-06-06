@@ -81,3 +81,5 @@ tools
 /zompc.native
 /testsuite/preludevalid
 /testsuite/preludevalid.zomp
+/opengl20print.zomp
+/quicktext.zomp
