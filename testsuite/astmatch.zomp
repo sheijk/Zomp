@@ -36,6 +36,7 @@ func int main()
     ast:matchesShape ${int add(int l, int r)} ${_ _(__, __)}
     ast:matchesShape ${int add(int l, int r)} ${_ _(__, __, _...)}
     ast:matchesShape ${op*(int a, float b)} ${_(__...)}
+    ast:matchesShape ${sin(float x)} ${_(__...)}
 
     /// more complex tests
     ast:matchesShape ${var (ptr int) x (10 + 20 * 30)} ${var (ptr int) x (10 + 20 * 30)}
