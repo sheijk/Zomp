@@ -155,8 +155,74 @@ defineArrayType v3f
 
 var SpaceballCamera* cam null
 
+func void renderPoints(v3f_Array* array)
+  saveAttribs
+    glPointSize 4.0
+    rendergl GL_POINTS
+      for i 0 array.length
+        v := aget array i
+        glVertex3f v.x v.y v.z
+      end
+    end
+  end
+end
+
+template array:init array indexVar code
+  for #indexVar 0 #array.length
+    aset #array #indexVar #code
+  end
+end
+
+macro array:setAll array valueExpr
+  uniqueId value "array:setAll"
+  uniqueId index "array:setAll"
+
+  ret ${
+    #value := #valueExpr
+    array:init #array #index #value
+  end}
+end
+
+func void placeOnCircle(v3f_Array* points, float radius)
+  angleDelta := math:pi * 2.0 / toFloat points.length
+  array:init points index
+    angle := toFloat index * angleDelta
+    structlit v3f x (radius * sinf(angle)) y 0. z (radius * cosf(angle))
+  end
+end
+
+func bool keyDown(GLint key)
+  ret(glfwGetKey key == GL_TRUE)
+end
+
+func void glClearDepth(GLdouble depth)
+
+macro showTextures textureList
+  count := textureList.childCount
+  code := ${}
+
+  width := 1.0 / toFloat count
+  height := width
+
+  x := 0.
+  y := 0.
+
+  forEachAstChild tex textureList
+    ast:addChild code ${showTextureAt #tex #x #y #width #height}
+    x = x + width
+  end
+
+  ret code
+end
+
 func int main()
   init()
+
+  lightCount := 20
+  lightPositions := newArray v3f lightCount
+
+  // array:setAll lightPositions (structlit v3f x 0. y 12. z 0.)
+  placeOnCircle lightPositions 20.0
 
   glfwSetMousePosCallback (cast void* &onMouseMove)
   glfwSetMouseWheelCallback (cast void* &onMouseWheel)
@@ -200,7 +266,7 @@ func int main()
   end
 
   Mesh:print mesh
-  
+
   var AABB meshBB
   Mesh:calcAABB &meshBB mesh
   meshSize := AABB:diagonalLength &meshBB
@@ -212,6 +278,17 @@ func int main()
   end
 
   material := Material:showNormals()
+
+  shadowFBO := new Framebuffer 1024 1024
+  Framebuffer:attachColorTexture shadowFBO
+  Framebuffer:attachDepthTexture shadowFBO
+  Framebuffer:create shadowFBO
+  println "Shadow FBO status: " Framebuffer:statusMessage(shadowFBO)
+
+  printTexture2DInfo shadowFBO.colorTexture "shadowFBO.color"
+  printTexture2DInfo shadowFBO.depthTexture "shadowFBO.depth"
+
+  print shadowFBO
 
   angle := 0.0
 
@@ -234,27 +311,65 @@ func int main()
     mouseYDelta = 0
     mouseWheelDelta = 0
 
+    /// creation of shadow map
+
+    renderToTarget shadowFBO
+      glClearColor 0. 0.1 0. 0.
+      glClearDepth 1.0d
+      glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+      glMatrixMode GL_PROJECTION
+      glLoadIdentity()
+      gluPerspective 90.0d 1.0d 1.0d toDouble(1.5 * meshSize)
+
+      glMatrixMode GL_MODELVIEW
+      glLoadIdentity()
+      SpaceballCamera:applyToGL cam
+      drawOrientationGrid()
+      Mesh:render mesh GL_TRIANGLES 0
+
+      Framebuffer:makeColorTexture shadowFBO
+      Framebuffer:makeDepthTexture shadowFBO
+    end
+
     /// rendering
+
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    glMatrixMode GL_PROJECTION
-    glLoadIdentity()
-    aspect := toDouble(windowWidth) / toDouble(windowHeight)
-    gluPerspective( 90.0d, aspect, 1.0d, toDouble(1.5 * meshSize) )
+    if (bool:not keyDown(GLFW_KEY_LSHIFT) || (frameNum == 0))
+      glMatrixMode GL_PROJECTION
+      glLoadIdentity()
+      aspect := toDouble(windowWidth) / toDouble(windowHeight)
+      gluPerspective( 90.0d, aspect, 1.0d, toDouble(1.5 * meshSize) )
 
-    glMatrixMode GL_MODELVIEW
-    glLoadIdentity()
-    SpaceballCamera:applyToGL cam
+      glMatrixMode GL_MODELVIEW
+      glLoadIdentity()
+      SpaceballCamera:applyToGL cam
 
-    drawOrientationGrid()
-    withShader material
-      Mesh:render mesh GL_TRIANGLES 0
-      glutSolidSphere 1.0d 40 40
+      drawOrientationGrid()
+      withShader material
+        Mesh:render mesh GL_TRIANGLES 0
+        glutSolidSphere 1.0d 40 40
+      end
+      AABB:render &meshBB
+      glColor3f 1. 1. 1.
+      Mesh:showNormals mesh
+      glColor3f 1. 0.5 0.
+      renderPoints lightPositions
+    else
+      makeGLIdentityTransforms()
+      glScalef (2. / toFloat aspect) 2. 1.
+      glTranslatef -0.5 -0.5 0.
+      showTextures
+        shadowFBO.colorTexture
+        shadowFBO.depthTexture
+      end
     end
-    AABB:render &meshBB
-    glColor3f 1. 1. 1.
-    Mesh:showNormals mesh
+    // else
+    //   showTextureAt shadowFBO.colorTexture 0.5 0. 0.25 0.25
+    //   // showTexture shadowFBO.depthTexture
+    // end
   end
 
   // glClear (GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
@@ -264,6 +379,10 @@ func int main()
 
   Mesh:delete mesh
   glDeleteProgram material
+
+  v3f_Array:release lightPositions
+
+  Framebuffer:delete shadowFBO
 
   ret 0
 end
