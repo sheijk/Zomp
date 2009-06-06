@@ -237,6 +237,8 @@ let insertAstConstructors bindings =
           begin match lookup bindings id with
             | VarSymbol { typ = `Int32 } ->
                 { id = "ast:fromInt"; args = [idExpr id] }
+            | VarSymbol { typ = `Float } ->
+                { id = "ast:fromFloat"; args = [idExpr id] }
             | VarSymbol { typ = `Pointer `Char } ->
                 { id = "ast:fromString"; args = [idExpr id] }
             | _ -> default

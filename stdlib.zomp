@@ -260,8 +260,11 @@ func (ptr ast) seqAst()
 end
 
 func (ptr ast) ast:fromInt(int i)
-  var cstring asString (int2cstring i)
-  ast:fromString asString
+  ast:fromString (int2cstring i)
+end
+
+func astp ast:fromFloat(float f)
+  ast:fromString (float2cstring f)
 end
 
 func void ast:print((ptr ast) a, int indent)
