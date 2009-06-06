@@ -90,6 +90,16 @@ struct
         raise (Compile_error (sprintf "Could not find constant '%s'" valueConstantName))
       end
 
+  let mapFilter func list =
+    let rec worker acc = function
+      | [] -> List.rev acc
+      | hd :: tail ->
+          match func hd with
+            | Some result -> worker (result :: acc) tail
+            | None -> worker acc tail
+    in
+    worker [] list
+
 end
 
 open Utils
@@ -904,9 +914,23 @@ struct
                          else "")
                       supportedTypes) "\n"
     in
+    let enums = Utils.mapFilter (function Constant c -> Some c | _ -> None) exprs in
+    let enumToStringFunc =
+      let elseifs = List.map
+        (fun c -> sprintf "  elseif (enum == %s)\n    ret \"%s\"" c.name c.name)
+        enums
+      in
+      let impl =
+        "  if false\n    ret \"internal error\"\n" ^
+          Utils.concat elseifs "\n" ^
+          "\n  end\n"
+      in
+      sprintf "func cstring glenum2cstring(GLenum enum)\n%s\n  ret \"unknown\"\nend\n" impl
+    in
     CodePrinter.printHeader() ^
       typeDecls ^
-      Utils.concat lines "\n"
+      Utils.concat lines "\n" ^ "\n\n" ^
+      enumToStringFunc ^ "\n"
 
   let lang_extension = CodePrinter.langExtension
 end

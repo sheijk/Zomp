@@ -600,4 +600,51 @@ func void showTextureAt(GLuint textureName, float x, float y, float width, float
   end
 end
 
+func int gl:texLevelParameteri(GLenum target, GLint level, GLenum pname)
+  var int[4] value
+  for i 0 4
+    zmp:array:set value i -1
+  end
+
+  glGetTexLevelParameteriv target level pname zmp:array:addr(&value)
+
+  assert(zmp:array:get(value, 1) == -1)
+  assert(zmp:array:get(value, 2) == -1)
+  assert(zmp:array:get(value, 3) == -1)
+
+  ret value[0]
+end
+
+func cstring GLenum:toString(GLenum enum)
+  ret glenum2cstring(enum)
+end
+
+func void GLenum:print(GLenum enum)
+  print GLenum:toString(enum)
+end
+
+func void printTexture2DInfo(GLenum tex, cstring name)
+  macro printTexLevelParam param printF
+    paramName := cstring:quote param.id
+
+    ret ${
+      print "  " #paramName " = "
+      #printF gl:texLevelParameteri(GL_TEXTURE_2D, 0, #param)
+      println()
+    end}
+  end
+
+  if (tex == 0)
+    println "Texture " name ", nr. 0 - not a texture"
+  else
+    glBindTexture2D tex
+    println "Texture " name ", nr. " tex
+    printTexLevelParam GL_TEXTURE_WIDTH print
+    printTexLevelParam GL_TEXTURE_HEIGHT print
+    printTexLevelParam GL_TEXTURE_DEPTH print
+    printTexLevelParam GL_TEXTURE_INTERNAL_FORMAT GLenum:print
+    printTexLevelParam GL_TEXTURE_BORDER print
+    glBindTexture2D 0
+  end
+end
 
