@@ -484,6 +484,17 @@ type Framebuffer
   GLuint depthBuffer
 end
 
+func void "print_Framebuffer*"(Framebuffer* this)
+  println "Framebuffer"
+  println "  width = " this.width
+  println "  height = " this.height
+  println "  fbo = " this.fbo
+  println "  colorTexture = " this.colorTexture
+  println "  colorBuffer = " this.colorBuffer
+  println "  depthTexture = " this.depthTexture
+  println "  depthBuffer = " this.depthBuffer
+end
+
 func void Framebuffer:init(Framebuffer* this, int width, int height)
   setFieldsTo this 0 fbo colorTexture colorBuffer depthTexture depthBuffer
   setField this width width
@@ -510,24 +521,70 @@ func void Framebuffer:attachColorTexture(Framebuffer* fbo)
   texParam GL_TEXTURE_MAG_FILTER GL_LINEAR
   glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (getField fbo width) (getField fbo height) 0 GL_RGBA GL_UNSIGNED_BYTE (nullptr void)
   setField fbo colorTexture texture
+  glBindTexture2D 0
+end
+
+func void Framebuffer:attachDepthTexture(Framebuffer* fbo)
+  texture := makeTexture()
+  glBindTexture2D texture
+  template texParam param value
+    glTexParameteri GL_TEXTURE_2D #param #value
+  end
+  texParam GL_TEXTURE_MIN_FILTER GL_LINEAR
+  texParam GL_TEXTURE_MAG_FILTER GL_LINEAR
+
+  glTexImage2D GL_TEXTURE_2D 0 GL_DEPTH_COMPONENT32 fbo.width fbo.height 0 GL_DEPTH_COMPONENT GL_FLOAT nullptr(void)
+  glBindTexture2D 0
+
+  fbo.depthTexture = texture
 end
 
 func void Framebuffer:create(Framebuffer* fbo)
-  var GLuint fboName (makeFramebuffer)
+  flushGLErrors()
+
+  var GLuint fboName makeFramebuffer()
+  fbo.fbo = fboName
+
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName
 
-  var GLuint depthBuffer (makeRenderbuffer)
-  glBindRenderbufferEXT GL_RENDERBUFFER_EXT depthBuffer
-  glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height)
-  glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT depthBuffer
-  glBindRenderbufferEXT GL_RENDERBUFFER_EXT 0
+  if (fbo.depthTexture == 0)
+    fbo.depthBuffer = makeRenderbuffer()
+    glBindRenderbufferEXT GL_RENDERBUFFER_EXT fbo.depthBuffer
+    glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height)
+    glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT fbo.depthBuffer
+    glBindRenderbufferEXT GL_RENDERBUFFER_EXT 0
+  else
+    glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_TEXTURE_2D fbo.depthTexture 0
+    fbo.depthBuffer = 0
+  end
 
-  glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D (getField fbo colorTexture) 0
+  glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D fbo.colorTexture 0
 
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0
 
-  setField fbo fbo fboName
-  setField fbo depthBuffer depthBuffer
+  printGLError()
+end
+
+func cstring Framebuffer:statusToString(GLenum status)
+  if (GL_FRAMEBUFFER_COMPLETE_EXT == status)
+    ret "Complete"
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT == status)
+    ret "Incomplete attachment"
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT == status)
+    ret "Incomplete missing attachment"
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT == status)
+    ret "Incomplete dimensions"
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT == status)
+    ret "Incomplete formats"
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT == status)
+    ret "INCOMPLETE_DRAW_Buffer"
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT == status)
+    ret "Incomplete read buffer"
+  elseif (GL_FRAMEBUFFER_UNSUPPORTED_EXT == status)
+    ret "Unsupported"
+  end
+
+  ret ("unknown " ++ toCString status)
 end
 
 func void Framebuffer:bind(Framebuffer* fbo)
@@ -539,11 +596,25 @@ func void Framebuffer:unbind(Framebuffer* fbo)
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0
 end
 
+func cstring Framebuffer:statusMessage(Framebuffer* this)
+  Framebuffer:bind this
+  status := glCheckFramebufferStatusEXT GL_FRAMEBUFFER_EXT
+  Framebuffer:unbind this
+  ret Framebuffer:statusToString(status)
+end
+
 func void Framebuffer:makeColorTexture(Framebuffer* fbo)
   glBindTexture2D (getField fbo colorTexture)
   glGenerateMipmapEXT GL_TEXTURE_2D
   glBindTexture2D 0
 end
+
+func void Framebuffer:makeDepthTexture(Framebuffer* this)
+  glBindTexture2D this.depthTexture
+  glGenerateMipmapEXT GL_TEXTURE_2D
+  glBindTexture2D 0
+end
+
 
 template renderToTarget framebuffer code...
   saveAttribs GL_VIEWPORT_BIT
@@ -648,6 +719,14 @@ func void printTexture2DInfo(GLenum tex, cstring name)
     printTexLevelParam GL_TEXTURE_DEPTH print
     printTexLevelParam GL_TEXTURE_INTERNAL_FORMAT GLenum:print
     printTexLevelParam GL_TEXTURE_BORDER print
+    printTexLevelParam GL_TEXTURE_RED_SIZE print
+    printTexLevelParam GL_TEXTURE_GREEN_SIZE print
+    printTexLevelParam GL_TEXTURE_BLUE_SIZE print
+    printTexLevelParam GL_TEXTURE_ALPHA_SIZE print
+    printTexLevelParam GL_TEXTURE_LUMINANCE_SIZE print
+    printTexLevelParam GL_TEXTURE_DEPTH_SIZE print
+    printTexLevelParam GL_TEXTURE_COMPRESSED print
+    printTexLevelParam GL_TEXTURE_COMPRESSED_IMAGE_SIZE print
     glBindTexture2D 0
   end
 end
