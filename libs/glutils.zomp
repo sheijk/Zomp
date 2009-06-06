@@ -1,5 +1,9 @@
 
 require "libs/libcee.zomp"
+require "opengl20.zomp"
+require "opengl20print.zomp"
+require "glfw.zomp"
+require "glut.zomp"
 
 func void glfwSetWindowTitle(cstring title)
 func cstring gluErrorString(GLenum error)

@@ -47,5 +47,5 @@ using_assimp.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glu
 	llvm-ld -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS)
 
 %.glexe: %.bc
-	llvm-ld -native -o $@ $< -L=.. -L-. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL -framework=GLUT
+	llvm-ld -native -o $@ $< -L=.. -L-. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL -framework=GLUT $(EXTRA_OPTIONS)
 
