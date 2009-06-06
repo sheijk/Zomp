@@ -155,7 +155,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | POSTFIX_OP arg -> "post" ^ arg, noind
             | PREFIX_OP arg -> "pre" ^ arg, noind
             | OPEN_PAREN -> "(", noind
-            | OPEN_ARGLIST -> "(`", noind
+            | OPEN_ARGLIST -> "(_arglist", noind
             | CLOSE_PAREN -> ")", noind
             | OPEN_CURLY -> "{", noind
             | CLOSE_CURLY -> "}", noind
@@ -217,6 +217,7 @@ end = struct
         (char >= 'A' && char <= 'Z') ||
         (char >= '0' && char <= '9') ||
         (char = '_') ||
+        (char = '.') ||
         (char = '"')
     in
     match cre with
@@ -249,9 +250,9 @@ end = struct
               String.contains opSymbols char)
 
   (**
-     * each rule consists of two regexps (one for the string allowed to precede the expression
-     * and one which matches the token) and a function turning the matched string into a token
-  *)
+   * each rule consists of two regexps (one for the string allowed to precede the expression
+   * and one which matches the token) and a function turning the matched string into a token
+   *)
   let rules : ((charre * Str.regexp) * tokenBuilder) list =
     let re regexpString =
       Any, Str.regexp regexpString
@@ -276,9 +277,10 @@ end = struct
       (NoWSOrOp,
        Str.regexp (opre symbol ^ (sprintf "[%s0-9(]" validIdentifierFirstChar))),
       (fun str ->
-         let lastChar = str.[String.length str - 1] in
-         let str2 = Str.string_before str (String.length str - 1) in
-         `PutBack( tokenF (trim str2), String.make 1 lastChar ) )
+         let strLength = String.length str in
+         let lastChar = str.[strLength - 1] in
+         let withoutLastChar = Str.string_before str (strLength - 1) in
+         `PutBack( tokenF (trim withoutLastChar), String.make 1 lastChar ) )
     in
     let opRuleWS symbol (tokenF :string -> token) =
       re (sprintf " +%s\\( +\\|\n\\)" (opre symbol)),
@@ -355,9 +357,7 @@ end = struct
               between '0' '9' ||
                 between 'a' 'z' ||
                 between 'A' 'Z' ||
-                is '.' ||
-                is ' ' ||
-                is '\t'
+                is '.'
             in
             let strLength = String.length str in
             if strLength > 0 && not (isLegalNumChar str.[strLength-1]) then
@@ -664,7 +664,7 @@ let token (lexbuf : token lexerstate) : token =
                match matchingRules with
                  | [] ->
                      raiseUnknownToken lexbuf.location input
-                       (sprintf "no matching rules at end of line (after '%s')" prevChar)
+                       (sprintf "no matching rules (after '%s')" prevChar)
                  | [single] -> single
                  | first :: second :: _ ->
                      if (fst first > fst second) then

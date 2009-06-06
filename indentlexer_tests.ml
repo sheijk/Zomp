@@ -112,10 +112,15 @@ struct
         id "a"; ADD_OP "+"; id "b";
         CLOSE_PAREN; END];
 
-      "10+*ptr", `Return [id "10"; ADD_OP "+"; PREFIX_OP "*"; id "ptr"];
+      "10 + *ptr", `Return [id "10"; ADD_OP "+"; PREFIX_OP "*"; id "ptr"; END];
+
+      "op*(10)", `Return [id "op*"; OPEN_ARGLIST; id "10"; CLOSE_PAREN; END];
+      "3*(10)", `Return [id "3"; MULT_OP "*"; OPEN_PAREN; id "10"; CLOSE_PAREN; END];
 
       "space... ", `Return [id "space"; POSTFIX_OP "..."; END];
       "lineend...", `Return [id "lineend"; POSTFIX_OP "..."; END];
+
+      "1.0++", `Return [id "1.0"; POSTFIX_OP "++"; END];
 
       "foo.bar", `Return [id "foo"; DOT; id "bar"; END];
       "foo.bar.baz", `Return [id "foo"; DOT; id "bar"; DOT; id "baz"; END];
