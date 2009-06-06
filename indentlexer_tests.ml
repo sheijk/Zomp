@@ -128,6 +128,8 @@ struct
       "3.toInt", `Return [id "3"; DOT; id "toInt"; END];
 
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
+      "--b", `Return [PREFIX_OP "--"; id "b"; END];
+      "a: ++b", `Return [KEYWORD_ARG "a"; PREFIX_OP "++"; id "b"; END];
       "*&blah", `Return [PREFIX_OP "*"; PREFIX_OP "&"; id "blah"; END];
       "ppInt**++", `Return [id "ppInt"; POSTFIX_OP "*"; POSTFIX_OP "*";
                             POSTFIX_OP "++"; END];

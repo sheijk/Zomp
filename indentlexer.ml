@@ -168,6 +168,9 @@ let tokenToString (lineIndent, indentNext) (token :token) =
         in
         indentString lineIndent ^ str, (indent, doindent)
 
+let token2str token =
+  fst (tokenToString (0, `DontIndent) token)
+
 let tokensToString tokens =
   let rec worker context acc = function
     | [] -> acc
@@ -193,7 +196,7 @@ module Rules : sig
 
   val rules : (rule * tokenBuilder) list
 
-  val ruleMatchesAt : prevChar:string -> source:string -> pos:int -> rule * tokenBuilder ->
+  val ruleMatchesAt : prevToken:[`Whitespace | `Token of token] -> source:string -> pos:int -> rule * tokenBuilder ->
     int option
 end = struct
 
@@ -211,43 +214,41 @@ end = struct
 
   let opSymbols = "-+\\*/&.><=!|:;,"
 
-  let rec charreMatch cre charStr =
-    let isIdentifier char =
-      (char >= 'a' && char <= 'z') ||
-        (char >= 'A' && char <= 'Z') ||
-        (char >= '0' && char <= '9') ||
-        (char = '_') ||
-        (char = '.') ||
-        (char = '"')
+  let rec charreMatch cre token =
+    let isOperator = function
+      | ADD_OP _ | MULT_OP _ | ASSIGN_OP _ | COMPARE_OP _ | LAZY_BOOL_OP _ | STRICT_BOOL_OP _
+      | PREFIX_OP _ | POSTFIX_OP _ | QUOTE _
+      | COMMA
+          -> true
+      | IDENTIFIER _ | END | BEGIN_BLOCK | END_BLOCK _
+      | OPEN_PAREN | CLOSE_PAREN | OPEN_ARGLIST | OPEN_CURLY | CLOSE_CURLY
+      | OPEN_BRACKET | OPEN_BRACKET_POSTFIX | CLOSE_BRACKET
+      | DOT
+      | KEYWORD_ARG _
+        -> false
     in
-    match cre with
-      | Any -> true
-      | NoWSOrOp ->
-          (String.length charStr = 1) &&
-            (let char = charStr.[0] in
-             isIdentifier char ||
-               (char = ')') ||
-               (char = ']') ||
-               (char = '}'))
-      | Whitespace ->
-          (String.length charStr = 1 &&
-              let char = charStr.[0] in
-              (char = ' ') || (char = '\n'))
-      | Not icre ->
-          not (charreMatch icre charStr)
-      | Or (l, r) ->
-          charreMatch l charStr || charreMatch r charStr
-      | Identifier ->
-          (String.length charStr = 1) &&
-            isIdentifier charStr.[0]
-      | OpenParen ->
-          (String.length charStr = 1 &&
-              let char = charStr.[0] in
-              (char = '(' || char = '[' || char = '{'))
-      | Operator ->
-          (String.length charStr = 1 &&
-              let char = charStr.[0] in
-              String.contains opSymbols char)
+    let isOpenParen = function
+      | OPEN_PAREN | OPEN_ARGLIST | OPEN_BRACKET | OPEN_BRACKET_POSTFIX | OPEN_CURLY -> true
+      | _ -> false
+    in
+    match cre, token with
+      | Any, _ -> true
+      | NoWSOrOp, _ ->
+          (match token with
+             | `Whitespace -> false
+             | `Token t -> not (isOperator t) && not (isOpenParen t))
+      | Whitespace, `Whitespace -> true
+      | Whitespace, _ -> false
+      | Not icre, _ ->
+          not (charreMatch icre token)
+      | Or (l, r), _ ->
+          charreMatch l token || charreMatch r token
+      | Identifier, `Token IDENTIFIER _ -> true
+      | Identifier, _ -> false
+      | OpenParen, `Token t -> isOpenParen t
+      | OpenParen, `Whitespace -> false
+      | Operator, `Whitespace -> false
+      | Operator, `Token t -> isOperator t
 
   (**
    * each rule consists of two regexps (one for the string allowed to precede the expression
@@ -322,6 +323,8 @@ end = struct
          let token = KEYWORD_ARG keyword in
          if lastChar colon = '\n' then
            `PutBack( token, "\n" )
+         else if lastChar colon = ' ' then
+           `PutBack( token, " " )
          else
            `Token token)
     in
@@ -449,8 +452,8 @@ end = struct
     @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
       (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
 
-  let ruleMatchesAt ~prevChar ~source ~pos ((prevCharRE, regexp), _) =
-    if (charreMatch prevCharRE prevChar && Str.string_match regexp source pos) then
+  let ruleMatchesAt ~prevToken ~source ~pos ((prevCharRE, regexp), _) =
+    if (charreMatch prevCharRE prevToken && Str.string_match regexp source pos) then
       Some (Str.match_end() - Str.match_beginning())
     else
       None
@@ -465,7 +468,7 @@ type 'token lexerstate = {
   mutable pushedTokens : 'token list;
   mutable readTokenBefore : bool;
   mutable lastReadChars :string;
-  mutable endOfLastToken :char;
+  mutable previousToken :[`Whitespace | `Token of token];
 }
 
 let readChars lexbuf n =
@@ -569,6 +572,7 @@ let token (lexbuf : token lexerstate) : token =
       raise Eof;
 
     if isNewline currentChar then begin
+      lexbuf.previousToken <- `Whitespace;
       collectTimingInfo "newline"
         (fun () ->
            let rec consumeWhitespaceAndReturnIndent indent =
@@ -640,7 +644,7 @@ let token (lexbuf : token lexerstate) : token =
     end else begin
       collectTimingInfo "no newline"
         (fun () ->
-           let prevChar = String.make 1 lexbuf.endOfLastToken in
+           let prevToken = lexbuf.previousToken in
            let rec findToken() =
              let matchingRules =
                let unsorted =
@@ -648,7 +652,7 @@ let token (lexbuf : token lexerstate) : token =
                    (fun rule ->
                       match
                         Rules.ruleMatchesAt
-                          ~prevChar
+                          ~prevToken
                           ~source:lexbuf.content
                           ~pos:lexbuf.position
                           rule
@@ -660,18 +664,22 @@ let token (lexbuf : token lexerstate) : token =
                List.sort (fun (len1, _) (len2, _) -> 1 - compare len1 len2) unsorted
              in
              let input = String.sub lexbuf.content lexbuf.position 1 in
+             let ptokenToString = function
+               | `Whitespace -> "< >"
+               | `Token t -> token2str t
+             in
              let length, (rule, makeToken) =
                match matchingRules with
                  | [] ->
                      raiseUnknownToken lexbuf.location input
-                       (sprintf "no matching rules (after '%s')" prevChar)
+                       (sprintf "no matching rules (after '%s')" (ptokenToString prevToken))
                  | [single] -> single
                  | first :: second :: _ ->
                      if (fst first > fst second) then
                        first
                      else
                        raiseUnknownToken lexbuf.location input
-                         (sprintf "multiple rules matching (after '%s')" prevChar)
+                         (sprintf "multiple rules matching (after '%s')" (ptokenToString prevToken))
              in
              ignore rule;
              let tokenString = readChars lexbuf length in
@@ -702,7 +710,8 @@ let token (lexbuf : token lexerstate) : token =
             if len >= 1 then lexbuf.lastReadChars.[len-1]
             else '\n'
           in
-          lexbuf.endOfLastToken <- lastReadChar;
+          if lastReadChar = ' ' then
+            lexbuf.previousToken <- `Whitespace;
           getNextToken()
       | `Token token -> token
   in
@@ -714,7 +723,7 @@ let token (lexbuf : token lexerstate) : token =
           firstToken
   in
   lexbuf.readTokenBefore <- true;
-  lexbuf.endOfLastToken <- (Str.last_chars lexbuf.lastReadChars 1).[0];
+  lexbuf.previousToken <- `Token token;
   lexbuf.lastReadChars <- Str.last_chars lexbuf.lastReadChars 1;
   token
 
@@ -730,7 +739,7 @@ let makeLexbuf fileName source =
       pushedTokens = [];
       readTokenBefore = false;
       lastReadChars = "\n";
-      endOfLastToken = '\n';
+      previousToken = `Whitespace;
     }
   in
   lexbuf
