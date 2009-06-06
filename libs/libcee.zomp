@@ -291,7 +291,7 @@ end
 
 func void free(void* ptr)
 template dealloc ptr free(cast void* #ptr)
-
+  
 template return value
   ret #value
 end
@@ -400,6 +400,24 @@ macro ast:foreach3 t0 t1 t2 tree code
       #t2 := ast:child #tree (#childnum+2)
       #code
       #childnum = #childnum + 3
+    end
+  end}
+end
+
+macro ast:foreach2 t0 t1 tree code
+  if (bool:not isMultipleOf(tree.childCount, 3))
+    ret ${error "Can only iterate over pairs if child count is a multiple of 2" tree}
+  end
+
+  uniqueId childnum "ast:foreach2"
+
+  ret ${
+    #childnum := 0
+    while (#childnum + 1 < #tree.childCount)
+      #t0 := ast:child #tree (#childnum+0)
+      #t1 := ast:child #tree (#childnum+1)
+      #code
+      #childnum = #childnum + 2
     end
   end}
 end
@@ -699,6 +717,23 @@ func void printBits(int bitmask)
     bit := int:lshr (bitmask & mask) bitnum
     printInt bit
   end
+end
+
+
+
+macro structlit structType fieldsAndValues...
+  uniqueId structVar "struct"
+
+  code := ${
+    var #structType #structVar
+  end}
+
+  ast:foreach2 field value fieldsAndValues
+    ast:addChild code ${#structVar.#field = #value}
+  end
+
+  ast:addChild code ${#structVar}
+  ret code
 end
 
 ///-----------------------------------------------------------------------------

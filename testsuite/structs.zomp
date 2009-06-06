@@ -127,12 +127,10 @@ func Point point(int x, int y)
 end
 
 unittest:testCase Return
-  var Point p1
-  p1 = makePoint()
+  var Point p1 makePoint()
   unittest:assert(expect p1 1 2)
 
-  var Point p2
-  p2 = point(11, 33)
+  var Point p2 point(11, 33)
   unittest:assert(expect p2 11 33)
 end
 

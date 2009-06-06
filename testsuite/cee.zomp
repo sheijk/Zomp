@@ -326,6 +326,15 @@ func void testOverloadedOps()
   end
 end
 
+func void testMakeStructVar()
+  p := structlit Point x 10 y 30
+
+  unittest:assertAll
+    p.x == 10
+    p.y == 30
+  end
+end
+
 func int main()
   testDefineVar()
   testDotOp()

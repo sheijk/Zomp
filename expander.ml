@@ -268,7 +268,9 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
               | None ->
                   let var = variable name typ (defaultValue typ) MemoryStorage false in
                   Some( addVar bindings var, [ `DefineVariable (var, None) ] )
-              | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
+              | Some valueExpr ->
+                  let var = variable name typ (defaultValue typ) MemoryStorage false in
+                  Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
           end
       | `TypeRef _ ->
           raiseIllegalExpression expr "Internal error: received unexpected type ref"
