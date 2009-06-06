@@ -155,6 +155,7 @@ struct
       "blup(x*++)", `Return [id "blup"; OPEN_ARGLIST; id "x";
                             POSTFIX_OP "*"; POSTFIX_OP "++";
                            CLOSE_PAREN; END];
+      "foo()++", `Return [id "foo"; OPEN_ARGLIST; CLOSE_PAREN; POSTFIX_OP "++"; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];

@@ -136,7 +136,6 @@ main:
 | e = kwexpr; END;
   { e }
 
-
 kwexpr:
 | components = pair(KEYWORD_ARG, kwarg)+;
   {
@@ -220,9 +219,6 @@ exprArgInner:
 | OPEN_BRACKET; e = kwexpr; CLOSE_BRACKET;
   { expr "op[]" [e] }
 
-| e = exprArgInner; s = POSTFIX_OP;
-  { expr ("post" ^ opName s) [e] }
-
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id] }
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
@@ -233,19 +229,17 @@ exprArgInner:
   { let block, terminators = blockAndT in
     expectNoTerminators terminators;
     expr (quoteId q) [block] }
-
-callExpr:
 | head = exprArgInner; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
   { expr "postop[]" [head; arg] }
 | head = exprArgInner; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
   { callExpr head args }
-| e = exprArgInner;
-  { e }
+| call = exprArgInner; op = POSTFIX_OP;
+  { expr ("post" ^ opName op) [call] }
 
 dotExpr:
 | l = dotExpr; DOT; r = dotExpr;
   { expr "op." [l; r] }
-| e = callExpr
+| e = exprArgInner;
   { e }
 
 exprArg:
@@ -266,7 +260,6 @@ opExpr:
   { let r, terminators = rAndT in
     expectNoTerminators terminators;
     expr (opName o) [l; r] }
-
 
 %inline opSymbol:
 | o = ADD_OP

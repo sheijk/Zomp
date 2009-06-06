@@ -176,12 +176,30 @@ struct
                                     se1 "postop*" "bar";];
                                   id "baz"]];
       "foo*.bar++", `Return [expr "op." [se1 "postop*" "foo"; se1 "postop++" "bar"]];
+      "obj.method(1, 2)", `Return [expr "op." [
+                                 id "obj";
+                                 callExpr [id "method"; id "1"; id "2"]]];
+
       "&a.b", `Return [expr "preop&" [se2 "op." "a" "b"]];
       "n++----",
       `Return [expr "postop--"
                  [expr "postop--"
                     [expr "postop++"
                        [id "n"]]]];
+      "*foo()", `Return [expr "preop*" [callExpr [id "foo"]]];
+      "bar()++", `Return [expr "postop++" [callExpr [id "bar"]]];
+      "addr()++*", `Return [expr "postop*" [
+                              expr "postop++" [
+                                callExpr [id "addr"]]]];
+      "foo.bar()++", `Return [expr "op." [
+                                id "foo";
+                                expr "postop++"
+                                  [callExpr [id "bar"]]]];
+      "a.b()++.c", `Return [expr "op." [
+                              expr "op." [
+                                id "a";
+                                expr "postop++" [callExpr [id "b"]]];
+                              id "c"]];
 
       "++i", `Return [se1 "preop++" "i"];
       "x++", `Return [se1 "postop++" "x"];
@@ -409,15 +427,15 @@ struct
       (*   "end", *)
       (* `Return [juxExpr [id "empty"; id "block"; seqExpr[]]]; *)
 
-      (* (\*       "for: p in primes\n\ *\) *)
-      (* (\*       \  print p\n\ *\) *)
-      (* (\*       \  log p", *\) *)
-      (* (\*       `Return [juxExpr [ *\) *)
-      (* (\*                  id "for"; id "p"; id "in"; id "primes"; *\) *)
-      (* (\*                  seqExpr [ *\) *)
-      (* (\*                    jux ["print"; "p"]; *\) *)
-      (* (\*                    jux ["log"; "p"]; *\) *)
-      (* (\*                  ]]]; *\) *)
+      (*       "for: p in primes\n\ *)
+      (*       \  print p\n\ *)
+      (*       \  log p", *)
+      (*       `Return [juxExpr [ *)
+      (*                  id "for"; id "p"; id "in"; id "primes"; *)
+      (*                  seqExpr [ *)
+      (*                    jux ["print"; "p"]; *)
+      (*                    jux ["log"; "p"]; *)
+      (*                  ]]]; *)
 
       "main blah\n\
       \  nested\n\

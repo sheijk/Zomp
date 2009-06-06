@@ -155,7 +155,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | POSTFIX_OP arg -> "post" ^ arg, noind
             | PREFIX_OP arg -> "pre" ^ arg, noind
             | OPEN_PAREN -> "(", noind
-            | OPEN_ARGLIST -> "(_arglist", noind
+            | OPEN_ARGLIST -> "post(", noind
             | CLOSE_PAREN -> ")", noind
             | OPEN_CURLY -> "{", noind
             | CLOSE_CURLY -> "}", noind
@@ -163,7 +163,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | QUOTE str -> "$" ^ str, noind
             | KEYWORD_ARG str -> "`kwd(" ^ str ^ ")", noind
             | OPEN_BRACKET -> "[", noind
-            | OPEN_BRACKET_POSTFIX -> "[_postfix", noind
+            | OPEN_BRACKET_POSTFIX -> "post[", noind
             | CLOSE_BRACKET -> "]", noind
         in
         indentString lineIndent ^ str, (indent, doindent)
