@@ -3,6 +3,21 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO Give macros access to current expression
+   .. through implicit env parameter
+
+   struct MacroEnvironment
+     ast* expr // the expression which triggered the macro
+     // later:
+     Bindings* bindings
+     (ast* -> ast*) expandMacro
+     (string -> Symbol*) lookup
+     ...
+   end
+** haskell view patterns ankucken
+** TODO llvm: always inliner pass, createFunctionInliningPass
+** TODO stack canaries
+** TODO macros + generic programming
 ** TODO eval current defun fails on last func in file
 ** TODO snobol string matching ankucken
 ** TODO type degree := int in :=_type degree int umwandeln
@@ -148,6 +163,7 @@
 ** TODO [#A] nur identifier in namespaces erlauben, keine im TOPLEVEL?
 ** TODO [#A] ueberall nounwind an die methoden haengen (evt. performance-relevant, benchmarken)
 ** TODO [#A] swap quote and antiquote characters to get more "natural" syntax?
+   would be more consistent with C and perl (?)
 ** TODO [#A] alias macro
 ** TODO [#A] base language verkleinern + vereinheitlichen: nur eine form pro konstrukt mit nur einer variation. declareFunc und defineFunc usw.
 ** TODO [#A] overload sets? http://www.digitalmars.com/d/2.0/hijack.html
@@ -759,6 +775,12 @@ von http://lambda-the-ultimate.org/node/2884
      onTrue()
    next(expression, here)
 ** TODO [#A] release LLVM objects                                          :bug:
+** TODO [#A] resolve parsing ambiguity of foo<T> vs. a < b > c by lexer, like pre/postfix ops
+   `Whitespace '<' => open_angle_bracket
+   !`Whitespace '<' => smaller_than
+   !`Whitespace '>(\n| \)' => close_angle_bracket
+   `Whitespace '>' => greater_than
+** TODO % operator: 30% = 0.3
 
 * Use Cases                                                            :usecase:
 
