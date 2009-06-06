@@ -4,6 +4,8 @@
 !verify off
  */
 
+require "libs/libcee.zomp"
+
 ///-----------------------------------------------------------------------------
 /// Section: Util functions
 ///-----------------------------------------------------------------------------
@@ -30,12 +32,50 @@ struct v3f
   float x y z
 end
 
-func void v3f:print(v3f* this)
+func void v3f:print(v3f this)
   print "v3f(x=" this.x ", y=" this.y ", z=" this.z ")"
 end
 
-func float v3f:length(v3f* this)
+ofunc void print(v3f this)
+  v3f:print this
+end
+
+func float v3f:length(v3f this)
   ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
+end
+
+func void v3f:set(v3f* this, float x, float y, float z)
+  this.x = x
+  this.y = y
+  this.z = z
+end
+
+ofunc bool op==(v3f l, v3f r)
+  ret ((l.x==r.x) && (l.y==r.y) && (l.z==r.z))
+end
+
+ofunc v3f op+(v3f l, v3f r)
+  ret (structlit v3f x (l.x+r.x) y (l.y+r.y) z (l.z+r.z))
+end
+
+ofunc v3f op-(v3f l, v3f r)
+  ret (structlit v3f x (l.x-r.x) y (l.y-r.y) z (l.z-r.z))
+end
+
+func float op*_dot(v3f l, v3f r)
+  ret (l.x*r.x + l.y*r.y + l.z*r.z)
+end
+
+func v3f op*_cross(v3f l, v3f r)
+  ret (structlit v3f x (l.y*r.z - l.z*r.y) y (l.z*r.x - l.x*r.z) z (l.x*r.y - l.y*r.x))
+end
+
+ofunc v3f op*(v3f v, float factor)
+  ret (structlit v3f x (v.x * factor) y (v.y * factor) z (v.z * factor))
+end
+
+ofunc v3f op*(float factor, v3f v)
+  ret (v * factor)
 end
 
 // deprecated
@@ -82,7 +122,7 @@ end
 func float AABB:diagonalLength(AABB* this)
   var v3f diag
   AABB:diagonal &diag this
-  ret v3f:length(&diag)
+  ret v3f:length(diag)
 end
 
 

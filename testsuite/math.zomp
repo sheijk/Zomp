@@ -1,0 +1,29 @@
+/**
+ * Testing the math lib
+ */
+
+require "libs/unittest.zomp"
+require "libs/math.zomp"
+
+func v3f v(float x, float y, float z)
+  ret (structlit v3f x x y y z z)
+end
+
+unittest:testCase v3f_ops
+  l := structlit v3f x 1. y 2. z 3.
+  r := structlit v3f x 14. y 16. z 18.
+
+  unittest:assertAll
+    l == l
+    l != r
+    l + r == v 15. 18. 21.
+    r - l == v 13. 14. 15.
+    2. * l == v 2. 4. 6.
+    l * 3. == v 3. 6. 9.
+    l *_dot r == 100.
+    v 1. 0. 0. *_cross v 0. 1. 0. == v 0. 0. 1.
+  end
+end
+
+unittest:main
+
