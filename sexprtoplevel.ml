@@ -15,6 +15,7 @@ let printLLVMCode = ref false
 and printAst = ref false
 and printDeclarations = ref true
 and llvmEvaluationOn = ref true
+and printForms = ref false
 
 module StringMap = Map.Make(String)
 
@@ -62,6 +63,7 @@ let toggleAstCommand = makeToggleCommand printAst "Printing s-expressions"
 let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
+let togglePrintForms = makeToggleCommand printForms "Print translated forms"
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -257,6 +259,7 @@ let commands =
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
     "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
     "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
+    "printBaseLang", [], togglePrintForms, "Toggle printing translated base lang forms";
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
@@ -419,6 +422,10 @@ let () =
                           let text = Lang.toplevelFormDeclToString form in
                           printf "%s\n" text)
                simpleforms;
+           end;
+
+           if !printForms then begin
+             List.iter (fun form -> printf "%s\n" (toplevelFormToString form)) simpleforms;
            end;
            flush stdout;
          in
