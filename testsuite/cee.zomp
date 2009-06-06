@@ -147,8 +147,10 @@ unittest:testCase ArrayPtrDot
   for i 0 size
     store (points + i) malloc(Point)
 
-    (points + i)**.x = i * i
-    (*(points + i))*.y = 10 * i
+    // (points + i)**.x = i * i
+    // (*(points + i))*.y = 10 * i
+    setField load(ptradd points i) x (i * i)
+    setField load(ptradd points i) y (10*i)
   end
 
   unittest:assertAll
@@ -353,6 +355,11 @@ end
 func Point pt(int x, int y)
   ret (structlit Point x x y y)
 end
+
+/// not supported, yet
+// ofunc void foo(Point* p)
+//   print *p
+// end
 
 unittest:testCase DefineOverloadedFunc
   unittest:assertAll

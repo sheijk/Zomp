@@ -845,6 +845,9 @@ macro ofunc rettype nameAndArgs impl
 
       if ast:matchesShape(param, ${__ _})
         paramType := ast:child param 0
+        if (paramType.childCount > 0)
+          ret ${error "ofunc: Only supporting type names which are an id atm" #paramType}
+        end
         paramName := ast:child param 1
         ast:addChild newNameAndArgs ${#paramType #paramName}
         name = name ++ "_" ++ paramType.id
@@ -859,6 +862,58 @@ macro ofunc rettype nameAndArgs impl
   end
 
   ret ${error "Expected 'ofunc RETTYPE funcName(args...)'" ${ofunc #rettype #nameAndArgs "..."}}
+end
+
+///-----------------------------------------------------------------------------
+/// Section: Assertions
+///-----------------------------------------------------------------------------
+
+macro assert testCode
+  isCompare := false
+  compareF := ast:fromString "op=="
+
+  if ast:matchesShape(testCode, ${__ == __})
+    isCompare = true
+  elseif ast:matchesShape(testCode, ${__ ==_f __})
+    isCompare = true
+  elseif ast:matchesShape(testCode, ${__ ==_str __})
+    isCompare = true
+    compareF = ast:fromString "op==_str"
+  end
+
+  if isCompare
+    uniqueId lvar "lvar"
+    uniqueId rvar "rvar"
+    l := ast:child(testCode, 0)
+    r := ast:child(testCode, 1)
+    ret ${
+      #lvar := #l
+      #rvar := #r
+      unless (#compareF #lvar #rvar)
+        ++unittest:failedCount
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        printString "left = "
+        print #lvar
+        println()
+        printString "right = "
+        print #rvar
+        println()
+        ast:print ${#testCode} 0
+      end
+    end}
+  else
+    ret ${
+      unless #testCode
+        ++unittest:failedCount
+        printHLine '-' 40
+        printlnString "Assertion failed"
+        ast:print ${#testCode} 0
+      end
+    end}
+  end
+
+  ret ${}
 end
 
 
