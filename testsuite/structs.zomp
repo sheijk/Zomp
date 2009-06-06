@@ -99,25 +99,42 @@ unittest:testCase Nested
 end
 
 /// not supported, yet
-func void expect89(Point p)
-  unittest:assert (getField(p,x) == 8)
-  unittest:assert (getField(ptr(p),y) == 9)
+func bool expect(Point p, int x, int y)
+  (getField(p,x) == x) && (getField(ptr(p),y) == y)
 end
 
 unittest:testCase Argument
   var Point p
   setField p x 8
   setField p y 9
-  expect89 p
+
+  unittest:assert(expect p 8 9)
 end
 
-/// not supported, yet
-// func Point makePoint()
-//   var Point p
-//   setField p x 1
-//   setField p y 2
-//   ret p
-// end
+// /// not supported, yet
+func Point makePoint()
+  var Point p
+  setField p x 1
+  setField p y 2
+  ret p
+end
+
+func Point point(int x, int y)
+  var Point p
+  setField p x x
+  setField p y y
+  ret p
+end
+
+unittest:testCase Return
+  var Point p1
+  p1 = makePoint()
+  unittest:assert(expect p1 1 2)
+
+  var Point p2
+  p2 = point(11, 33)
+  unittest:assert(expect p2 11 33)
+end
 
 unittest:main
 

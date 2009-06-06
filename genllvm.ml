@@ -615,23 +615,38 @@ let gencodeFuncCall gencode call =
   in
   let vars, argevalCode = varsAndCode [] "" call.fcargs in
   let resultVar = newLocalTempVar call.fcrettype in
+  let recordTempVar = newLocalTempVar call.fcrettype in
   let assignResultCode =
-    if resultVar.rvtypename = "void" then ""
-    else sprintf "%s = " resultVar.rvname
+    match call.fcrettype with
+      | `Record _ ->
+          sprintf "%s = alloca %s\n" recordTempVar.rvname recordTempVar.rvtypename
+      | _ ->
+          if resultVar.rvtypename = "void" then ""
+          else sprintf "%s = " resultVar.rvname
   in
   match findIntrinsic call.fcname with
     | None ->
         let comment, funccallCode =
           let signatureString =
             let argTypeNames = List.map paramTypeName call.fcparams in
-            combine ", " argTypeNames
+            let argTypeNamesWRet =
+              match call.fcrettype with
+                | `Record _ ->
+                    sprintf "%s*" (llvmTypeName call.fcrettype) :: argTypeNames
+                | _ -> argTypeNames
+            in
+            combine ", " argTypeNamesWRet
           in
           let argString =
             let toTypeAndArg name typ =
               llvmTypeName typ ^ " " ^ name
             in
             let typeAndArgs = List.map2 toTypeAndArg vars call.fcparams in
-            combine ", " typeAndArgs
+            match call.fcrettype with
+              | `Record _ ->
+                  combine ", " ((recordTempVar.rvtypename ^ "* " ^ recordTempVar.rvname) :: typeAndArgs)
+              | _ ->
+                  combine ", " typeAndArgs
           in
           let comment =
             sprintf "; calling function %s(%s)\n\n" call.fcname argString
@@ -650,14 +665,25 @@ let gencodeFuncCall gencode call =
                   fptrVar.rvname,
                   sprintf "%s = load %s* %%%s\n" fptrVar.rvname fptrVar.rvtypename call.fcname
           in
+          let loadRecordCode =
+            match call.fcrettype with
+              | `Record _ ->
+                  sprintf "%s = load %s* %s\n"
+                    resultVar.rvname recordTempVar.rvtypename recordTempVar.rvname
+              | _ ->
+                  ""
+          in
           comment,
           (loadCode
            ^ assignResultCode
            ^ (sprintf "call %s (%s)* %s(%s)\n\n"
-                (llvmTypeName call.fcrettype)
+                (match call.fcrettype with
+                   | `Record _ -> "void"
+                   | _ -> llvmTypeName call.fcrettype)
                 signatureString
                 calleeName
-                argString))
+                argString)
+           ^ loadRecordCode)
         in
         (resultVar, comment ^ argevalCode ^ funccallCode)
     | Some gencallCodeF ->
@@ -923,16 +949,26 @@ let gencodeGlobalVar var =
         raiseCodeGenError ~msg:"global constant of array type not supported, yet"
 
 let gencodeDefineFunc func =
-  match func.impl with
-    | None ->
-        let paramTypeNames = List.map (fun (_, typ) -> paramTypeName typ) func.fargs in
-        let paramString = combine ", " paramTypeNames in
-        let decl =
+  let makeSignature retvalName paramString =
+    match func.rettype with
+      | `Record _ ->
+          sprintf "void @%s(%s%s)\n"
+            (escapeName func.fname)
+            (sprintf "%s* sret \"%s\""
+               (llvmTypeName func.rettype)
+               retvalName ^ if String.length paramString > 0 then ", " else "")
+            paramString
+      | _ ->
           sprintf "%s @%s(%s)\n"
             (llvmTypeName func.rettype)
             (escapeName func.fname)
             paramString
-        in
+  in    
+  match func.impl with
+    | None ->
+        let paramTypeNames = List.map (fun (_, typ) -> paramTypeName typ) func.fargs in
+        let paramString = combine ", " paramTypeNames in
+        let decl = makeSignature "" paramString in
         "declare " ^ decl
     | Some impl ->
         let structArgName name = name ^ "$struct_arg" in
@@ -943,34 +979,54 @@ let gencodeDefineFunc func =
           (paramTypeName typ) ^ " " ^ argName
         in
         let paramString = combine ", " (List.map param2string func.fargs) in
-        let decl = sprintf "%s @%s(%s) "
-          (llvmTypeName func.rettype) (escapeName func.fname) paramString
-        in
+        let retvalVar = {
+          vname = "$retval";
+          typ = `Pointer func.rettype;
+          vdefault = PointerVal (`Pointer func.rettype, None);
+          vstorage = RegisterStorage;
+          vmutable = false;
+          vglobal = false;
+        } in
+        let decl = makeSignature retvalVar.vname paramString in
         let initStructCode =
           Common.combine "\n"
             (List.map (fun (name, typ) ->
-                        match typ with
-                          | `Record components ->
-                              sprintf "  %%%s = alloca %s\n" name (llvmTypeName typ)
-                              ^ sprintf "  store %s \"%s\", %s* \"%s\"\n"
-                                (llvmTypeName typ) (structArgName name)
-                                (llvmTypeName typ) name
-                          | _ -> "")
-              func.fargs)
+                         match typ with
+                           | `Record components ->
+                               sprintf "  %%%s = alloca %s\n" name (llvmTypeName typ)
+                               ^ sprintf "  store %s \"%s\", %s* \"%s\"\n"
+                                 (llvmTypeName typ) (structArgName name)
+                                 (llvmTypeName typ) name
+                           | _ -> "")
+               func.fargs)
         in
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
         let lastExpr = function
           | `Sequence exprs as seq -> lastOrDefault exprs seq
           | _ as expr -> expr
         in
+        let rec replaceReturns = function
+          | `Sequence forms -> `Sequence (List.map replaceReturns forms)
+          | `Return form -> `StoreIntrinsic (`Variable retvalVar, form)
+          | other -> other (** TODO: correctly transform everything *)
+        in
+        let impl =
+          match func.rettype with
+            | `Record _ -> replaceReturns impl
+            | _ -> impl
+        in
         let resultVar, implCode = gencode impl in
         let impl = match lastExpr impl with
           | `Return _ ->
               sprintf "{\n\n%s\n%s\n\n}" initStructCode implCode
           | _ ->
-              let isTypeName name = String.length name > 0 && name <> "void" in
+              let returnsValue =
+                match func.rettype with
+                  | `Record _ -> false
+                  | _ -> String.length resultVar.rvtypename > 0 && resultVar.rvtypename <> "void"
+              in
               (sprintf "{\n\n%s\n%s\n\n" initStructCode implCode)
-              ^ (if isTypeName resultVar.rvtypename then
+              ^ (if returnsValue then
                    (sprintf "  ret %s %s\n\n}"
                       resultVar.rvtypename
                       resultVar.rvname)
