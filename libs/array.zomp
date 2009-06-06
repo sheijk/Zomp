@@ -12,10 +12,14 @@ macro defineArrayType type
   arrayTypeName := Array:nameForType type.id
   initFuncName := arrayTypeName ++ ":init"
 
-  initDecl := ast:fromString("opcall")
+  initDecl := ast:fromString "opcall"
   ast:addChild initDecl ast:fromString(initFuncName)
   ast:addChild initDecl ${#arrayTypeName* this}
   ast:addChild initDecl ${int size}
+
+  releaseDecl := ast:fromString "opcall"
+  ast:addChild releaseDecl ast:fromString(arrayTypeName ++ ":release")
+  ast:addChild releaseDecl ${#arrayTypeName* this}
 
   code := ${
     struct #arrayTypeName
@@ -23,10 +27,15 @@ macro defineArrayType type
       #type* elements
     end
 
-    // func void #initFuncName(#arrayTypeName* this, int length)
     func void #initDecl
       this.length = size
       this.elements = malloc(#type, size)
+    end
+
+    func void #releaseDecl
+      this.length = 0
+      free (cast void* this.elements)
+      this.elements = nullptr #type
     end
   end}
 
