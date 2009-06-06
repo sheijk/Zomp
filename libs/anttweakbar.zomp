@@ -1,0 +1,209 @@
+/**
+ * Bindings for AntTweakBar
+ * http://www.antisphere.com/Wiki/tools:anttweakbar
+ */
+
+///-----------------------------------------------------------------------------
+/// Section: Bar functions and definitions
+///-----------------------------------------------------------------------------
+
+type TwBar
+
+dfunc TwBar* TwNewBar(cstring barName)
+dfunc int TwDeleteBar(TwBar* bar)
+dfunc int TwDeleteAllBars()
+dfunc int TwSetTopBar(TwBar* bar)
+dfunc TwBar* TwGetTopBar()
+dfunc int TwSetBottomBar(TwBar* bar)
+dfunc TwBar* TwGetBottomBar()
+dfunc cstring TwGetBarName(TwBar* bar)
+dfunc int TwGetBarCount()
+dfunc TwBar* TwGetBarByIndex(int barIndex)
+dfunc TwBar* TwGetBarByName(cstring barName)
+dfunc int TwRefreshBar(TwBar* bar)
+
+///-----------------------------------------------------------------------------
+/// Section: Var functions and definitions
+///-----------------------------------------------------------------------------
+
+type TwType int
+const int TW_TYPE_UNDEF 0
+const int TW_TYPE_BOOLCPP 1
+const int TW_TYPE_BOOL8 2
+const int TW_TYPE_BOOL16 3
+const int TW_TYPE_BOOL32 4
+const int TW_TYPE_CHAR 5
+const int TW_TYPE_INT8 6
+const int TW_TYPE_UINT8 7
+const int TW_TYPE_INT16 8
+const int TW_TYPE_UINT16 9
+const int TW_TYPE_INT32 10
+const int TW_TYPE_UINT32 11
+const int TW_TYPE_FLOAT 12
+const int TW_TYPE_DOUBLE 13
+const int TW_TYPE_COLOR32 14
+const int TW_TYPE_COLOR3F 15
+const int TW_TYPE_COLOR4F 16
+const int TW_TYPE_CDSTRING 17
+// const int TW_TYPE_STDSTRING = (0x2fff0000+sizeof(std::string)
+const int TW_TYPE_QUAT4F 19
+const int TW_TYPE_QUAT4D 20
+const int TW_TYPE_DIR3F 21
+const int TW_TYPE_DIR3D 22
+
+type TwSetVarCallback (fptr void void* void*) // value, clientData
+type TwGetVarCallback (fptr void void* void*) // value, clientData
+type TwButtonCallback (fptr void void*) // clientData
+
+dfunc int TwAddVarRW(TwBar* bar, cstring name, TwType type, void* var, cstring def)
+dfunc int TwAddVarRO(TwBar* bar, cstring name, TwType type, void* var, cstring def)
+dfunc int TwAddVarCB(TwBar* bar, cstring name, TwType type, TwSetVarCallback setCallback, TwGetVarCallback getCallback, void* clientData, cstring def)
+dfunc int TwAddButton(TwBar* bar, cstring name, TwButtonCallback callback, void* clientData, cstring def)
+dfunc int TwAddSeparator(TwBar* bar, cstring name, cstring def)
+dfunc int TwRemoveVar(TwBar* bar, cstring name)
+dfunc int TwRemoveAllVars(TwBar* bar)
+
+type TwEnumVal
+  int value
+  cstring label
+end
+
+type size_t u32
+
+type TwStructMember
+  cstring name
+  TwType type
+  size_t offset
+  cstring defString
+end
+
+// summaryString, summaryMaxLength, value, clientData
+type TwSummaryCallback (fptr void cstring size_t void* void*)
+
+dfunc int TwDefine(cstring def)
+dfunc TwType TwDefineEnum(cstring name, TwEnumVal* enumValues, int nbValues)
+dfunc TwType TwDefineStruct(cstring name, TwStructMember* structMembers, int nbMembers, size_t structSize, TwSummaryCallback summaryCallback, void* summaryClientData)
+
+// destinationClientStringPtr, sourceString
+type TwCopyCDStringToClient (fptr void char** cstring)
+dfunc void TwCopyCDStringToClientFunc(TwCopyCDStringToClient copyCDStringFunc)
+dfunc void TwCopyCDStringToLibrary(char** destinationLibraryStringPtr, cstring sourceClientString)
+
+type TwParamValueType int
+const int TW_PARAM_INT32 0
+const int TW_PARAM_FLOAT 1
+const int TW_PARAM_DOUBLE 2
+const int TW_PARAM_CSTRING 3 // Null-terminated array of char (ie, c-string)
+
+dfunc int TwGetParam(TwBar* bar, cstring varName, cstring paramName, TwParamValueType paramValueType, int outValueMaxCount, void* outValues)
+dfunc int TwSetParam(TwBar* bar, cstring varName, cstring paramName, TwParamValueType paramValueType, int inValueCount, void* inValues)
+
+///-----------------------------------------------------------------------------
+/// Section: Management functions and definitions
+///-----------------------------------------------------------------------------
+
+type TwGraphAPI int
+const int TW_OPENGL 1
+const int TW_DIRECT3D9 2
+const int TW_DIRECT3D10 3
+
+dfunc int TwInit(TwGraphAPI graphAPI, void* device)
+dfunc int TwTerminate()
+
+dfunc int TwDraw()
+dfunc int TwWindowSize(int width, int height)
+
+type TwKeyModifier int
+const int TW_KMOD_NONE 0x0000   // same codes as SDL keysym.mod
+const int TW_KMOD_SHIFT 0x0003
+const int TW_KMOD_CTRL 192 // 0x00c0
+const int TW_KMOD_ALT 0x0100
+const int TW_KMOD_META 3072 // 0x0c00
+
+type KeySpecial int
+    // TW_KEY_BACKSPACE    = '\b',
+    // TW_KEY_TAB          = '\t',
+    // TW_KEY_CLEAR        = 0x0c,
+    // TW_KEY_RETURN       = '\r',
+    // TW_KEY_PAUSE        = 0x13,
+    // TW_KEY_ESCAPE       = 0x1b,
+    // TW_KEY_SPACE        = ' ',
+const int TW_KEY_DELETE 127 // 0x7f
+const int TW_KEY_UP 273 // same codes and order as SDL keysym.sym
+const int TW_KEY_DOWN 274
+const int TW_KEY_RIGHT 275
+const int TW_KEY_LEFT 276
+const int TW_KEY_INSERT 277
+const int TW_KEY_HOME 278
+const int TW_KEY_END 279
+const int TW_KEY_PAGE_UP 280
+const int TW_KEY_PAGE_DOWN 281
+const int TW_KEY_F1 282
+const int TW_KEY_F2 283
+const int TW_KEY_F3 284
+const int TW_KEY_F4 285
+const int TW_KEY_F5 286
+const int TW_KEY_F6 287
+const int TW_KEY_F7 288
+const int TW_KEY_F8 289
+const int TW_KEY_F9 290
+const int TW_KEY_F10 291
+const int TW_KEY_F11 292
+const int TW_KEY_F12 293
+const int TW_KEY_F13 294
+const int TW_KEY_F14 295
+const int TW_KEY_F15 296
+const int TW_KEY_LAST 297
+
+dfunc int TwKeyPressed(int key, int modifiers)
+
+type TwMouseAction int
+const int TW_MOUSE_RELEASED 0
+const int TW_MOUSE_PRESSED 1
+
+type TwMouseButtonID int
+const int TW_MOUSE_LEFT 1 // same code as SDL_BUTTON_LEFT
+const int TW_MOUSE_MIDDLE 2 // same code as SDL_BUTTON_MIDDLE
+const int TW_MOUSE_RIGHT 3 // same code as SDL_BUTTON_RIGHT
+
+dfunc int TwMouseButton(TwMouseAction action, TwMouseButtonID button)
+dfunc int TwMouseMotion(int mouseX, int mouseY)
+dfunc int TwMouseWheel(int pos)
+
+dfunc cstring TwGetLastError()
+// errorMessage
+type TwErrorHandler (fptr void cstring)
+dfunc void TwHandleErrors(TwErrorHandler errorHandler)
+
+// ----------------------------------------------------------------------------
+//  Helper functions to translate events from some common window management
+//  frameworks to AntTweakBar.
+//  They call TwKeyPressed, TwMouse* and TwWindowSize for you (implemented in
+//  files TwEventWin.c TwEventSDL.c TwEventGLFW.c TwEventGLUT.c)
+// ----------------------------------------------------------------------------
+
+// TW_API int      TW_CALL TwEventWin(void *wnd, unsigned int msg, unsigned int _W64 wParam, int _W64 lParam);
+
+// TW_API int      TW_CALL TwEventSDL(const void *sdlEvent);
+
+//  For GLFW event callbacks
+dfunc int TwEventMouseButtonGLFW(int glfwButton, int glfwAction)
+dfunc int TwEventKeyGLFW(int glfwKey, int glfwAction)
+dfunc int TwEventCharGLFW(int glfwChar, int glfwAction)
+func int TwEventMousePosGLFW(int mouseX, int mouseY)
+  ret TwMouseMotion(mouseX, mouseY)
+end
+func int TwEventMouseWheelGLFW(int pos)
+  ret TwMouseWheel(pos)
+end
+
+dfunc int TwEventMouseButtonGLUT(int glutButton, int glutState, int mouseX, int mouseY)
+dfunc int TwEventMouseMotionGLUT(int mouseX, int mouseY)
+dfunc int TwEventKeyboardGLUT(char glutKey, int mouseX, int mouseY)
+dfunc int TwEventSpecialGLUT(int glutKey, int mouseX, int mouseY)
+// TW_API int      TW_CALL TwGLUTModifiersFunc(int (TW_CALL *glutGetModifiersFunc)(void));
+// typedef void (TW_GLUT_CALL *GLUTmousebuttonfun)(int glutButton, int glutState, int mouseX, int mouseY);
+// typedef void (TW_GLUT_CALL *GLUTmousemotionfun)(int mouseX, int mouseY);
+// typedef void (TW_GLUT_CALL *GLUTkeyboardfun)(unsigned char glutKey, int mouseX, int mouseY);
+// typedef void (TW_GLUT_CALL *GLUTspecialfun)(int glutKey, int mouseX, int mouseY);
+

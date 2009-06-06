@@ -1,0 +1,135 @@
+/**
+ * Demonstrate usage of AntTweakBar in Zomp
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+linkclib "libAntTweakBar.dylib"
+
+require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
+require "libs/libcee.zomp"
+require "libs/anttweakbar.zomp"
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if bool:not(initCalled)
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glfwSetWindowTitle "Zomp+AntTweakBar demonstration"
+
+    glewInit()
+    times 2 glfwPollEvents()
+
+    TwInit(TW_OPENGL, nullptr void)
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+// avoid writing it over and over, part of utils lib
+macro mainloop body...
+  ret ${
+    time = 0.0
+    lastTime := 0.0
+    frameDuration := 0.0
+    frameNum := 0
+    startTime := toFloat glfwGetTime()
+    running := true
+
+    while running
+      lastTime = time
+      time = toFloat glfwGetTime()
+      frameDuration = time - lastTime
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = bool:not isPressed(GLFW_KEY_ESC)
+      ++frameNum
+    end
+
+    endTime := toFloat glfwGetTime()
+  end}
+end
+
+func void onWindowResize(int newWidth, int newHeight)
+  autoSetupViewport()
+  glfwGetWindowSize &windowWidth &windowHeight
+
+  TwWindowSize(newWidth, newHeight)
+  ret void
+end
+
+macro doTrace sectionName code
+  sectionNameStr := cstring:quote sectionName.id
+  ret ${
+    println "Starting section " #sectionNameStr
+    #code
+    println "Done section " #sectionNameStr
+  end}
+end
+
+func int main()
+  init()
+
+  angle := 0.0
+
+  doTrace InitTweakbar
+    glfwSetWindowSizeCallback (cast void* &onWindowResize)
+    glfwSetMouseButtonCallback (cast void* &TwEventMouseButtonGLFW)
+    glfwSetMousePosCallback (cast void* &TwEventMousePosGLFW)
+    glfwSetMouseWheelCallback (cast void* &TwEventMouseWheelGLFW)
+    glfwSetKeyCallback (cast void* &TwEventKeyGLFW)
+    glfwSetCharCallback (cast void* &TwEventCharGLFW)
+  end
+
+  speed := 128.0
+  time := 0.0
+
+  doTrace SetupTweakbars
+    bar := TwNewBar "ZompBar"
+
+    TwDefine " GLOBAL help='Demonstrating integration of AntTweakBar and Zomp'"
+    TwAddVarRW bar "speed" TW_TYPE_FLOAT (cast void* &speed) " label='Speed' precision=1"
+    TwAddVarRO bar "time" TW_TYPE_FLOAT (cast void* &time) " label='Time' precision=1"
+  end
+
+  mainloop
+    angle = angle + speed * frameDuration
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. -4. -20.0
+    glRotatef angle 0. 1. 0.
+
+    drawOrientationGrid()
+
+    TwDraw()
+  end
+
+  TwDeleteAllBars()
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  ret 0
+end
+
