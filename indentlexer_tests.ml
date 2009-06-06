@@ -83,6 +83,9 @@ struct
       (* operators *)
       "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
                              ADD_OP "+"; id "1"; END];
+      "(foo*)(a, b)",
+      `Return [OPEN_PAREN; id "foo"; POSTFIX_OP "*"; CLOSE_PAREN;
+               OPEN_ARGLIST; id "a"; COMMA; id "b"; CLOSE_PAREN; END];
 
       "foo (3) + 1", `Return [id "foo"; OPEN_PAREN; id "3"; CLOSE_PAREN;
                              ADD_OP "+"; id "1"; END];
@@ -100,6 +103,9 @@ struct
                          ADD_OP "-"; id "2"; END];
       "x[1]/3", `Return [id "x"; OPEN_BRACKET_POSTFIX; id "1"; CLOSE_BRACKET;
                          MULT_OP "/"; id "3"; END];
+
+      "ptr2array*[7]", `Return [id "ptr2array"; POSTFIX_OP "*";
+                                OPEN_BRACKET_POSTFIX; id "7"; CLOSE_BRACKET; END];
 
       "a,b", `Return [id "a"; COMMA; id "b"; END];
       "x, y", `Return [id "x"; COMMA; id "y"; END];

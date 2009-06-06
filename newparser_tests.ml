@@ -163,11 +163,25 @@ struct
       "int*", `Return [se1 "postop*" "int"];
       "int**", `Return [expr "postop*" [expr "postop*" [id "int"]]];
       "(int*)*", `Return [expr "postop*" [expr "postop*" [id "int"]]];
+      "(++foo)", `Return [expr "preop++" [id "foo"]];
       "*ptr", `Return [se1 "preop*" "ptr"];
       "**p", `Return [expr "preop*" [expr "preop*" [id "p"]]];
       "handlePtr &var", `Return [juxExpr [id "handlePtr"; se "preop&" ["var"]]];
       "(foo bar*)", `Return [juxExpr [id "foo"; se "postop*" ["bar"]]];
-      (* todo post/prefix ops which work without additional whitespace *)
+      "i*++", `Return [expr "postop++" [expr "postop*" [id "i"]]];
+      "foo*.bar", `Return [expr "op." [se1 "postop*" "foo"; id "bar"]];
+      "foo*.bar*.baz", `Return [expr "op." [
+                                  expr "op." [
+                                    se1 "postop*" "foo";
+                                    se1 "postop*" "bar";];
+                                  id "baz"]];
+      "foo*.bar++", `Return [expr "op." [se1 "postop*" "foo"; se1 "postop++" "bar"]];
+      "&a.b", `Return [expr "preop&" [se2 "op." "a" "b"]];
+      "n++----",
+      `Return [expr "postop--"
+                 [expr "postop--"
+                    [expr "postop++"
+                       [id "n"]]]];
 
       "++i", `Return [se1 "preop++" "i"];
       "x++", `Return [se1 "postop++" "x"];
@@ -218,7 +232,7 @@ struct
       "plus(3, 5)", `Return [se "opcall" ["plus"; "3"; "5"]];
       "func(a, b, c)", `Return [se "opcall" ["func"; "a"; "b"; "c"]];
       "\"strfun\"(10)", `Return [callExpr [id "\"strfun\""; id "10"]];
-      
+
       "func int get5()", `Return [juxExpr [id "func"; id "int"; call ["get5"]]];
 
       "mainloop render()", `Return [juxExpr [id "mainloop"; call ["render"]]];
@@ -239,6 +253,8 @@ struct
       "array[0]", `Return [se2 "postop[]" "array" "0"];
       "op[] arg", `Return [jux ["op[]"; "arg"]];
       "postop[] l r", `Return [jux ["postop[]"; "l"; "r"]];
+      "ptr2array*[9]", `Return [expr "postop[]" [se1 "postop*" "ptr2array"; id "9"]];
+      "(foo*)(a, b)", `Return [expr "opcall" [se1 "postop*" "foo"; id "a"; id "b"]];
 
       (** s-expressions (currently not supported) *)
       "quote (foo bar)", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]];

@@ -127,8 +127,6 @@
 %left ADD_OP
 %left MULT_OP
 %left DOT
-%left POSTFIX_OP
-(* %right PREFIX_OP *)
 
 %start <Ast2.sexpr> main
 
@@ -205,7 +203,6 @@ alternateExprArgsAndBlock:
     let rem, terminators = remAndT in
     args @ [block] @ rem, terminators }
 
-
 exprArgInner:
 | id = IDENTIFIER;
   { idExpr id }
@@ -215,17 +212,6 @@ exprArgInner:
 
 | OPEN_BRACKET; e = kwexpr; CLOSE_BRACKET;
   { expr "op[]" [e] }
-
-| head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  { callExpr (idExpr head) args }
-| q = QUOTE; head = IDENTIFIER; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  { callExpr (expr (quoteId q) [idExpr head]) args }
-
-| head = IDENTIFIER; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
-  { expr "postop[]" [idExpr head; arg] }
-
-| l = exprArgInner; DOT; r = exprArgInner;
-  { expr "op." [l; r] }
 
 | e = exprArgInner; s = POSTFIX_OP;
   { expr ("post" ^ opName s) [e] }
@@ -241,10 +227,24 @@ exprArgInner:
     expectNoTerminators terminators;
     expr (quoteId q) [block] }
 
+callExpr:
+| head = exprArgInner; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
+  { expr "postop[]" [head; arg] }
+| head = exprArgInner; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
+  { callExpr head args }
+| e = exprArgInner;
+  { e }
+
+dotExpr:
+| l = dotExpr; DOT; r = dotExpr;
+  { expr "op." [l; r] }
+| e = callExpr
+  { e }
+
 exprArg:
 | s = PREFIX_OP; e = exprArg;
   { expr ("pre" ^ opName s) [e] }
-| e = exprArgInner;
+| e = dotExpr
   { e }
 
 %inline block:

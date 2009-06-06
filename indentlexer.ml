@@ -209,6 +209,7 @@ end = struct
     | Identifier
     | Not of charre
     | Operator
+    | PostfixOperator
     | Or of (charre * charre)
 
   type rule = (charre * Str.regexp)
@@ -258,6 +259,8 @@ end = struct
       | ClosingParen, `Whitespace -> false
       | Operator, `Whitespace -> false
       | Operator, `Token t -> isOperator t
+      | PostfixOperator, `Token POSTFIX_OP _ -> true
+      | PostfixOperator, _ -> false
 
   (**
    * each rule consists of two regexps (one for the string allowed to precede the expression
@@ -337,28 +340,27 @@ end = struct
          else
            `Token token)
     in
-    let opbracketRules =
-      [re "op\\[\\]", (fun s -> `Token (IDENTIFIER s));
-       re "postop\\[\\]", (fun s -> `Token (IDENTIFIER s))]
-    in
-    let whitespaceDependentToken chr afterWhitepace afterId =
-      [
-        (Not Identifier, Str.regexp_string chr),
-        (fun _ -> `Token afterWhitepace);
-        (Identifier, Str.regexp_string chr),
-        (fun s -> `Token afterId);
-      ]
-    in
-    whitespaceDependentToken "(" OPEN_PAREN OPEN_ARGLIST
+    (let preArglist = Or (Identifier, ClosingParen) in
+     let re = Str.regexp_string "(" in
+     [
+       (preArglist, re), (fun _ -> `Token OPEN_ARGLIST);
+       (Not preArglist, re), (fun _ -> `Token OPEN_PAREN)
+     ])
     @ (
       let bracketRule =
         (Or (Whitespace, OpenParen), Str.regexp_string "["), fun _ -> `Token OPEN_BRACKET
       in
       let postfixBracketRule =
-        (Or (Identifier, Operator), Str.regexp_string "["), fun _ -> `Token OPEN_BRACKET_POSTFIX
+        (Or (Identifier, Operator), Str.regexp_string "["),
+        fun _ -> `Token OPEN_BRACKET_POSTFIX
       in
       [bracketRule; postfixBracketRule])
-    @ opbracketRules
+    @
+      (let opbracketRules =
+         [re "op\\[\\]", (fun s -> `Token (IDENTIFIER s));
+          re "postop\\[\\]", (fun s -> `Token (IDENTIFIER s))]
+       in
+       opbracketRules)
     @ (
       let floatRule =
         let trimIdFunc s =
