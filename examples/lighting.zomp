@@ -31,7 +31,7 @@ func cstring unquote(cstring quoted)
 end
 
 func cstring qualifyLibName(cstring name)
-  ret ("libs/" ++ unquote name ++ ".zomp")
+  ret cstring:quote("libs/" ++ unquote name ++ ".zomp")
 end
 
 macro require firstLibOrType libs...

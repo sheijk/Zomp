@@ -1147,6 +1147,20 @@ func void printAllLoadedLibs()
   end
 end
 
+var bool requireLibDebug false
+
+macro static:setRequireLibDebug value
+  if (cstring:equal getField(value,id) "true")
+    requireLibDebug = true
+  elseif (cstring:equal getField(value,id) "false")
+    requireLibDebug = false
+  else
+    ret ${error #value "Expecting 'true' or 'false'"}
+  end
+
+  ret ${}
+end
+
 macro zmpx:lib:requireLib lib
   var cstring libName getField(lib, id)
 
@@ -1169,6 +1183,15 @@ macro zmpx:lib:requireLib lib
     setField newlist next zmpx:lib:includedLibs
     assign zmpx:lib:includedLibs newlist
     assign code ${include #libName}
+  end
+
+  when requireLibDebug
+    printString "Loading library "
+    printString libName
+    if alreadyLoaded
+      printString " (already loaded, ignored)"
+    end
+    printNewline()
   end
 
   ret code
