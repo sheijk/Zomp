@@ -124,6 +124,10 @@ func Point point(int x, int y)
   setField p x x
   setField p y y
   ret p
+  /// check whether the previous ret really returns
+  setField p x 9999
+  setField p y 12345
+  ret p
 end
 
 unittest:testCase Return

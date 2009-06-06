@@ -1007,7 +1007,14 @@ let gencodeDefineFunc func =
         in
         let rec replaceReturns = function
           | `Sequence forms -> `Sequence (List.map replaceReturns forms)
-          | `Return form -> `StoreIntrinsic (`Variable retvalVar, form)
+          | `Return form ->
+              `Sequence [
+                `StoreIntrinsic (`Variable retvalVar, form);
+                `Return (`FuncCall { fcname = "void";
+                                     fcrettype = `Void;
+                                     fcparams = [];
+                                     fcargs = [];
+                                     fcptr = `NoFuncPtr; })]
           | other -> other (** TODO: correctly transform everything *)
         in
         let impl =
