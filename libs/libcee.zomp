@@ -135,7 +135,8 @@ func bool ast:matchesShape(ast* codeArg, ast* templateArg)
     assert (lastChild !=_ptr nullptr ast)
     if ((getField(lastChild, childCount) == 1) && (getField(lastChild, id) ==_str "postop..."))
       var ast* lastChildChild ast:child(lastChild, 0)
-      varargs = (getField(lastChildChild, id) ==_str "_")
+      var cstring lastId getField(lastChildChild, id)
+      varargs = ((lastId ==_str "_") || (lastId ==_str "__"))
     end
   end
 

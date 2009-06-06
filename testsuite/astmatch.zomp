@@ -6,6 +6,7 @@
  */
 
 require "libs/libcee.zomp"
+require "libs/unittest.zomp"
 
 func int main()
   /// testing ast:matchesShape
@@ -34,6 +35,7 @@ func int main()
     ast:matchesShape ${int add(int l, int r)} ${_ _(_...)}
     ast:matchesShape ${int add(int l, int r)} ${_ _(__, __)}
     ast:matchesShape ${int add(int l, int r)} ${_ _(__, __, _...)}
+    ast:matchesShape ${op*(int a, float b)} ${_(__...)}
 
     /// more complex tests
     ast:matchesShape ${var (ptr int) x (10 + 20 * 30)} ${var (ptr int) x (10 + 20 * 30)}
@@ -44,6 +46,6 @@ func int main()
     ast:matchesShape ${if (a > b) then (printString "gt") else (printString "lt")} ${if __ then __ else __}
   end
 
-  ret 0
+  ret unittest:printReport()
 end
 
