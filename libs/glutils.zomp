@@ -306,7 +306,7 @@ func void drawCoordSys(float length)
   template lineTo x y z
     glColor4f #x #y #z 1.
     glVertex3f 0.0 0.0 0.0
-    glVertex3f (length *_f #x) (length *_f #y) (length *_f #z)
+    glVertex3f (length * #x) (length * #y) (length * #z)
   end
 
   rendergl GL_LINES
@@ -382,7 +382,7 @@ end
 
 func void draw2dOrientationGrid()
   template lineTo c x y z
-    glColor4f (#c *_f #x) (#c *_f #y) (#c *_f #z) 1.
+    glColor4f (#c * #x) (#c * #y) (#c * #z) 1.
     glVertex3f 0.0 0.0 0.0
     glVertex3f #x #y #z
   end
@@ -593,11 +593,11 @@ func void showTextureAt(GLuint textureName, float x, float y, float width, float
       glTexCoord2f 0. 0.
       glVertex3f x y 0.
       glTexCoord2f 1. 0.
-      glVertex3f (x +_f width) y 0.
+      glVertex3f (x + width) y 0.
       glTexCoord2f 1. 1.
-      glVertex3f (x +_f width) (y +_f height) 0.
+      glVertex3f (x + width) (y + height) 0.
       glTexCoord2f 0. 1.
-      glVertex3f x (y +_f height) 0.0
+      glVertex3f x (y + height) 0.0
     end
     // renderQuad (float:sub 1.0 (float:fdiv 1.0 10.0))
     glBindTexture2D 0
