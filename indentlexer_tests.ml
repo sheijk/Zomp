@@ -65,6 +65,10 @@ struct
       isValidId ".3d";
       isValidId "10.3";
       isValidId ".01";
+      isValidId "-10.0";
+      isValidId "-9.";
+      isValidId "-.3";
+      isValidId "-6.234f";
 
       (* strings and numbers *)
       isValidId "1337";
@@ -121,6 +125,7 @@ struct
       "lineend...", `Return [id "lineend"; POSTFIX_OP "..."; END];
 
       "1.0++", `Return [id "1.0"; POSTFIX_OP "++"; END];
+      " ++x:y", `Return [PREFIX_OP "++"; id "x:y"; END];
 
       "foo.bar", `Return [id "foo"; DOT; id "bar"; END];
       "foo.bar.baz", `Return [id "foo"; DOT; id "bar"; DOT; id "baz"; END];
@@ -272,11 +277,29 @@ struct
       "foo 1.\nbar 2", `Return [id "foo"; id "1."; END; id "bar"; id "2"; END];
       "foo(1.,0.)", `Return [id "foo"; OPEN_ARGLIST;
                              id "1."; COMMA; id "0."; CLOSE_PAREN; END];
+
+      "test\n\
+      \  nest1\n\
+      \    void\n\
+      \  end\n\
+      \  --x\n\
+      end\n",
+      `Return [id "test"; BEGIN_BLOCK;
+               id "nest1"; BEGIN_BLOCK;
+               id "void"; END;
+               END_BLOCK []; END;
+               PREFIX_OP "--"; id "x"; END;
+               END_BLOCK []; END];
+
+      "10 == -10", `Return [id "10"; COMPARE_OP "=="; id "-10"; END];
     ]
     @ infixOp "+" (ADD_OP "+")
     @ infixOp "-" (ADD_OP "-")
     @ infixOp "&&" (LAZY_BOOL_OP "&&")
     @ infixOp "||" (LAZY_BOOL_OP "||")
+    @ infixOp "=" (ASSIGN_OP "=")
+    @ infixOp "==" (COMPARE_OP "==")
+    @ infixOp "!=" (COMPARE_OP "!=")
 end
 
 let () =

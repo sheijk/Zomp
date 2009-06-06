@@ -205,6 +205,7 @@ end = struct
     | NoWSOrOp
     | Whitespace
     | OpenParen
+    | ClosingParen
     | Identifier
     | Not of charre
     | Operator
@@ -231,6 +232,10 @@ end = struct
       | OPEN_PAREN | OPEN_ARGLIST | OPEN_BRACKET | OPEN_BRACKET_POSTFIX | OPEN_CURLY -> true
       | _ -> false
     in
+    let isClosingParen = function
+      | CLOSE_PAREN | CLOSE_BRACKET | CLOSE_CURLY -> true
+      | _ -> false
+    in
     match cre, token with
       | Any, _ -> true
       | NoWSOrOp, _ ->
@@ -238,6 +243,8 @@ end = struct
              | `Whitespace -> false
              | `Token t -> not (isOperator t) && not (isOpenParen t))
       | Whitespace, `Whitespace -> true
+      | Whitespace, `Token BEGIN_BLOCK -> true
+      | Whitespace, `Token END -> true
       | Whitespace, _ -> false
       | Not icre, _ ->
           not (charreMatch icre token)
@@ -247,6 +254,8 @@ end = struct
       | Identifier, _ -> false
       | OpenParen, `Token t -> isOpenParen t
       | OpenParen, `Whitespace -> false
+      | ClosingParen, `Token t -> isClosingParen t
+      | ClosingParen, `Whitespace -> false
       | Operator, `Whitespace -> false
       | Operator, `Token t -> isOperator t
 
@@ -275,8 +284,8 @@ end = struct
       re identifierRE, (fun str -> `Token (IDENTIFIER str));
     in
     let opRule symbol (tokenF :string -> token) =
-      (NoWSOrOp,
-       Str.regexp (opre symbol ^ (sprintf "[%s0-9(]" validIdentifierFirstChar))),
+      (Not (Or (Whitespace, Or (Operator, OpenParen))),
+       Str.regexp (Str.quote symbol ^ (sprintf "[%s0-9(]" validIdentifierFirstChar))),
       (fun str ->
          let strLength = String.length str in
          let lastChar = str.[strLength - 1] in
@@ -284,7 +293,7 @@ end = struct
          `PutBack( tokenF (trim withoutLastChar), String.make 1 lastChar ) )
     in
     let opRuleWS symbol (tokenF :string -> token) =
-      re (sprintf " +%s\\( +\\|\n\\)" (opre symbol)),
+      (Whitespace, Str.regexp (sprintf " *%s\\( +\\|\n\\)" (opre symbol))),
       (fun str ->
          let token = (tokenF (trimLinefeed str)) in
          if lastChar str = '\n' then
@@ -386,7 +395,7 @@ end = struct
       let numberRE = "\\(0x\\|0b\\)?[0-9]+[a-zA-Z]*" in
       let intRule = re numberRE, idFunc in
       let negIntRule =
-        (Or (Whitespace, OpenParen), Str.regexp ("-" ^ numberRE)), idFunc
+        (Not (Or (Identifier, ClosingParen)), Str.regexp ("-" ^ numberRE)), idFunc
       in
       [intRule; negIntRule])
     @ (
@@ -396,7 +405,7 @@ end = struct
         "\\(" ^ Common.combine "\\|" (List.map Str.quote oplist) ^ "\\)+"
       in
       let postfixRule =
-        (NoWSOrOp,
+        (Or (Identifier, ClosingParen),
          Str.regexp (buildRE postfixOps)),
         (fun s ->
            if String.length s >= 1 && (
@@ -568,8 +577,6 @@ let token (lexbuf : token lexerstate) : token =
 
   let rec worker () =
     let currentChar = readChar lexbuf in
-    if currentChar = '!' then (** hack to allow to abort within file *)
-      raise Eof;
 
     if isNewline currentChar then begin
       lexbuf.previousToken <- `Whitespace;
@@ -644,7 +651,6 @@ let token (lexbuf : token lexerstate) : token =
     end else begin
       collectTimingInfo "no newline"
         (fun () ->
-           let prevToken = lexbuf.previousToken in
            let rec findToken() =
              let matchingRules =
                let unsorted =
@@ -652,7 +658,7 @@ let token (lexbuf : token lexerstate) : token =
                    (fun rule ->
                       match
                         Rules.ruleMatchesAt
-                          ~prevToken
+                          ~prevToken:lexbuf.previousToken
                           ~source:lexbuf.content
                           ~pos:lexbuf.position
                           rule
@@ -672,14 +678,14 @@ let token (lexbuf : token lexerstate) : token =
                match matchingRules with
                  | [] ->
                      raiseUnknownToken lexbuf.location input
-                       (sprintf "no matching rules (after '%s')" (ptokenToString prevToken))
+                       (sprintf "no matching rules (after '%s')" (ptokenToString lexbuf.previousToken))
                  | [single] -> single
                  | first :: second :: _ ->
                      if (fst first > fst second) then
                        first
                      else
                        raiseUnknownToken lexbuf.location input
-                         (sprintf "multiple rules matching (after '%s')" (ptokenToString prevToken))
+                         (sprintf "multiple rules matching (after '%s')" (ptokenToString lexbuf.previousToken))
              in
              ignore rule;
              let tokenString = readChars lexbuf length in
