@@ -256,6 +256,12 @@ struct
       "ptr2array*[9]", `Return [expr "postop[]" [se1 "postop*" "ptr2array"; id "9"]];
       "(foo*)(a, b)", `Return [expr "opcall" [se1 "postop*" "foo"; id "a"; id "b"]];
 
+      "[]", `Return [expr "op[]" []];
+      "{}", `Return [expr "op{}" []];
+      
+      "[1 2 3]", `Return [expr "op[]" [jux ["1"; "2"; "3"]]];
+      "{a b c d}", `Return [expr "op{}" [jux ["a"; "b"; "c"; "d"]]];
+
       (** s-expressions (currently not supported) *)
       "quote (foo bar)", `Return [juxExpr [id "quote"; jux ["foo"; "bar"]]];
       "printAst(foo bar)", `Return [callExpr [id "printAst"; jux ["foo"; "bar"]]];

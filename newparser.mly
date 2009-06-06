@@ -210,6 +210,13 @@ exprArgInner:
 | OPEN_PAREN; e = kwexpr; CLOSE_PAREN;
   { e }
 
+| OPEN_CURLY; CLOSE_CURLY;
+  { expr "op{}" [] }
+| OPEN_CURLY; e = kwexpr; CLOSE_CURLY;
+  { expr "op{}" [e] }
+
+| OPEN_BRACKET; CLOSE_BRACKET;
+  { expr "op[]" [] }
 | OPEN_BRACKET; e = kwexpr; CLOSE_BRACKET;
   { expr "op[]" [e] }
 

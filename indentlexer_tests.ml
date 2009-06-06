@@ -178,6 +178,11 @@ struct
       "int*[10]", `Return [id "int"; POSTFIX_OP "*";
                            OPEN_BRACKET_POSTFIX; id "10"; CLOSE_BRACKET; END];
 
+      "[]", `Return [OPEN_BRACKET; CLOSE_BRACKET; END];
+      "{}", `Return [OPEN_CURLY; CLOSE_CURLY; END];
+      "[1 2]", `Return [OPEN_BRACKET; id "1"; id "2"; CLOSE_BRACKET; END];
+      "{x y}", `Return [OPEN_CURLY; id "x"; id "y"; CLOSE_CURLY; END];
+
       (let semi = LAZY_BOOL_OP ";" in
       "a;b;c",  `Return [id "a"; semi; id "b"; semi; id "c"; END]);
 
