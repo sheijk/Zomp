@@ -14,7 +14,10 @@ var bool initCalled false
 
 func void init()
   if bool:not(initCalled)
-    glfwInit()
+    if (glfwInit() != GL_TRUE)
+      println "glfw initialization failed, exiting"
+      exit 1
+    end
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glfwSetWindowTitle "Zomp+AntTweakBar demonstration"
@@ -22,15 +25,17 @@ func void init()
     glewInit()
     times 2 glfwPollEvents()
 
-    TwInit(TW_OPENGL, nullptr void)
+    if (TwInit(TW_OPENGL, nullptr void) == 0)
+      println "AntTweakBar initialization failed, exiting"
+      glfwTerminate()
+      exit 2
+    end
 
-    printString "Initialized"
-    println()
+    println "Initialized"
 
     initCalled = true
   else
-    printString "Already initialized"
-    println()
+    println "Already initialized"
   end
 end
 
