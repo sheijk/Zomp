@@ -58,7 +58,7 @@ macro require firstLibOrType libs...
 end
 
 require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp" "glut.zomp"
-require lib "assimp" "math" "mathvis" "spaceballcam"
+require lib "assimp" "math" "mathvis" "spaceballcam" "anttweakbar"
 
 var int windowWidth 400
 var int windowHeight 300
@@ -66,19 +66,28 @@ var bool initCalled false
 
 func void init()
   if bool:not(initCalled)
-    glfwInit()
+    if (glfwInit() != GL_TRUE)
+      println "glfw initialization failed, exiting"
+      exit 1
+    end
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glfwSetWindowTitle "super duper lighting"
+
     glewInit()
     times 2 glfwPollEvents()
 
-    printString "Initialized"
-    println()
+    if (TwInit(TW_OPENGL, nullptr void) == 0)
+      println "AntTweakBar initialization failed, exiting"
+      glfwTerminate()
+      exit 2
+    end
+
+    println "Initialized"
 
     initCalled = true
   else
-    printString "Already initialized"
-    println()
+    println "Already initialized"
   end
 end
 
@@ -115,6 +124,8 @@ var int mouseXDelta 0
 var int mouseYDelta 0
 
 func void onMouseMove(int x, int y)
+  TwEventMousePosGLFW x y
+
   mouseXDelta = lastMouseX - x
   mouseYDelta = lastMouseY - y
 
@@ -126,6 +137,8 @@ var int lastMouseWheel 0
 var int mouseWheelDelta 0
 
 func void onMouseWheel(int pos)
+  TwEventMouseWheelGLFW pos
+
   mouseWheelDelta = lastMouseWheel - pos
   lastMouseWheel = pos
 end
@@ -215,17 +228,57 @@ macro showTextures textureList
   ret code
 end
 
+func void onWindowResize(int newWidth, int newHeight)
+  autoSetupViewport()
+  glfwGetWindowSize &windowWidth &windowHeight
+
+  TwWindowSize(newWidth, newHeight)
+  ret void
+end
+
+func void onTweakbarError(char* msg)
+  println "AntTweakBar error: " msg
+end
+
+func void drawPointGridXZ(int size)
+  max := toFloat size
+  min := float:neg max
+
+  glVertex3f 1. 1. 1.
+  rendergl GL_POINTS
+    ffor x min max 1.0
+      ffor z min max 1.0
+        glVertex3f x 0.0 z
+      end
+    end
+  end
+end
+
+var int lightCount 20
+
 func int main()
   init()
 
-  lightCount := 20
-  lightPositions := newArray v3f lightCount
-
   // array:setAll lightPositions (structlit v3f x 0. y 12. z 0.)
-  placeOnCircle lightPositions 20.0
-
+  glfwSetWindowSizeCallback (cast void* &onWindowResize)
+  glfwSetMouseButtonCallback (cast void* &TwEventMouseButtonGLFW)
   glfwSetMousePosCallback (cast void* &onMouseMove)
   glfwSetMouseWheelCallback (cast void* &onMouseWheel)
+  glfwSetKeyCallback (cast void* &TwEventKeyGLFW)
+  glfwSetCharCallback (cast void* &TwEventCharGLFW)
+
+  TwHandleErrors &onTweakbarError
+
+  bar := TwNewBar "Settings"
+  TwDefine "Settings refresh=0.01 position='0 20'"
+
+  TwAddSeparator bar (nullptr char) " "
+  twCameraVarOptions := "group=camera precision=2"
+  TwAddVarRW bar "distance" TW_TYPE_FLOAT (cast void* &cam.distance) twCameraVarOptions
+  TwAddVarRW bar "latitude" TW_TYPE_FLOAT (cast void* &cam.latitude) twCameraVarOptions
+  TwAddVarRW bar "longitude" TW_TYPE_FLOAT (cast void* &cam.longitude) twCameraVarOptions
+
+  TwAddVarRW bar "count" TW_TYPE_INT32 (cast void* &lightCount) "group=lights"
 
   glEnable GL_DEPTH_TEST
   glDepthFunc GL_LEQUAL
@@ -240,6 +293,9 @@ func int main()
       ret 0
     end
   end
+
+  lightPositions := newArray v3f lightCount
+  placeOnCircle lightPositions 20.0
 
   // sceneFilename := "data/ModernStructure.3ds"
   // sceneFilename := "data/MonroeBar_SketchUpScene.obj"
@@ -303,8 +359,11 @@ func int main()
     else
       mouseXDelta = 0
     end
-    cam.longitude = cam.longitude + toFloat(mouseXDelta)
-    cam.latitude = cam.latitude + toFloat(mouseYDelta)
+
+    if keyDown(GLFW_KEY_LSHIFT)
+      cam.longitude = cam.longitude + toFloat(mouseXDelta)
+      cam.latitude = cam.latitude + toFloat(mouseYDelta)
+    end
     cam.distance = cam.distance + toFloat(mouseWheelDelta)
     SpaceballCamera:restrictParams cam
     mouseXDelta = 0
@@ -320,7 +379,8 @@ func int main()
 
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
-      gluPerspective 90.0d 1.0d 1.0d toDouble(1.5 * meshSize)
+      farPlaneDist := cam.distance + meshSize
+      gluPerspective 90.0d 1.0d 1.0d toDouble(farPlaneDist)
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
@@ -337,17 +397,19 @@ func int main()
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    if (bool:not keyDown(GLFW_KEY_LSHIFT) || (frameNum == 0))
+    if (bool:not keyDown(GLFW_KEY_LALT) || (frameNum == 0))
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
       aspect := toDouble(windowWidth) / toDouble(windowHeight)
-      gluPerspective( 90.0d, aspect, 1.0d, toDouble(1.5 * meshSize) )
+      gluPerspective( 90.0d, aspect, 1.0d, toDouble(farPlaneDist) )
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
 
       drawOrientationGrid()
+      // drawPointGridXZ 100
+
       withShader material
         Mesh:render mesh GL_TRIANGLES 0
         glutSolidSphere 1.0d 40 40
@@ -370,11 +432,11 @@ func int main()
     //   showTextureAt shadowFBO.colorTexture 0.5 0. 0.25 0.25
     //   // showTexture shadowFBO.depthTexture
     // end
+
+    TwDraw()
   end
 
-  // glClear (GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT)
   drawPausedOverlay()
-  // glfwSwapBuffers()
   glfwPollEvents()
 
   Mesh:delete mesh
@@ -383,6 +445,8 @@ func int main()
   v3f_Array:release lightPositions
 
   Framebuffer:delete shadowFBO
+
+  TwDeleteAllBars()
 
   ret 0
 end
