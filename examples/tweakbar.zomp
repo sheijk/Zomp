@@ -3,7 +3,6 @@
  */
 
 linkclib "libglfw.dylib" "libGLEW.dylib"
-linkclib "libAntTweakBar.dylib"
 
 require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
 require "libs/libcee.zomp"
