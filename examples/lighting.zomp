@@ -205,7 +205,11 @@ func void placeOnCircle(v3f_Array* points, float radius)
 end
 
 func bool keyDown(GLint key)
-  ret(glfwGetKey key == GL_TRUE)
+  ret(glfwGetKey key == GLFW_PRESS)
+end
+
+func bool mouseButtonDown(int button)
+  glfwGetMouseButton button == GLFW_PRESS
 end
 
 func void glClearDepth(GLdouble depth)
@@ -255,6 +259,9 @@ func void drawPointGridXZ(int size)
 end
 
 var int lightCount 20
+var bool showOrientationGrid true
+var bool showNormals true
+var bool showSceneBB true
 
 func int main()
   init()
@@ -268,17 +275,6 @@ func int main()
   glfwSetCharCallback (cast void* &TwEventCharGLFW)
 
   TwHandleErrors &onTweakbarError
-
-  bar := TwNewBar "Settings"
-  TwDefine "Settings refresh=0.01 position='0 20'"
-
-  TwAddSeparator bar (nullptr char) " "
-  twCameraVarOptions := "group=camera precision=2"
-  TwAddVarRW bar "distance" TW_TYPE_FLOAT (cast void* &cam.distance) twCameraVarOptions
-  TwAddVarRW bar "latitude" TW_TYPE_FLOAT (cast void* &cam.latitude) twCameraVarOptions
-  TwAddVarRW bar "longitude" TW_TYPE_FLOAT (cast void* &cam.longitude) twCameraVarOptions
-
-  TwAddVarRW bar "count" TW_TYPE_INT32 (cast void* &lightCount) "group=lights"
 
   glEnable GL_DEPTH_TEST
   glDepthFunc GL_LEQUAL
@@ -333,6 +329,21 @@ func int main()
     cam.distance = viewDistance
   end
 
+  bar := TwNewBar "Settings"
+  TwDefine "Settings refresh=0.01 position='0 20'"
+
+  TwAddSeparator bar (nullptr char) " "
+  twCameraVarOptions := "group=camera precision=2"
+  TwAddVarRW bar "distance" TW_TYPE_FLOAT (cast void* &cam.distance) twCameraVarOptions
+  TwAddVarRW bar "latitude" TW_TYPE_FLOAT (cast void* &cam.latitude) twCameraVarOptions
+  TwAddVarRW bar "longitude" TW_TYPE_FLOAT (cast void* &cam.longitude) twCameraVarOptions
+
+  TwAddVarRW bar "count" TW_TYPE_INT32 (cast void* &lightCount) "group=lights"
+
+  TwAddVarRW bar "Grid" TW_TYPE_BOOL8 (cast void* &showOrientationGrid) "group=display"
+  TwAddVarRW bar "Normals" TW_TYPE_BOOL8 (cast void* &showNormals)  "group=display"
+  TwAddVarRW bar "Bounding box" TW_TYPE_BOOL8 (cast void* &showSceneBB)  "group=display"
+
   material := Material:showNormals()
 
   shadowFBO := new Framebuffer 1024 1024
@@ -385,7 +396,7 @@ func int main()
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
-      drawOrientationGrid()
+      // drawOrientationGrid()
       Mesh:render mesh GL_TRIANGLES 0
 
       Framebuffer:makeColorTexture shadowFBO
@@ -407,16 +418,25 @@ func int main()
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
 
-      drawOrientationGrid()
+      if showOrientationGrid
+        drawOrientationGrid()
+      end
       // drawPointGridXZ 100
 
       withShader material
         Mesh:render mesh GL_TRIANGLES 0
         glutSolidSphere 1.0d 40 40
       end
-      AABB:render &meshBB
-      glColor3f 1. 1. 1.
-      Mesh:showNormals mesh
+
+      if showSceneBB
+        glColor3f 1. 1. 1.
+        AABB:render &meshBB
+      end
+
+      if showNormals
+        Mesh:showNormals mesh
+      end
+
       glColor3f 1. 0.5 0.
       renderPoints lightPositions
     else
@@ -428,16 +448,14 @@ func int main()
         shadowFBO.depthTexture
       end
     end
-    // else
-    //   showTextureAt shadowFBO.colorTexture 0.5 0. 0.25 0.25
-    //   // showTexture shadowFBO.depthTexture
-    // end
 
     TwDraw()
   end
 
   drawPausedOverlay()
   glfwPollEvents()
+
+  print (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
 
   Mesh:delete mesh
   glDeleteProgram material
