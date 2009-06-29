@@ -3,6 +3,11 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO xpath genauer ankucken. evtl inspiration für pattern matching / tree rewriting
+** TODO should public methods only have keyword arguments?
+   avoiding conascence of position
+** TODO implement this for text rendering
+   http://ati.amd.com/developer/gdc/2007/Green-Improved_Alpha-Tested_Magnification_for_Vector_Textures_and_Special_Effects(Siggraph07).pdf
 ** TODO Give macros access to current expression
    .. through implicit env parameter
 
@@ -781,6 +786,63 @@ von http://lambda-the-ultimate.org/node/2884
    !`Whitespace '>(\n| \)' => close_angle_bracket
    `Whitespace '>' => greater_than
 ** TODO % operator: 30% = 0.3
+** TODO [#A] parenthesis syntax
+   allow any combination of \[([{\]\[.|/-=+*!?\] and inverse as parens?
+   <, > only for operators, never brackets
+
+   max := (T l -> T r) where Comparable<T>
+     ...
+
+   max :: Comparable T => T -> T -> T
+   max l r
+     ...
+
+   max :: Comparable T => T, T => T
+   max l r
+     ...
+
+   func T fold<Container Seq, BinOp Op>(Seq s, Op o, T init) where (T = Container:T = Op:T)
+
+   func mult(mat4f m, vec4f v)->vec4f
+   func<Comparable T> max(T l, T r)->T
+   func<Comparable T> max(T l, T r)->T where Comparable<T>
+   func max<Comparable T>(T l, T r)->T
+   func<T> max(T l, T r)->T where Comparable<T>
+   func<Seq, BinOp> fold(Seq sequence, BinOp op, T initial)->T where (T = Container:T = BinOp:T)
+
+   func<Seq, BinOp, T> fold(Seq seqünce, BinOp op, T initial) where
+     T = Seq:T, T = BinOp:T
+   do
+     ...
+
+   func mult(mat4f m, vec4f v)->vec4f do
+     ...
+   
+   func max(l, r) : Comparable T => T->T->T
+
+   func<Comparable T> max(T l, T r) => T
+
+   func plus<Addable T1 T2>
+   plus(T1 l, T2 r) where Addable<T1,T2> => Addable<T1,T2>:ResultT
+
+   plus<T1,T2> T1 T2 => Addable<T1,T2>:ResultT where (Addable T1 T2)
+   func plus(l, r)
+
+   some possibly syntaxes
+   [| foo |]
+   [/ foo, bar /]
+   <( foo, bar )>
+   (< foo, bar >)
+   (. foo, bar .)
+   (/ foo, bar /)
+   </ foo, bar />
+   {/ foo, bar /}
+   <foo> </bar>
+   <- ->
+   <* *>
+   <+ foo, bar +>
+** TODO [#A] make prompt red/green depending on result of last eval
+** TODO [#A] list bindings C-c,C-f with multiple arguments should return things matching all not matching any
 
 * Use Cases                                                            :usecase:
 
