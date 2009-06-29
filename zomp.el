@@ -463,8 +463,8 @@ indent the next line when they occur at the beginning of a line"
   (delete-backward-char
    (cond ((looking-back "/// ") 4)
          ((looking-back "///") 3)
-         ((looking-back " \\* ") 3)
-         ((looking-back " \\*") 2)
+         ((looking-back "^ \\* ") 3)
+         ((looking-back "^ \\*") 2)
          (t prefix))))
 
 (defun zomp-setup ()
