@@ -97,6 +97,11 @@ func void VertexStream:printDetailed(VertexStream* this)
   end
 end
 
+func v3f VertexStream:get3f(VertexStream* this, int index)
+  v := cast float* this.data
+  ret (structlit v3f x (v + index)* y (v+index+1)* z (v+index+2)*)
+end
+
 /// A mesh is a collection of vertex streams. Streams will be bound to GLSL
 /// vertex attributes of the same name. By convention the first stream will
 /// always contain the vertex positions and be called gl_Position

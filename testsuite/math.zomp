@@ -25,5 +25,28 @@ unittest:testCase v3f_ops
   end
 end
 
+unittest:testCase v3f_normalized
+  unittest:assertAll
+    v3f:normalized v(1.,0.,0.) == v(1.,0.,0.)
+    v3f:normalized v(17.,0.,0.) == v(1.,0.,0.)
+  end
+end
+
+unittest:testCase v3f_length
+  unittest:assertAll
+    v3f:length v(0.,0.,0.) == 0.
+    v3f:length v(1.,0.,0.) == 1.
+    v3f:length v(0.,1.,0.) == 1.
+    v3f:length v(0.,0.,1.) == 1.
+    v3f:length v3f:normalized(v(17.,12.,3.)) == 1.
+  end
+end
+
+unittest:testCase triangles
+  unittest:assertAll
+    triangleArea v(0.,0.,0.) v(1.,0.,0.) v(0.,1.,0.) == 0.5
+  end
+end
+
 unittest:main
 

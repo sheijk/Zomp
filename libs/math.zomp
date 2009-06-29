@@ -47,6 +47,10 @@ struct v3f
   float x y z
 end
 
+func v3f mv3f(float x, float y, float z)
+  ret (structlit v3f x x y y z z)
+end
+
 func void v3f:print(v3f this)
   print "v3f(x=" this.x ", y=" this.y ", z=" this.z ")"
 end
@@ -93,21 +97,25 @@ ofunc v3f op*(float factor, v3f v)
   ret (v * factor)
 end
 
-// deprecated
-struct float3
-  float x y z
-end
-
-func void float3:print(float3* this)
-  print "float3(x=" this.x ", y=" this.y ", z=" this.z ")"
-end
-
-func float float3:length(float3* this)
-  ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
+func v3f v3f:normalized(v3f v)
+  l := 1.0 / v3f:length(v)
+  ret mv3f(v.x * l, v.y * l, v.z * l)
 end
 
 ///-----------------------------------------------------------------------------
-/// Section: geometric data types
+/// Section: triangles
+///-----------------------------------------------------------------------------
+
+func float triangleArea(v3f v1, v3f v2, v3f v3)
+  a := v1 *_cross v2
+  b := v2 *_cross v3
+  c := v3 *_cross v1
+
+  ret (0.5 * v3f:length(a+b+c))
+end
+
+///-----------------------------------------------------------------------------
+/// Section: bounding boxes
 ///-----------------------------------------------------------------------------
 
 struct AABB
@@ -140,5 +148,20 @@ func float AABB:diagonalLength(AABB* this)
   ret v3f:length(diag)
 end
 
+///-----------------------------------------------------------------------------
+/// Section: compatibility
+///-----------------------------------------------------------------------------
 
+// deprecated
+struct float3
+  float x y z
+end
+
+func void float3:print(float3* this)
+  print "float3(x=" this.x ", y=" this.y ", z=" this.z ")"
+end
+
+func float float3:length(float3* this)
+  ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
+end
 
