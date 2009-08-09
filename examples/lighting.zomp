@@ -339,6 +339,64 @@ var bool showSceneBB true
 var bool showPoints true
 var bool showScene true
 
+func float deg2rad(float degree)
+  degree * math:pi * 2.0 / 360.0
+end
+
+func VertexStream* makeFan(int count)
+  vb := new VertexStream "gl_Position" 3 (count+2) GL_FLOAT
+  VertexStream:clear vb
+  insertPos := 0
+
+  VertexStream:set3f vb insertPos mv3f(0.,0.,1.)
+  insertPos = insertPos + 1
+
+  angle := 0.0
+  delta := 360.0 / toFloat count
+  times (count+1)
+    angleRad := deg2rad angle
+    v := mv3f(sinf angleRad, cosf angleRad, 1.0)
+    println "angle = " angle ", v = " v
+    VertexStream:set3f vb insertPos v
+    angle = angle + delta
+    insertPos = insertPos + 1
+  end
+
+  ret vb
+end
+
+func VertexStream* makeTriangle(float size)
+  vb := new VertexStream "positions" 3 3 GL_FLOAT
+
+  VertexStream:set3f vb 0 mv3f(-3.0,0.,0.)
+  VertexStream:set3f vb 1 mv3f(-1.0,0.,0.)
+  VertexStream:set3f vb 2 mv3f(-2.,1.,0.)
+
+  ret vb
+end
+
+func VertexStream* makeStripe(int count)
+  vb := new VertexStream "gl_Position" 3 (3 * 2 * count) GL_FLOAT
+
+  insertPos := 0
+
+  left := 0.0
+
+  times count
+    right := left + 1.0
+    VertexStream:set3f vb insertPos++ mv3f(left, 0., 0.)
+    VertexStream:set3f vb insertPos++ mv3f(left, 1., 0.)
+    VertexStream:set3f vb insertPos++ mv3f(right, 0., 0.)
+
+    VertexStream:set3f vb insertPos++ mv3f(left, 1., 0.)
+    VertexStream:set3f vb insertPos++ mv3f(right, 1., 0.)
+    VertexStream:set3f vb insertPos++ mv3f(right, 0., 0.)
+
+    left = right
+  end
+
+  ret vb
+end
 
 func int main()
   init()
