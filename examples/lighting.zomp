@@ -450,9 +450,22 @@ func int main()
     store (normal+0) (float:neg *(normal+0))
     store (normal+1) (float:neg *(normal+1))
     store (normal+2) (float:neg *(normal+2))
+  if isNotNull(mesh.normals)
+    VertexStream:foreach (mesh.normals)* float normal
+      store (normal+0) (float:neg *(normal+0))
+      store (normal+1) (float:neg *(normal+1))
+      store (normal+2) (float:neg *(normal+2))
+    end
   end
 
   Mesh:print mesh
+  println "  surface area = " surfaceArea(mesh)
+  Mesh:define points 20
+    gl_Position GL_FLOAT 3
+  end
+  points.geometry_kind = GL_POINTS
+  placeRandomPointsOnSurface2 mesh points.positions
+  VertexStream:printDetailed points.positions
 
   var AABB meshBB
   Mesh:calcAABB &meshBB mesh
@@ -489,10 +502,10 @@ func int main()
   Framebuffer:create shadowFBO
   println "Shadow FBO status: " Framebuffer:statusMessage(shadowFBO)
 
-  printTexture2DInfo shadowFBO.colorTexture "shadowFBO.color"
-  printTexture2DInfo shadowFBO.depthTexture "shadowFBO.depth"
+  // printTexture2DInfo shadowFBO.colorTexture "shadowFBO.color"
+  // printTexture2DInfo shadowFBO.depthTexture "shadowFBO.depth"
 
-  print shadowFBO
+  // print shadowFBO
 
   angle := 0.0
 
@@ -527,14 +540,14 @@ func int main()
 
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
-      farPlaneDist := cam.distance + meshSize
+      farPlaneDist := cam.distance + float:max(25.0, meshSize)
       gluPerspective 90.0d 1.0d 1.0d toDouble(farPlaneDist)
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
       // drawOrientationGrid()
-      Mesh:render mesh GL_TRIANGLES 0
+      Mesh:render mesh mesh.geometry_kind 0
 
       Framebuffer:makeColorTexture shadowFBO
       Framebuffer:makeDepthTexture shadowFBO
