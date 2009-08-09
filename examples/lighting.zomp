@@ -258,6 +258,80 @@ func void drawPointGridXZ(int size)
   end
 end
 
+func float surfaceArea(Mesh* m)
+  assert (m.geometry_kind == GL_TRIANGLES)
+  // println "calculating area"
+  area := 0.0
+
+  firstVertexNum := 0
+  while (firstVertexNum <= (m.positions)*.size - 3)
+    v0 := VertexStream:get3f m.positions firstVertexNum
+    v1 := VertexStream:get3f m.positions (firstVertexNum+1)
+    v2 := VertexStream:get3f m.positions (firstVertexNum+2)
+
+    triarea := triangleArea v0 v1 v2
+    area = area + triarea
+
+    // println "triarea = " triarea ", area = " area
+    // println "  v0 = " v0
+    // println "  v1 = " v1
+    // println "  v2 = " v2
+
+    firstVertexNum = firstVertexNum + 3
+  end
+
+  // println "total area = " area
+
+  ret area
+end
+
+func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
+  surfaceArea := surfaceArea surface
+  delta := surfaceArea / toFloat points.size
+
+  // println "area = " surfaceArea ", delta = " delta
+  // println()
+
+  toNextTri := 0.0
+  currentPos := 0.0
+
+  firstVertexNum := 0
+  pointsVertexNum := 0
+  while (firstVertexNum <= (surface.positions)*.size - 3)
+    v0 := VertexStream:get3f surface.positions firstVertexNum
+    v1 := VertexStream:get3f surface.positions (firstVertexNum+1)
+    v2 := VertexStream:get3f surface.positions (firstVertexNum+2)
+
+    triarea := triangleArea v0 v1 v2
+    toNextTri = toNextTri + triarea
+    // println "toNextTri = " toNextTri
+    // println "triarea = " triarea
+
+    while (currentPos < toNextTri)
+      // println "currentPos = " currentPos
+      // println "pointsVertexNum = " pointsVertexNum
+      // println "firstVertexNum = " firstVertexNum
+      // select random point on triangle
+      center := (v0 + v1 + v2) * (1. / 3.)
+      // center := v0
+      // center := mv3f 0. 1. 0.
+
+      VertexStream:set3f points pointsVertexNum center
+
+      ++pointsVertexNum
+      currentPos = currentPos + delta
+    end
+
+    // println()
+
+    firstVertexNum = firstVertexNum + 3
+  end
+
+  if (points.size != pointsVertexNum)
+    println "warning: Points not set: " (points.size - pointsVertexNum)
+  end
+end
+
 var int lightCount 20
 var bool showOrientationGrid true
 var bool showNormals true
