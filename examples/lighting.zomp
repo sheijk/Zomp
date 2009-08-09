@@ -432,6 +432,8 @@ func int main()
   // sceneFilename := "data/MonroeBar_SketchUpScene.obj"
   // sceneFilename := "data/living1_max/modern_living_furn.3DS"
   sceneFilename := "data/house.obj"
+
+  // sceneFilename := "data/sphere.nff"
   loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals | aiProcess_PreTransformVertices
 
   scene := aiImportFile sceneFilename loadOptions
@@ -445,11 +447,12 @@ func int main()
   aiReleaseImport scene
   scene = nullptr aiScene
 
-  normalStream := mesh.normals
-  VertexStream:foreach normalStream float normal
-    store (normal+0) (float:neg *(normal+0))
-    store (normal+1) (float:neg *(normal+1))
-    store (normal+2) (float:neg *(normal+2))
+  // mesh := new Mesh 1
+  // mesh.positions = makeStripe 10
+  // mesh.geometry_kind = GL_TRIANGLES
+  // mesh.streams = mesh.positions
+  // Mesh:printDetailed mesh
+
   if isNotNull(mesh.normals)
     VertexStream:foreach (mesh.normals)* float normal
       store (normal+0) (float:neg *(normal+0))
@@ -460,12 +463,12 @@ func int main()
 
   Mesh:print mesh
   println "  surface area = " surfaceArea(mesh)
-  Mesh:define points 20
+  Mesh:define points ((mesh.positions)*.size / 3)
     gl_Position GL_FLOAT 3
   end
   points.geometry_kind = GL_POINTS
   placeRandomPointsOnSurface2 mesh points.positions
-  VertexStream:printDetailed points.positions
+  // VertexStream:printDetailed points.positions
 
   var AABB meshBB
   Mesh:calcAABB &meshBB mesh
