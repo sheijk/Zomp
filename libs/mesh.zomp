@@ -47,8 +47,7 @@ func void VertexStream:init(VertexStream* this, cstring name, int components, in
     this.data = cast void* malloc(float, size * components)
   else
     printString "Warning: unsupported data type: "
-    print type
-    println()
+    println type
     this.size = 0
     this.components = 0
     this.name = "<error>"
@@ -98,9 +97,27 @@ func void VertexStream:printDetailed(VertexStream* this)
 end
 
 func v3f VertexStream:get3f(VertexStream* this, int index)
-  v := cast float* this.data
-  ret (structlit v3f x (v + index)* y (v+index+1)* z (v+index+2)*)
+  v := cast float* this.data + index * this.components
+  ret (structlit v3f x (v)* y (v+1)* z (v+2)*)
 end
+
+func void VertexStream:set3f(VertexStream* this, int index, v3f p)
+  assert (index < this.size)
+  v := cast float* this.data + this.components * index
+  (v+0)* = p.x
+  (v+1)* = p.y
+  (v+2)* = p.z
+end
+
+func void VertexStream:clear(VertexStream* this)
+  assert (this.type == GL_FLOAT)
+  data := cast float* this.data
+
+  for i 0 (this.size*this.components)
+    (data + i)* = 0.0
+  end
+end
+
 
 /// A mesh is a collection of vertex streams. Streams will be bound to GLSL
 /// vertex attributes of the same name. By convention the first stream will
@@ -113,10 +130,18 @@ struct Mesh
   VertexStream* texCoords
   int streamCount
   VertexStream* streams
+  GLenum geometry_kind
 end
 
-template Mesh:init m args...
-  error "Cannot use new to define mesh. Use Mesh:define instead"
+func void Mesh:init(Mesh* this, int streamCount)
+  this.positions = nullptr VertexStream
+  this.normals = nullptr VertexStream
+  this.colors = nullptr VertexStream
+  this.texCoordSetCount = 0
+  this.texCoords = nullptr VertexStream
+  this.streamCount = streamCount
+  this.streams = malloc VertexStream streamCount
+  this.geometry_kind = GL_TRIANGLES
 end
 
 macro Mesh:foreachStream mesh streamptr code
@@ -131,8 +156,7 @@ end
 
 func void Mesh:print(Mesh* this)
   println "Mesh"
-  print "  streamCount=" this.streamCount
-  println()
+  println "  streamCount=" this.streamCount
 
   macro printVS stream
     name := cstring:quote stream.id
@@ -195,6 +219,16 @@ func void Mesh:setupDefaultStreams(Mesh* this)
   end
 end
 
+/// Example:
+///
+/// Mesh:define box 8
+///   gl_Position GL_FLOAT 3
+///   gl_Normal GL_FLOAT 3
+///   texcoord GL_FLOAT 4
+/// end
+///
+/// Mesh:print box
+///
 macro Mesh:define mesh size streams
   streamCount := streams.childCount
 
@@ -202,6 +236,7 @@ macro Mesh:define mesh size streams
     #mesh := malloc Mesh
     #mesh.streamCount = #streamCount
     #mesh.streams = malloc(VertexStream, #streamCount)
+    #mesh.geometry_kind = GL_TRIANGLES
   end}
 
   for streamnum 0 streamCount
@@ -314,6 +349,10 @@ func void Mesh:render(Mesh* this, GLint mode, GLint shader)
 end
 
 func void Mesh:showNormals(Mesh* this)
+  if (isNull this.normals)
+    ret void
+  end
+
   vertex := cast float* (this*.positions)*.data
   normal := cast float* (this*.normals)*.data
 
