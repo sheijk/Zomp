@@ -879,6 +879,9 @@ macro assert testCode
   elseif ast:matchesShape(testCode, ${__ ==_str __})
     isCompare = true
     compareF = ast:fromString "op==_str"
+  elseif ast:matchesShape(testCode, ${__ < __})
+    isCompare = true
+    compareF = ast:fromString "op<"
   end
 
   if isCompare
