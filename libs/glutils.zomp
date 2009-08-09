@@ -368,7 +368,7 @@ macro ffor index min max step code
 
     label #startLabel
 
-    assign #testResult (float:less #index #max)
+    assign #testResult (float:lessEqual #index #max)
     branch #testResult #execLabel #endLabel
 
     label #execLabel
@@ -378,6 +378,23 @@ macro ffor index min max step code
 
     label #endLabel
   end}
+end
+
+func void drawOrientationGridXZ(float size)
+  nsize := float:neg size
+
+  rendergl GL_LINES
+    glColor3f 0. 1. 0.
+    ffor x nsize size 1.0
+      glVertex3f x 0. nsize
+      glVertex3f x 0. size
+    end
+
+    ffor z nsize size 1.0
+      glVertex3f nsize 0. z
+      glVertex3f size 0. z
+    end
+  end
 end
 
 func void draw2dOrientationGrid()

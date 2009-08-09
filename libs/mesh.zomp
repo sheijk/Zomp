@@ -118,10 +118,8 @@ func void VertexStream:clear(VertexStream* this)
   end
 end
 
-
 /// A mesh is a collection of vertex streams. Streams will be bound to GLSL
-/// vertex attributes of the same name. By convention the first stream will
-/// always contain the vertex positions and be called gl_Position
+/// vertex attributes of the same name.
 struct Mesh
   VertexStream* positions
   VertexStream* normals
