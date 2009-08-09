@@ -4,6 +4,36 @@
 
 * To be sorted
 ** TODO xpath genauer ankucken. evtl inspiration für pattern matching / tree rewriting
+** TODO possible template syntax
+    func void genericprogr()
+      list(<int>) ints
+      list<(int)> ints
+      map<(int,string)> ints
+      list[int] ints
+      map[int,string] foo
+      list[[int,string]] ints
+      list</int,string/>
+      list<.int,string.>
+      list.<int,string>.
+      list<:int,string:>
+      list[:int,string:]
+      list(/int,string/)
+      list[/int,string/]
+      list!(int,string)
+      list!<int,string>
+      list<!int,string>
+      list<!int,string!>
+      list<<int,string>>
+      list<_int,string_>
+      list(_int,string_)
+      list`(int,string)
+      list§int,string§
+      list!int,string!
+      list@(int,string)
+      list$(int,string)
+      list^(int,string)
+    end
+
 ** TODO should public methods only have keyword arguments?
    avoiding conascence of position
 ** TODO implement this for text rendering
@@ -843,6 +873,7 @@ von http://lambda-the-ultimate.org/node/2884
    <+ foo, bar +>
 ** TODO [#A] make prompt red/green depending on result of last eval
 ** TODO [#A] list bindings C-c,C-f with multiple arguments should return things matching all not matching any
+** TODO [#A] directly run individual test under debugger
 
 * Use Cases                                                            :usecase:
 
