@@ -336,6 +336,9 @@ var int lightCount 20
 var bool showOrientationGrid true
 var bool showNormals true
 var bool showSceneBB true
+var bool showPoints true
+var bool showScene true
+
 
 func int main()
   init()
@@ -417,6 +420,8 @@ func int main()
   TwAddVarRW bar "Grid" TW_TYPE_BOOL8 (cast void* &showOrientationGrid) "group=display"
   TwAddVarRW bar "Normals" TW_TYPE_BOOL8 (cast void* &showNormals)  "group=display"
   TwAddVarRW bar "Bounding box" TW_TYPE_BOOL8 (cast void* &showSceneBB)  "group=display"
+  TwAddVarRW bar "Scene" TW_TYPE_BOOL8 (cast void* &showScene) "group=display"
+  TwAddVarRW bar "Points" TW_TYPE_BOOL8 (cast void* &showPoints) "group=display"
 
   material := Material:showNormals()
 
@@ -497,9 +502,15 @@ func int main()
       end
       // drawPointGridXZ 100
 
-      withShader material
-        Mesh:render mesh GL_TRIANGLES 0
-        glutSolidSphere 1.0d 40 40
+      if showScene
+        withShader material
+          Mesh:render mesh mesh.geometry_kind 0
+          // glutSolidSphere 1.0d 40 40
+        end
+      end
+
+      if showPoints
+        Mesh:render points points.geometry_kind 0
       end
 
       if showSceneBB
