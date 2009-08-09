@@ -118,6 +118,10 @@ macro mainloop body...
   end}
 end
 
+///-----------------------------------------------------------------------------
+/// Section: input handling
+///-----------------------------------------------------------------------------
+
 var int lastMouseX 0
 var int lastMouseY 0
 var int mouseXDelta 0
@@ -142,6 +146,59 @@ func void onMouseWheel(int pos)
   mouseWheelDelta = lastMouseWheel - pos
   lastMouseWheel = pos
 end
+
+func void glfwSetEnabled(int what, bool on)
+  if on
+    glfwEnable what
+  else
+    glfwDisable what
+  end
+end
+
+// var int originalMouseX 0
+// var int originalMouseY 0
+
+func int onKey(int key, int action)
+  // if (key == GLFW_KEY_LSHIFT)
+  //   if (action == GLFW_PRESS)
+  //     glfwGetMousePos &originalMouseX &originalMouseY
+  //     println "locking mouse, originalMouseX = " originalMouseX ", originalMouseY = " originalMouseY
+  //     glfwDisable GLFW_MOUSE_CURSOR
+  //     glfwGetMousePos &lastMouseX &lastMouseY
+  //     mouseXDelta = 0
+  //     mouseYDelta = 0
+  //   else
+  //     glfwEnable GLFW_MOUSE_CURSOR
+  //     glfwSetMousePos originalMouseX originalMouseY
+  //     println "unlocked mouse, originalMouseX = " originalMouseX ", originalMouseY = " originalMouseY
+  //   end
+  // end
+
+  TwEventKeyGLFW key action
+
+  ret 0
+end
+
+///-----------------------------------------------------------------------------
+/// Section: random numbers
+///-----------------------------------------------------------------------------
+
+// from libstdc
+func int rand()
+
+func int random (int max)
+  ret int:srem(rand(), max)
+end
+
+func float float:random()
+  randomInt := random(4097)
+  return (toFloat(randomInt) / 4096.0)
+end
+
+func float float:srandom()
+  return (float:random() * 2.0 - 1.0)
+end
+
 
 func GLenum Material:showNormals()
   varyingSource := "
@@ -285,9 +342,12 @@ func float surfaceArea(Mesh* m)
   ret area
 end
 
+
 func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
   surfaceArea := surfaceArea surface
   delta := surfaceArea / toFloat points.size
+
+  println points.size " points"
 
   // println "area = " surfaceArea ", delta = " delta
   // println()
@@ -308,17 +368,36 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
     // println "triarea = " triarea
 
     while (currentPos < toNextTri)
-      // println "currentPos = " currentPos
-      // println "pointsVertexNum = " pointsVertexNum
-      // println "firstVertexNum = " firstVertexNum
-      // select random point on triangle
-      center := (v0 + v1 + v2) * (1. / 3.)
-      // center := v0
-      // center := mv3f 0. 1. 0.
+      a1 := float:random()
+      a2 := float:random()
+      if (a1 + a2 > 1.0)
+        a1 = 1.0 - a1
+        a2 = 1.0 - a2
+      end
+      center := (v0 + (v1 - v0) * a1 + (v2 - v0) * a2)
+
+      // see http://www.devmaster.net/forums/showthread.php?t=10469
+      // w0 := float:random()
+      // w1 := (1.0 - w0) * float:random()
+      // w2 := (1.0 - w1 - w0)
+      // center := w0 * v0 + w1 * v1 + w2 * v2
+
+      // just plain bullshit :)
+      // w0 := float:random() * 0.5
+      // w1 := float:random() * 0.5
+      // w2 := 1.0 - w0 - w1
+      // center := w0 * v0 + w1 * v1 + w2 * v2
+
+      // center := (v0+v1+v2) * (1.0 / 3.0)
 
       VertexStream:set3f points pointsVertexNum center
 
       ++pointsVertexNum
+      // TODO: umsteigen auf bresenham aehnlichen algorithmus
+      if (pointsVertexNum >= points.size)
+        println "Placed enough points"
+        currentPos = toNextTri + 1.0
+      end
       currentPos = currentPos + delta
     end
 
@@ -398,6 +477,47 @@ func VertexStream* makeStripe(int count)
   ret vb
 end
 
+func GLint pointsMaterial()
+  varyingSource := "
+  #version 120
+  #extension GL_EXT_gpu_shader4 : enable
+  "
+  vertexSource := "
+  void main(void) {
+    // gl_Position = ftransform();
+    gl_Position = gl_ModelViewMatrix * gl_Vertex;
+    vec3 pos = gl_Position.xyz / gl_Position.w;
+    // pos = pos.xzy;
+    // pos.z = -pos.z;
+    float dist = sqrt(dot(pos,pos));
+    float S = sqrt(pos.x*pos.x + pos.z*pos.z);
+    float phi = acos(pos.y/dist);
+    float pi = 3.14;
+    float theta = 0 <= pos.x ? asin(-pos.z/S) : pi - asin(-pos.z/S);
+    float scale = 1.;
+    gl_Position = vec4(-theta/pi, phi / (2.*pi), 0., scale);
+    // gl_Position = vec4(theta/pi, (phi+pi)/(2.*pi), 0., scale);
+    if( theta > pi )
+      gl_Position = vec4(-2.);
+    // gl_Position = vec4(pos.x, (phi+pi) / (2.*pi), 0., scale);
+    // gl_Position = vec4(pos.x, pos.y, 0.0, scale);
+
+    // gl_Position.xyz = min(vec3(scale), max(vec3(-scale), gl_Position.xyz));
+
+    // gl_PointSize = min(4.0 * (1.0 / gl_Position.z), 4.0);
+    // gl_PointSize = 4.0;
+    // gl_Position.xy += vec2(1,0) + vec2(-2,0) * (gl_VertexID % 2);
+    // gl_Position.xy *= 0.5;
+    }"
+  fragmentSource := "
+  void main(void) {
+    gl_FragColor = vec4(1.0,0.8,0.0,1.0);
+    }"
+  shader := createShader varyingSource vertexSource fragmentSource
+  assert (shader != 0)
+  ret shader
+end
+
 func int main()
   init()
 
@@ -406,7 +526,7 @@ func int main()
   glfwSetMouseButtonCallback (cast void* &TwEventMouseButtonGLFW)
   glfwSetMousePosCallback (cast void* &onMouseMove)
   glfwSetMouseWheelCallback (cast void* &onMouseWheel)
-  glfwSetKeyCallback (cast void* &TwEventKeyGLFW)
+  glfwSetKeyCallback (cast void* &onKey)
   glfwSetCharCallback (cast void* &TwEventCharGLFW)
 
   TwHandleErrors &onTweakbarError
@@ -432,7 +552,6 @@ func int main()
   // sceneFilename := "data/MonroeBar_SketchUpScene.obj"
   // sceneFilename := "data/living1_max/modern_living_furn.3DS"
   sceneFilename := "data/house.obj"
-
   // sceneFilename := "data/sphere.nff"
   loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals | aiProcess_PreTransformVertices
 
@@ -463,7 +582,7 @@ func int main()
 
   Mesh:print mesh
   println "  surface area = " surfaceArea(mesh)
-  Mesh:define points ((mesh.positions)*.size / 3)
+  Mesh:define points ((mesh.positions)*.size * 100)
     gl_Position GL_FLOAT 3
   end
   points.geometry_kind = GL_POINTS
@@ -498,6 +617,7 @@ func int main()
   TwAddVarRW bar "Points" TW_TYPE_BOOL8 (cast void* &showPoints) "group=display"
 
   material := Material:showNormals()
+  pointsMaterial := pointsMaterial()
 
   shadowFBO := new Framebuffer 1024 1024
   Framebuffer:attachColorTexture shadowFBO
@@ -543,14 +663,23 @@ func int main()
 
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
-      farPlaneDist := cam.distance + float:max(25.0, meshSize)
-      gluPerspective 90.0d 1.0d 1.0d toDouble(farPlaneDist)
+      farPlaneDist := cam.distance + float:max(1.0, 0.5 * meshSize)
+      nearPlaneDist := float:max(1.0, cam.distance - meshSize)
+      // gluPerspective 90.0d 1.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
+      glOrtho -10.0d 10.0d -10.0d 10.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
-      // drawOrientationGrid()
-      Mesh:render mesh mesh.geometry_kind 0
+
+      // drawOrientationGridXZ 100.0
+      saveAttribs
+        // glEnable GL_VERTEX_PROGRAM_POINT_SIZE
+        glPointSize 4.0
+        withShader pointsMaterial
+          Mesh:render points points.geometry_kind 0
+        end
+      end
 
       Framebuffer:makeColorTexture shadowFBO
       Framebuffer:makeDepthTexture shadowFBO
@@ -561,7 +690,7 @@ func int main()
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    if (bool:not keyDown(GLFW_KEY_LALT) || (frameNum == 0))
+    if (keyDown(GLFW_KEY_LALT) || (frameNum == 0))
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
       aspect := toDouble(windowWidth) / toDouble(windowHeight)
@@ -577,9 +706,14 @@ func int main()
       // drawPointGridXZ 100
 
       if showScene
-        withShader material
+        // withShader material
+        //   Mesh:render mesh mesh.geometry_kind 0
+        //   // glutSolidSphere 1.0d 40 40
+        // end
+        saveAttribs
+          glPolygonMode GL_FRONT_AND_BACK GL_LINE
+          glColor3f 1. 1. 1.
           Mesh:render mesh mesh.geometry_kind 0
-          // glutSolidSphere 1.0d 40 40
         end
       end
 
@@ -596,7 +730,7 @@ func int main()
         Mesh:showNormals mesh
       end
 
-      glColor3f 1. 0.5 0.
+      glColor3f 1. 0. 0.
       renderPoints lightPositions
     else
       makeGLIdentityTransforms()
@@ -618,6 +752,7 @@ func int main()
 
   Mesh:delete mesh
   glDeleteProgram material
+  glDeleteProgram pointsMaterial
 
   v3f_Array:release lightPositions
 
