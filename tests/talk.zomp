@@ -1,0 +1,30 @@
+/**
+ * Experimental OOP with smalltalkish message passing
+ *
+ * Not working, yet
+ */
+!syntax indent
+
+type Symbol int
+
+type SymbolTable
+  cstring name
+  Symbol symbol
+  SymbolTable* next
+end
+
+var SymbolTable* globalSymbols null
+
+type VTable
+  cstring* names
+end
+
+type Object
+  cstring name
+end
+
+func int main()
+  ret 0
+end
+
+

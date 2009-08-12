@@ -1,0 +1,65 @@
+/**
+ * Temp. for better printing
+
+!verify off
+ */
+
+func void printCharRep(char c, int count)
+  times count
+    printChar c
+  end
+end
+
+func void ast:pprintHelper(ast* code, int indent)
+  newIndent := indent
+
+  macro printArgs seperator
+    uniqueId childNum "childnum"
+    uniqueId child "childvar"
+    ret ${
+      for #childNum 0 code.childCount
+        #child := ast:child code #childNum
+        if (#childNum > 0)
+          printString #seperator
+        end
+        ast:pprintHelper #child newIndent
+      end
+    end}
+  end
+
+  printCharRep ' ' indent
+
+  if (code.id ==_str "opseq")
+    newIndent = indent + 2
+    printArgs "\n"
+  elseif ((code.id ==_str "opjux") && (code.childCount != 0))
+    printArgs " "
+    void
+  elseif (code.childCount == 0)
+    printString code.id
+  else
+    printString "(<"
+    printString code.id
+    printArgs " "
+    printString ">)"
+  end
+end
+
+func void ast:pprint(ast* code)
+  printHLine '=' 40
+  ast:print code 0
+  printHLine '-' 40
+  ast:pprintHelper code 0
+  println()
+end
+
+testf
+  ast:pprint ${foo bar baz}
+  ast:pprint ${foo
+    a
+    b
+    c
+  end}
+  ast:pprint ${a.b.c}
+end
+

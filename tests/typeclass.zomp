@@ -1,0 +1,36 @@
+/**
+ * Simple type classes / concepts
+ *
+ * Work in progress
+
+!verify off
+ */
+!syntax indent
+
+include "libs/libcee.zomp"
+
+type MemberToVoid (fptr void void*)
+
+struct concept_Printable
+  (fptr void void* ) printF
+end
+
+func void concept_Printable:init(concept_Printable* this, (fptr void void* ) printF)
+  printFLocal := printF
+  this.printF = printFLocal
+end
+
+func concept_Printable* generic:makeInstance_Printable_int()
+  vtable := new concept_Printable (cast (fptr void void* ) &printInt)
+
+  ret vtable
+end
+
+func void test()
+  printlnString "hello, type class"
+
+  instance_Printable_int := generic:makeInstance_Printable_int()
+  print := instance_Printable_int.printF
+  print(10)
+end
+
