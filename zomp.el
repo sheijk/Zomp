@@ -156,7 +156,15 @@ indent the next line when they occur at the beginning of a line"
      (zomp-toplevel)
      (get-buffer-process zomp-toplevel-buffer-name))))
 
-(defun zomp-start-or-show-toplevel (prefix)
+(defun zomp-make-buffer-local-toplevel ()
+  (make-variable-buffer-local 'zomp-toplevel-buffer-name)
+  (setq zomp-toplevel-buffer-name (format "*zomp-toplevel<%s>*" (buffer-name))))
+
+(defun zomp-start-or-show-toplevel (&optional prefix)
+  "Shows the toplevel in a buffer and starts it if it wasn't
+  running, yet. With a prefix this will start a buffer local zomp
+  toplevel which you can use to run multiple zomp instances at
+  once"
   (interactive "P")
   (cond ((null prefix)
          (if (not (zomp-get-toplevel-buffer))
@@ -165,8 +173,7 @@ indent the next line when they occur at the beginning of a line"
              (switch-to-buffer-other-window (get-buffer zomp-toplevel-buffer-name))
              (select-window oldwin))))
         (t
-         (make-variable-buffer-local 'zomp-toplevel-buffer-name)
-         (setq zomp-toplevel-buffer-name (format "*zomp-toplevel<%s>*" (buffer-name)))
+         (zomp-make-buffer-local-toplevel)
          (unless (zomp-get-toplevel-buffer)
            (zomp-toplevel)))))
 
@@ -236,12 +243,21 @@ indent the next line when they occur at the beginning of a line"
   (message "Running function test")
   (zomp-tl-do "!run test"))
 
-(defun zomp-run ()
-  (interactive)
+(defun zomp-run (&optional prefix)
+"Will run test() after evaluating
+- the current toplevel expression (function) if toplevel is running
+- the current buffer of toplevel is not running
+so you can use this as a quick way to start working on a project.
+
+Run this with a prefix to start a toplevel specific to this buffer"
+  (interactive "P")
+  (when prefix
+    (zomp-make-buffer-local-toplevel))
   (if (zomp-get-toplevel-buffer)
       (zomp-tl-eval-current)
+    (zomp-start-or-show-toplevel prefix)
     (zomp-tl-eval-buffer))
-  (zomp-tl-run-test) )
+  (zomp-tl-run-test))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
