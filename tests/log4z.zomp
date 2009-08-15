@@ -1,0 +1,36 @@
+/**
+ * Experimenting with a log4j like system
+ */
+
+require "libs/libcee.zomp"
+
+dfunc int atoi(cstring str)
+dfunc double atof(cstring str)
+
+var int log:minLevel 0
+const int log:level:info 0
+
+macro log:setMinLevel level
+  log:minLevel = atoi(level.id)
+  ret ${}
+end
+
+macro info args...
+  if (log:minLevel <= log:level:info)
+    code := ${print}
+    forEachAstChild arg args
+      ast:addChild code arg
+    end
+    ret code
+  end
+  ret ${}
+end
+
+func int main()
+  log:setMinLevel 1
+  info "compiled away"
+  log:setMinLevel 0
+  info "hello, there!"
+  ret 0
+end
+
