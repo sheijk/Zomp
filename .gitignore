@@ -84,3 +84,4 @@ tools
 /opengl20print.zomp
 /quicktext.zomp
 /extlibs
+/tests/sharkperf.zomp
