@@ -91,7 +91,15 @@ func void init()
   end
 end
 
-// avoid writing it over and over, part of utils lib
+var int lightCount 20
+var bool showOrientationGrid true
+var bool showNormals true
+var bool showSceneBB true
+var bool showPoints true
+var bool showScene true
+var bool showShadowTextures true
+
+// avoid writing it over and over, should be part of utils lib
 macro mainloop body...
   ret ${
     time := 0.0
@@ -155,24 +163,26 @@ func void glfwSetEnabled(int what, bool on)
   end
 end
 
-// var int originalMouseX 0
-// var int originalMouseY 0
+var bool windowOnUpperScreen true
+
+func void window::toggleScreen()
+  if windowOnUpperScreen
+    glfwSetWindowPos 400 1250
+  else
+    glfwSetWindowPos 400 100
+  end
+
+  windowOnUpperScreen = bool:not windowOnUpperScreen
+end
 
 func int onKey(int key, int action)
-  // if (key == GLFW_KEY_LSHIFT)
-  //   if (action == GLFW_PRESS)
-  //     glfwGetMousePos &originalMouseX &originalMouseY
-  //     println "locking mouse, originalMouseX = " originalMouseX ", originalMouseY = " originalMouseY
-  //     glfwDisable GLFW_MOUSE_CURSOR
-  //     glfwGetMousePos &lastMouseX &lastMouseY
-  //     mouseXDelta = 0
-  //     mouseYDelta = 0
-  //   else
-  //     glfwEnable GLFW_MOUSE_CURSOR
-  //     glfwSetMousePos originalMouseX originalMouseY
-  //     println "unlocked mouse, originalMouseX = " originalMouseX ", originalMouseY = " originalMouseY
-  //   end
-  // end
+  if (action == GLFW_PRESS)
+    if (key == GLFW_KEY_S)
+      window::toggleScreen()
+    elseif (key == GLFW_KEY_T)
+      showShadowTextures = bool:not showShadowTextures
+    end
+  end
 
   TwEventKeyGLFW key action
 
@@ -411,13 +421,6 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
   end
 end
 
-var int lightCount 20
-var bool showOrientationGrid true
-var bool showNormals true
-var bool showSceneBB true
-var bool showPoints true
-var bool showScene true
-
 func float deg2rad(float degree)
   degree * math:pi * 2.0 / 360.0
 end
@@ -484,34 +487,52 @@ func GLint pointsMaterial()
   "
   vertexSource := "
   void main(void) {
-    // gl_Position = ftransform();
     gl_Position = gl_ModelViewMatrix * gl_Vertex;
-    vec3 pos = gl_Position.xyz / gl_Position.w;
-    // pos = pos.xzy;
-    // pos.z = -pos.z;
-    float dist = sqrt(dot(pos,pos));
-    float S = sqrt(pos.x*pos.x + pos.z*pos.z);
-    float phi = acos(pos.y/dist);
-    float pi = 3.14;
-    float theta = 0 <= pos.x ? asin(-pos.z/S) : pi - asin(-pos.z/S);
-    float scale = 1.;
-    gl_Position = vec4(-theta/pi, phi / (2.*pi), 0., scale);
-    // gl_Position = vec4(theta/pi, (phi+pi)/(2.*pi), 0., scale);
-    if( theta > pi )
-      gl_Position = vec4(-2.);
-    // gl_Position = vec4(pos.x, (phi+pi) / (2.*pi), 0., scale);
-    // gl_Position = vec4(pos.x, pos.y, 0.0, scale);
+    gl_Position.xyz = gl_Position.xyz / gl_Position.w;
 
-    // gl_Position.xyz = min(vec3(scale), max(vec3(-scale), gl_Position.xyz));
+    float length = length(gl_Position.xyz);
+    gl_Position /= length;
 
-    // gl_PointSize = min(4.0 * (1.0 / gl_Position.z), 4.0);
-    // gl_PointSize = 4.0;
-    // gl_Position.xy += vec2(1,0) + vec2(-2,0) * (gl_VertexID % 2);
-    // gl_Position.xy *= 0.5;
+    gl_Position.z -= 1.0;
+    gl_Position.xy /= gl_Position.z;
+
+    gl_Position.z = (length - 0.1) / (500. - 0.1);
+    gl_Position.xy *= -1.0;
+    gl_Position.w = 1.0;
     }"
   fragmentSource := "
   void main(void) {
     gl_FragColor = vec4(1.0,0.8,0.0,1.0);
+    }"
+  shader := createShader varyingSource vertexSource fragmentSource
+  assert (shader != 0)
+  ret shader
+end
+
+func GLint shadowMaterial()
+  varyingSource := "
+  #version 120
+  #extension GL_EXT_gpu_shader4 : enable
+  varying vec4 texcoord;
+  uniform sampler2D shadow;
+  "
+  vertexSource := "
+  void main(void) {
+    gl_Position = ftransform();
+    vec4 v = gl_ProjectionMatrix * gl_TextureMatrix[0] * gl_Vertex;
+    texcoord = v;
+    // texcoord = 0.5 * (v.xy + vec2(1.0));
+    }"
+  fragmentSource := "
+  void main(void) {
+    vec3 v = texcoord.xyz / texcoord.w;
+    v = 0.5 * (v + vec3(1.0));
+    vec4 c = vec4(0.,0.,0.,1.);
+    float step = 1.0;
+    if( mod(v.x, step) > 0.9 * step )
+      c.y = 1.0;
+    c.z = texture2D(shadow, v.xy).x;
+    gl_FragColor = c;
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
@@ -610,13 +631,16 @@ func int main()
 
   TwAddVarRW bar "count" TW_TYPE_INT32 (cast void* &lightCount) "group=lights"
 
-  TwAddVarRW bar "Grid" TW_TYPE_BOOL8 (cast void* &showOrientationGrid) "group=display"
-  TwAddVarRW bar "Normals" TW_TYPE_BOOL8 (cast void* &showNormals)  "group=display"
-  TwAddVarRW bar "Bounding box" TW_TYPE_BOOL8 (cast void* &showSceneBB)  "group=display"
-  TwAddVarRW bar "Scene" TW_TYPE_BOOL8 (cast void* &showScene) "group=display"
-  TwAddVarRW bar "Points" TW_TYPE_BOOL8 (cast void* &showPoints) "group=display"
+  displayGroup := "group=display"
+  TwAddVarRW bar "Grid" TW_TYPE_BOOL8 (cast void* &showOrientationGrid) displayGroup
+  TwAddVarRW bar "Normals" TW_TYPE_BOOL8 (cast void* &showNormals)  displayGroup
+  TwAddVarRW bar "Bounding box" TW_TYPE_BOOL8 (cast void* &showSceneBB)  displayGroup
+  TwAddVarRW bar "Scene" TW_TYPE_BOOL8 (cast void* &showScene) displayGroup
+  TwAddVarRW bar "Points" TW_TYPE_BOOL8 (cast void* &showPoints) displayGroup
+  TwAddVarRW bar "Shadow tex" TW_TYPE_BOOL8 (cast void* &showShadowTextures) displayGroup
 
-  material := Material:showNormals()
+  // material := Material:showNormals()
+  material := shadowMaterial()
   pointsMaterial := pointsMaterial()
 
   shadowFBO := new Framebuffer 1024 1024
@@ -666,7 +690,7 @@ func int main()
       farPlaneDist := cam.distance + float:max(1.0, 0.5 * meshSize)
       nearPlaneDist := float:max(1.0, cam.distance - meshSize)
       // gluPerspective 90.0d 1.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
-      glOrtho -10.0d 10.0d -10.0d 10.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
+      // glOrtho -10.0d 10.0d -10.0d 10.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
@@ -690,55 +714,74 @@ func int main()
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    if (keyDown(GLFW_KEY_LALT) || (frameNum == 0))
-      glMatrixMode GL_PROJECTION
-      glLoadIdentity()
-      aspect := toDouble(windowWidth) / toDouble(windowHeight)
-      gluPerspective( 90.0d, aspect, 1.0d, toDouble(farPlaneDist) )
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    gluPerspective( 90.0d, aspect, 1.0d, toDouble(farPlaneDist) )
 
-      glMatrixMode GL_MODELVIEW
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    SpaceballCamera:applyToGL cam
+
+    if showOrientationGrid
+      drawOrientationGrid()
+    end
+    // drawPointGridXZ 100
+
+    if showScene
+      glBindTexture2D shadowFBO.colorTexture
+      // glBindTexture2D shadowFBO.depthTexture
+      // glEnable GL_TEXTURE_2D
+      // glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_MODE GL_COMPARE_R_TO_TEXTURE
+      // glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_FUNC GL_LEQUAL
+      // glTexParameteri GL_TEXTURE_2D GL_DEPTH_TEXTURE_MODE GL_INTENSITY
+
+      glMatrixMode GL_TEXTURE
       glLoadIdentity()
       SpaceballCamera:applyToGL cam
 
-      if showOrientationGrid
-        drawOrientationGrid()
-      end
-      // drawPointGridXZ 100
-
-      if showScene
-        // withShader material
-        //   Mesh:render mesh mesh.geometry_kind 0
-        //   // glutSolidSphere 1.0d 40 40
-        // end
-        saveAttribs
-          glPolygonMode GL_FRONT_AND_BACK GL_LINE
-          glColor3f 1. 1. 1.
-          Mesh:render mesh mesh.geometry_kind 0
-        end
+      withShader material
+        Mesh:render mesh mesh.geometry_kind 0
+        // glutSolidSphere 1.0d 40 40
       end
 
-      if showPoints
-        Mesh:render points points.geometry_kind 0
-      end
+      glBindTexture2D 0
+      // saveAttribs
+      //   // glPolygonMode GL_FRONT_AND_BACK GL_LINE
+      //   glColor3f 1. 1. 1.
+      //   Mesh:render mesh mesh.geometry_kind 0
+      // end
+    end
 
-      if showSceneBB
-        glColor3f 1. 1. 1.
-        AABB:render &meshBB
-      end
+    if showPoints
+      glColor3f 0.5 0. 0.
+      Mesh:render points points.geometry_kind 0
+    end
 
-      if showNormals
-        Mesh:showNormals mesh
-      end
+    if showSceneBB
+      glColor3f 1. 1. 1.
+      AABB:render &meshBB
+    end
 
-      glColor3f 1. 0. 0.
-      renderPoints lightPositions
-    else
+    if showNormals
+      Mesh:showNormals mesh
+    end
+
+    glColor3f 1. 0. 0.
+    renderPoints lightPositions
+
+    if showShadowTextures
       makeGLIdentityTransforms()
-      glScalef (2. / toFloat aspect) 2. 1.
+      glScalef (1. / toFloat aspect) 1. 1.
+      glTranslatef 1.0 -0.5 0.
       glTranslatef -0.5 -0.5 0.
-      showTextures
-        shadowFBO.colorTexture
-        shadowFBO.depthTexture
+      saveAttribs
+        glDisable GL_DEPTH_TEST
+        glDisable GL_BLEND
+        showTextures
+          shadowFBO.colorTexture
+          shadowFBO.depthTexture
+        end
       end
     end
 

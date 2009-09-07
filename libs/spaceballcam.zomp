@@ -36,8 +36,8 @@ func void SpaceballCamera:rotate(SpaceballCamera* this)
 end
 
 func void SpaceballCamera:applyToGL(SpaceballCamera* this)
-  glMatrixMode GL_MODELVIEW
-  glLoadIdentity()
+  // glMatrixMode GL_MODELVIEW
+  // glLoadIdentity()
   SpaceballCamera:rotate(this)
 end
 
