@@ -149,6 +149,49 @@ func float AABB:diagonalLength(AABB* this)
 end
 
 ///-----------------------------------------------------------------------------
+/// Section: coordinate systems
+///-----------------------------------------------------------------------------
+
+struct OrthoBasis3D
+  v3f xaxis yaxis zaxis
+end
+
+ofunc void print(OrthoBasis3D basis)
+  println "OrthoBasis3D"
+  println "  xaxis = " basis.xaxis
+  println "  yaxis = " basis.yaxis
+  println "  zaxis = " basis.zaxis
+end
+
+func OrthoBasis3D makeOrthoBasis(v3f vec)
+  var OrthoBasis3D basis
+  var v3f v
+
+  xa := fabsf vec.x
+  ya := fabsf vec.y
+  za := fabsf vec.z
+
+  if ((xa <= ya) && (xa <= za))
+    println "x"
+    v = mv3f 0. float:neg(vec.z) vec.y
+  elseif ((ya <= xa) && (ya <= za))
+    println "y"
+    v = mv3f float:neg(vec.z) 0. vec.x
+  elseif ((za <= xa) && (za <= ya))
+    println "z"
+    v = mv3f float:neg(vec.y) vec.x 0.
+  end
+
+  println v
+
+  basis.xaxis = vec
+  basis.yaxis = v * (1.0 / v3f:length v)
+  basis.zaxis = basis.xaxis *_cross basis.yaxis
+
+  ret basis
+end
+
+///-----------------------------------------------------------------------------
 /// Section: compatibility
 ///-----------------------------------------------------------------------------
 
