@@ -620,24 +620,45 @@ func int main()
     cam.distance = viewDistance
   end
 
+  macro twgroup optionString settings
+    code := ${}
+    forEachAstChild s settings
+      if ast:matchesShape(s, ${rw _ _ __})
+        typeId := ast:child s 1
+        name := ast:child s 2
+        var := ast:child s 3
+        ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
+      else
+        ret ${error "Expected rw TYPE NAME VAR" #s}
+      end
+    end
+
+    ret code
+  end
+
   bar := TwNewBar "Settings"
   TwDefine "Settings refresh=0.01 position='0 20'"
 
   TwAddSeparator bar (nullptr char) " "
-  twCameraVarOptions := "group=camera precision=2"
-  TwAddVarRW bar "distance" TW_TYPE_FLOAT (cast void* &cam.distance) twCameraVarOptions
-  TwAddVarRW bar "latitude" TW_TYPE_FLOAT (cast void* &cam.latitude) twCameraVarOptions
-  TwAddVarRW bar "longitude" TW_TYPE_FLOAT (cast void* &cam.longitude) twCameraVarOptions
 
-  TwAddVarRW bar "count" TW_TYPE_INT32 (cast void* &lightCount) "group=lights"
+  twgroup "group=camera precision=2"
+    rw TW_TYPE_FLOAT "distance" cam.distance
+    rw TW_TYPE_FLOAT "latitude" cam.latitude
+    rw TW_TYPE_FLOAT "longitude" cam.longitude
+  end
 
-  displayGroup := "group=display"
-  TwAddVarRW bar "Grid" TW_TYPE_BOOL8 (cast void* &showOrientationGrid) displayGroup
-  TwAddVarRW bar "Normals" TW_TYPE_BOOL8 (cast void* &showNormals)  displayGroup
-  TwAddVarRW bar "Bounding box" TW_TYPE_BOOL8 (cast void* &showSceneBB)  displayGroup
-  TwAddVarRW bar "Scene" TW_TYPE_BOOL8 (cast void* &showScene) displayGroup
-  TwAddVarRW bar "Points" TW_TYPE_BOOL8 (cast void* &showPoints) displayGroup
-  TwAddVarRW bar "Shadow tex" TW_TYPE_BOOL8 (cast void* &showShadowTextures) displayGroup
+  twgroup "group=lights"
+    rw TW_TYPE_INT32 "count" lightCount
+  end
+
+  twgroup "group=display"
+    rw TW_TYPE_BOOL8 "Grid" showOrientationGrid
+    rw TW_TYPE_BOOL8 "Normals" showNormals
+    rw TW_TYPE_BOOL8 "Bounding box" showSceneBB
+    rw TW_TYPE_BOOL8 "Scene" showScene
+    rw TW_TYPE_BOOL8 "Points" showPoints
+    rw TW_TYPE_BOOL8 "Shadow tex" showShadowTextures
+  end
 
   // material := Material:showNormals()
   material := shadowMaterial()
