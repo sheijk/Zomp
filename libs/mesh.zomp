@@ -7,6 +7,7 @@
 require "libs/libcee.zomp"
 require "opengl20.zomp"
 require "libs/math.zomp"
+require "libs/glutils.zomp"
 
 ///-----------------------------------------------------------------------------
 /// Section: Meshes
@@ -72,7 +73,7 @@ func void VertexStream:print(VertexStream* this)
   end
   print ", size=" this.size
   print ", components=" this.components
-  print ", type=" this.type ")"
+  print ", type=" glenum2cstring(this.type) ")"
 end
 
 macro VertexStream:foreach stream type dataPtr code
