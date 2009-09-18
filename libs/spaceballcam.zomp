@@ -35,6 +35,12 @@ func void SpaceballCamera:rotate(SpaceballCamera* this)
   glRotatef this.longitude 0. 1. 0.
 end
 
+func void SpaceballCamera:rotateInv(SpaceballCamera* this)
+  glRotatef float:neg(this.longitude) 0. 1. 0.
+  glRotatef float:neg(this.latitude) 1. 0. 0.
+  glTranslatef 0. 0. this.distance
+end
+
 func void SpaceballCamera:applyToGL(SpaceballCamera* this)
   // glMatrixMode GL_MODELVIEW
   // glLoadIdentity()

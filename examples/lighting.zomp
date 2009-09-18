@@ -98,6 +98,12 @@ var bool showSceneBB true
 var bool showPoints true
 var bool showScene true
 var bool showShadowTextures true
+var bool showCam2 true
+
+var float sphereSize 10.0
+
+var float farPlaneDistance 50.0
+var float nearPlaneDistance 1.0
 
 // avoid writing it over and over, should be part of utils lib
 macro mainloop body...
@@ -234,6 +240,7 @@ end
 defineArrayType v3f
 
 var SpaceballCamera* cam null
+var SpaceballCamera* lightCam null
 
 func void renderPoints(v3f_Array* array)
   saveAttribs
@@ -487,18 +494,19 @@ func GLint pointsMaterial()
   "
   vertexSource := "
   void main(void) {
-    gl_Position = gl_ModelViewMatrix * gl_Vertex;
-    gl_Position.xyz = gl_Position.xyz / gl_Position.w;
-
-    float length = length(gl_Position.xyz);
-    gl_Position /= length;
-
-    gl_Position.z -= 1.0;
-    gl_Position.xy /= gl_Position.z;
-
-    gl_Position.z = (length - 0.1) / (500. - 0.1);
-    gl_Position.xy *= -1.0;
-    gl_Position.w = 1.0;
+    gl_Position = ftransform();
+    // gl_Position = gl_ModelViewMatrix * gl_Vertex;
+    // gl_Position.xyz = gl_Position.xyz / gl_Position.w;
+    // 
+    // float length = length(gl_Position.xyz);
+    // gl_Position /= length;
+    // 
+    // gl_Position.z -= 1.0;
+    // gl_Position.xy /= gl_Position.z;
+    // 
+    // gl_Position.z = (length - 0.1) / (500. - 0.1);
+    // gl_Position.xy *= -1.0;
+    // gl_Position.w = 1.0;
     }"
   fragmentSource := "
   void main(void) {
@@ -519,20 +527,39 @@ func GLint shadowMaterial()
   vertexSource := "
   void main(void) {
     gl_Position = ftransform();
-    vec4 v = gl_ProjectionMatrix * gl_TextureMatrix[0] * gl_Vertex;
+    vec4 v = gl_TextureMatrix[0] * gl_Vertex;
     texcoord = v;
     // texcoord = 0.5 * (v.xy + vec2(1.0));
     }"
   fragmentSource := "
   void main(void) {
     vec3 v = texcoord.xyz / texcoord.w;
-    v = 0.5 * (v + vec3(1.0));
-    vec4 c = vec4(0.,0.,0.,1.);
-    float step = 1.0;
-    if( mod(v.x, step) > 0.9 * step )
-      c.y = 1.0;
-    c.z = texture2D(shadow, v.xy).x;
-    gl_FragColor = c;
+    // v.xy = 0.5 * (v.xy + vec2(1.0));
+    // vec4 c = vec4(0.,0.,0.,1.);
+    // float step = 1.0;
+    // if( mod(v.x, step) > 0.9 * step )
+    //   c.y = 1.0;
+    // if( abs(v.x-0.5) < 0.05 ) {
+    //     if( abs(v.y-0.5) < 0.05 )
+    //       c.y = 0.5;
+    //     else
+    //       c.y = 1.0;
+    //     }
+    vec3 color = vec3(0.);
+    if( v.x >= 0.0 && v.x <= 1.0 && v.y >= 0.0 && v.y <= 1.0 ) {
+      color = texture2DProj(shadow, texcoord).xyz;
+      // color = vec3(v.z);
+      // if( texture2D(shadow, v.xy).x >= v.z )
+      //   color = vec3(0,1,0);
+      // else
+      //   color = vec3(0,0,1);
+      }
+    else
+      color = vec3(1.,0.,0.);
+    // c.x = v.z;
+    // gl_FragColor = c + vec4(.2,.2,.2,1.);
+    // float z = v.z;
+    gl_FragColor = vec4(color,1.0) + vec4(vec3(0.1),0.);
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
@@ -620,6 +647,13 @@ func int main()
     cam.distance = viewDistance
   end
 
+  if isNull(lightCam)
+    lightCam = new SpaceballCamera
+    lightCam.distance = cam.distance
+    lightCam.latitude = cam.latitude
+    lightCam.longitude = cam.longitude + 30.
+  end
+
   macro twgroup optionString settings
     code := ${}
     forEachAstChild s settings
@@ -637,7 +671,7 @@ func int main()
   end
 
   bar := TwNewBar "Settings"
-  TwDefine "Settings refresh=0.01 position='0 20'"
+  TwDefine "Settings refresh=0.01 position='0 20' size='200 800'"
 
   TwAddSeparator bar (nullptr char) " "
 
@@ -645,6 +679,8 @@ func int main()
     rw TW_TYPE_FLOAT "distance" cam.distance
     rw TW_TYPE_FLOAT "latitude" cam.latitude
     rw TW_TYPE_FLOAT "longitude" cam.longitude
+    rw TW_TYPE_FLOAT "near plane" nearPlaneDistance
+    rw TW_TYPE_FLOAT "far plane" farPlaneDistance
   end
 
   twgroup "group=lights"
@@ -658,6 +694,11 @@ func int main()
     rw TW_TYPE_BOOL8 "Scene" showScene
     rw TW_TYPE_BOOL8 "Points" showPoints
     rw TW_TYPE_BOOL8 "Shadow tex" showShadowTextures
+    rw TW_TYPE_BOOL8 "Light cam" showCam2
+  end
+
+  twgroup "group=geometry"
+    rw TW_TYPE_FLOAT "Sphere size" sphereSize
   end
 
   // material := Material:showNormals()
@@ -677,6 +718,8 @@ func int main()
 
   angle := 0.0
 
+  movingCam := cam
+
   mainloop
     /// updating
     autoSetupViewport()
@@ -689,12 +732,18 @@ func int main()
       mouseXDelta = 0
     end
 
-    if keyDown(GLFW_KEY_LSHIFT)
-      cam.longitude = cam.longitude + toFloat(mouseXDelta)
-      cam.latitude = cam.latitude + toFloat(mouseYDelta)
+    if keyDown(GLFW_KEY_1)
+      movingCam = cam
+    elseif keyDown(GLFW_KEY_2)
+      movingCam = lightCam
     end
-    cam.distance = cam.distance + toFloat(mouseWheelDelta)
-    SpaceballCamera:restrictParams cam
+
+    if keyDown(GLFW_KEY_LSHIFT)
+      movingCam.longitude = movingCam.longitude + toFloat(mouseXDelta)
+      movingCam.latitude = movingCam.latitude + toFloat(mouseYDelta)
+    end
+    movingCam.distance = movingCam.distance + toFloat(mouseWheelDelta)
+    SpaceballCamera:restrictParams movingCam
     mouseXDelta = 0
     mouseYDelta = 0
     mouseWheelDelta = 0
@@ -708,27 +757,34 @@ func int main()
 
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
-      farPlaneDist := cam.distance + float:max(1.0, 0.5 * meshSize)
-      nearPlaneDist := float:max(1.0, cam.distance - meshSize)
-      // gluPerspective 90.0d 1.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
-      // glOrtho -10.0d 10.0d -10.0d 10.0d toDouble(nearPlaneDist) toDouble(farPlaneDist)
+      // farPlaneDist := cam.distance + float:max(1.0, 0.5 * meshSize)
+      // nearPlaneDist := float:max(1.0, cam.distance - meshSize)
+      gluPerspective 90.0d 1.0d toDouble(nearPlaneDistance) toDouble(farPlaneDistance)
+      // glOrtho -10.0d 10.0d -10.0d 10.0d toDouble(nearPlaneDist) toDouble(farPlaneDistance)
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
-      SpaceballCamera:applyToGL cam
+      SpaceballCamera:applyToGL lightCam
 
-      // drawOrientationGridXZ 100.0
+      drawOrientationGridXZ 100.0
       saveAttribs
-        // glEnable GL_VERTEX_PROGRAM_POINT_SIZE
+        glEnable GL_VERTEX_PROGRAM_POINT_SIZE
         glPointSize 4.0
         withShader pointsMaterial
           Mesh:render points points.geometry_kind 0
         end
       end
 
-      Framebuffer:makeColorTexture shadowFBO
-      Framebuffer:makeDepthTexture shadowFBO
-    end
+      glColor4f 1. 0.2 0. 1.0
+      saveTransforms
+        glTranslatef 10. 0. 5.
+        glColor4f 0. 1. 0.5 1.
+        glutSolidSphere 5.0d 10 10
+      end
+    end renderToTarget
+
+    Framebuffer:makeDepthTexture shadowFBO
+    Framebuffer:makeColorTexture shadowFBO
 
     /// rendering
 
@@ -738,7 +794,7 @@ func int main()
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     aspect := toDouble(windowWidth) / toDouble(windowHeight)
-    gluPerspective( 90.0d, aspect, 1.0d, toDouble(farPlaneDist) )
+    gluPerspective( 90.0d, aspect, 1.0d, toDouble(farPlaneDistance) )
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
@@ -750,28 +806,40 @@ func int main()
     // drawPointGridXZ 100
 
     if showScene
-      glBindTexture2D shadowFBO.colorTexture
-      // glBindTexture2D shadowFBO.depthTexture
+      // glBindTexture2D shadowFBO.colorTexture
+      glBindTexture2D shadowFBO.depthTexture
       // glEnable GL_TEXTURE_2D
-      // glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_MODE GL_COMPARE_R_TO_TEXTURE
-      // glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_FUNC GL_LEQUAL
-      // glTexParameteri GL_TEXTURE_2D GL_DEPTH_TEXTURE_MODE GL_INTENSITY
+      glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_MODE GL_COMPARE_R_TO_TEXTURE
+      glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_FUNC GL_LEQUAL
+      glTexParameteri GL_TEXTURE_2D GL_DEPTH_TEXTURE_MODE GL_INTENSITY
 
       glMatrixMode GL_TEXTURE
       glLoadIdentity()
-      SpaceballCamera:applyToGL cam
+      glTranslatef 0.5 0.5 0.
+      glScalef .5 .5 1.
+      gluPerspective 90.0d 1.0d toDouble(nearPlaneDistance) toDouble(farPlaneDistance)
+      SpaceballCamera:applyToGL lightCam
 
       withShader material
         Mesh:render mesh mesh.geometry_kind 0
-        // glutSolidSphere 1.0d 40 40
+        glColor4f 1. 1. 1. 1.
+        glutSolidSphere toDouble(sphereSize) 100 100
       end
 
+      glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_MODE GL_NONE
+      // glTexParameteri GL_TEXTURE_2D GL_TEXTURE_COMPARE_FUNC GL_LEQUAL
+      // glTexParameteri GL_TEXTURE_2D GL_DEPTH_TEXTURE_MODE GL_INTENSITY
       glBindTexture2D 0
       // saveAttribs
       //   // glPolygonMode GL_FRONT_AND_BACK GL_LINE
       //   glColor3f 1. 1. 1.
       //   Mesh:render mesh mesh.geometry_kind 0
       // end
+      saveTransforms
+        glTranslatef 10. 0. 5.
+        glColor4f 0. 1. 0.5 1.
+        glutSolidSphere 5.0d 10 10
+      end
     end
 
     if showPoints
@@ -786,6 +854,14 @@ func int main()
 
     if showNormals
       Mesh:showNormals mesh
+    end
+
+    if showCam2
+      saveTransforms
+        glMatrixMode GL_MODELVIEW
+        SpaceballCamera:rotateInv lightCam
+        drawCoordSys 1.0
+      end
     end
 
     glColor3f 1. 0. 0.
@@ -806,13 +882,19 @@ func int main()
       end
     end
 
+    printGLError()
+
     TwDraw()
   end
 
+  glClear GL_DEPTH_BUFFER_BIT
   drawPausedOverlay()
   glfwPollEvents()
 
-  print (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
+  println (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
+
+  printTexture2DInfo shadowFBO.colorTexture "fbo color"
+  printTexture2DInfo shadowFBO.depthTexture "fbo z"
 
   Mesh:delete mesh
   glDeleteProgram material

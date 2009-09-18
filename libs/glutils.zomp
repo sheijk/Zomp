@@ -627,7 +627,7 @@ func void Framebuffer:makeColorTexture(Framebuffer* fbo)
 end
 
 func void Framebuffer:makeDepthTexture(Framebuffer* this)
-  glBindTexture2D this.depthTexture
+  glBindTexture2D (getField this depthTexture)
   glGenerateMipmapEXT GL_TEXTURE_2D
   glBindTexture2D 0
 end
