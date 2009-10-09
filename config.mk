@@ -31,3 +31,12 @@ LLVM_AS=$(LLVM_BIN_DIR)/llvm-as
 LLVM_LINK=$(LLVM_BIN_DIR)/llvm-link
 LLVM_LLI=$(LLVM_BIN_DIR)/lli
 
+ECHO=echo
+CP=cp
+RM=rm
+SED=sed
+TR=tc
+
+CC=gcc
+CXX=g++
+
