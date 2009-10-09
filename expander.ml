@@ -580,9 +580,10 @@ let createNativeMacro translateF bindings macroName argNames impl =
     (tlforms @ [`DefineFunc macroFunc])
     llvmCode
 
-let log message = ()
-(*   eprintf "%s\n" message; *)
-(*   flush stderr *)
+let log message =
+  (* () *)
+  eprintf "%s\n" message;
+  flush stderr
 
 let trace message f =
   log ("-> " ^ message);
@@ -607,7 +608,7 @@ struct
       name (fun wasValid chr -> wasValid && Char.code chr < 128) true
 
   let rec extractSExprFromNativeAst astAddress =
-    if astAddress = 0 then
+    if Zompvm.zompAstIsNull astAddress then
       Ast2.idExpr "error, macro returned NULL"
     else
       let name =
@@ -719,9 +720,9 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   log "Calling macro";
   let astAddress = callMacro argsAddresses in
 
-  log (sprintf "extracting result from address %d" astAddress);
+  (* log (sprintf "extracting result from address %d" astAddress); *)
   let sexpr = NativeAst.extractSExprFromNativeAst astAddress in
-  log (sprintf "extracted:\n%s" (Ast2.toString sexpr));
+  (* log (sprintf "extracted:\n%s" (Ast2.toString sexpr)); *)
   sexpr
 
 let translateVariadicFuncMacro

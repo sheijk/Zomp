@@ -6,6 +6,7 @@
 
 #include <dlfcn.h>
 
+#include "zomputils.h"
 
 void printInt( int i ) {
   printf( "%d", i );
@@ -82,11 +83,11 @@ int zompLoadLib(const char* name) {
     fflush( stdout );
   }
 
-  return (int)handle;
+  return ptrToInt(handle);
 }
 
 bool zompCheckNativeSymbol(const char* name) {
-  return dlsym( NULL, name ) != NULL ? true : false;
+  return dlsym( NULL, name ) != NULL;
 }
 
 /* NSBundle* webKitBundle; */

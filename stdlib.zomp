@@ -320,20 +320,21 @@ end
 
 var cstring macroRest "postop..."
 
-func cstring macroAstId(int macroCurrentAst)
+func cstring macroAstId(astp macroCurrentAst)
   var cstring name (getField (cast (ptr ast) macroCurrentAst) id)
   ret name
 end
 
-func int macroAstChildCount(int macroCurrentAst)
-  getField (cast (ptr ast) macroCurrentAst) childCount
+func int macroAstChildCount(astp macroCurrentAst)
+  getField macroCurrentAst childCount
 end
 
-func int macroAstChild(int treeaddr, int num)
-  var (ptr ast) tree (cast (ptr ast) treeaddr)
+func astp macroAstChild(astp tree, int num)
+  // var (ptr ast) tree (cast (ptr ast) treeaddr)
   var (ptr ast) child (load (ptradd (getField tree childs) num))
-  var int i (cast int child)
-  ret i
+  // var int i (cast int child)
+  // ret i
+  ret child
 end
 
 func astp testMacro2(astp lastArg)

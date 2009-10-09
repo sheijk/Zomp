@@ -22,29 +22,31 @@ http://sheijk.dword.org/zomp
 
     void zompResetArgs ()
     void zompAddIntArg (int arg)
-    void zompAddPointerArg (int ptr)
+    void zompAddPointerArg (void* ptr)
 
     void zompRunFunction (const char* name)
     int zompRunFunctionInt (const char* name)
     int zompRunFunctionIntWithArgs (const char* name)
-    int zompRunFunctionPointerWithArgs (const char* name)
+    void* zompRunFunctionPointerWithArgs (const char* name)
     const char* zompRunFunctionString (const char* name)
     const char* zompRunFunctionStringWithArgs (const char* name)
     bool zompRunFunctionBool (const char* name)
 
     int zompLoadLib (const char* name)
 
-    int zompSimpleAst (const char* name)
-    void zompAddChild (int parent, int child)
-    const char* zompAstId (int ast)
-    int zompAstChildCount (int ast)
-    int zompAstChild (int ast, int num)
+    void* zompSimpleAst (const char* name)
+    void zompAddChild (void* parent, void* child)
+    const char* zompAstId (void* ast)
+    int zompAstChildCount (void* ast)
+    void* zompAstChild (void* ast, int num)
 
     void zompResetMacroArgs ()
-    void zompAddMacroArg (int ptr)
-    int zompAddressOfMacroFunction (const char* name)
-    int zompCallMacro (int macroAddress)
+    void zompAddMacroArg (void* ptr)
+    void* zompAddressOfMacroFunction (const char* name)
+    void* zompCallMacro (void* macroAddress)
 
     const char* float2string (double f)
     void zompPrintStats ()
+
+    bool zompAstIsNull (void* ptr)
 

@@ -21,6 +21,10 @@
 #include "llvm/Support/MathExtras.h"
 #include "llvm/System/TimeValue.h"
 
+#include "zomputils.h"
+
+#include "zompvm.h"
+
 extern "C" {
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
@@ -31,15 +35,6 @@ extern "C" {
 
 using std::printf;
 using namespace llvm;
-
-///-----------------------------------------------------------------------------
-/// Basic utilities
-
-// static void debugMessage(const char* msg) {
-//   printf( "[DEBUG] %s", msg );
-// }
- 
-#define ZOMP_ASSERT(x) if( !(x) ) { printf("Assertion failed: %s", #x); fflush(stdout); exit(-10); }
 
 ///-----------------------------------------------------------------------------
 /// {{{Native Callbacks
@@ -66,7 +61,7 @@ namespace ZompCallbacks {
   extern "C" {
 
     bool isBound(char* name) {
-      ZOMP_ASSERT(ZompCallbacks::isBoundCB != NULL);
+      ZMP_ASSERT(ZompCallbacks::isBoundCB != NULL,);
 
       value result = caml_callback(*ZompCallbacks::isBoundCB, caml_copy_string(name));
       return Bool_val(result);
@@ -82,7 +77,7 @@ namespace ZompCallbacks {
     };
 
     int zompLookup(char* name) {
-      ZOMP_ASSERT( ZompCallbacks::lookupCB != NULL );
+      ZMP_ASSERT( ZompCallbacks::lookupCB != NULL,);
       value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
       return Int_val(result);
     }
@@ -145,27 +140,30 @@ namespace {
 
   static void loadLLVMFunctions()
   {
-    PointerType* PointerTy_cstring = getPointerType(IntegerType::get(8));
+    PointerType* cstringPtr = getPointerType(IntegerType::get(8));
+    llvmModule->addTypeName("cstring", cstringPtr);
 
-    std::vector<const Type*>StructTy_ast_fields;
-    llvmModule->addTypeName("cstring", PointerTy_cstring);
+    // see definition in stdlib.zomp
+    std::vector<const Type*> astStructFields;
+    // id
+    astStructFields.push_back(cstringPtr);
+    // child count
+    astStructFields.push_back(IntegerType::get(32));
+    PATypeHolder astFwd = OpaqueType::get();
+    PointerType* astPtr = getPointerType(astFwd);
+    llvmModule->addTypeName("astp", astPtr);
 
-    StructTy_ast_fields.push_back(PointerTy_cstring);
-    StructTy_ast_fields.push_back(IntegerType::get(32));
-    PATypeHolder StructTy_ast_fwd = OpaqueType::get();
-    PointerType* PointerTy_astp = getPointerType(StructTy_ast_fwd);
-    llvmModule->addTypeName("astp", PointerTy_astp);
-
-    PointerType* PointerTy_0 = getPointerType(PointerTy_astp);
-    StructTy_ast_fields.push_back(PointerTy_0);
-    StructType* StructTy_ast = StructType::get(StructTy_ast_fields, /*isPacked=*/false);
-    llvmModule->addTypeName("ast", StructTy_ast);
-    cast<OpaqueType>(StructTy_ast_fwd.get())->refineAbstractTypeTo(StructTy_ast);
-    StructTy_ast = cast<StructType>(StructTy_ast_fwd.get());
+    PointerType* astPtrPtr = getPointerType(astPtr);
+    // childs
+    astStructFields.push_back(astPtrPtr);
+    StructType* ast = StructType::get(astStructFields, /*isPacked=*/false);
+    llvmModule->addTypeName("ast", ast);
+    cast<OpaqueType>(astFwd.get())->refineAbstractTypeTo(ast);
+    ast = cast<StructType>(astFwd.get());
 
     std::vector<const Type*>FuncTy_80_args;
-    FuncTy_80_args.push_back(PointerTy_astp);
-    FuncTy_80_args.push_back(PointerTy_astp);
+    FuncTy_80_args.push_back(astPtr);
+    FuncTy_80_args.push_back(astPtr);
     // ParamAttrsList *FuncTy_80_PAL = 0;
     FunctionType* FuncTy_80 = FunctionType::get(
       Type::VoidTy,
@@ -175,9 +173,9 @@ namespace {
 
     { // simpleAst decl
       std::vector<const Type*>FuncTy_73_args;
-      FuncTy_73_args.push_back(PointerTy_cstring);
+      FuncTy_73_args.push_back(cstringPtr);
       // ParamAttrsList *FuncTy_73_PAL = 0;
-      FunctionType* FuncTy_73 = FunctionType::get(PointerTy_astp, FuncTy_73_args, false);
+      FunctionType* FuncTy_73 = FunctionType::get(astPtr, FuncTy_73_args, false);
         // FuncTy_73_PAL);
 
       simpleAst = Function::Create(
@@ -195,10 +193,11 @@ namespace {
 
     { // macroAstId decl
       std::vector<const Type*>FuncTy_61_args;
-      FuncTy_61_args.push_back(IntegerType::get(32));
+      // FuncTy_61_args.push_back(IntegerType::get(32));
+      FuncTy_61_args.push_back(astPtr);
       // ParamAttrsList *FuncTy_61_PAL = 0;
       FunctionType* FuncTy_61 = FunctionType::get(
-        /*Result=*/PointerTy_cstring,
+        /*Result=*/cstringPtr,
         /*Params=*/FuncTy_61_args,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_61_PAL);
@@ -210,12 +209,14 @@ namespace {
     }
 
     { // macroAstChildCount decl
-      std::vector<const Type*>FuncTy_59_args;
-      FuncTy_59_args.push_back(IntegerType::get(32));
+      std::vector<const Type*>macroAstChildCountArgs;
+      // macroAstChildCountArgs.push_back(IntegerType::get(32));
+      macroAstChildCountArgs.push_back(astPtr);
       // ParamAttrsList *FuncTy_59_PAL = 0;
       FunctionType* FuncTy_59 = FunctionType::get(
+        // /*Result=*/IntegerType::get(32),
         /*Result=*/IntegerType::get(32),
-        /*Params=*/FuncTy_59_args,
+        /*Params=*/macroAstChildCountArgs,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_59_PAL);
 
@@ -226,13 +227,15 @@ namespace {
       macroAstChildCount->setCallingConv(CallingConv::C);
     }
 
-    { // macroGetChild decl
+    { // macroAstChild decl
       std::vector<const Type*>FuncTy_105_args;
-      FuncTy_105_args.push_back(IntegerType::get(32));
+      // FuncTy_105_args.push_back(IntegerType::get(32));
+      FuncTy_105_args.push_back(astPtr);
       FuncTy_105_args.push_back(IntegerType::get(32));
       // ParamAttrsList *FuncTy_105_PAL = 0;
       FunctionType* FuncTy_105 = FunctionType::get(
-        /*Result=*/IntegerType::get(32),
+        // /*Result=*/IntegerType::get(32),
+        /*Result=*/astPtr,
         /*Params=*/FuncTy_105_args,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_105_PAL);
@@ -248,7 +251,7 @@ namespace {
 //       Constant* const_int32_117 = Constant::getNullValue(IntegerType::get(32));
 //       ConstantInt* const_int32_174 = ConstantInt::get(APInt(32,  "1", 10));
 //       ConstantInt* const_int32_187 = ConstantInt::get(APInt(32,  "2", 10));
-//       Constant* const_ptr_188 = Constant::getNullValue(PointerTy_cstring);
+//       Constant* const_ptr_188 = Constant::getNullValue(cstringPtr);
 
 //       Function::arg_iterator args = simpleAst->arg_begin();
 //       Value* ptr_name = args++;
@@ -257,8 +260,8 @@ namespace {
 //       BasicBlock* label_404 = new BasicBlock("",simpleAst,0);
 
 //       // Block  (label_404)
-//       AllocaInst* ptr_a = new AllocaInst(PointerTy_astp, "a", label_404);
-//       MallocInst* ptr_temp123 = new MallocInst(StructTy_ast, "temp123", label_404);
+//       AllocaInst* ptr_a = new AllocaInst(astPtr, "a", label_404);
+//       MallocInst* ptr_temp123 = new MallocInst(ast, "temp123", label_404);
 //       StoreInst* void_405 = new StoreInst(ptr_temp123, ptr_a, false, label_404);
 //       LoadInst* ptr_temp125 = new LoadInst(ptr_a, "temp125", false, label_404);
 //       std::vector<Value*> ptr_temp124_indices;
@@ -277,7 +280,7 @@ namespace {
 //       ptr_temp128_indices.push_back(const_int32_117);
 //       ptr_temp128_indices.push_back(const_int32_187);
 //       Instruction* ptr_temp128 = new GetElementPtrInst(ptr_temp129, ptr_temp128_indices.begin(), ptr_temp128_indices.end(), "temp128", label_404);
-//       CastInst* ptr_temp130 = new BitCastInst(const_ptr_188, PointerTy_0, "temp130", label_404);
+//       CastInst* ptr_temp130 = new BitCastInst(const_ptr_188, astPtrPtr, "temp130", label_404);
 //       StoreInst* void_408 = new StoreInst(ptr_temp130, ptr_temp128, false, label_404);
 //       LoadInst* ptr_temp131 = new LoadInst(ptr_a, "temp131", false, label_404);
 //       new ReturnInst(ptr_temp131, label_404);
@@ -452,7 +455,7 @@ extern "C" {
     // std::cout << "Received bool from OCaml: " << Bool_val(result) << std::endl;
 
     ZompCallbacks::init();
-    ZOMP_ASSERT( ZompCallbacks::areValid() );
+    ZMP_ASSERT( ZompCallbacks::areValid(), );
 
     return true;
   }
@@ -624,7 +627,7 @@ extern "C" {
     argValues.push_back( intval );
   }
 
-  void zompAddPointerArg(int ptr) {
+  void zompAddPointerArg(void* ptr) {
     argTypes.push_back( getPointerType(OpaqueType::get()) );
     argValues.push_back( ptrValue(ptr) );
   }
@@ -643,12 +646,12 @@ extern "C" {
       exit( 123 );
     }
 
-    return addr;
+    return ptrToInt(ptr);
   }
 
-  int zompRunFunctionPointerWithArgs(const char* functionName) {
+  void* zompRunFunctionPointerWithArgs(const char* functionName) {
     GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
-    return ptrToCamlInt( result.PointerVal );
+    return result.PointerVal;
   }
 
   const char* zompRunFunctionStringWithArgs(const char* functionName) {
@@ -810,13 +813,13 @@ extern "C" {
     macroArgs.clear();
   }
 
-  void zompAddMacroArg(int ptr) {
-    macroArgs.push_back(bitcast<void*>(ptr));
+  void zompAddMacroArg(void* ptr) {
+    macroArgs.push_back(ptr);
   }
 
-  int zompAddressOfMacroFunction(char* name) {
-    PATypeHolder StructTy_ast_fwd = OpaqueType::get();
-    PointerType* ast_ptr = getPointerType(StructTy_ast_fwd);
+  void* zompAddressOfMacroFunction(const char* name) {
+    PATypeHolder astFwd = OpaqueType::get();
+    PointerType* ast_ptr = getPointerType(astFwd);
     std::vector<const Type*> args;
     args.push_back(ast_ptr);
     FunctionType* macroFuncType = FunctionType::get(ast_ptr, args, false);
@@ -834,15 +837,16 @@ extern "C" {
     }
 
     void* funcAddr = (void*) executionEngine->getPointerToFunction(macroFunc);
+    ZMP_ASSERT(funcAddr,);
 
-    return ptrToCamlInt(funcAddr);
+    return funcAddr;
   }
 
-  int zompCallMacro(int macroAddress) {
+  void* zompCallMacro(void* macroAddress) {
     void* (*macroFunc)(void**) = (void* (*)(void**))macroAddress;
     void** macroArguments = &macroArgs[0];
     void* resultAst = macroFunc(macroArguments);
-    return ptrToCamlInt(resultAst);
+    return resultAst;
   }
 
 // improves compiliation time of realistic programs by two
@@ -850,46 +854,50 @@ extern "C" {
 
 #ifdef ZOMP_CACHED_FUNCS
 
-  int zompSimpleAst(char* name) {
+  void* zompSimpleAst(const char* name) {
     checkId(name, "zompSimpleAst");
 
-    static void* (*simpleAstF)(void*) =
-      (void* (*)(void*)) executionEngine->getPointerToFunction(simpleAst);
-    assert( simpleAstF != NULL );
+    static void* (*simpleAstF)(const void*) =
+      (void* (*)(const void*)) executionEngine->getPointerToFunction(simpleAst);
+    ZMP_ASSERT( simpleAstF, );
 
-    return ptrToCamlInt( simpleAstF(name) );
+    return simpleAstF(name);
   }
 
-  void zompAddChild(int parent, int child) {
+  void zompAddChild(void* parent, void* child) {
     static void (*addChildF)(void*, void*) =
       (void (*)(void*,void*)) executionEngine->getPointerToFunction(addChild);
-    assert( addChildF != NULL );
+    ZMP_ASSERT( addChildF, );
 
-    addChildF( (void*)(parent), (void*)(child) );
+    addChildF( parent, child );
   }
 
-  const char* zompAstId(int ast) {
-    static char* (*macroAstIdF)(int) =
-      (char* (*)(int)) executionEngine->getPointerToFunction(macroAstId);
-    assert( macroAstIdF != NULL );
+  const char* zompAstId(void* ast) {
+    static char* (*macroAstIdF)(void*) =
+      (char* (*)(void*)) executionEngine->getPointerToFunction(macroAstId);
+    ZMP_ASSERT( macroAstIdF != NULL ,);
 
     return macroAstIdF(ast);
   }
 
-  int zompAstChildCount(int ast) {
-    static int (*macroAstChildCountF)(int) =
-      (int (*)(int)) executionEngine->getPointerToFunction(macroAstChildCount);
-    assert( macroAstChildCountF != NULL );
+  int zompAstChildCount(void* ast) {
+    static int (*macroAstChildCountF)(void*) =
+      (int (*)(void*)) executionEngine->getPointerToFunction(macroAstChildCount);
+    ZMP_ASSERT( macroAstChildCountF != NULL ,);
 
     return macroAstChildCountF(ast);
   }
 
-  int zompAstChild(int ast, int num) {
-    static int (*macroAstChildF)(int, int) =
-      (int (*)(int, int)) executionEngine->getPointerToFunction(macroAstChild);
-    assert( macroAstChildF != NULL );
+  void* zompAstChild(void* ast, int num) {
+    static void* (*macroAstChildF)(void*, int) =
+      (void* (*)(void*, int)) executionEngine->getPointerToFunction(macroAstChild);
+    ZMP_ASSERT( macroAstChildF != NULL ,);
 
     return macroAstChildF(ast, num);
+  }
+
+  bool zompAstIsNull(void* ast) {
+    return ast == NULL;
   }
 
 #else
@@ -1044,8 +1052,8 @@ extern "C" {
 //   }
 
 
-  void zompRunMacro() {
-  }
+  // void zompRunMacro() {
+  // }
 
 } // extern "C"
 

@@ -36,6 +36,7 @@ CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
 
 CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) -m64
+C_FLAGS=-I /usr/local/lib/ocaml/ -m64
 
 ifeq ($(DEBUG), 1)
 OCAMLC += -g
