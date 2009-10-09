@@ -498,19 +498,19 @@ func GLint pointsMaterial()
   "
   vertexSource := "
   void main(void) {
-    gl_Position = ftransform();
-    // gl_Position = gl_ModelViewMatrix * gl_Vertex;
-    // gl_Position.xyz = gl_Position.xyz / gl_Position.w;
-    // 
-    // float length = length(gl_Position.xyz);
-    // gl_Position /= length;
-    // 
-    // gl_Position.z -= 1.0;
-    // gl_Position.xy /= gl_Position.z;
-    // 
-    // gl_Position.z = (length - 0.1) / (500. - 0.1);
-    // gl_Position.xy *= -1.0;
-    // gl_Position.w = 1.0;
+    // gl_Position = ftransform();
+    gl_Position = gl_ModelViewMatrix * gl_Vertex;
+    gl_Position.xyz = gl_Position.xyz / gl_Position.w;
+
+    float length = length(gl_Position.xyz);
+    gl_Position /= length;
+
+    gl_Position.z -= 1.0;
+    gl_Position.xy /= gl_Position.z;
+
+    gl_Position.z = (length - 0.1) / (500. - 0.1);
+    gl_Position.xy *= -1.0;
+    gl_Position.w = 1.0;
     }"
   fragmentSource := "
   void main(void) {
@@ -525,47 +525,34 @@ func GLint shadowMaterial()
   varyingSource := "
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
-  varying vec4 texcoord;
+  // spaces: ws - world, os - object, ls - light, ps - projected light
+  // gl_TextureMatrix[0] = os -> ps
+  varying vec4 psTexcoord;
   varying vec3 normal;
-  uniform sampler2DShadow shadow;
+  uniform sampler2D shadow;
   "
   vertexSource := "
   void main(void) {
     gl_Position = ftransform();
-    vec4 v = gl_TextureMatrix[0] * gl_Vertex;
-    texcoord = v;
+    vec4 osPos = gl_Vertex;
+    psTexcoord = gl_TextureMatrix[0] * osPos;
     normal = gl_NormalMatrix * gl_Normal;
-    // texcoord = 0.5 * (v.xy + vec2(1.0));
     }"
   fragmentSource := "
   void main(void) {
-    vec3 v = texcoord.xyz / texcoord.w;
-    // v.xy = 0.5 * (v.xy + vec2(1.0));
-    // vec4 c = vec4(0.,0.,0.,1.);
-    // float step = 1.0;
-    // if( mod(v.x, step) > 0.9 * step )
-    //   c.y = 1.0;
-    // if( abs(v.x-0.5) < 0.05 ) {
-    //     if( abs(v.y-0.5) < 0.05 )
-    //       c.y = 0.5;
-    //     else
-    //       c.y = 1.0;
-    //     }
+    vec3 psV = psTexcoord.xyz / psTexcoord.w;
     float vis = 0.0;
-    if( v.x >= 0.0 && v.x <= 1.0 && v.y >= 0.0 && v.y <= 1.0 ) {
-      vis = shadow2DProj(shadow, texcoord).x;
-      // color = vec3(v.z);
-      // if( texture2D(shadow, v.xy).x >= v.z )
-      //   color = vec3(0,1,0);
-      // else
-      //   color = vec3(0,0,1);
+    if( psV.x >= 0.0 && psV.x <= 1.0 && psV.y >= 0.0 && psV.y <= 1.0 ) {
+        vec2 front;
+        vec3 R = psV;
+        front.x = (R.x / (2. * (1. - R.z))) + 0.5;
+        front.y = 1. - (R.y / (2 * (1. - R.z)) + 0.5);
+        // vis = shadow2DProj(shadow, psTexcoord).x;
+        vis = texture2D(shadow, front).x;
     }
     else {
-      vis = 0.0;
+      vis = 1.0;
     }
-    // c.x = v.z;
-    // gl_FragColor = c + vec4(.2,.2,.2,1.);
-    // float z = v.z;
     vec3 color = normalize(normal)*0.5 + vec3(0.5);
     gl_FragColor = vec4(color*vis, 1.) + vec4(vec3(0.1),0.);
     }"
@@ -573,6 +560,39 @@ func GLint shadowMaterial()
   assert (shader != 0)
   ret shader
 end
+
+// func GLint shadowMaterial()
+//   varyingSource := "
+//   #version 120
+//   #extension GL_EXT_gpu_shader4 : enable
+//   varying vec4 texcoord;
+//   varying vec3 normal;
+//   uniform sampler2DShadow shadow;
+//   "
+//   vertexSource := "
+//   void main(void) {
+//     gl_Position = ftransform();
+//     vec4 v = gl_TextureMatrix[0] * gl_Vertex;
+//     texcoord = v;
+//     normal = gl_NormalMatrix * gl_Normal;
+//     }"
+//   fragmentSource := "
+//   void main(void) {
+//     vec3 v = texcoord.xyz / texcoord.w;
+//     float vis = 0.0;
+//     if( v.x >= 0.0 && v.x <= 1.0 && v.y >= 0.0 && v.y <= 1.0 ) {
+//       vis = shadow2DProj(shadow, texcoord).x;
+//     }
+//     else {
+//       vis = 0.0;
+//     }
+//     vec3 color = normalize(normal)*0.5 + vec3(0.5);
+//     gl_FragColor = vec4(color*vis, 1.) + vec4(vec3(0.1),0.);
+//     }"
+//   shader := createShader varyingSource vertexSource fragmentSource
+//   assert (shader != 0)
+//   ret shader
+// end
 
 func int main()
   init()
@@ -777,21 +797,20 @@ func int main()
 
       drawOrientationGridXZ 100.0
       saveAttribs
-        // glEnable GL_VERTEX_PROGRAM_POINT_SIZE
-        // glPointSize 4.0
-        withShader material
-          Mesh:render mesh mesh.geometry_kind material
+        glEnable GL_VERTEX_PROGRAM_POINT_SIZE
+        glPointSize 4.0
+        withShader pointsMaterial
+          Mesh:render points points.geometry_kind 0
+          glColor4f 1. 0.2 0. 1.0
+          saveTransforms
+            glTranslatef 10. 0. 5.
+            glColor4f 0. 1. 0.5 1.
+            glutSolidSphere 5.0d 10 10
+          end
         end
-        // withShader pointsMaterial
-        //   Mesh:render points points.geometry_kind 0
+        // withShader material
+        //   Mesh:render mesh mesh.geometry_kind material
         // end
-      end
-
-      glColor4f 1. 0.2 0. 1.0
-      saveTransforms
-        glTranslatef 10. 0. 5.
-        glColor4f 0. 1. 0.5 1.
-        glutSolidSphere 5.0d 10 10
       end
     end renderToTarget
 
