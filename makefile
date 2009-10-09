@@ -35,7 +35,7 @@ CAML_PP=
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
 
-CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR)
+CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) -m64
 
 ifeq ($(DEBUG), 1)
 OCAMLC += -g
@@ -85,8 +85,8 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	@$(ECHO) Unpacking $@ ...
 	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
 	touch $@ # tar sets date from archive. avoid downloading the archive twice
-	cd tools/llvm-$(LLVM_VERSION) && ./configure
 	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS=-m64
 
 tools/llvm: tools/llvm-$(LLVM_VERSION)
 	@$(ECHO) Building LLVM $(LLVM_VERSION)
