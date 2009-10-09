@@ -300,10 +300,20 @@ struct
     let voidType = (new paramTypeGen
                       ~name:"void"
                       ~ctype:"void"
-                      ~mltype:"unit" () :> paramType)
+                      ~mltype:"unit"
+                      () :> paramType)
+    in
+    let voidPtrType = (new paramTypeGen
+                         ~name:"void*"
+                         ~ctype:"void*"
+                         ~mltype:"cptr"
+                         ~value2ctype:"(void*)"
+                         ~ctype2val:"(value)"
+                         () :> paramType)
     in
     Hashtbl.add tbl "void" voidType;
     Hashtbl.add tbl "GLvoid" voidType;
+    Hashtbl.add tbl "void*" voidPtrType;
     tbl
 
   let findType ~name =
@@ -471,6 +481,7 @@ struct
   let gen_caml_code expressions =
     let helpers =
       "type double = float\n" ^
+        "type cptr\n" ^
         "\n"
     in
     let expr2str = function
@@ -599,7 +610,6 @@ struct
          false
          nonChecked)
 
-
   let genc_function func =
     let namedParams = named_params func.params in
     let funccall =
@@ -674,13 +684,27 @@ struct
     wrapperFunction ^ "\n\n" ^ bytecodeWrapperFunction
 
   let gen_c_code expressions =
-    let expr2code = function
-      | Function f -> (genc_function f) ^ "\n"
-      | Include filename -> "#include " ^ filename ^ "\n"
+    let expr2decl = function
+      | Function f ->
+          sprintf "%s %s(%s);"
+            f.retval
+            f.fname
+            (concat (List.map (fun p -> p.ptype) f.params) ", ")
       | _ -> ""
     in
-    let snippets = List.map expr2code expressions in
-    (concat snippets "")
+    let decls = List.map expr2decl expressions in
+    let includes, glueFuncs =
+      List.fold_right (fun expr (includes, glueFuncs) ->
+                         match expr with
+                           | Function f ->
+                               (includes, genc_function f :: glueFuncs)
+                           | Include filename ->
+                               (("#include " ^ filename) :: includes, glueFuncs)
+                           | _ -> includes, glueFuncs)
+        expressions
+        ([], [])
+    in
+    (concat (includes @ decls @ glueFuncs) "\n")
 
   let generate_c_code = gen_c_code
 

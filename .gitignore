@@ -85,3 +85,4 @@ tools
 /quicktext.zomp
 /extlibs
 /tests/sharkperf.zomp
+/tests/*.ll
