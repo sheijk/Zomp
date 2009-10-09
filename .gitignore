@@ -86,3 +86,4 @@ tools
 /extlibs
 /tests/sharkperf.zomp
 /tests/*.ll
+/bk/*
