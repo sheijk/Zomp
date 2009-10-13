@@ -30,6 +30,7 @@ LLVM_DIS=$(LLVM_BIN_DIR)/llvm-dis
 LLVM_AS=$(LLVM_BIN_DIR)/llvm-as
 LLVM_LINK=$(LLVM_BIN_DIR)/llvm-link
 LLVM_LLI=$(LLVM_BIN_DIR)/lli
+LLVM_LD=$(LLVM_BIN_DIR)/llvm-ld
 
 ECHO=echo
 CP=cp

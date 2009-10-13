@@ -40,12 +40,12 @@ using_assimp.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glu
 
 %.bc: %.ll ../stdlib.zomp ../stdlib.c
 	echo Compiling $< to $@
-	llvm-as -f $< -o $(<:.ll=.o.bc)
-	llvm-link -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
+	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
+	$(LLVM_LINK) -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
 
 %.exe: %.bc
-	llvm-ld -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS)
+	$(LLVM_LD) -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS)
 
 %.glexe: %.bc
-	llvm-ld -native -o $@ $< -L=.. -L-. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL -framework=GLUT $(EXTRA_OPTIONS)
+	$(LLVM_LD) -native -o $@ $< -L=.. -L-. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL -framework=GLUT $(EXTRA_OPTIONS)
 
