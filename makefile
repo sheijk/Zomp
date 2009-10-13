@@ -35,8 +35,13 @@ CAML_PP=
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
 
-CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) -m64
-C_FLAGS=-I /usr/local/lib/ocaml/ -m64
+ARCHFLAG = -m32
+
+CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
+C_FLAGS=-I /usr/local/lib/ocaml/ $(ARCHFLAG)
+
+CFLAGS = $(C_FLAGS)
+CXXFLAGS = $(CXX_FLAGS)
 
 ifeq ($(DEBUG), 1)
 OCAMLC += -g
@@ -87,7 +92,7 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
 	touch $@ # tar sets date from archive. avoid downloading the archive twice
 	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS=-m64
+	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS=$(ARCHFLAG)
 
 tools/llvm: tools/llvm-$(LLVM_VERSION)
 	@$(ECHO) Building LLVM $(LLVM_VERSION)
@@ -106,11 +111,11 @@ tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 
 libglut.dylib:
 	@$(ECHO) Building $@ ...
-	$(CC) -dynamiclib -framework GLUT -o $@
+	$(CC) $(CFLAGS) -dynamiclib -framework GLUT -o $@
 
 libquicktext.dylib: glQuickText.o
 	@$(ECHO) Building $@ ...
-	$(CXX) -dynamiclib -o $@ glQuickText.o -framework OpenGL
+	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ glQuickText.o -framework OpenGL
 
 EXTLIB_DIR = extlibs
 ASSIMP_DIR = $(EXTLIB_DIR)/assimp-r281--sdk
@@ -119,7 +124,7 @@ libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
 	$(CP) $< $@
 
 assimp.dylib: libassimp.a makefile forcelinkassimp.c
-	$(CXX) -dynamiclib -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
+	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
 # opengl.dylib: opengl.c
 # 	@$(ECHO) Building $@ ...
@@ -131,7 +136,7 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o stdlib.ll
 	@$(ECHO) Building $@ ...
 	$(LLVM_CXX) $(CXX_FLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
-	$(CC) $(CXX_FLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
+	$(CC) $(CFLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
 	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 
 sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
