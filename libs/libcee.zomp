@@ -7,6 +7,19 @@
 
 
 ///-----------------------------------------------------------------------------
+/// Section: C functions (memory)
+///-----------------------------------------------------------------------------
+
+// attention, might not work on 64-bit.. :\
+type size_t int
+type int_t int
+
+dfunc void* memset(void* ptr, int_t value, size_t bytes)
+dfunc void* memcpy(void* destination, void* source, size_t bytes)
+dfunc void* memmove(void* destination, void* source, size_t bytes)
+dfunc int_t memcmp(void* ptr1, void* ptr2, size_t bytes)
+
+///-----------------------------------------------------------------------------
 /// Section: Untested
 ///-----------------------------------------------------------------------------
 
@@ -82,14 +95,15 @@ macro op:= name value
   ret ${error "Expected a single identifier on left hand side" ${#name := #value}}
 end
 
-// macro dummy l r
-//   printlnString "applying dummy"
-//   ret ${foo bar}
-// end
-// 
-// func void p2(ast* l, ast* r)
-//   printlnString "should do something now.."
-// end
+/// Allow unitialized variables to be created like
+///   num := undef int
+macro undef type
+  uniqueId name "undef_value"
+  ret ${
+    var #type #name
+    #name
+  end}
+end
 
 /// Given an ast and an ast containing placeholders _/__ the
 /// shapes of both ast's are matched against each other. They match if they have
@@ -292,7 +306,7 @@ end
 
 func void free(void* ptr)
 template dealloc ptr free(cast void* #ptr)
-  
+
 template return value
   ret #value
 end

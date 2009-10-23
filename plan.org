@@ -874,6 +874,8 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] make prompt red/green depending on result of last eval
 ** TODO [#A] list bindings C-c,C-f with multiple arguments should return things matching all not matching any
 ** TODO [#A] directly run individual test under debugger
+** TODO +=, *= etc operators                                      :quick:parser:
+** TODO bitwise operators (<<, >>, |, &, ^, !) :quick:parser:
 
 * Use Cases                                                            :usecase:
 

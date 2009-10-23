@@ -1,0 +1,365 @@
+/**
+ * 2D metaballs
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
+require "libs/libcee.zomp"
+require "libs/math.zomp"
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if bool:not(initCalled)
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+// avoid writing it over and over, part of utils lib
+macro mainloop body...
+  ret ${
+    time := 0.0
+    lastTime := 0.0
+    frameDuration := 0.0
+    frameNum := 0
+    startTime := toFloat glfwGetTime()
+    running := true
+
+    while running
+      lastTime = time
+      time = toFloat glfwGetTime()
+      frameDuration = time - lastTime
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = running && (bool:not isPressed(GLFW_KEY_ESC))
+      ++frameNum
+    end
+
+    endTime := toFloat glfwGetTime()
+  end}
+end
+
+template saveMatrix code
+  glPushMatrix()
+  #code
+  glPopMatrix()
+end
+
+func void drawWireQuad(float left, float top, float right, float bottom)
+  rendergl GL_LINE_LOOP
+    glVertex2f left bottom
+    glVertex2f right bottom
+    glVertex2f right top
+    glVertex2f left top
+  end
+end
+
+func void drawQuad(float left, float top, float right, float bottom)
+  rendergl GL_QUADS
+    glVertex2f left bottom
+    glVertex2f right bottom
+    glVertex2f right top
+    glVertex2f left top
+  end
+end
+
+func void glzColorMono(float intensity)
+  glColor3f intensity intensity intensity
+end
+
+func void visualizeGrid(float* values, int width, int height)
+  ptr := values
+  dx := 1.0 / toFloat (width - 1)
+  dy := 1.0 / toFloat (height - 1)
+  rendergl GL_POINTS
+    for y 0 height
+      for x 0 width
+        v := ptr*
+        glColor3f v v v
+        glVertex2f (dx * toFloat x) (dy * toFloat y)
+        ptr = ptr + 1
+      end
+    end
+  end
+end
+
+func int isInside2(float x)
+  if (x > 0.3)
+    ret 1
+  end
+  ret 0
+end
+
+func void sendMetaTile(int ul, int ur, int ll, int lr, float x, float y, float w, float h)
+  count := ul + ur + ll + lr
+  sideId := u32:shl(ul,3) + u32:shl(ur,2) + u32:shl(ll,1) + u32:shl(lr,0)
+
+  hw := 0.5 * w
+  hh := 0.5 * h
+
+  if (count == 3)
+    sideId = u32:xor(sideId, 15)
+    count = 1
+  end
+
+  if (count == 1)
+    if (sideId == 1)
+      glVertex2f (x+hw) (y+h)
+      glVertex2f (x+w) (y+hh)
+    elseif (sideId == 2)
+      glVertex2f (x+0.0) (y+hh)
+      glVertex2f (x+hw) (y+h)
+    elseif (sideId == 4)
+      glVertex2f (x+hw) (y+0.0)
+      glVertex2f (x+w) (y+hh)
+    elseif (sideId == 8)
+      glVertex2f (x+hw) (y+0.0)
+      glVertex2f (x+0.0) (y+hh)
+    end
+  elseif (count == 2)
+    if ((sideId == 3) || (sideId == 12))
+      glVertex2f (x+0.) (y+hh)
+      glVertex2f (x+w) (y+hh)
+    elseif ((sideId == 5) || (sideId == 10))
+      glVertex2f (x+hw) (y+0.)
+      glVertex2f (x+hw) (y+h)
+    elseif (sideId == 6)
+      glVertex2f (x+hw) (y+0.)
+      glVertex2f (x+w) (y+hh)
+      glVertex2f (x+0.) (y+hh)
+      glVertex2f (x+hw) (y+h)
+    elseif (sideId == 9)
+      glVertex2f (x+0.) (y+hh)
+      glVertex2f (x+hw) (y+0.)
+      glVertex2f (x+hw) (y+h)
+      glVertex2f (x+w) (y+hh)
+    end
+  end
+end
+
+func void drawTilesTest()
+  x := 0.0
+  y := 0.0
+  w := 1.0
+  h := 2.0
+
+  template tile ul ur ll lr
+    x = x + 1.1 * w
+    glColor3f 0.5 1.0 0.5
+    drawWireQuad x y (x+w) (y+h)
+    rendergl GL_POINTS
+      glColor3f 0. 0.5 1.0
+      if (#ul != 0)
+        glVertex2f (x+0.) (y+0.)
+      end
+      if (#ur != 0)
+        glVertex2f (x+w) (y+0.)
+      end
+      if (#ll != 0)
+        glVertex2f (x+0.) (y+h)
+      end
+      if (#lr != 0)
+        glVertex2f (x+w) (y+h)
+      end
+    end
+    rendergl GL_LINES
+      glColor3f 1. 1. 1.
+      sendMetaTile #ul #ur #ll #lr x y w h
+    end
+  end
+
+  saveMatrix
+    glScalef 20. 20. 1.
+    glTranslatef 0. 3. 0.
+    tile 0 0 0 0
+    tile 0 0 0 1
+    tile 0 0 1 0
+    tile 0 0 1 1
+    tile 0 1 0 0
+    tile 0 1 0 1
+    tile 0 1 1 0
+    tile 0 1 1 1
+    tile 1 0 0 0
+    tile 1 0 0 1
+    tile 1 0 1 0
+    tile 1 0 1 1
+    tile 1 1 0 0
+    tile 1 1 0 1
+    tile 1 1 1 0
+    tile 1 1 1 1
+  end
+end
+
+template begin code
+  #code
+end
+
+func void drawMetaballs2d(float* values, int width, int height)
+  dx := 1.0 / toFloat (width - 1)
+  dy := 1.0 / toFloat (height - 1)
+
+  template grid xp yp
+    isInside2 (values + #yp * width + #xp)*
+  end
+
+  rendergl GL_LINES
+    glColor3f 1. 1. 1.
+    for y 0 (height-1)
+      for x 0 (width-1)
+        ul := grid x y
+        ur := grid (x+1) y
+        ll := grid x (y+1)
+        lr := grid (x+1) (y+1)
+        sendMetaTile ul ur ll lr (dx * toFloat x) (dy * toFloat y) dx dy
+      end
+    end
+  end
+end
+
+func void visualizePoints(v3f* points, int count)
+  rendergl GL_POINTS
+    for i 0 count
+      glVertex2f (points+i)*.x (points+i)*.y
+    end
+  end
+end
+
+/// cheap fake-sizeof function. only works for a limited and fixed number
+/// of types
+macro sizeof type
+  if ast:matchesShape(type, ${float})
+    ret ${4}
+  elseif ast:matchesShape(type, ${int})
+    ret ${4}
+  end
+
+  ret ${error "not a known type" #type}
+end
+
+func void applyBalls(float* gridValues, int gridWidth, int gridHeight, v3f* balls, int ballCount)
+  dx := 1.0 / toFloat (gridWidth - 1)
+  dy := 1.0 / toFloat (gridHeight - 1)
+
+  // pos := mv3f 0. 0. 0.
+  // ballPos := mv3f 0. 0. 0.
+
+  for y 0 gridHeight
+    for x 0 gridWidth
+      v := gridValues + (y * gridWidth + x)
+      v* = 0.0
+      for ballNum 0 ballCount
+        // pos.x = dx * toFloat x
+        // pos.y = dy * toFloat y
+        // ballPos = (balls + ballNum)*
+        // dist := v3f:length(pos - ballPos)
+        // dist := v3f:length(pos - (balls + ballNum)*)
+        pos := mv3f (dx * toFloat x) (dy * toFloat y) 0.0
+        dist := v3f:length (pos - (balls + ballNum)*)
+        v* = v* + float:max(0.0, 1.0 - 8.0 * dist)
+      end
+    end
+  end
+end
+
+func int rand()
+
+func int random (int max)
+  ret int:srem(rand(), max)
+end
+
+func float float:random()
+  randomInt := random(4097)
+  return (toFloat(randomInt) / 4096.0)
+end
+
+func float float:srandom()
+  return (float:random() * 2.0 - 1.0)
+end
+
+func int main()
+  init()
+
+  angle := 0.0
+
+  gridWidth := 100
+  gridHeight := 100
+  values := malloc float (gridWidth * gridHeight)
+  // memset (cast void* values) 0 (gridWidth * gridHeight * sizeof float)
+
+  ballCount := 20
+  balls := malloc v3f ballCount
+  ballOffsets := malloc float ballCount
+  for ballNum 0 ballCount
+    balls[ballNum] = mv3f float:random() float:random() 0.0
+    ballOffsets[ballNum] = (balls+ballNum)*.x
+  end
+
+  mainloop
+    autoSetupViewport()
+    angle = angle + 128.0 * frameDuration
+
+    for ballNum2 0 ballCount
+      bo := (ballOffsets+ballNum2)*
+      balls[ballNum2].x = sinf(time + bo * 10.0) * 0.3 + bo
+    end
+
+    applyBalls values gridWidth gridHeight balls ballCount
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    glOrtho 0.0d 400.0d 300.0d 0.0d 0.9d 2.0d
+    glColor4f 1. 1. 1. 1.
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. 0. -1.0
+
+    drawTilesTest()
+    saveMatrix
+      glPointSize 1.0
+      glScalef 400. 300. 1.
+      visualizeGrid values gridWidth gridHeight
+      drawMetaballs2d values gridWidth gridHeight
+
+      glPointSize 8.0
+      glColor3f 1. 0. 0.
+      visualizePoints balls ballCount
+    end
+
+    // if (time - startTime > 5.0)
+    //   running = false
+    // end
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  dealloc values
+  dealloc balls
+  dealloc ballOffsets
+
+  ret 0
+end
+
