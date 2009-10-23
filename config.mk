@@ -40,4 +40,5 @@ TR=tc
 
 CC=gcc
 CXX=g++
+AS=as
 

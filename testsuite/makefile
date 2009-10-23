@@ -40,6 +40,9 @@ astmatch.ll: ../libs/libcee.zomp
 
 .PRECIOUS: .ll
 
+# Tests whether the prelude alone can be compiled. Is a dependency for all other
+# tests to avoid having all tests run and fail because the prelude/compiler is
+# completely broken
 preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
 	@$(ECHO) Checking whether prelude compiles...
 	@rm -f $@.zomp $@.ll $@.o.bc $@.bc $@
