@@ -32,6 +32,7 @@ extern "C" {
 #include <caml/callback.h>
 }
 
+#include <signal.h>
 
 using std::printf;
 using namespace llvm;
@@ -433,6 +434,29 @@ extern "C" {
   //   // passManager->add(createAlwaysInlinerPass());
   // }
 
+  /// functionality to request the running program in the toplevel to pause it's
+  /// execution (return from main) so a recompilation can happen
+  static bool zompDidReqestPause = false;
+
+  bool zompRequestedPause() {
+    return zompDidReqestPause;
+  }
+
+  bool zompSetRequestPause(bool request) {
+    zompDidReqestPause = request;
+  }
+
+  static const int requestPauseSignal = SIGINT;
+
+  void requestPauseSignalHandler(int signalNumber) {
+    // ZMP_ASSERT(requestPauseSignal == signalNumber,);
+
+    zompDidReqestPause = true;
+
+    printf("Someone requested the running program to pause\n");
+    fflush(stdout);
+  }
+
   bool zompInit() {
 //     printf( "Initializing ZompVM\n" );
     fflush( stdout );
@@ -456,6 +480,12 @@ extern "C" {
 
     ZompCallbacks::init();
     ZMP_ASSERT( ZompCallbacks::areValid(), );
+
+    if( signal(requestPauseSignal, requestPauseSignalHandler) == SIG_IGN ) {
+      fprintf(stderr,
+              "Failed to install signal handler. "
+              "Requesting pause functionality will not be available");
+    }
 
     return true;
   }

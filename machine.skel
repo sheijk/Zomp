@@ -8,6 +8,9 @@ http://sheijk.dword.org/zomp
 	bool zompInit ()
 	void zompShutdown ()
 
+    bool zompRequestedPause ()
+    void zompSetRequestPause (bool request)
+
     void zompVerifyCode (bool doit)
     bool zompDoesVerifyCode ()
 

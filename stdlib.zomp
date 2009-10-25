@@ -28,7 +28,14 @@ func char* char2cstring(char c)
 
 func char* copyString(char* str)
 
+///-----------------------------------------------------------------------------
+/// Section: ZompVM
+///-----------------------------------------------------------------------------
+
 func int zompLoadLib(char* libname)
+func bool zompRequestedPause()
+func void zompSetRequestPause(bool request)
+
 // (func bool zompCheckNativeSymbol (((ptr char) libname)))
 
 func void stdlibHello()

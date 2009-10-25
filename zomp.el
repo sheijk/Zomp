@@ -198,6 +198,7 @@ indent the next line when they occur at the beginning of a line"
 (defun zomp-tl-eval-region ()
   (interactive)
   (message "Evaluating region")
+  (zomp-request-execution-abort)
   (process-send-region (zomp-get-toplevel-buffer 'create) (region-beginning) (region-end))
   (process-send-string (zomp-get-toplevel-buffer) ""))
 
@@ -254,10 +255,23 @@ Run this with a prefix to start a toplevel specific to this buffer"
   (when prefix
     (zomp-make-buffer-local-toplevel))
   (if (zomp-get-toplevel-buffer)
-      (zomp-tl-eval-current)
+      (progn
+        (zomp-request-execution-abort)
+        (zomp-tl-eval-current))
     (zomp-start-or-show-toplevel prefix)
     (zomp-tl-eval-buffer))
   (zomp-tl-run-test))
+
+(defun zomp-request-execution-abort ()
+  "Send a signal to the toplevel to request it to abort the
+current main() execution.
+
+Will cause the zompRequestedPause() function to return true. Any
+application honoring this will then return from main to allow the
+editor to trigger recompilations etc. and possibly resume main()"
+  (interactive)
+  (with-current-buffer zomp-toplevel-buffer-name
+    (comint-interrupt-subjob)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -568,6 +582,7 @@ Run this with a prefix to start a toplevel specific to this buffer"
   (zomp-add-seperator zomp-sep-1)
   (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
   (zomp-add-action zomp-start-or-show-toplevel [(control c)(control s)] "Start toplevel")
+  (zomp-add-action zomp-request-execution-abort [(control c)(control p)] "Request app to pause")
 
   ;; set additional keys on OS X
   (local-set-key [(alt r)]' zomp-run)
