@@ -889,7 +889,9 @@ let gencodeReturn gencode expr =
     else
       sprintf "ret void\n\n"
   in
-  returnVarCode (noVar, comment ^ expr.gcrCode ^ "\n\n" ^ retCode)
+  returnCombi (noVar,
+               comment ^ expr.gcrCode ^ "\n\n" ^ retCode,
+               [expr.gcrFirstBBCode])
 
 let gencodeJump label =
   let code = sprintf "br label %%%s\n\n" label.lname in

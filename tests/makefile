@@ -14,7 +14,7 @@ OUTDATED= intrinsics.zomp functions.zomp
 
 FAILING = simple.zomp labels.zomp sexpr.zomp void.zomp stdlibfuncs.zomp var.zomp var.zomp
 
-.PRECIOUS: .ll .bc
+.PHONY: .run
 
 TESTPROGS = $(WORKING) $(FAILING)
 
