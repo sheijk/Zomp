@@ -14,11 +14,16 @@ http://sheijk.dword.org/zomp
     void zompVerifyCode (bool doit)
     bool zompDoesVerifyCode ()
 
+    bool zompOptimizeFunction ()
+    void zompSetOptimizeFunction (bool optimize)
+
     bool zompSendCode (const char* code, const char* moduleName)
+    void zompOptimizeFunctions ()
 
     bool zompLoadFile (const char* filename)
 
     void zompPrintModuleCode ()
+    void zompWriteLLVMCodeToFile (const char* fileName)
 
     bool zompRemoveFunctionBody (const char* funcName)
     bool zompRecompileAndRelinkFunction (const char* funcName)

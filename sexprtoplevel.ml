@@ -23,6 +23,10 @@ exception AbortExpr
 
 type commandFunc = string list -> Bindings.bindings -> unit
 
+let errorMessage msg =
+  eprintf "%s\n" msg;
+  flush stderr
+
 let exitCommand _ _  =
   printf "Exiting.\n";
   exit 0
@@ -74,11 +78,17 @@ let toggleParseFunc args _ =
     | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
 
-let toggleVerifyCommand args _ =
-  match args with
-    | ["on"] -> Zompvm.zompVerifyCode true
-    | ["off"] -> Zompvm.zompVerifyCode false
-    | _ -> eprintf "Expected on|off\n"; flush stderr
+let makeToggleCppCommand setF =
+  fun args (_:bindings) ->
+    match args with
+      | ["on"] -> setF true
+      | ["off"] -> setF false
+      | _ ->
+          errorMessage "Expected on|off"
+
+let toggleVerifyCommand = makeToggleCppCommand (fun b -> Zompvm.zompVerifyCode b)
+let toggleOptimizeFunctionCommand =
+  makeToggleCppCommand (fun b -> Zompvm.zompSetOptimizeFunction b)
 
 let notifyTimeThreshold = ref 0.5
 
@@ -252,6 +262,26 @@ let writeSymbols args (bindings : Bindings.bindings) =
           flush stderr
         end
 
+let optimizeCommand args (_:bindings) =
+  match args with
+    | [] -> begin
+        Machine.zompOptimizeFunctions();
+        printf "Ran optimizations on all functions\n";
+        flush stdout;
+      end
+    | _ ->
+        errorMessage "Expecting zero arguments\n"
+
+let writeLLVMCodeToFileCommand args (_:bindings) =
+  match args with
+    | [fileName] -> begin
+        Machine.zompWriteLLVMCodeToFile fileName;
+        printf "Wrote LLVM code to file %s\n" fileName;
+        flush stdout;
+      end
+    | _ ->
+        errorMessage "Expected one argument: file name"
+
 let commands =
   let rec internalCommands = [
     "exit", ["x"; "q"], exitCommand, "Exit";
@@ -263,13 +293,16 @@ let commands =
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
+    "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
     "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
+    "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
     "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
     "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
     "syntax", [], toggleParseFunc, "Choose a syntax";
     "help", ["h"], printHelp, "List all toplevel commands";
     "prompt", [], promptCommand, "Set prompt";
-    "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information"
+    "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
+    "optimize", [], optimizeCommand, "Optimize all functions";
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
   in

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 
 #include "llvm/Module.h"
@@ -91,18 +92,23 @@ namespace ZompCallbacks {
 
 namespace {
   struct Stats {
-    uint64_t parsingTimeMS;
-    uint64_t verifyTimeMS;
+    typedef uint64_t milliseconds;
+
+    milliseconds parsingTimeMS;
+    milliseconds verifyTimeMS;
+    milliseconds optimizingTimeMS;
 
     Stats() {
       parsingTimeMS = 0;
       verifyTimeMS = 0;
+      optimizingTimeMS = 0;
     }
 
     void print() {
       printf("\nZompVM stats:\n");
       log(parsingTimeMS, "Parsing");
       log(verifyTimeMS, "Verifying");
+      log(optimizingTimeMS, "Optimizing");
       fflush(stdout);
     }
 
@@ -113,6 +119,23 @@ namespace {
   };
 
   static Stats stats;
+
+  class Scope_time_adder {
+    typedef llvm::sys::TimeValue TimeValue;
+    uint64_t& timeVar;
+    TimeValue startTime;
+
+  public:
+    Scope_time_adder(uint64_t& var) :
+      timeVar(var),
+      startTime(TimeValue::now())
+    {}
+
+    ~Scope_time_adder() {
+      TimeValue endTime = TimeValue::now();
+      timeVar += (endTime - startTime).msec();
+    }
+  };
 }
 
 ///-----------------------------------------------------------------------------
@@ -129,9 +152,13 @@ namespace {
   static Module* llvmModule = 0;
   static Module* macroModule = 0;
   static ExistingModuleProvider* moduleProvider = 0;
-  // static FunctionPassManager* passManager = 0;
+  static FunctionPassManager* functionPassManager = 0;
+  static PassManager* modulePassManager = 0;
 
-  static bool verifyCode = true;
+  namespace vmoptions {
+    static bool verifyCode = true;
+    static bool optimizeFunctions = false;
+  }
 
   static Function* simpleAst = NULL;
   static Function* addChild = NULL;
@@ -318,11 +345,19 @@ extern "C" {
   }
 
   void zompVerifyCode(bool doit) {
-    verifyCode = doit;
+    vmoptions::verifyCode = doit;
   }
 
   bool zompDoesVerifyCode() {
-    return verifyCode;
+    return vmoptions::verifyCode;
+  }
+
+  bool zompOptimizeFunction () {
+    return vmoptions::optimizeFunctions;
+  }
+
+  void zompSetOptimizeFunction (bool optimize) {
+    vmoptions::optimizeFunctions = optimize;
   }
 
   const char* float2string(double d) {
@@ -416,23 +451,122 @@ namespace
 //   }
 }
 
+static void addPass(PassManager& pm, Pass* p) {
+  pm.add(p);
+}
+
+/// ripped from LLVM's tools/opt/opt.cpp
+static void addStandardCompilePasses(PassManager &PM) {
+  PM.add(createVerifierPass());                  // Verify that input is correct
+
+  addPass(PM, createLowerSetJmpPass());          // Lower llvm.setjmp/.longjmp
+
+  // If the -strip-debug command line option was specified, do it.
+  // if (StripDebug)
+  addPass(PM, createStripSymbolsPass(true));
+
+  // if (DisableOptimizations) return;
+
+  addPass(PM, createRaiseAllocationsPass());     // call %malloc -> malloc inst
+  addPass(PM, createCFGSimplificationPass());    // Clean up disgusting code
+  addPass(PM, createPromoteMemoryToRegisterPass());// Kill useless allocas
+  addPass(PM, createGlobalOptimizerPass());      // Optimize out global vars
+  addPass(PM, createGlobalDCEPass());            // Remove unused fns and globs
+  addPass(PM, createIPConstantPropagationPass());// IP Constant Propagation
+  addPass(PM, createDeadArgEliminationPass());   // Dead argument elimination
+  addPass(PM, createInstructionCombiningPass()); // Clean up after IPCP & DAE
+  addPass(PM, createCFGSimplificationPass());    // Clean up after IPCP & DAE
+
+  addPass(PM, createPruneEHPass());              // Remove dead EH info
+  addPass(PM, createFunctionAttrsPass());        // Deduce function attrs
+
+  // if (!DisableInline)
+  addPass(PM, createFunctionInliningPass());   // Inline small functions
+  addPass(PM, createArgumentPromotionPass());    // Scalarize uninlined fn args
+
+  addPass(PM, createSimplifyLibCallsPass());     // Library Call Optimizations
+  addPass(PM, createInstructionCombiningPass()); // Cleanup for scalarrepl.
+  addPass(PM, createJumpThreadingPass());        // Thread jumps.
+  addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
+  addPass(PM, createScalarReplAggregatesPass()); // Break up aggregate allocas
+  addPass(PM, createInstructionCombiningPass()); // Combine silly seq's
+  addPass(PM, createCondPropagationPass());      // Propagate conditionals
+
+  addPass(PM, createTailCallEliminationPass());  // Eliminate tail calls
+  addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
+  addPass(PM, createReassociatePass());          // Reassociate expressions
+  addPass(PM, createLoopRotatePass());
+  addPass(PM, createLICMPass());                 // Hoist loop invariants
+  addPass(PM, createLoopUnswitchPass());         // Unswitch loops.
+  addPass(PM, createLoopIndexSplitPass());       // Index split loops.
+  // FIXME : Removing instcombine causes nestedloop regression.
+  addPass(PM, createInstructionCombiningPass());
+  addPass(PM, createIndVarSimplifyPass());       // Canonicalize indvars
+  addPass(PM, createLoopDeletionPass());         // Delete dead loops
+  addPass(PM, createLoopUnrollPass());           // Unroll small loops
+  addPass(PM, createInstructionCombiningPass()); // Clean up after the unroller
+  addPass(PM, createGVNPass());                  // Remove redundancies
+  addPass(PM, createMemCpyOptPass());            // Remove memcpy / form memset
+  addPass(PM, createSCCPPass());                 // Constant prop with SCCP
+
+  // Run instcombine after redundancy elimination to exploit opportunities
+  // opened up by them.
+  addPass(PM, createInstructionCombiningPass());
+  addPass(PM, createCondPropagationPass());      // Propagate conditionals
+
+  addPass(PM, createDeadStoreEliminationPass()); // Delete dead stores
+  addPass(PM, createAggressiveDCEPass());        // Delete dead instructions
+  addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
+  addPass(PM, createStripDeadPrototypesPass());  // Get rid of dead prototypes
+  addPass(PM, createDeadTypeEliminationPass());  // Eliminate dead types
+  addPass(PM, createConstantMergePass());        // Merge dup global constants
+}
+
+static void setupOptimizerPasses() {
+  ZMP_ASSERT(functionPassManager,);
+  // Set up the optimizer pipeline.  Start with registering info about how the
+  // target lays out data structures.
+  functionPassManager->add(new TargetData( *executionEngine->getTargetData()));
+  functionPassManager->add(createCFGSimplificationPass());
+  functionPassManager->add(createScalarReplAggregatesPass());
+  functionPassManager->add(createInstructionCombiningPass());
+
+  ZMP_ASSERT(modulePassManager,);
+  modulePassManager->add(new TargetData(llvmModule));
+  addStandardCompilePasses(*modulePassManager);
+}
+
 extern "C" {
 
-  // void setupOptimizerPasses() {
-  //   // Set up the optimizer pipeline.  Start with registering info about how the
-  //   // target lays out data structures.
-  //   passManager->add(new TargetData( *executionEngine->getTargetData()));
-  //   // Do simple "peephole" optimizations and bit-twiddling optzns.
-  //   // passManager->add(createInstructionCombiningPass());
-  //   // Reassociate expressions.
-  //   // passManager->add(createReassociatePass());
-  //   // Eliminate Common SubExpressions.
-  //   // passManager->add(createGVNPass());
-  //   // Simplify the control flow graph (deleting unreachable blocks, etc).
-  //   // passManager->add(createCFGSimplificationPass());
-  // 
-  //   // passManager->add(createAlwaysInlinerPass());
-  // }
+  void zompOptimizeFunctions() {
+    Scope_time_adder profile(stats.optimizingTimeMS);
+    // run optimizations
+    const llvm::Module::iterator funcsEnd = llvmModule->end();
+
+    for(llvm::Module::iterator currentFunc = llvmModule->begin();
+        currentFunc != funcsEnd;
+        ++currentFunc)
+    {
+      if( ! currentFunc->isDeclaration() ) {
+        // verifyFunction( *currentFunc );
+        functionPassManager->run( *currentFunc );
+        // verifyFunction( *currentFunc );
+      }
+    }
+
+    modulePassManager->run(*llvmModule);
+
+    // recompile all functions
+    for(llvm::Module::iterator currentFunc = llvmModule->begin();
+        currentFunc != funcsEnd;
+        ++currentFunc)
+    {
+      if( ! currentFunc->isDeclaration() ) {
+        // no deleteBody in this case, we do not produce a new one
+        executionEngine->recompileAndRelinkFunction( currentFunc );
+      }
+    }
+  }
 
   /// functionality to request the running program in the toplevel to pause it's
   /// execution (return from main) so a recompilation can happen
@@ -442,7 +576,7 @@ extern "C" {
     return zompDidReqestPause;
   }
 
-  bool zompSetRequestPause(bool request) {
+  void zompSetRequestPause(bool request) {
     zompDidReqestPause = request;
   }
 
@@ -464,8 +598,9 @@ extern "C" {
     assureModuleExists();
     moduleProvider = new ExistingModuleProvider( llvmModule );
     executionEngine = ExecutionEngine::create( moduleProvider, false );
-    // passManager = new FunctionPassManager( moduleProvider );
-    // setupOptimizerPasses();
+    functionPassManager = new FunctionPassManager( moduleProvider );
+    modulePassManager = new PassManager();
+    setupOptimizerPasses();
 
     // value* closure_f = NULL;
     // closure_f = caml_named_value("helloCallback");
@@ -485,6 +620,7 @@ extern "C" {
       fprintf(stderr,
               "Failed to install signal handler. "
               "Requesting pause functionality will not be available");
+      fflush(stderr);
     }
 
     return true;
@@ -506,10 +642,11 @@ extern "C" {
 
     using llvm::sys::TimeValue;
 
-    TimeValue parseStart = TimeValue::now();
-    Module* parsedModule = ParseAssemblyString( code, targetModule, errorInfo );
-    TimeValue parseEnd = TimeValue::now();
-    stats.parsingTimeMS += (parseEnd - parseStart).msec();
+    Module* parsedModule = NULL;
+    {
+      Scope_time_adder profile(stats.parsingTimeMS);
+      parsedModule = ParseAssemblyString( code, targetModule, errorInfo );
+    }
 
     std::string errorMessage;
     if( parsedModule == NULL ) {
@@ -518,18 +655,19 @@ extern "C" {
 
       errorsOccurred = true;
     }
-    else if( verifyCode ) {
-      TimeValue verifyStart = TimeValue::now();
-      bool isValid = ! verifyModule(*targetModule, PrintMessageAction, &errorMessage);
-      TimeValue verifyEnd = TimeValue::now();
-      stats.verifyTimeMS += (verifyEnd - verifyStart).msec();
+    else {
+      if( vmoptions::verifyCode ) {
+        Scope_time_adder prof(stats.verifyTimeMS);
+        bool isValid = ! verifyModule(
+            *targetModule, PrintMessageAction, &errorMessage);
 
-      if( ! isValid ) {
-        printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
-        fflush( stdout );
-        fflush( stderr );
+        if( ! isValid ) {
+          printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
+          fflush( stdout );
+          fflush( stderr );
 
-        errorsOccurred = true;
+          errorsOccurred = true;
+        }
       }
     }
 
@@ -544,20 +682,6 @@ extern "C" {
 
       errorsOccurred = true;
     }
-
-    // run optimizations
-    // if( ! errorsOccurred && parsedModule ) {
-    //   llvm::Module::iterator currentFunc = parsedModule->begin();
-    //   const llvm::Module::iterator funcsEnd = parsedModule->end();
-    // 
-    //   for( ; currentFunc != funcsEnd; ++currentFunc) {
-    //     if( ! currentFunc->isDeclaration() ) {
-    //       // verifyFunction( *currentFunc );
-    //       passManager->run( *currentFunc );
-    //       // verifyFunction( *currentFunc );
-    //     }
-    //   }
-    // }
 
     return !errorsOccurred;
   }
@@ -590,6 +714,21 @@ extern "C" {
     Function* func = llvmModule->getFunction( funcName );
 
     if( func != NULL ) {
+      if( vmoptions::optimizeFunctions ) {
+        Scope_time_adder profile(stats.optimizingTimeMS);
+
+        llvm::Module::iterator currentFunc = llvmModule->begin();
+        const llvm::Module::iterator funcsEnd = llvmModule->end();
+
+        for( ; currentFunc != funcsEnd; ++currentFunc) {
+          if( ! currentFunc->isDeclaration() ) {
+            // verifyFunction( *currentFunc );
+            functionPassManager->run( *currentFunc );
+            // verifyFunction( *currentFunc );
+          }
+        }
+      }
+
       executionEngine->recompileAndRelinkFunction( func );
 
       return true;
@@ -739,6 +878,11 @@ extern "C" {
 
     printf( "%s\n", hline );
     */
+  }
+
+  void zompWriteLLVMCodeToFile(const char* fileName) {
+    std::ofstream file(fileName);
+    file << *llvmModule;
   }
 
 //   struct Ast
