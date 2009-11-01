@@ -40,6 +40,8 @@ macro mainloop body...
     startTime := toFloat glfwGetTime()
     running := true
 
+    zompSetRequestPause false
+
     while running
       lastTime = time
       time = toFloat glfwGetTime()
@@ -49,7 +51,7 @@ macro mainloop body...
 
       glfwSwapBuffers()
       glfwPollEvents()
-      running = running && (bool:not isPressed(GLFW_KEY_ESC))
+      running = running && bool:not(zompRequestedPause()) && (bool:not isPressed(GLFW_KEY_ESC))
       ++frameNum
     end
 
@@ -163,7 +165,7 @@ func void drawTilesTest()
 
   template tile ul ur ll lr
     x = x + 1.1 * w
-    glColor3f 0.5 1.0 0.5
+    glColor3f 0.3 1.0 0.5
     drawWireQuad x y (x+w) (y+h)
     rendergl GL_POINTS
       glColor3f 0. 0.5 1.0
@@ -299,10 +301,10 @@ func int main()
 
   angle := 0.0
 
-  gridWidth := 100
-  gridHeight := 100
+  gridWidth := 300
+  gridHeight := 300
   values := malloc float (gridWidth * gridHeight)
-  // memset (cast void* values) 0 (gridWidth * gridHeight * sizeof float)
+  memset (cast void* values) 0 (gridWidth * gridHeight * sizeof float)
 
   ballCount := 20
   balls := malloc v3f ballCount
@@ -336,7 +338,6 @@ func int main()
     glLoadIdentity()
     glTranslatef 0. 0. -1.0
 
-    drawTilesTest()
     saveMatrix
       glPointSize 1.0
       glScalef 400. 300. 1.
@@ -348,11 +349,14 @@ func int main()
       visualizePoints balls ballCount
     end
 
+    drawTilesTest()
     // if (time - startTime > 5.0)
     //   running = false
     // end
   end
 
+  println (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
+  
   drawPausedOverlay()
   glfwSwapBuffers()
 
