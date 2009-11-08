@@ -10,10 +10,10 @@ default:
 	@exit 1
 
 clean:
-	rm -f *.bc *.ll *.exe *.glexe *.s
+	rm -f *.bc *.opt-bc *.ll *.exe *.glexe *.s *.o
 
 SIMPLE_PROGRAMS=cee.zomp fib.zomp instrument.zomp
-GL_PROGRAMS=opengl.zomp
+GL_PROGRAMS=opengl.zomp metaball2d.zomp
 NOT_WORKING_PROGRAMS=static.zomp metaballs.zomp using_assimp.zomp shaderfun.zomp
 
 test: $(SIMPLE_PROGRAMS:.zomp=.exe) $(GL_PROGRAMS:.zomp=.glexe)
@@ -69,7 +69,7 @@ stdlib.s: ../stdlib.zomp
 
 %.exe: %.o stdlib.o
 	@$(ECHO) Making $@ ...
-	$(CC) -o $@ stdlib.o $< -arch i386
+	$(CC) -o $@ ../zompvm_dummy.o stdlib.o $< -arch i386
 
 %.glexe: %.o stdlib.o
 	@$(ECHO) Making $@ ...

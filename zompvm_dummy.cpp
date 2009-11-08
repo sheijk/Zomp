@@ -3,11 +3,10 @@
 ///
 
 extern "C" {
-    bool zompRequestedPause() {
-        return false;
-    }
+    bool zompRequestedPause() { return false; }
+    void zompSetRequestPause(bool request) {}
 
-    void zompSetRequestPause(bool request) {
-    }
+    bool isBound(char*) { return false; }
+    int zompLookup(char*) { return 0; }
 }
 

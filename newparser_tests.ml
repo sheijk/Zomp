@@ -448,6 +448,33 @@ struct
       "foo.bar", `Return [se2 "op." "foo" "bar"];
       "a.b.c", `Return [expr "op." [se2 "op." "a" "b"; id "c"]];
       "x.y.z.w", `Return [expr "op." [expr "op." [se2 "op." "x" "y"; id "z"]; id "w"]];
+
+      "t.*t.*tenints = *ints",
+      `Return [
+        expr "op=" [
+          expr "op." [
+            id "t";
+            expr "op." [
+              expr "preop*" [id "t"];
+              expr "preop*" [id "tenints"];
+            ];
+          ];
+          expr "preop*" [id "ints"]
+        ]];
+      "t.*t.tenints* == ints*",
+      `Return [
+        expr "op==" [
+          expr "op." [
+            expr "op." [
+              id "t";
+              expr "preop*" [id "t"];
+            ];
+            expr "postop*" [id "tenints"];
+          ];
+          expr "postop*" [id "ints"];
+        ];
+      ];
+
       "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
 
       "foo.print(1, 2)",

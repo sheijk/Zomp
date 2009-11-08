@@ -80,6 +80,7 @@ unittest:testCase DotOpDeref
     t.tenints == ints
     t.tenints* == ints*
     t.t*.tenints == ints
+    // TODO the next two lines don't parse
     t.*t.*tenints = *ints
     t.*t.tenints* == ints*
     *t.tenints == *ints

@@ -13,7 +13,7 @@ TEST_CASES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp   \
 simple-func.zomp variables.zomp astmatch.zomp cee.zomp                  \
 bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp  \
 float.zomp std_bindings.zomp indent.comments.zomp require.zomp          \
-arrays.zomp testframework.zomp math.zomp
+arrays.zomp testframework.zomp math.zomp stackoverflow.zomp
 
 all: $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.test))
 
@@ -39,6 +39,7 @@ astmatch.ll: ../libs/libcee.zomp
 ################################################################################
 
 .PRECIOUS: .ll
+.PHONY: preludevalid
 
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
 # tests to avoid having all tests run and fail because the prelude/compiler is

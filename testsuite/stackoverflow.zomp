@@ -1,0 +1,33 @@
+/**
+ * Some test cases where a stack overflow might occur if allocas for local
+ * variables and temporaries are not done properly
+ */
+
+type Point
+  int x
+  int y
+end
+
+func Point makePoint(int x, int y)
+  var Point p
+  setField p x x
+  setField p y y
+  ret p
+end
+
+func void testStack()
+  var Point thepoint
+  var int t 0
+
+  for x 0 10000000
+    assign t 0
+    var int y 0
+    assign thepoint makePoint(x,10)
+  end
+end
+
+func int main()
+  testStack()
+  ret 0
+end
+

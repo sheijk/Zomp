@@ -182,7 +182,7 @@ runmltests: mltest
 
 exampletests:
 	@$(ECHO) Compiling examples ...
-	cd examples && make test
+	cd examples && make clean && make test
 
 PROF_COMP_TARGET=metaballs
 
