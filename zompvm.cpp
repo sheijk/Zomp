@@ -583,18 +583,21 @@ extern "C" {
   static const int requestPauseSignal = SIGINT;
 
   void requestPauseSignalHandler(int signalNumber) {
-    // ZMP_ASSERT(requestPauseSignal == signalNumber,);
+    ZMP_ASSERT(requestPauseSignal == signalNumber,);
 
     zompDidReqestPause = true;
+  }
 
-    printf("Someone requested the running program to pause\n");
-    fflush(stdout);
+  static void initPausingSignalHandler() {
+    if( signal(requestPauseSignal, requestPauseSignalHandler) == SIG_IGN ) {
+      fprintf(stderr,
+              "Failed to install signal handler. "
+              "Requesting pause functionality will not be available");
+      fflush(stderr);
+    }
   }
 
   bool zompInit() {
-//     printf( "Initializing ZompVM\n" );
-    fflush( stdout );
-
     assureModuleExists();
     moduleProvider = new ExistingModuleProvider( llvmModule );
     executionEngine = ExecutionEngine::create( moduleProvider, false );
@@ -616,12 +619,7 @@ extern "C" {
     ZompCallbacks::init();
     ZMP_ASSERT( ZompCallbacks::areValid(), );
 
-    if( signal(requestPauseSignal, requestPauseSignalHandler) == SIG_IGN ) {
-      fprintf(stderr,
-              "Failed to install signal handler. "
-              "Requesting pause functionality will not be available");
-      fflush(stderr);
-    }
+    initPausingSignalHandler();
 
     return true;
   }
