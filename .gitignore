@@ -87,3 +87,5 @@ tools
 /tests/sharkperf.zomp
 /tests/*.ll
 /bk/*
+/examples/*.o
+/examples/*.s

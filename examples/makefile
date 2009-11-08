@@ -10,7 +10,7 @@ default:
 	@exit 1
 
 clean:
-	rm -f *.bc *.ll *.exe *.glexe
+	rm -f *.bc *.ll *.exe *.glexe *.s
 
 SIMPLE_PROGRAMS=cee.zomp fib.zomp instrument.zomp
 GL_PROGRAMS=opengl.zomp
@@ -40,12 +40,38 @@ using_assimp.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glu
 
 %.bc: %.ll ../stdlib.zomp ../stdlib.c
 	echo Compiling $< to $@
-	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	$(LLVM_LINK) -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
+	$(LLVM_AS) -f $< -o $@
 
-%.exe: %.bc
-	$(LLVM_LD) -native -o $@ $< -L=.. -L=. $(LLVMLDFLAGS)
+%.opt-bc: %.bc
+	@$(ECHO) Optimizing $< to $@ ...
+	$(LLVM_OPT) $< -o $@ -O3
 
-%.glexe: %.bc
-	$(LLVM_LD) -native -o $@ $< -L=.. -L-. $(LLVMLDFLAGS) -lglfw -lGLEW -framework=OpenGL -framework=GLUT $(EXTRA_OPTIONS)
+# default to optimizations enabled
+ifeq "$(OPT)" ""
+OPT=1
+endif
+
+ifeq "$(OPT)" "1"
+%.s: %.opt-bc
+else
+%.s: %.bc
+endif
+	@$(ECHO) Assembling $@ ...
+	$(LLVM_LLC) -o $@ -march=x86 $<
+
+%.o: %.s
+	@$(ECHO) Making $@ ...
+	$(AS) -o $@ $< -arch i386
+
+stdlib.s: ../stdlib.zomp
+	@$(ECHO) Making $@ ...
+	$(LLVM_LLC) -o $@ ../stdlib.bc -march=x86
+
+%.exe: %.o stdlib.o
+	@$(ECHO) Making $@ ...
+	$(CC) -o $@ stdlib.o $< -arch i386
+
+%.glexe: %.o stdlib.o
+	@$(ECHO) Making $@ ...
+	$(CC) -o $@ stdlib.o -L. -L.. ../zompvm_dummy.o ../libglfw.dylib ../libGLEW.dylib -framework OpenGL -framework GLUT $< -arch i386
 

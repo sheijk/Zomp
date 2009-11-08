@@ -72,7 +72,7 @@ parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 # Combined targets
 ################################################################################
 
-all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest
+all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest zompvm_dummy.o
 libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp libglut.dylib quicktext.zomp libquicktext.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native

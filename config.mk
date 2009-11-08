@@ -31,6 +31,9 @@ LLVM_AS=$(LLVM_BIN_DIR)/llvm-as
 LLVM_LINK=$(LLVM_BIN_DIR)/llvm-link
 LLVM_LLI=$(LLVM_BIN_DIR)/lli
 LLVM_LD=$(LLVM_BIN_DIR)/llvm-ld
+LLVM_LLVMC=$(LLVM_BIN_DIR)/llvmc
+LLVM_LLC=$(LLVM_BIN_DIR)/llc
+LLVM_OPT=$(LLVM_BIN_DIR)/opt
 
 ECHO=echo
 CP=cp
@@ -41,4 +44,5 @@ TR=tc
 CC=gcc
 CXX=g++
 AS=as
+LD=ld
 
