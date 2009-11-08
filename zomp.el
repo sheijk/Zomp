@@ -156,6 +156,15 @@ indent the next line when they occur at the beginning of a line"
      (zomp-toplevel)
      (get-buffer-process zomp-toplevel-buffer-name))))
 
+(defun zomp-tl-move-point-to-end ()
+  "Will move the point to the end of the toplevel buffer for all
+windows displaying it"
+  (let ((original-window (selected-window)))
+    (dolist (wnd (get-buffer-window-list (get-buffer zomp-toplevel-buffer-name)))
+      (select-window wnd)
+      (goto-char (point-max)))
+    (select-window original-window)))
+
 (defun zomp-make-buffer-local-toplevel ()
   (make-variable-buffer-local 'zomp-toplevel-buffer-name)
   (setq zomp-toplevel-buffer-name (format "*zomp-toplevel<%s>*" (buffer-name))))
@@ -189,6 +198,7 @@ indent the next line when they occur at the beginning of a line"
   (interactive "MName of function: ")
   (when (= 0 (length funcname))
     (setq funcname "main"))
+  (zomp-tl-move-point-to-end)
   (zomp-tl-do (concat "!run " funcname)))
 
 (defun zomp-tl-list-bindings (regexps)
@@ -207,7 +217,8 @@ indent the next line when they occur at the beginning of a line"
   (message "Evaluating function at point")
   (save-excursion
     (zomp-mark-current)
-    (zomp-tl-eval-region)))
+    (zomp-tl-eval-region))
+  (zomp-tl-move-point-to-end))
 
 (defun zomp-tl-eval-current-and-goto-next ()
   (interactive)
@@ -237,11 +248,13 @@ indent the next line when they occur at the beginning of a line"
   (interactive)
   (message "Evaluating buffer")
   (process-send-region (zomp-get-toplevel-buffer 'create) (buffer-end -1) (buffer-end 1))
-  (process-send-string (zomp-get-toplevel-buffer) ""))
+  (process-send-string (zomp-get-toplevel-buffer) "")
+  (zomp-tl-move-point-to-end))
 
 (defun zomp-tl-run-test ()
   (interactive)
   (message "Running function test")
+  (zomp-tl-move-point-to-end)
   (zomp-tl-do "!run test"))
 
 (defun zomp-run (&optional prefix)
