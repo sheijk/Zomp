@@ -132,59 +132,6 @@ func float float:srandom()
 end
 
 //------------------------------------------------------------------------------
-// math
-
-var float math:e 2.71828182845904523536028747135266250
-var float math:log2e 1.44269504088896340735992468100189214
-var float math:log10e 0.434294481903251827651128918916605082
-var float math:ln2 0.693147180559945309417232121458176568
-var float math:ln10 2.30258509299404568401799145468436421
-var float math:pi 3.14159265358979323846264338327950288
-var float math:pi_2 1.57079632679489661923132169163975144
-var float math:pi_4 0.785398163397448309615660845819875721
-var float math:sqrt2 1.41421356237309504880168872420969808
-var float math:sqrt1_2 0.707106781186547524400844362104849039
-
-func float powf(float base, float exp)
-func double pow(double base, double exp)
-
-func int int:pow(int base, int exp)
-  v := base
-
-  remMults := exp
-
-  while (remMults > 1)
-    v = v * base
-    remMults = remMults - 1
-  end
-
-  ret v
-end
-
-func float float:mix(float x, float a, float b)
-  ret ( (1.0 - x) * a + x * b )
-end
-
-unittest:testCasesFor float:mix
-  float:mix 0.0 1.0 10.0 == 1.0
-  float:mix 1.0 0.0 4.0 == 4.0
-  float:mix 0.5 0.0 4.0 == 2.0
-  float:mix 0.25 0.0 8.0 == 2.0
-end
-
-unittest:testCasesFor posmod
-  posmod(0.0,2.0) == 0.0
-  posmod(1.0,2.0) == 1.0
-  posmod(2.0,2.0) == 0.0
-
-  posmod(-1.0,3.0) == 2.0
-  posmod(-2.0,3.0) == 1.0
-
-  posmod(23.0, 4.0) == 3.0
-  posmod(-61.0, 3.0) == 2.0
-end
-
-//------------------------------------------------------------------------------
 // memory
 
 func void free(void* ptr)

@@ -748,3 +748,31 @@ func void printTexture2DInfo(GLenum tex, cstring name)
   end
 end
 
+macro mainloop body...
+  ret ${
+    time := 0.0
+    lastTime := 0.0
+    frameDuration := 0.0
+    frameNum := 0
+    startTime := toFloat glfwGetTime()
+    running := true
+
+    zompSetRequestPause false
+
+    while running
+      lastTime = time
+      time = toFloat glfwGetTime()
+      frameDuration = time - lastTime
+
+      #body
+
+      glfwSwapBuffers()
+      glfwPollEvents()
+      running = running && bool:not(zompRequestedPause()) && (bool:not isPressed(GLFW_KEY_ESC))
+      ++frameNum
+    end
+
+    endTime := toFloat glfwGetTime()
+  end}
+end
+

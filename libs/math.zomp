@@ -39,6 +39,45 @@ func float posmod(float x, float divisor)
   ret mod
 end
 
+func float powf(float base, float exp)
+func double pow(double base, double exp)
+
+func int int:pow(int base, int exp)
+  v := base
+
+  remMults := exp
+
+  while (remMults > 1)
+    v = v * base
+    remMults = remMults - 1
+  end
+
+  ret v
+end
+
+func float float:mix(float x, float a, float b)
+  ret ( (1.0 - x) * a + x * b )
+end
+
+unittest:testCasesFor float:mix
+  float:mix 0.0 1.0 10.0 == 1.0
+  float:mix 1.0 0.0 4.0 == 4.0
+  float:mix 0.5 0.0 4.0 == 2.0
+  float:mix 0.25 0.0 8.0 == 2.0
+end
+
+unittest:testCasesFor posmod
+  posmod(0.0,2.0) == 0.0
+  posmod(1.0,2.0) == 1.0
+  posmod(2.0,2.0) == 0.0
+
+  posmod(-1.0,3.0) == 2.0
+  posmod(-2.0,3.0) == 1.0
+
+  posmod(23.0, 4.0) == 3.0
+  posmod(-61.0, 3.0) == 2.0
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: vector math
 ///-----------------------------------------------------------------------------

@@ -10,13 +10,47 @@ default:
 	@exit 1
 
 clean:
-	rm -f *.bc *.opt-bc *.ll *.exe *.glexe *.s *.o
+	rm -f *.bc *.opt-bc *.ll *.exe *.s *.o
 
-SIMPLE_PROGRAMS=cee.zomp fib.zomp instrument.zomp
-GL_PROGRAMS=opengl.zomp metaball2d.zomp
-NOT_WORKING_PROGRAMS=static.zomp metaballs.zomp using_assimp.zomp shaderfun.zomp
 
-test: $(SIMPLE_PROGRAMS:.zomp=.exe) $(GL_PROGRAMS:.zomp=.glexe)
+# SIMPLE_PROGRAMS=cee.zomp fib.zomp instrument.zomp
+# GL_PROGRAMS=opengl.zomp metaball2d.zomp billboardmix.zomp metaballs.zomp shaderfun.zomp using_assimp.zomp
+
+EXAMPLES = \
+  billboardmix.zomp cee.zomp fib.zomp instrument.zomp lighting.zomp \
+  metaball2d.zomp metaballs.zomp opengl.zomp shaderfun.zomp tweakbar.zomp \
+  using_assimp.zomp
+
+NOT_WORKING_EXAMPLES = static.zomp
+
+test: $(EXAMPLES:.zomp=.exe)
+#   Printing a short report. What a mess..
+	for f in $(EXAMPLES:.zomp=.exe); do \
+		if [ -e $$f ]; then \
+			echo "Ok     $$f"; \
+		else \
+			echo "Failed $$f"; \
+		fi; \
+	done
+
+# default to optimizations enabled
+ifeq "$(OPT)" ""
+OPT=1
+endif
+
+################################################################################
+# Additional libraries
+################################################################################
+
+ZOMP_STDLIBS = ../zompvm_dummy.o stdlib.o
+LIBS = $(ZOMP_STDLIBS)
+GL_LIBS = $(ZOMP_STDLIBS) ../libglfw.dylib ../libGLEW.dylib -framework OpenGL -framework GLUT
+
+opengl.exe billboardmix.exe metaball2d.exe shaderfun.exe: override LIBS = $(GL_LIBS)
+metaballs.exe: override LIBS = $(GL_LIBS) ../libquicktext.dylib
+using_assimp.exe: override LIBS = $(GL_LIBS) ../libquicktext.dylib -lstdc++ ../libassimp.a
+tweakbar.exe: override LIBS = $(GL_LIBS) ../libAntTweakBar.dylib
+lighting.exe: override LIBS = $(GL_LIBS) ../libAntTweakBar.dylib -lstdc++ ../libassimp.a
 
 ################################################################################
 # Dependencies
@@ -46,11 +80,6 @@ using_assimp.zomp: ../libs/libcee.zomp ../opengl20.zomp ../glfw.zomp ../libs/glu
 	@$(ECHO) Optimizing $< to $@ ...
 	$(LLVM_OPT) $< -o $@ -O3
 
-# default to optimizations enabled
-ifeq "$(OPT)" ""
-OPT=1
-endif
-
 ifeq "$(OPT)" "1"
 %.s: %.opt-bc
 else
@@ -69,9 +98,5 @@ stdlib.s: ../stdlib.zomp
 
 %.exe: %.o stdlib.o
 	@$(ECHO) Making $@ ...
-	$(CC) -o $@ ../zompvm_dummy.o stdlib.o $< -arch i386
-
-%.glexe: %.o stdlib.o
-	@$(ECHO) Making $@ ...
-	$(CC) -o $@ stdlib.o -L. -L.. ../zompvm_dummy.o ../libglfw.dylib ../libGLEW.dylib -framework OpenGL -framework GLUT $< -arch i386
+	$(CC) -o $@ -L. -L.. $(LIBS) $< -arch i386
 

@@ -4,8 +4,6 @@
 !verify off
  */
 
-!syntax indent
-
 func int sum(int l, int r)
   ret l + r
 end

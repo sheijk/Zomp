@@ -95,39 +95,6 @@ func void init()
   end
 end
 
-// avoid writing it over and over, should be part of utils lib
-macro mainloop body...
-  ret ${
-    frameDuration := 0.0
-    frameNum := 0
-    startTime := double:toFloat glfwGetTime()
-    lastTime := startTime
-    time := startTime
-    running := true
-
-    while running
-      autoSetupViewport()
-      glfwGetWindowSize &windowWidth &windowHeight
-      // aspectRatio := int:toFloat windowWidth / int:toFloat windowHeight
-      lastTime = time
-      time = double:toFloat glfwGetTime()
-      frameDuration = time - lastTime
-
-      #body
-
-      glfwSwapBuffers()
-      glfwPollEvents()
-      running = bool:not isPressed(GLFW_KEY_ESC)
-      if (maxRunTime != 0.0)
-        running = running && (time - startTime < maxRunTime)
-      end
-      ++frameNum
-    end
-
-    endTime := double:toFloat glfwGetTime()
-  end}
-end
-
 var bool firstRun true
 
 func int objShader()
@@ -207,9 +174,9 @@ func int main()
   var AABB meshBB
   Mesh:calcAABB &meshBB mesh
 
-  var float3 bbdiag
+  var v3f bbdiag
   AABB:diagonal &bbdiag &meshBB
-  meshSize := float3:length &bbdiag
+  meshSize := v3f:length bbdiag
 
   AABB:print &meshBB
   println()
