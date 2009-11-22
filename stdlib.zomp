@@ -36,10 +36,9 @@ func int zompLoadLib(char* libname)
 func bool zompRequestedPause()
 func void zompSetRequestPause(bool request)
 
-// (func bool zompCheckNativeSymbol (((ptr char) libname)))
+func int zompLoadFileToMemory(char* filename, char** content)
 
 func void stdlibHello()
-// (func void zompHello ())
 
 ///-----------------------------------------------------------------------------
 /// Section: C library
