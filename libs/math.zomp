@@ -187,6 +187,14 @@ func float AABB:diagonalLength(AABB* this)
   ret v3f:length(diag)
 end
 
+func v3f AABB:center(AABB* this)
+  ret (0.5 * (this*.min + this*.max))
+end
+
+ofunc void print(AABB this)
+  print "AABB(" this.min ", " this.max ")"
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: coordinate systems
 ///-----------------------------------------------------------------------------

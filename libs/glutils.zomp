@@ -316,9 +316,15 @@ func void drawCoordSys(float length)
   end
 end
 
-func void drawOrientationGrid()
+/**
+ * Renders the orientation grid with user definable alpha. Assumes premultiplied
+ * alpha
+ */
+func void drawOrientationGrid2(float alpha, float brightness)
   var float size 10.0
   var float msize (float:sub 0. size)
+
+  br := brightness * alpha
 
   template line xs ys zs to xd yd zd
     glVertex3f #xs #ys #zs
@@ -330,30 +336,34 @@ func void drawOrientationGrid()
   end
 
   rendergl GL_LINES
-    glColor3f 1. 1. 1.
+    glColor4f br br br alpha
     lineTo 1. 0. 0.
     lineTo 0. 1. 0.
     lineTo 0. 0. 1.
     for d -10 10
       var float df (int:toFloat d)
-      glColor3f 1. 0. 0.
+      glColor4f br 0. 0. alpha
       line 0. msize df to 0. size df
       line 0. df msize to 0. df size
 
-      glColor3f 0. 1. 0.
+      glColor4f 0. br 0. alpha
       line size 0. df to msize 0. df
       line df 0. size to df 0. msize
 
-      glColor3f 0. 0. 1.
+      glColor4f 0. 0. br alpha
       line size df 0. to msize df 0.
       line df size 0. to df msize 0.
     end
 
-    glColor3f 1. 1. 1.
+    glColor4f br br br alpha
     lineTo 1. 0. 0.
     lineTo 0. 1. 0.
     lineTo 0. 0. 1.
   end
+end
+
+func void drawOrientationGrid()
+  drawOrientationGrid2(1.0, 1.0)
 end
 
 macro ffor index min max step code

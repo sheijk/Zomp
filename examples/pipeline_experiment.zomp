@@ -1,0 +1,257 @@
+/**
+ * Experiments with pipeline export from XSI
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp" "libs/mathvis.zomp"
+require "libs/assimp.zomp"
+require "libs/libcee.zomp"
+require "libs/anttweakbar.zomp"
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init()
+  if bool:not(initCalled)
+    glfwInit()
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    if (TwInit(TW_OPENGL, nullptr void) == 0)
+      println "AntTweakBar initialization failed, exiting"
+      glfwTerminate()
+      exit 2
+    end
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else
+    printString "Already initialized"
+    println()
+  end
+end
+
+///-----------------------------------------------------------------------------
+/// Section: event handling
+///-----------------------------------------------------------------------------
+
+func void onTweakbarError(char* msg)
+  println "AntTweakBar error: " msg
+end
+
+func void onWindowResize(int newWidth, int newHeight)
+  desiredAspect := toFloat windowWidth / toFloat windowHeight
+  correctHeight := toFloat newWidth / desiredAspect
+  glfwSetWindowSize newWidth toInt(correctHeight)
+  windowWidth = newWidth
+  windowHeight = toInt correctHeight
+  TwWindowSize windowWidth windowHeight
+  ret void
+end
+
+var int lastMouseX 0
+var int lastMouseY 0
+var int mouseXDelta 0
+var int mouseYDelta 0
+
+func void onMouseMove(int x, int y)
+  TwEventMousePosGLFW x y
+
+  mouseXDelta = lastMouseX - x
+  mouseYDelta = lastMouseY - y
+
+  lastMouseX = x
+  lastMouseY = y
+end
+
+var int lastMouseWheel 0
+var int mouseWheelDelta 0
+
+func void onMouseWheel(int pos)
+  TwEventMouseWheelGLFW pos
+
+  mouseWheelDelta = lastMouseWheel - pos
+  lastMouseWheel = pos
+end
+
+func int onKey(int key, int action)
+  // if (action == GLFW_PRESS)
+  // end
+
+  TwEventKeyGLFW key action
+
+  ret 0
+end
+
+///-----------------------------------------------------------------------------
+/// Section: code
+///-----------------------------------------------------------------------------
+
+
+func void renderGrid3d(v3f min, v3f max, float step)
+  rendergl GL_POINTS
+    ffor x min.x max.x step
+      ffor y min.y max.y step
+        ffor z min.x max.z step
+          glVertex3f x y z
+        end
+      end
+    end
+  end
+end
+
+macro twgroup optionString settings
+  code := ${}
+  forEachAstChild s settings
+    if ast:matchesShape(s, ${rw _ _ __})
+      typeId := ast:child s 1
+      name := ast:child s 2
+      var := ast:child s 3
+      ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
+    else
+      ret ${error "Expected rw TYPE NAME VAR" #s}
+    end
+  end
+
+  ret code
+end
+
+func GLint objectMaterial()
+  varyingSource := "
+  #version 120
+  #extension GL_EXT_gpu_shader4 : enable
+  varying vec3 normal;
+  "
+  vertexSource := "
+  void main(void) {
+    gl_Position = ftransform();
+    normal = gl_Normal;
+    }"
+  fragmentSource := "
+  void main(void) {
+    // gl_FragColor = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
+    float br = dot(normalize(normal), vec3(0,0,1));
+    br += 0.5;
+    gl_FragColor = vec4(br, br, br, 1.0);
+    }"
+  shader := createShader varyingSource vertexSource fragmentSource
+  assert (shader != 0)
+  ret shader
+end
+
+var float rotationSpeed 64.0
+var float cameraOffsetX 0.
+var float cameraOffsetY 0.
+var float cameraOffsetZ 0.
+
+template abortIf cond message
+  if #cond
+    print #message
+    ret 0
+  end
+end
+
+func int main()
+  init()
+
+  glfwSetWindowSizeCallback (cast void* &onWindowResize)
+  glfwSetMouseButtonCallback (cast void* &TwEventMouseButtonGLFW)
+  glfwSetMousePosCallback (cast void* &onMouseMove)
+  glfwSetMouseWheelCallback (cast void* &onMouseWheel)
+  glfwSetKeyCallback (cast void* &onKey)
+  glfwSetCharCallback (cast void* &TwEventCharGLFW)
+  TwHandleErrors &onTweakbarError
+
+  sceneFilename := "data/pixeljourney/shared/obj/Reagenztest_tri.obj"
+  // sceneFilename := "data/pjm2.obj"
+  loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
+
+  scene := aiImportFile sceneFilename loadOptions
+  abortIf (isNull scene) "Error, scene could not be loaded"
+
+  mesh := aiScene:toMesh scene
+  abortIf (isNull mesh) "Failed to convert scene to mesh"
+
+  // VertexStream:swapComponents mesh.positions 1 2
+
+  Mesh:print mesh
+
+  objmat := objectMaterial()
+
+  aiReleaseImport scene
+  scene = nullptr aiScene
+
+  bar := TwNewBar "Settings"
+  TwDefine "Settings refresh=0.01 position='0 20' size='200 200'"
+  TwAddSeparator bar (nullptr char) " "
+
+  twgroup "group=options precision=2"
+    rw TW_TYPE_FLOAT "rot. speed" rotationSpeed
+    rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
+    rw TW_TYPE_FLOAT "cam dy" cameraOffsetY
+    rw TW_TYPE_FLOAT "cam dz" cameraOffsetZ
+  end
+
+  var AABB meshBB
+  Mesh:calcAABB &meshBB mesh
+  meshSize := AABB:diagonalLength &meshBB
+
+  println "Mesh BB = " meshBB
+
+  meshCenter := AABB:center &meshBB
+
+  angle := 0.0
+
+  glEnable GL_DEPTH_TEST
+  glDepthFunc GL_LEQUAL
+  glEnable GL_BLEND
+  glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
+
+  mainloop
+    angle = angle + rotationSpeed * frameDuration
+
+    autoSetupViewport()
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    camDistance := 0.8
+    farPlaneDist := camDistance * meshSize + float:max(10.0, 0.5 * meshSize)
+    nearPlaneDist := float:max(1.0, camDistance - meshSize)
+    gluPerspective 90.0d aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef (.0-meshCenter.x) (.0-meshCenter.y) (.0-meshCenter.z)
+    glTranslatef cameraOffsetX cameraOffsetY cameraOffsetZ
+    glTranslatef 0. -0.2 float:neg(camDistance * meshSize)
+    glRotatef angle 0. 1. 0.
+
+    AABB:render &meshBB
+    withShader objmat
+      Mesh:render mesh GL_TRIANGLES 0
+    end
+
+    drawOrientationGrid2 0.2 1.0
+
+    TwDraw()
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  Mesh:delete mesh
+  glDeleteProgram objmat
+  TwDeleteAllBars()
+
+  ret 0
+end
+
