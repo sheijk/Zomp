@@ -4,10 +4,10 @@
 
 require "libs/libcee.zomp"
 
-require "opengl20.zomp"
-require "glfw.zomp"
-require "glut.zomp"
-require "quicktext.zomp"
+require "libs/opengl20.zomp"
+require "libs/glfw.zomp"
+require "libs/glut.zomp"
+require "libs/quicktext.zomp"
 require "libs/glutils.zomp"
 require "libs/spaceballcam.zomp"
 require "libs/array.zomp"

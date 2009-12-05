@@ -3,8 +3,8 @@
  */
 
 require "libs/libcee.zomp"
-require "opengl20.zomp"
-require "glfw.zomp"
+require "libs/opengl20.zomp"
+require "libs/glfw.zomp"
 require "libs/glutils.zomp"
 
 var int windowWidth 400

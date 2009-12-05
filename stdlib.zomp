@@ -716,13 +716,13 @@ end
 /// and will return it at run time. Can be used to debug
 /// a specific macro using mret instead of ret
 template mret code
-  println()
+  printNewline()
   ast:print #code 0
   ret #code
 end
 
 template pret code
-  println()
+  printNewline()
   ast:print #code 0
   ret ${}
 end
@@ -1070,15 +1070,6 @@ deprecated simpleAst ast:fromString name
 deprecated printAst ast:print t indent
 deprecated addChild ast:addChild tree child
 
-macro linkclib fileNames...
-  var astp code seqAst()
-  forEachAstChild fileName fileNames
-    ast:addChild code ${zmp:compiler:linkclib #fileName}
-  end
-
-  ret code
-end
-
 ///-----------------------------------------------------------------------------
 /// Section: Aliasing int to u32
 ///-----------------------------------------------------------------------------
@@ -1139,8 +1130,17 @@ alias int:min u32:min l r
 alias int:max u32:max l r
 
 ///-----------------------------------------------------------------------------
-/// Section: loading libraries once
+/// Section: external libraries
 ///-----------------------------------------------------------------------------
+
+macro linkclib fileNames...
+  var astp code seqAst()
+  forEachAstChild fileName fileNames
+    ast:addChild code ${zmp:compiler:linkclib #fileName}
+  end
+
+  ret code
+end
 
 type LoadedLibList
   cstring name
@@ -1175,6 +1175,8 @@ macro static:setRequireLibDebug value
   ret ${}
 end
 
+/// Load the given lib. Expects a quoated relative path name. Libs already
+/// loaded will not be loaded again
 macro zmpx:lib:requireLib lib
   var cstring libName getField(lib, id)
 
@@ -1206,11 +1208,14 @@ macro zmpx:lib:requireLib lib
       printString " (already loaded, ignored)"
     end
     printNewline()
+    flushStdout()
   end
 
   ret code
 end
 
+/// Will load the given libs. Expects quoted paths relative to the compilers
+/// working directory. Libs already loaded will not be loaded, again
 macro require libs...
   var ast* code ${}
 
@@ -1220,6 +1225,23 @@ macro require libs...
 
   ret code
 end
+
+/// Load file from library directory
+/// Usage:
+///   requireLibs libcee math
+/// Each lib will be loaded once
+macro requireLibs names...
+  var ast* code ${require}
+  forEachAstChild child names
+    var cstring qualifiedName cstring:quote(cstring:concat("libs/", getField child id, ".zomp"))
+    ast:addChild code ast:fromString(qualifiedName)
+  end
+  ret code
+end
+
+///-----------------------------------------------------------------------------
+/// Section: language default bindings
+///-----------------------------------------------------------------------------
 
 /// Declare a function. Use this to avoid auto indentation on newline :)
 template dfunc returnType nameAndOps

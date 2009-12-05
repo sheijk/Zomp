@@ -8,8 +8,7 @@
 //------------------------------------------------------------------------------
 /// base lib
 
-require "libs/libcee.zomp"
-require "libs/stdio.zomp"
+requireLib libcee stdio
 
 func bool isBound(char* name)
 

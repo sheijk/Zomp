@@ -4,10 +4,9 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib"
 
-require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp" "libs/mathvis.zomp"
-require "libs/assimp.zomp"
-require "libs/libcee.zomp"
-require "libs/anttweakbar.zomp"
+static:setRequireLibDebug true
+
+requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar
 
 ///-----------------------------------------------------------------------------
 /// Section: list

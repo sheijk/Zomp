@@ -2,7 +2,7 @@
  * Example demonstrating the use of the assimp library to load 3d scenes
  */
 
-require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
+require "libs/opengl20.zomp" "libs/glfw.zomp" "libs/glutils.zomp"
 require "libs/libcee.zomp"
 require "libs/assimp.zomp"
 require "libs/mesh.zomp"

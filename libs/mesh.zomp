@@ -5,7 +5,7 @@
  */
 
 require "libs/libcee.zomp"
-require "opengl20.zomp"
+require "libs/opengl20.zomp"
 require "libs/math.zomp"
 require "libs/glutils.zomp"
 

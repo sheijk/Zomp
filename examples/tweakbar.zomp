@@ -4,7 +4,7 @@
 
 linkclib "libglfw.dylib" "libGLEW.dylib"
 
-require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp"
+require "libs/opengl20.zomp" "libs/glfw.zomp" "libs/glutils.zomp"
 require "libs/libcee.zomp"
 require "libs/anttweakbar.zomp"
 

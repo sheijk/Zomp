@@ -2,8 +2,7 @@
  * Some experiments with lighting algorithms
  */
 
-require "libs/libcee.zomp"
-require "libs/array.zomp"
+requireLibs libcee array
 
 func bool isQuoted(cstring text)
   len := strlen text
@@ -57,7 +56,7 @@ macro require firstLibOrType libs...
   ret code
 end
 
-require "opengl20.zomp" "glfw.zomp" "libs/glutils.zomp" "glut.zomp"
+requireLibs opengl20 glfw glutils glut
 require lib "assimp" "math" "mathvis" "spaceballcam" "anttweakbar"
 
 var int windowWidth 400

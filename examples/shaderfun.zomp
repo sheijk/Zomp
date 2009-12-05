@@ -2,11 +2,11 @@
  * Experimental translation of zomp expressions to GLSL
  */
 
-require "opengl20.zomp"
-require "glfw.zomp"
+require "libs/opengl20.zomp"
+require "libs/glfw.zomp"
 require "libs/glutils.zomp"
-require "glut.zomp"
-require "quicktext.zomp"
+require "libs/glut.zomp"
+require "libs/quicktext.zomp"
 
 require "libs/libcee.zomp"
 
