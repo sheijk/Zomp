@@ -304,11 +304,14 @@ func int main()
   gridWidth := 300
   gridHeight := 300
   values := malloc float (gridWidth * gridHeight)
+  onReturn (dealloc values)
   memset (cast void* values) 0 (gridWidth * gridHeight * sizeof float)
 
   ballCount := 20
   balls := malloc v3f ballCount
+  onReturn (dealloc balls)
   ballOffsets := malloc float ballCount
+  onReturn (dealloc ballOffsets)
   for ballNum 0 ballCount
     balls[ballNum] = mv3f float:random() float:random() 0.0
     ballOffsets[ballNum] = (balls+ballNum)*.x
@@ -356,14 +359,10 @@ func int main()
   end
 
   println (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
-  
+
   drawPausedOverlay()
   glfwSwapBuffers()
 
-  dealloc values
-  dealloc balls
-  dealloc ballOffsets
-
-  ret 0
+  return 0
 end
 
