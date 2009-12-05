@@ -5,6 +5,17 @@ LLVM_GCC_BIN_DIR=$(PWD)/../tools/llvm-gcc/bin
 LLVM_BIN_DIR=$(PWD)/../tools/llvm/Release/bin
 PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
+ifeq ($(DEBUG), 1)
+OCAMLC += -g
+CXX_FLAGS += -pg -g
+C_FLAGS += -pg -g
+else
+CXX_FLAGS += -O5
+endif
+
+CFLAGS = $(C_FLAGS)
+CXXFLAGS = $(CXX_FLAGS)
+
 default:
 	@echo There is no default build target here
 	@exit 1
@@ -51,6 +62,7 @@ metaballs.exe: override LIBS = $(GL_LIBS) ../libquicktext.dylib
 using_assimp.exe: override LIBS = $(GL_LIBS) ../libquicktext.dylib -lstdc++ ../libassimp.a
 tweakbar.exe: override LIBS = $(GL_LIBS) ../libAntTweakBar.dylib
 lighting.exe: override LIBS = $(GL_LIBS) ../libAntTweakBar.dylib -lstdc++ ../libassimp.a
+pipeline_experiment.exe: override LIBS = $(GL_LIBS) ../libAntTweakBar.dylib -lstdc++ ../libassimp.a
 
 ################################################################################
 # Dependencies
@@ -94,9 +106,9 @@ endif
 
 stdlib.s: ../stdlib.zomp
 	@$(ECHO) Making $@ ...
-	$(LLVM_LLC) -o $@ ../stdlib.bc -march=x86
+	$(LLVM_LLC) -o $@ ../stdlib.bc -f -march=x86
 
 %.exe: %.o stdlib.o
 	@$(ECHO) Making $@ ...
-	$(CC) -o $@ -L. -L.. $(LIBS) $< -arch i386
+	$(CC) $(CFLAGS) -o $@ -L. -L.. $(LIBS) $< -arch i386
 
