@@ -34,7 +34,7 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Char -> "i8"
   | `Float -> "float"
   | `Double -> "double"
-  | `TypeRef name -> "%" ^ name
+  | `TypeRef name -> "%\"" ^ name ^ "\""
   | `Pointer `Void -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | `Array (memberType, size) -> sprintf "[%d x %s]" size (llvmTypeName memberType)
@@ -53,7 +53,7 @@ let rec llvmTypeNameLong = function
       "{ " ^ combine ", " componentNames ^ "}"
   | _ as other ->
       llvmTypeName other
-        
+
 let paramTypeName = function
   | `Char -> "i8 signext"
   | other -> llvmTypeName other
@@ -1087,13 +1087,12 @@ let gencodeDefineFunc func =
              | None -> "") ^ "\n" ^ impl ^ "\n}\n"
 
 let gencodeTypedef name typ =
-  sprintf "%%%s = type %s\n\n" name (llvmTypeNameLong typ)
+  sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
 let gencodeTL = function
   | `GlobalVar var -> gencodeGlobalVar var
   | `DefineFunc func -> gencodeDefineFunc func
   | `Typedef (name, typ) -> gencodeTypedef name typ
-
 
 let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
   let rec seperateVarsAndFuncs = function
