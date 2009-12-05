@@ -464,7 +464,7 @@ editor to trigger recompilations etc. and possibly resume main()"
         (setq endQuotationAtNextLine (looking-at " *end} *\\(//.*\\)?$"))
         (setq endAtNextLine (looking-at " *end *\\(//.*\\)?$"))))
 
-    (indent-according-to-mode)
+    ;; (indent-according-to-mode)
     (newline-and-indent)
 
     (when isComment
