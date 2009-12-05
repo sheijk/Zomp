@@ -665,7 +665,8 @@ func int main()
   placeRandomPointsOnSurface2 mesh points.positions
   // VertexStream:printDetailed points.positions
 
-  var AABB meshBB
+  // var AABB meshBB
+  meshBB := undef AABB
   Mesh:calcAABB &meshBB mesh
   meshSize := AABB:diagonalLength &meshBB
   viewDistance := float:max 2.0 (0.25 * meshSize)
@@ -714,6 +715,13 @@ func int main()
   twgroup "group=lights"
     rw TW_TYPE_INT32 "count" lightCount
   end
+
+  // // TODO implement it :)
+  // operator mesh
+  //   makeSphere r: 1.0 detail: 20
+  //   applyNoise 0.3
+  //   twist 0.3
+  // end
 
   twgroup "group=display"
     rw TW_TYPE_BOOL8 "Grid" showOrientationGrid
@@ -767,10 +775,10 @@ func int main()
     end
 
     if keyDown(GLFW_KEY_LSHIFT)
-      movingCam.longitude = movingCam.longitude + toFloat(mouseXDelta)
-      movingCam.latitude = movingCam.latitude + toFloat(mouseYDelta)
+      movingCam.longitude = movingCam.longitude + toFloat mouseXDelta
+      movingCam.latitude = movingCam.latitude + toFloat mouseYDelta
     end
-    movingCam.distance = movingCam.distance + toFloat(mouseWheelDelta)
+    movingCam.distance = movingCam.distance + toFloat mouseWheelDelta
     SpaceballCamera:restrictParams movingCam
     mouseXDelta = 0
     mouseYDelta = 0
@@ -787,8 +795,8 @@ func int main()
       glLoadIdentity()
       // farPlaneDist := cam.distance + float:max(1.0, 0.5 * meshSize)
       // nearPlaneDist := float:max(1.0, cam.distance - meshSize)
-      gluPerspective 90.0d 1.0d toDouble(nearPlaneDistance) toDouble(farPlaneDistance)
-      // glOrtho -10.0d 10.0d -10.0d 10.0d toDouble(nearPlaneDist) toDouble(farPlaneDistance)
+      // gluPerspective 90.0d 1.0d toDouble(nearPlaneDistance) toDouble(farPlaneDistance)
+      glOrtho -1.0d 1.0d -1.0d 1.0d toDouble(nearPlaneDistance) toDouble(farPlaneDistance)
 
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
