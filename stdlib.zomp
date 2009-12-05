@@ -13,72 +13,72 @@ type int u32
 /// Section: Content of stdlib.c
 ///-----------------------------------------------------------------------------
 
-func void printInt(int i)
-func void printString(char* s)
-func void printFloat(float f)
-func void printDouble(double d)
-func void printChar(char c)
-func void printNewline()
-func void flushStdout()
+std:base:func void printInt(int i)
+std:base:func void printString(char* s)
+std:base:func void printFloat(float f)
+std:base:func void printDouble(double d)
+std:base:func void printChar(char c)
+std:base:func void printNewline()
+std:base:func void flushStdout()
 
-func char* int2cstring(int i)
-func char* float2cstring(float f)
-func char* double2cstring(double d)
-func char* char2cstring(char c)
+std:base:func char* int2cstring(int i)
+std:base:func char* float2cstring(float f)
+std:base:func char* double2cstring(double d)
+std:base:func char* char2cstring(char c)
 
-func char* copyString(char* str)
+std:base:func char* copyString(char* str)
 
 ///-----------------------------------------------------------------------------
 /// Section: ZompVM
 ///-----------------------------------------------------------------------------
 
-func int zompLoadLib(char* libname)
-func bool zompRequestedPause()
-func void zompSetRequestPause(bool request)
+std:base:func int zompLoadLib(char* libname)
+std:base:func bool zompRequestedPause()
+std:base:func void zompSetRequestPause(bool request)
 
-func int zompLoadFileToMemory(char* filename, char** content)
+std:base:func int zompLoadFileToMemory(char* filename, char** content)
 
-func void stdlibHello()
+std:base:func void stdlibHello()
 
 ///-----------------------------------------------------------------------------
 /// Section: C library
 ///-----------------------------------------------------------------------------
 
-func void exit(int exitCode)
+std:base:func void exit(int exitCode)
 
-func double sin(double x)
-func double cos(double x)
-func float sinf(float x)
-func float cosf(float x)
+std:base:func double sin(double x)
+std:base:func double cos(double x)
+std:base:func float sinf(float x)
+std:base:func float cosf(float x)
 
-func float atanf(float x)
-func float asinf(float x)
-func float acosf(float x)
+std:base:func float atanf(float x)
+std:base:func float asinf(float x)
+std:base:func float acosf(float x)
 
-func int abs(int x)
-func float fabsf(float l)
+std:base:func int abs(int x)
+std:base:func float fabsf(float l)
 
-func float fmodf(float num, float divisor)
+std:base:func float fmodf(float num, float divisor)
 
-func float sqrtf(float x)
+std:base:func float sqrtf(float x)
 
 ///-----------------------------------------------------------------------------
 /// Section: Utility functions
 ///-----------------------------------------------------------------------------
 
-func bool bool:not(bool b)
+std:base:func bool bool:not(bool b)
   bool:xor true b
 end
 
-func int square(int x)
+std:base:func int square(int x)
   u32:mul x x
 end
 
-func float squaref(float x)
+std:base:func float squaref(float x)
   float:mul x x
 end
 
-func void printBool(bool b)
+std:base:func void printBool(bool b)
   branch b true false
 
   label true
@@ -92,7 +92,7 @@ func void printBool(bool b)
 end
 
 macroReplace funcln name type printF
-  func void name(type v)
+  std:base:func void name(type v)
     printF v
     printNewline()
   end
@@ -117,12 +117,12 @@ end
 
 type cstring (ptr char)
 
-func int strcmp(cstring l, cstring r)
-func int strncmp(cstring l, cstring r, int maxChars)
-func cstring strcpy(cstring dest, cstring source)
-func int strlen(cstring str)
+std:base:func int strcmp(cstring l, cstring r)
+std:base:func int strncmp(cstring l, cstring r, int maxChars)
+std:base:func cstring strcpy(cstring dest, cstring source)
+std:base:func int strlen(cstring str)
 
-func cstring u32:toCString(int x)
+std:base:func cstring u32:toCString(int x)
   int2cstring x
 end
 
@@ -133,7 +133,7 @@ end
 
 type pstring string*
 
-func int length(cstring s)
+std:base:func int length(cstring s)
   var char* ptr s
   var int count -1
 
@@ -150,17 +150,17 @@ func int length(cstring s)
 
   label end
 
-  ret count
+  std:base:ret count
 end
 
-func string* makestring(cstring cstr)
+std:base:func string* makestring(cstring cstr)
   var (ptr string) pstr (malloc string)
   store (fieldptr pstr length) (length cstr)
   store (fieldptr pstr chars) cstr
-  ret pstr
+  std:base:ret pstr
 end
 
-func string* newString(int length, char init)
+std:base:func string* newString(int length, char init)
   var (ptr char) chars (malloc char (u32:add 1 length))
   store (ptradd chars length) '\0'
   var int index 0
@@ -175,10 +175,10 @@ func string* newString(int length, char init)
   var (ptr string) result (malloc string)
   store (fieldptr result length) length
   store (fieldptr result chars) chars
-  ret result
+  std:base:ret result
 end
 
-func string* append(string* l, string* r)
+std:base:func string* append(string* l, string* r)
   var int length (u32:add (getField l length) (getField r length))
   var (ptr string) result (newString length 'x')
   var (ptr char) chars (getField result chars)
@@ -204,12 +204,12 @@ func string* append(string* l, string* r)
   branch test2 rbegin rend
   label rend
 
-  ret result
+  std:base:ret result
 end
 
 
 /// print count spaces
-func void printIndent(int count)
+std:base:func void printIndent(int count)
   var int counter count
   label start
   var bool t (u32:ugreater counter 0)
@@ -221,11 +221,11 @@ func void printIndent(int count)
   label end
 end
 
-func bool cstring:equal(cstring l, cstring r)
-  ret (u32:equal 0 (strcmp l r))
+std:base:func bool cstring:equal(cstring l, cstring r)
+  std:base:ret (u32:equal 0 (strcmp l r))
 end
 
-func cstring cstring:quote(cstring unquoted)
+std:base:func cstring cstring:quote(cstring unquoted)
   var int unquotedLength (length unquoted)
   var cstring quoted (malloc char (u32:add unquotedLength 3))
 
@@ -234,7 +234,7 @@ func cstring cstring:quote(cstring unquoted)
   store (ptradd quoted (u32:add unquotedLength 1)) '"' // "
   store (ptradd quoted (u32:add unquotedLength 2)) '\0'
 
-  ret quoted
+  std:base:ret quoted
 end
 
 
@@ -249,31 +249,31 @@ type ast
 end
 type astp ast*
 
-func cstring cstrings:append(cstring l, cstring r)
+std:base:func cstring cstrings:append(cstring l, cstring r)
 
-func ast* ast:fromString(cstring name)
+std:base:func ast* ast:fromString(cstring name)
   var ast* a (malloc ast)
 
   store (fieldptr a id) (cstrings:append name "")
   store (fieldptr a childCount) 0
   store (fieldptr a childs) (nullptr ast*)
 
-  ret a
+  std:base:ret a
 end
 
-func (ptr ast) seqAst()
+std:base:func (ptr ast) seqAst()
   ast:fromString "seq"
 end
 
-func (ptr ast) ast:fromInt(int i)
+std:base:func (ptr ast) ast:fromInt(int i)
   ast:fromString (int2cstring i)
 end
 
-func astp ast:fromFloat(float f)
+std:base:func astp ast:fromFloat(float f)
   ast:fromString (float2cstring f)
 end
 
-func void ast:print((ptr ast) a, int indent)
+std:base:func void ast:print((ptr ast) a, int indent)
   printIndent indent
   printString (load (fieldptr a id))
   printString " ["
@@ -293,7 +293,7 @@ func void ast:print((ptr ast) a, int indent)
   label end
 end
 
-func void ast:addChild((ptr ast) tree, (ptr ast) child)
+std:base:func void ast:addChild((ptr ast) tree, (ptr ast) child)
   var int oldChildCount (getField tree childCount)
   var int newChildCount (u32:add 1 oldChildCount)
   var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount)
@@ -315,9 +315,9 @@ func void ast:addChild((ptr ast) tree, (ptr ast) child)
 end
 
 /// get pointer to index-th child of parent
-func astp ast:child((ptr ast) parent, int index)
+std:base:func astp ast:child((ptr ast) parent, int index)
   var (ptr ast) child (load (ptradd (getField parent childs) index))
-  ret child
+  std:base:ret child
 end
 
 ///-----------------------------------------------------------------------------
@@ -326,69 +326,73 @@ end
 
 var cstring macroRest "postop..."
 
-func cstring macroAstId(astp macroCurrentAst)
+std:base:func cstring macroAstId(astp macroCurrentAst)
   var cstring name (getField (cast (ptr ast) macroCurrentAst) id)
-  ret name
+  std:base:ret name
 end
 
-func int macroAstChildCount(astp macroCurrentAst)
+std:base:func int macroAstChildCount(astp macroCurrentAst)
   getField macroCurrentAst childCount
 end
 
-func astp macroAstChild(astp tree, int num)
+std:base:func astp macroAstChild(astp tree, int num)
   // var (ptr ast) tree (cast (ptr ast) treeaddr)
   var (ptr ast) child (load (ptradd (getField tree childs) num))
   // var int i (cast int child)
-  // ret i
-  ret child
+  // std:base:ret i
+  std:base:ret child
 end
 
-func astp testMacro2(astp lastArg)
-  ret ${native (nested tree) (with (args a b c #lastArg))}
+std:base:func astp testMacro2(astp lastArg)
+  std:base:ret ${native (nested tree) (with (args a b c #lastArg))}
 end
 
-func int macroExec()
+std:base:func int macroExec()
   var astp tree (testMacro2 ${foo bar})
   var int i (cast int tree)
-  ret i
+  std:base:ret i
 end
 
-func astp macroTest()
-  ret ${macro test}
+std:base:func astp macroTest()
+  std:base:ret ${macro test}
 end
 
 var int lastid 0
 
-func int newUniqueId()
+std:base:func int newUniqueId()
   assign lastid (u32:add lastid 1)
-  ret lastid
+  std:base:ret lastid
 end
 
-func cstring cstrings:append(cstring l, cstring r)
+std:base:func cstring cstrings:append(cstring l, cstring r)
   var (ptr string) lstr (makestring l)
   var (ptr string) rstr (makestring r)
   var (ptr string) appended (append lstr rstr)
-  ret (getField appended chars)
+  std:base:ret (getField appended chars)
 end
 
-func cstring newUniqueName()
+std:base:func cstring newUniqueName()
   var int id (newUniqueId)
   var cstring numstr (int2cstring id)
-  ret (cstrings:append "_tmp_" numstr)
+  std:base:ret (cstrings:append "_tmp_" numstr)
 end
 
-func cstring newUniqueNameFor(cstring purpose)
+std:base:func cstring newUniqueNameFor(cstring purpose)
   var cstring name (newUniqueName)
-  ret (cstrings:append (cstrings:append name "_") purpose)
+  std:base:ret (cstrings:append (cstrings:append name "_") purpose)
 end
 
 macro uniqueId name purpose
-  ret ${var cstring #name (newUniqueNameFor #purpose)}
+  std:base:ret ${var cstring #name (newUniqueNameFor #purpose)}
 end
 
 /// workaround until "const" is properly supported
 macro const type name default
-  ret ${var #type #name #default}
+  std:base:ret ${var #type #name #default}
+end
+
+macro ret expr
+  std:base:ret ${std:base:ret #expr}
 end
 
 ///-----------------------------------------------------------------------------
@@ -598,7 +602,7 @@ macro compilerMessage text...
   ret ${}
 end
 
-func void compiler:printWarning(cstring message)
+std:base:func void compiler:printWarning(cstring message)
   printString "Warning: "
   printString message
   printNewline()
@@ -607,7 +611,7 @@ end
 template compiler:error message... (ret ${error #message})
 
 /// quickly define a test function to be run with C-c,t in emacs
-template testf impl... (func void test seq #impl)
+template testf impl... (std:base:func void test seq #impl)
 
 macro assert checkCode
   ret ${
@@ -619,7 +623,7 @@ macro assert checkCode
   end}
 end
 
-func void printHLine(char chr, int count)
+std:base:func void printHLine(char chr, int count)
   times count (printChar chr)
   printNewline()
 end
@@ -686,14 +690,14 @@ macro unittest:testCasesFor name testCases...
   end
   var ast* decl ast:fromString("opcall")
   ast:addChild decl ast:fromString(testName)
-  var astp funcDecl ${func void #decl
+  var astp funcDecl ${std:base:func void #decl
     #impl
   end}
 
   ret funcDecl
 end
 
-func cstring unittest:newTestFuncNameFor(cstring funcName)
+std:base:func cstring unittest:newTestFuncNameFor(cstring funcName)
   cstring:concat "test_" funcName "_" (u32:toCString (newUniqueId))
 end
 
@@ -701,7 +705,7 @@ macro unittest:testFunc funcName impl
   var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id))
   var ast* decl ast:fromString("opcall")
   ast:addChild decl ast:fromString(testFuncName)
-  ret ${func void #decl #impl}
+  ret ${std:base:func void #decl #impl}
 end
 
 ///-----------------------------------------------------------------------------
@@ -749,13 +753,13 @@ end
 /// Section: Additional AST functions
 ///-----------------------------------------------------------------------------
 
-func void ast:setChild(ast* parent, int index, ast* newChild)
+std:base:func void ast:setChild(ast* parent, int index, ast* newChild)
   assert (u32:uless index (getField parent childCount))
   var (ptr (ptr ast)) childptrAddr (ptradd (getField parent childs) index)
   store childptrAddr newChild
 end
 
-func void ast:replace(ast* tree, cstring placeholder, ast* replacement)
+std:base:func void ast:replace(ast* tree, cstring placeholder, ast* replacement)
   const int count (getField tree childCount)
   for childNum 0 count
     var (ptr ast) child (ast:child tree childNum)
@@ -769,7 +773,7 @@ func void ast:replace(ast* tree, cstring placeholder, ast* replacement)
   end
 end
 
-func void ast:replaceId(ast* tree, cstring placeholder, cstring newid)
+std:base:func void ast:replaceId(ast* tree, cstring placeholder, cstring newid)
   when (cstring:equal (getField tree id) placeholder)
     setField tree id newid
   end
@@ -813,9 +817,9 @@ float:aliasNoQNAN lessEqual
 float:aliasNoQNAN greaterEqual
 
 
-func int main()
+std:base:func int main()
 
-func void runMain()
+std:base:func void runMain()
   const int retval main()
   printNewline()
   printString "main() returned "
@@ -830,15 +834,15 @@ template float:neg x (float:sub 0. #x)
 /// Section: Additional operators and basic math functions
 ///-----------------------------------------------------------------------------
 
-func int u32:mod(int v, int div)
+std:base:func int u32:mod(int v, int div)
   u32:urem v div
 end
 
-func int u32:neg(int x)
+std:base:func int u32:neg(int x)
   ret u32:sub(0, x)
 end
 
-func char* bool2cstring(bool b)
+std:base:func char* bool2cstring(bool b)
   var char* result nullptr(char)
 
   if b
@@ -934,7 +938,7 @@ macro compareFunc type name compareF
   var (ptr ast) compareCode compareF
   ast:addChilds compareCode $l $r
 
-  ret ${func #typeName #name(#typeName l, #typeName r)
+  ret ${std:base:func #typeName #name(#typeName l, #typeName r)
     var bool cmp #compareCode
     branch cmp lgreater rgreater
     label lgreater
@@ -954,15 +958,15 @@ compareFunc float float:min op<_f
 compareFunc double double:max op>_d
 compareFunc double double:min op<_d
 
-func float float:clamp(float min, float max, float x)
+std:base:func float float:clamp(float min, float max, float x)
   float:min max (float:max min x)
 end
 
-func int u32:clamp(int min, int max, int x)
+std:base:func int u32:clamp(int min, int max, int x)
   u32:min max (u32:max min x)
 end
 
-func bool float:equalDelta(float delta, float l, float r)
+std:base:func bool float:equalDelta(float delta, float l, float r)
   const float diff (fabsf (l -_f r))
   ret (diff <=_f delta)
 end
@@ -1145,7 +1149,7 @@ end
 
 var LoadedLibList* zmpx:lib:includedLibs null
 
-func void printAllLoadedLibs()
+std:base:func void printAllLoadedLibs()
   printlnString "Loaded libs:"
 
   var LoadedLibList* list zmpx:lib:includedLibs
@@ -1219,6 +1223,14 @@ end
 
 /// Declare a function. Use this to avoid auto indentation on newline :)
 template dfunc returnType nameAndOps
-  func #returnType #nameAndOps
+  std:base:func #returnType #nameAndOps
+end
+
+macro func args...
+  var ast* code ${std:base:func}
+  forEachAstChild child args
+    ast:addChild code child
+  end
+  ret code
 end
 

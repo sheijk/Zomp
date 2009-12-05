@@ -27,7 +27,7 @@ dfunc int_t memcmp(void* ptr1, void* ptr2, size_t bytes)
 /// Declares a function. Use this to prevent emacs indentation in next line :)
 ///
 template funcd rettype nameAndArgs
-  func #rettype #nameAndArgs
+  std:base:func #rettype #nameAndArgs
 end
 
 template macro:failUnless cond
@@ -105,13 +105,64 @@ macro undef type
   end}
 end
 
+//------------------------------------------------------------------------------
+
+type astList
+  ast* ast
+  astList* next
+end
+
+var astList* onReturnCleanupCode null
+
+macro onReturn cleanupCode
+  newList := malloc astList
+  setField newList ast cleanupCode
+  setField newList next onReturnCleanupCode
+  onReturnCleanupCode = newList
+  std:base:ret ${}
+end
+
+macro return expr
+  code := ${}
+  current := onReturnCleanupCode
+  while (cast void* current !=_ptr nullptr void)
+    ast:addChild code getField(current,ast)
+    current = getField current next
+  end
+  ast:addChild code ${std:base:ret #expr}
+  std:base:ret code
+end
+
+macro ret expr
+  if (cast void* onReturnCleanupCode !=_ptr nullptr void)
+    std:base:ret ${error "You can only return from functions using onReturn with return, ret is illegal" #expr}
+  end
+  std:base:ret ${std:base:ret #expr}
+end
+
+macro cee:internal:cleanupOnReturn
+  onReturnCleanupCode = nullptr astList
+  std:base:ret ${}
+end
+
+macro func args...
+  var ast* funcCode ${std:base:func}
+  forEachAstChild child args
+    ast:addChild funcCode child
+  end
+  std:base:ret ${
+    #funcCode
+    cee:internal:cleanupOnReturn
+  end}
+end
+
 /// Given an ast and an ast containing placeholders _/__ the
 /// shapes of both ast's are matched against each other. They match if they have
 /// the same name, same number of children and all their children are matching.
 ///
 /// The _ placeholder matches expressions without children (like 'a') while
-/// the __ placeholder matches any other ast
-/// _... as last argument means any number of parameters
+/// the __ placeholder matches any ast
+/// _... as last argument means >= 0 parameters following
 ///
 /// Examples:
 ///   ast:matchesShape ${foo bar} ${foo bar} => true
@@ -306,10 +357,6 @@ end
 
 func void free(void* ptr)
 template dealloc ptr free(cast void* #ptr)
-
-template return value
-  ret #value
-end
 
 template op++ lstring rstring
   cstrings:append #lstring #rstring

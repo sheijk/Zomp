@@ -18,14 +18,14 @@ open Bindings
 open Printf
 
 let macroVar = "var"
-and macroFunc = "func"
+and macroFunc = "std:base:func"
 and macroAssign = "assign"
 and macroSequence = "seq"
 and macroTypedef = "type"
 and macroRecord = "record"
 and macroField = "field"
 and macroPtr = "ptr"
-and macroReturn = "ret"
+and macroReturn = "std:base:ret"
 and macroLabel = "label"
 and macroBranch = "branch"
 and macroMacro = "macro"
