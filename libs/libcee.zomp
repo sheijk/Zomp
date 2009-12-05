@@ -19,6 +19,9 @@ dfunc void* memcpy(void* destination, void* source, size_t bytes)
 dfunc void* memmove(void* destination, void* source, size_t bytes)
 dfunc int_t memcmp(void* ptr1, void* ptr2, size_t bytes)
 
+func void free(void* ptr)
+template dealloc ptr free(cast void* #ptr)
+
 ///-----------------------------------------------------------------------------
 /// Section: Untested
 ///-----------------------------------------------------------------------------
@@ -112,19 +115,26 @@ type astList
   astList* next
 end
 
-var astList* onReturnCleanupCode null
+var astList* cee:internal:onReturnCleanupCode null
+var bool cee:internal:insideCeeFunc false
 
+/// The executed code will be executed right before all return statements inside
+/// the current function. Functions using onReturn must always be left with
+/// return and never using ret. This can only be used inside cee functions
 macro onReturn cleanupCode
+  if (bool:not cee:internal:insideCeeFunc)
+    ret ${error "onReturn may only be used inside cee functions" #cleanupCode}
+  end
   newList := malloc astList
   setField newList ast cleanupCode
-  setField newList next onReturnCleanupCode
-  onReturnCleanupCode = newList
+  setField newList next cee:internal:onReturnCleanupCode
+  cee:internal:onReturnCleanupCode = newList
   std:base:ret ${}
 end
 
 macro return expr
   code := ${}
-  current := onReturnCleanupCode
+  current := cee:internal:onReturnCleanupCode
   while (cast void* current !=_ptr nullptr void)
     ast:addChild code getField(current,ast)
     current = getField current next
@@ -134,14 +144,20 @@ macro return expr
 end
 
 macro ret expr
-  if (cast void* onReturnCleanupCode !=_ptr nullptr void)
+  if (cast void* cee:internal:onReturnCleanupCode !=_ptr nullptr void)
     std:base:ret ${error "You can only return from functions using onReturn with return, ret is illegal" #expr}
   end
   std:base:ret ${std:base:ret #expr}
 end
 
 macro cee:internal:cleanupOnReturn
-  onReturnCleanupCode = nullptr astList
+  current := cee:internal:onReturnCleanupCode
+  while (cast void* current !=_ptr nullptr void)
+    free (cast void* getField(current, ast))
+    current = getField(current, next)
+  end
+  cee:internal:onReturnCleanupCode = nullptr astList
+  cee:internal:insideCeeFunc = false
   std:base:ret ${}
 end
 
@@ -150,6 +166,7 @@ macro func args...
   forEachAstChild child args
     ast:addChild funcCode child
   end
+  cee:internal:insideCeeFunc = true
   std:base:ret ${
     #funcCode
     cee:internal:cleanupOnReturn
@@ -354,9 +371,6 @@ macro new type args...
 
   ret code
 end
-
-func void free(void* ptr)
-template dealloc ptr free(cast void* #ptr)
 
 template op++ lstring rstring
   cstrings:append #lstring #rstring

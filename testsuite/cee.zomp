@@ -407,6 +407,19 @@ func int onReturn_multiReturn(bool first)
   return result
 end
 
+/// this should fail because onReturn is used in a non-cee function
+// std:base:func int onReturn_fail_onReturn_in_non_cee_func()
+//   onReturn (println "xxx")
+//   return 10
+// end
+
+/// this should faile because function contains onReturn statements but it is
+/// left using ret instead of return
+// func int onReturn_fail_used_ret_and_onReturn()
+//   onReturn (println "xxx")
+//   ret 10
+// end
+
 unittest:testCase test_onReturn
   unittest:assertAll
     onReturn_simple() == 5

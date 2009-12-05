@@ -45,7 +45,7 @@ astmatch.ll: ../libs/libcee.zomp
 # tests to avoid having all tests run and fail because the prelude/compiler is
 # completely broken
 preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
-	@$(ECHO) Checking whether prelude compiles...
+	@$(ECHO) Checking whether prelude compiles ...
 	@rm -f $@.zomp $@.ll $@.o.bc $@.bc $@
 	@echo "std:base:func int main()\n  ret 0\nend\n" > preludevalid.zomp
 	@../zomp-check-syntax.sh preludevalid.zomp
@@ -55,7 +55,7 @@ preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
 	@touch preludevalid
 
 %.ll: %.zomp ../zompc.native ../stdlib.zomp preludevalid
-	@$(ECHO) Compiling $(<) to .ll...
+	@$(ECHO) Compiling $(<) to .ll ...
 	@../zomp-check-syntax.sh $<
 
 %.bc: %.ll ../stdlib.zomp ../stdlib.c
@@ -64,7 +64,7 @@ preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
 	@$(LLVM_LINK) -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
 
 %.test: %.bc
-	@$(ECHO) Running test $(<:.bc=)...
+	@$(ECHO) Running test $(<:.bc=) ...
 	@$(LLVM_LLI) $<
 	@touch $@
 
