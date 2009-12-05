@@ -1,0 +1,113 @@
+// !$*UTF8*$!
+{
+	08FB7793FE84155DC02AAC07 /* Project object */ = {
+		activeBuildConfigurationName = Debug;
+		activeExecutable = 6234EDF410C3423B0071E341 /* pipeline_experiment */;
+		activeTarget = D28A88AD04BDD90700651E21 /* zomp */;
+		addToTargets = (
+			D28A88AD04BDD90700651E21 /* zomp */,
+		);
+		codeSenseManager = 6234EDF310C342260071E341 /* Code sense */;
+		executables = (
+			6234EDF410C3423B0071E341 /* pipeline_experiment */,
+		);
+		perUserDictionary = {
+			PBXPerProjectTemplateStateSaveDate = 281231879;
+			PBXWorkspaceStateSaveDate = 281231879;
+		};
+		perUserProjectItems = {
+			6234EDFE10C3427F0071E341 /* PBXTargetBookmark */ = 6234EDFE10C3427F0071E341 /* PBXTargetBookmark */;
+			6234EDFF10C3427F0071E341 /* PBXTargetBookmark */ = 6234EDFF10C3427F0071E341 /* PBXTargetBookmark */;
+		};
+		sourceControlManager = 6234EDF210C342260071E341 /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	6234EDF210C342260071E341 /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 0;
+		scmConfiguration = {
+			repositoryNamesForRoots = {
+				"" = "";
+			};
+		};
+	};
+	6234EDF310C342260071E341 /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	6234EDF410C3423B0071E341 /* pipeline_experiment */ = {
+		isa = PBXExecutable;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		breakpointsEnabled = 0;
+		configStateDict = {
+			"PBXLSLaunchAction-0" = {
+				PBXLSLaunchAction = 0;
+				PBXLSLaunchStartAction = 1;
+				PBXLSLaunchStdioStyle = 2;
+				PBXLSLaunchStyle = 0;
+				class = PBXLSRunLaunchConfig;
+				commandLineArgs = (
+				);
+				displayName = "Executable Runner";
+				environment = {
+				};
+				identifier = com.apple.Xcode.launch.runConfig;
+				remoteHostInfo = "";
+				startActionInfo = "";
+			};
+		};
+		customDataFormattersEnabled = 1;
+		dataTipCustomDataFormattersEnabled = 1;
+		dataTipShowTypeColumn = 1;
+		dataTipSortType = 0;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		launchableReference = 6234EDF510C3423B0071E341 /* pipeline_experiment.exe */;
+		libgmallocEnabled = 0;
+		name = pipeline_experiment;
+		showTypeColumn = 0;
+		sourceDirectories = (
+		);
+		startupPath = /Users/sheijk/Documents/Development/dword/trunk/Stuff/ocaml/lang/git/examples;
+	};
+	6234EDF510C3423B0071E341 /* pipeline_experiment.exe */ = {
+		isa = PBXFileReference;
+		lastKnownFileType = "compiled.mach-o.executable";
+		name = pipeline_experiment.exe;
+		path = ../examples/pipeline_experiment.exe;
+		sourceTree = SOURCE_ROOT;
+	};
+	6234EDFE10C3427F0071E341 /* PBXTargetBookmark */ = {
+		isa = PBXTargetBookmark;
+		trg = D28A88AD04BDD90700651E21 /* zomp */;
+	};
+	6234EDFF10C3427F0071E341 /* PBXTargetBookmark */ = {
+		isa = PBXTargetBookmark;
+		trg = D28A88AD04BDD90700651E21 /* zomp */;
+		uiCtxt = {
+			TOCViewDetailVisibleRect = "{{0, 0}, {637, 576}}";
+			TOCViewExpandedItems = (
+				"com.apple.target-editor-pane.settings",
+			);
+			TOCViewMasterVisibleRect = "{{0, 0}, {254, 701}}";
+			TOCViewSelectedItems = (
+				"com.apple.target-editor-pane.settings",
+			);
+		};
+	};
+	D28A88AD04BDD90700651E21 /* zomp */ = {
+		activeExec = 0;
+	};
+}
