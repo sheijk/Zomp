@@ -18,10 +18,7 @@ open Bindings
 open Printf
 
 let macroVar = "var"
-(* and macroMutableVar = "mvar" *)
 and macroFunc = "func"
-(* and macroIfThenElse = "ifthenelse" *)
-(* and macroLoop = "loop" *)
 and macroAssign = "assign"
 and macroSequence = "seq"
 and macroTypedef = "type"
@@ -1597,7 +1594,7 @@ let translateFromDict
     let env = {
       bindings = bindings;
       translateF = translateF;
-      parseF = Parseutils.parseIExprs;
+      parseF = Parseutils.parseIExprsOpt;
     } in
     match handler env expr with
       | Error errors ->

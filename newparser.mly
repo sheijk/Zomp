@@ -25,8 +25,6 @@
 
   let mergeJux l r =
     match l, r with
-(*       | _, {Ast2.id = "opjuxNOMERGE"; args = [r]} -> *)
-(*           {Ast2.id = "opjux"; args = [l; r] } *)
       | {Ast2.id = "opjux"; args = largs }, _ ->
           {Ast2.id = "opjux"; args = largs @ [r]}
       | _, {Ast2.id = "opjux"; args = rargs } ->

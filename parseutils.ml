@@ -22,6 +22,21 @@ let parseSExpr input =
   with Sexprlexer.Eof ->
     None
 
+type parseError = {
+  location :Indentlexer.location option;
+}
+
+let parseErrorToString pe =
+  let file, line =
+    match pe.location with
+      | Some loc -> loc.Indentlexer.fileName, loc.Indentlexer.line
+      | None -> "???.zomp", -1
+  in
+  sprintf "%s: %d: parser error\n" file line
+
+type parsingResult =
+    Exprs of Ast2.sexpr list | Error of parseError
+
 let parseSExprs source =
   let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
     try
@@ -34,13 +49,11 @@ let parseSExprs source =
     let lexbuf = Lexing.from_string source in
     let parseF = Sexprparser.main Sexprlexer.token in
     let exprs = parse parseF lexbuf [] in
-    Some exprs
+    Exprs exprs
   with _ ->
-    None
+    Error { location = None }
 
-let parseIExprsNoCatch source =
-  let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+let parseIExprsFromLexbuf lexbuf lexstate =
   let lexFunc _ = Indentlexer.token lexstate in
   let lexFunc = sampleFunc1 "lexing" lexFunc in
   let rec read acc =
@@ -52,21 +65,33 @@ let parseIExprsNoCatch source =
   in
   List.rev (read [])
 
+let parseIExprsNoCatch source =
+  let lexbuf = Lexing.from_string source in
+  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  parseIExprsFromLexbuf lexbuf lexstate
+
 let parseIExprs source =
+  let lexbuf = Lexing.from_string source in
+  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   try
-    Some (parseIExprsNoCatch source)
+    Exprs (parseIExprsFromLexbuf lexbuf lexstate)
   with _ ->
-    None
+    Error { location = Some (Indentlexer.locationOfLexstate lexstate) }
+
+let parseIExprsOpt source =
+  match parseIExprs source with
+    | Exprs e -> Some e
+    | Error _ -> None
 
 (** try to parse a string using indent/new syntax *)
 let parseIExpr source =
   if String.length source >= 3 && Str.last_chars source 3 = "\n\n\n" then
     match parseIExprs source with
-      | Some [singleExpr] ->
+      | Exprs [singleExpr] ->
           Some singleExpr
-      | Some multipleExprs ->
+      | Exprs multipleExprs ->
           Some { Ast2.id = "opseq"; args = multipleExprs }
-      | None ->
+      | Error _ ->
           None
   else
     None

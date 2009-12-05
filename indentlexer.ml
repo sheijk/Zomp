@@ -482,11 +482,21 @@ type 'token lexerstate = {
   mutable previousToken :[`Whitespace | `Token of token];
 }
 
+let locationOfLexstate ls = ls.location
+
+let moveToNextLine ls =
+  ls.location <- { ls.location with line = ls.location.line + 1 }
+
 let readChars lexbuf n =
   if lexbuf.position + n < lexbuf.contentLength then begin
     let str = String.sub lexbuf.content lexbuf.position n in
     lexbuf.position <- lexbuf.position + n;
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ str;
+    String.iter
+      (fun chr ->
+         if chr = '\n' then
+           moveToNextLine lexbuf)
+      str;
     str
   end else
     raise Eof
@@ -496,6 +506,8 @@ let readChar lexbuf =
     let chr = lexbuf.content.[lexbuf.position] in
     lexbuf.position <- lexbuf.position + 1;
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
+    if chr = '\n' then
+      moveToNextLine lexbuf;
     chr
   end else
     raise Eof

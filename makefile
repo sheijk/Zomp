@@ -236,7 +236,8 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 # Rules #
 ################################################################################
 
-.PHONY: clean clean_all
+.PHONY: clean clean_all runtestsuite perftest2 perftest runtestsuite runtests \
+   profile_comp exampletests runmltests mltest alltests
 
 %.ml: %.mly
 	@$(ECHO) Generating parser $< ...

@@ -82,9 +82,15 @@ let compileCode bindings input outstream fileName =
       collectTimingInfo "parsing"
         (fun () ->
            match parseF input with
-             | Some exprs -> exprs
-             | None ->
-                 raiseCouldNotParse (sprintf "%s:%d: error: Could not parse file\n" fileName 0))
+             | Parseutils.Exprs exprs -> exprs
+             | Parseutils.Error error ->
+                 let errorWithCorrectFile = {
+                   location =
+                     match error.location with
+                       | Some l -> Some { l with Indentlexer.fileName = fileName }
+                       | None -> error.location }
+                 in
+                 raiseCouldNotParse (parseErrorToString errorWithCorrectFile))
     in
     let leftExprs = ref exprs in
     let readExpr _ =
