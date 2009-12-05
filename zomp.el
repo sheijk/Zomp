@@ -291,10 +291,14 @@ editor to trigger recompilations etc. and possibly resume main()"
 (defmacro zomp-add-seperator (seperator-id)
   `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
 
-(defmacro zomp-dofun (name command)
-  `(defun ,name () (interactive) (zomp-tl-do ,command)))
+(defmacro zomp-dofun (name command &optional confirm-msg)
+  (if confirm-msg
+      `(defun ,name () (interactive)
+         (when (y-or-n-p ,confirm-msg)
+           (zomp-tl-do ,command)))
+    `(defun ,name () (interactive) (zomp-tl-do ,command))))
 
-(zomp-dofun zomp-tl-exit "!exit")
+(zomp-dofun zomp-tl-exit "!exit" "Really quit running toplevel? ")
 (zomp-dofun zomp-tl-list-all-bindings "!bindings")
 (zomp-dofun zomp-tl-help "!help")
 (zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
