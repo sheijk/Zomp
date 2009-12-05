@@ -22,6 +22,28 @@ require "libs/mesh.zomp"
 // var int aiComponent_MATERIALS 0x800
 // var int _aiComponent_Force32Bit 0x9ffffff
 
+macro iprint args...
+  code := ${}
+  ast:addChild code ${times indent printChar(' ')}
+  forEachAstChild arg args
+    ast:addChild code arg
+  end
+  ret code
+end
+
+macro printField fieldName
+  fieldNameQuoted := cstring:quote fieldName.id
+  ret ${
+    times (indent+2) printChar(' ')
+    print #fieldNameQuoted " = " this.#fieldName
+    println()
+  end}
+end
+
+template printFieldi fieldName
+  printField #fieldName
+end
+
 var int aiPrimitiveType_POINT 1
 var int aiPrimitiveType_LINE 2
 var int aiPrimitiveType_TRIANGLE 4
@@ -54,14 +76,34 @@ struct aiVector2D
   float x y
 end
 
+func void aiVector2D:print(aiVector2D* this)
+  print "aiVector2D(x=" this.x ", y=" this.y ")"
+end
+
 struct aiVector3D
   float x y z
+end
+
+func void aiVector3D:print(aiVector3D* this)
+  print "aiVector3D(x=" this.x ", y=" this.y ", z=" this.z ")"
+end
+
+struct aiQuaternion
+  float w x y z
+end
+
+func void aiQuaternion:print(aiQuaternion* this)
+  print "aiQuaternion(w=" this.w ", x=" this.x ", y=" this.y ", z=" this.z ")"
 end
 
 struct aiMatrix3x3
   float a1 a2 a3
   float b1 b2 b3
   float c1 c2 c3
+end
+
+func void aiMatrix3x3:print(aiMatrix3x3* this)
+  print "aiMatrix3x3(TODO)"
 end
 
 struct aiMatrix4x4
@@ -71,11 +113,18 @@ struct aiMatrix4x4
   float d1 d2 d3 d4
 end
 
+func void aiMatrix4x4:print(aiMatrix4x4* this)
+  print "aiMatrix4x4(TODO)"
+end
 
 const int assimp:MAXLEN 1024
 struct aiString
   uint length
   char[1024] data
+end
+
+func void aiString:print(aiString* this)
+  printString zmp:array:addr( &(this.data) )
 end
 
 funcd cstring aiGetLegalString()
@@ -95,10 +144,6 @@ func void VertexStream:copyFromVector3D(VertexStream* this, aiVector3D* sourceVe
   end
 end
 
-func void aiString:print(aiString* this)
-  printString zmp:array:addr( &(this.data) )
-end
-
 struct aiNode
   aiString mName
   aiMatrix4x4 mTransformation
@@ -111,21 +156,19 @@ end
 
 func void aiNode:print(aiNode* this, int indent)
   times indent printChar(' ')
-  printString "aiNode mName="
+  printString "aiNode '"
   aiString:print &(this.mName)
-  printString ", mNumChildren="
-  printInt this.mNumChildren
-  printString ", mNumMeshes="
-  printInt this.mNumMeshes
+  println "':"
+  printField mNumChildren
 
-  printString ", mMeshes="
+  times (2+indent) printChar(' ')
+  print this.mNumMeshes " mMeshes = "
   for meshnum 0 this.mNumMeshes
     if (meshnum > 0)
-      printString " "
+      printString ", "
     end
     printInt load(ptradd this.mMeshes meshnum)
   end
-
   println()
 
   for childnum 0 this.mNumChildren
@@ -168,32 +211,26 @@ struct aiMesh
   uint mMaterialIndex
 end
 
-macro printField printF fieldName
-  fieldNameQuoted := cstring:quote fieldName.id
-  ret ${
-    times indent printChar(' ')
-    printString #fieldNameQuoted
-    printString " = "
-    #printF this.#fieldName
-    println()
-  end}
-end
+// macro printField printF fieldName
+//   fieldNameQuoted := cstring:quote fieldName.id
+//   ret ${
+//     times indent printChar(' ')
+//     printString #fieldNameQuoted
+//     printString " = "
+//     #printF this.#fieldName
+//     println()
+//   end}
+// end
 
-template printFieldi fieldName
-  printField printInt #fieldName
-end
-
-func void aiMesh:print(aiMesh* this, int startIndent)
-  indent := startIndent
+func void aiMesh:print(aiMesh* this, int indent)
   printIndent indent
-  printlnString "aiMesh="
-  indent = indent + 2
-  printFieldi mPrimitiveTypes
-  printFieldi mNumVertices
-  printFieldi mNumFaces
+  printlnString "aiMesh:"
+  printField mPrimitiveTypes
+  printField mNumVertices
+  printField mNumFaces
 
-  times indent printChar(' ')
-  printString "components="
+  printIndent (indent+2)
+  print "components="
 
   macro printUnlessNull fieldName
     fieldNameQ := cstring:quote fieldName.id
@@ -212,7 +249,7 @@ func void aiMesh:print(aiMesh* this, int startIndent)
   printUnlessNull mBitangents
   println()
 
-  printIndent indent
+  printIndent (indent+2)
   printString "mNumUVComponents={"
   for i 0 4
     if (i > 0)
@@ -226,15 +263,142 @@ func void aiMesh:print(aiMesh* this, int startIndent)
   printFieldi mMaterialIndex
 end
 
+struct aiVectorKey
+  double mTime
+  aiVector3D mValue
+end
+
+func void aiVectorKey:print(aiVectorKey* this)
+  print "aiVectorKey("
+  print "mTime=" this.mTime
+  print ", mValue="
+  aiVector3D:print &(this.mValue)
+  print ")"
+end
+
+struct aiQuatKey
+  double mTime
+  aiQuaternion mValue
+end
+
+func void aiQuatKey:print(aiQuatKey* this)
+  print "aiQuatKey(mTime=" this.mTime
+  print ", mValue="
+  aiQuaternion:print &this.mValue
+  print ")"
+end
+
+type aiAnimBehaviour int
+var int aiAnimBehaviour_DEFAULT 0
+var int aiAnimBehaviour_CONSTANT 1
+var int aiAnimBehaviour_LINEAR 2
+var int aiAnimBehaviour_REPEAT 3
+
+struct aiNodeAnim
+  aiString mNodeName
+
+  uint mNumPositionKeys
+  aiVectorKey* mPositionKeys
+
+  uint mNumRotationKeys
+  aiQuatKey* mRotationKeys
+
+  uint mNumScalingKeys
+  aiVectorKey* mScalingKeys
+
+  aiAnimBehaviour mPreState
+  aiAnimBehaviour mPostState
+end
+
+func void aiNodeAnim:print(aiNodeAnim* this, int indent)
+  times indent printChar(' ')
+  print "aiNodeAnim '"
+  aiString:print &this.mNodeName
+  println "':"
+  printField mNumPositionKeys
+  printField mNumRotationKeys
+  printField mNumScalingKeys
+  printField mPreState
+  printField mPostState
+
+  printIndent indent
+  println "  mPositionKeys:"
+  for posnum 0 this.mNumPositionKeys
+    printIndent (indent+4)
+    aiVectorKey:print (this.mPositionKeys + posnum)
+    println()
+  end
+
+  printIndent indent
+  println "  mRotationKeys:"
+  for rotnum 0 this.mNumRotationKeys
+    printIndent (indent+4)
+    aiQuatKey:print (this.mRotationKeys + rotnum)
+    println()
+  end
+
+  printIndent indent
+  println "  mScalingKeys:"
+  for scalenum 0 this.mNumScalingKeys
+    printIndent (indent+4)
+    aiVectorKey:print (this.mScalingKeys + scalenum)
+    println()
+  end
+end
+
+struct aiAnimation
+  aiString mName
+  double mDuration
+  double mTicksPerSecond
+
+  uint mNumChannels
+  aiNodeAnim** mChannels
+end
+
+func void aiAnimation:print(aiAnimation* this, int indent)
+  times indent printChar(' ')
+  print "aiAnimation '"
+  aiString:print &this.mName
+  println "'"
+  printField mDuration
+  printField mTicksPerSecond
+  printField mNumChannels
+  for channum 0 this.mNumChannels
+    aiNodeAnim:print *(this.mChannels + channum) (indent+2)
+  end
+end
+
 type aiMaterial
-type aiAnimation
 type aiTexture
 type aiLight
-type aiCamera
 
 func void aiMaterial:print(aiMaterial* this, int indent)
   times indent printChar(' ')
   printlnString "aiMaterial"
+end
+
+struct aiCamera
+  aiString mName
+  aiVector3D mPosition mUp mLookAt
+  float mHorizontalFOV
+  float mClipPlaneNear mClipPlaneFar
+  float mAspect
+end
+
+ofunc void print(aiVector3D vec)
+  print "aiVector3D(" vec.x ", " vec.y ", " vec.z ")"
+end
+
+func void aiCamera:print(aiCamera* cam)
+  print "aiCamera "
+  aiString:print &(cam.mName)
+  println()
+  println "  mPosition = " cam.mPosition
+  println "  mUp = " cam.mUp
+  println "  mLookAt = " cam.mLookAt
+  println "  mClipPlaneNear = " cam.mClipPlaneNear
+  println "  mClipPlaneFar = " cam.mClipPlaneFar
+  println "  mAspect = " cam.mAspect
 end
 
 struct aiScene
@@ -272,13 +436,20 @@ func void aiScene:print(aiScene* this)
   printFieldi mNumTextures
   printFieldi mNumLights
   printFieldi mNumCameras
-  printlnString "  mRootNode="
+  printlnString "  mRootNode:"
   aiNode:print this.mRootNode 4
-  printlnString "  mMeshes="
+  printlnString "  mMeshes:"
   for meshnum 0 this.mNumMeshes
     aiMesh:print load(this.mMeshes +_ptr meshnum) 4
   end
-  // printlnString "  mMaterials="
+  println "  mAnimations:"
+  for animnum 0 this.mNumAnimations
+    aiAnimation:print *(this.mAnimations +_ptr animnum) 4
+  end
+  // for camnum 0 this.mNumCameras
+  //   aiCamera:print *(this.mCameras +_ptr camnum)
+  // end
+  // printlnString "  mMaterials:"
   // for matnum 0 this.mNumMaterials
   //   aiMaterial:print load(ptradd this.mMaterials matnum) 4
   // end
