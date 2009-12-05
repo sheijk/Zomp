@@ -39,7 +39,8 @@ ECHO=echo
 CP=cp
 RM=rm
 SED=sed
-TR=tc
+# TR=tc
+TR=tr
 
 CC=gcc
 CXX=g++

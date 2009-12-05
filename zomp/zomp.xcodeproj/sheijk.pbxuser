@@ -7,17 +7,21 @@
 		addToTargets = (
 			D28A88AD04BDD90700651E21 /* zomp */,
 		);
+		breakpoints = (
+			6292CC5410C8644A0020D00B /* ColladaParser.cpp:244 */,
+			6292CC6710C865600020D00B /* ColladaParser.cpp:157 */,
+		);
 		codeSenseManager = 6234EDF310C342260071E341 /* Code sense */;
 		executables = (
 			6234EDF410C3423B0071E341 /* pipeline_experiment */,
 		);
 		perUserDictionary = {
-			PBXPerProjectTemplateStateSaveDate = 281231879;
-			PBXWorkspaceStateSaveDate = 281231879;
+			PBXPerProjectTemplateStateSaveDate = 281576735;
+			PBXWorkspaceStateSaveDate = 281576735;
 		};
 		perUserProjectItems = {
-			6234EDFE10C3427F0071E341 /* PBXTargetBookmark */ = 6234EDFE10C3427F0071E341 /* PBXTargetBookmark */;
-			6234EDFF10C3427F0071E341 /* PBXTargetBookmark */ = 6234EDFF10C3427F0071E341 /* PBXTargetBookmark */;
+			625D874710CA0D4C00BFE4DA /* PBXTextBookmark */ = 625D874710CA0D4C00BFE4DA /* PBXTextBookmark */;
+			6292CC6C10C885080020D00B /* PBXTextBookmark */ = 6292CC6C10C885080020D00B /* PBXTextBookmark */;
 		};
 		sourceControlManager = 6234EDF210C342260071E341 /* Source Control */;
 		userBuildSettings = {
@@ -44,7 +48,7 @@
 		argumentStrings = (
 		);
 		autoAttachOnCrash = 1;
-		breakpointsEnabled = 0;
+		breakpointsEnabled = 1;
 		configStateDict = {
 			"PBXLSLaunchAction-0" = {
 				PBXLSLaunchAction = 0;
@@ -77,6 +81,8 @@
 		launchableReference = 6234EDF510C3423B0071E341 /* pipeline_experiment.exe */;
 		libgmallocEnabled = 0;
 		name = pipeline_experiment;
+		savedGlobals = {
+		};
 		showTypeColumn = 0;
 		sourceDirectories = (
 		);
@@ -89,23 +95,68 @@
 		path = ../examples/pipeline_experiment.exe;
 		sourceTree = SOURCE_ROOT;
 	};
-	6234EDFE10C3427F0071E341 /* PBXTargetBookmark */ = {
-		isa = PBXTargetBookmark;
-		trg = D28A88AD04BDD90700651E21 /* zomp */;
+	625D874710CA0D4C00BFE4DA /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 6292C63F10C854AD0020D00B /* ColladaParser.cpp */;
+		name = "ColladaParser.cpp: 157";
+		rLen = 0;
+		rLoc = 5457;
+		rType = 0;
+		vrLen = 1813;
+		vrLoc = 4631;
 	};
-	6234EDFF10C3427F0071E341 /* PBXTargetBookmark */ = {
-		isa = PBXTargetBookmark;
-		trg = D28A88AD04BDD90700651E21 /* zomp */;
+	6292C63F10C854AD0020D00B /* ColladaParser.cpp */ = {
 		uiCtxt = {
-			TOCViewDetailVisibleRect = "{{0, 0}, {637, 576}}";
-			TOCViewExpandedItems = (
-				"com.apple.target-editor-pane.settings",
-			);
-			TOCViewMasterVisibleRect = "{{0, 0}, {254, 701}}";
-			TOCViewSelectedItems = (
-				"com.apple.target-editor-pane.settings",
-			);
+			sepNavFolds = "{\n    c =     (\n                {\n            r = \"{1, 1855}\";\n            s = 0;\n        }\n    );\n    r = \"{0, 84247}\";\n    s = 0;\n}";
+			sepNavIntBoundsRect = "{{0, 0}, {1057, 36120}}";
+			sepNavSelRange = "{3603, 0}";
+			sepNavVisRange = "{2777, 1813}";
+			sepNavWindowFrame = "{{324, 4}, {1116, 874}}";
 		};
+	};
+	6292CC5410C8644A0020D00B /* ColladaParser.cpp:244 */ = {
+		isa = PBXFileBreakpoint;
+		actions = (
+		);
+		breakpointStyle = 0;
+		continueAfterActions = 0;
+		countType = 0;
+		delayBeforeContinue = 0;
+		fileReference = 6292C63F10C854AD0020D00B /* ColladaParser.cpp */;
+		functionName = "ColladaParser::ReadAnimationLibrary()";
+		hitCount = 0;
+		ignoreCount = 0;
+		lineNumber = 244;
+		modificationTime = 281568629.534044;
+		originalNumberOfMultipleMatches = 1;
+		state = 0;
+	};
+	6292CC6710C865600020D00B /* ColladaParser.cpp:157 */ = {
+		isa = PBXFileBreakpoint;
+		actions = (
+		);
+		breakpointStyle = 0;
+		continueAfterActions = 0;
+		countType = 0;
+		delayBeforeContinue = 0;
+		fileReference = 6292C63F10C854AD0020D00B /* ColladaParser.cpp */;
+		functionName = "ColladaParser::ReadStructure()";
+		hitCount = 0;
+		ignoreCount = 0;
+		lineNumber = 157;
+		modificationTime = 281568629.5342489;
+		originalNumberOfMultipleMatches = 1;
+		state = 0;
+	};
+	6292CC6C10C885080020D00B /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 6292C63F10C854AD0020D00B /* ColladaParser.cpp */;
+		name = "ColladaParser.cpp: 157";
+		rLen = 0;
+		rLoc = 5457;
+		rType = 0;
+		vrLen = 2385;
+		vrLoc = 4631;
 	};
 	D28A88AD04BDD90700651E21 /* zomp */ = {
 		activeExec = 0;

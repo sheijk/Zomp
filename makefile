@@ -40,12 +40,19 @@ ARCHFLAG = -m32
 CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 C_FLAGS=-I /usr/local/lib/ocaml/ $(ARCHFLAG)
 
+# ifeq ($(DEBUG),1)
+# $(echo "Debug build")
+# else
+# $(echo "Release build")
+# endif
+
 CFLAGS = $(C_FLAGS)
 CXXFLAGS = $(CXX_FLAGS)
 
 ifeq ($(DEBUG), 1)
 OCAMLC += -g
 CXX_FLAGS += -pg -g
+C_FLAGS += -pg -g
 else
 CXX_FLAGS += -O5
 endif
@@ -118,10 +125,21 @@ libquicktext.dylib: glQuickText.o
 	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ glQuickText.o -framework OpenGL
 
 EXTLIB_DIR = extlibs
-ASSIMP_DIR = $(EXTLIB_DIR)/assimp-r281--sdk
+# ASSIMP_DIR = $(EXTLIB_DIR)/assimp-r281--sdk
+ASSIMP_DIR = $(EXTLIB_DIR)/assimp--1.0.412-sdk
+# ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
+
+SCONS = $(PWD)/extlibs/scons/scons.py
+ifeq ($(DEBUG), 1)
+SCONSFLAGS += "debug=1"
+endif
+
+extlib_assimp:
+	cd $(ASSIMP_DIR)/workspaces/SCons; $(SCONS) $(SCONSFLAGS)
 
 libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
-	$(CP) $< $@
+	- rm -f $@
+	ln -s $< $@
 
 assimp.dylib: libassimp.a makefile forcelinkassimp.c
 	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
