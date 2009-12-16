@@ -28,6 +28,10 @@ void printChar( int8_t c ) {
   printf( "%c", c );
 }
 
+void printPtr( void* ptr ) {
+  printf( "%p", ptr );
+}
+
 void printNewline() {
   printf( "\n" );
 }

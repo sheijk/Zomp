@@ -18,6 +18,7 @@ std:base:func void printString(char* s)
 std:base:func void printFloat(float f)
 std:base:func void printDouble(double d)
 std:base:func void printChar(char c)
+std:base:func void printPtr(void* ptr)
 std:base:func void printNewline()
 std:base:func void flushStdout()
 
