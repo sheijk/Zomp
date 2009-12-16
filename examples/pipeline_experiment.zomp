@@ -6,7 +6,7 @@ linkclib "libglfw.dylib" "libGLEW.dylib"
 
 static:setRequireLibDebug true
 
-requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar
+requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array
 
 ///-----------------------------------------------------------------------------
 /// Section: list
@@ -166,12 +166,12 @@ func void onTweakbarError(char* msg)
 end
 
 func void onWindowResize(int newWidth, int newHeight)
-  // desiredAspect := toFloat windowWidth / toFloat windowHeight
-  // correctHeight := toFloat newWidth / desiredAspect
-  // glfwSetWindowSize newWidth toInt(correctHeight)
-  // windowWidth = newWidth
-  // windowHeight = toInt correctHeight
-  // TwWindowSize windowWidth windowHeight
+  desiredAspect := toFloat windowWidth / toFloat windowHeight
+  correctHeight := toFloat newWidth / desiredAspect
+  glfwSetWindowSize newWidth toInt(correctHeight)
+  windowWidth = newWidth
+  windowHeight = toInt correctHeight
+  TwWindowSize windowWidth windowHeight
   ret void
 end
 
@@ -346,6 +346,210 @@ func void gluLookAtf(float eyex, float eyey, float eyez, float cx, float cy, flo
   gluLookAt (toDouble eyex) (toDouble eyey) (toDouble eyez) (toDouble cx) (toDouble cy) (toDouble cz) (toDouble ux) (toDouble uy) (toDouble uz)
 end
 
+struct MeshInfo
+  Mesh mesh
+  cstring id
+  RBTransform transform
+end
+
+defineListType Mesh
+defineListType MeshInfo
+
+func MeshInfo_List* addMesh(Mesh* newMesh, MeshInfo_List* tail)
+  list := malloc MeshInfo_List
+  list.data.mesh = *newMesh
+  list.data.id = ""
+  makeOrigin &list.data.transform
+  list.next = tail
+  return list
+end
+
+func MeshInfo_List* collectMeshes(aiScene* scene)
+  list := nullptr MeshInfo_List
+  for meshnum 0 scene.mNumMeshes
+    aimesh := *(scene.mMeshes+meshnum)
+    mesh := aiMesh:toMesh aimesh
+    list = addMesh mesh list
+  end
+  ret list
+end
+
+func MeshInfo* lookupMesh(MeshInfo_List* list, cstring id)
+  if isNull(list)
+    ret nullptr(MeshInfo)
+  elseif (id ==_str list.data.id)
+    ret &list.data
+  end
+
+  ret lookupMesh(list.next, id)
+end
+
+func void applyTransform(RBTransform* this)
+  glTranslatef this.origin.x this.origin.y this.origin.z
+end
+
+struct KeyFrameVector
+  double time
+  v3f value
+end
+
+ofunc void print(KeyFrameVector kfv)
+  print "KeyFrameVector(time=" kfv.time ", value=" kfv.value ")"
+end
+
+func v3f aiVector3D:vec3f(aiVector3D v)
+  var v3f r
+  r.x = v.x
+  r.y = v.y
+  r.z = v.z
+  ret r
+end
+
+ofunc void print(aiVector3D v)
+  aiVector3D:print &v
+end
+
+ofunc void print(aiVectorKey vk)
+  aiVectorKey:print &vk
+end
+
+func KeyFrameVector aiVectorKey:toKeyFrameVector(aiVectorKey* this)
+  var KeyFrameVector v
+  v.time = this.mTime
+  v.value = aiVector3D:vec3f this.mValue
+  println "input = " *this
+  println "outpt = " v
+  ret v
+end
+
+defineArrayType KeyFrameVector
+
+struct NodeAnimation
+  float duration //TODO remove
+  MeshInfo* targetMesh
+  // float ticksPerSecond
+  KeyFrameVector_Array transformKeyFrames
+end
+
+macro hasType var type
+  uniqueId tmp "hasType"
+  ret ${
+    #tmp := nullptr #type
+    #tmp = &#var
+  end}
+end
+
+func KeyFrameVector NodeAnimation:keyframeAt(NodeAnimation* this, float time)
+  rem := time
+  if (this.duration > 0.0)
+    rem = fmodf time this.duration
+  end
+  keyNum := -1
+  keyframes := this.transformKeyFrames
+  found := false
+
+  var KeyFrameVector result
+
+  if (keyframes.length == 1)
+    ret aget(keyframes,0)
+  elseif (keyframes.length == 0)
+    result.time = 0.0d
+    result.value = mv3f 0. 0. 0.
+    ret result
+  end
+
+  firstFrameTime := toFloat getField(aget(keyframes,0), time)
+  if (firstFrameTime > rem)
+    result = aget keyframes 0
+  else
+    while bool:not(found)
+      ++keyNum
+      if (keyNum >= keyframes.length)
+        found = true
+      else
+        key := aget(keyframes, keyNum)
+        if (toFloat key.time > rem)
+          found = true
+        end
+      end
+    end
+
+    if (keyNum < keyframes.length)
+      kfpre := aget keyframes (keyNum-1)
+      kfpost := aget keyframes keyNum
+      t := (rem - toFloat kfpre.time) / toFloat(kfpost.time - kfpre.time)
+      result.time = toDouble rem
+      pos := v3f:lerp t kfpre.value kfpost.value
+      result.value = pos
+    else
+      result = aget(keyframes, keyframes.length - 1)
+    end
+  end
+
+  ret result
+end
+
+func void NodeAnimation:apply(NodeAnimation* this, float time)
+  keyframes := this.transformKeyFrames
+  key := NodeAnimation:keyframeAt(this, time)
+  // (this.targetMesh)*.transform.origin = mv3f 0. 5. 0.
+  // p := mv3f(0.,10.,0.)
+  pos := key.value
+  // pos := mv3f 0. 5. 0.
+  targetMesh := this.targetMesh
+  transform := fieldptr targetMesh transform
+  origin := fieldptr transform origin
+  store origin pos
+  hasType targetMesh MeshInfo*
+  hasType transform RBTransform*
+  hasType origin v3f*
+
+  // mi := this.targetMesh
+  // t := fieldptr mi transform
+  // o := fieldptr t origin
+  // store o mv3f(0.,10.,0.)
+  // hasType mi MeshInfo*
+  // hasType t RBTransform*
+  // hasType o v3f*
+end
+
+func NodeAnimation* aiNodeAnim:toNodeAnimation(aiNodeAnim* this)
+  anim := malloc NodeAnimation
+  anim.targetMesh = nullptr MeshInfo
+  // anim.transformKeyFrames = *newArray(KeyFrameVector, this.mNumPositionKeys)
+  transformKeyFrames := *newArray(KeyFrameVector, this.mNumPositionKeys)
+
+  for transnum 0 this.mNumPositionKeys
+    // aset transformKeyFrames transnum aiVectorKey:toKeyFrameVector(this.mPositionKeys + transnum)
+    aikey := *(this.mPositionKeys +_ptr transnum)
+    print "xxx "
+    aiVectorKey:print &aikey
+    println()
+    var KeyFrameVector key
+    // key.time = 0.0d
+    // key.value = mv3f(0.,5.,0.)
+    key.time = aikey.mTime
+    key.value = aiVector3D:vec3f aikey.mValue
+    // key = aiVectorKey:toKeyFrameVector(this.mPositionKeys + transnum)
+    aset transformKeyFrames transnum key
+  end
+
+  anim.transformKeyFrames = transformKeyFrames
+
+  ret anim
+end
+
+// func AnimationDB* aiAnimation:toAnimationDB(aiAnimation* this)
+//   db := malloc AnimationDB
+//   db.duration = toFloat this.mDuration
+// 
+//   for animnum 0 mAnimations
+// 
+//   transformKeyFrames := newArray KeyFrameVector
+// 
+//   ret db
+// end
+
 func int main()
   init()
 
@@ -354,15 +558,18 @@ func int main()
 
   println "loading scene..."
   // sceneFilename := "data/pixeljourney/shared/obj/Reagenztest_tri.obj"
-  sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/.dae"
+  // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test5.dae"
+  sceneFilename := "data/pixeljourney/move_cube2.dae"
+  // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test7_rolling_cube.dae"
   // sceneFilename := "data/collada_test2.dae"
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
-  loadOptions := (aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals
+  // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
+  loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals)
   // loadOptions := 0
 
   scene := aiImportFile sceneFilename loadOptions
-  abortIf (isNull scene)
+  abortIf isNull(scene)
     println "assimp error when loading scene: " aiGetErrorString()
   end
 
@@ -371,14 +578,40 @@ func int main()
   // cam* = **scene.mCameras
   // aiCamera:print cam
 
-  return 1
+  // return 1
 
-  mesh := aiScene:toMesh scene
-  abortIf (isNull mesh) (println "Failed to convert scene to mesh")
-  onReturn Mesh:delete(mesh)
+  meshes := collectMeshes scene
+  abortIf (isNull meshes) (println "Failed to convert scene to meshes")
+  onReturn
+    List:foreach_ptr meshes _ignore1 pMesh2
+      Mesh:delete(&pMesh2.mesh)
+    end
+  end
+  // onReturn Mesh:delete(mesh)
+  // List:foreach_ptr meshes _ignore1 pMesh2
+  //   Mesh:printDetailed pMesh2
+  // end
+
+  // mesh := aiScene:toMesh scene
+  // abortIf (isNull mesh) (println "Failed to convert scene to mesh")
+  // onReturn Mesh:delete(mesh)
+
+  anim := nullptr NodeAnimation
+  if (isNotNull scene.mAnimations && scene.mNumAnimations > 0)
+    anim = aiNodeAnim:toNodeAnimation ((scene.mAnimations)*.mChannels)*
+    anim.targetMesh = &meshes.data
+    anim.duration = 9.0
+    println "Loaded animations"
+  else
+    println "No animations present in scene"
+  end
+
   // VertexStream:swapComponents mesh.positions 1 2
 
-  Mesh:print mesh
+  // Mesh:print mesh
+
+  aiReleaseImport scene
+  scene = nullptr aiScene
 
   // objmat := objectMaterial()
   // objmat := loadGLSLShader "data/simple.vert" "data/simple.frag"
@@ -389,9 +622,6 @@ func int main()
   objmat_falloff_amount := glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
   println "objmat_obj2cam = " objmat_obj2cam
   println "objmat_falloff_amount = " objmat_falloff_amount
-
-  aiReleaseImport scene
-  scene = nullptr aiScene
 
   bar := TwNewBar "Settings"
   onReturn TwDeleteAllBars()
@@ -406,7 +636,8 @@ func int main()
   end
 
   var AABB meshBB
-  Mesh:calcAABB &meshBB mesh
+  // Mesh:calcAABB &meshBB mesh
+  Mesh:calcAABB &meshBB &meshes.data.mesh
   meshSize := AABB:diagonalLength &meshBB
 
   println "Mesh BB = " meshBB
@@ -422,6 +653,16 @@ func int main()
 
   mainloop
     angle = angle + rotationSpeed * frameDuration
+    if (frameNum <= 0)
+      println "mesh translate = " meshes.data.transform.origin
+    end
+    if isNotNull(anim)
+      NodeAnimation:apply anim time
+      if (frameNum <= 0)
+        println "anim transform[0] = " getField(aget(anim.transformKeyFrames, 0),value)
+        println "anim transform[1] = " getField(aget(anim.transformKeyFrames, 1),value)
+      end
+    end
 
     autoSetupViewport()
 
@@ -439,10 +680,7 @@ func int main()
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
     gluLookAtf cameraOffsetX cameraOffsetY cameraOffsetZ 0. 0. 0. 0. 1. 0.
-    // glTranslatef (.0-meshCenter.x) (.0-meshCenter.y) (.0-meshCenter.z)
-    // glTranslatef cameraOffsetX cameraOffsetY cameraOffsetZ
-    // glTranslatef 0. -0.2 float:neg(camDistance * meshSize)
-    // glRotatef angle 0. 1. 0.
+    glRotatef angle 0. 1. 0.
 
     AABB:render &meshBB
     withShader objmat
@@ -466,7 +704,13 @@ func int main()
       // glUniformMatrix1fv objmat_obj2cam 1 false (cast float* &viewMat)
       glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
       glUniform1f objmat_falloff_amount 0.5
-      Mesh:render mesh GL_TRIANGLES 0
+      List:foreach_ptr meshes _ignore0 pMesh
+        glPushMatrix()
+        applyTransform &pMesh.transform
+        Mesh:render &pMesh.mesh GL_TRIANGLES 0
+        glPopMatrix()
+      end
+      // Mesh:render mesh GL_TRIANGLES 0
     end
 
     drawOrientationGrid2 0.2 1.0
