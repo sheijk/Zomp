@@ -115,7 +115,10 @@ let matchAnyRegexp patterns =
         Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
 
 let printBindings args (bindings :bindings) =
-  let regexps = List.map (fun restr -> Str.regexp (sprintf ".*%s.*" restr)) args in
+  let regexps = List.map
+    (fun restr -> Str.regexp (sprintf ".*%s.*" (String.lowercase restr)))
+    args
+  in
   let printSymbol (name, symbol)  =
     if List.for_all (fun re -> Str.string_match re (String.lowercase name) 0) regexps then
       match symbol with
