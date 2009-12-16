@@ -272,7 +272,9 @@ func void aiVectorKey:print(aiVectorKey* this)
   print "aiVectorKey("
   print "mTime=" this.mTime
   print ", mValue="
-  aiVector3D:print &(this.mValue)
+  vptr := fieldptr this mValue
+  // aiVector3D:print &(this.mValue)
+  aiVector3D:print vptr
   print ")"
 end
 
@@ -456,9 +458,7 @@ func void aiScene:print(aiScene* this)
   println()
 end
 
-func Mesh* aiScene:toMesh(aiScene* this)
-  aim := load(ptradd this.mMeshes 0)
-
+func Mesh* aiMesh:toMesh(aiMesh* aim)
   Mesh:define m aim.mNumVertices
     gl_Position GL_FLOAT 3
     gl_Normal GL_FLOAT 3
@@ -468,6 +468,10 @@ func Mesh* aiScene:toMesh(aiScene* this)
   VertexStream:copyFromVector3D (m.streams + 1) aim.mNormals
 
   ret m
+end
+
+func Mesh* aiScene:toMesh(aiScene* this)
+  ret aiMesh:toMesh(*this.mMeshes)
 end
 
 
