@@ -1,0 +1,11 @@
+/**
+ * developing simple a matrix type
+ */
+
+requireLibs libcee math
+
+func int main()
+  ret 0
+end
+
+
