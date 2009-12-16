@@ -141,6 +141,28 @@ func v3f v3f:normalized(v3f v)
   ret mv3f(v.x * l, v.y * l, v.z * l)
 end
 
+func v3f v3f:lerp(float t, v3f a, v3f b)
+  ret ((1. - t) * a + t * b)
+end
+
+///-----------------------------------------------------------------------------
+/// Section: rigid body transformations
+///-----------------------------------------------------------------------------
+
+struct RBTransform
+  v3f origin
+  v3f xaxis yaxis zaxis
+  float scale
+end
+
+func void makeOrigin(RBTransform* this)
+  this.origin = mv3f 0. 0. 0.
+  this.xaxis = mv3f 1. 0. 0.
+  this.yaxis = mv3f 0. 1. 0.
+  this.zaxis = mv3f 0. 0. 1.
+  this.scale = 1.0
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: triangles
 ///-----------------------------------------------------------------------------

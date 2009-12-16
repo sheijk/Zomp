@@ -2,7 +2,7 @@
  * Utilities to visualize data types from the math library
  */
 
-require "libs/math.zomp"
+requireLibs math opengl20
 
 func void AABB:render(AABB* this)
   defineArray float x this.min.x this.max.x
