@@ -236,6 +236,18 @@ struct
       "a +5", `Exception "Unbalanced whitespace";
       "a- b", `Exception "Unbalanced whitespace";
 
+      "a > b + 2", `Return [expr "op>" [id "a"; se2 "op+" "b" "2"]];
+      "a > b * 2", `Return [expr "op>" [id "a"; se2 "op*" "b" "2"]];
+      "a + b < d * e", `Return [expr "op<" [se2 "op+" "a" "b"; se2 "op*" "d" "e"]];
+      "x & y + 10", `Return [expr "op+" [se2 "op&" "x" "y"; id "10"]];
+      "a = 10 + 20", `Return [expr "op=" [id "a"; se2 "op+" "10" "20"]];
+      "a = 10 / 20", `Return [expr "op=" [id "a"; se2 "op/" "10" "20"]];
+      (* TODO remaining precedences *)
+      "a && b && c", `Return [expr "op&&" [expr "op&&" [id "a"; id "b"]; id "c"]];
+      "a || b || c", `Return [expr "op||" [expr "op||" [id "a"; id "b"]; id "c"]];
+      "a && b > 2 && c",
+      `Return [expr "op&&" [expr "op&&" [id "a"; se2 "op>" "b" "2"]; id "c"]];
+
       (** operator identifiers *)
       "op> a b", `Return [jux ["op>"; "a"; "b"]];
       "postop* l r", `Return [jux ["postop*"; "l"; "r"]];

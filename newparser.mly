@@ -119,11 +119,12 @@
 %token <string> KEYWORD_ARG
 (* %token EXTENDED_INDENT *)
 
-%nonassoc COMPARE_OP
 %nonassoc ASSIGN_OP
-%left STRICT_BOOL_OP LAZY_BOOL_OP
+%left LAZY_BOOL_OP
+%nonassoc COMPARE_OP
 %left ADD_OP
 %left MULT_OP
+%left STRICT_BOOL_OP
 %left DOT
 
 %start <Ast2.sexpr> main
