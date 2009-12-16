@@ -150,6 +150,25 @@ macro ret expr
   std:base:ret ${std:base:ret #expr}
 end
 
+macro cee:internal:cleanupBeforeFunc
+  if (cee:internal:onReturnCleanupCode !=_ptr nullptr void)
+    printString "warning: found cleanup code before compiling function - ignoring it. Probably evaluating the last function failed"
+    printNewline()
+    printString "--- Left over cleanup code:"
+    printNewline()
+    current := cee:internal:onReturnCleanupCode
+    while (cast void* current !=_ptr nullptr void)
+      ast:print getField(current,ast) 4
+      current = getField current next
+    end
+    printString "---"
+    printNewline()
+    cee:internal:onReturnCleanupCode = nullptr astList
+    cee:internal:insideCeeFunc = false
+  end
+  std:base:ret ${}
+end
+
 macro cee:internal:cleanupOnReturn
   current := cee:internal:onReturnCleanupCode
   while (cast void* current !=_ptr nullptr void)
@@ -168,6 +187,7 @@ macro func args...
   end
   cee:internal:insideCeeFunc = true
   std:base:ret ${
+    cee:internal:cleanupBeforeFunc
     #funcCode
     cee:internal:cleanupOnReturn
   end}
