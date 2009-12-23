@@ -123,8 +123,12 @@ struct aiString
   char[1024] data
 end
 
+func cstring aiString:cstring(aiString* this)
+  ret zmp:array:addr( &(this.data) )
+end
+
 func void aiString:print(aiString* this)
-  printString zmp:array:addr( &(this.data) )
+  printString aiString:cstring(this)
 end
 
 funcd cstring aiGetLegalString()
@@ -192,7 +196,6 @@ struct aiFace
   uint mNumIndices
   uint* mIndices
 end
-
 
 struct aiMesh
   uint mPrimitiveTypes
