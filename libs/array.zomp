@@ -49,13 +49,25 @@ macro newArray type size
   end}
 end
 
+template aptr array index
+  ptradd getField(#array, elements) #index
+end
+
 template aget array index
-  load (ptradd getField(#array, elements) #index)
+  load aptr(#array, #index)
 end
 
 template aset array index value
-  store (ptradd getField(#array, elements) #index) #value
+  store aptr(#array, #index) #value
 end
+
+// template aget array index
+//   load (ptradd getField(#array, elements) #index)
+// end
+// 
+// template aset array index value
+//   store (ptradd getField(#array, elements) #index) #value
+// end
 
 macro array:setAll array value
   uniqueId size "lala"
@@ -74,6 +86,16 @@ macro Array:foreach array indexVar code
 
   ret ${for #indexVar 0 #array.length
     #code
+  end}
+end
+
+macro printArray array name printMemberF
+  uniqueId counter "printArray"
+  ret ${
+    println #array.length " " #name ": "
+    Array:foreach #array #counter
+      #printMemberF aptr(#array, #counter)
+    end
   end}
 end
 

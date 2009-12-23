@@ -124,7 +124,7 @@ struct aiString
 end
 
 func cstring aiString:cstring(aiString* this)
-  ret zmp:array:addr( &(this.data) )
+  ret strdup(zmp:array:addr &(this.data))
 end
 
 func void aiString:print(aiString* this)
@@ -421,6 +421,19 @@ struct aiScene
   aiLight** mLights
   int mNumCameras
   aiCamera** mCameras
+end
+
+func int aiNode:totalCount(aiNode* this)
+  count := 1
+  for childNum 0 this.mNumChildren
+    count = count + aiNode:totalCount *(this.mChildren + childNum)
+  end
+
+  ret count
+end
+
+func int aiScene:totalNodeCount(aiScene* this)
+  ret aiNode:totalCount(this.mRootNode)
 end
 
 funcd aiScene* aiImportFile(cstring fileName, int flags)

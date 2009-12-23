@@ -121,6 +121,7 @@ type cstring (ptr char)
 std:base:func int strcmp(cstring l, cstring r)
 std:base:func int strncmp(cstring l, cstring r, int maxChars)
 std:base:func cstring strcpy(cstring dest, cstring source)
+std:base:func cstring strdup(cstring src)
 std:base:func int strlen(cstring str)
 
 std:base:func cstring u32:toCString(int x)

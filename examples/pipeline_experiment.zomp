@@ -33,7 +33,11 @@ macro defineListType memberT
 end
 
 defineListType int
+defineArrayType int
+
 defineListType float
+defineArrayType float
+
 
 macro makeList type nums...
   listT := ast:fromString(type.id ++ "_List")
@@ -360,25 +364,6 @@ defineListType Mesh
 defineListType MeshInfo
 defineArrayType MeshInfo
 
-// func MeshInfo_List* addMesh(Mesh* newMesh, MeshInfo_List* tail)
-//   list := malloc MeshInfo_List
-//   list.data.mesh = *newMesh
-//   list.data.id = ""
-//   makeOrigin &list.data.transform
-//   list.next = tail
-//   return list
-// end
-
-// func MeshInfo_List* collectMeshes(aiScene* scene)
-//   list := nullptr MeshInfo_List
-//   for meshnum 0 scene.mNumMeshes
-//     aimesh := *(scene.mMeshes+meshnum)
-//     mesh := aiMesh:toMesh aimesh
-//     list = addMesh mesh list
-//   end
-//   ret list
-// end
-
 func MeshInfo_Array collectMeshes(aiScene* scene)
   var MeshInfo_Array meshes
   MeshInfo_Array:init &meshes scene.mNumMeshes
@@ -520,7 +505,7 @@ defineArrayType KeyFrameQuat
 
 struct NodeAnimation
   float duration //TODO remove
-  MeshInfo* targetMesh
+  RBTransform* targetTransform
   // float ticksPerSecond
   KeyFrameVector_Array transformKeyFrames
   KeyFrameVector_Array scaleKeyFrames
@@ -594,34 +579,29 @@ func KeyFrameVector NodeAnimation:keyframeAt(NodeAnimation* this, float time)
 end
 
 func void NodeAnimation:apply(NodeAnimation* this, float time)
-  keyframes := this.transformKeyFrames
   key := NodeAnimation:keyframeAt(this, time)
 
-  targetMesh := this.targetMesh
-  if isNotNull(targetMesh)
-    targetMesh.transform.origin = key.value
+  targetTransform := this.targetTransform
+  if isNotNull(targetTransform)
+    targetTransform.origin = key.value
   end
 end
 
 func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source)
-  this.targetMesh = nullptr MeshInfo
-  // this.transformKeyFrames = *newArray(KeyFrameVector, this.mNumPositionKeys)
+  this.duration = 0.0
+  this.targetTransform = nullptr RBTransform
   transformKeyFrames := *newArray(KeyFrameVector, source.mNumPositionKeys)
   scaleKeyFrames := *newArray(KeyFrameVector, 0)
   rotationKeyFrames := *newArray(KeyFrameQuat, 0)
 
   for transnum 0 source.mNumPositionKeys
-    // aset transformKeyFrames transnum aiVectorKey:toKeyFrameVector(source.mPositionKeys + transnum)
     aikey := *(source.mPositionKeys +_ptr transnum)
     print "xxx "
     aiVectorKey:print &aikey
     println()
     var KeyFrameVector key
-    // key.time = 0.0d
-    // key.value = mv3f(0.,5.,0.)
     key.time = aikey.mTime
     key.value = aiVector3D:vec3f aikey.mValue
-    // key = aiVectorKey:toKeyFrameVector(source.mPositionKeys + transnum)
     aset transformKeyFrames transnum key
   end
 
@@ -634,35 +614,10 @@ func NodeAnimation* aiNodeAnim:toNodeAnimation(aiNodeAnim* this)
   ret new(NodeAnimation, this)
 end
 
-func void Animation:init(Animation* this, aiAnimation* source, MeshInfo_Array meshes)
-  this.duration = toFloat source.mDuration
-  this.name = "-not initialized-"
-  NodeAnimation_Array:init &this.channels source.mNumChannels
-  Array:foreach this.channels channelNum
-    channel := this.channels.elements + channelNum
-    aianim := *(source.mChannels+channelNum)
-    NodeAnimation:init channel aianim
-    name := aiString:cstring &aianim.mNodeName
-    // mesh := lookupMesh meshes name
-    // if isNull(mesh)
-      // println "warning, could not look up mesh " name
-    // end
-  end
-end
-
 func void Animation:apply(Animation* this, float time)
   for channelNum 0 this.channels.length
     NodeAnimation:apply (this.channels.elements+channelNum) time
   end
-end
-
-func Animation_Array collectAnimations(aiScene* scene, MeshInfo_Array meshes)
-  var Animation_Array anims
-  Animation_Array:init &anims scene.mNumAnimations
-  for animNum 0 scene.mNumAnimations
-    Animation:init (anims.elements+animNum) *(scene.mAnimations+animNum) meshes
-  end
-  ret anims
 end
 
 struct Color
@@ -717,6 +672,173 @@ func void scaleTo2dArea(float left, float bottom, float right, float top)
   glScalef (right-left) (top-bottom) 1.
 end
 
+///-----------------------------------------------------------------------------
+/// Section: scene graph
+///-----------------------------------------------------------------------------
+
+struct SceneGraphNode
+  RBTransform globalSpace
+  RBTransform relativeTransform
+  int_Array meshes
+  cstring id
+end
+
+defineArrayType SceneGraphNode
+
+struct SceneGraphEdge
+  int parent child
+end
+
+defineArrayType SceneGraphEdge
+defineArrayType Mesh
+
+struct SceneGraph
+  SceneGraphNode_Array nodes
+  SceneGraphEdge_Array edges
+  MeshInfo_Array meshes
+  Animation_Array anims
+end
+
+func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source)
+  makeOrigin &this.globalSpace
+  makeOrigin &this.relativeTransform
+  int_Array:init &this.meshes source.mNumMeshes
+  Array:foreach this.meshes meshNum
+    aset this.meshes meshNum *(source.mMeshes + meshNum)
+  end
+  this.id = aiString:cstring &source.mName
+end
+
+func void SceneGraph:collectNodes(SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum)
+  node := aptr this.nodes nodeNum*
+  SceneGraphNode:init node source
+  nodeNum* = nodeNum* + 1
+  for childNum 0 source.mNumChildren
+    SceneGraph:collectNodes this *(source.mChildren + childNum) nodeNum edgeNum
+    // TODO collect edges, too
+  end
+end
+
+func void MeshInfo:print(MeshInfo* this)
+  println "MeshInfo '" this.id "':"
+  Mesh:print &this.mesh
+  print this.transform
+end
+
+func void SceneGraphNode:print(SceneGraphNode* this)
+  print "SceneGraphNode('" this.id "', " this.meshes.length " meshes = ["
+  for num 0 this.meshes.length
+    if (num > 0)
+      print(", ")
+    end
+    print aget(this.meshes, num)
+  end
+  println "])"
+  println "  globalSpace = "
+  print this.globalSpace
+end
+
+func void NodeAnimation:print(NodeAnimation* this)
+  print "NodeAnimation(" this.transformKeyFrames.length
+  print "/" this.rotationKeyFrames.length "/" this.scaleKeyFrames.length
+  if isNull(this.targetTransform)
+    print " no target!"
+  end
+  println ")"
+  Array:foreach this.transformKeyFrames tnum
+    tkey := aget this.transformKeyFrames tnum
+    println "  " tkey
+  end
+end
+
+func void Animation:print(Animation* this)
+  println "Animation '" this.name "', duration=" this.duration
+  printArray this.channels "channels" NodeAnimation:print
+end
+
+func void SceneGraph:print(SceneGraph* this)
+  println "SceneGraph:"
+  print "  "
+  printArray this.nodes "nodes" SceneGraphNode:print
+  printArray this.anims "anims" Animation:print
+  printArray this.meshes "meshes" MeshInfo:print
+end
+
+func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id)
+  Array:foreach this nodeNum
+    node := aptr this nodeNum
+    if (node.id ==_str id)
+      ret nodeNum
+    end
+  end
+  ret -1
+end
+
+func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Array nodes)
+  this.duration = toFloat source.mDuration
+  this.name = aiString:cstring &source.mName
+  NodeAnimation_Array:init &this.channels source.mNumChannels
+  Array:foreach this.channels channelNum
+    channel := this.channels.elements + channelNum
+    aianim := *(source.mChannels+channelNum)
+    NodeAnimation:init channel aianim
+    channel.duration = toFloat this.duration
+    println "channel.duration = " channel.duration
+
+    /// connect to target node
+    name := aiString:cstring &aianim.mNodeName
+    nodeNum := SceneGraphNode:lookup &nodes name
+    if (nodeNum >= 0)
+      node := aptr nodes nodeNum
+      channel.targetTransform = fieldptr node globalSpace
+    else
+      println "warning, could not connect anim channel " this.name
+    end
+  end
+end
+
+func void SceneGraph:init(SceneGraph* this, aiScene* source)
+  /// meshes
+  MeshInfo_Array:init &this.meshes source.mNumMeshes
+
+  Array:foreach this.meshes meshNum
+    aimesh := *(source.mMeshes + meshNum)
+    newMesh := aiMesh:toMesh aimesh
+    info := aptr this.meshes meshNum
+    info.mesh = newMesh*
+    info.id = "- SceneGraph mesh-"
+    makeOrigin &info.transform
+  end
+
+  /// nodes
+  SceneGraphNode_Array:init &this.nodes aiScene:totalNodeCount(source)
+  SceneGraphEdge_Array:init &this.edges 0
+  nodeNum := 0
+  edgeNum := 0
+  SceneGraph:collectNodes this source.mRootNode &nodeNum &edgeNum
+  println "nodeNum = " nodeNum
+
+  /// animations
+  Animation_Array:init &this.anims source.mNumAnimations
+  Array:foreach this.anims animNum
+    anim := aptr(this.anims, animNum)
+    Animation:init anim *(source.mAnimations+animNum) this.nodes
+    // targetNodeNum := SceneGraph:lookupNode this anim.name
+    // TODO lookup target
+  end
+end
+
+func void SceneGraph:updateTransforms(SceneGraph* this)
+  Array:foreach this.nodes nodeNum
+    node := aptr this.nodes nodeNum
+    Array:foreach node.meshes meshNum
+      meshIndex := aget node.meshes meshNum
+      info := aptr this.meshes meshIndex
+      info.transform = node.globalSpace
+    end
+  end
+end
+
 func int main()
   init()
 
@@ -742,46 +864,27 @@ func int main()
   end
 
   aiScene:print scene
-  // cam := malloc aiCamera
-  // cam* = **scene.mCameras
-  // aiCamera:print cam
 
-  // return 1
+  var SceneGraph sg
+  SceneGraph:init &sg scene
+  SceneGraph:print &sg
 
-  meshes := collectMeshes scene
+  meshes := sg.meshes
   // abortIf (isNull meshes) (println "Failed to convert scene to meshes")
   onReturn
     Array:foreach meshes meshNum
       pMesh2 := meshes.elements + meshNum
       Mesh:delete &pMesh2.mesh
     end
-    // List:foreach_ptr meshes _ignore1 pMesh2
-      // Mesh:delete(&pMesh2.mesh)
-    // end
   end
 
-  // mesh := aiScene:toMesh scene
-  // abortIf (isNull mesh) (println "Failed to convert scene to mesh")
-  // onReturn Mesh:delete(mesh)
-
-  animDuration := 2.0
-
-  anims := collectAnimations scene meshes
+  anims := sg.anims
   println "Loaded " anims.length " animations"
-
-  // anim := nullptr NodeAnimation
-  // if (isNotNull scene.mAnimations && scene.mNumAnimations > 0)
-  //   anim = aiNodeAnim:toNodeAnimation ((scene.mAnimations)*.mChannels)*
-  //   anim.targetMesh = &meshes.data
-  //   anim.duration = animDuration
-  //   println "Loaded animations"
-  // else
-  //   println "No animations present in scene"
-  // end
-
-  // VertexStream:swapComponents mesh.positions 1 2
-
-  // Mesh:print mesh
+  animDuration := 10.0
+  if (anims.length > 0)
+    firstAnim := aptr anims 0
+    animDuration = firstAnim.duration
+  end
 
   aiReleaseImport scene
   scene = nullptr aiScene
@@ -840,6 +943,7 @@ func int main()
     Array:foreach anims animNum
       Animation:apply (anims.elements+animNum) time
     end
+    SceneGraph:updateTransforms &sg
 
     autoSetupViewport()
 
