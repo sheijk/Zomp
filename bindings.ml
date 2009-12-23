@@ -9,39 +9,61 @@ type symbol =
   | TypedefSymbol of composedType
   | LabelSymbol of label
   | UndefinedSymbol
-and bindings = symbol StringMap.t
+and symbolInfo = {
+  symbol : symbol;
+  (** unique id of this symbol. redefinitions of the same symbol in the toplevel
+      get new sequence numbers *)
+  sequenceNum : int;
+}
+and bindings = {
+  symbols : symbolInfo StringMap.t;
+  (** unique index of the last added symbol *)
+  prevSequenceNum : int;
+}
 
 type t = bindings
 
-let defaultBindings : bindings = StringMap.empty
+let defaultBindings : bindings = { symbols = StringMap.empty; prevSequenceNum = 0 }
+
+let addSymbol name sym bindings =
+  let sequenceNum = bindings.prevSequenceNum + 1 in
+  let info =  {symbol = sym; sequenceNum = sequenceNum} in
+  { symbols = StringMap.add name info bindings.symbols;
+    prevSequenceNum = sequenceNum }
 
 let fromSymbolList (list : (string * symbol) list) : bindings =
   List.fold_left
-    (fun bindings (name, symbol) -> StringMap.add name symbol bindings)
+    (fun bindings (name, symbol) -> addSymbol name symbol bindings)
     defaultBindings
     list
 
 let addVar bindings var =
-  StringMap.add var.vname (VarSymbol var) bindings
+  addSymbol var.vname (VarSymbol var) bindings
 
 let addFunc bindings func =
-  StringMap.add func.fname (FuncSymbol func) bindings
+  addSymbol func.fname (FuncSymbol func) bindings
 
 let addTypedef bindings name typ =
-  StringMap.add name (TypedefSymbol typ) bindings
+  addSymbol name (TypedefSymbol typ) bindings
 
 let addLabel bindings name =
-  StringMap.add name (LabelSymbol { lname = name }) bindings
+  addSymbol name (LabelSymbol { lname = name }) bindings
 
 let addMacro bindings name doc implF =
   let macro = { mname = name; mdocstring = doc; mtransformFunc = implF } in
-  StringMap.add name (MacroSymbol macro) bindings
+  addSymbol name (MacroSymbol macro) bindings
 
 let lookup bindings name =
   try
-    StringMap.find name bindings
+    (StringMap.find name bindings.symbols).symbol
   with
       Not_found -> UndefinedSymbol
+
+let lookupInfo bindings name =
+  try
+    StringMap.find name bindings.symbols
+  with
+      Not_found -> { symbol = UndefinedSymbol; sequenceNum = 0 }
 
 let isFunction bindings name =
   match lookup bindings name with
@@ -49,6 +71,6 @@ let isFunction bindings name =
     | _ -> false
 
 let iter f bindings =
-  let f' key sym = f (key, sym) in
-  StringMap.iter f' bindings
+  let f' key info = f (key, info.symbol) in
+  StringMap.iter f' bindings.symbols
 

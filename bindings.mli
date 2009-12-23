@@ -6,6 +6,7 @@ type symbol =
   | TypedefSymbol of Lang.composedType
   | LabelSymbol of Lang.label
   | UndefinedSymbol
+and symbolInfo
 and bindings
 type t = bindings
 
@@ -21,6 +22,7 @@ val addMacro :
   bindings -> string -> string ->
   (bindings -> Ast2.sexpr list -> Ast2.sexpr) -> bindings
 val lookup : bindings -> string -> symbol
+val lookupInfo : bindings -> string -> symbolInfo
 val isFunction : bindings -> string -> bool
 
 val iter : ((string * symbol) -> unit) -> bindings -> unit
