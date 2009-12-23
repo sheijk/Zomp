@@ -691,8 +691,8 @@ editor to trigger recompilations etc. and possibly resume main()"
     (zomp-tl-do (concat "!silent !writeSymbols " zomp-symbol-file))
     ))
 
-(defconst zomp-identifier-chars "a-zA-Z0-9:*")
-(defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*]*")
+(defconst zomp-identifier-chars "a-zA-Z0-9:*_")
+(defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*_]*")
 
 (defun zomp-symbol-at-point ()
   (interactive)
