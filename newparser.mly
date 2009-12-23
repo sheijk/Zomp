@@ -106,12 +106,14 @@
 %token OPEN_BRACKET_POSTFIX
 %token CLOSE_BRACKET
 
-%token <string> ADD_OP
+(* the order of the tokens does not define precedence! see below *)
 %token <string> MULT_OP
+%token <string> ADD_OP
 %token <string> ASSIGN_OP
 %token <string> COMPARE_OP
 %token <string> LAZY_BOOL_OP
 %token <string> STRICT_BOOL_OP
+%token <string> MOD_OP
 %token DOT
 %token <string> PREFIX_OP
 %token <string> POSTFIX_OP
@@ -123,7 +125,7 @@
 %left LAZY_BOOL_OP
 %nonassoc COMPARE_OP
 %left ADD_OP
-%left MULT_OP
+%left MULT_OP MOD_OP
 %left STRICT_BOOL_OP
 %left DOT
 
@@ -263,6 +265,7 @@ opExpr:
 %inline opSymbol:
 | o = ADD_OP
 | o = MULT_OP
+| o = MOD_OP
 | o = ASSIGN_OP
 | o = COMPARE_OP
 | o = LAZY_BOOL_OP

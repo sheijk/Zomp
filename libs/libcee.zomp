@@ -699,6 +699,10 @@ template op/ l r
   zmp:cee:div #l #r
 end
 
+template op% l r
+  u32:mod #l #r
+end
+
 template op== l r
   zmp:cee:equal #l #r
 end

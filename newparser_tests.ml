@@ -148,6 +148,9 @@ struct
       "c || d", `Return [se2 "op||" "c" "d"];
       "a^b", `Return [se2 "op^" "a" "b"];
 
+      "3%4", `Return [se2 "op%" "3" "4"];
+      "foo op% bar", `Return [jux ["foo"; "op%"; "bar"]];
+
       (** pre/postfix operators *)
       "foo... ", `Return [se1 "postop..." "foo"];
       "bar...", `Return [se1 "postop..." "bar"];

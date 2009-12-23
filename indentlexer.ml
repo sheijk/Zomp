@@ -147,6 +147,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | COMMA -> ",", noind
             | ADD_OP arg
             | MULT_OP arg
+            | MOD_OP arg
             | ASSIGN_OP arg
             | COMPARE_OP arg
             | LAZY_BOOL_OP arg
@@ -214,11 +215,11 @@ end = struct
 
   type rule = (charre * Str.regexp)
 
-  let opSymbols = "-+\\*/&.><=!|:;,"
+  let opSymbols = "-+\\*/&.><=!|:;,%"
 
   let rec charreMatch cre token =
     let isOperator = function
-      | ADD_OP _ | MULT_OP _ | ASSIGN_OP _ | COMPARE_OP _ | LAZY_BOOL_OP _ | STRICT_BOOL_OP _
+      | ADD_OP _ | MULT_OP _ | ASSIGN_OP _ | COMPARE_OP _ | LAZY_BOOL_OP _ | STRICT_BOOL_OP _ | MOD_OP _
       | PREFIX_OP _ | POSTFIX_OP _ | QUOTE _
       | COMMA
           -> true
@@ -455,6 +456,7 @@ end = struct
     @ opRules "-" (fun s -> ADD_OP s)
     @ opRules "*" (fun s -> MULT_OP s)
     @ opRules "/" (fun s -> MULT_OP s)
+    @ opRules "%" (fun s -> MOD_OP s)
     @ opRules "**" (fun s -> MULT_OP s)
     @ opRules "++" (fun s -> ADD_OP s)
     @ opRulesMultiSym ["="; ":="] (fun s -> ASSIGN_OP s)
