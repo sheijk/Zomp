@@ -49,6 +49,13 @@ macro newArray type size
   end}
 end
 
+macro makeArray type size
+  arrayTypeName := Array:nameForType type.id
+  ret ${
+    local #arrayTypeName #size
+  end}
+end
+
 template aptr array index
   ptradd getField(#array, elements) #index
 end

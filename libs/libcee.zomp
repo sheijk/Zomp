@@ -373,23 +373,39 @@ template zmp:array:set array index value
   store ptradd(zmp:array:addr &(#array), #index) #value
 end
 
+// TODO rename, remove 2
+func ast* cee:internal:makeInitCall(cstring typeName, ast* varPtr, ast* args)
+  var ast* initCall ast:fromString(cstring:concat(typeName, ":init"))
+  ast:addChild initCall varPtr
+  forEachAstChild arg args
+    ast:addChild initCall arg
+  end
+
+  ret initCall
+end
+
 /// Allocate storage and initialize variable
 /// `new Foo a b c' does the same as `Foo:init(malloc Foo, a, b, c)'
 macro new type args...
   uniqueId name "new"
 
-  var ast* initCall ast:fromString(cstring:concat(getField(type, id), ":init"))
-  ast:addChild initCall ast:fromString(name)
-  forEachAstChild arg args
-    ast:addChild initCall arg
-  end
+  var ast* initCall cee:internal:makeInitCall(getField(type,id), ${#name}, args)
 
-  var ast* code ${seq}
-  ast:addChild code ${var (ptr #type) #name (malloc #type)}
-  ast:addChild code initCall
-  ast:addChild code ast:fromString(name)
+  ret ${
+    var (ptr #type) #name (malloc #type)
+    #initCall
+    #name
+  end}
+end
 
-  ret code
+macro local type args...
+  uniqueId name "local"
+  var ast* initCall cee:internal:makeInitCall2(getField(type,id), ${ptr #name}, args)
+  ret ${
+    var #type #name
+    #initCall
+    #name
+  end}
 end
 
 template op++ lstring rstring

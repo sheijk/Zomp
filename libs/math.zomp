@@ -141,6 +141,13 @@ func v3f v3f:normalized(v3f v)
   ret mv3f(v.x * l, v.y * l, v.z * l)
 end
 
+func void v3f:makeNormalized(v3f* pv)
+  l := 1.0 / v3f:length pv*
+  pv.x = pv.x * l
+  pv.y = pv.y * l
+  pv.z = pv.z * l
+end
+
 func v3f v3f:lerp(float t, v3f a, v3f b)
   ret ((1. - t) * a + t * b)
 end
@@ -170,6 +177,21 @@ func void makeOrigin(RBTransform* this)
   this.yaxis = mv3f 0. 1. 0.
   this.zaxis = mv3f 0. 0. 1.
   this.scale = 1.0
+end
+
+func void RBTransform:makeNormalized(RBTransform* this)
+  v3f:makeNormalized &this.xaxis
+  v3f:makeNormalized &this.yaxis
+  v3f:makeNormalized &this.zaxis
+end
+
+func void RBTransform:setAxisScales(RBTransform* this, v3f lengths)
+  v3f:makeNormalized &this.xaxis
+  this.xaxis = this.xaxis * lengths.x
+  v3f:makeNormalized &this.yaxis
+  this.yaxis = this.yaxis * lengths.y
+  v3f:makeNormalized &this.zaxis
+  this.zaxis = this.zaxis * lengths.z
 end
 
 ///-----------------------------------------------------------------------------

@@ -83,6 +83,16 @@ macro List:foreach list indexVar dataVar code
 end
 
 ///-----------------------------------------------------------------------------
+/// Section: experimental library extensions
+///-----------------------------------------------------------------------------
+
+/// returns the default value for the given type
+macro default type
+  ctorName := type.id ++ ":default"
+  ret ${#ctorName()}
+end
+
+///-----------------------------------------------------------------------------
 /// Section: events
 ///-----------------------------------------------------------------------------
 
@@ -208,9 +218,55 @@ func void onMouseWheel(int pos)
   lastMouseWheel = pos
 end
 
+struct KeyEvent
+  int key
+  int action
+  double time
+end
+
+func KeyEvent KeyEvent:default()
+  event := undef KeyEvent
+  event.key = 0
+  event.action = 0
+  event.time = 0.0d
+  ret event
+end
+
+defineListType KeyEvent
+
+var KeyEvent_List* keyEvents null
+
+func void storeKeyEvent(int key, int action, double time)
+  event := malloc KeyEvent_List
+  event.data.key = key
+  event.data.action = action
+  event.data.time = time
+  event.next = keyEvents
+  keyEvents = event
+end
+
+func bool fetchNextKeyEvent(KeyEvent* event)
+  if isNull(keyEvents)
+    return false
+  end
+
+  event* = keyEvents*.data
+  toDelete := keyEvents
+  keyEvents = keyEvents.next
+  dealloc toDelete
+  return true
+end
+
+func void clearKeyEvents()
+  ignore := default KeyEvent
+  while fetchNextKeyEvent(&ignore) void
+end
+
 func int onKey(int key, int action)
   // if (action == GLFW_PRESS)
   // end
+
+  storeKeyEvent key action glfwGetTime()
 
   TwEventKeyGLFW key action
 
@@ -392,6 +448,7 @@ end
 
 func void applyTransform(RBTransform* this)
   glTranslatef this.origin.x this.origin.y this.origin.z
+  glScalef this.scale this.scale this.scale
 end
 
 func float lerp(float t, float a, float b)
@@ -449,6 +506,8 @@ struct quatf
   float x y z w
 end
 
+defineArrayType quatf
+
 func quatf aiQuaternion:quatf(aiQuaternion q)
   ret (structlit quatf x q.x y q.y z q.z w q.w)
 end
@@ -503,13 +562,19 @@ end
 defineArrayType KeyFrameVector
 defineArrayType KeyFrameQuat
 
+defineArrayType v3f
+
 struct NodeAnimation
   float duration //TODO remove
   RBTransform* targetTransform
   // float ticksPerSecond
-  KeyFrameVector_Array transformKeyFrames
-  KeyFrameVector_Array scaleKeyFrames
-  KeyFrameQuat_Array rotationKeyFrames
+
+  float_Array transformTimes
+  v3f_Array transformKeyframes
+  float_Array scaleTimes
+  v3f_Array scaleKeyFrames
+  float_Array rotatationTimes
+  quatf_Array rotationKeyFrames
 end
 
 defineArrayType NodeAnimation
@@ -531,83 +596,132 @@ macro hasType var type
   end}
 end
 
-func KeyFrameVector NodeAnimation:keyframeAt(NodeAnimation* this, float time)
+struct KeyframeInterpol
+  int first
+  /// t in [0,1], result = lerp(t, keyframe first, keyframe first+1)
+  float t
+end
+
+func KeyframeInterpol KeyframeInterpol:default()
+  ret (structlit KeyframeInterpol first 0 t 0.0)
+end
+
+func KeyframeInterpol interpolKeyframeAt(float_Array* keyframeTimes, float time)
   rem := time
-  if (this.duration > 0.0)
-    rem = fmodf time this.duration
-  end
+  // if (this.duration > 0.0)
+  //   rem = fmodf time this.duration
+  // end
   keyNum := -1
-  keyframes := this.transformKeyFrames
   found := false
 
-  if (keyframes.length == 1)
-    ret aget(keyframes,0)
-  elseif (keyframes.length == 0)
-    ret (structlit KeyFrameVector time 0.0d value mv3f(0.,0.,0.))
+  if (keyframeTimes.length == 1)
+    ret (structlit KeyframeInterpol first 0 t 0.)
+  elseif (keyframeTimes.length == 0)
+    ret (structlit KeyframeInterpol first -1 t 0.)
   end
 
-  var KeyFrameVector result
+  result := default KeyframeInterpol
 
-  firstFrameTime := toFloat getField(aget(keyframes,0), time)
-  if (firstFrameTime > rem)
-    result = aget keyframes 0
-  else
+  firstFrameTime := aget(keyframeTimes,0)
+  if (firstFrameTime < rem)
     while bool:not(found)
       ++keyNum
-      if (keyNum >= keyframes.length)
+      if (keyNum >= keyframeTimes.length)
         found = true
       else
-        key := aget(keyframes, keyNum)
-        if (toFloat key.time > rem)
+        key := aget(keyframeTimes, keyNum)
+        if (key > rem)
           found = true
         end
       end
     end
 
-    if (keyNum < keyframes.length)
-      kfpre := aget keyframes (keyNum-1)
-      kfpost := aget keyframes keyNum
-      t := (rem - toFloat kfpre.time) / toFloat(kfpost.time - kfpre.time)
-      result.time = toDouble rem
-      result.value = v3f:lerp t kfpre.value kfpost.value
+    if (keyNum < keyframeTimes.length)
+      kfpre := aget(keyframeTimes, keyNum - 1)
+      kfpost := aget(keyframeTimes, keyNum)
+      result.first = keyNum - 1
+      result.t =  (rem - kfpre) / (kfpost - kfpre)
     else
-      result = aget(keyframes, keyframes.length - 1)
+      /// ok, because keyframeTimes.length >= 2 checked above
+      result.first = keyframeTimes.length - 2
+      result.t = 1.0
     end
   end
 
   ret result
 end
 
+func v3f interpolTransform(float_Array* times, v3f_Array* positions, float time)
+  assert (positions.length == times.length)
+
+  if (times.length == 1)
+    ret aget(positions*,0)
+  end
+
+  interp := interpolKeyframeAt times time
+  posA := aget(positions, interp.first)
+  posB := aget(positions, interp.first+1)
+  ret v3f:lerp(interp.t, posA, posB)
+end
+
+func v3f NodeAnimation:transformAt(NodeAnimation* this, float time)
+  ret interpolTransform(&this.transformTimes, &this.transformKeyframes, time)
+end
+
+func v3f NodeAnimation:scaleAt(NodeAnimation* this, float time)
+  ret interpolTransform(&this.scaleTimes, &this.scaleKeyFrames, time)
+end
+
 func void NodeAnimation:apply(NodeAnimation* this, float time)
-  key := NodeAnimation:keyframeAt(this, time)
+  rem := time
+  if (this.duration > 0.0)
+    rem = fmodf time this.duration
+  end
 
   targetTransform := this.targetTransform
   if isNotNull(targetTransform)
-    targetTransform.origin = key.value
+    targetTransform.origin = NodeAnimation:transformAt this rem
+    // RBTransform:setAxisScales targetTransform (NodeAnimation:scaleAt this rem)
+    scale := NodeAnimation:scaleAt this rem
+    targetTransform.scale = scale.x
   end
+end
+
+func void test2()
+  x := new float_Array 10
+  y := newArray float 10
 end
 
 func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source)
   this.duration = 0.0
   this.targetTransform = nullptr RBTransform
-  transformKeyFrames := *newArray(KeyFrameVector, source.mNumPositionKeys)
-  scaleKeyFrames := *newArray(KeyFrameVector, 0)
-  rotationKeyFrames := *newArray(KeyFrameQuat, 0)
+  this.transformTimes = makeArray(float, source.mNumPositionKeys)
+  this.transformKeyframes = makeArray(v3f, source.mNumPositionKeys)
+  this.scaleTimes = makeArray(float, source.mNumScalingKeys)
+  this.scaleKeyFrames = makeArray(v3f, source.mNumScalingKeys)
+  this.rotatationTimes = makeArray(float, 0)
+  this.rotationKeyFrames = makeArray(quatf, 0)
 
   for transnum 0 source.mNumPositionKeys
     aikey := *(source.mPositionKeys +_ptr transnum)
-    print "xxx "
-    aiVectorKey:print &aikey
-    println()
     var KeyFrameVector key
     key.time = aikey.mTime
     key.value = aiVector3D:vec3f aikey.mValue
-    aset transformKeyFrames transnum key
+    aset this.transformTimes transnum toFloat(key.time)
+    aset this.transformKeyframes transnum key.value
   end
 
-  this.transformKeyFrames = transformKeyFrames
-  this.scaleKeyFrames = scaleKeyFrames
-  this.rotationKeyFrames = rotationKeyFrames
+  for scalenum 0 source.mNumScalingKeys
+    skey := *(source.mScalingKeys +_ptr scalenum)
+    aset this.scaleTimes scalenum toFloat(skey.mTime)
+    aset this.scaleKeyFrames scalenum aiVector3D:vec3f(skey.mValue)
+  end
+
+  for rotnum 0 source.mNumRotationKeys
+    rkey := *(source.mRotationKeys +_ptr rotnum)
+    aset this.rotatationTimes rotnum toFloat(rkey.mTime)
+    aset this.rotationKeyFrames rotnum aiQuaternion:quatf(rkey.mValue)
+  end
 end
 
 func NodeAnimation* aiNodeAnim:toNodeAnimation(aiNodeAnim* this)
@@ -739,15 +853,26 @@ func void SceneGraphNode:print(SceneGraphNode* this)
 end
 
 func void NodeAnimation:print(NodeAnimation* this)
-  print "NodeAnimation(" this.transformKeyFrames.length
+  print "NodeAnimation(" this.transformKeyframes.length
   print "/" this.rotationKeyFrames.length "/" this.scaleKeyFrames.length
   if isNull(this.targetTransform)
     print " no target!"
   end
   println ")"
-  Array:foreach this.transformKeyFrames tnum
-    tkey := aget this.transformKeyFrames tnum
-    println "  " tkey
+  Array:foreach this.transformKeyframes tnum
+    pos := aget this.transformKeyframes tnum
+    ttime := aget this.transformTimes tnum
+    println "  time=" ttime ", pos=" pos
+  end
+  Array:foreach this.scaleKeyFrames snum
+    scale := aget this.scaleKeyFrames snum
+    stime := aget this.scaleTimes snum
+    println "  time=" stime ", scale=" scale
+  end
+  Array:foreach this.rotationKeyFrames rnum
+    rot := aget this.rotationKeyFrames rnum
+    rtime := aget this.rotatationTimes rnum
+    println "  time=" rtime ", rot=" rot
   end
 end
 
@@ -849,7 +974,7 @@ func int main()
   // sceneFilename := "data/pixeljourney/shared/obj/Reagenztest_tri.obj"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test5.dae"
   // sceneFilename := "data/pixeljourney/move_cube2.dae"
-  sceneFilename := "data/pixeljourney/pipetest/translate.dae"
+  sceneFilename := "data/pixeljourney/pipetest/combined.dae"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test7_rolling_cube.dae"
   // sceneFilename := "data/collada_test2.dae"
   // sceneFilename := "data/pjm2.obj"
@@ -944,6 +1069,15 @@ func int main()
       Animation:apply (anims.elements+animNum) time
     end
     SceneGraph:updateTransforms &sg
+
+    keyEvent := default KeyEvent
+    while fetchNextKeyEvent(&keyEvent)
+      if (keyEvent.action == GLFW_PRESS)
+        if (keyEvent.key == GLFW_KEY_P)
+          SceneGraph:print &sg
+        end
+      end
+    end
 
     autoSetupViewport()
 
