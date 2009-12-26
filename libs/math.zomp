@@ -164,9 +164,9 @@ end
 
 ofunc void print(RBTransform t)
   println "RBTransform:"
-  println "  xaxis  = " t.xaxis
-  println "  yaxis  = " t.yaxis
-  println "  zaxis  = " t.zaxis
+  println "  xaxis = " t.xaxis
+  println "  yaxis = " t.yaxis
+  println "  zaxis = " t.zaxis
   println "  origin = " t.origin
   println "  scale  = " t.scale
 end

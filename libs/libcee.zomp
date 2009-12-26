@@ -400,7 +400,7 @@ end
 
 macro local type args...
   uniqueId name "local"
-  var ast* initCall cee:internal:makeInitCall2(getField(type,id), ${ptr #name}, args)
+  var ast* initCall cee:internal:makeInitCall(getField(type,id), ${ptr #name}, args)
   ret ${
     var #type #name
     #initCall

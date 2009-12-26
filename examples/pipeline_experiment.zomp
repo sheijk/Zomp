@@ -340,6 +340,7 @@ func GLint objectMaterial()
 end
 
 var float rotationSpeed 64.0
+var float playbackSpeed 1.0
 var float cameraOffsetX 0.
 var float cameraOffsetY 2.
 var float cameraOffsetZ 10.
@@ -447,8 +448,27 @@ func MeshInfo* lookupMesh(MeshInfo_Array meshes, cstring id)
 end
 
 func void applyTransform(RBTransform* this)
-  glTranslatef this.origin.x this.origin.y this.origin.z
-  glScalef this.scale this.scale this.scale
+  // converting to matrix, then applying. not pretty...
+  var float[16] mat_
+  mat := zmp:array:addr &mat_
+  mat[0] = this.xaxis.x
+  mat[1] = this.xaxis.y
+  mat[2] = this.xaxis.z
+  mat[3] = 0.0
+  mat[4] = this.yaxis.x
+  mat[5] = this.yaxis.y
+  mat[6] = this.yaxis.z
+  mat[7] = 0.0
+  mat[8] =  this.zaxis.x
+  mat[9] =  this.zaxis.y
+  mat[10] = this.zaxis.z
+  mat[11] = 0.0
+  mat[12] = this.origin.x
+  mat[13] = this.origin.y
+  mat[14] = this.origin.z
+  mat[15] = 1.0
+
+  glMultMatrixf mat
 end
 
 func float lerp(float t, float a, float b)
@@ -506,10 +526,100 @@ struct quatf
   float x y z w
 end
 
+func void quatf:makeConjugate(quatf* this)
+  this.x = float:neg this.x
+  this.y = float:neg this.y
+  this.z = float:neg this.z
+end
+
+func quatf quatf:conjugate(quatf q)
+  conj := q
+  quatf:makeConjugate &conj
+  ret conj
+end
+
+func float quatf:magnitude(quatf q)
+  ret sqrtf(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+end
+
+func void quatf:makeNormalized(quatf* this)
+  mag := quatf:magnitude *this
+  this.x = this.x * mag
+  this.y = this.y * mag
+  this.z = this.z * mag
+  this.w = this.w * mag
+end
+
+func quatf quatf:normalized(quatf q)
+  r := q
+  quatf:makeNormalized &r
+  ret r
+end
+
+/// adpated from gmtl
+func quatf quatf:lerp(float t, quatf a, quatf b)
+  // calc cosine theta
+  cosom := a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+
+  // adjust signs (if necessary)
+  b2 := b
+  if (cosom < 0.0)
+    cosom = float:neg cosom
+    b2.x = float:neg b2.x
+    b2.y = float:neg b2.y
+    b2.z = float:neg b2.z
+    b2.w = float:neg b2.w
+  end
+
+  // Calculate coefficients
+  sclp := 0.0
+  sclq := 0.0
+
+  if ( (1.0f - cosom) > 0.0001f) // 0.0001 -> some epsillon
+    // Standard case (slerp)
+    omega := acosf cosom
+    sinom := sinf omega // extract theta from dot product's cos theta
+    sclp  = sinf( (1.0 - t) * omega) / sinom
+    sclq  = sinf( t * omega) / sinom
+  else
+    // Very close, do linear interp (because it's faster)
+    sclp = 1.0f - t
+    sclq = t
+  end
+
+  result := undef quatf
+  result.x = sclp * a.x + sclq * b2.x
+  result.y = sclp * a.y + sclq * b2.y
+  result.z = sclp * a.z + sclq * b2.z
+  result.w = sclp * a.w + sclq * b2.w
+  ret result
+end
+
+// TODO move to libcee <<<
+funcd int toupper(int chr)
+funcd int tolower(int chr)
+
+func char char:upperCase(char chr)
+  ret toChar(toupper(toInt chr))
+end
+
+func char char:lowerCase(char chr)
+  ret toChar(tolower(toInt chr))
+end
+// >>>
+
 defineArrayType quatf
 
 func quatf aiQuaternion:quatf(aiQuaternion q)
   ret (structlit quatf x q.x y q.y z q.z w q.w)
+end
+
+/// approach by fg
+func v3f quatf:rotate(quatf rot, v3f v)
+  rot_xyz := mv3f rot.x rot.y rot.z
+  t := 2.0 * (rot_xyz *_cross v)
+  rv := v + rot.w * t + rot_xyz *_cross t
+  ret rv
 end
 
 struct KeyFrameVector
@@ -672,6 +782,41 @@ func v3f NodeAnimation:scaleAt(NodeAnimation* this, float time)
   ret interpolTransform(&this.scaleTimes, &this.scaleKeyFrames, time)
 end
 
+func quatf NodeAnimation:rotationAt(NodeAnimation* this, float time)
+  if (this.rotatationTimes.length == 1)
+    ret aget(this.rotationKeyFrames, 0)
+  end
+
+  interp := interpolKeyframeAt &this.rotatationTimes time
+  quatA := aget this.rotationKeyFrames interp.first
+  quatB := aget this.rotationKeyFrames (interp.first+1)
+  ret quatf:lerp(interp.t, quatA, quatB)
+end
+
+func void RBTransform:setRotation(RBTransform* this, quatf rot)
+  xx := rot.x * rot.x
+  xy := rot.x * rot.y
+  xz := rot.x * rot.z
+  xw := rot.x * rot.w
+  yy := rot.y * rot.y
+  yz := rot.y * rot.z
+  yw := rot.y * rot.w
+  zz := rot.z * rot.z
+  zw := rot.z * rot.w
+
+  var float[9] mat2
+  mat := zmp:array:addr &mat2
+  this.xaxis.x = 1. - 2. * ( yy + zz )
+  this.xaxis.y = 2. * ( xy - zw )
+  this.xaxis.z = 2. * ( xz + yw )
+  this.yaxis.x = 2. * ( xy + zw )
+  this.yaxis.y = 1. - 2. * ( xx + zz )
+  this.yaxis.z = 2. * ( yz - xw )
+  this.zaxis.x = 2. * ( xz - yw )
+  this.zaxis.y = 2. * ( yz + xw )
+  this.zaxis.z = 1. - 2. * ( xx + yy )
+end
+
 func void NodeAnimation:apply(NodeAnimation* this, float time)
   rem := time
   if (this.duration > 0.0)
@@ -681,9 +826,10 @@ func void NodeAnimation:apply(NodeAnimation* this, float time)
   targetTransform := this.targetTransform
   if isNotNull(targetTransform)
     targetTransform.origin = NodeAnimation:transformAt this rem
-    // RBTransform:setAxisScales targetTransform (NodeAnimation:scaleAt this rem)
     scale := NodeAnimation:scaleAt this rem
     targetTransform.scale = scale.x
+    rot := NodeAnimation:rotationAt this rem
+    RBTransform:setRotation targetTransform rot
   end
 end
 
@@ -699,8 +845,8 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source)
   this.transformKeyframes = makeArray(v3f, source.mNumPositionKeys)
   this.scaleTimes = makeArray(float, source.mNumScalingKeys)
   this.scaleKeyFrames = makeArray(v3f, source.mNumScalingKeys)
-  this.rotatationTimes = makeArray(float, 0)
-  this.rotationKeyFrames = makeArray(quatf, 0)
+  this.rotatationTimes = makeArray(float, source.mNumRotationKeys)
+  this.rotationKeyFrames = makeArray(quatf, source.mNumRotationKeys)
 
   for transnum 0 source.mNumPositionKeys
     aikey := *(source.mPositionKeys +_ptr transnum)
@@ -1030,6 +1176,7 @@ func int main()
   TwAddSeparator bar (nullptr char) " "
 
   twgroup "group=options precision=2"
+    rw TW_TYPE_FLOAT "playback speed" playbackSpeed
     rw TW_TYPE_FLOAT "rot. speed" rotationSpeed
     rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
     rw TW_TYPE_FLOAT "cam dy" cameraOffsetY
@@ -1053,8 +1200,11 @@ func int main()
   glEnable GL_BLEND
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
+  animTime := 0.0
   mainloop
     angle = angle + rotationSpeed * frameDuration
+    animTime = animTime + playbackSpeed * frameDuration
+    animTime = fmodf animTime animDuration
     // if (frameNum <= 0)
     //   println "mesh translate = " meshes.data.transform.origin
     // end
@@ -1066,7 +1216,7 @@ func int main()
     //   end
     // end
     Array:foreach anims animNum
-      Animation:apply (anims.elements+animNum) time
+      Animation:apply (anims.elements+animNum) animTime
     end
     SceneGraph:updateTransforms &sg
 
@@ -1088,7 +1238,7 @@ func int main()
     glLoadIdentity()
     aspect := toDouble(windowWidth) / toDouble(windowHeight)
     camDistance := 0.8
-    farPlaneDist := camDistance * meshSize + float:max(10.0, 0.5 * meshSize)
+    farPlaneDist := camDistance * meshSize * 2.0 + float:max(sqrtf (20.*20.*2.), 0.5 * meshSize)
     nearPlaneDist := float:max(1.0, camDistance - meshSize)
     gluPerspective 90.0d aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
@@ -1130,7 +1280,6 @@ func int main()
 
     drawOrientationGrid2 0.2 1.0
 
-    animTime := fmodf time animDuration
     nowColor := color 0.3 0.8 0.2
     scaleTo2dArea 0.03 0.03 0.47 0.13
     renderTimeline 0. animDuration 1 &animTime &nowColor

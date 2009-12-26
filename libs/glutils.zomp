@@ -285,6 +285,7 @@ func void sendLine(float sx, float sy, float sz, float ex, float ey, float ez)
   glVertex3f ex ey ez
 end
 
+/// in XY plane, centered at 0,0,0, radius 1.0
 func void sendCircle()
   template vertex x y (glVertex3f #x #y 0.0)
 
