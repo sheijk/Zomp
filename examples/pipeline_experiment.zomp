@@ -575,7 +575,7 @@ func quatf quatf:lerp(float t, quatf a, quatf b):
   sclp := 0.0
   sclq := 0.0
 
-  if ( (1.0f - cosom) > 0.0001f) // 0.0001 -> some epsillon:
+  if ( (1.0f - cosom) > 0.0001f): // 0.0001 -> some epsillon
     // Standard case (slerp)
     omega := acosf cosom
     sinom := sinf omega // extract theta from dot product's cos theta
