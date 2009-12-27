@@ -20,30 +20,30 @@ require "libs/libcee.zomp"
 //   template matches pattern
 //     ast:matchesShape(code, ${#pattern})
 //   end
-// 
+//
 //   if matches(_ _(_...) __)
 //     ret (nthId 0 ++ nthId 1 ++ "("
 //   end
-// 
+//
 //   ret "unknown nested expression\n"
 // end
 
-func cstring Shader:parseTLExpr(ast* code)
-  template nthId n
+func cstring Shader:parseTLExpr(ast* code):
+  template nthId n:
     getField(ast:child(code, #n), id)
   end
 
-  template matches pattern
+  template matches pattern:
     ast:matchesShape(code, ${#pattern})
   end
 
-  if matches(varying _ _)
+  if matches(varying _ _):
     ret ("varying " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
-  elseif matches(uniform _ _)
+  elseif matches(uniform _ _):
     ret ("uniform " ++ nthId 1 ++ " " ++ nthId 2 ++ "\n")
-  elseif matches(void main() __)
+  elseif matches(void main() __):
     ret "main function"
-  elseif matches(_ _(_...) __)
+  elseif matches(_ _(_...) __):
     funcName := ast:child ast:child(code, 1) 0
     ret ("function " ++ funcName.id ++ " : " ++ nthId 0 ++ "\n")
   end
@@ -51,10 +51,10 @@ func cstring Shader:parseTLExpr(ast* code)
   ret "unknow expression\n"
 end
 
-func cstring Shader:parse(ast* code)
+func cstring Shader:parse(ast* code):
   source := ""
 
-  forEachAstChild child code
+  forEachAstChild child code:
     newSource := Shader:parseTLExpr(child)
     source = source ++ newSource
   end
@@ -62,7 +62,7 @@ func cstring Shader:parse(ast* code)
   ret source
 end
 
-macro shaderVar varName code
+macro shaderVar varName code:
   printlnString "Creating shader from"
   ast:print code 0
   ret ${#varName := Shader:parse ${#code}}
@@ -72,16 +72,16 @@ end
 //   shaderVar vertexSource
 //     varying float x
 //     uniform vec3 normal
-// 
+//
 //     vec3 invert(vec3 v)
 //       return minus(v)
 //     end
-// 
+//
 //     void main()
 //       gl_Vertex = ftransform()
 //     end
 //   end
-// 
+//
 //   printHLine '-' 40
 //   printlnString vertexSource
 //   printHLine '-' 40
@@ -95,8 +95,8 @@ var int windowWidth 1280
 var int windowHeight 720
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
@@ -107,13 +107,13 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
 end
 
-func void reopenWindow()
+func void reopenWindow():
   glfwCloseWindow()
   glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
   glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
@@ -122,8 +122,8 @@ func void reopenWindow()
 end
 
 // avoid writing it over and over, part of utils lib
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -133,7 +133,7 @@ macro mainloop body...
 
     glfwSetWindowTitle "Zomp"
 
-    while running
+    while running:
       lastTime = time
       time = double:toFloat glfwGetTime()
       frameDuration = time -_f lastTime
@@ -164,8 +164,8 @@ macro mainloop body...
   end}
 end
 
-macro assert code
-  ret ${if (bool:not #code)
+macro assert code:
+  ret ${if (bool:not #code):
     printlnString "error: Assertion failed"
     ast:print ${#code} 0
   end}
@@ -174,7 +174,7 @@ end
 //------------------------------------------------------------------------------
 // Section main
 
-func int main()
+func int main():
   init()
 
   angle := 0.0
@@ -229,25 +229,25 @@ func int main()
 
   glEnable GL_BLEND
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
-  
+
   glEnable GL_DEPTH_TEST
   glDepthFunc GL_LEQUAL
-  
-  mainloop
+
+  mainloop:
     angle = angle +_f 32.0 *_f frameDuration
-  
+
     glClearColor 0. 0.125 0.25 0.0
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-  
+
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     aspect := int:toDouble windowWidth /_d int:toDouble windowHeight
     gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
-  
+
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-  
-    saveTransforms
+
+    saveTransforms:
       glTranslatef 0. -4. -20.0
       glRotatef angle 0. 1. 0.
       drawCoordSys 8.0
@@ -258,34 +258,34 @@ func int main()
       glUseProgram hemiShader
       glutSolidTeapot 4.0d
     end
-  
+
     glUseProgram glowShader
-  
-    saveAttribs
+
+    saveAttribs:
       glDepthMask GL_FALSE
-  
-      saveTransforms
+
+      saveTransforms:
         glTranslatef 2.0 -2.0 (-10.0 -_f 1.0)
         glColor4f 0.0 0.5 0.0 1.0
         renderQuad 2.0
       end
-  
-      saveTransforms
+
+      saveTransforms:
         glTranslatef 4. 0. -10.0
         glColor4f 1.0 0.25 0.0 1.0
         renderQuad 4.0
-  
+
         glUseProgram 0
         glColor4f 1. 1. 1. 1.
         // glqtPrintfAt 0.0d 0.0d 0.0d (1.0d /_d 10.0d) "hello!"
       end
-  
+
     end
-  
+
     glUseProgram 0
-  
+
   end
-  
+
   glDeleteShader glowShader
   glDeleteShader hemiShader
 

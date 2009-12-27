@@ -4,7 +4,7 @@
 !verify off
  */
 
-func int sum(int l, int r)
+func int sum(int l, int r):
   ret l + r
 end
 
@@ -12,13 +12,13 @@ end
 /// compile time vars will be created but not added to any bindings
 #{var int iCompileTime 100}
 
-func void test()
+func void test():
   ${var int foo 10}
 
   println()
 end
 
-func void test()
+func void test():
   /// code cannot be executed at compile time, yet
   var int r #{sum(2,3)}
   printlnInt(r)

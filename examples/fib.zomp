@@ -2,15 +2,15 @@
  * Calculating fibonacci numbers the sane way
  */
 
-template op:= name value
+template op:= name value:
   var2 #name #value
 end
 
-func int fib(int n)
+func int fib(int n):
   prevprev := 1
   prev := 1
 
-  for i 2 n
+  for i 2 n:
     next := prev + prevprev
     prevprev = prev
     prev = next
@@ -19,10 +19,10 @@ func int fib(int n)
   ret prev
 end
 
-func int main()
+func int main():
   printlnString "Fibonaccis without the waiting"
 
-  for i 1 47
+  for i 1 47:
     printString "fib("
     printInt i
     printString ") = "

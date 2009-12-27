@@ -4,21 +4,21 @@
 
 requireLibs libcee array
 
-func bool isQuoted(cstring text)
+func bool isQuoted(cstring text):
   len := strlen text
-  if (len < 2)
+  if (len < 2):
     ret false
   end
 
   ret ((load text == '"') && (load (text+len-1) == '"'))
 end
 
-func cstring unquote(cstring quoted)
-  if isQuoted(quoted)
+func cstring unquote(cstring quoted):
+  if isQuoted(quoted):
     len := strlen quoted
     unquotedLen := len - 2 + 1
     unquoted := malloc char unquotedLen
-    for pos 0 (unquotedLen-1)
+    for pos 0 (unquotedLen-1):
       store (unquoted+pos) load(quoted+pos+1)
     end
     store (unquoted + unquotedLen - 1) '\0'
@@ -29,26 +29,26 @@ func cstring unquote(cstring quoted)
   ret quoted
 end
 
-func cstring qualifyLibName(cstring name)
+func cstring qualifyLibName(cstring name):
   ret cstring:quote("libs/" ++ unquote name ++ ".zomp")
 end
 
-macro require firstLibOrType libs...
+macro require firstLibOrType libs...:
   var ast* code ${}
 
-  if isQuoted(firstLibOrType.id)
+  if isQuoted(firstLibOrType.id):
     ast:addChild code ${zmpx:lib:requireLib #firstLibOrType}
 
-    forEachAstChild lib libs
+    forEachAstChild lib libs:
       ast:addChild code ${zmpx:lib:requireLib #lib}
     end
-  else
-    if (firstLibOrType.id ==_str "lib")
-      forEachAstChild libName libs
+  else:
+    if (firstLibOrType.id ==_str "lib"):
+      forEachAstChild libName libs:
         qualifiedName := qualifyLibName libName.id
         ast:addChild code ${zmpx:lib:requireLib #qualifiedName}
       end
-    else
+    else:
       ret ${error firstLibOrType "Expected either quoted file name or 'lib'"}
     end
   end
@@ -63,9 +63,9 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
-    if (glfwInit() != GL_TRUE)
+func void init():
+  if bool:not(initCalled):
+    if (glfwInit() != GL_TRUE):
       println "glfw initialization failed, exiting"
       exit 1
     end
@@ -76,7 +76,7 @@ func void init()
     glewInit()
     times 2 glfwPollEvents()
 
-    if (TwInit(TW_OPENGL, nullptr void) == 0)
+    if (TwInit(TW_OPENGL, nullptr void) == 0):
       println "AntTweakBar initialization failed, exiting"
       glfwTerminate()
       exit 2
@@ -85,7 +85,7 @@ func void init()
     println "Initialized"
 
     initCalled = true
-  else
+  else:
     println "Already initialized"
   end
 end
@@ -105,8 +105,8 @@ var float farPlaneDistance 50.0
 var float nearPlaneDistance 1.0
 
 // avoid writing it over and over, should be part of utils lib
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -114,7 +114,7 @@ macro mainloop body...
     startTime := toFloat glfwGetTime()
     running := true
 
-    while running
+    while running:
       lastTime = time
       time = toFloat glfwGetTime()
       frameDuration = time - lastTime
@@ -124,7 +124,7 @@ macro mainloop body...
       glfwSwapBuffers()
       glfwPollEvents()
       running = running && bool:not isPressed(GLFW_KEY_ESC)
-      if isPressed(GLFW_KEY_I)
+      if isPressed(GLFW_KEY_I):
         glfwIconifyWindow()
         running = false
       end
@@ -144,7 +144,7 @@ var int lastMouseY 0
 var int mouseXDelta 0
 var int mouseYDelta 0
 
-func void onMouseMove(int x, int y)
+func void onMouseMove(int x, int y):
   TwEventMousePosGLFW x y
 
   mouseXDelta = lastMouseX - x
@@ -157,38 +157,38 @@ end
 var int lastMouseWheel 0
 var int mouseWheelDelta 0
 
-func void onMouseWheel(int pos)
+func void onMouseWheel(int pos):
   TwEventMouseWheelGLFW pos
 
   mouseWheelDelta = lastMouseWheel - pos
   lastMouseWheel = pos
 end
 
-func void glfwSetEnabled(int what, bool on)
-  if on
+func void glfwSetEnabled(int what, bool on):
+  if on:
     glfwEnable what
-  else
+  else:
     glfwDisable what
   end
 end
 
 var bool windowOnUpperScreen true
 
-func void window::toggleScreen()
-  if windowOnUpperScreen
+func void window::toggleScreen():
+  if windowOnUpperScreen:
     glfwSetWindowPos 400 1250
-  else
+  else:
     glfwSetWindowPos 400 100
   end
 
   windowOnUpperScreen = bool:not windowOnUpperScreen
 end
 
-func int onKey(int key, int action)
-  if (action == GLFW_PRESS)
-    if (key == GLFW_KEY_S)
+func int onKey(int key, int action):
+  if (action == GLFW_PRESS):
+    if (key == GLFW_KEY_S):
       window::toggleScreen()
-    elseif (key == GLFW_KEY_T)
+    elseif (key == GLFW_KEY_T):
       showShadowTextures = bool:not showShadowTextures
     end
   end
@@ -205,21 +205,21 @@ end
 // from libstdc
 func int rand()
 
-func int random (int max)
+func int random (int max):
   ret int:srem(rand(), max)
 end
 
-func float float:random()
+func float float:random():
   randomInt := random(4097)
   return (toFloat(randomInt) / 4096.0)
 end
 
-func float float:srandom()
+func float float:srandom():
   return (float:random() * 2.0 - 1.0)
 end
 
 
-func GLenum Material:showNormals()
+func GLenum Material:showNormals():
   varyingSource := "
   varying vec3 normal;
   "
@@ -245,11 +245,11 @@ defineArrayType v3f
 var SpaceballCamera* cam null
 var SpaceballCamera* lightCam null
 
-func void renderPoints(v3f_Array* array)
-  saveAttribs
+func void renderPoints(v3f_Array* array):
+  saveAttribs:
     glPointSize 4.0
-    rendergl GL_POINTS
-      for i 0 array.length
+    rendergl GL_POINTS:
+      for i 0 array.length:
         v := aget array i
         glVertex3f v.x v.y v.z
       end
@@ -257,41 +257,41 @@ func void renderPoints(v3f_Array* array)
   end
 end
 
-template array:init array indexVar code
-  for #indexVar 0 #array.length
+template array:init array indexVar code:
+  for #indexVar 0 #array.length:
     aset #array #indexVar #code
   end
 end
 
-macro array:setAll array valueExpr
+macro array:setAll array valueExpr:
   uniqueId value "array:setAll"
   uniqueId index "array:setAll"
 
-  ret ${
+  ret ${seq:
     #value := #valueExpr
     array:init #array #index #value
   end}
 end
 
-func void placeOnCircle(v3f_Array* points, float radius)
+func void placeOnCircle(v3f_Array* points, float radius):
   angleDelta := math:pi * 2.0 / toFloat points.length
-  array:init points index
+  array:init points index:
     angle := toFloat index * angleDelta
     structlit v3f x (radius * sinf(angle)) y 0. z (radius * cosf(angle))
   end
 end
 
-func bool keyDown(GLint key)
+func bool keyDown(GLint key):
   ret(glfwGetKey key == GLFW_PRESS)
 end
 
-func bool mouseButtonDown(int button)
+func bool mouseButtonDown(int button):
   glfwGetMouseButton button == GLFW_PRESS
 end
 
 func void glClearDepth(GLdouble depth)
 
-macro showTextures textureList
+macro showTextures textureList:
   count := textureList.childCount
   code := ${}
 
@@ -301,7 +301,7 @@ macro showTextures textureList
   x := 0.
   y := 0.
 
-  forEachAstChild tex textureList
+  forEachAstChild tex textureList:
     ast:addChild code ${showTextureAt #tex #x #y #width #height}
     x = x + width
   end
@@ -309,7 +309,7 @@ macro showTextures textureList
   ret code
 end
 
-func void onWindowResize(int newWidth, int newHeight)
+func void onWindowResize(int newWidth, int newHeight):
   autoSetupViewport()
   glfwGetWindowSize &windowWidth &windowHeight
 
@@ -317,31 +317,31 @@ func void onWindowResize(int newWidth, int newHeight)
   ret void
 end
 
-func void onTweakbarError(char* msg)
+func void onTweakbarError(char* msg):
   println "AntTweakBar error: " msg
 end
 
-func void drawPointGridXZ(int size)
+func void drawPointGridXZ(int size):
   max := toFloat size
   min := float:neg max
 
   glVertex3f 1. 1. 1.
-  rendergl GL_POINTS
-    ffor x min max 1.0
-      ffor z min max 1.0
+  rendergl GL_POINTS:
+    ffor x min max 1.0:
+      ffor z min max 1.0:
         glVertex3f x 0.0 z
       end
     end
   end
 end
 
-func float surfaceArea(Mesh* m)
+func float surfaceArea(Mesh* m):
   assert (m.geometry_kind == GL_TRIANGLES)
   // println "calculating area"
   area := 0.0
 
   firstVertexNum := 0
-  while (firstVertexNum <= (m.positions)*.size - 3)
+  while (firstVertexNum <= (m.positions)*.size - 3):
     v0 := VertexStream:get3f m.positions firstVertexNum
     v1 := VertexStream:get3f m.positions (firstVertexNum+1)
     v2 := VertexStream:get3f m.positions (firstVertexNum+2)
@@ -363,7 +363,7 @@ func float surfaceArea(Mesh* m)
 end
 
 
-func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
+func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points):
   surfaceArea := surfaceArea surface
   delta := surfaceArea / toFloat points.size
 
@@ -377,7 +377,7 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
 
   firstVertexNum := 0
   pointsVertexNum := 0
-  while (firstVertexNum <= (surface.positions)*.size - 3)
+  while (firstVertexNum <= (surface.positions)*.size - 3):
     v0 := VertexStream:get3f surface.positions firstVertexNum
     v1 := VertexStream:get3f surface.positions (firstVertexNum+1)
     v2 := VertexStream:get3f surface.positions (firstVertexNum+2)
@@ -387,10 +387,10 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
     // println "toNextTri = " toNextTri
     // println "triarea = " triarea
 
-    while (currentPos < toNextTri)
+    while (currentPos < toNextTri):
       a1 := float:random()
       a2 := float:random()
-      if (a1 + a2 > 1.0)
+      if (a1 + a2 > 1.0):
         a1 = 1.0 - a1
         a2 = 1.0 - a2
       end
@@ -414,7 +414,7 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
 
       ++pointsVertexNum
       // TODO: umsteigen auf bresenham aehnlichen algorithmus
-      if (pointsVertexNum >= points.size)
+      if (pointsVertexNum >= points.size):
         println "Placed enough points"
         currentPos = toNextTri + 1.0
       end
@@ -426,16 +426,16 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points)
     firstVertexNum = firstVertexNum + 3
   end
 
-  if (points.size != pointsVertexNum)
+  if (points.size != pointsVertexNum):
     println "warning: Points not set: " (points.size - pointsVertexNum)
   end
 end
 
-func float deg2rad(float degree)
+func float deg2rad(float degree):
   degree * math:pi * 2.0 / 360.0
 end
 
-func VertexStream* makeFan(int count)
+func VertexStream* makeFan(int count):
   vb := new VertexStream "gl_Position" 3 (count+2) GL_FLOAT
   VertexStream:clear vb
   insertPos := 0
@@ -445,7 +445,7 @@ func VertexStream* makeFan(int count)
 
   angle := 0.0
   delta := 360.0 / toFloat count
-  times (count+1)
+  times (count+1):
     angleRad := deg2rad angle
     v := mv3f(sinf angleRad, cosf angleRad, 1.0)
     println "angle = " angle ", v = " v
@@ -457,7 +457,7 @@ func VertexStream* makeFan(int count)
   ret vb
 end
 
-func VertexStream* makeTriangle(float size)
+func VertexStream* makeTriangle(float size):
   vb := new VertexStream "positions" 3 3 GL_FLOAT
 
   VertexStream:set3f vb 0 mv3f(-3.0,0.,0.)
@@ -467,14 +467,14 @@ func VertexStream* makeTriangle(float size)
   ret vb
 end
 
-func VertexStream* makeStripe(int count)
+func VertexStream* makeStripe(int count):
   vb := new VertexStream "gl_Position" 3 (3 * 2 * count) GL_FLOAT
 
   insertPos := 0
 
   left := 0.0
 
-  times count
+  times count:
     right := left + 1.0
     VertexStream:set3f vb insertPos++ mv3f(left, 0., 0.)
     VertexStream:set3f vb insertPos++ mv3f(left, 1., 0.)
@@ -490,13 +490,13 @@ func VertexStream* makeStripe(int count)
   ret vb
 end
 
-func GLint pointsMaterial()
+func GLint pointsMaterial():
   varyingSource := "
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
   "
   vertexSource := "
-  void main(void) {
+  void main(void) {seq:
     // gl_Position = ftransform();
     gl_Position = gl_ModelViewMatrix * gl_Vertex;
     gl_Position.xyz = gl_Position.xyz / gl_Position.w;
@@ -520,7 +520,7 @@ func GLint pointsMaterial()
   ret shader
 end
 
-func GLint shadowMaterial()
+func GLint shadowMaterial():
   varyingSource := "
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
@@ -593,7 +593,7 @@ end
 //   ret shader
 // end
 
-func int main()
+func int main():
   init()
 
   // glfwRestoreWindow()
@@ -613,8 +613,8 @@ func int main()
   glEnable GL_BLEND
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
-  template abortIf cond message onFail...
-    if #cond
+  template abortIf cond message onFail...:
+    if #cond:
       print #message
       #onFail
       ret 0
@@ -632,7 +632,7 @@ func int main()
   loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals | aiProcess_PreTransformVertices
 
   scene := aiImportFile sceneFilename loadOptions
-  abortIf (scene == nullptr aiScene) "Error while loading file: "
+  abortIf (scene == nullptr aiScene) "Error while loading file: ":
     println aiGetErrorString()
   end
 
@@ -648,8 +648,8 @@ func int main()
   // mesh.streams = mesh.positions
   // Mesh:printDetailed mesh
 
-  unless isNull(mesh.normals)
-    VertexStream:foreach (mesh.normals)* float normal
+  unless isNull(mesh.normals):
+    VertexStream:foreach (mesh.normals)* float normal:
       store (normal+0) (float:neg *(normal+0))
       store (normal+1) (float:neg *(normal+1))
       store (normal+2) (float:neg *(normal+2))
@@ -658,7 +658,7 @@ func int main()
 
   Mesh:print mesh
   println "  surface area = " surfaceArea(mesh)
-  Mesh:define points ((mesh.positions)*.size * 100)
+  Mesh:define points ((mesh.positions)*.size * 100):
     gl_Position GL_FLOAT 3
   end
   points.geometry_kind = GL_POINTS
@@ -671,27 +671,27 @@ func int main()
   meshSize := AABB:diagonalLength &meshBB
   viewDistance := float:max 2.0 (0.25 * meshSize)
 
-  if isNull(cam)
+  if isNull(cam):
     cam = new SpaceballCamera
     cam.distance = viewDistance
   end
 
-  if isNull(lightCam)
+  if isNull(lightCam):
     lightCam = new SpaceballCamera
     lightCam.distance = cam.distance
     lightCam.latitude = cam.latitude
     lightCam.longitude = cam.longitude + 30.
   end
 
-  macro twgroup optionString settings
+  macro twgroup optionString settings:
     code := ${}
-    forEachAstChild s settings
-      if ast:matchesShape(s, ${rw _ _ __})
+    forEachAstChild s settings:
+      if ast:matchesShape(s, ${rw _ _ __}):
         typeId := ast:child s 1
         name := ast:child s 2
         var := ast:child s 3
         ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
-      else
+      else:
         ret ${error "Expected rw TYPE NAME VAR" #s}
       end
     end
@@ -704,7 +704,7 @@ func int main()
 
   TwAddSeparator bar (nullptr char) " "
 
-  twgroup "group=camera precision=2"
+  twgroup "group=camera precision=2":
     rw TW_TYPE_FLOAT "distance" cam.distance
     rw TW_TYPE_FLOAT "latitude" cam.latitude
     rw TW_TYPE_FLOAT "longitude" cam.longitude
@@ -712,7 +712,7 @@ func int main()
     rw TW_TYPE_FLOAT "far plane" farPlaneDistance
   end
 
-  twgroup "group=lights"
+  twgroup "group=lights":
     rw TW_TYPE_INT32 "count" lightCount
   end
 
@@ -723,7 +723,7 @@ func int main()
   //   twist 0.3
   // end
 
-  twgroup "group=display"
+  twgroup "group=display":
     rw TW_TYPE_BOOL8 "Grid" showOrientationGrid
     rw TW_TYPE_BOOL8 "Normals" showNormals
     rw TW_TYPE_BOOL8 "Bounding box" showSceneBB
@@ -733,7 +733,7 @@ func int main()
     rw TW_TYPE_BOOL8 "Light cam" showCam2
   end
 
-  twgroup "group=geometry"
+  twgroup "group=geometry":
     rw TW_TYPE_FLOAT "Sphere size" sphereSize
   end
 
@@ -756,25 +756,25 @@ func int main()
 
   movingCam := cam
 
-  mainloop
+  mainloop:
     /// updating
     autoSetupViewport()
     glfwGetWindowSize &windowWidth &windowHeight
     angle = angle + 128.0 * frameDuration
 
-    if (abs mouseXDelta > abs mouseYDelta)
+    if (abs mouseXDelta > abs mouseYDelta):
       mouseYDelta = 0
-    else
+    else:
       mouseXDelta = 0
     end
 
-    if keyDown(GLFW_KEY_1)
+    if keyDown(GLFW_KEY_1):
       movingCam = cam
-    elseif keyDown(GLFW_KEY_2)
+    elseif keyDown(GLFW_KEY_2):
       movingCam = lightCam
     end
 
-    if keyDown(GLFW_KEY_LSHIFT)
+    if keyDown(GLFW_KEY_LSHIFT):
       movingCam.longitude = movingCam.longitude + toFloat mouseXDelta
       movingCam.latitude = movingCam.latitude + toFloat mouseYDelta
     end
@@ -786,7 +786,7 @@ func int main()
 
     /// creation of shadow map
 
-    renderToTarget shadowFBO
+    renderToTarget shadowFBO:
       glClearColor 0. 0.1 0. 0.
       glClearDepth 1.0d
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -803,13 +803,13 @@ func int main()
       SpaceballCamera:applyToGL lightCam
 
       drawOrientationGridXZ 100.0
-      saveAttribs
+      saveAttribs:
         glEnable GL_VERTEX_PROGRAM_POINT_SIZE
         glPointSize 4.0
-        withShader pointsMaterial
+        withShader pointsMaterial:
           Mesh:render points points.geometry_kind 0
           glColor4f 1. 0.2 0. 1.0
-          saveTransforms
+          saveTransforms:
             glTranslatef 10. 0. 5.
             glColor4f 0. 1. 0.5 1.
             glutSolidSphere 5.0d 10 10
@@ -838,12 +838,12 @@ func int main()
     glLoadIdentity()
     SpaceballCamera:applyToGL cam
 
-    if showOrientationGrid
+    if showOrientationGrid:
       drawOrientationGrid()
     end
     // drawPointGridXZ 100
 
-    if showScene
+    if showScene:
       // glBindTexture2D shadowFBO.colorTexture
       glBindTexture2D shadowFBO.depthTexture
       // glEnable GL_TEXTURE_2D
@@ -858,7 +858,7 @@ func int main()
       gluPerspective 90.0d 1.0d toDouble(nearPlaneDistance) toDouble(farPlaneDistance)
       SpaceballCamera:applyToGL lightCam
 
-      withShader material
+      withShader material:
         Mesh:render mesh mesh.geometry_kind 0
         glColor4f 1. 1. 1. 1.
         glutSolidSphere toDouble(sphereSize) 100 100
@@ -873,29 +873,29 @@ func int main()
       //   glColor3f 1. 1. 1.
       //   Mesh:render mesh mesh.geometry_kind 0
       // end
-      saveTransforms
+      saveTransforms:
         glTranslatef 10. 0. 5.
         glColor4f 0. 1. 0.5 1.
         glutSolidSphere 5.0d 10 10
       end
     end
 
-    if showPoints
+    if showPoints:
       glColor3f 0.5 0. 0.
       Mesh:render points points.geometry_kind 0
     end
 
-    if showSceneBB
+    if showSceneBB:
       glColor3f 1. 1. 1.
       AABB:render &meshBB
     end
 
-    if showNormals
+    if showNormals:
       Mesh:showNormals mesh
     end
 
-    if showCam2
-      saveTransforms
+    if showCam2:
+      saveTransforms:
         glMatrixMode GL_MODELVIEW
         SpaceballCamera:rotateInv lightCam
         drawCoordSys 1.0
@@ -905,15 +905,15 @@ func int main()
     glColor3f 1. 0. 0.
     renderPoints lightPositions
 
-    if showShadowTextures
+    if showShadowTextures:
       makeGLIdentityTransforms()
       glScalef (1. / toFloat aspect) 1. 1.
       glTranslatef 1.0 -0.5 0.
       glTranslatef -0.5 -0.5 0.
-      saveAttribs
+      saveAttribs:
         glDisable GL_DEPTH_TEST
         glDisable GL_BLEND
-        showTextures
+        showTextures:
           shadowFBO.colorTexture
           shadowFBO.depthTexture
         end

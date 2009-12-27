@@ -9,9 +9,9 @@ type size_t u32
 
 func int ferror(FILE* stream)
 func FILE* fopen(cstring name, cstring access)
-func int fclose(FILE* file)
+// func int fclose(FILE* file)
 
-func size_t fread(void* ptr, size_t size, size_t nitems, FILE* file)
+// func size_t fread(void* ptr, size_t size, size_t nitems, FILE* file)
 func int getc(FILE* f)
 func char* fgets(char* s, int n, FILE* stream)
 

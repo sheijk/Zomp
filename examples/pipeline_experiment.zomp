@@ -12,18 +12,18 @@ requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array unitte
 /// Section: list
 ///-----------------------------------------------------------------------------
 
-func cstring List:listTypeName(cstring memberType)
+func cstring List:listTypeName(cstring memberType):
   ret (memberType ++ "_List")
 end
 
-macro defineListType memberT
+macro defineListType memberT:
   listT := ast:fromString List:listTypeName(memberT.id)
-  code := ${
-    struct #listT
+  code := ${seq:
+    struct #listT:
       #memberT data
       #listT* next
     end
-    func void INITFUNCNAME(#listT* this, #memberT data, #listT* next)
+    func void INITFUNCNAME(#listT* this, #memberT data, #listT* next):
       this.data = data
       this.next = next
     end
@@ -39,11 +39,11 @@ defineListType float
 defineArrayType float
 
 
-macro makeList type nums...
+macro makeList type nums...:
   listT := ast:fromString(type.id ++ "_List")
   list := ${nullptr #listT}
   i := nums.childCount - 1
-  while (i >= 0)
+  while (i >= 0):
     num := ast:child(nums, i)
     list = ${new #listT #num #list}
     --i
@@ -52,13 +52,13 @@ macro makeList type nums...
   ret list
 end
 
-macro List:foreach_ptr list indexVar dataVar code
+macro List:foreach_ptr list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${
+  ret ${seq:
     #current := #list
     #indexVar := 0
-    while isNotNull(#current)
+    while isNotNull(#current):
       #dataVar := fieldptr #current data
       #code
       ++(#indexVar)
@@ -67,13 +67,13 @@ macro List:foreach_ptr list indexVar dataVar code
   end}
 end
 
-macro List:foreach list indexVar dataVar code
+macro List:foreach list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${
+  ret ${seq:
     #current := #list
     #indexVar := 0
-    while isNotNull(#current)
+    while isNotNull(#current):
       #dataVar := #current.data
       #code
       ++(#indexVar)
@@ -87,7 +87,7 @@ end
 ///-----------------------------------------------------------------------------
 
 /// returns the default value for the given type
-macro default type
+macro default type:
   ctorName := type.id ++ ":default"
   ret ${#ctorName()}
 end
@@ -98,21 +98,21 @@ end
 
 defineListType astp
 
-func cstring eventVarName(cstring id)
+func cstring eventVarName(cstring id):
   ret ("event_" ++ id)
 end
 
-macro defineEvent id
+macro defineEvent id:
   varname := eventVarName id.id
-  ret ${
+  ret ${seq:
     var astp_List* #varname null
   end}
 end
 
-macro onEvent id code
+macro onEvent id code:
   varname := eventVarName id.id
-  ret ${
-    macro mtmp
+  ret ${seq:
+    macro mtmp:
       newList := malloc astp_List
       newList.next = #varname
       newList.data = ${#code}
@@ -123,12 +123,12 @@ macro onEvent id code
   end}
 end
 
-macro triggerEvent id
+macro triggerEvent id:
   varname := eventVarName id.id
-  ret ${
-    macro mtmp
+  ret ${seq:
+    macro mtmp:
       code := ${}
-      List:foreach #varname i icode
+      List:foreach #varname i icode:
         ast:addChild code icode
       end
       ret code
@@ -145,14 +145,14 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
     times 2 glfwPollEvents()
 
-    if (TwInit(TW_OPENGL, nullptr void) == 0)
+    if (TwInit(TW_OPENGL, nullptr void) == 0):
       println "AntTweakBar initialization failed, exiting"
       glfwTerminate()
       exit 2
@@ -162,7 +162,7 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
@@ -175,11 +175,11 @@ defineEvent startup
 /// Section: event handling
 ///-----------------------------------------------------------------------------
 
-func void onTweakbarError(char* msg)
+func void onTweakbarError(char* msg):
   println "AntTweakBar error: " msg
 end
 
-func void onWindowResize(int newWidth, int newHeight)
+func void onWindowResize(int newWidth, int newHeight):
   // desiredAspect := toFloat windowWidth / toFloat windowHeight
   // correctHeight := toFloat newWidth / desiredAspect
   // glfwSetWindowSize newWidth toInt(correctHeight)
@@ -198,7 +198,7 @@ var int lastMouseY 0
 var int mouseXDelta 0
 var int mouseYDelta 0
 
-func void onMouseMove(int x, int y)
+func void onMouseMove(int x, int y):
   TwEventMousePosGLFW x y
 
   mouseXDelta = lastMouseX - x
@@ -211,20 +211,20 @@ end
 var int lastMouseWheel 0
 var int mouseWheelDelta 0
 
-func void onMouseWheel(int pos)
+func void onMouseWheel(int pos):
   TwEventMouseWheelGLFW pos
 
   mouseWheelDelta = lastMouseWheel - pos
   lastMouseWheel = pos
 end
 
-struct KeyEvent
+struct KeyEvent:
   int key
   int action
   double time
 end
 
-func KeyEvent KeyEvent:default()
+func KeyEvent KeyEvent:default():
   event := undef KeyEvent
   event.key = 0
   event.action = 0
@@ -236,7 +236,7 @@ defineListType KeyEvent
 
 var KeyEvent_List* keyEvents null
 
-func void storeKeyEvent(int key, int action, double time)
+func void storeKeyEvent(int key, int action, double time):
   event := malloc KeyEvent_List
   event.data.key = key
   event.data.action = action
@@ -245,8 +245,8 @@ func void storeKeyEvent(int key, int action, double time)
   keyEvents = event
 end
 
-func bool fetchNextKeyEvent(KeyEvent* event)
-  if isNull(keyEvents)
+func bool fetchNextKeyEvent(KeyEvent* event):
+  if isNull(keyEvents):
     return false
   end
 
@@ -257,12 +257,12 @@ func bool fetchNextKeyEvent(KeyEvent* event)
   return true
 end
 
-func void clearKeyEvents()
+func void clearKeyEvents():
   ignore := default KeyEvent
   while fetchNextKeyEvent(&ignore) void
 end
 
-func int onKey(int key, int action)
+func int onKey(int key, int action):
   // if (action == GLFW_PRESS)
   // end
 
@@ -273,7 +273,7 @@ func int onKey(int key, int action)
   ret 0
 end
 
-onEvent startup
+onEvent startup:
   glfwSetWindowSizeCallback (cast void* &onWindowResize)
   TwHandleErrors &onTweakbarError
   glfwSetMousePosCallback (cast void* &onMouseMove)
@@ -288,11 +288,11 @@ end
 ///-----------------------------------------------------------------------------
 
 
-func void renderGrid3d(v3f min, v3f max, float step)
-  rendergl GL_POINTS
-    ffor x min.x max.x step
-      ffor y min.y max.y step
-        ffor z min.x max.z step
+func void renderGrid3d(v3f min, v3f max, float step):
+  rendergl GL_POINTS:
+    ffor x min.x max.x step:
+      ffor y min.y max.y step:
+        ffor z min.x max.z step:
           glVertex3f x y z
         end
       end
@@ -300,15 +300,15 @@ func void renderGrid3d(v3f min, v3f max, float step)
   end
 end
 
-macro twgroup optionString settings
+macro twgroup optionString settings:
   code := ${}
-  forEachAstChild s settings
-    if ast:matchesShape(s, ${rw _ _ __})
+  forEachAstChild s settings:
+    if ast:matchesShape(s, ${rw _ _ __}):
       typeId := ast:child s 1
       name := ast:child s 2
       var := ast:child s 3
       ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
-    else
+    else:
       ret ${error "Expected rw TYPE NAME VAR" #s}
     end
   end
@@ -316,7 +316,7 @@ macro twgroup optionString settings
   ret code
 end
 
-func GLint objectMaterial()
+func GLint objectMaterial():
   varyingSource := "
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
@@ -345,23 +345,23 @@ var float cameraOffsetX 0.
 var float cameraOffsetY 2.
 var float cameraOffsetZ 10.
 
-template abortIf cond onFail
-  if #cond
+template abortIf cond onFail:
+  if #cond:
     #onFail
     ret 0
   end
 end
 
-func GLint loadGLSLShader(cstring vsFileName, cstring fsFileName)
+func GLint loadGLSLShader(cstring vsFileName, cstring fsFileName):
   vsSource := nullptr char
   onReturn (dealloc vsSource)
-  if (zompLoadFileToMemory(vsFileName, &vsSource) == -1)
+  if (zompLoadFileToMemory(vsFileName, &vsSource) == -1):
     println "Error: could not load " vsFileName
     return 0
   end
   fsSource := nullptr char
   onReturn (dealloc fsSource)
-  if (zompLoadFileToMemory fsFileName &fsSource == -1)
+  if (zompLoadFileToMemory fsFileName &fsSource == -1):
     println "Error: could not load " fsFileName
     dealloc vsSource
     return 0
@@ -374,7 +374,7 @@ end
 
 //------------------------------------------------------------------------------
 
-func void printGLMatrixStacks()
+func void printGLMatrixStacks():
   modelview_stack_depth := 0
   glGetIntegerv GL_MODELVIEW_STACK_DEPTH &modelview_stack_depth
   println "GL_MODELVIEW_STACK_DEPTH = " modelview_stack_depth
@@ -383,11 +383,11 @@ func void printGLMatrixStacks()
   println "GL_PROJECTION_STACK_DEPTH = " projection_stack_depth
 end
 
-func void readGLMatrix(GLenum matrix, float* f16)
+func void readGLMatrix(GLenum matrix, float* f16):
   glGetFloatv matrix f16
 end
 
-func GLint debugMaterial()
+func GLint debugMaterial():
   varyingSource := "
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
@@ -407,11 +407,11 @@ func GLint debugMaterial()
   ret shader
 end
 
-func void gluLookAtf(float eyex, float eyey, float eyez, float cx, float cy, float cz, float ux, float uy, float uz)
+func void gluLookAtf(float eyex, float eyey, float eyez, float cx, float cy, float cz, float ux, float uy, float uz):
   gluLookAt (toDouble eyex) (toDouble eyey) (toDouble eyez) (toDouble cx) (toDouble cy) (toDouble cz) (toDouble ux) (toDouble uy) (toDouble uz)
 end
 
-struct MeshInfo
+struct MeshInfo:
   Mesh mesh
   cstring id
   RBTransform transform
@@ -421,11 +421,11 @@ defineListType Mesh
 defineListType MeshInfo
 defineArrayType MeshInfo
 
-func MeshInfo_Array collectMeshes(aiScene* scene)
+func MeshInfo_Array collectMeshes(aiScene* scene):
   var MeshInfo_Array meshes
   MeshInfo_Array:init &meshes scene.mNumMeshes
 
-  for meshnum 0 scene.mNumMeshes
+  for meshnum 0 scene.mNumMeshes:
     aimesh := *(scene.mMeshes+meshnum)
     info := meshes.elements + meshnum
     newMesh := aiMesh:toMesh aimesh
@@ -437,17 +437,17 @@ func MeshInfo_Array collectMeshes(aiScene* scene)
   ret meshes
 end
 
-func MeshInfo* lookupMesh(MeshInfo_Array meshes, cstring id)
-  Array:foreach meshes num
+func MeshInfo* lookupMesh(MeshInfo_Array meshes, cstring id):
+  Array:foreach meshes num:
     mesh := meshes.elements + num
-    if (mesh.id ==_str id)
+    if (mesh.id ==_str id):
       ret mesh
     end
   end
   ret nullptr(MeshInfo)
 end
 
-func void applyTransform(RBTransform* this)
+func void applyTransform(RBTransform* this):
   // converting to matrix, then applying. not pretty...
   var float[16] mat_
   mat := zmp:array:addr &mat_
@@ -471,12 +471,12 @@ func void applyTransform(RBTransform* this)
   glMultMatrixf mat
 end
 
-func float lerp(float t, float a, float b)
+func float lerp(float t, float a, float b):
   return ((1. - t) * a + t * b)
 end
 
-unittest:testCase float_lerp
-  unittest:assertAll
+unittest:testCase float_lerp:
+  unittest:assertAll:
     lerp 0.0 10. 20. == 10.
     lerp 0.5 10. 20. == 15.
     lerp 1.0 10. 20. == 20.
@@ -491,58 +491,58 @@ end
 // = ((-t*a + t*b) / (b - a)
 // = t * (b-a) / (b-a)
 // = t
-func float unlerp(float t, float a, float b)
+func float unlerp(float t, float a, float b):
   return ((t - a) / (b - a))
 end
 
-func float remapRange(float t, float oldMin, float oldMax, float newMin, float newMax)
+func float remapRange(float t, float oldMin, float oldMax, float newMin, float newMax):
   return lerp(unlerp t oldMin oldMax, newMin, newMax)
 end
 
-func bool op==_eps(float l, float r)
+func bool op==_eps(float l, float r):
   // stupid value..
   eps := 0.0001
   return (fabsf (l-r) < eps)
 end
 
-unittest:testCase remapRange
-  unittest:assertAll
+unittest:testCase remapRange:
+  unittest:assertAll:
     remapRange 10.0 10. 20. 50. 100. ==_eps 50.
     remapRange 20.0 10. 20. 50. 100. ==_eps 100.
     remapRange 15.0 10. 20. 50. 100. ==_eps 75.
   end
 end
 
-func float smoothstep(float t)
+func float smoothstep(float t):
   return ((3. - 2. * t)*(t*t))
 end
 
-func float cubicBezier1d(float t, float p0, float p1, float p2, float p3)
+func float cubicBezier1d(float t, float p0, float p1, float p2, float p3):
   i := 1. - t
   return (i*i*i*p0 + 3.*i*i*t*p1 + 3.*i*t*t*p2 + t*t*t*p3)
 end
 
-struct quatf
+struct quatf:
   float x y z w
 end
 
-func void quatf:makeConjugate(quatf* this)
+func void quatf:makeConjugate(quatf* this):
   this.x = float:neg this.x
   this.y = float:neg this.y
   this.z = float:neg this.z
 end
 
-func quatf quatf:conjugate(quatf q)
+func quatf quatf:conjugate(quatf q):
   conj := q
   quatf:makeConjugate &conj
   ret conj
 end
 
-func float quatf:magnitude(quatf q)
+func float quatf:magnitude(quatf q):
   ret sqrtf(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
 end
 
-func void quatf:makeNormalized(quatf* this)
+func void quatf:makeNormalized(quatf* this):
   mag := quatf:magnitude *this
   this.x = this.x * mag
   this.y = this.y * mag
@@ -550,20 +550,20 @@ func void quatf:makeNormalized(quatf* this)
   this.w = this.w * mag
 end
 
-func quatf quatf:normalized(quatf q)
+func quatf quatf:normalized(quatf q):
   r := q
   quatf:makeNormalized &r
   ret r
 end
 
 /// adpated from gmtl
-func quatf quatf:lerp(float t, quatf a, quatf b)
+func quatf quatf:lerp(float t, quatf a, quatf b):
   // calc cosine theta
   cosom := a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
 
   // adjust signs (if necessary)
   b2 := b
-  if (cosom < 0.0)
+  if (cosom < 0.0):
     cosom = float:neg cosom
     b2.x = float:neg b2.x
     b2.y = float:neg b2.y
@@ -575,13 +575,13 @@ func quatf quatf:lerp(float t, quatf a, quatf b)
   sclp := 0.0
   sclq := 0.0
 
-  if ( (1.0f - cosom) > 0.0001f) // 0.0001 -> some epsillon
+  if ( (1.0f - cosom) > 0.0001f) // 0.0001 -> some epsillon:
     // Standard case (slerp)
     omega := acosf cosom
     sinom := sinf omega // extract theta from dot product's cos theta
     sclp  = sinf( (1.0 - t) * omega) / sinom
     sclq  = sinf( t * omega) / sinom
-  else
+  else:
     // Very close, do linear interp (because it's faster)
     sclp = 1.0f - t
     sclq = t
@@ -599,52 +599,52 @@ end
 funcd int toupper(int chr)
 funcd int tolower(int chr)
 
-func char char:upperCase(char chr)
+func char char:upperCase(char chr):
   ret toChar(toupper(toInt chr))
 end
 
-func char char:lowerCase(char chr)
+func char char:lowerCase(char chr):
   ret toChar(tolower(toInt chr))
 end
 // >>>
 
 defineArrayType quatf
 
-func quatf aiQuaternion:quatf(aiQuaternion q)
+func quatf aiQuaternion:quatf(aiQuaternion q):
   ret (structlit quatf x q.x y q.y z q.z w q.w)
 end
 
 /// approach by fg
-func v3f quatf:rotate(quatf rot, v3f v)
+func v3f quatf:rotate(quatf rot, v3f v):
   rot_xyz := mv3f rot.x rot.y rot.z
   t := 2.0 * (rot_xyz *_cross v)
   rv := v + rot.w * t + rot_xyz *_cross t
   ret rv
 end
 
-struct KeyFrameVector
+struct KeyFrameVector:
   double time
   v3f value
 end
 
-ofunc void print(KeyFrameVector kfv)
+ofunc void print(KeyFrameVector kfv):
   print "KeyFrameVector(time=" kfv.time ", value=" kfv.value ")"
 end
 
-struct KeyFrameQuat
+struct KeyFrameQuat:
   double time
   quatf value
 end
 
-ofunc void print(quatf q)
+ofunc void print(quatf q):
   print "quatf(x=" q.x ", y=" q.y ", z=" q.z ", w=" q.w ")"
 end
 
-ofunc void print(KeyFrameQuat kfq)
+ofunc void print(KeyFrameQuat kfq):
   print "KeyFrameQuat(time=" kfq.time ", value=" kfq.value ")"
 end
 
-func v3f aiVector3D:vec3f(aiVector3D v)
+func v3f aiVector3D:vec3f(aiVector3D v):
   var v3f r
   r.x = v.x
   r.y = v.y
@@ -652,15 +652,15 @@ func v3f aiVector3D:vec3f(aiVector3D v)
   ret r
 end
 
-ofunc void print(aiVector3D v)
+ofunc void print(aiVector3D v):
   aiVector3D:print &v
 end
 
-ofunc void print(aiVectorKey vk)
+ofunc void print(aiVectorKey vk):
   aiVectorKey:print &vk
 end
 
-func KeyFrameVector aiVectorKey:toKeyFrameVector(aiVectorKey* this)
+func KeyFrameVector aiVectorKey:toKeyFrameVector(aiVectorKey* this):
   var KeyFrameVector v
   v.time = this.mTime
   v.value = aiVector3D:vec3f this.mValue
@@ -674,7 +674,7 @@ defineArrayType KeyFrameQuat
 
 defineArrayType v3f
 
-struct NodeAnimation
+struct NodeAnimation:
   float duration //TODO remove
   RBTransform* targetTransform
   // float ticksPerSecond
@@ -689,7 +689,7 @@ end
 
 defineArrayType NodeAnimation
 
-struct Animation
+struct Animation:
   NodeAnimation_Array channels
   float duration
   cstring name
@@ -698,25 +698,25 @@ end
 
 defineArrayType Animation
 
-macro hasType var type
+macro hasType var type:
   uniqueId tmp "hasType"
-  ret ${
+  ret ${seq:
     #tmp := nullptr #type
     #tmp = &#var
   end}
 end
 
-struct KeyframeInterpol
+struct KeyframeInterpol:
   int first
   /// t in [0,1], result = lerp(t, keyframe first, keyframe first+1)
   float t
 end
 
-func KeyframeInterpol KeyframeInterpol:default()
+func KeyframeInterpol KeyframeInterpol:default():
   ret (structlit KeyframeInterpol first 0 t 0.0)
 end
 
-func KeyframeInterpol interpolKeyframeAt(float_Array* keyframeTimes, float time)
+func KeyframeInterpol interpolKeyframeAt(float_Array* keyframeTimes, float time):
   rem := time
   // if (this.duration > 0.0)
   //   rem = fmodf time this.duration
@@ -724,34 +724,34 @@ func KeyframeInterpol interpolKeyframeAt(float_Array* keyframeTimes, float time)
   keyNum := -1
   found := false
 
-  if (keyframeTimes.length == 1)
+  if (keyframeTimes.length == 1):
     ret (structlit KeyframeInterpol first 0 t 0.)
-  elseif (keyframeTimes.length == 0)
+  elseif (keyframeTimes.length == 0):
     ret (structlit KeyframeInterpol first -1 t 0.)
   end
 
   result := default KeyframeInterpol
 
   firstFrameTime := aget(keyframeTimes,0)
-  if (firstFrameTime < rem)
-    while bool:not(found)
+  if (firstFrameTime < rem):
+    while bool:not(found):
       ++keyNum
-      if (keyNum >= keyframeTimes.length)
+      if (keyNum >= keyframeTimes.length):
         found = true
-      else
+      else:
         key := aget(keyframeTimes, keyNum)
-        if (key > rem)
+        if (key > rem):
           found = true
         end
       end
     end
 
-    if (keyNum < keyframeTimes.length)
+    if (keyNum < keyframeTimes.length):
       kfpre := aget(keyframeTimes, keyNum - 1)
       kfpost := aget(keyframeTimes, keyNum)
       result.first = keyNum - 1
       result.t =  (rem - kfpre) / (kfpost - kfpre)
-    else
+    else:
       /// ok, because keyframeTimes.length >= 2 checked above
       result.first = keyframeTimes.length - 2
       result.t = 1.0
@@ -761,10 +761,10 @@ func KeyframeInterpol interpolKeyframeAt(float_Array* keyframeTimes, float time)
   ret result
 end
 
-func v3f interpolTransform(float_Array* times, v3f_Array* positions, float time)
+func v3f interpolTransform(float_Array* times, v3f_Array* positions, float time):
   assert (positions.length == times.length)
 
-  if (times.length == 1)
+  if (times.length == 1):
     ret aget(positions*,0)
   end
 
@@ -774,16 +774,16 @@ func v3f interpolTransform(float_Array* times, v3f_Array* positions, float time)
   ret v3f:lerp(interp.t, posA, posB)
 end
 
-func v3f NodeAnimation:transformAt(NodeAnimation* this, float time)
+func v3f NodeAnimation:transformAt(NodeAnimation* this, float time):
   ret interpolTransform(&this.transformTimes, &this.transformKeyframes, time)
 end
 
-func v3f NodeAnimation:scaleAt(NodeAnimation* this, float time)
+func v3f NodeAnimation:scaleAt(NodeAnimation* this, float time):
   ret interpolTransform(&this.scaleTimes, &this.scaleKeyFrames, time)
 end
 
-func quatf NodeAnimation:rotationAt(NodeAnimation* this, float time)
-  if (this.rotatationTimes.length == 1)
+func quatf NodeAnimation:rotationAt(NodeAnimation* this, float time):
+  if (this.rotatationTimes.length == 1):
     ret aget(this.rotationKeyFrames, 0)
   end
 
@@ -793,7 +793,7 @@ func quatf NodeAnimation:rotationAt(NodeAnimation* this, float time)
   ret quatf:lerp(interp.t, quatA, quatB)
 end
 
-func void RBTransform:setRotation(RBTransform* this, quatf rot)
+func void RBTransform:setRotation(RBTransform* this, quatf rot):
   xx := rot.x * rot.x
   xy := rot.x * rot.y
   xz := rot.x * rot.z
@@ -817,14 +817,14 @@ func void RBTransform:setRotation(RBTransform* this, quatf rot)
   this.zaxis.z = 1. - 2. * ( xx + yy )
 end
 
-func void NodeAnimation:apply(NodeAnimation* this, float time)
+func void NodeAnimation:apply(NodeAnimation* this, float time):
   rem := time
-  if (this.duration > 0.0)
+  if (this.duration > 0.0):
     rem = fmodf time this.duration
   end
 
   targetTransform := this.targetTransform
-  if isNotNull(targetTransform)
+  if isNotNull(targetTransform):
     targetTransform.origin = NodeAnimation:transformAt this rem
     scale := NodeAnimation:scaleAt this rem
     targetTransform.scale = scale.x
@@ -833,12 +833,12 @@ func void NodeAnimation:apply(NodeAnimation* this, float time)
   end
 end
 
-func void test2()
+func void test2():
   x := new float_Array 10
   y := newArray float 10
 end
 
-func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source)
+func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source):
   this.duration = 0.0
   this.targetTransform = nullptr RBTransform
   this.transformTimes = makeArray(float, source.mNumPositionKeys)
@@ -848,7 +848,7 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source)
   this.rotatationTimes = makeArray(float, source.mNumRotationKeys)
   this.rotationKeyFrames = makeArray(quatf, source.mNumRotationKeys)
 
-  for transnum 0 source.mNumPositionKeys
+  for transnum 0 source.mNumPositionKeys:
     aikey := *(source.mPositionKeys +_ptr transnum)
     var KeyFrameVector key
     key.time = aikey.mTime
@@ -857,43 +857,43 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source)
     aset this.transformKeyframes transnum key.value
   end
 
-  for scalenum 0 source.mNumScalingKeys
+  for scalenum 0 source.mNumScalingKeys:
     skey := *(source.mScalingKeys +_ptr scalenum)
     aset this.scaleTimes scalenum toFloat(skey.mTime)
     aset this.scaleKeyFrames scalenum aiVector3D:vec3f(skey.mValue)
   end
 
-  for rotnum 0 source.mNumRotationKeys
+  for rotnum 0 source.mNumRotationKeys:
     rkey := *(source.mRotationKeys +_ptr rotnum)
     aset this.rotatationTimes rotnum toFloat(rkey.mTime)
     aset this.rotationKeyFrames rotnum aiQuaternion:quatf(rkey.mValue)
   end
 end
 
-func NodeAnimation* aiNodeAnim:toNodeAnimation(aiNodeAnim* this)
+func NodeAnimation* aiNodeAnim:toNodeAnimation(aiNodeAnim* this):
   ret new(NodeAnimation, this)
 end
 
-func void Animation:apply(Animation* this, float time)
-  for channelNum 0 this.channels.length
+func void Animation:apply(Animation* this, float time):
+  for channelNum 0 this.channels.length:
     NodeAnimation:apply (this.channels.elements+channelNum) time
   end
 end
 
-struct Color
+struct Color:
   float red green blue
 end
 
-func Color color(float red, float green, float blue)
+func Color color(float red, float green, float blue):
   ret (structlit Color red red green green blue blue)
 end
 
-func void renderTimeline(float startTime, float endTime, int markerCount, float* markerPos, Color* markerColors)
-  if (startTime >= endTime)
+func void renderTimeline(float startTime, float endTime, int markerCount, float* markerPos, Color* markerColors):
+  if (startTime >= endTime):
     return void
   end
 
-  rendergl GL_LINES
+  rendergl GL_LINES:
     glColor3f 1. 1. 1.
     glVertex3f 0. 0. 0.
     glVertex3f 1. 0. 0.
@@ -905,7 +905,7 @@ func void renderTimeline(float startTime, float endTime, int markerCount, float*
     glVertex3f 1. 1. 0.
 
     fullSecond := startTime - fmodf startTime 1.0
-    while (fullSecond < endTime)
+    while (fullSecond < endTime):
       x2 := remapRange(fullSecond, startTime, endTime, 0., 1.)
       glVertex3f x2 0. 0.
       glVertex3f x2 0.1 0.
@@ -914,7 +914,7 @@ func void renderTimeline(float startTime, float endTime, int markerCount, float*
 
     pos := markerPos
     color := markerColors
-    for markerNum 0 markerCount
+    for markerNum 0 markerCount:
       x := remapRange pos* startTime endTime 0. 1.
       glColor3fv (cast float* color)
       glVertex3f x 0. 0.
@@ -923,7 +923,7 @@ func void renderTimeline(float startTime, float endTime, int markerCount, float*
   end
 end
 
-func void scaleTo2dArea(float left, float bottom, float right, float top)
+func void scaleTo2dArea(float left, float bottom, float right, float top):
   makeGLIdentityTransforms
   glMatrixMode GL_MODELVIEW
   glTranslatef -1. -1. 0.
@@ -936,7 +936,7 @@ end
 /// Section: scene graph
 ///-----------------------------------------------------------------------------
 
-struct SceneGraphNode
+struct SceneGraphNode:
   RBTransform globalSpace
   RBTransform relativeTransform
   int_Array meshes
@@ -945,50 +945,50 @@ end
 
 defineArrayType SceneGraphNode
 
-struct SceneGraphEdge
+struct SceneGraphEdge:
   int parent child
 end
 
 defineArrayType SceneGraphEdge
 defineArrayType Mesh
 
-struct SceneGraph
+struct SceneGraph:
   SceneGraphNode_Array nodes
   SceneGraphEdge_Array edges
   MeshInfo_Array meshes
   Animation_Array anims
 end
 
-func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source)
+func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):
   makeOrigin &this.globalSpace
   makeOrigin &this.relativeTransform
   int_Array:init &this.meshes source.mNumMeshes
-  Array:foreach this.meshes meshNum
+  Array:foreach this.meshes meshNum:
     aset this.meshes meshNum *(source.mMeshes + meshNum)
   end
   this.id = aiString:cstring &source.mName
 end
 
-func void SceneGraph:collectNodes(SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum)
+func void SceneGraph:collectNodes(SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum):
   node := aptr this.nodes nodeNum*
   SceneGraphNode:init node source
   nodeNum* = nodeNum* + 1
-  for childNum 0 source.mNumChildren
+  for childNum 0 source.mNumChildren:
     SceneGraph:collectNodes this *(source.mChildren + childNum) nodeNum edgeNum
     // TODO collect edges, too
   end
 end
 
-func void MeshInfo:print(MeshInfo* this)
+func void MeshInfo:print(MeshInfo* this):
   println "MeshInfo '" this.id "':"
   Mesh:print &this.mesh
   print this.transform
 end
 
-func void SceneGraphNode:print(SceneGraphNode* this)
+func void SceneGraphNode:print(SceneGraphNode* this):
   print "SceneGraphNode('" this.id "', " this.meshes.length " meshes = ["
-  for num 0 this.meshes.length
-    if (num > 0)
+  for num 0 this.meshes.length:
+    if (num > 0):
       print(", ")
     end
     print aget(this.meshes, num)
@@ -998,36 +998,36 @@ func void SceneGraphNode:print(SceneGraphNode* this)
   print this.globalSpace
 end
 
-func void NodeAnimation:print(NodeAnimation* this)
+func void NodeAnimation:print(NodeAnimation* this):
   print "NodeAnimation(" this.transformKeyframes.length
   print "/" this.rotationKeyFrames.length "/" this.scaleKeyFrames.length
-  if isNull(this.targetTransform)
+  if isNull(this.targetTransform):
     print " no target!"
   end
   println ")"
-  Array:foreach this.transformKeyframes tnum
+  Array:foreach this.transformKeyframes tnum:
     pos := aget this.transformKeyframes tnum
     ttime := aget this.transformTimes tnum
     println "  time=" ttime ", pos=" pos
   end
-  Array:foreach this.scaleKeyFrames snum
+  Array:foreach this.scaleKeyFrames snum:
     scale := aget this.scaleKeyFrames snum
     stime := aget this.scaleTimes snum
     println "  time=" stime ", scale=" scale
   end
-  Array:foreach this.rotationKeyFrames rnum
+  Array:foreach this.rotationKeyFrames rnum:
     rot := aget this.rotationKeyFrames rnum
     rtime := aget this.rotatationTimes rnum
     println "  time=" rtime ", rot=" rot
   end
 end
 
-func void Animation:print(Animation* this)
+func void Animation:print(Animation* this):
   println "Animation '" this.name "', duration=" this.duration
   printArray this.channels "channels" NodeAnimation:print
 end
 
-func void SceneGraph:print(SceneGraph* this)
+func void SceneGraph:print(SceneGraph* this):
   println "SceneGraph:"
   print "  "
   printArray this.nodes "nodes" SceneGraphNode:print
@@ -1035,21 +1035,21 @@ func void SceneGraph:print(SceneGraph* this)
   printArray this.meshes "meshes" MeshInfo:print
 end
 
-func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id)
-  Array:foreach this nodeNum
+func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id):
+  Array:foreach this nodeNum:
     node := aptr this nodeNum
-    if (node.id ==_str id)
+    if (node.id ==_str id):
       ret nodeNum
     end
   end
   ret -1
 end
 
-func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Array nodes)
+func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Array nodes):
   this.duration = toFloat source.mDuration
   this.name = aiString:cstring &source.mName
   NodeAnimation_Array:init &this.channels source.mNumChannels
-  Array:foreach this.channels channelNum
+  Array:foreach this.channels channelNum:
     channel := this.channels.elements + channelNum
     aianim := *(source.mChannels+channelNum)
     NodeAnimation:init channel aianim
@@ -1059,20 +1059,20 @@ func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Ar
     /// connect to target node
     name := aiString:cstring &aianim.mNodeName
     nodeNum := SceneGraphNode:lookup &nodes name
-    if (nodeNum >= 0)
+    if (nodeNum >= 0):
       node := aptr nodes nodeNum
       channel.targetTransform = fieldptr node globalSpace
-    else
+    else:
       println "warning, could not connect anim channel " this.name
     end
   end
 end
 
-func void SceneGraph:init(SceneGraph* this, aiScene* source)
+func void SceneGraph:init(SceneGraph* this, aiScene* source):
   /// meshes
   MeshInfo_Array:init &this.meshes source.mNumMeshes
 
-  Array:foreach this.meshes meshNum
+  Array:foreach this.meshes meshNum:
     aimesh := *(source.mMeshes + meshNum)
     newMesh := aiMesh:toMesh aimesh
     info := aptr this.meshes meshNum
@@ -1091,7 +1091,7 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source)
 
   /// animations
   Animation_Array:init &this.anims source.mNumAnimations
-  Array:foreach this.anims animNum
+  Array:foreach this.anims animNum:
     anim := aptr(this.anims, animNum)
     Animation:init anim *(source.mAnimations+animNum) this.nodes
     // targetNodeNum := SceneGraph:lookupNode this anim.name
@@ -1099,10 +1099,10 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source)
   end
 end
 
-func void SceneGraph:updateTransforms(SceneGraph* this)
-  Array:foreach this.nodes nodeNum
+func void SceneGraph:updateTransforms(SceneGraph* this):
+  Array:foreach this.nodes nodeNum:
     node := aptr this.nodes nodeNum
-    Array:foreach node.meshes meshNum
+    Array:foreach node.meshes meshNum:
       meshIndex := aget node.meshes meshNum
       info := aptr this.meshes meshIndex
       info.transform = node.globalSpace
@@ -1110,7 +1110,7 @@ func void SceneGraph:updateTransforms(SceneGraph* this)
   end
 end
 
-func int main()
+func int main():
   init()
 
   println "triggering event startup..."
@@ -1130,7 +1130,7 @@ func int main()
   // loadOptions := 0
 
   scene := aiImportFile sceneFilename loadOptions
-  abortIf isNull(scene)
+  abortIf isNull(scene):
     println "assimp error when loading scene: " aiGetErrorString()
   end
 
@@ -1142,8 +1142,8 @@ func int main()
 
   meshes := sg.meshes
   // abortIf (isNull meshes) (println "Failed to convert scene to meshes")
-  onReturn
-    Array:foreach meshes meshNum
+  onReturn:
+    Array:foreach meshes meshNum:
       pMesh2 := meshes.elements + meshNum
       Mesh:delete &pMesh2.mesh
     end
@@ -1152,7 +1152,7 @@ func int main()
   anims := sg.anims
   println "Loaded " anims.length " animations"
   animDuration := 10.0
-  if (anims.length > 0)
+  if (anims.length > 0):
     firstAnim := aptr anims 0
     animDuration = firstAnim.duration
   end
@@ -1175,7 +1175,7 @@ func int main()
   TwDefine "Settings refresh=0.01 position='0 20' size='200 200'"
   TwAddSeparator bar (nullptr char) " "
 
-  twgroup "group=options precision=2"
+  twgroup "group=options precision=2":
     rw TW_TYPE_FLOAT "playback speed" playbackSpeed
     rw TW_TYPE_FLOAT "rot. speed" rotationSpeed
     rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
@@ -1201,7 +1201,7 @@ func int main()
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
   animTime := 0.0
-  mainloop
+  mainloop:
     angle = angle + rotationSpeed * frameDuration
     animTime = animTime + playbackSpeed * frameDuration
     animTime = fmodf animTime animDuration
@@ -1215,15 +1215,15 @@ func int main()
     //     println "anim transform[1] = " getField(aget(anim.transformKeyFrames, 1),value)
     //   end
     // end
-    Array:foreach anims animNum
+    Array:foreach anims animNum:
       Animation:apply (anims.elements+animNum) animTime
     end
     SceneGraph:updateTransforms &sg
 
     keyEvent := default KeyEvent
-    while fetchNextKeyEvent(&keyEvent)
-      if (keyEvent.action == GLFW_PRESS)
-        if (keyEvent.key == GLFW_KEY_P)
+    while fetchNextKeyEvent(&keyEvent):
+      if (keyEvent.action == GLFW_PRESS):
+        if (keyEvent.key == GLFW_KEY_P):
           SceneGraph:print &sg
         end
       end
@@ -1248,7 +1248,7 @@ func int main()
     glRotatef angle 0. 1. 0.
 
     AABB:render &meshBB
-    withShader objmat
+    withShader objmat:
       var float[16] viewMat
       var float[16] projMat
       var float[16] ndc
@@ -1269,7 +1269,7 @@ func int main()
       // glUniformMatrix1fv objmat_obj2cam 1 false (cast float* &viewMat)
       glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
       glUniform1f objmat_falloff_amount 0.5
-      Array:foreach meshes meshNum2
+      Array:foreach meshes meshNum2:
         pMeshInfo := (meshes.elements + meshNum2)
         glPushMatrix()
         applyTransform &pMeshInfo.transform

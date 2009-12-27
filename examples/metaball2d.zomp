@@ -10,8 +10,8 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
@@ -22,15 +22,15 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
 end
 
 // avoid writing it over and over, part of utils lib
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -40,7 +40,7 @@ macro mainloop body...
 
     zompSetRequestPause false
 
-    while running
+    while running:
       lastTime = time
       time = toFloat glfwGetTime()
       frameDuration = time - lastTime
@@ -57,14 +57,14 @@ macro mainloop body...
   end}
 end
 
-template saveMatrix code
+template saveMatrix code:
   glPushMatrix()
   #code
   glPopMatrix()
 end
 
-func void drawWireQuad(float left, float top, float right, float bottom)
-  rendergl GL_LINE_LOOP
+func void drawWireQuad(float left, float top, float right, float bottom):
+  rendergl GL_LINE_LOOP:
     glVertex2f left bottom
     glVertex2f right bottom
     glVertex2f right top
@@ -72,8 +72,8 @@ func void drawWireQuad(float left, float top, float right, float bottom)
   end
 end
 
-func void drawQuad(float left, float top, float right, float bottom)
-  rendergl GL_QUADS
+func void drawQuad(float left, float top, float right, float bottom):
+  rendergl GL_QUADS:
     glVertex2f left bottom
     glVertex2f right bottom
     glVertex2f right top
@@ -81,17 +81,17 @@ func void drawQuad(float left, float top, float right, float bottom)
   end
 end
 
-func void glzColorMono(float intensity)
+func void glzColorMono(float intensity):
   glColor3f intensity intensity intensity
 end
 
-func void visualizeGrid(float* values, int width, int height)
+func void visualizeGrid(float* values, int width, int height):
   ptr := values
   dx := 1.0 / toFloat (width - 1)
   dy := 1.0 / toFloat (height - 1)
-  rendergl GL_POINTS
-    for y 0 height
-      for x 0 width
+  rendergl GL_POINTS:
+    for y 0 height:
+      for x 0 width:
         v := ptr*
         glColor3f v v v
         glVertex2f (dx * toFloat x) (dy * toFloat y)
@@ -101,52 +101,52 @@ func void visualizeGrid(float* values, int width, int height)
   end
 end
 
-func int isInside2(float x)
-  if (x > 0.3)
+func int isInside2(float x):
+  if (x > 0.3):
     ret 1
   end
   ret 0
 end
 
-func void sendMetaTile(int ul, int ur, int ll, int lr, float x, float y, float w, float h)
+func void sendMetaTile(int ul, int ur, int ll, int lr, float x, float y, float w, float h):
   count := ul + ur + ll + lr
   sideId := u32:shl(ul,3) + u32:shl(ur,2) + u32:shl(ll,1) + u32:shl(lr,0)
 
   hw := 0.5 * w
   hh := 0.5 * h
 
-  if (count == 3)
+  if (count == 3):
     sideId = u32:xor(sideId, 15)
     count = 1
   end
 
-  if (count == 1)
-    if (sideId == 1)
+  if (count == 1):
+    if (sideId == 1):
       glVertex2f (x+hw) (y+h)
       glVertex2f (x+w) (y+hh)
-    elseif (sideId == 2)
+    elseif (sideId == 2):
       glVertex2f (x+0.0) (y+hh)
       glVertex2f (x+hw) (y+h)
-    elseif (sideId == 4)
+    elseif (sideId == 4):
       glVertex2f (x+hw) (y+0.0)
       glVertex2f (x+w) (y+hh)
-    elseif (sideId == 8)
+    elseif (sideId == 8):
       glVertex2f (x+hw) (y+0.0)
       glVertex2f (x+0.0) (y+hh)
     end
-  elseif (count == 2)
-    if ((sideId == 3) || (sideId == 12))
+  elseif (count == 2):
+    if ((sideId == 3) || (sideId == 12)):
       glVertex2f (x+0.) (y+hh)
       glVertex2f (x+w) (y+hh)
-    elseif ((sideId == 5) || (sideId == 10))
+    elseif ((sideId == 5) || (sideId == 10)):
       glVertex2f (x+hw) (y+0.)
       glVertex2f (x+hw) (y+h)
-    elseif (sideId == 6)
+    elseif (sideId == 6):
       glVertex2f (x+hw) (y+0.)
       glVertex2f (x+w) (y+hh)
       glVertex2f (x+0.) (y+hh)
       glVertex2f (x+hw) (y+h)
-    elseif (sideId == 9)
+    elseif (sideId == 9):
       glVertex2f (x+0.) (y+hh)
       glVertex2f (x+hw) (y+0.)
       glVertex2f (x+hw) (y+h)
@@ -155,38 +155,38 @@ func void sendMetaTile(int ul, int ur, int ll, int lr, float x, float y, float w
   end
 end
 
-func void drawTilesTest()
+func void drawTilesTest():
   x := 0.0
   y := 0.0
   w := 1.0
   h := 2.0
 
-  template tile ul ur ll lr
+  template tile ul ur ll lr:
     x = x + 1.1 * w
     glColor3f 0.3 1.0 0.5
     drawWireQuad x y (x+w) (y+h)
-    rendergl GL_POINTS
+    rendergl GL_POINTS:
       glColor3f 0. 0.5 1.0
-      if (#ul != 0)
+      if (#ul != 0):
         glVertex2f (x+0.) (y+0.)
       end
-      if (#ur != 0)
+      if (#ur != 0):
         glVertex2f (x+w) (y+0.)
       end
-      if (#ll != 0)
+      if (#ll != 0):
         glVertex2f (x+0.) (y+h)
       end
-      if (#lr != 0)
+      if (#lr != 0):
         glVertex2f (x+w) (y+h)
       end
     end
-    rendergl GL_LINES
+    rendergl GL_LINES:
       glColor3f 1. 1. 1.
       sendMetaTile #ul #ur #ll #lr x y w h
     end
   end
 
-  saveMatrix
+  saveMatrix:
     glScalef 20. 20. 1.
     glTranslatef 0. 3. 0.
     tile 0 0 0 0
@@ -208,22 +208,22 @@ func void drawTilesTest()
   end
 end
 
-template begin code
+template begin code:
   #code
 end
 
-func void drawMetaballs2d(float* values, int width, int height)
+func void drawMetaballs2d(float* values, int width, int height):
   dx := 1.0 / toFloat (width - 1)
   dy := 1.0 / toFloat (height - 1)
 
-  template grid xp yp
+  template grid xp yp:
     isInside2 (values + #yp * width + #xp)*
   end
 
-  rendergl GL_LINES
+  rendergl GL_LINES:
     glColor3f 1. 1. 1.
-    for y 0 (height-1)
-      for x 0 (width-1)
+    for y 0 (height-1):
+      for x 0 (width-1):
         ul := grid x y
         ur := grid (x+1) y
         ll := grid x (y+1)
@@ -234,9 +234,9 @@ func void drawMetaballs2d(float* values, int width, int height)
   end
 end
 
-func void visualizePoints(v3f* points, int count)
-  rendergl GL_POINTS
-    for i 0 count
+func void visualizePoints(v3f* points, int count):
+  rendergl GL_POINTS:
+    for i 0 count:
       glVertex2f (points+i)*.x (points+i)*.y
     end
   end
@@ -244,28 +244,28 @@ end
 
 /// cheap fake-sizeof function. only works for a limited and fixed number
 /// of types
-macro sizeof type
-  if ast:matchesShape(type, ${float})
+macro sizeof type:
+  if ast:matchesShape(type, ${float}):
     ret ${4}
-  elseif ast:matchesShape(type, ${int})
+  elseif ast:matchesShape(type, ${int}):
     ret ${4}
   end
 
   ret ${error "not a known type" #type}
 end
 
-func void applyBalls(float* gridValues, int gridWidth, int gridHeight, v3f* balls, int ballCount)
+func void applyBalls(float* gridValues, int gridWidth, int gridHeight, v3f* balls, int ballCount):
   dx := 1.0 / toFloat (gridWidth - 1)
   dy := 1.0 / toFloat (gridHeight - 1)
 
   // pos := mv3f 0. 0. 0.
   // ballPos := mv3f 0. 0. 0.
 
-  for y 0 gridHeight
-    for x 0 gridWidth
+  for y 0 gridHeight:
+    for x 0 gridWidth:
       v := gridValues + (y * gridWidth + x)
       v* = 0.0
-      for ballNum 0 ballCount
+      for ballNum 0 ballCount:
         // pos.x = dx * toFloat x
         // pos.y = dy * toFloat y
         // ballPos = (balls + ballNum)*
@@ -281,20 +281,20 @@ end
 
 func int rand()
 
-func int random (int max)
+func int random (int max):
   ret int:srem(rand(), max)
 end
 
-func float float:random()
+func float float:random():
   randomInt := random(4097)
   return (toFloat(randomInt) / 4096.0)
 end
 
-func float float:srandom()
+func float float:srandom():
   return (float:random() * 2.0 - 1.0)
 end
 
-func int main()
+func int main():
   init()
 
   angle := 0.0
@@ -310,16 +310,16 @@ func int main()
   onReturn (dealloc balls)
   ballOffsets := malloc float ballCount
   onReturn (dealloc ballOffsets)
-  for ballNum 0 ballCount
+  for ballNum 0 ballCount:
     balls[ballNum] = mv3f float:random() float:random() 0.0
     ballOffsets[ballNum] = (balls+ballNum)*.x
   end
 
-  mainloop
+  mainloop:
     autoSetupViewport()
     angle = angle + 128.0 * frameDuration
 
-    for ballNum2 0 ballCount
+    for ballNum2 0 ballCount:
       bo := (ballOffsets+ballNum2)*
       balls[ballNum2].x = sinf(time + bo * 10.0) * 0.3 + bo
     end
@@ -339,7 +339,7 @@ func int main()
     glLoadIdentity()
     glTranslatef 0. 0. -1.0
 
-    saveMatrix
+    saveMatrix:
       glPointSize 1.0
       glScalef 400. 300. 1.
       visualizeGrid values gridWidth gridHeight

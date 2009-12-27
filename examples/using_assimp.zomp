@@ -9,30 +9,30 @@ require "libs/mesh.zomp"
 require "libs/math.zomp" "libs/mathvis.zomp"
 
 /// no hard aborts on assertion errors, please :) + print better messages
-macro assert testCode
+macro assert testCode:
   isCompare := false
   printF := ast:fromString "internalErrorIn unittest:assert"
   compareF := ast:fromString "internalErrorIn unittest:assert"
 
-  if ast:matchesShape(testCode, ${__ ==_f __})
+  if ast:matchesShape(testCode, ${__ ==_f __}):
     isCompare = true
     printF = ast:fromString "print"
     compareF = ast:fromString "op==_f"
-  elseif ast:matchesShape(testCode, ${__ == __})
+  elseif ast:matchesShape(testCode, ${__ == __}):
     isCompare = true
     printF = ast:fromString "print"
     compareF = ast:fromString "op=="
   end
 
-  if isCompare
+  if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${
+    ret ${seq:
       #lvar := #l
       #rvar := #r
-      unless (#compareF #lvar #rvar)
+      unless (#compareF #lvar #rvar):
         printHLine '-' 40
         print "Assertion failed\n"
         print "left = "
@@ -44,9 +44,9 @@ macro assert testCode
         ast:print ${#testCode} 0
       end
     end}
-  else
-    ret ${
-      unless #testCode
+  else:
+    ret ${seq:
+      unless #testCode:
         printHLine '-' 40
         printlnString "Assertion failed"
         ast:print ${#testCode} 0
@@ -60,11 +60,11 @@ end
 //------------------------------------------------------------------------------
 // OpenGL utils
 
-func void float3:glVertex(float3* this)
+func void float3:glVertex(float3* this):
   glVertex3f this.x this.y this.z
 end
 
-func void float3:sendLine(float3* start, float3* end)
+func void float3:sendLine(float3* start, float3* end):
   float3:glVertex start
   float3:glVertex end
 end
@@ -77,8 +77,8 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
@@ -89,7 +89,7 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
@@ -97,7 +97,7 @@ end
 
 var bool firstRun true
 
-func int objShader()
+func int objShader():
   varyingSource := "
   varying vec3 normal;
   "
@@ -118,11 +118,11 @@ func int objShader()
   ret shader
 end
 
-macro measureAndReport actionDescr code
+macro measureAndReport actionDescr code:
   uniqueId startTime "measureAndReport"
   uniqueId stopTime "measureAndReport"
 
-  ret ${
+  ret ${seq:
     #startTime := glfwGetTime()
     #code
     #stopTime := glfwGetTime()
@@ -134,7 +134,7 @@ macro measureAndReport actionDescr code
   end}
 end
 
-func int main()
+func int main():
   init()
 
   angle := 0.0
@@ -144,27 +144,27 @@ func int main()
   // sceneFilename := "data/MonroeBar_SketchUpScene.obj"
   loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
 
-  measureAndReport "Loading scene"
+  measureAndReport "Loading scene":
     scene := aiImportFile sceneFilename loadOptions
   end
 
-  if (scene == nullptr(aiScene))
+  if (scene == nullptr(aiScene)):
     printString "Error while loading file: "
     printlnString aiGetErrorString()
     ret 0
   end
 
-  if (scene.mNumMeshes <= 2)
+  if (scene.mNumMeshes <= 2):
     printString "Loaded "
     aiScene:print scene
     flushStdout()
   end
 
-  measureAndReport "Converting to mesh"
+  measureAndReport "Converting to mesh":
     mesh := aiScene:toMesh scene
   end
   aiReleaseImport scene
-  if isNull(mesh)
+  if isNull(mesh):
     printlnString "Generated mesh is null"
     ret 0
   end
@@ -183,15 +183,15 @@ func int main()
   print "meshSize = " meshSize
   println()
 
-  if ((mesh.streams)*.size < 40)
+  if ((mesh.streams)*.size < 40):
     Mesh:printDetailed mesh
-  else
+  else:
     Mesh:print mesh
   end
 
   maxRunTime := 2.0
 
-  if firstRun
+  if firstRun:
     firstRun = false
     maxRunTime = 0.0
   end
@@ -201,7 +201,7 @@ func int main()
   glEnable GL_DEPTH_TEST
   glDepthFunc GL_LEQUAL
 
-  mainloop
+  mainloop:
     angle = angle + 90.0 * frameDuration
 
     glClearColor 0. 0. 0. 0.

@@ -122,7 +122,7 @@ const int TW_KMOD_CTRL 192 // 0x00c0
 const int TW_KMOD_ALT 0x0100
 const int TW_KMOD_META 3072 // 0x0c00
 
-type KeySpecial int:
+type KeySpecial int
     // TW_KEY_BACKSPACE    = '\b',
     // TW_KEY_TAB          = '\t',
     // TW_KEY_CLEAR        = 0x0c,

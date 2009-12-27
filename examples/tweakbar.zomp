@@ -12,9 +12,9 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
-    if (glfwInit() != GL_TRUE)
+func void init():
+  if bool:not(initCalled):
+    if (glfwInit() != GL_TRUE):
       println "glfw initialization failed, exiting"
       exit 1
     end
@@ -25,7 +25,7 @@ func void init()
     glewInit()
     times 2 glfwPollEvents()
 
-    if (TwInit(TW_OPENGL, nullptr void) == 0)
+    if (TwInit(TW_OPENGL, nullptr void) == 0):
       println "AntTweakBar initialization failed, exiting"
       glfwTerminate()
       exit 2
@@ -34,14 +34,14 @@ func void init()
     println "Initialized"
 
     initCalled = true
-  else
+  else:
     println "Already initialized"
   end
 end
 
 // avoid writing it over and over, part of utils lib
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     time = 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -49,7 +49,7 @@ macro mainloop body...
     startTime := toFloat glfwGetTime()
     running := true
 
-    while running
+    while running:
       lastTime = time
       time = toFloat glfwGetTime()
       frameDuration = time - lastTime
@@ -66,7 +66,7 @@ macro mainloop body...
   end}
 end
 
-func void onWindowResize(int newWidth, int newHeight)
+func void onWindowResize(int newWidth, int newHeight):
   autoSetupViewport()
   glfwGetWindowSize &windowWidth &windowHeight
 
@@ -74,21 +74,21 @@ func void onWindowResize(int newWidth, int newHeight)
   ret void
 end
 
-macro doTrace sectionName code
+macro doTrace sectionName code:
   sectionNameStr := cstring:quote sectionName.id
-  ret ${
+  ret ${seq:
     println "Starting section " #sectionNameStr
     #code
     println "Done section " #sectionNameStr
   end}
 end
 
-func int main()
+func int main():
   init()
 
   angle := 0.0
 
-  doTrace InitTweakbar
+  doTrace InitTweakbar:
     glfwSetWindowSizeCallback (cast void* &onWindowResize)
     glfwSetMouseButtonCallback (cast void* &TwEventMouseButtonGLFW)
     glfwSetMousePosCallback (cast void* &TwEventMousePosGLFW)
@@ -100,7 +100,7 @@ func int main()
   speed := 128.0
   time := 0.0
 
-  doTrace SetupTweakbars
+  doTrace SetupTweakbars:
     bar := TwNewBar "ZompBar"
 
     TwDefine " GLOBAL help='Demonstrating integration of AntTweakBar and Zomp'"
@@ -108,7 +108,7 @@ func int main()
     TwAddVarRO bar "time" TW_TYPE_FLOAT (cast void* &time) " label='Time' precision=1"
   end
 
-  mainloop
+  mainloop:
     angle = angle + speed * frameDuration
 
     glClearColor 0. 0. 0. 0.

@@ -11,8 +11,8 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
@@ -22,7 +22,7 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
@@ -31,12 +31,12 @@ end
 var float angle 0.0
 
 // avoid writing it over and over, part of utils lib
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     var float time 0.0
     var bool running true
     zompSetRequestPause false
-    while running
+    while running:
       time = double:toFloat(glfwGetTime())
       angle = time * 128.0
 
@@ -45,7 +45,7 @@ macro mainloop body...
       glfwSwapBuffers()
       glfwPollEvents()
 
-      if zompRequestedPause()
+      if zompRequestedPause():
         running = false
       end
 
@@ -54,7 +54,7 @@ macro mainloop body...
   end}
 end
 
-func int main()
+func int main():
   init()
 
   glMatrixMode( GL_PROJECTION )
@@ -62,7 +62,7 @@ func int main()
   const double aspect (int:toDouble windowWidth /_d int:toDouble windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
-  mainloop
+  mainloop:
     autoSetupViewport()
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)

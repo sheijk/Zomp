@@ -3,10 +3,10 @@
 !syntax indent
  */
 
-macro tracing:instrument code
+macro tracing:instrument code:
   var ast* instrumentedCode ast:fromString("seq")
 
-  forEachAstChild expr code
+  forEachAstChild expr code:
     ast:addChild instrumentedCode ${printlnString "=> entering"}
     ast:addChild instrumentedCode ${ast:print $${#expr} 0}
     ast:addChild instrumentedCode expr
@@ -16,8 +16,8 @@ macro tracing:instrument code
   ret instrumentedCode
 end
 
-func int main()
-  tracing:instrument
+func int main():
+  tracing:instrument:
     var int x 10
     assign x (x + 10)
     printlnInt x
@@ -25,7 +25,7 @@ func int main()
     var cstring foo "xxx"
     ast:print ${lalal #foo} 0
 
-    template foo param
+    template foo param:
       printString #param
     end
 

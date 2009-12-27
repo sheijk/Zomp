@@ -34,30 +34,30 @@ require "libs/array.zomp"
 ///     10.0 [0 childs]
 ///   x [0 childs]
 ///
-macro unittest:assert testCode
+macro unittest:assert testCode:
   isCompare := false
   printF := ast:fromString "internalErrorIn unittest:assert"
   compareF := ast:fromString "internalErrorIn unittest:assert"
 
-  if ast:matchesShape(testCode, ${__ ==_f __})
+  if ast:matchesShape(testCode, ${__ ==_f __}):
     isCompare = true
     printF = ast:fromString "print"
     compareF = ast:fromString "op==_f"
-  elseif ast:matchesShape(testCode, ${__ == __})
+  elseif ast:matchesShape(testCode, ${__ == __}):
     isCompare = true
     printF = ast:fromString "print"
     compareF = ast:fromString "op=="
   end
 
-  if isCompare
+  if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${
+    ret ${seq:
       #lvar := #l
       #rvar := #r
-      unless (#compareF #lvar #rvar)
+      unless (#compareF #lvar #rvar):
         printHLine '-' 40
         printlnString "Assertion failed"
         printString "left = "
@@ -69,9 +69,9 @@ macro unittest:assert testCode
         ast:print ${#testCode} 0
       end
     end}
-  else
-    ret ${
-      unless #testCode
+  else:
+    ret ${seq:
+      unless #testCode:
         printHLine '-' 40
         printlnString "Assertion failed"
         ast:print ${#testCode} 0
@@ -83,9 +83,9 @@ macro unittest:assert testCode
 end
 
 /// redefine to work with indent based syntax expressions
-macro unittest:assertAll checks
+macro unittest:assertAll checks:
   var ast* code ${}
-  forEachAstChild check checks
+  forEachAstChild check checks:
     ast:addChild code ${unittest:assert #check}
   end
   ret code
@@ -94,8 +94,8 @@ end
 //------------------------------------------------------------------------------
 // misc
 
-macro assert code
-  ret ${if (bool:not #code)
+macro assert code:
+  ret ${if (bool:not #code):
     printlnString "error: Assertion failed"
     ast:print ${#code} 0
   end}
@@ -104,9 +104,9 @@ end
 //------------------------------------------------------------------------------
 // pointer utils
 
-macro ptrvars type names...
+macro ptrvars type names...:
   decls := seqAst()
-  forEachAstChild name names
+  forEachAstChild name names:
     ast:addChild decls ${var #type #name nullptr(#type)}
   end
   ret decls
@@ -118,16 +118,16 @@ end
 // from libstdc
 func int rand()
 
-func int random (int max)
+func int random (int max):
   ret int:srem(rand(), max)
 end
 
-func float float:random()
+func float float:random():
   randomInt := random(4097)
   return (toFloat(randomInt) / 4096.0)
 end
 
-func float float:srandom()
+func float float:srandom():
   return (float:random() * 2.0 - 1.0)
 end
 
@@ -136,21 +136,21 @@ end
 
 func void free(void* ptr)
 
-template delete ptr
+template delete ptr:
   free (cast void* #ptr)
 end
 
 //------------------------------------------------------------------------------
 // some simple types
 
-struct Color
+struct Color:
   float r
   float g
   float b
   float a
 end
 
-func void Color:init(Color* this, float r, float g, float b, float a)
+func void Color:init(Color* this, float r, float g, float b, float a):
   this.r = r
   this.g = g
   this.b = b
@@ -166,8 +166,8 @@ var int windowWidth 1280
 var int windowHeight 720
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled)
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
@@ -177,7 +177,7 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
@@ -186,8 +186,8 @@ end
 var float angle 0.0
 
 // avoid writing it over and over, part of utils lib
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -195,7 +195,7 @@ macro mainloop body...
     startTime := double:toFloat glfwGetTime()
     running := true
 
-    while running
+    while running:
       lastTime = time
       time = double:toFloat glfwGetTime()
       frameDuration = time - lastTime
@@ -215,17 +215,17 @@ end
 
 //------------------------------------------------------------------------------
 
-type Field3D
+type Field3D:
   int sideLength
   float* array
 end
 
-template Field3D:checkRange component
+template Field3D:checkRange component:
   assert (#component >= 0)
   assert (#component < this.sideLength)
 end
 
-func int Field3D:index(Field3D* this, int x, int y, int z)
+func int Field3D:index(Field3D* this, int x, int y, int z):
   Field3D:checkRange x
   Field3D:checkRange y
   Field3D:checkRange z
@@ -233,23 +233,23 @@ func int Field3D:index(Field3D* this, int x, int y, int z)
   return (x + z * this.sideLength + y * this.sideLength * this.sideLength)
 end
 
-func float Field3D:get(Field3D* this, int x, int y, int z)
+func float Field3D:get(Field3D* this, int x, int y, int z):
   index := Field3D:index(this, x, y, z)
 
   array := this.array
   return *(array + index)
 end
 
-func void Field3D:set(Field3D* this, int x, int y, int z, float value)
+func void Field3D:set(Field3D* this, int x, int y, int z, float value):
   index := Field3D:index(this, x, y, z)
   a := this.array
   store (a + index) value
 end
 
-template Field3D:foreach field x y z value code...
-  for #x 0 #field.sideLength
-    for #y 0 #field.sideLength
-      for #z 0 #field.sideLength
+template Field3D:foreach field x y z value code...:
+  for #x 0 #field.sideLength:
+    for #y 0 #field.sideLength:
+      for #z 0 #field.sideLength:
         #value := Field3D:get(#field, #x, #y, #z)
         #code
       end
@@ -257,28 +257,28 @@ template Field3D:foreach field x y z value code...
   end
 end
 
-func void Field3D:clear(Field3D* this)
+func void Field3D:clear(Field3D* this):
   array := this.array
   sideLength := this.sideLength
 
-  for i 0 (sideLength ** 3)
+  for i 0 (sideLength ** 3):
     store (array + i) 0.0
   end
 end
 
-func void Field3D:init(Field3D* this, int sideLength)
+func void Field3D:init(Field3D* this, int sideLength):
   setField this sideLength sideLength
   setField this array malloc(float, sideLength * sideLength * sideLength)
   Field3D:clear this
 end
 
-func void Field3D:show(Field3D* this)
+func void Field3D:show(Field3D* this):
   o := -0.5 * toFloat this.sideLength
 
-  saveTransforms
+  saveTransforms:
     glTranslatef o o o
-    rendergl GL_POINTS
-      Field3D:foreach this x y z v
+    rendergl GL_POINTS:
+      Field3D:foreach this x y z v:
         r := float:mix v 0.0 1.0
         g := float:mix v 0.0 0.25
         b := float:mix v 0.0 0.0
@@ -290,7 +290,7 @@ func void Field3D:show(Field3D* this)
   end
 end
 
-struct Metaballs
+struct Metaballs:
   int count
   float* xs
   float* ys
@@ -301,18 +301,18 @@ struct Metaballs
   float* strengths
 end
 
-template Metaballs:foreach ballnum balls code...
-  for #ballnum 0 #balls.count
+template Metaballs:foreach ballnum balls code...:
+  for #ballnum 0 #balls.count:
     #code
   end
 end
 
-template postop[] ptr index
+template postop[] ptr index:
   load(ptradd #ptr #index)
 end
 
-func void Metaballs:init(Metaballs* this, int count)
-  template tempAndMemberArray name
+func void Metaballs:init(Metaballs* this, int count):
+  template tempAndMemberArray name:
     #name := malloc float count
     this.#name = #name
   end
@@ -330,7 +330,7 @@ func void Metaballs:init(Metaballs* this, int count)
   max := 20.0
   offet := -10.0
   
-  Metaballs:foreach ballnum this
+  Metaballs:foreach ballnum this:
     xs[ballnum] = max * float:random() + offet
     ys[ballnum] = max * float:random() + offet
     zs[ballnum] = max * float:random() + offet
@@ -341,7 +341,7 @@ func void Metaballs:init(Metaballs* this, int count)
   end
 end
 
-func void Metaballs:update(Metaballs* this, float time)
+func void Metaballs:update(Metaballs* this, float time):
   xs := this.xs
   ys := this.ys
   zs := this.zs
@@ -354,26 +354,26 @@ func void Metaballs:update(Metaballs* this, float time)
   minpos := -0.5 * sideLengthf
   maxpos := 0.5 * sideLengthf
 
-  Metaballs:foreach ballnum this
+  Metaballs:foreach ballnum this:
     xs[ballnum] = xs[ballnum] + t * xvels[ballnum]
     ys[ballnum] = ys[ballnum] + t * yvels[ballnum]
     zs[ballnum] = zs[ballnum] + t * zvels[ballnum]
 
     acc := 1.0 / 10.0 * float:random()
 
-    if (xs[ballnum] < minpos)
+    if (xs[ballnum] < minpos):
       xvels[ballnum] = xvels[ballnum] + acc
-    elseif (xs[ballnum] > maxpos)
+    elseif (xs[ballnum] > maxpos):
       xvels[ballnum] = xvels[ballnum] - acc
     end
-    if (ys[ballnum] < minpos)
+    if (ys[ballnum] < minpos):
       yvels[ballnum] = yvels[ballnum] + acc
-    elseif (ys[ballnum] > maxpos)
+    elseif (ys[ballnum] > maxpos):
       yvels[ballnum] = yvels[ballnum] - acc
     end
-    if (zs[ballnum] < minpos)
+    if (zs[ballnum] < minpos):
       zvels[ballnum] = zvels[ballnum] + acc
-    elseif (zs[ballnum] > maxpos)
+    elseif (zs[ballnum] > maxpos):
       zvels[ballnum] = zvels[ballnum] - acc
     end
 
@@ -386,7 +386,7 @@ func void Metaballs:update(Metaballs* this, float time)
   end
 end
 
-func void Metaballs:print(Metaballs* this)
+func void Metaballs:print(Metaballs* this):
   printInt this.count
   printlnString " metaballs"
 
@@ -395,7 +395,7 @@ func void Metaballs:print(Metaballs* this)
   zs := this.zs
   strengths := this.strengths
 
-  Metaballs:foreach ballnum this
+  Metaballs:foreach ballnum this:
     printString "  x = "
     printFloat xs[ballnum]
     printString ", y = "
@@ -408,7 +408,7 @@ func void Metaballs:print(Metaballs* this)
   end
 end
 
-func void Metaballs:applyToField(Metaballs* this, Field3D* field)
+func void Metaballs:applyToField(Metaballs* this, Field3D* field):
   xs := this.xs
   ys := this.ys
   zs := this.zs
@@ -419,9 +419,9 @@ func void Metaballs:applyToField(Metaballs* this, Field3D* field)
 
   offset := -0.5 * sideLengthf
 
-  Field3D:foreach field x y z value
+  Field3D:foreach field x y z value:
     newValue := value
-    Metaballs:foreach ballnum this
+    Metaballs:foreach ballnum this:
       xd := toFloat x - xs[ballnum] + offset
       yd := toFloat y - ys[ballnum] + offset
       zd := toFloat z - zs[ballnum] + offset
@@ -433,15 +433,15 @@ func void Metaballs:applyToField(Metaballs* this, Field3D* field)
   end
 end
 
-func void Metaballs:show(Metaballs* this)
+func void Metaballs:show(Metaballs* this):
   xs := this.xs
   ys := this.ys
   zs := this.zs
   strengths := this.strengths
 
-  rendergl GL_POINTS
+  rendergl GL_POINTS:
     glColor4f 1.0 1.0 1.0 1.0
-    Metaballs:foreach ballnum this
+    Metaballs:foreach ballnum this:
       glVertex3f xs[ballnum] ys[ballnum] zs[ballnum]
     end
   end
@@ -453,31 +453,31 @@ end
 defineArrayType int
 defineArrayType float
 
-struct Point
+struct Point:
   float x
   float y
   float z
 end
 
-func void Point:init(Point* this, float x, float y, float z)
+func void Point:init(Point* this, float x, float y, float z):
   this.x = x
   this.y = y
   this.z = z
 end
 
-func void printsi(cstring str, int i)
+func void printsi(cstring str, int i):
   printString str
   printChar ' '
   printInt i
 end
 
-func void printsf(cstring str, float f)
+func void printsf(cstring str, float f):
   printString str
   printChar ' '
   printFloat f
 end
 
-func void Point:print(Point* this)
+func void Point:print(Point* this):
   printString "(Point"
   printsf " x = " this.x
   printsf " y = " this.y
@@ -485,12 +485,12 @@ func void Point:print(Point* this)
   printChar ')'
 end
 
-struct Metaball
+struct Metaball:
   Point pos
   float strength
 end
 
-func void Metaball:print(Metaball* this)
+func void Metaball:print(Metaball* this):
   printString "(Metaball pos="
   Point:print fieldptr(this, pos)
   printsf " strength = " this.strength
@@ -535,7 +535,7 @@ end
 
 //------------------------------------------------------------------------------
 
-func void resizeWindow(int width, int height)
+func void resizeWindow(int width, int height):
   windowWidth = width
   windowHeight = height
   glfwSetWindowSize windowWidth windowHeight
@@ -546,7 +546,7 @@ var int lastMouseY 0
 var int mouseXDelta 0
 var int mouseYDelta 0
 
-func void onMouseMove(int x, int y)
+func void onMouseMove(int x, int y):
   mouseXDelta = lastMouseX - x
   mouseYDelta = lastMouseY - y
 
@@ -558,24 +558,24 @@ var bool windowOnUpperScreen true
 
 var int debugNum 0
 
-func void onKey(int key, int action)
-  if ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS))
-    if windowOnUpperScreen
+func void onKey(int key, int action):
+  if ((key == GLFW_KEY_TAB) && (action == GLFW_PRESS)):
+    if windowOnUpperScreen:
       glfwSetWindowPos 100 1250
-    else
+    else:
       glfwSetWindowPos 100 100
     end
     windowOnUpperScreen = bool:not windowOnUpperScreen
-  elseif (action == GLFW_PRESS)
-    if (key == GLFW_KEY_UP)
+  elseif (action == GLFW_PRESS):
+    if (key == GLFW_KEY_UP):
       ++debugNum
-    elseif (key == GLFW_KEY_DOWN)
+    elseif (key == GLFW_KEY_DOWN):
       --debugNum
     end
   end
 end
 
-func char* char:toCString(char c)
+func char* char:toCString(char c):
   str := "X"
   store (cast char* str) c
   ret str
@@ -583,7 +583,7 @@ end
 
 var bool resizeDirty false
 
-func void onWindowResize(int newWidth, int newHeight)
+func void onWindowResize(int newWidth, int newHeight):
   printString "Window was resized to "
   printInt newWidth
   printString "x"
@@ -597,17 +597,17 @@ func void onWindowResize(int newWidth, int newHeight)
   resizeDirty = true
 end
 
-func void Framebuffer:print(Framebuffer* this)
-  macro printMember name printF
+func void Framebuffer:print(Framebuffer* this):
+  macro printMember name printF:
     quoteStr := char:toCString '"' // '"' dumb emacs parser \o/
     text := quoteStr ++ " " ++ name.id ++ "=" ++ quoteStr
-    ret ${
+    ret ${seq:
       printString #text
       #printF this.#name
     end}
   end
 
-  template printIntMember name
+  template printIntMember name:
     printMember #name printInt
   end
 
@@ -622,7 +622,7 @@ func void Framebuffer:print(Framebuffer* this)
   printChar ')'
 end
 
-struct Shader
+struct Shader:
   cstring varyingSource
   cstring vertexSource
   cstring fragmentSource
@@ -631,18 +631,18 @@ end
 //------------------------------------------------------------------------------
 // lists
 
-func cstring List:listTypeName(cstring memberType)
+func cstring List:listTypeName(cstring memberType):
   ret (memberType ++ "_List")
 end
 
-macro defineListType memberT
+macro defineListType memberT:
   listT := ast:fromString List:listTypeName(memberT.id)
-  code := ${
-    struct #listT
+  code := ${seq:
+    struct #listT:
       #memberT data
       #listT* next
     end
-    func void INITFUNCNAME(#listT* this, #memberT data, #listT* next)
+    func void INITFUNCNAME(#listT* this, #memberT data, #listT* next):
       this.data = data
       this.next = next
     end
@@ -654,11 +654,11 @@ end
 defineListType int
 defineListType float
 
-macro makeList type nums...
+macro makeList type nums...:
   listT := ast:fromString(type.id ++ "_List")
   list := ${nullptr #listT}
   i := nums.childCount - 1
-  while (i >= 0)
+  while (i >= 0):
     num := ast:child(nums, i)
     list = ${new #listT #num #list}
     --i
@@ -667,13 +667,13 @@ macro makeList type nums...
   ret list
 end
 
-macro List:foreach_ptr list indexVar dataVar code
+macro List:foreach_ptr list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${
+  ret ${seq:
     #current := #list
     #indexVar := 0
-    while isNotNull(#current)
+    while isNotNull(#current):
       #dataVar := fieldptr #current data
       #code
       ++(#indexVar)
@@ -682,13 +682,13 @@ macro List:foreach_ptr list indexVar dataVar code
   end}
 end
 
-macro List:foreach list indexVar dataVar code
+macro List:foreach list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${
+  ret ${seq:
     #current := #list
     #indexVar := 0
-    while isNotNull(#current)
+    while isNotNull(#current):
       #dataVar := #current.data
       #code
       ++(#indexVar)
@@ -700,7 +700,7 @@ end
 //------------------------------------------------------------------------------
 // filtering effects
 
-struct FilterEffect
+struct FilterEffect:
   GLint shader
   int size
   float* xoffsets
@@ -709,7 +709,7 @@ struct FilterEffect
   FilterEffect* next
 end
 
-func void FilterEffect:init(FilterEffect* this, int size, GLint shader, FilterEffect* next)
+func void FilterEffect:init(FilterEffect* this, int size, GLint shader, FilterEffect* next):
   this.shader = shader
   this.size = size
   this.xoffsets = malloc float size
@@ -718,7 +718,7 @@ func void FilterEffect:init(FilterEffect* this, int size, GLint shader, FilterEf
   this.next = next
 end
 
-func void FilterEffect:delete(FilterEffect* this)
+func void FilterEffect:delete(FilterEffect* this):
   glDeleteShader this.shader
   this.shader = 0
   this.size = 0
@@ -728,20 +728,20 @@ func void FilterEffect:delete(FilterEffect* this)
   this.yoffsets = nullptr float
   free (cast void* this.weights)
   this.weights = nullptr float
-  unless (this.next == nullptr(FilterEffect))
+  unless (this.next == nullptr(FilterEffect)):
     FilterEffect:delete this.next
   end
   this.next = nullptr FilterEffect
 end
 
-func void FilterEffect:bind(FilterEffect* this)
+func void FilterEffect:bind(FilterEffect* this):
   // glUseProgram this.shader
   gl:uniform1fv this.shader "xoffsets" this.size this.xoffsets
   gl:uniform1fv this.shader "yoffsets" this.size this.yoffsets
   gl:uniform1fv this.shader "weights" this.size this.weights
 end
 
-func void FilterEffect:unbind(FilterEffect* this)
+func void FilterEffect:unbind(FilterEffect* this):
   void
   // glUseProgram 0
 end
@@ -798,7 +798,7 @@ end
 //   } 
 // } 
 
-func GLint makeFilterShader(int size)
+func GLint makeFilterShader(int size):
   varyingSource := "
   #version 120
   varying vec2 texCoord;"
@@ -835,7 +835,7 @@ func GLint makeFilterShader(int size)
 end
 
 /*
-func FilterEffect* makeGlowFilter(int offsetSpan)
+func FilterEffect* makeGlowFilter(int offsetSpan):
   offsetCount := 3
   // offsetCount := 1
   glowShader := makeFilterShader offsetCount
@@ -879,7 +879,7 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
 end
 */
 
-func FilterEffect* makeGlowFilter(int offsetSpan)
+func FilterEffect* makeGlowFilter(int offsetSpan):
   offsetCount := 2 * offsetSpan + 1
 
   glowShader := makeFilterShader offsetCount
@@ -889,7 +889,7 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
   pixw := 1.0 / toFloat(windowWidth)
   pixh := 1.0 / toFloat(windowHeight)
 
-  for i 1 (offsetSpan+1)
+  for i 1 (offsetSpan+1):
     s := toFloat i
     h := offsetSpan + i
     l := offsetSpan - i
@@ -923,7 +923,7 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
   vertPass.yoffsets[offsetSpan] = 0.0
 
   weightSum := 0.0
-  for wi 0 offsetCount
+  for wi 0 offsetCount:
     weightSum = weightSum + horPass.weights[wi]
   end
 
@@ -932,7 +932,7 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
 
   weightSumInv := 1.0 / weightSum
   weightSum = 0.0
-  for wi2 0 offsetCount
+  for wi2 0 offsetCount:
     horPass.weights[wi2] = horPass.weights[wi2] * weightSumInv
     vertPass.weights[wi2] = vertPass.weights[wi2] * weightSumInv
     weightSum = weightSum + horPass.weights[wi2]
@@ -946,7 +946,7 @@ func FilterEffect* makeGlowFilter(int offsetSpan)
   printsf "new weightSum = " weightSum
   println()
 
-  for i2 0 offsetCount
+  for i2 0 offsetCount:
     printsi "i = " i2
     printString ", (x1,y1) = "
     printFloat( horPass.xoffsets[i2] * pixw )
@@ -964,10 +964,10 @@ end
 
 //------------------------------------------------------------------------------
 
-macro tracing:instrument code
+macro tracing:instrument code:
   var ast* instrumentedCode ast:fromString("seq")
 
-  forEachAstChild expr code
+  forEachAstChild expr code:
     ast:addChild instrumentedCode ${printlnString "=> entering"}
     ast:addChild instrumentedCode ${ast:print $${#expr} 0}
     ast:addChild instrumentedCode expr
@@ -977,7 +977,7 @@ macro tracing:instrument code
   ret instrumentedCode
 end
 
-func bool keyDown(GLint key)
+func bool keyDown(GLint key):
   ret(glfwGetKey key == GL_TRUE)
 end
 
@@ -1001,19 +1001,19 @@ end
 type FramebufferPtr Framebuffer*
 defineListType FramebufferPtr
 
-func Framebuffer* makeColorRenderTarget2(int width, int height)
+func Framebuffer* makeColorRenderTarget2(int width, int height):
   target := new Framebuffer width height
   Framebuffer:attachColorTexture target
   Framebuffer:create target
   ret target
 end
 
-func Framebuffer** makeMipmapRenderTargets(int width, int height, int levels)
+func Framebuffer** makeMipmapRenderTargets(int width, int height, int levels):
   targets := malloc Framebuffer* levels
 
   w := width
   h := height
-  for i 0 levels
+  for i 0 levels:
     targets[i] = makeColorRenderTarget2(w, h)
     w = w/2
     h = h/2
@@ -1022,8 +1022,8 @@ func Framebuffer** makeMipmapRenderTargets(int width, int height, int levels)
   ret targets
 end
 
-func void deleteRenderTargetArray(Framebuffer** targets, int count)
-  for i 0 count
+func void deleteRenderTargetArray(Framebuffer** targets, int count):
+  for i 0 count:
     Framebuffer:delete targets[i]
     delete targets[i]
   end
@@ -1052,7 +1052,7 @@ end
 //   end}
 // end
 
-struct TextureInfo
+struct TextureInfo:
   int width
   int height
   GLenum magFilter
@@ -1061,7 +1061,7 @@ struct TextureInfo
   GLenum wrapT
 end
 
-func void TextureInfo:init(TextureInfo* this, GLenum texture)
+func void TextureInfo:init(TextureInfo* this, GLenum texture):
   glBindTexture2D texture
   glGetTexParameteriv GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER &(this.magFilter)
   glGetTexParameteriv GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER &(this.minFilter)
@@ -1077,19 +1077,19 @@ end
 //------------------------------------------------------------------------------
 // renderer information + caps
 
-struct RendererInfo
+struct RendererInfo:
   cstring name
   cstring version
   cstring vendor
 end
 
-func void RendererInfo:init(RendererInfo* this)
+func void RendererInfo:init(RendererInfo* this):
   this.name = glGetString GL_RENDERER
   this.version = glGetString GL_VERSION
   this.vendor = glGetString GL_VENDOR
 end
 
-func void RendererInfo:print(RendererInfo* this)
+func void RendererInfo:print(RendererInfo* this):
   printString "OpenGL renderer: "
   printString this.name
   println()
@@ -1101,7 +1101,7 @@ func void RendererInfo:print(RendererInfo* this)
   println()
 end
 
-func int main()
+func int main():
   init()
 
   rendererInfo := new RendererInfo
@@ -1109,7 +1109,7 @@ func int main()
   dealloc rendererInfo
 
   // tracing:instrument
-  seq
+  seq:
     glfwSetMousePosCallback (cast void* &onMouseMove)
     glfwSetWindowSizeCallback (cast void* &onWindowResize)
     glfwSetKeyCallback (cast void* &onKey)
@@ -1125,12 +1125,12 @@ func int main()
     renderTargetsA := nullptr Framebuffer*
     renderTargetsB := nullptr Framebuffer*
 
-    template deleteRenderTargets
+    template deleteRenderTargets:
       deleteRenderTargetArray renderTargetsA glowSteps
       deleteRenderTargetArray renderTargetsB glowSteps
     end
 
-    template createRenderTargets
+    template createRenderTargets:
       renderTargetsA = makeMipmapRenderTargets windowWidth windowHeight glowSteps
       renderTargetsB = makeMipmapRenderTargets windowWidth windowHeight glowSteps
     end
@@ -1150,17 +1150,17 @@ func int main()
 
     glPointSize 1.0
 
-    mainloop
-      if resizeDirty
+    mainloop:
+      if resizeDirty:
         deleteRenderTargets
         createRenderTargets
 
         resizeDirty = false
       end
 
-      if (abs mouseXDelta > abs mouseYDelta)
+      if (abs mouseXDelta > abs mouseYDelta):
         mouseYDelta = 0
-      else
+      else:
         mouseXDelta = 0
       end
       cam.longitude = cam.longitude + toFloat(mouseXDelta)
@@ -1169,7 +1169,7 @@ func int main()
       mouseXDelta = 0
       mouseYDelta = 0
 
-      if (time - startTime > 1.0)
+      if (time - startTime > 1.0):
         Metaballs:update mballs frameDuration
         Metaballs:applyToField mballs field
       end
@@ -1177,20 +1177,20 @@ func int main()
       sideLength := 0
       scale := 0.0
 
-      template renderScene
+      template renderScene:
         glMatrixMode GL_MODELVIEW
         glLoadIdentity()
         SpaceballCamera:applyToGL cam
 
         drawCoordSys 8.0
 
-        saveTransforms
+        saveTransforms:
           glTranslatef 0. 50. 0.
           glutSolidTeapot 10.0d
           // glutSolidSphere 10.0d 30 30
         end
 
-        saveTransforms
+        saveTransforms:
           sideLength = field.sideLength
           scale = 100.0 / toFloat(sideLength)
           glScalef scale scale scale
@@ -1207,7 +1207,7 @@ func int main()
       //   renderScene
       // end
 
-      renderToTarget renderTargetsA[0]
+      renderToTarget renderTargetsA[0]:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         // renderScene
       end
@@ -1217,14 +1217,14 @@ func int main()
 
       unfilteredTexture := renderTargetsB[0]
 
-      renderToTarget unfilteredTexture
+      renderToTarget unfilteredTexture:
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         renderScene
       end
 
       glUseProgram glowFilter.shader
-      for targetNum 1 glowSteps
-        renderToTarget renderTargetsA[targetNum]
+      for targetNum 1 glowSteps:
+        renderToTarget renderTargetsA[targetNum]:
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
           // glBindTexture2D renderTargetsB[targetNum - 1]*.colorTexture
           glBindTexture2D unfilteredTexture.colorTexture
@@ -1234,7 +1234,7 @@ func int main()
           drawFullscreenQuad()
         end
 
-        renderToTarget renderTargetsB[targetNum]
+        renderToTarget renderTargetsB[targetNum]:
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
           glBindTexture2D renderTargetsA[targetNum]*.colorTexture
           FilterEffect:bind glowFilter.next
@@ -1249,43 +1249,43 @@ func int main()
       glUseProgram 0
       glViewport 0 0 windowWidth windowHeight
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-      saveAttribs
+      saveAttribs:
         glEnable GL_BLEND
         glBlendFunc GL_ONE GL_ONE
         glDisable GL_DEPTH_TEST
         glEnable GL_TEXTURE_2D
 
-        if keyDown(GLFW_KEY_LSHIFT)
+        if keyDown(GLFW_KEY_LSHIFT):
           glBindTexture2D renderTargetsB[0]*.colorTexture
           drawFullscreenQuad()
-        else
-          for tn2 0 glowSteps
+        else:
+          for tn2 0 glowSteps:
             glBindTexture2D renderTargetsB[tn2]*.colorTexture
             drawFullscreenQuad()
           end
         end
       end
 
-      if keyDown(GLFW_KEY_LALT)
+      if keyDown(GLFW_KEY_LALT):
         glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
         showTarget := int:clamp 0 (2 * glowSteps - 1) debugNum
         debugNum = showTarget
         assert (showTarget >= 0)
         assert (showTarget < glowSteps * 2)
-        saveTransforms
+        saveTransforms:
           makeGLIdentityTransforms
           draw2dOrientationGrid()
-          if (int:mod showTarget 2 == 1)
+          if (int:mod showTarget 2 == 1):
             showTextureAt renderTargetsB[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
-          else
+          else:
             showTextureAt renderTargetsA[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
           end
 
           glColor3f 1. 1. 1.
-          saveAttribs
+          saveAttribs:
             glqtPrintfAt -0.8 0.8 0.0 0.01 int:toCString(showTarget / 2)
             targetName := "A"
-            if (int:mod showTarget 2 == 1)
+            if (int:mod showTarget 2 == 1):
               targetName = "B"
             end
             glqtPrintfAt -1.0 0.8 0.0 0.01 targetName

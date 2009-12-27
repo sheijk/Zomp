@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 /// base lib
 
-requireLib libcee stdio
+requireLibs libcee stdio
 
 func bool isBound(char* name)
 
@@ -20,18 +20,18 @@ const symbolKind ZOMP_SYMBOL_MACRO 3
 const symbolKind ZOMP_SYMBOL_TYPEDEF 4
 const symbolKind ZOMP_SYMBOL_LABEL 5
 
-func char* symbolKind:toString(symbolKind kind)
-  if (kind == ZOMP_SYMBOL_UNDEFINED)
+func char* symbolKind:toString(symbolKind kind):
+  if (kind == ZOMP_SYMBOL_UNDEFINED):
     ret "Undefined"
-  elseif (kind == ZOMP_SYMBOL_VAR)
+  elseif (kind == ZOMP_SYMBOL_VAR):
     ret "Variable"
-  elseif (kind == ZOMP_SYMBOL_FUNC)
+  elseif (kind == ZOMP_SYMBOL_FUNC):
     ret "Function"
-  elseif (kind == ZOMP_SYMBOL_MACRO)
+  elseif (kind == ZOMP_SYMBOL_MACRO):
     ret "Macro"
-  elseif (kind == ZOMP_SYMBOL_TYPEDEF)
+  elseif (kind == ZOMP_SYMBOL_TYPEDEF):
     ret "Type"
-  elseif (kind == ZOMP_SYMBOL_LABEL)
+  elseif (kind == ZOMP_SYMBOL_LABEL):
     ret "Label"
   end
 
@@ -44,7 +44,7 @@ func symbolKind zompLookup(char* name)
 //   cstring:equal #l #r
 // end
 
-func bool dummy(bool x)
+func bool dummy(bool x):
   printString "Returning "
   printBool x
   println()
@@ -76,12 +76,12 @@ end
 //------------------------------------------------------------------------------
 /// Standard library
 
-type Complex
+type Complex:
   float real
   float img
 end
 
-func void Complex:print(Complex* c)
+func void Complex:print(Complex* c):
   printString "("
   printFloat c.real
   printString ", "
@@ -89,7 +89,7 @@ func void Complex:print(Complex* c)
   printString "i)"
 end
 
-func void Complex:init(Complex* c, float real, float img)
+func void Complex:init(Complex* c, float real, float img):
   c.real = real
   c.img = img
 end
@@ -144,10 +144,10 @@ end
 //   end
 // end
 
-func void test2()
+func void test2():
   var int x 10
 
-  template printDefinitionInfo name
+  template printDefinitionInfo name:
     printString #name
     printString " defined: "
     printBool isBound(#name)
@@ -195,7 +195,7 @@ end
 //
 // end
 
-func int main()
+func int main():
 
   ret 0
 end
