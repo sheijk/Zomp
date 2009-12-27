@@ -787,4 +787,29 @@ editor to trigger recompilations etc. and possibly resume main()"
     (indent-according-to-mode)
     (insert "\n")))
 
+(defun zomp-query-adapt-indent-blocks ()
+  "Function to help change code from old to new indent
+  syntax. Will add ask the user if a colon should be inserted for
+  all places where the indent increases in the next line and no
+  colon is present, yet"
+  (interactive) (while t
+    (let (previndent nextindent)
+      (setq previndent (zomp-current-line-indent))
+      (next-line 1)
+      (beginning-of-line)
+      (unless (save-excursion
+                (previous-line)
+                (looking-at " *$"))
+        (setq nextindent (zomp-current-line-indent))
+        (when (> nextindent previndent)
+          (previous-line)
+          (end-of-line)
+          (when (and (not (looking-back " *:"))
+                     (y-or-n-p "Insert ':'? "))
+            (if (looking-back "{")
+                (insert "seq:")
+              (insert ":")))
+          (next-line)
+          )))))
+
 
