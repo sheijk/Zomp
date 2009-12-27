@@ -8,10 +8,10 @@ require "libs/glut.zomp"
 func void glfwSetWindowTitle(cstring title)
 func cstring gluErrorString(GLenum error)
 
-func void printGLError()
+func void printGLError():
   var int error 0
 
-  while (seq (assign error glGetError()) (int:notEqual error 0))
+  while (seq (assign error glGetError()) (int:notEqual error 0)):
     const cstring message gluErrorString(error)
     printString "OpenGL error "
     printInt error
@@ -20,18 +20,18 @@ func void printGLError()
   end
 end
 
-func int flushGLErrors()
+func int flushGLErrors():
   error := 0
   count := 0
 
-  while (seq (error = glGetError()) (error != 0))
+  while (seq (error = glGetError()) (error != 0)):
     assign count (count + 1)
   end
 
   ret count
 end
 
-func void printGlfwVersion()
+func void printGlfwVersion():
   var int major 0
   var int minor 0
   var int rev 0
@@ -48,11 +48,11 @@ func void printGlfwVersion()
   println
 end
 
-func bool checkAndReportShaderError(GLuint shader, cstring shaderName)
+func bool checkAndReportShaderError(GLuint shader, cstring shaderName):
   var GLint compileError 0
   glGetShaderiv shader GL_COMPILE_STATUS (ptr compileError)
 
-  when (int:equal GL_FALSE compileError)
+  when (int:equal GL_FALSE compileError):
     printString "Error compiling shader "
     printlnString shaderName
 
@@ -68,9 +68,9 @@ func bool checkAndReportShaderError(GLuint shader, cstring shaderName)
   ret true
 end
 
-func GLuint createShader(cstring varyingParams, cstring vertexSource, cstring fragmentSource)
-  template abortOnCompileError shader name
-    unless (checkAndReportShaderError #shader #name)
+func GLuint createShader(cstring varyingParams, cstring vertexSource, cstring fragmentSource):
+  template abortOnCompileError shader name:
+    unless (checkAndReportShaderError #shader #name):
       ret 0
     end
   end
@@ -99,37 +99,37 @@ func GLuint createShader(cstring varyingParams, cstring vertexSource, cstring fr
   ret program
 end
 
-func void gl:uniform1i(GLuint shader, cstring name, int value)
+func void gl:uniform1i(GLuint shader, cstring name, int value):
   const GLuint loc (glGetUniformLocation shader name)
   glUniform1i loc value
 end
 
-func void gl:uniform1f(GLuint shader, cstring name, float value)
+func void gl:uniform1f(GLuint shader, cstring name, float value):
   const GLuint loc glGetUniformLocation(shader, name)
   glUniform1f loc value
 end
 
-func void gl:uniform1fv(GLuint shader, cstring name, int count, float* value)
+func void gl:uniform1fv(GLuint shader, cstring name, int count, float* value):
   const GLuint loc glGetUniformLocation(shader, name)
   glUniform1fv loc count value
 end
 
-func void gl:uniform2f(GLuint shader, cstring name, float a, float b)
+func void gl:uniform2f(GLuint shader, cstring name, float a, float b):
   const GLuint loc glGetUniformLocation(shader,name)
   glUniform2f loc a b
 end
 
-func void gl:uniform3f(GLuint shader, cstring name, float a, float b, float c)
+func void gl:uniform3f(GLuint shader, cstring name, float a, float b, float c):
   const GLuint loc (glGetUniformLocation shader name)
   glUniform3f loc a b c
 end
 
-func void gl:uniform4f(GLuint shader, cstring name, float a, float b, float c, float d)
+func void gl:uniform4f(GLuint shader, cstring name, float a, float b, float c, float d):
   const GLuint loc (glGetUniformLocation shader name)
   glUniform4f loc a b c d
 end
 
-func void gl:uniform4fv(GLuint shader, cstring name, float* vals)
+func void gl:uniform4fv(GLuint shader, cstring name, float* vals):
   const GLuint loc (glGetUniformLocation shader name)
   glUniform4fv loc 1 vals
 end
@@ -138,13 +138,13 @@ end
 /// Section: rendering utils
 ///-----------------------------------------------------------------------------
 
-template rendergl primitiveType code...
+template rendergl primitiveType code...:
   glBegin #primitiveType
   #code
   glEnd
 end
 
-template saveTransforms code...
+template saveTransforms code...:
   glMatrixMode GL_TEXTURE
   glPushMatrix()
   glMatrixMode GL_PROJECTION
@@ -160,29 +160,29 @@ template saveTransforms code...
   glPopMatrix()
 end
 
-template saveAttribs code...
+template saveAttribs code...:
   glPushAttrib GL_ALL_ATTRIB_BITS
   #code
   glPopAttrib
 end
 
-template withShader shader code
+template withShader shader code:
   glUseProgram #shader
   #code
   glUseProgram 0
 end
 
-func void renderStripes(float count, float size, float alpha)
+func void renderStripes(float count, float size, float alpha):
   const float left (float:sub 0. size)
   const float right size
   var float y (float:sub 0.0 size)
   var float step (float:fdiv (float:mul 2.0 size) count)
   var bool black false
   glBegin GL_QUADS
-  while (float:less y size)
-    if black
+  while (float:less y size):
+    if black:
       glColor4f 0. 0. 0. alpha
-    else
+    else:
       glColor4f 1. 1. 0. alpha
     end
     assign black (bool:not black)
@@ -195,8 +195,8 @@ func void renderStripes(float count, float size, float alpha)
   glEnd()
 end
 
-func void drawPausedOverlay()
-  saveAttribs
+func void drawPausedOverlay():
+  saveAttribs:
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     glMatrixMode GL_MODELVIEW
@@ -218,10 +218,10 @@ func void drawPausedOverlay()
   glfwSwapBuffers()
 end
 
-func void renderQuad(float size)
+func void renderQuad(float size):
   var float nsize (float:sub 0. size)
 
-  rendergl GL_QUADS
+  rendergl GL_QUADS:
     glTexCoord2f 0. 0.
     glVertex3f nsize nsize 0.
     glTexCoord2f 0. 1.
@@ -234,10 +234,10 @@ func void renderQuad(float size)
 end
 
 /// render a quad (lines only) from (-size,-size) to (size, size)
-func void renderQuadOutline(float size)
+func void renderQuadOutline(float size):
   var float nsize (float:sub 0. size)
 
-  rendergl GL_LINE_LOOP
+  rendergl GL_LINE_LOOP:
     glTexCoord2f 0. 0.
     glVertex3f nsize nsize 0.
     glTexCoord2f 0. 1.
@@ -250,10 +250,10 @@ func void renderQuadOutline(float size)
 end
 
 /// render a quad (lines only) from (0,0) to (size, size)
-func void renderQuadOutline01(float size)
+func void renderQuadOutline01(float size):
   var float nsize 0.0
 
-  rendergl GL_LINE_LOOP
+  rendergl GL_LINE_LOOP:
     glTexCoord2f 0. 0.
     glVertex3f nsize nsize 0.
     glTexCoord2f 0. 1.
@@ -265,10 +265,10 @@ func void renderQuadOutline01(float size)
   end
 end
 
-func void renderXZQuad(float size)
+func void renderXZQuad(float size):
   var float nsize (float:sub 0. size)
 
-  rendergl GL_QUADS
+  rendergl GL_QUADS:
     glTexCoord2f 0. 0.
     glVertex3f nsize 0. nsize
     glTexCoord2f 0. 1.
@@ -280,19 +280,19 @@ func void renderXZQuad(float size)
   end
 end
 
-func void sendLine(float sx, float sy, float sz, float ex, float ey, float ez)
+func void sendLine(float sx, float sy, float sz, float ex, float ey, float ez):
   glVertex3f sx sy sz
   glVertex3f ex ey ez
 end
 
 /// in XY plane, centered at 0,0,0, radius 1.0
-func void sendCircle()
+func void sendCircle():
   template vertex x y (glVertex3f #x #y 0.0)
 
   const float float:pi (float:mul 2.0 (acosf 0.0))
   const float step (float:fdiv 1.0 10.0)
   var float fangle 0.0
-  while (float:lessEqual fangle (float:add step (float:mul 2.0 float:pi)))
+  while (float:lessEqual fangle (float:add step (float:mul 2.0 float:pi))):
     vertex (sinf fangle) (cosf fangle)
     assign fangle (float:add fangle step)
   end
@@ -302,14 +302,14 @@ end
 /// Section: orientation functions
 ///-----------------------------------------------------------------------------
 
-func void drawCoordSys(float length)
-  template lineTo x y z
+func void drawCoordSys(float length):
+  template lineTo x y z:
     glColor4f #x #y #z 1.
     glVertex3f 0.0 0.0 0.0
     glVertex3f (length * #x) (length * #y) (length * #z)
   end
 
-  rendergl GL_LINES
+  rendergl GL_LINES:
     lineTo 1.0 0.0 0.0
     lineTo 0.0 1.0 0.0
     lineTo 0.0 0.0 1.0
@@ -320,27 +320,27 @@ end
  * Renders the orientation grid with user definable alpha. Assumes premultiplied
  * alpha
  */
-func void drawOrientationGrid2(float alpha, float brightness)
+func void drawOrientationGrid2(float alpha, float brightness):
   var float size 10.0
   var float msize (float:sub 0. size)
 
   br := brightness * alpha
 
-  template line xs ys zs to xd yd zd
+  template line xs ys zs to xd yd zd:
     glVertex3f #xs #ys #zs
     glVertex3f #xd #yd #zd
   end
-  template lineTo x y z
+  template lineTo x y z:
     glVertex3f 0. 0. 0.
     glVertex3f #x #y #z
   end
 
-  rendergl GL_LINES
+  rendergl GL_LINES:
     glColor4f br br br alpha
     lineTo 1. 0. 0.
     lineTo 0. 1. 0.
     lineTo 0. 0. 1.
-    for d -10 10
+    for d -10 10:
       var float df (int:toFloat d)
       glColor4f br 0. 0. alpha
       line 0. msize df to 0. size df
@@ -362,17 +362,17 @@ func void drawOrientationGrid2(float alpha, float brightness)
   end
 end
 
-func void drawOrientationGrid()
+func void drawOrientationGrid():
   drawOrientationGrid2(1.0, 1.0)
 end
 
-macro ffor index min max step code
+macro ffor index min max step code:
   uniqueId startLabel "for2_start"
   uniqueId endLabel "for2_exit"
   uniqueId testResult "for2_testvar"
   uniqueId execLabel "for2_body"
 
-  ret ${
+  ret ${seq:
     var float #index #min
     var bool #testResult false
 
@@ -390,37 +390,37 @@ macro ffor index min max step code
   end}
 end
 
-func void drawOrientationGridXZ(float size)
+func void drawOrientationGridXZ(float size):
   nsize := float:neg size
 
-  rendergl GL_LINES
+  rendergl GL_LINES:
     glColor3f 0. 1. 0.
-    ffor x nsize size 1.0
+    ffor x nsize size 1.0:
       glVertex3f x 0. nsize
       glVertex3f x 0. size
     end
 
-    ffor z nsize size 1.0
+    ffor z nsize size 1.0:
       glVertex3f nsize 0. z
       glVertex3f size 0. z
     end
   end
 end
 
-func void draw2dOrientationGrid()
-  template lineTo c x y z
+func void draw2dOrientationGrid():
+  template lineTo c x y z:
     glColor4f (#c * #x) (#c * #y) (#c * #z) 1.
     glVertex3f 0.0 0.0 0.0
     glVertex3f #x #y #z
   end
 
-  rendergl GL_LINES
+  rendergl GL_LINES:
     lineTo 1. 1. 0. 0.
     lineTo -0.5 -1. 0. 0.
     lineTo 1. 0. 1. 0.
     lineTo -0.5 0. -1. 0.
 
-    ffor p 0.0 1.0 0.1
+    ffor p 0.0 1.0 0.1:
       var float mp float:neg(p)
 
       glColor3f 1. 0. 0.
@@ -444,15 +444,15 @@ end
 
 //------------------------------------------------------------------------------
 
-func void autoSetupViewport()
+func void autoSetupViewport():
   var int width 0
   var int height 0
   glfwGetWindowSize (ptr width) (ptr height)
   glViewport 0 0 width height
 end
 
-func void makeGLIdentityTransforms()
-  template loadIdentity matrix
+func void makeGLIdentityTransforms():
+  template loadIdentity matrix:
     glMatrixMode #matrix
     glLoadIdentity()
   end
@@ -464,13 +464,13 @@ end
 
 //------------------------------------------------------------------------------
 
-macro makeGLFactory glgenF factoryName
+macro makeGLFactory glgenF factoryName:
   var ast* funcCall glgenF
   ast:addChild funcCall ${1}
   ast:addChild funcCall ${ptr name}
   var ast* nameAndParams ast:fromString("opcall")
   ast:addChild nameAndParams ast:fromString(getField factoryName id)
-  ret ${func GLuint #nameAndParams
+  ret ${func GLuint #nameAndParams:
     var GLuint name 0
     #funcCall
     ret name
@@ -481,17 +481,17 @@ makeGLFactory glGenFramebuffersEXT makeFramebuffer
 makeGLFactory glGenTextures makeTexture
 makeGLFactory glGenRenderbuffersEXT makeRenderbuffer
 
-func void glBindTexture2D(GLuint texture)
+func void glBindTexture2D(GLuint texture):
   glBindTexture GL_TEXTURE_2D texture
 end
 
-func int gl:getInteger(GLenum param)
+func int gl:getInteger(GLenum param):
   var int result 0
   glGetIntegerv param (ptr result)
   ret result
 end
 
-func float gl:getFloat(GLenum param)
+func float gl:getFloat(GLenum param):
   var float result 0.0
   glGetFloatv param (ptr result)
   ret result
@@ -501,7 +501,7 @@ end
 /// Section: framebuffer objects
 ///-----------------------------------------------------------------------------
 
-type Framebuffer
+type Framebuffer:
   int width
   int height
   GLuint fbo
@@ -511,7 +511,7 @@ type Framebuffer
   GLuint depthBuffer
 end
 
-func void "print_Framebuffer*"(Framebuffer* this)
+func void "print_Framebuffer*"(Framebuffer* this):
   println "Framebuffer"
   println "  width = " this.width
   println "  height = " this.height
@@ -522,13 +522,13 @@ func void "print_Framebuffer*"(Framebuffer* this)
   println "  depthBuffer = " this.depthBuffer
 end
 
-func void Framebuffer:init(Framebuffer* this, int width, int height)
+func void Framebuffer:init(Framebuffer* this, int width, int height):
   setFieldsTo this 0 fbo colorTexture colorBuffer depthTexture depthBuffer
   setField this width width
   setField this height height
 end
 
-func void Framebuffer:delete(Framebuffer* this)
+func void Framebuffer:delete(Framebuffer* this):
   setField this width 0
   setField this height 0
   glDeleteFramebuffersEXT 1 (fieldptr this fbo)
@@ -538,10 +538,10 @@ func void Framebuffer:delete(Framebuffer* this)
   glDeleteRenderbuffersEXT 1 (fieldptr this depthBuffer)
 end
 
-func void Framebuffer:attachColorTexture(Framebuffer* fbo)
+func void Framebuffer:attachColorTexture(Framebuffer* fbo):
   var GLuint texture (makeTexture)
   glBindTexture2D texture
-  template texParam param value
+  template texParam param value:
     glTexParameteri GL_TEXTURE_2D #param #value
   end
   texParam GL_TEXTURE_MIN_FILTER GL_LINEAR
@@ -551,10 +551,10 @@ func void Framebuffer:attachColorTexture(Framebuffer* fbo)
   glBindTexture2D 0
 end
 
-func void Framebuffer:attachDepthTexture(Framebuffer* fbo)
+func void Framebuffer:attachDepthTexture(Framebuffer* fbo):
   texture := makeTexture()
   glBindTexture2D texture
-  template texParam param value
+  template texParam param value:
     glTexParameteri GL_TEXTURE_2D #param #value
   end
   texParam GL_TEXTURE_MIN_FILTER GL_LINEAR
@@ -566,7 +566,7 @@ func void Framebuffer:attachDepthTexture(Framebuffer* fbo)
   fbo.depthTexture = texture
 end
 
-func void Framebuffer:create(Framebuffer* fbo)
+func void Framebuffer:create(Framebuffer* fbo):
   flushGLErrors()
 
   var GLuint fboName makeFramebuffer()
@@ -574,13 +574,13 @@ func void Framebuffer:create(Framebuffer* fbo)
 
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT fboName
 
-  if (fbo.depthTexture == 0)
+  if (fbo.depthTexture == 0):
     fbo.depthBuffer = makeRenderbuffer()
     glBindRenderbufferEXT GL_RENDERBUFFER_EXT fbo.depthBuffer
     glRenderbufferStorageEXT GL_RENDERBUFFER_EXT GL_DEPTH_COMPONENT24 (getField fbo width) (getField fbo height)
     glFramebufferRenderbufferEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_RENDERBUFFER_EXT fbo.depthBuffer
     glBindRenderbufferEXT GL_RENDERBUFFER_EXT 0
-  else
+  else:
     glFramebufferTexture2DEXT GL_FRAMEBUFFER_EXT GL_DEPTH_ATTACHMENT_EXT GL_TEXTURE_2D fbo.depthTexture 0
     fbo.depthBuffer = 0
   end
@@ -592,59 +592,59 @@ func void Framebuffer:create(Framebuffer* fbo)
   printGLError()
 end
 
-func cstring Framebuffer:statusToString(GLenum status)
-  if (GL_FRAMEBUFFER_COMPLETE_EXT == status)
+func cstring Framebuffer:statusToString(GLenum status):
+  if (GL_FRAMEBUFFER_COMPLETE_EXT == status):
     ret "Complete"
-  elseif (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT == status)
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT == status):
     ret "Incomplete attachment"
-  elseif (GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT == status)
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT == status):
     ret "Incomplete missing attachment"
-  elseif (GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT == status)
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT == status):
     ret "Incomplete dimensions"
-  elseif (GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT == status)
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT == status):
     ret "Incomplete formats"
-  elseif (GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT == status)
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT == status):
     ret "INCOMPLETE_DRAW_Buffer"
-  elseif (GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT == status)
+  elseif (GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT == status):
     ret "Incomplete read buffer"
-  elseif (GL_FRAMEBUFFER_UNSUPPORTED_EXT == status)
+  elseif (GL_FRAMEBUFFER_UNSUPPORTED_EXT == status):
     ret "Unsupported"
   end
 
   ret ("unknown " ++ toCString status)
 end
 
-func void Framebuffer:bind(Framebuffer* fbo)
+func void Framebuffer:bind(Framebuffer* fbo):
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT (getField fbo fbo)
   glViewport 0 0 (getField fbo width) (getField fbo height)
 end
 
-func void Framebuffer:unbind(Framebuffer* fbo)
+func void Framebuffer:unbind(Framebuffer* fbo):
   glBindFramebufferEXT GL_FRAMEBUFFER_EXT 0
 end
 
-func cstring Framebuffer:statusMessage(Framebuffer* this)
+func cstring Framebuffer:statusMessage(Framebuffer* this):
   Framebuffer:bind this
   status := glCheckFramebufferStatusEXT GL_FRAMEBUFFER_EXT
   Framebuffer:unbind this
   ret Framebuffer:statusToString(status)
 end
 
-func void Framebuffer:makeColorTexture(Framebuffer* fbo)
+func void Framebuffer:makeColorTexture(Framebuffer* fbo):
   glBindTexture2D (getField fbo colorTexture)
   glGenerateMipmapEXT GL_TEXTURE_2D
   glBindTexture2D 0
 end
 
-func void Framebuffer:makeDepthTexture(Framebuffer* this)
+func void Framebuffer:makeDepthTexture(Framebuffer* this):
   glBindTexture2D (getField this depthTexture)
   glGenerateMipmapEXT GL_TEXTURE_2D
   glBindTexture2D 0
 end
 
 
-template renderToTarget framebuffer code...
-  saveAttribs GL_VIEWPORT_BIT
+template renderToTarget framebuffer code...:
+  saveAttribs GL_VIEWPORT_BIT:
     Framebuffer:bind #framebuffer
     #code
     Framebuffer:unbind #framebuffer
@@ -653,24 +653,24 @@ end
 
 //------------------------------------------------------------------------------
 
-func bool isPressed(int key)
+func bool isPressed(int key):
   int:equal (glfwGetKey key) GL_TRUE
 end
 
 
-func void drawFullscreenQuad()
-  saveTransforms
+func void drawFullscreenQuad():
+  saveTransforms:
     makeGLIdentityTransforms
     glColor4f 1. 1. 1. 1.
     renderQuad 1.0
   end
 end
 
-func void showTexture(GLuint textureName)
+func void showTexture(GLuint textureName):
   glClearColor 0.0 0.0 0.0 1.0
   glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
-  saveTransforms
-    saveAttribs
+  saveTransforms:
+    saveAttribs:
       makeGLIdentityTransforms
       glScalef (float:add 0.5 0.25) 1.0 1.0
       glEnable GL_TEXTURE_2D
@@ -682,12 +682,12 @@ func void showTexture(GLuint textureName)
   end
 end
 
-func void showTextureAt(GLuint textureName, float x, float y, float width, float height)
-  saveAttribs
+func void showTextureAt(GLuint textureName, float x, float y, float width, float height):
+  saveAttribs:
     glEnable GL_TEXTURE_2D
     glBindTexture2D textureName
     glColor4f 1. 1. 1. 1.
-    rendergl GL_QUADS
+    rendergl GL_QUADS:
       glTexCoord2f 0. 0.
       glVertex3f x y 0.
       glTexCoord2f 1. 0.
@@ -702,9 +702,9 @@ func void showTextureAt(GLuint textureName, float x, float y, float width, float
   end
 end
 
-func int gl:texLevelParameteri(GLenum target, GLint level, GLenum pname)
+func int gl:texLevelParameteri(GLenum target, GLint level, GLenum pname):
   var int[4] value
-  for i 0 4
+  for i 0 4:
     zmp:array:set value i -1
   end
 
@@ -717,28 +717,28 @@ func int gl:texLevelParameteri(GLenum target, GLint level, GLenum pname)
   ret value[0]
 end
 
-func cstring GLenum:toString(GLenum enum)
+func cstring GLenum:toString(GLenum enum):
   ret glenum2cstring(enum)
 end
 
-func void GLenum:print(GLenum enum)
+func void GLenum:print(GLenum enum):
   print GLenum:toString(enum)
 end
 
-func void printTexture2DInfo(GLenum tex, cstring name)
-  macro printTexLevelParam param printF
+func void printTexture2DInfo(GLenum tex, cstring name):
+  macro printTexLevelParam param printF:
     paramName := cstring:quote param.id
 
-    ret ${
+    ret ${seq:
       print "  " #paramName " = "
       #printF gl:texLevelParameteri(GL_TEXTURE_2D, 0, #param)
       println()
     end}
   end
 
-  if (tex == 0)
+  if (tex == 0):
     println "Texture " name ", nr. 0 - not a texture"
-  else
+  else:
     glBindTexture2D tex
     println "Texture " name ", nr. " tex
     printTexLevelParam GL_TEXTURE_WIDTH print
@@ -758,8 +758,8 @@ func void printTexture2DInfo(GLenum tex, cstring name)
   end
 end
 
-macro mainloop body...
-  ret ${
+macro mainloop body...:
+  ret ${seq:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -769,7 +769,7 @@ macro mainloop body...
 
     zompSetRequestPause false
 
-    while running
+    while running:
       lastTime = time
       time = toFloat glfwGetTime()
       frameDuration = time - lastTime

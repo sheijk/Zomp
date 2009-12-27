@@ -25,14 +25,14 @@ var float math:sqrt1_2 0.707106781186547524400844362104849039
 /// Section: Util functions
 ///-----------------------------------------------------------------------------
 
-func float sqrf(float x)
+func float sqrf(float x):
   x * x
 end
 
-func float posmod(float x, float divisor)
+func float posmod(float x, float divisor):
   mod := fmodf(x, divisor)
 
-  if (mod < 0.0)
+  if (mod < 0.0):
     mod = divisor - float:neg(mod)
   end
 
@@ -42,12 +42,12 @@ end
 func float powf(float base, float exp)
 func double pow(double base, double exp)
 
-func int int:pow(int base, int exp)
+func int int:pow(int base, int exp):
   v := base
 
   remMults := exp
 
-  while (remMults > 1)
+  while (remMults > 1):
     v = v * base
     remMults = remMults - 1
   end
@@ -55,18 +55,18 @@ func int int:pow(int base, int exp)
   ret v
 end
 
-func float float:mix(float x, float a, float b)
+func float float:mix(float x, float a, float b):
   ret ( (1.0 - x) * a + x * b )
 end
 
-unittest:testCasesFor float:mix
+unittest:testCasesFor float:mix:
   float:mix 0.0 1.0 10.0 == 1.0
   float:mix 1.0 0.0 4.0 == 4.0
   float:mix 0.5 0.0 4.0 == 2.0
   float:mix 0.25 0.0 8.0 == 2.0
 end
 
-unittest:testCasesFor posmod
+unittest:testCasesFor posmod:
   posmod(0.0,2.0) == 0.0
   posmod(1.0,2.0) == 1.0
   posmod(2.0,2.0) == 0.0
@@ -82,73 +82,73 @@ end
 /// Section: vector math
 ///-----------------------------------------------------------------------------
 
-struct v3f
+struct v3f:
   float x y z
 end
 
-func v3f mv3f(float x, float y, float z)
+func v3f mv3f(float x, float y, float z):
   ret (structlit v3f x x y y z z)
 end
 
-func void v3f:print(v3f this)
+func void v3f:print(v3f this):
   print "v3f(x=" this.x ", y=" this.y ", z=" this.z ")"
 end
 
-ofunc void print(v3f this)
+ofunc void print(v3f this):
   v3f:print this
 end
 
-func float v3f:length(v3f this)
+func float v3f:length(v3f this):
   ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
 end
 
-func void v3f:set(v3f* this, float x, float y, float z)
+func void v3f:set(v3f* this, float x, float y, float z):
   this.x = x
   this.y = y
   this.z = z
 end
 
-ofunc bool op==(v3f l, v3f r)
+ofunc bool op==(v3f l, v3f r):
   ret ((l.x==r.x) && (l.y==r.y) && (l.z==r.z))
 end
 
-ofunc v3f op+(v3f l, v3f r)
+ofunc v3f op+(v3f l, v3f r):
   ret (structlit v3f x (l.x+r.x) y (l.y+r.y) z (l.z+r.z))
 end
 
-ofunc v3f op-(v3f l, v3f r)
+ofunc v3f op-(v3f l, v3f r):
   ret (structlit v3f x (l.x-r.x) y (l.y-r.y) z (l.z-r.z))
 end
 
-func float op*_dot(v3f l, v3f r)
+func float op*_dot(v3f l, v3f r):
   ret (l.x*r.x + l.y*r.y + l.z*r.z)
 end
 
-func v3f op*_cross(v3f l, v3f r)
+func v3f op*_cross(v3f l, v3f r):
   ret (structlit v3f x (l.y*r.z - l.z*r.y) y (l.z*r.x - l.x*r.z) z (l.x*r.y - l.y*r.x))
 end
 
-ofunc v3f op*(v3f v, float factor)
+ofunc v3f op*(v3f v, float factor):
   ret (structlit v3f x (v.x * factor) y (v.y * factor) z (v.z * factor))
 end
 
-ofunc v3f op*(float factor, v3f v)
+ofunc v3f op*(float factor, v3f v):
   ret (v * factor)
 end
 
-func v3f v3f:normalized(v3f v)
+func v3f v3f:normalized(v3f v):
   l := 1.0 / v3f:length(v)
   ret mv3f(v.x * l, v.y * l, v.z * l)
 end
 
-func void v3f:makeNormalized(v3f* pv)
+func void v3f:makeNormalized(v3f* pv):
   l := 1.0 / v3f:length pv*
   pv.x = pv.x * l
   pv.y = pv.y * l
   pv.z = pv.z * l
 end
 
-func v3f v3f:lerp(float t, v3f a, v3f b)
+func v3f v3f:lerp(float t, v3f a, v3f b):
   ret ((1. - t) * a + t * b)
 end
 
@@ -156,13 +156,13 @@ end
 /// Section: rigid body transformations
 ///-----------------------------------------------------------------------------
 
-struct RBTransform
+struct RBTransform:
   v3f origin
   v3f xaxis yaxis zaxis
   float scale
 end
 
-ofunc void print(RBTransform t)
+ofunc void print(RBTransform t):
   println "RBTransform:"
   println "  xaxis = " t.xaxis
   println "  yaxis = " t.yaxis
@@ -171,7 +171,7 @@ ofunc void print(RBTransform t)
   println "  scale  = " t.scale
 end
 
-func void makeOrigin(RBTransform* this)
+func void makeOrigin(RBTransform* this):
   this.origin = mv3f 0. 0. 0.
   this.xaxis = mv3f 1. 0. 0.
   this.yaxis = mv3f 0. 1. 0.
@@ -179,13 +179,13 @@ func void makeOrigin(RBTransform* this)
   this.scale = 1.0
 end
 
-func void RBTransform:makeNormalized(RBTransform* this)
+func void RBTransform:makeNormalized(RBTransform* this):
   v3f:makeNormalized &this.xaxis
   v3f:makeNormalized &this.yaxis
   v3f:makeNormalized &this.zaxis
 end
 
-func void RBTransform:setAxisScales(RBTransform* this, v3f lengths)
+func void RBTransform:setAxisScales(RBTransform* this, v3f lengths):
   v3f:makeNormalized &this.xaxis
   this.xaxis = this.xaxis * lengths.x
   v3f:makeNormalized &this.yaxis
@@ -198,7 +198,7 @@ end
 /// Section: triangles
 ///-----------------------------------------------------------------------------
 
-func float triangleArea(v3f v1, v3f v2, v3f v3)
+func float triangleArea(v3f v1, v3f v2, v3f v3):
   a := v1 *_cross v2
   b := v2 *_cross v3
   c := v3 *_cross v1
@@ -210,11 +210,11 @@ end
 /// Section: bounding boxes
 ///-----------------------------------------------------------------------------
 
-struct AABB
+struct AABB:
   v3f min max
 end
 
-func void AABB:init(AABB* this)
+func void AABB:init(AABB* this):
   this.min.x = 0.0
   this.min.y = 0.0
   this.min.z = 0.0
@@ -223,28 +223,28 @@ func void AABB:init(AABB* this)
   this.max.z = 0.0
 end
 
-func void AABB:print(AABB* this)
+func void AABB:print(AABB* this):
   print "AABB(min: x=" this.min.x ", y=" this.min.y ", z=" this.min.z
   print " max: x=" this.max.x ", y=" this.max.y ", z=" this.max.z ")"
 end
 
-func void AABB:diagonal(v3f* result, AABB* this)
+func void AABB:diagonal(v3f* result, AABB* this):
   result.x = this.max.x - this.min.x
   result.y = this.max.y - this.min.y
   result.z = this.max.z - this.min.z
 end
 
-func float AABB:diagonalLength(AABB* this)
+func float AABB:diagonalLength(AABB* this):
   var v3f diag
   AABB:diagonal &diag this
   ret v3f:length(diag)
 end
 
-func v3f AABB:center(AABB* this)
+func v3f AABB:center(AABB* this):
   ret (0.5 * (this*.min + this*.max))
 end
 
-ofunc void print(AABB this)
+ofunc void print(AABB this):
   print "AABB(" this.min ", " this.max ")"
 end
 
@@ -252,18 +252,18 @@ end
 /// Section: coordinate systems
 ///-----------------------------------------------------------------------------
 
-struct OrthoBasis3D
+struct OrthoBasis3D:
   v3f xaxis yaxis zaxis
 end
 
-ofunc void print(OrthoBasis3D basis)
+ofunc void print(OrthoBasis3D basis):
   println "OrthoBasis3D"
   println "  xaxis = " basis.xaxis
   println "  yaxis = " basis.yaxis
   println "  zaxis = " basis.zaxis
 end
 
-func OrthoBasis3D makeOrthoBasis(v3f vec)
+func OrthoBasis3D makeOrthoBasis(v3f vec):
   var OrthoBasis3D basis
   var v3f v
 
@@ -271,13 +271,13 @@ func OrthoBasis3D makeOrthoBasis(v3f vec)
   ya := fabsf vec.y
   za := fabsf vec.z
 
-  if ((xa <= ya) && (xa <= za))
+  if ((xa <= ya) && (xa <= za)):
     println "x"
     v = mv3f 0. float:neg(vec.z) vec.y
-  elseif ((ya <= xa) && (ya <= za))
+  elseif ((ya <= xa) && (ya <= za)):
     println "y"
     v = mv3f float:neg(vec.z) 0. vec.x
-  elseif ((za <= xa) && (za <= ya))
+  elseif ((za <= xa) && (za <= ya)):
     println "z"
     v = mv3f float:neg(vec.y) vec.x 0.
   end
@@ -296,15 +296,15 @@ end
 ///-----------------------------------------------------------------------------
 
 // deprecated
-struct float3
+struct float3:
   float x y z
 end
 
-func void float3:print(float3* this)
+func void float3:print(float3* this):
   print "float3(x=" this.x ", y=" this.y ", z=" this.z ")"
 end
 
-func float float3:length(float3* this)
+func float float3:length(float3* this):
   ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
 end
 

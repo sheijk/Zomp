@@ -4,11 +4,11 @@
 
 require "libs/libcee.zomp"
 
-func cstring Array:nameForType(cstring typeName)
+func cstring Array:nameForType(cstring typeName):
   typeName ++ "_Array"
 end
 
-macro defineArrayType type
+macro defineArrayType type:
   arrayTypeName := Array:nameForType type.id
   initFuncName := arrayTypeName ++ ":init"
 
@@ -21,18 +21,18 @@ macro defineArrayType type
   ast:addChild releaseDecl ast:fromString(arrayTypeName ++ ":release")
   ast:addChild releaseDecl ${#arrayTypeName* this}
 
-  code := ${
-    struct #arrayTypeName
+  code := ${seq:
+    struct #arrayTypeName:
       int length
       #type* elements
     end
 
-    func void #initDecl
+    func void #initDecl:
       this.length = size
       this.elements = malloc(#type, size)
     end
 
-    func void #releaseDecl
+    func void #releaseDecl:
       this.length = 0
       free (cast void* this.elements)
       this.elements = nullptr #type
@@ -42,29 +42,29 @@ macro defineArrayType type
   ret code
 end
 
-macro newArray type size
+macro newArray type size:
   arrayTypeName := Array:nameForType type.id
-  ret ${
+  ret ${seq:
     new #arrayTypeName #size
   end}
 end
 
-macro makeArray type size
+macro makeArray type size:
   arrayTypeName := Array:nameForType type.id
-  ret ${
+  ret ${seq:
     local #arrayTypeName #size
   end}
 end
 
-template aptr array index
+template aptr array index:
   ptradd getField(#array, elements) #index
 end
 
-template aget array index
+template aget array index:
   load aptr(#array, #index)
 end
 
-template aset array index value
+template aset array index value:
   store aptr(#array, #index) #value
 end
 
@@ -76,31 +76,31 @@ end
 //   store (ptradd getField(#array, elements) #index) #value
 // end
 
-macro array:setAll array value
+macro array:setAll array value:
   uniqueId size "lala"
   uniqueId i "lala"
 
-  ret ${
+  ret ${seq:
     size := getField(#array, length)
-    for #i 0 size
+    for #i 0 size:
       aset #array #i #value
     end
   end}
 end
 
-macro Array:foreach array indexVar code
+macro Array:foreach array indexVar code:
   uniqueId count "array_size"
 
-  ret ${for #indexVar 0 #array.length
+  ret ${for #indexVar 0 #array.length:
     #code
   end}
 end
 
-macro printArray array name printMemberF
+macro printArray array name printMemberF:
   uniqueId counter "printArray"
-  ret ${
+  ret ${seq:
     println #array.length " " #name ": "
-    Array:foreach #array #counter
+    Array:foreach #array #counter:
       #printMemberF aptr(#array, #counter)
     end
   end}

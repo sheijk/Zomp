@@ -23,28 +23,28 @@ require "libs/libcee.zomp"
 ///     10.0 [0 childs]
 ///   x [0 childs]
 ///
-macro unittest:assert testCode
+macro unittest:assert testCode:
   isCompare := false
   compareF := ast:fromString "op=="
 
-  if ast:matchesShape(testCode, ${__ == __})
+  if ast:matchesShape(testCode, ${__ == __}):
     isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_f __})
+  elseif ast:matchesShape(testCode, ${__ ==_f __}):
     isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_str __})
+  elseif ast:matchesShape(testCode, ${__ ==_str __}):
     isCompare = true
     compareF = ast:fromString "op==_str"
   end
 
-  if isCompare
+  if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${
+    ret ${seq:
       #lvar := #l
       #rvar := #r
-      unless (#compareF #lvar #rvar)
+      unless (#compareF #lvar #rvar):
         ++unittest:failedCount
         printHLine '-' 40
         printlnString "Assertion failed"
@@ -57,9 +57,9 @@ macro unittest:assert testCode
         ast:print ${#testCode} 0
       end
     end}
-  else
-    ret ${
-      unless #testCode
+  else:
+    ret ${seq:
+      unless #testCode:
         ++unittest:failedCount
         printHLine '-' 40
         printlnString "Assertion failed"
@@ -71,8 +71,8 @@ macro unittest:assert testCode
   ret ${}
 end
 
-func int unittest:printReport()
-  if (unittest:failedCount > 0)
+func int unittest:printReport():
+  if (unittest:failedCount > 0):
     println unittest:failedCount " tests failed"
     ret 1
   end
@@ -81,14 +81,14 @@ func int unittest:printReport()
   ret 0
 end
 
-struct TestCase
+struct TestCase:
   cstring name
   cstring functionName
   // (fptr void) function
   TestCase* next
 end
 
-func void TestCase:print(TestCase* this)
+func void TestCase:print(TestCase* this):
   printString "TestCase(name="
   printString getField(this,name)
   printString ", functionName="
@@ -96,17 +96,17 @@ func void TestCase:print(TestCase* this)
   printlnString ")"
 end
 
-func void TestCase:printAll(TestCase* this)
-  unless (this == nullptr TestCase)
+func void TestCase:printAll(TestCase* this):
+  unless (this == nullptr TestCase):
     TestCase:print this
     TestCase:printAll getField(this,next)
   end
 end
 
-func int TestCase:count(TestCase* this)
+func int TestCase:count(TestCase* this):
   var TestCase* current this
   var int count 0
-  while (current != nullptr TestCase)
+  while (current != nullptr TestCase):
     assign count (count + 1)
     assign current getField(current,next)
   end
@@ -115,11 +115,11 @@ end
 
 var TestCase* unittest:testCases null
 
-macro unittest:testCaseCount
+macro unittest:testCaseCount:
   ret ast:fromInt(TestCase:count unittest:testCases)
 end
 
-func TestCase* unittest:registerTestCase(cstring name)
+func TestCase* unittest:registerTestCase(cstring name):
   var TestCase* case malloc(TestCase)
 
   setField case name name
@@ -130,20 +130,20 @@ func TestCase* unittest:registerTestCase(cstring name)
   ret case
 end
 
-macro unittest:testCase name code
+macro unittest:testCase name code:
   var TestCase* case unittest:registerTestCase(name.id)
   var cstring funcName (getField case functionName)
-  ret ${
-    func void #funcName()
+  ret ${seq:
+    func void #funcName():
       #code
     end
   end}
 end
 
-macro unittest:runAllTestCases
+macro unittest:runAllTestCases:
   var ast* code ${}
   var TestCase* case unittest:testCases
-  while (case != nullptr TestCase)
+  while (case != nullptr TestCase):
     var cstring functionName getField(case, functionName)
     ast:addChild code ${#functionName()}
 
@@ -154,8 +154,8 @@ macro unittest:runAllTestCases
 end
 
 
-template unittest:main extraCode...
-  func int main()
+template unittest:main extraCode...:
+  func int main():
     #extraCode
     unittest:runAllTestCases
     ret unittest:printReport()

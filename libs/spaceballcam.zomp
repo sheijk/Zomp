@@ -13,7 +13,7 @@ type degree float
 ///
 /// A camera defined by longitude, latitude and distance
 ///
-struct SpaceballCamera
+struct SpaceballCamera:
   /// angle between z-axis and rotation around y-axis
   degree longitude
 
@@ -23,31 +23,31 @@ struct SpaceballCamera
   degree distance
 end
 
-func void SpaceballCamera:init(SpaceballCamera* this)
+func void SpaceballCamera:init(SpaceballCamera* this):
   this.latitude = 0.0f
   this.longitude = 0.0f
   this.distance = 1.0f
 end
 
-func void SpaceballCamera:rotate(SpaceballCamera* this)
+func void SpaceballCamera:rotate(SpaceballCamera* this):
   glTranslatef 0. 0. float:neg(this.distance)
   glRotatef this.latitude 1. 0. 0.
   glRotatef this.longitude 0. 1. 0.
 end
 
-func void SpaceballCamera:rotateInv(SpaceballCamera* this)
+func void SpaceballCamera:rotateInv(SpaceballCamera* this):
   glRotatef float:neg(this.longitude) 0. 1. 0.
   glRotatef float:neg(this.latitude) 1. 0. 0.
   glTranslatef 0. 0. this.distance
 end
 
-func void SpaceballCamera:applyToGL(SpaceballCamera* this)
+func void SpaceballCamera:applyToGL(SpaceballCamera* this):
   // glMatrixMode GL_MODELVIEW
   // glLoadIdentity()
   SpaceballCamera:rotate(this)
 end
 
-func void SpaceballCamera:restrictParams(SpaceballCamera* this)
+func void SpaceballCamera:restrictParams(SpaceballCamera* this):
   this.longitude = posmod this.longitude 360.0f
   this.latitude = float:clamp float:neg(90.0) 90.0 this.latitude
   this.distance = float:max 0.0 this.distance

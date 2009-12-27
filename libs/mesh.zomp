@@ -13,7 +13,7 @@ require "libs/glutils.zomp"
 /// Section: Meshes
 ///-----------------------------------------------------------------------------
 
-struct VertexStream
+struct VertexStream:
   int size
   int components
   cstring name
@@ -27,26 +27,26 @@ end
 var cstring VertexStream:positionStream "gl_Position"
 var cstring VertexStream:normalStream "gl_Normal"
 
-func cstring VertexStream:internalizeDefaultName(cstring streamName)
-  if (streamName ==_str VertexStream:positionStream)
+func cstring VertexStream:internalizeDefaultName(cstring streamName):
+  if (streamName ==_str VertexStream:positionStream):
     ret VertexStream:positionStream
-  elseif (streamName ==_str VertexStream:normalStream)
+  elseif (streamName ==_str VertexStream:normalStream):
     ret VertexStream:normalStream
   end
 
   ret streamName
 end
 
-func void VertexStream:init(VertexStream* this, cstring name, int components, int size, GLenum type)
+func void VertexStream:init(VertexStream* this, cstring name, int components, int size, GLenum type):
   this.size = size
   this.components = components
   this.name = VertexStream:internalizeDefaultName name
   this.type = type
   this.defaultComp = false
 
-  if (type == GL_FLOAT)
+  if (type == GL_FLOAT):
     this.data = cast void* malloc(float, size * components)
-  else
+  else:
     printString "Warning: unsupported data type: "
     println type
     this.size = 0
@@ -57,18 +57,18 @@ func void VertexStream:init(VertexStream* this, cstring name, int components, in
   end
 end
 
-func void VertexStream:delete(VertexStream* this)
+func void VertexStream:delete(VertexStream* this):
   free this.data
   this.name = "_already_deleted_"
 end
 
-func void VertexStream:print(VertexStream* this)
+func void VertexStream:print(VertexStream* this):
   print "VertexStream("
   print "name=" this.name
-  if this.defaultComp
+  if this.defaultComp:
     print " (default)"
   end
-  if (VertexStream:internalizeDefaultName this.name !=_ptr this.name)
+  if (VertexStream:internalizeDefaultName this.name !=_ptr this.name):
     print " (attention: default name name not internalized)"
   end
   print ", size=" this.size
@@ -76,20 +76,20 @@ func void VertexStream:print(VertexStream* this)
   print ", type=" glenum2cstring(this.type) ")"
 end
 
-macro VertexStream:foreach stream type dataPtr code
+macro VertexStream:foreach stream type dataPtr code:
   uniqueId index "vertexIndex"
-  ret ${
-    for #index 0 #stream.size
+  ret ${seq:
+    for #index 0 #stream.size:
       #dataPtr := ptradd(cast #type* #stream.data, #index * #stream.components)
       #code
     end
   end}
 end
 
-func void VertexStream:printDetailed(VertexStream* this)
-  VertexStream:foreach this float f
+func void VertexStream:printDetailed(VertexStream* this):
+  VertexStream:foreach this float f:
     printString "    "
-    for cnum 0 this.components
+    for cnum 0 this.components:
       printFloat load(f +_ptr cnum)
       printChar ' '
     end
@@ -97,12 +97,12 @@ func void VertexStream:printDetailed(VertexStream* this)
   end
 end
 
-func v3f VertexStream:get3f(VertexStream* this, int index)
+func v3f VertexStream:get3f(VertexStream* this, int index):
   v := cast float* this.data + index * this.components
   ret (structlit v3f x (v)* y (v+1)* z (v+2)*)
 end
 
-func void VertexStream:set3f(VertexStream* this, int index, v3f p)
+func void VertexStream:set3f(VertexStream* this, int index, v3f p):
   assert (index < this.size)
   v := cast float* this.data + this.components * index
   (v+0)* = p.x
@@ -110,18 +110,18 @@ func void VertexStream:set3f(VertexStream* this, int index, v3f p)
   (v+2)* = p.z
 end
 
-func void VertexStream:clear(VertexStream* this)
+func void VertexStream:clear(VertexStream* this):
   assert (this.type == GL_FLOAT)
   data := cast float* this.data
 
-  for i 0 (this.size*this.components)
+  for i 0 (this.size*this.components):
     (data + i)* = 0.0
   end
 end
 
 /// A mesh is a collection of vertex streams. Streams will be bound to GLSL
 /// vertex attributes of the same name.
-struct Mesh
+struct Mesh:
   VertexStream* positions
   VertexStream* normals
   VertexStream* colors
@@ -132,7 +132,7 @@ struct Mesh
   GLenum geometry_kind
 end
 
-func void Mesh:init(Mesh* this, int streamCount)
+func void Mesh:init(Mesh* this, int streamCount):
   this.positions = nullptr VertexStream
   this.normals = nullptr VertexStream
   this.colors = nullptr VertexStream
@@ -143,25 +143,25 @@ func void Mesh:init(Mesh* this, int streamCount)
   this.geometry_kind = GL_TRIANGLES
 end
 
-macro Mesh:foreachStream mesh streamptr code
+macro Mesh:foreachStream mesh streamptr code:
   uniqueId streamnum "Mesh:foreachStream"
-  ret ${
-    for #streamnum 0 #mesh.streamCount
+  ret ${seq:
+    for #streamnum 0 #mesh.streamCount:
       #streamptr := ptradd #mesh.streams #streamnum
       #code
     end
   end}
 end
 
-func void Mesh:print(Mesh* this)
+func void Mesh:print(Mesh* this):
   println "Mesh"
   println "  streamCount=" this.streamCount
 
-  macro printVS stream
+  macro printVS stream:
     name := cstring:quote stream.id
 
-    ret ${
-      if (this.#stream !=_ptr nullptr VertexStream)
+    ret ${seq:
+      if (this.#stream !=_ptr nullptr VertexStream):
         print #name " "
       end
     end}
@@ -171,21 +171,21 @@ func void Mesh:print(Mesh* this)
   printVS positions
   printVS normals
   printVS colors
-  if (this.texCoordSetCount > 0)
+  if (this.texCoordSetCount > 0):
     print "texCoords[" this.texCoordSetCount "]"
   end
   println()
 
-  for streamnum 0 this.streamCount
+  for streamnum 0 this.streamCount:
     printString "  "
     VertexStream:print ptradd(this.streams, streamnum)
     println()
   end
 end
 
-func void Mesh:printDetailed(Mesh* this)
+func void Mesh:printDetailed(Mesh* this):
   printlnString "Mesh"
-  for snum 0 this.streamCount
+  for snum 0 this.streamCount:
     printString "  "
     VertexStream:print (ptradd this.streams snum)
     println()
@@ -193,26 +193,26 @@ func void Mesh:printDetailed(Mesh* this)
   end
 end
 
-func void Mesh:setupDefaultStreams(Mesh* this)
+func void Mesh:setupDefaultStreams(Mesh* this):
   this.positions = nullptr VertexStream
   this.normals = nullptr VertexStream
   this.colors = nullptr VertexStream
   this.texCoordSetCount = 0
   this.texCoords = nullptr VertexStream
 
-  Mesh:foreachStream this stream
+  Mesh:foreachStream this stream:
     stream.defaultComp = true
-    if (stream.name ==_str "gl_Position")
+    if (stream.name ==_str "gl_Position"):
       this.positions = stream
-    elseif (stream.name ==_str "gl_Normal")
+    elseif (stream.name ==_str "gl_Normal"):
       this.normals = stream
-    elseif (stream.name ==_str "gl_Color")
+    elseif (stream.name ==_str "gl_Color"):
       this.colors = stream
-    elseif (strncmp stream.name "gl_TexCoords" 12 == 0)
+    elseif (strncmp stream.name "gl_TexCoords" 12 == 0):
       print "warning: ignoring tex coords stream '" stream.name "'"
       print " (not implemented, yet)"
       println()
-    else
+    else:
       stream.defaultComp = false
     end
   end
@@ -228,25 +228,25 @@ end
 ///
 /// Mesh:print box
 ///
-macro Mesh:define mesh size streams
+macro Mesh:define mesh size streams:
   streamCount := streams.childCount
 
-  code := ${
+  code := ${seq:
     #mesh := malloc Mesh
     #mesh.streamCount = #streamCount
     #mesh.streams = malloc(VertexStream, #streamCount)
     #mesh.geometry_kind = GL_TRIANGLES
   end}
 
-  for streamnum 0 streamCount
+  for streamnum 0 streamCount:
     stream := ast:child streams streamnum
-    if ast:matchesShape(stream, ${_ _ _})
+    if ast:matchesShape(stream, ${_ _ _}):
       name := ast:child stream 0
       nameQ := cstring:quote name.id
       type := ast:child stream 1
       components := ast:child stream 2
       ast:addChild code ${VertexStream:init (ptradd #mesh.streams #streamnum) #nameQ #components #size #type}
-    else
+    else:
       ret ${error "Expected 'name type components'" stream}
     end
   end
@@ -256,8 +256,8 @@ macro Mesh:define mesh size streams
   ret code
 end
 
-func void Mesh:delete(Mesh* this)
-  Mesh:foreachStream this stream
+func void Mesh:delete(Mesh* this):
+  Mesh:foreachStream this stream:
     VertexStream:delete stream
   end
   nullstr := nullptr VertexStream
@@ -269,22 +269,22 @@ func void Mesh:delete(Mesh* this)
   this.streams = nullstr
 end
 
-func void VertexStream:swapComponents(VertexStream* this, int from, int to)
-  VertexStream:foreach this float ptr
+func void VertexStream:swapComponents(VertexStream* this, int from, int to):
+  VertexStream:foreach this float ptr:
     swap (ptradd ptr to)* (ptradd ptr from)*
   end
 end
 
-func void Mesh:swapComponents(Mesh* this, int from, int to)
-  Mesh:foreachStream this stream
+func void Mesh:swapComponents(Mesh* this, int from, int to):
+  Mesh:foreachStream this stream:
     VertexStream:swapComponents stream from to
   end
 end
 
-func void Mesh:send(Mesh* this)
+func void Mesh:send(Mesh* this):
   positions := cast float* (ptradd this.streams 0)*.data
   normals := cast float* (ptradd this.streams 1)*.data
-  for i 0 (this.streams)*.size
+  for i 0 (this.streams)*.size:
     glNormal3fv normals
     glVertex3fv positions
     positions = positions +_ptr 3
@@ -314,24 +314,24 @@ end
 //   glDisableClientState GL_VERTEX_ARRAY
 // end
 
-func void Mesh:render(Mesh* this, GLint mode, GLint shader)
-  if (this.positions !=_ptr nullptr VertexStream)
+func void Mesh:render(Mesh* this, GLint mode, GLint shader):
+  if (this.positions !=_ptr nullptr VertexStream):
     glEnableClientState GL_VERTEX_ARRAY
     glVertexPointer (this.positions)*.components (this.positions)*.type 0 (this.positions)*.data
   end
 
-  if (this.normals !=_ptr nullptr VertexStream)
+  if (this.normals !=_ptr nullptr VertexStream):
     glEnableClientState GL_NORMAL_ARRAY
     glNormalPointer (this.normals)*.type 0 (this.normals)*.data
   end
 
-  if (this.colors !=_ptr nullptr VertexStream)
+  if (this.colors !=_ptr nullptr VertexStream):
     glEnableClientState GL_COLOR_ARRAY
     glColorPointer (this.colors)*.type (this.colors)*.type 0 (this.colors)*.data
   end
 
-  Mesh:foreachStream this stream
-    unless stream.defaultComp
+  Mesh:foreachStream this stream:
+    unless stream.defaultComp:
       // flushGLErrors()
       loc := glGetAttribLocation shader stream.name
       // printGLError()
@@ -347,8 +347,8 @@ func void Mesh:render(Mesh* this, GLint mode, GLint shader)
   glDisableClientState GL_COLOR_ARRAY
 end
 
-func void Mesh:showNormals(Mesh* this)
-  if (isNull this.normals)
+func void Mesh:showNormals(Mesh* this):
+  if (isNull this.normals):
     ret void
   end
 
@@ -356,8 +356,8 @@ func void Mesh:showNormals(Mesh* this)
   normal := cast float* (this*.normals)*.data
 
   glColor3f 1. 1. 1.
-  rendergl GL_LINES
-    for normalNum 0 (this*.normals)*.size
+  rendergl GL_LINES:
+    for normalNum 0 (this*.normals)*.size:
       glVertex3fv vertex
       glVertex3f (*(vertex+0) + *(normal+0)) (*(vertex+1) + *(normal+1)) (*(vertex+2) + *(normal+2)) 
 
@@ -368,14 +368,14 @@ func void Mesh:showNormals(Mesh* this)
 end
 
 
-func void Mesh:calcAABB(AABB* result, Mesh* this)
+func void Mesh:calcAABB(AABB* result, Mesh* this):
   var AABB bb
   AABB:init &bb
 
   posStream := this.streams
   positions := cast float* posStream.data
 
-  for vnum 0 posStream*.size
+  for vnum 0 posStream*.size:
     x := *(positions + 0)
     y := *(positions + 1)
     z := *(positions + 2)

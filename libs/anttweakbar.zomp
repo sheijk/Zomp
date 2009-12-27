@@ -65,14 +65,14 @@ dfunc int TwAddSeparator(TwBar* bar, cstring name, cstring def)
 dfunc int TwRemoveVar(TwBar* bar, cstring name)
 dfunc int TwRemoveAllVars(TwBar* bar)
 
-type TwEnumVal
+type TwEnumVal:
   int value
   cstring label
 end
 
 type size_t u32
 
-type TwStructMember
+type TwStructMember:
   cstring name
   TwType type
   size_t offset
@@ -122,7 +122,7 @@ const int TW_KMOD_CTRL 192 // 0x00c0
 const int TW_KMOD_ALT 0x0100
 const int TW_KMOD_META 3072 // 0x0c00
 
-type KeySpecial int
+type KeySpecial int:
     // TW_KEY_BACKSPACE    = '\b',
     // TW_KEY_TAB          = '\t',
     // TW_KEY_CLEAR        = 0x0c,
@@ -192,10 +192,10 @@ dfunc void TwHandleErrors(TwErrorHandler errorHandler)
 dfunc int TwEventMouseButtonGLFW(int glfwButton, int glfwAction)
 dfunc int TwEventKeyGLFW(int glfwKey, int glfwAction)
 dfunc int TwEventCharGLFW(int glfwChar, int glfwAction)
-func int TwEventMousePosGLFW(int mouseX, int mouseY)
+func int TwEventMousePosGLFW(int mouseX, int mouseY):
   ret TwMouseMotion(mouseX, mouseY)
 end
-func int TwEventMouseWheelGLFW(int pos)
+func int TwEventMouseWheelGLFW(int pos):
   ret TwMouseWheel(pos)
 end
 

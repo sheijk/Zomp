@@ -957,15 +957,15 @@ struct
     let enums = Utils.mapFilter (function Constant c -> Some c | _ -> None) exprs in
     let enumToStringFunc =
       let elseifs = List.map
-        (fun c -> sprintf "  elseif (enum == %s)\n    ret \"%s\"" c.name c.name)
+        (fun c -> sprintf "  elseif (enum == %s):\n    ret \"%s\"" c.name c.name)
         enums
       in
       let impl =
-        "  if false\n    ret \"internal error\"\n" ^
+        "  if false:\n    ret \"internal error\"\n" ^
           Utils.concat elseifs "\n" ^
           "\n  end\n"
       in
-      sprintf "func cstring glenum2cstring(GLenum enum)\n%s\n  ret \"unknown\"\nend\n" impl
+      sprintf "func cstring glenum2cstring(GLenum enum):\n%s\n  ret \"unknown\"\nend\n" impl
     in
     enumToStringFunc ^ "\n\n"
 

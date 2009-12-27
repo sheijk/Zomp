@@ -29,70 +29,70 @@ template dealloc ptr free(cast void* #ptr)
 ///
 /// Declares a function. Use this to prevent emacs indentation in next line :)
 ///
-template funcd rettype nameAndArgs
+template funcd rettype nameAndArgs:
   std:base:func #rettype #nameAndArgs
 end
 
-template macro:failUnless cond
-  unless #{cond}
+template macro:failUnless cond:
+  unless #{cond}:
     ret ${error expression is false #{cond}}
   end
 end
 
-macro uniqueIds purpose ids...
+macro uniqueIds purpose ids...:
   var ast* code ${seq}
 
-  forEachAstChild child ids
+  forEachAstChild child ids:
     ast:addChild code ${uniqueIds #child #purpose}
   end
 
   ret code
 end
 
-template op| l r
+template op| l r:
   int:or #l #r
 end
 
-template op& l r
+template op& l r:
   int:and #l #r
 end
 
-macro op|| l r
+macro op|| l r:
   uniqueId result "||"
 
-  ret ${
+  ret ${seq:
     #result := false
-    if #l
+    if #l:
       #result = true
-    elseif #r
+    elseif #r:
       #result = true
     end
     #result
   end}
 end
 
-macro op&& l r
+macro op&& l r:
   uniqueId result "&&"
 
-  ret ${
+  ret ${seq:
     #result := false
-    if #l
+    if #l:
       #result = #r
     end
     #result
   end}
 end
 
-template op==_str left right
+template op==_str left right:
   strcmp(#left, #right) == 0
 end
 
-template op!=_str left right
+template op!=_str left right:
   strcmp(#left, #right) != 0
 end
 
-macro op:= name value
-  if (getField(name, childCount) == 0)
+macro op:= name value:
+  if (getField(name, childCount) == 0):
     ret ${var2 #name #value}
   end
   ret ${error "Expected a single identifier on left hand side" ${#name := #value}}
@@ -100,9 +100,9 @@ end
 
 /// Allow unitialized variables to be created like
 ///   num := undef int
-macro undef type
+macro undef type:
   uniqueId name "undef_value"
-  ret ${
+  ret ${seq:
     var #type #name
     #name
   end}
@@ -110,7 +110,7 @@ end
 
 //------------------------------------------------------------------------------
 
-type astList
+type astList:
   ast* ast
   astList* next
 end
@@ -121,8 +121,8 @@ var bool cee:internal:insideCeeFunc false
 /// The executed code will be executed right before all return statements inside
 /// the current function. Functions using onReturn must always be left with
 /// return and never using ret. This can only be used inside cee functions
-macro onReturn cleanupCode
-  if (bool:not cee:internal:insideCeeFunc)
+macro onReturn cleanupCode:
+  if (bool:not cee:internal:insideCeeFunc):
     ret ${error "onReturn may only be used inside cee functions" #cleanupCode}
   end
   newList := malloc astList
@@ -132,10 +132,10 @@ macro onReturn cleanupCode
   std:base:ret ${}
 end
 
-macro return expr
+macro return expr:
   code := ${}
   current := cee:internal:onReturnCleanupCode
-  while (cast void* current !=_ptr nullptr void)
+  while (cast void* current !=_ptr nullptr void):
     ast:addChild code getField(current,ast)
     current = getField current next
   end
@@ -143,21 +143,21 @@ macro return expr
   std:base:ret code
 end
 
-macro ret expr
-  if (cast void* cee:internal:onReturnCleanupCode !=_ptr nullptr void)
+macro ret expr:
+  if (cast void* cee:internal:onReturnCleanupCode !=_ptr nullptr void):
     std:base:ret ${error "You can only return from functions using onReturn with return, ret is illegal" #expr}
   end
   std:base:ret ${std:base:ret #expr}
 end
 
-macro cee:internal:cleanupBeforeFunc
-  if (cee:internal:onReturnCleanupCode !=_ptr nullptr void)
+macro cee:internal:cleanupBeforeFunc:
+  if (cee:internal:onReturnCleanupCode !=_ptr nullptr void):
     printString "warning: found cleanup code before compiling function - ignoring it. Probably evaluating the last function failed"
     printNewline()
     printString "--- Left over cleanup code:"
     printNewline()
     current := cee:internal:onReturnCleanupCode
-    while (cast void* current !=_ptr nullptr void)
+    while (cast void* current !=_ptr nullptr void):
       ast:print getField(current,ast) 4
       current = getField current next
     end
@@ -169,9 +169,9 @@ macro cee:internal:cleanupBeforeFunc
   std:base:ret ${}
 end
 
-macro cee:internal:cleanupOnReturn
+macro cee:internal:cleanupOnReturn:
   current := cee:internal:onReturnCleanupCode
-  while (cast void* current !=_ptr nullptr void)
+  while (cast void* current !=_ptr nullptr void):
     free (cast void* getField(current, ast))
     current = getField(current, next)
   end
@@ -180,13 +180,13 @@ macro cee:internal:cleanupOnReturn
   std:base:ret ${}
 end
 
-macro func args...
+macro func args...:
   var ast* funcCode ${std:base:func}
-  forEachAstChild child args
+  forEachAstChild child args:
     ast:addChild funcCode child
   end
   cee:internal:insideCeeFunc = true
-  std:base:ret ${
+  std:base:ret ${seq:
     cee:internal:cleanupBeforeFunc
     #funcCode
     cee:internal:cleanupOnReturn
@@ -210,7 +210,7 @@ end
 ///   ast:matchesShape ${a b} ${a b _} => false
 ///   ast:matchesShape ${a _...} ${a 1 2 3 4} => true
 ///
-func bool ast:matchesShape(ast* codeArg, ast* templateArg)
+func bool ast:matchesShape(ast* codeArg, ast* templateArg):
   var ast* code codeArg
   var ast* template templateArg
 
@@ -222,39 +222,39 @@ func bool ast:matchesShape(ast* codeArg, ast* templateArg)
   var cstring codeId getField(code, id)
   var int codeChildCount getField(code, childCount)
 
-  when (bool:and (templateId ==_str "_") (codeChildCount == 0))
+  when (bool:and (templateId ==_str "_") (codeChildCount == 0)):
     ret true
   end
 
-  when (templateId ==_str "__")
+  when (templateId ==_str "__"):
     ret true
   end
 
   varargs := false
   lastChild := nullptr ast
-  if (templateChildCount > 0)
+  if (templateChildCount > 0):
     lastChild = ast:child template (templateChildCount - 1)
     assert (lastChild !=_ptr nullptr ast)
-    if ((getField(lastChild, childCount) == 1) && (getField(lastChild, id) ==_str "postop..."))
+    if ((getField(lastChild, childCount) == 1) && (getField(lastChild, id) ==_str "postop...")):
       var ast* lastChildChild ast:child(lastChild, 0)
       var cstring lastId getField(lastChildChild, id)
       varargs = ((lastId ==_str "_") || (lastId ==_str "__"))
     end
   end
 
-  if varargs
-    if ((codeChildCount >= templateChildCount - 1) && (codeId ==_str templateId))
-      for childNum2 0 (templateChildCount - 1)
-        unless (ast:matchesShape (ast:child code childNum2) (ast:child template childNum2))
+  if varargs:
+    if ((codeChildCount >= templateChildCount - 1) && (codeId ==_str templateId)):
+      for childNum2 0 (templateChildCount - 1):
+        unless (ast:matchesShape (ast:child code childNum2) (ast:child template childNum2)):
           ret false
         end
       end
       ret true
     end
-  else
-    if ((codeChildCount == templateChildCount) && (codeId ==_str templateId))
-      for childNum 0 codeChildCount
-        unless (ast:matchesShape (ast:child code childNum) (ast:child template childNum))
+  else:
+    if ((codeChildCount == templateChildCount) && (codeId ==_str templateId)):
+      for childNum 0 codeChildCount:
+        unless (ast:matchesShape (ast:child code childNum) (ast:child template childNum)):
           ret false
         end
       end
@@ -275,29 +275,29 @@ end
 /// Example:
 ///   getMemberAddress(${a.b.c}) => (fieldptr (fieldptr a b) c)
 ///
-func ast* getMemberAddress(ast* code)
-  if (getField code childCount == 0)
+func ast* getMemberAddress(ast* code):
+  if (getField code childCount == 0):
     ret ${ptr #code}
-  elseif ast:matchesShape(code, ${_._})
+  elseif ast:matchesShape(code, ${_._}):
     recordExpr := ast:child(code, 0)
     fieldName := getField ast:child(code, 1) id
     ret ${fieldptr #recordExpr #fieldName}
-  elseif ast:matchesShape(code, ${__._})
+  elseif ast:matchesShape(code, ${__._}):
     nestedPtr := getMemberAddress ast:child(code, 0)
     fieldName2 := getField ast:child(code, 1) id
     ret ${fieldptr #nestedPtr #fieldName2}
-  elseif ast:matchesShape(code, ${__._[__]})
+  elseif ast:matchesShape(code, ${__._[__]}):
     structExpr := ast:child code 0
     memberName := getField ast:child(ast:child(code, 1), 0) id
     indexExpr := ast:child(ast:child(code, 1), 1)
     memberPtr := getMemberAddress(${#structExpr.#memberName})
     ret ${ptradd (load #memberPtr) #indexExpr}
-  elseif ast:matchesShape(code, ${_[__]})
+  elseif ast:matchesShape(code, ${_[__]}):
     arrayExpr := ast:child code 0
     indexExpr2 := ast:child code 1
     arrayPtr := getMemberAddress(arrayExpr)
     ret ${ptradd (load #arrayPtr) #indexExpr2}
-  elseif ast:matchesShape(code, ${__*})
+  elseif ast:matchesShape(code, ${__*}):
     ptrExpr := ast:child code 0
     ret ${load #ptrExpr}
   end
@@ -305,7 +305,7 @@ func ast* getMemberAddress(ast* code)
 end
 
 ///TODO: add support to call methods
-macro op. record component
+macro op. record component:
   addr := getMemberAddress ${#record.#component}
 
   ret ${load #addr}
@@ -315,18 +315,18 @@ end
 /// a = b - for first class types
 /// a.x = b - for struct members
 /// ptr[10] = b - for pointers
-macro op= l r
-  if ast:matchesShape(l, ${_[_]})
+macro op= l r:
+  if ast:matchesShape(l, ${_[_]}):
     var ast* array ast:child(l, 0)
     var ast* index ast:child(l, 1)
     ret ${store ptradd(#array, #index) #r}
-  elseif ast:matchesShape(l, ${__.__})
+  elseif ast:matchesShape(l, ${__.__}):
     laddr := getMemberAddress(l)
     ret ${store #laddr #r}
-  elseif ast:matchesShape(l, ${__*})
+  elseif ast:matchesShape(l, ${__*}):
     addr := ast:child l 0
     ret ${store #addr #r}
-  else
+  else:
     ret ${assign #l #r}
   end
 
@@ -338,18 +338,18 @@ end
 //   load(ptradd #array #index)
 // end
 
-macro defineArray type varname values...
+macro defineArray type varname values...:
   size := values.childCount
   arrayType := ast:fromString "postop[]"
   ast:addChild arrayType type
   ast:addChild arrayType ${#size}
 
-  code := ${
+  code := ${seq:
     var #arrayType #varname
   end}
 
   valnum := 0
-  forEachAstChild value values
+  forEachAstChild value values:
     ast:addChild code ${zmp:array:set #varname #valnum #value}
     valnum = valnum + 1
   end
@@ -357,27 +357,27 @@ macro defineArray type varname values...
   ret code
 end
 
-template postop[] array index
+template postop[] array index:
   zmp:array:get #array #index
 end
 
-template op+_ptr ptr offset
+template op+_ptr ptr offset:
   ptradd #ptr #offset
 end
 
-template zmp:array:get array index
+template zmp:array:get array index:
   load ptradd(zmp:array:addr &(#array), #index)
 end
 
-template zmp:array:set array index value
+template zmp:array:set array index value:
   store ptradd(zmp:array:addr &(#array), #index) #value
 end
 
 // TODO rename, remove 2
-func ast* cee:internal:makeInitCall(cstring typeName, ast* varPtr, ast* args)
+func ast* cee:internal:makeInitCall(cstring typeName, ast* varPtr, ast* args):
   var ast* initCall ast:fromString(cstring:concat(typeName, ":init"))
   ast:addChild initCall varPtr
-  forEachAstChild arg args
+  forEachAstChild arg args:
     ast:addChild initCall arg
   end
 
@@ -386,106 +386,106 @@ end
 
 /// Allocate storage and initialize variable
 /// `new Foo a b c' does the same as `Foo:init(malloc Foo, a, b, c)'
-macro new type args...
+macro new type args...:
   uniqueId name "new"
 
   var ast* initCall cee:internal:makeInitCall(getField(type,id), ${#name}, args)
 
-  ret ${
+  ret ${seq:
     var (ptr #type) #name (malloc #type)
     #initCall
     #name
   end}
 end
 
-macro local type args...
+macro local type args...:
   uniqueId name "local"
   var ast* initCall cee:internal:makeInitCall(getField(type,id), ${ptr #name}, args)
-  ret ${
+  ret ${seq:
     var #type #name
     #initCall
     #name
   end}
 end
 
-template op++ lstring rstring
+template op++ lstring rstring:
   cstrings:append #lstring #rstring
 end
 
-template preop++ int
+template preop++ int:
   #int = #int + 1
   #int
 end
 
-template preop-- int
+template preop-- int:
   #int = #int - 1
   #int
 end
 
-template postop++ int
+template postop++ int:
   #int = #int + 1
   #int - 1
 end
 
-template postop-- int
+template postop-- int:
   #int = #int - 1
   #int + 1
 end
 
-func int "op**"(int l, int r)
+func int "op**"(int l, int r):
   acc := 1
-  for i 0 r
+  for i 0 r:
     acc = acc * l
   end
   ret acc
 end
 
-macro swap a b
+macro swap a b:
   uniqueId t "swap"
-  ret ${
+  ret ${seq:
     t := #a
     #a = #b
     #b = t
   end}
 end
 
-macro preop& obj
+macro preop& obj:
   code := getMemberAddress obj
   ret code
 end
 
-template preop* ptr
+template preop* ptr:
   (load #ptr)
 end
 
-template postop* ptr
+template postop* ptr:
   (load #ptr)
 end
 
-template isNotNull ptr
+template isNotNull ptr:
   #ptr !=_ptr nullptr void
 end
 
-template isNull ptr
+template isNull ptr:
   #ptr ==_ptr nullptr void
 end
 
-macro struct name members
-  unless (name.childCount == 0)
+macro struct name members:
+  unless (name.childCount == 0):
     ret ${error "Expected id" #name}
   end
 
   decl := ast:fromString "type"
   ast:addChild decl name
 
-  forEachAstChild memberList members
-    if ast:matchesShape(memberList, ${__ _...})
+  forEachAstChild memberList members:
+    if ast:matchesShape(memberList, ${__ _...}):
       memberType := ast:child memberList 0
-      for memberNum 1 memberList.childCount
+      for memberNum 1 memberList.childCount:
         memberName := ast:child memberList memberNum
         ast:addChild decl ${#memberType #memberName}
       end
-    else
+    else:
       ret ${error "Expected 'typeExpr id..." #memberList}
     end
   end
@@ -493,20 +493,20 @@ macro struct name members
   ret decl
 end
 
-func bool isMultipleOf(int x, int m)
+func bool isMultipleOf(int x, int m):
   ret (int:mod(x,m) == 0)
 end
 
-macro ast:foreach3 t0 t1 t2 tree code
-  if (bool:not isMultipleOf(tree.childCount, 3))
+macro ast:foreach3 t0 t1 t2 tree code:
+  if (bool:not isMultipleOf(tree.childCount, 3)):
     ret ${error "Can only iterate over 3-tuples if child count is a multiple of 3" tree}
   end
 
   uniqueId childnum "ast:foreach3"
 
-  ret ${
+  ret ${seq:
     #childnum := 0
-    while (#childnum + 2 < #tree.childCount)
+    while (#childnum + 2 < #tree.childCount):
       #t0 := ast:child #tree (#childnum+0)
       #t1 := ast:child #tree (#childnum+1)
       #t2 := ast:child #tree (#childnum+2)
@@ -516,16 +516,16 @@ macro ast:foreach3 t0 t1 t2 tree code
   end}
 end
 
-macro ast:foreach2 t0 t1 tree code
-  if (bool:not isMultipleOf(tree.childCount, 3))
+macro ast:foreach2 t0 t1 tree code:
+  if (bool:not isMultipleOf(tree.childCount, 3)):
     ret ${error "Can only iterate over pairs if child count is a multiple of 2" tree}
   end
 
   uniqueId childnum "ast:foreach2"
 
-  ret ${
+  ret ${seq:
     #childnum := 0
-    while (#childnum + 1 < #tree.childCount)
+    while (#childnum + 1 < #tree.childCount):
       #t0 := ast:child #tree (#childnum+0)
       #t1 := ast:child #tree (#childnum+1)
       #code
@@ -538,13 +538,13 @@ end
 /// Will transform an expression of the form (<jux someId (<arg 0>) ..>) to
 /// (<someId (<arg 0>) ...>)
 ///
-func ast* ast:shiftLeft(ast* code)
+func ast* ast:shiftLeft(ast* code):
   assert (code.childCount >= 1)
   assert (getField ast:child(code,0) childCount == 0)
 
   firstChild := ast:child code 0
   newcode := ast:fromString firstChild.id
-  for i 1 code.childCount
+  for i 1 code.childCount:
     ast:addChild newcode ast:child(code,i)
   end
   ret newcode
@@ -558,12 +558,12 @@ end
 /// A simple loop construct. You can break from the loop using a break statement
 ///
 /// TODO attention: do not nest (checking not possible, yet)...
-macro loop code
+macro loop code:
   uniqueId start "loop_start"
   uniqueId end "loop_end"
 
-  ret ${
-    template break
+  ret ${seq:
+    template break:
       branch #end
     end
 
@@ -586,16 +586,16 @@ end
 /// ...
 /// end
 ///
-macro switch intvalue default cases...
+macro switch intvalue default cases...:
   uniqueId value "the_value"
 
   first := true
-  code := ${if false
+  code := ${if false:
     printNewline()
   end}
 
-  ast:foreach3 case caseval casecode cases
-    unless ast:matchesShape(case, ${case})
+  ast:foreach3 case caseval casecode cases:
+    unless ast:matchesShape(case, ${case}):
       caseNode := ast:shiftLeft ${#case #caseval #casecode}
       ret ${error "Expected 'case VAL EXPR'" #caseNode}
     end
@@ -605,7 +605,7 @@ macro switch intvalue default cases...
     ast:addChild code casecode
   end
 
-  code = ${
+  code = ${seq:
     var int #value #intvalue
     #code
   end}
@@ -617,12 +617,12 @@ end
 /// Section: Overloaded operators
 ///-----------------------------------------------------------------------------
 
-func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func)
+func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func):
   funcname := type ++ ":" ++ func
   oprname := opr ++ "_" ++ type ++ "_" ++ type
 
-  ret ${
-    func #rettype #oprname(#type l, #type r)
+  ret ${seq:
+    func #rettype #oprname(#type l, #type r):
       #funcname(l, r)
     end
   end}
@@ -639,16 +639,16 @@ alias char:greaterEqual char:sgreaterEqual l r
 alias char:less char:sless l r
 alias char:lessEqual char:slessEqual l r
 
-func char char:add(char l, char r)
+func char char:add(char l, char r):
   ret '?'
 end
-func char char:sub(char l, char r)
+func char char:sub(char l, char r):
   ret '?'
 end
-func char char:mul(char l, char r)
+func char char:mul(char l, char r):
   ret '?'
 end
-func char char:div(char l, char r)
+func char char:div(char l, char r):
   ret '?'
 end
 
@@ -667,12 +667,12 @@ alias double:greaterEqual double:ogreaterEqual l r
 alias double:less double:oless l r
 alias double:lessEqual double:olessEqual l r
 
-macro overloadedOps type
-  macro defop_ rettype opr name
+macro overloadedOps type:
+  macro defop_ rettype opr name:
     oprName := cstring:quote opr.id
     funcName := cstring:quote name.id
 
-    ret ${
+    ret ${seq:
       ast:addChild code (defineOpCode type.id #rettype #oprName #funcName)
     end}
   end
@@ -699,75 +699,75 @@ overloadedOps float
 overloadedOps double
 overloadedOps char
 
-template op+ l r
+template op+ l r:
   zmp:cee:add #l #r
 end
 
-template op- l r
+template op- l r:
   zmp:cee:sub #l #r
 end
 
-template op* l r
+template op* l r:
   zmp:cee:mul #l #r
 end
 
-template op/ l r
+template op/ l r:
   zmp:cee:div #l #r
 end
 
-template op% l r
+template op% l r:
   u32:mod #l #r
 end
 
-template op== l r
+template op== l r:
   zmp:cee:equal #l #r
 end
 
-template op!= l r
+template op!= l r:
   bool:not (#l == #r)
 end
 
-template op> l r
+template op> l r:
   zmp:cee:greater #l #r
 end
 
-template op>= l r
+template op>= l r:
   zmp:cee:greaterEqual #l #r
 end
 
-template op< l r
+template op< l r:
   zmp:cee:less #l #r
 end
 
-template op<= l r
+template op<= l r:
   zmp:cee:lessEqual #l #r
 end
 
-func bool op<_ptr_ptr(void* l, void* r)
+func bool op<_ptr_ptr(void* l, void* r):
   ret u32:uless(cast int l, cast int r)
 end
 
-func bool op>_ptr_ptr(void* l, void* r)
+func bool op>_ptr_ptr(void* l, void* r):
   ret u32:ugreater(cast int l, cast int r)
 end
 
-func bool op<=_ptr_ptr(void* l, void* r)
+func bool op<=_ptr_ptr(void* l, void* r):
   ret u32:ulessEqual(cast int l, cast int r)
 end
 
-func bool op>=_ptr_ptr(void* l, void* r)
+func bool op>=_ptr_ptr(void* l, void* r):
   ret u32:ugreaterEqual(cast int l, cast int r)
 end
 
-func bool op!=_ptr_ptr(void* l, void* r)
+func bool op!=_ptr_ptr(void* l, void* r):
   ret u32:notEqual(cast int l, cast int r)
 end
 
-func bool op==_ptr_ptr(void* l, void* r)
+func bool op==_ptr_ptr(void* l, void* r):
   ret u32:equal(cast int l, cast int r)
 end
 
-func bool op==_bool_bool(bool l, bool r)
+func bool op==_bool_bool(bool l, bool r):
   ret bool:not(bool:xor l r)
 end
 
@@ -775,48 +775,48 @@ end
 /// Section: Overloaded printing
 ///-----------------------------------------------------------------------------
 
-func void print_u32(int i)
+func void print_u32(int i):
   printInt i
 end
 
-func void print_float(float f)
+func void print_float(float f):
   printFloat f
 end
 
-func void print_char(char c)
+func void print_char(char c):
   printChar c
 end
 
-func void print_bool(bool b)
+func void print_bool(bool b):
   printBool b
 end
 
-func void print_double(double d)
+func void print_double(double d):
   printDouble d
 end
 
-func void "print_char*"(char* string)
+func void "print_char*"(char* string):
   printString string
 end
 
-func void "print_ast*"(ast* code)
+func void "print_ast*"(ast* code):
   ast:print code 0
 end
 
-macro print args...
+macro print args...:
   var astp code ${}
 
-  forEachAstChild arg args
+  forEachAstChild arg args:
     ast:addChild code ${zmp:cee:print #arg}
   end
 
   ret code
 end
 
-macro println args...
+macro println args...:
   var astp code ${}
 
-  forEachAstChild arg args
+  forEachAstChild arg args:
     ast:addChild code ${zmp:cee:print #arg}
   end
 
@@ -825,9 +825,9 @@ macro println args...
   ret code
 end
 
-func void printBits(int bitmask)
+func void printBits(int bitmask):
   printString "0b"
-  for i 0 32
+  for i 0 32:
     bitnum := 31 - i
     mask := int:shl 1 bitnum
     bit := int:lshr (bitmask & mask) bitnum
@@ -837,14 +837,14 @@ end
 
 
 
-macro structlit structType fieldsAndValues...
+macro structlit structType fieldsAndValues...:
   uniqueId structVar "struct"
 
-  code := ${
+  code := ${seq:
     var #structType #structVar
   end}
 
-  ast:foreach2 field value fieldsAndValues
+  ast:foreach2 field value fieldsAndValues:
     ast:addChild code ${#structVar.#field = #value}
   end
 
@@ -863,110 +863,110 @@ alias toChar zmp:cee:toChar x
 alias toCString zmp:cee:toCString x
 
 
-func int toInt_u32(int i)
+func int toInt_u32(int i):
   ret i
 end
 
-func int toInt_float(float f)
+func int toInt_float(float f):
   float:toInt f
 end
 
-func int toInt_double(double d)
+func int toInt_double(double d):
   double:toInt d
 end
 
-func int toInt_char(char c)
+func int toInt_char(char c):
   ret char:zextToU32(c)
 end
 
-func int toInt_bool(bool b)
-  if b
+func int toInt_bool(bool b):
+  if b:
     ret 1
   end
   ret 0
 end
 
 
-func float toFloat_u32(u32 i)
+func float toFloat_u32(u32 i):
   int:toFloat i
 end
 
-func float toFloat_double(double d)
+func float toFloat_double(double d):
   double:toFloat d
 end
 
-func float toFloat_float(float f)
+func float toFloat_float(float f):
   ret f
 end
 
-func float toFloat_bool(bool b)
+func float toFloat_bool(bool b):
   toFloat(toInt b)
 end
 
 
-func double toDouble_u32(int i)
+func double toDouble_u32(int i):
   int:toDouble i
 end
 
-func double toDouble_float(float f)
+func double toDouble_float(float f):
   float:toDouble f
 end
 
-func double toDouble_double(double d)
+func double toDouble_double(double d):
   ret d
 end
 
-func double toDouble_bool(bool b)
+func double toDouble_bool(bool b):
   toDouble(toInt b)
 end
 
 
-func char toChar_u32(int i)
+func char toChar_u32(int i):
   ret u32:toChar(i)
 end
 
 
-func char* toCString_u32(int i)
+func char* toCString_u32(int i):
   int2cstring i
 end
 
-func char* toCString_float(float f)
+func char* toCString_float(float f):
   float2cstring f
 end
 
-func char* toCString_double(double d)
+func char* toCString_double(double d):
   double2cstring d
 end
 
-func char* toCString_char(char c)
+func char* toCString_char(char c):
   char2cstring c
 end
 
-func char* toCString_bool(bool b)
+func char* toCString_bool(bool b):
   ret bool2cstring(b)
 end
 
-func char* "toCString_char*"(char* c)
+func char* "toCString_char*"(char* c):
   c
 end
 
-macro ofunc rettype nameAndArgs impl
-  if ast:matchesShape(nameAndArgs, ${_(__...)})
+macro ofunc rettype nameAndArgs impl:
+  if ast:matchesShape(nameAndArgs, ${_(__...)}):
     name := getField(ast:child nameAndArgs 0, id)
     newNameAndArgs := ${_()}
 
-    for i 1 nameAndArgs.childCount
+    for i 1 nameAndArgs.childCount:
       param := ast:child nameAndArgs i
 
-      if ast:matchesShape(param, ${__ _})
+      if ast:matchesShape(param, ${__ _}):
         paramType := ast:child param 0
-        if (paramType.childCount > 0)
+        if (paramType.childCount > 0):
           ret ${error "ofunc: Only supporting type names which are an id atm" #paramType}
         end
         paramName := ast:child param 1
         ast:addChild newNameAndArgs ${#paramType #paramName}
         name = name ++ "_" ++ paramType.id
-      else
+      else:
         ret ${error "Invalid parameter, expected 'TYPE_EXPR NAME" ${#param}}
       end
     end
@@ -983,31 +983,31 @@ end
 /// Section: Assertions
 ///-----------------------------------------------------------------------------
 
-macro assert testCode
+macro assert testCode:
   isCompare := false
   compareF := ast:fromString "op=="
 
-  if ast:matchesShape(testCode, ${__ == __})
+  if ast:matchesShape(testCode, ${__ == __}):
     isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_f __})
+  elseif ast:matchesShape(testCode, ${__ ==_f __}):
     isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_str __})
+  elseif ast:matchesShape(testCode, ${__ ==_str __}):
     isCompare = true
     compareF = ast:fromString "op==_str"
-  elseif ast:matchesShape(testCode, ${__ < __})
+  elseif ast:matchesShape(testCode, ${__ < __}):
     isCompare = true
     compareF = ast:fromString "op<"
   end
 
-  if isCompare
+  if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${
+    ret ${seq:
       #lvar := #l
       #rvar := #r
-      unless (#compareF #lvar #rvar)
+      unless (#compareF #lvar #rvar):
         ++unittest:failedCount
         printHLine '-' 40
         printlnString "Assertion failed"
@@ -1020,9 +1020,9 @@ macro assert testCode
         ast:print ${#testCode} 0
       end
     end}
-  else
-    ret ${
-      unless #testCode
+  else:
+    ret ${seq:
+      unless #testCode:
         ++unittest:failedCount
         printHLine '-' 40
         printlnString "Assertion failed"
