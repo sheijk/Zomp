@@ -787,13 +787,20 @@ editor to trigger recompilations etc. and possibly resume main()"
     (indent-according-to-mode)
     (insert "\n")))
 
+(defvar zomp-marker-overlay nil
+  "The overlay used by zomp to mark something. Always reusing
+  this one to be able to clean it up on errors")
+
 (defun zomp-query-adapt-indent-blocks ()
   "Function to help change code from old to new indent
   syntax. Will add ask the user if a colon should be inserted for
   all places where the indent increases in the next line and no
   colon is present, yet"
-  (interactive) (while t
-    (let (previndent nextindent)
+  (interactive)
+  (when zomp-marker-overlay
+    (delete-overlay zomp-marker-overlay))
+  (let (previndent nextindent)
+    (while t
       (setq previndent (zomp-current-line-indent))
       (next-line 1)
       (beginning-of-line)
@@ -804,11 +811,14 @@ editor to trigger recompilations etc. and possibly resume main()"
         (when (> nextindent previndent)
           (previous-line)
           (end-of-line)
+          (setq zomp-marker-overlay (make-overlay (save-excursion (beginning-of-line) (point)) (point)))
+          (overlay-put zomp-marker-overlay 'face 'highlight-symbol-face)
           (when (and (not (looking-back " *:"))
                      (y-or-n-p "Insert ':'? "))
             (if (looking-back "{")
                 (insert "seq:")
               (insert ":")))
+          (delete-overlay zomp-marker-overlay)
           (next-line)
           )))))
 
