@@ -8,24 +8,24 @@ require "libs/libcee.zomp"
 /// Section: Intlist
 ///-----------------------------------------------------------------------------
 
-struct Intlist
+struct Intlist:
   int value
   Intlist* next
 end
 
-func void Intlist:init(Intlist* this, int value, Intlist* next)
+func void Intlist:init(Intlist* this, int value, Intlist* next):
   setField this next next
   setField this value value
 end
 
-macro makeList values...
+macro makeList values...:
   uniqueId head "makeList"
 
-  code := ${
+  code := ${seq:
     #head := nullptr Intlist
   end}
 
-  for i 0 values*.childCount
+  for i 0 values*.childCount:
     valueAst := ast:child values (values*.childCount - 1 - i)
     value := valueAst.id
     ast:addChild code ${#head = new Intlist #value #head}
@@ -36,28 +36,28 @@ macro makeList values...
   ret code
 end
 
-struct Intlist_range
+struct Intlist_range:
   Intlist* current
   int value
 end
 
-func Intlist_range Intlist:range(Intlist* this)
+func Intlist_range Intlist:range(Intlist* this):
   var Intlist_range r
   setField r current this
-  unless isNull(this)
+  unless isNull(this):
     setField r value this*.value
   end
   ret r
 end
 
-func bool Intlist_range:valid(Intlist_range* this)
+func bool Intlist_range:valid(Intlist_range* this):
   return isNotNull(this*.current)
 end
 
-func void Intlist_range:popFront(Intlist_range* this)
-  unless isNull(this*.current)
+func void Intlist_range:popFront(Intlist_range* this):
+  unless isNull(this*.current):
     setField this current (this.current)*.next
-    unless isNull(this*.current)
+    unless isNull(this*.current):
       setField this value (this*.current)*.value
     end
   end
@@ -69,15 +69,15 @@ end
 
 type cstring_range cstring
 
-func cstring_range cstring:range(cstring* this)
+func cstring_range cstring:range(cstring* this):
   ret *this
 end
 
-func bool cstring_range:valid(cstring_range* this)
+func bool cstring_range:valid(cstring_range* this):
   ret (**this != '\0')
 end
 
-func void cstring_range:popFront(cstring_range* this)
+func void cstring_range:popFront(cstring_range* this):
   var cstring newValue ptradd(*this,1)
   store this newValue
 end
@@ -86,14 +86,14 @@ end
 /// Section: foreach macro
 ///-----------------------------------------------------------------------------
 
-macro foreach iter containerT container code
+macro foreach iter containerT container code:
   rangeF := containerT.id ++ ":range"
   validF := containerT.id ++ "_range:valid"
   popFrontF := containerT.id ++ "_range:popFront"
 
-  mret ${
+  mret ${seq:
     #iter := #rangeF #container
-    while #validF(&#iter)
+    while #validF(&#iter):
       #code
       #popFrontF &#iter
     end
@@ -109,17 +109,17 @@ end
 //   println "ptr" i
 // end
 
-func int main()
+func int main():
   lst := makeList 1 2 3 4 5 6
 
   print "numbers = "
-  foreach num2 Intlist lst
+  foreach num2 Intlist lst:
     print num2.value ", "
   end
   println()
 
   x := "foobar"
-  foreach chr cstring &x
+  foreach chr cstring &x:
     println *chr
   end
 

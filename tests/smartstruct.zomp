@@ -4,7 +4,7 @@
 
 include "libs/libcee"
 
-template macro:fail errormsg astVarName
+template macro:fail errormsg astVarName:
   ret ${error #errormsg #astVarName}
 end
 
@@ -24,20 +24,20 @@ end
 // end
 
 
-func void int:print(int* i)
+func void int:print(int* i):
   printInt *i
 end
 
-func void float:print(float* f)
+func void float:print(float* f):
   printFloat *f
 end
 
-func void char:print(char* c)
+func void char:print(char* c):
   printChar *c
 end
 
-macro pstruct name members
-  unless (name.childCount == 0)
+macro pstruct name members:
+  unless (name.childCount == 0):
     ret ${error "Expected id" #name}
   end
 
@@ -50,8 +50,8 @@ macro pstruct name members
   ast:addChild printCode ${printString #nameQuoted}
   ast:addChild printCode ${printString "("}
 
-  forEachAstChild member members
-    if ast:matchesShape(member, ${__ _})
+  forEachAstChild member members:
+    if ast:matchesShape(member, ${__ _}):
       ast:addChild decl member
       fieldName := ast:child member 1
       fieldType := ast:child member 0
@@ -62,7 +62,7 @@ macro pstruct name members
       ast:addChild printCode ${printString #fieldNameQuoted}
       ast:addChild printCode ${printString "="}
       ast:addChild printCode ${#fieldPrinterName &(this.#fieldName)}
-    else
+    else:
       macro:fail "Expected 'typeExpr id'" member
     end
   end
@@ -72,24 +72,24 @@ macro pstruct name members
   printerName := name.id ++ ":print"
   printF := ${func void #printerName(#name* this) #printCode}
 
-  ret ${
+  ret ${seq:
     #decl
     #printF
   end}
 end
 
-pstruct Bar
+pstruct Bar:
   char c
   char x
 end
 
-pstruct Foo
+pstruct Foo:
   int nat
   float real
   Bar b
 end
 
-func int main()
+func int main():
   var Foo f
   f.nat = 10
   f.real = 3.7

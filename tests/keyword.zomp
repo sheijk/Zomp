@@ -8,19 +8,19 @@ require "libs/libcee.zomp"
 /// Section: utils missing in stdlib
 ///-----------------------------------------------------------------------------
 
-func ast* ast:copy(ast* tree)
+func ast* ast:copy(ast* tree):
   newAst := ast:fromString tree.id
-  for childnum 0 tree.childCount
+  for childnum 0 tree.childCount:
     newChild := ast:copy ast:child(tree, childnum)
     ast:addChild newAst newChild
   end
   ret newAst
 end
 
-macro ct:map transform exprs
+macro ct:map transform exprs:
   code := ${}
 
-  forEachAstChild expr exprs
+  forEachAstChild expr exprs:
     newExpr := ast:copy transform
     ast:replace newExpr "_1" expr
     ast:addChild code newExpr
@@ -29,16 +29,16 @@ macro ct:map transform exprs
   ret code
 end
 
-macro ast:foreach2 t0 t1 tree code
-  if (bool:not isMultipleOf(tree.childCount, 2))
+macro ast:foreach2 t0 t1 tree code:
+  if (bool:not isMultipleOf(tree.childCount, 2)):
     ret ${error "Can only iterate over pairs if child count is a multiple of 2" tree}
   end
 
   uniqueId childnum "ast:foreach2"
 
-  ret ${
+  ret ${seq:
     #childnum := 0
-    while (#childnum + 1 < #tree.childCount)
+    while (#childnum + 1 < #tree.childCount):
       #t0 := ast:child #tree (#childnum+0)
       #t1 := ast:child #tree (#childnum+1)
       #code
@@ -51,12 +51,12 @@ end
 /// Section: actual implementation
 ///-----------------------------------------------------------------------------
 
-macro opkeyword rem...
+macro opkeyword rem...:
   code := ast:fromString "tobereplaced"
 
   id := "kwd"
 
-  ast:foreach2 kwd block rem
+  ast:foreach2 kwd block rem:
     id = id ++ "_" ++ kwd.id
     ast:addChild code block
   end
@@ -66,10 +66,10 @@ macro opkeyword rem...
   ret code
 end
 
-macro kwd_while juxCondBlock
+macro kwd_while juxCondBlock:
   code := ${error "Expected while: condExpr blockExpr"}
 
-  if ast:matchesShape(juxCondBlock, ${__ __})
+  if ast:matchesShape(juxCondBlock, ${__ __}):
     cond := ast:child juxCondBlock 0
     block := ast:child juxCondBlock 1
     code = ${while #cond #block}
@@ -78,15 +78,15 @@ macro kwd_while juxCondBlock
   ret code
 end
 
-template kwd_default_unless block cond
+template kwd_default_unless block cond:
   unless #cond #block
 end
 
-macro kwd_if args
+macro kwd_if args:
   /// if cond onTrue elseClauses...
-  if ast:matchesShape(args, ${__ __ _...})
+  if ast:matchesShape(args, ${__ __ _...}):
     code := ${if}
-    forEachAstChild arg args
+    forEachAstChild arg args:
       ast:addChild code arg
     end
     ret code
@@ -95,17 +95,17 @@ macro kwd_if args
   ret ${error "Expected if: condExpr onTrueExpr ..."}
 end
 
-template kwd_default_if block condition
+template kwd_default_if block condition:
   if #condition #block
 end
 
-func int main()
+func int main():
   i := 0
-  while: i < 10
+  while: i < 10:
     ++i
   end
 
-  if: i == 10
+  if: i == 10:
     println "if: and while: work"
   end
 

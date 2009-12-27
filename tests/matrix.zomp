@@ -4,7 +4,7 @@
 
 requireLibs libcee math
 
-func int main()
+func int main():
   ret 0
 end
 

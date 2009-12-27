@@ -10,15 +10,15 @@ dfunc double atof(cstring str)
 var int log:minLevel 0
 const int log:level:info 0
 
-macro log:setMinLevel level
+macro log:setMinLevel level:
   log:minLevel = atoi(level.id)
   ret ${}
 end
 
-macro info args...
-  if (log:minLevel <= log:level:info)
+macro info args...:
+  if (log:minLevel <= log:level:info):
     code := ${print}
-    forEachAstChild arg args
+    forEachAstChild arg args:
       ast:addChild code arg
     end
     ret code
@@ -26,7 +26,7 @@ macro info args...
   ret ${}
 end
 
-func int main()
+func int main():
   log:setMinLevel 1
   info "compiled away"
   log:setMinLevel 0

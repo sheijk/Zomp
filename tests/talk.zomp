@@ -7,7 +7,7 @@
 
 type Symbol int
 
-type SymbolTable
+type SymbolTable:
   cstring name
   Symbol symbol
   SymbolTable* next
@@ -15,15 +15,15 @@ end
 
 var SymbolTable* globalSymbols null
 
-type VTable
+type VTable:
   cstring* names
 end
 
-type Object
+type Object:
   cstring name
 end
 
-func int main()
+func int main():
   ret 0
 end
 

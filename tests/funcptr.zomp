@@ -5,11 +5,11 @@
  */
 !syntax indent
 
-func int twice(int i)
+func int twice(int i):
   ret (2 * i)
 end
 
-func int incr(int i)
+func int incr(int i):
   ret (i + 1)
 end
 
@@ -17,7 +17,7 @@ type MapFunc (fptr int int)
 
 type IntToFloatFunc (fptr float int)
 
-func int main()
+func int main():
   var MapFunc f &twice
   printlnInt f(10)
 

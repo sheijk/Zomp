@@ -5,18 +5,18 @@ require "libs/libcee.zomp"
 /// Section: list
 ///-----------------------------------------------------------------------------
 
-func cstring List:listTypeName(cstring memberType)
+func cstring List:listTypeName(cstring memberType):
   ret (memberType ++ "_List")
 end
 
-macro defineListType memberT
+macro defineListType memberT:
   listT := ast:fromString List:listTypeName(memberT.id)
-  code := ${
-    struct #listT
+  code := ${seq:
+    struct #listT:
       #memberT data
       #listT* next
     end
-    func void INITFUNCNAME(#listT* this, #memberT data, #listT* next)
+    func void INITFUNCNAME(#listT* this, #memberT data, #listT* next):
       this.data = data
       this.next = next
     end
@@ -28,11 +28,11 @@ end
 defineListType int
 defineListType float
 
-macro makeList type nums...
+macro makeList type nums...:
   listT := ast:fromString(type.id ++ "_List")
   list := ${nullptr #listT}
   i := nums.childCount - 1
-  while (i >= 0)
+  while (i >= 0):
     num := ast:child(nums, i)
     list = ${new #listT #num #list}
     --i
@@ -41,13 +41,13 @@ macro makeList type nums...
   ret list
 end
 
-macro List:foreach_ptr list indexVar dataVar code
+macro List:foreach_ptr list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${
+  ret ${seq:
     #current := #list
     #indexVar := 0
-    while isNotNull(#current)
+    while isNotNull(#current):
       #dataVar := fieldptr #current data
       #code
       ++(#indexVar)
@@ -56,13 +56,13 @@ macro List:foreach_ptr list indexVar dataVar code
   end}
 end
 
-macro List:foreach list indexVar dataVar code
+macro List:foreach list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${
+  ret ${seq:
     #current := #list
     #indexVar := 0
-    while isNotNull(#current)
+    while isNotNull(#current):
       #dataVar := #current.data
       #code
       ++(#indexVar)
@@ -77,26 +77,26 @@ end
 
 defineListType astp
 
-func cstring eventVarName(cstring id)
+func cstring eventVarName(cstring id):
   ret ("event_" ++ id)
 end
 
-macro defineEvent id
+macro defineEvent id:
   varname := eventVarName id.id
-  ret ${
+  ret ${seq:
     var astp_List* #varname null
   end}
 end
 
-macro onEvent id handlerId code
+macro onEvent id handlerId code:
   varname := eventVarName id.id
   handlerName := "on_event_" ++ id.id ++ "_" ++ handlerId.id
   handlerSig := ${#handlerName
-  ret ${
-    func void #handlerSig
+  ret ${seq:
+    func void #handlerSig:
       #code
     end
-    macro mtmp
+    macro mtmp:
       newList := malloc astp_List
       newList.next = #varname
       newList.data = ${#handlerSig}
@@ -109,16 +109,16 @@ end
 
 defineEvent init
 
-onEvent init
+onEvent init:
   println "Initializing!"
 end
 
-macro triggerEvent id
+macro triggerEvent id:
   varname := eventVarName id.id
-  ret ${
-    macro mtmp
+  ret ${seq:
+    macro mtmp:
       code := ${}
-      List:foreach #varname i icode
+      List:foreach #varname i icode:
         ast:addChild code icode
       end
       ret code
@@ -127,7 +127,7 @@ macro triggerEvent id
   end}
 end
 
-func void test()
+func void test():
   println "will init now"
   triggerEvent init
 end

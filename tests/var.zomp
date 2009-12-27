@@ -5,7 +5,7 @@
  */
 !syntax indent
 
-func void nl()
+func void nl():
   printNewline()
 end
 
@@ -17,15 +17,15 @@ var float gFloat 1.0
 var bool gBool true
 var float gmFloat 1.0
 
-func int plus2(int i)
+func int plus2(int i):
   ret i + 2
 end
 
-template op:= name value
+template op:= name value:
   var2 #name #value
 end
 
-func int main()
+func int main():
   f := plus2(3)
   
   printInt f
