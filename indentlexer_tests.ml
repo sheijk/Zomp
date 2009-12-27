@@ -205,7 +205,7 @@ struct
       "$$", `Return [QUOTE "$$"; END];
 
       "${foo}", `Return [QUOTE "$"; OPEN_CURLY; id "foo"; CLOSE_CURLY; END];
-      "${class\n  child1\nend}",
+      "${class:\n  child1\nend}",
       `Return [QUOTE "$";
                OPEN_CURLY;
                id "class"; BEGIN_BLOCK; id "child1"; END; END_BLOCK [];
@@ -219,12 +219,53 @@ struct
       "var int y\n", `Return( ids ["var"; "int"; "y"] @ [END] );
       "var int x", `Return( ids ["var"; "int"; "x"] @ [END] );
 
+      (* simple multi-line expressions *)
       "first line\nsecond line\n",
       `Return( [id "first"; id "line"; END;
                 id "second"; id "line"; END] );
 
-      (* simple multi-line expressions *)
-      "if a then\n\
+      "this is a very long line\n" ^
+      "  continued on the next one",
+      `Return([id "this"; id "is"; id "a"; id "very"; id "long"; id "line";
+               id "continued"; id "on"; id "the"; id "next"; id "one"; END]);
+
+      "the continued\n" ^
+      "  line here\n" ^
+      "next line",
+      `Return([id "the"; id "continued"; id "line"; id "here"; END;
+               id "next"; id "line"; END]);
+
+      "indent block:\n" ^
+      "  content of block\n" ^
+      "end",
+      `Return [id "indent"; id "block"; BEGIN_BLOCK;
+               id "content"; id "of"; id "block"; END;
+               END_BLOCK[]; END];
+
+      "multi block:\n" ^
+      "  first line\n" ^
+      "  second line\n" ^
+      "else:\n" ^
+      "  third line\n" ^
+      "end",
+      `Return [id "multi"; id "block"; BEGIN_BLOCK;
+               id "first"; id "line"; END;
+               id "second"; id "line"; END;
+               END_BLOCK []; id "else"; BEGIN_BLOCK;
+               id "third"; id "line"; END;
+               END_BLOCK []; END];
+
+      "cont begin\n" ^
+      "  of block:\n" ^
+      "  line 1\n" ^
+      "  line 2\n" ^
+      "end",
+      `Return [id "cont"; id "begin"; id "of"; id "block"; BEGIN_BLOCK;
+               id "line"; id "1"; END;
+               id "line"; id "2"; END;
+               END_BLOCK []; END];
+
+      "if a then:\n\
       \  foobar\n\
       end",
       `Return( ids ["if"; "a"; "then"] @ [BEGIN_BLOCK]
@@ -232,7 +273,7 @@ struct
                @ [END_BLOCK []; END] );
 
       (* block end with tokens *)
-      "foreach num IN primes\n\
+      "foreach num IN primes:\n\
       \  printLine num\n\
       end foreach num",
       `Return( ids ["foreach"; "num"; "IN"; "primes"] @ [BEGIN_BLOCK]
@@ -240,9 +281,9 @@ struct
                @ [END_BLOCK ["foreach"; "num"]; END] );
 
       (* multi-part multi-line expressions *)
-      "if cond then\n\
+      "if cond then:\n\
       \  print 1\n\
-      else\n\
+      else:\n\
       \  print 2\n\
       end",
       `Return( ids ["if"; "cond"; "then"] @ [BEGIN_BLOCK]
@@ -257,8 +298,8 @@ struct
       "\n\n\n\nfirst\n\n\n", `Return [id "first"; END];
 
       (* fail if indent level is reduced too much *)
-      "main\n\
-      \  begin foo\n\
+      "main:\n\
+      \  begin foo:\n\
       \    body\n\
       next\n",
       `Exception "Should fail because indent level is reduced too much";
@@ -271,8 +312,8 @@ struct
       (* TODO: alle operatoren testen *)
 
       "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];
-      "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo";
-                                KEYWORD_ARG "then"; END];
+      (* "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo"; *)
+      (*                           KEYWORD_ARG "then"; END]; *)
       (* "this is a line:", `Return [id "this"; id "is"; id "a"; id "line"; *)
       (*                             EXTENDED_INDENT; END]; *)
 
@@ -290,8 +331,8 @@ struct
       "foo(1.,0.)", `Return [id "foo"; OPEN_ARGLIST;
                              id "1."; COMMA; id "0."; CLOSE_PAREN; END];
 
-      "test\n\
-      \  nest1\n\
+      "test:\n\
+      \  nest1:\n\
       \    void\n\
       \  end\n\
       \  --x\n\
