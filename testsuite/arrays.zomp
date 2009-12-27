@@ -6,15 +6,15 @@ require "libs/array.zomp"
 
 defineArrayType int
 
-func void testPrimitiveTypeArray()
+func void testPrimitiveTypeArray():
   size := 10
   nums := newArray int size
 
-  for i 0 size
+  for i 0 size:
     aset nums i (i * 3)
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     aget nums 0 == 0
     aget nums 1 == 3
     aget nums 2 == 6
@@ -28,18 +28,18 @@ func void testPrimitiveTypeArray()
   end
 end
 
-struct Point
+struct Point:
   int x
   float y
 end
 
-func bool Point:is(Point* p, int x, float y)
+func bool Point:is(Point* p, int x, float y):
   true
 end
 
 defineArrayType Point
 
-func void testStructArray()
+func void testStructArray():
   size := 2
   points := newArray Point size
 
@@ -53,13 +53,13 @@ func void testStructArray()
   b.y = 17.3
   aset points 1 b
 
-  unittest:assertAll
+  unittest:assertAll:
     Point:is (points.elements + 0) 1 3.0
     Point:is (points.elements + 1) 33 17.3
   end
 end
 
-func int main()
+func int main():
   testPrimitiveTypeArray()
   testStructArray()
 

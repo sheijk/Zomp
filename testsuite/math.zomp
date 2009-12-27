@@ -5,15 +5,15 @@
 require "libs/unittest.zomp"
 require "libs/math.zomp"
 
-func v3f v(float x, float y, float z)
+func v3f v(float x, float y, float z):
   ret (structlit v3f x x y y z z)
 end
 
-unittest:testCase v3f_ops
+unittest:testCase v3f_ops:
   l := structlit v3f x 1. y 2. z 3.
   r := structlit v3f x 14. y 16. z 18.
 
-  unittest:assertAll
+  unittest:assertAll:
     l == l
     l != r
     l + r == v 15. 18. 21.
@@ -25,15 +25,15 @@ unittest:testCase v3f_ops
   end
 end
 
-unittest:testCase v3f_normalized
-  unittest:assertAll
+unittest:testCase v3f_normalized:
+  unittest:assertAll:
     v3f:normalized v(1.,0.,0.) == v(1.,0.,0.)
     v3f:normalized v(17.,0.,0.) == v(1.,0.,0.)
   end
 end
 
-unittest:testCase v3f_length
-  unittest:assertAll
+unittest:testCase v3f_length:
+  unittest:assertAll:
     v3f:length v(0.,0.,0.) == 0.
     v3f:length v(1.,0.,0.) == 1.
     v3f:length v(0.,1.,0.) == 1.
@@ -42,8 +42,8 @@ unittest:testCase v3f_length
   end
 end
 
-unittest:testCase triangles
-  unittest:assertAll
+unittest:testCase triangles:
+  unittest:assertAll:
     triangleArea v(0.,0.,0.) v(1.,0.,0.) v(0.,1.,0.) == 0.5
   end
 end

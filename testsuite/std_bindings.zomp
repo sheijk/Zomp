@@ -4,12 +4,12 @@
  */
 
 
-macro printNameUsage name
+macro printNameUsage name:
   var cstring messageFound (cstring:quote (cstring:concat (getField name id) " is bound!\n"))
   var cstring messageNotFound (cstring:quote (cstring:concat (getField name id) ", where art thou?\n"))
 
-  ret ${
-    if (std:bindings:isNameUsed #name)
+  ret ${seq:
+    if (std:bindings:isNameUsed #name):
       printString #messageFound
       printString #messageNotFound
     end
@@ -17,7 +17,7 @@ macro printNameUsage name
 end
 
 
-func void someFuncYes()
+func void someFuncYes():
   printlnString "foobar!"
 end
 
@@ -27,13 +27,13 @@ template someMacroYes void
 
 var int someVarYes 0
 
-func int main()
+func int main():
   template used name (std:bindings:isNameUsed #name)
   template notUsed name (bool:not (std:bindings:isNameUsed #name))
 
   var int localYes 0
 
-  unittest:assertAll
+  unittest:assertAll:
     used someIntTypeYes
     used someMacroYes
     used someVarYes

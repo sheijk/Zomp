@@ -6,8 +6,8 @@
 var int MAX_INT 2147483647
 var int MIN_INT -2147483648
 
-func void testMinMax()
-  unittest:assertAll
+func void testMinMax():
+  unittest:assertAll:
     int:min 0 1 == 0
     int:min 10 10 == 10
     int:min 100 101 == 100
@@ -26,15 +26,15 @@ func void testMinMax()
   end
 end
 
-func void testMinMaxPerformance()
+func void testMinMaxPerformance():
   var2 count 100000000
   var2 nums malloc(int, count)
   var2 min MAX_INT
   var2 max MIN_INT
 
-  for repeat 0 10
+  for repeat 0 10:
     var2 addr nums
-    for i 0 count
+    for i 0 count:
       var2 val load(addr)
       assign min int:min(min, val)
       assign max int:max(max, val)
@@ -43,7 +43,7 @@ func void testMinMaxPerformance()
   end
 end
 
-func int main()
+func int main():
   testMinMax()
 
   ret 0

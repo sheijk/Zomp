@@ -4,7 +4,7 @@
 /**
  * Beautiful documentation. This should be green!
  */
-func int main()
+func int main():
   // delete(theInternet) <- commented out
 
   /* foo */

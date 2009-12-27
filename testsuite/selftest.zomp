@@ -4,9 +4,9 @@
 !verify off
  */
 
-func int main()
+func int main():
   unittest:assert true
-  unittest:assertAll
+  unittest:assertAll:
     true
     true
     true

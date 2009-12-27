@@ -16,7 +16,7 @@
 //   ret ${printlnString msg}
 // end
 
-func int foo()
+func int foo():
   ret 123
 end
 
@@ -32,7 +32,7 @@ end
 //   ret "fu"
 // end
 
-macro hello name
+macro hello name:
   printInt foo()
   printNewline()
   // printChar bar()
@@ -43,7 +43,7 @@ macro hello name
   ret ${printlnInt #num}
 end
 
-func int main()
+func int main():
   hello foo
   ret 0
 end

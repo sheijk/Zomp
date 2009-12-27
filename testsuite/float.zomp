@@ -2,7 +2,7 @@
  * Testing floating point support
  */
 
-func int main()
+func int main():
   var float f 1.1
   printString "Printing a funny floating point value: "
   printFloat f

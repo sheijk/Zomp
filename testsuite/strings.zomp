@@ -3,13 +3,13 @@
 !syntax indent
  */
 
-template op==_chr l r
+template op==_chr l r:
   char:equal #l #r
 end
 
 var char* multiline "line0\nline1\n"
 
-func int main()
+func int main():
   var char* simpleString "this be a simple string"
   var char* simpleString2 "another string"
 

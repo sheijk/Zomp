@@ -8,9 +8,9 @@
 require "libs/libcee.zomp"
 require "libs/unittest.zomp"
 
-func int main()
+func int main():
   /// testing ast:matchesShape
-  unittest:assertAll
+  unittest:assertAll:
 
     /// very simple cases
     ast:matchesShape ${foo} ${foo}

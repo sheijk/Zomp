@@ -2,19 +2,19 @@
  * Demonstrates basic usage of functions
  */
 
-func int get5()
+func int get5():
   ret 5
 end
 
-func int incr(int i)
+func int incr(int i):
   ret (i + 1)
 end
 
-func int sum(int a, int b, int c)
+func int sum(int a, int b, int c):
   ret (a + b + c)
 end
 
-func int main()
+func int main():
   assert (5 == get5())
   assert (11 == incr 10)
 

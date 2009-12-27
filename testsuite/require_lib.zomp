@@ -6,7 +6,7 @@
 
 var int failWhenIncludedTwice 5
 
-func int require5()
+func int require5():
   ret failWhenIncludedTwice
 end
 

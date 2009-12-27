@@ -2,7 +2,7 @@
  * Demonstrates very basic usage of variables
  */
 
-func void testBasics()
+func void testBasics():
   var int i 10
   unittest:assert (i == 10)
 
@@ -10,31 +10,31 @@ func void testBasics()
   unittest:assert (i == 3)
 end
 
-func void testVoidVars()
+func void testVoidVars():
   var void nothingToSeeHere
   var void canCopyThem nothingToSeeHere
   // TODO: support all operations on void variables (by ignoring them :))
   // assign nothingToSeeHere canCopyThem
 end
 
-func void testPointers()
+func void testPointers():
   var int i 10
   var int* ptr (ptr i)
   store ptr 99
   unittest:assert (i == 99)
 end
 
-func void testArrays()
+func void testArrays():
   var (array int 10) numbers
   var int[5] numbers2
 
   zmp:array:set numbers2 3 7
 
-  for i 0 10
+  for i 0 10:
     zmp:array:set numbers i (2*i)
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     zmp:array:size numbers == 10
     zmp:array:size numbers2 == 5
 
@@ -67,7 +67,7 @@ end
 //   end
 // end
 
-func int main()
+func int main():
   testBasics()
   testVoidVars()
   testPointers()

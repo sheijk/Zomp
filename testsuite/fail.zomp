@@ -2,7 +2,7 @@
  * Simplest way to fail unit test
  */
 
-func int main()
+func int main():
   ret 1
 end
 

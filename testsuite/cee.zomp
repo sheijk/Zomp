@@ -8,26 +8,26 @@ require "libs/unittest.zomp"
 
 var int counter 0
 
-func bool increaseAndRet(bool result)
+func bool increaseAndRet(bool result):
   counter = counter + 1
   ret result
 end
 
-unittest:testCase DefineVar
+unittest:testCase DefineVar:
   x := 10
   y := 1.0
-  unittest:assertAll
+  unittest:assertAll:
     x == 10
     y ==_f 1.0
   end
 end
 
-struct Point
+struct Point:
   int x
   int y
 end
 
-struct TestStruct
+struct TestStruct:
   int x
   float y
   int* tenints
@@ -35,13 +35,13 @@ struct TestStruct
   Point pt
 end
 
-unittest:testCase DotOp
+unittest:testCase DotOp:
   p := malloc TestStruct
   p.x = 23
   p.y = 7.3
 
   p.tenints = malloc int 10
-  for i 0 10
+  for i 0 10:
     p.tenints[i] = i + 1
   end
 
@@ -51,7 +51,7 @@ unittest:testCase DotOp
   p.pt.x = 3
   p.pt.y = 7
 
-  unittest:assertAll
+  unittest:assertAll:
     p.x == 23
     p.y ==_f 7.3
     p.tenints[0] == 1
@@ -87,35 +87,35 @@ end
 //   end
 // end
 
-struct IntArrays
+struct IntArrays:
   int size
   int* a
   Point* points
 end
 
-func void IntArrays:init(IntArrays* this, int size)
+func void IntArrays:init(IntArrays* this, int size):
   this.size = size
   this.a = malloc int size
   this.points = malloc Point size
 end
 
-func void IntArrays:delete(IntArrays* this)
+func void IntArrays:delete(IntArrays* this):
   dealloc this.a
   dealloc this.points
   dealloc this
 end
 
-unittest:testCase DotArray
+unittest:testCase DotArray:
   size := 4
   arr := new IntArrays size
 
-  for i 0 size
+  for i 0 size:
     arr.a[i] = i + 1
     arr.points[i].x = i * 2
     arr.points[i].y = 1 - i
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     arr.a[0] == 1
     arr.a[1] == 2
     arr.a[2] == 3
@@ -133,16 +133,16 @@ unittest:testCase DotArray
   IntArrays:delete arr
 end
 
-unittest:testCase ArrayDot
+unittest:testCase ArrayDot:
   size := 3
   points := malloc Point 3
 
-  for i 0 size
+  for i 0 size:
     points[i].x = i
     points[i].y = size - i
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     points[0].x == 0
     points[0].y == 3
     points[1].x == 1
@@ -154,14 +154,14 @@ unittest:testCase ArrayDot
   dealloc points
 end
 
-template postop* ptr
+template postop* ptr:
   load #ptr
 end
 
-unittest:testCase ArrayPtrDot
+unittest:testCase ArrayPtrDot:
   size := 3
   points := malloc Point* size
-  for i 0 size
+  for i 0 size:
     store (points + i) malloc(Point)
 
     // (points + i)**.x = i * i
@@ -170,7 +170,7 @@ unittest:testCase ArrayPtrDot
     setField load(ptradd points i) y (10*i)
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     size == 3 // catch resizing without updating test code
     getField(load load(points), x) == 0
     (*(points + 0))*.x == 0
@@ -182,59 +182,59 @@ unittest:testCase ArrayPtrDot
     (*(points + 2))*.y == 20
   end
 
-  for i2 0 size
+  for i2 0 size:
     dealloc *(points + i2)
   end
   dealloc points
 end
 
-unittest:testCase For
+unittest:testCase For:
   sum := 0
 
-  for x 0 10
+  for x 0 10:
     sum = sum + x
   end
 
   unittest:assert (sum == 45)
 end
 
-unittest:testCase NestedFor
+unittest:testCase NestedFor:
   sum := 0
 
-  for i 0 10
-    for j 4 7
+  for i 0 10:
+    for j 4 7:
       sum = sum + 1
     end
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     sum == 30
   end
 end
 
-func int getValFromSwitch(int x)
-  switch (10+x)
+func int getValFromSwitch(int x):
+  switch (10+x):
     void
-  case 10
+  case 10:
     ret 1
-  case 12
+  case 12:
     ret 2
   end
 
   ret 123
 end
 
-unittest:testCase Switch
-  unittest:assertAll
+unittest:testCase Switch:
+  unittest:assertAll:
     getValFromSwitch 0 == 1
     getValFromSwitch 2 == 2
     getValFromSwitch 99 == 123
   end
 end
 
-unittest:testCase LazyOps
-  template expectCount num code
-    unittest:assert
+unittest:testCase LazyOps:
+  template expectCount num code:
+    unittest:assert:
       counter = 0
       #code
       counter == #num
@@ -248,13 +248,13 @@ unittest:testCase LazyOps
   expectCount 2 (increaseAndRet false || increaseAndRet true)
 end
 
-unittest:testCase Assign
+unittest:testCase Assign:
   floatp := malloc float 2
 
   floatp* = 1.0
   (ptradd floatp 1)* = 10.0
 
-  unittest:assertAll
+  unittest:assertAll:
     floatp* ==_f 1.0
     load (ptradd floatp 1) ==_f 10.0
   end
@@ -262,26 +262,26 @@ unittest:testCase Assign
   free (cast void* floatp)
 end
 
-unittest:testCase Loop
+unittest:testCase Loop:
   sum := 0
   count := 0
 
-  loop
+  loop:
     ++count
     sum = sum + count
-    if (count > 9)
+    if (count > 9):
       break
     end
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     sum == 55
   end
 end
 
-unittest:testCase OverloadedFuncs
+unittest:testCase OverloadedFuncs:
   onefString := toCString(1.0)
-  unless (strncmp(onefString, "1.0", 3) == 0)
+  unless (strncmp(onefString, "1.0", 3) == 0):
     println "Assertion failed"
     printHLine '-' 40
     println "left = " onefString
@@ -290,7 +290,7 @@ unittest:testCase OverloadedFuncs
   end
 
   fivedString := toCString(5.0d)
-  unless (strncmp(fivedString, "5.0", 3) == 0)
+  unless (strncmp(fivedString, "5.0", 3) == 0):
     println "Assertion failed"
     printHLine '-' 40
     println "left = " fivedString
@@ -298,7 +298,7 @@ unittest:testCase OverloadedFuncs
     printHLine '-' 40
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     toCString 10 ==_str "10"
     toCString 'x' ==_str "x"
     toCString true ==_str "true"
@@ -306,7 +306,7 @@ unittest:testCase OverloadedFuncs
     toCString "foo" ==_str "foo"
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     toInt 10 == 10
     toInt 4.0 == 4
     toInt 8.0d == 8
@@ -315,7 +315,7 @@ unittest:testCase OverloadedFuncs
     toInt 'a' == 97
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     toFloat 16 == 16.0
     toFloat 1.0 == 1.0
     toFloat 2.0d == 2.0
@@ -325,7 +325,7 @@ unittest:testCase OverloadedFuncs
     // toFloat 'a' == 40.0
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     toDouble 64 == 64.0d
     toDouble 10.0 == 10.0d
     toDouble 7.0d == 7.0d
@@ -333,14 +333,14 @@ unittest:testCase OverloadedFuncs
     toDouble false == 0.0d
   end
 
-  unittest:assertAll
+  unittest:assertAll:
     toChar 66 == 'B'
     // not supported: bool, float, double
   end
 end
 
-unittest:testCase OverloadedOps
-  unittest:assertAll
+unittest:testCase OverloadedOps:
+  unittest:assertAll:
     true == true
     true != false
     false != true
@@ -348,28 +348,28 @@ unittest:testCase OverloadedOps
   end
 end
 
-unittest:testCase MakeStructVar
+unittest:testCase MakeStructVar:
   p := structlit Point x 10 y 30
 
-  unittest:assertAll
+  unittest:assertAll:
     p.x == 10
     p.y == 30
   end
 end
 
-ofunc Point op+(Point l, Point r)
+ofunc Point op+(Point l, Point r):
   ret (structlit Point x (l.x+r.x) y (l.y+r.y))
 end
 
-ofunc bool op==(Point l, Point r)
+ofunc bool op==(Point l, Point r):
   ret ((l.x == r.x) && (l.y == r.y))
 end
 
-ofunc void print(Point p)
+ofunc void print(Point p):
   print "Point(x=" p.x ", y=" p.y ")"
 end
 
-func Point pt(int x, int y)
+func Point pt(int x, int y):
   ret (structlit Point x x y y)
 end
 
@@ -384,22 +384,22 @@ end
 //   end
 // end
 
-func int onReturn_simple()
+func int onReturn_simple():
   result := 4
   onReturn ++result
   return result
 end
 
-func int onReturn_simple2()
+func int onReturn_simple2():
   x := 4
   onReturn ++x
   return x
 end
 
-func int onReturn_multiReturn(bool first)
+func int onReturn_multiReturn(bool first):
   result := 4
   onReturn ++result
-  if first
+  if first:
     return result
   end
 
@@ -420,8 +420,8 @@ end
 //   ret 10
 // end
 
-unittest:testCase test_onReturn
-  unittest:assertAll
+unittest:testCase test_onReturn:
+  unittest:assertAll:
     onReturn_simple() == 5
     onReturn_simple2() == 5
     onReturn_multiReturn true == 5
