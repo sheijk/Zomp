@@ -117,10 +117,30 @@ let stripComments source =
   copySource();
   String.sub strippedSource 0 (!writePos + 1)
 
+let beginIndentBlockChar = '\r'
+
+let markIndentBlocks source =
+  let sourceLength = String.length source in
+  let pos = ref 0 in
+  let indentBlockRE = Str.regexp ":[ \t]*\n" in
+  begin try
+    while !pos < sourceLength do
+      pos := Str.search_forward indentBlockRE source !pos;
+      source.[!pos] <- ' ';
+      while not (isNewline source.[!pos]) do
+        incr pos
+      done;
+      source.[!pos] <- beginIndentBlockChar;
+    done
+  with Not_found -> () end
+
 let tokenToString (lineIndent, indentNext) (token :token) =
   let indentString indent =
     if indentNext = `Indent then
-      sprintf "%s" (String.make (4 * indent) ' ')
+      if indent >= 0 then
+        sprintf "%s" (String.make (4 * indent) ' ')
+      else
+        sprintf "(illegal indent %d)" indent
     else
       ""
   in
@@ -594,7 +614,7 @@ let token (lexbuf : token lexerstate) : token =
   let rec worker () =
     let currentChar = readChar lexbuf in
 
-    if isNewline currentChar then begin
+    if currentChar = beginIndentBlockChar or isNewline currentChar then begin
       lexbuf.previousToken <- `Whitespace;
       collectTimingInfo "newline"
         (fun () ->
@@ -616,7 +636,6 @@ let token (lexbuf : token lexerstate) : token =
            in
            let indent = consumeWhitespaceAndReturnIndent 0 in
            let prevIndent = lexbuf.prevIndent in
-           lexbuf.prevIndent <- indent;
 
            if lexbuf.readTokenBefore = false then begin
              if indent = prevIndent then worker ()
@@ -625,8 +644,12 @@ let token (lexbuf : token lexerstate) : token =
              let onSameIndent() =
                `Token END
              and onMoreIndent() =
+               lexbuf.prevIndent <- indent;
                `Token BEGIN_BLOCK
+             and continueLine() =
+               `Ignore
              and onLessIndent() =
+               lexbuf.prevIndent <- indent;
                let line = readUntil isNewline lexbuf in
                if isBlockEndLine line then begin
                  putback lexbuf "\n";
@@ -644,10 +667,12 @@ let token (lexbuf : token lexerstate) : token =
                end
              in
              (** lookup forward for `Ignore and possibly reset indent? *)
-             if indent = prevIndent then begin
-               onSameIndent()
-             end else if indent = prevIndent + 2 then begin
+             if currentChar = beginIndentBlockChar then
                onMoreIndent()
+             else if indent = prevIndent then begin
+               onSameIndent()
+             end else if indent > prevIndent then begin
+               continueLine()
              end else if indent > prevIndent then begin
                raiseIndentError lexbuf.location
                  (sprintf "Indentation was increased by %d spaces but only 2 are legal"
@@ -751,6 +776,7 @@ let token (lexbuf : token lexerstate) : token =
 
 let makeLexbuf fileName source =
   let buffer = stripComments source in
+  markIndentBlocks buffer;
   let rec lexbuf =
     {
       content = buffer;
