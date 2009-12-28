@@ -544,10 +544,10 @@ end
 
 func void quatf:makeNormalized(quatf* this):
   mag := quatf:magnitude *this
-  this.x = this.x * mag
-  this.y = this.y * mag
-  this.z = this.z * mag
-  this.w = this.w * mag
+  this.x *= mag
+  this.y *= mag
+  this.z *= mag
+  this.w *= mag
 end
 
 func quatf quatf:normalized(quatf q):
@@ -750,7 +750,7 @@ func KeyframeInterpol interpolKeyframeAt(float_Array* keyframeTimes, float time)
       kfpre := aget(keyframeTimes, keyNum - 1)
       kfpost := aget(keyframeTimes, keyNum)
       result.first = keyNum - 1
-      result.t =  (rem - kfpre) / (kfpost - kfpre)
+      result.t = (rem - kfpre) / (kfpost - kfpre)
     else:
       /// ok, because keyframeTimes.length >= 2 checked above
       result.first = keyframeTimes.length - 2
@@ -909,9 +909,9 @@ func void renderTimeline(float startTime, float endTime, int markerCount, float*
       x2 := remapRange(fullSecond, startTime, endTime, 0., 1.)
       glVertex3f x2 0. 0.
       glVertex3f x2 0.1 0.
-      fullSecond = fullSecond + 1.0
+      fullSecond += 1.0
     end
-
+  
     pos := markerPos
     color := markerColors
     for markerNum 0 markerCount:
@@ -972,7 +972,7 @@ end
 func void SceneGraph:collectNodes(SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum):
   node := aptr this.nodes nodeNum*
   SceneGraphNode:init node source
-  nodeNum* = nodeNum* + 1
+  nodeNum* += 1
   for childNum 0 source.mNumChildren:
     SceneGraph:collectNodes this *(source.mChildren + childNum) nodeNum edgeNum
     // TODO collect edges, too
