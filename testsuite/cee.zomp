@@ -340,11 +340,17 @@ unittest:testCase OverloadedFuncs:
 end
 
 unittest:testCase OverloadedOps:
+  min10 := -10
+
   unittest:assertAll:
     true == true
     true != false
     false != true
     false == false
+    10 == 10
+    11 != 20
+    -10 == -10
+    -min10 == 10
   end
 end
 

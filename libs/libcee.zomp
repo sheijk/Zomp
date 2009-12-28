@@ -719,6 +719,42 @@ template op% l r:
   u32:mod #l #r
 end
 
+template op+= l r:
+  #l = #l + #r
+end
+
+template op-= l r:
+  #l = #l - #r
+end
+
+template op*= l r:
+  #l = #l * #r
+end
+
+template op/= l r:
+  #l = #l / #r
+end
+
+template op&= l r:
+  #l = #l & #r
+end
+
+template op|= l r:
+  #l = #l | #r
+end
+
+template op%= l r:
+  #l = #l % #r
+end
+
+template preop- v:
+  zmp:cee:neg #v
+end
+
+template preop! v:
+  zmp:cee:not #v
+end
+
 template op== l r:
   zmp:cee:equal #l #r
 end
@@ -948,6 +984,22 @@ end
 
 func char* "toCString_char*"(char* c):
   c
+end
+
+func int neg_u32(int x):
+  ret int:neg(x)
+end
+
+func float neg_float(float x):
+  ret float:neg(x)
+end
+
+// func double neg_double(double x):
+//   ret double:neg(x)
+// end
+
+func bool not_bool(bool x):
+  ret bool:not(x)
 end
 
 macro ofunc rettype nameAndArgs impl:

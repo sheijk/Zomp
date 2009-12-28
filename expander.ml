@@ -1571,7 +1571,7 @@ struct
     ];
     let addFun name = addF ("zmp:cee:" ^ name) (overloadedFunction name) in
     List.iter addFun
-      ["print"; "toInt"; "toFloat"; "toDouble"; "toBool"; "toChar"; "toCString"];
+      ["print"; "toInt"; "toFloat"; "toDouble"; "toBool"; "toChar"; "toCString"; "neg"; "not"];
 end
 
 let baseInstructions =

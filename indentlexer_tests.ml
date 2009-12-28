@@ -133,6 +133,20 @@ struct
       "1.0++", `Return [id "1.0"; POSTFIX_OP "++"; END];
       " ++x:y", `Return [PREFIX_OP "++"; id "x:y"; END];
 
+      "a = b", `Return [id "a"; ASSIGN_OP "="; id "b"; END];
+      "x += 10", `Return [id "x"; ASSIGN_OP "+="; id "10"; END];
+      "x -= 10", `Return [id "x"; ASSIGN_OP "-="; id "10"; END];
+      "x *= 10", `Return [id "x"; ASSIGN_OP "*="; id "10"; END];
+      "x /= 10", `Return [id "x"; ASSIGN_OP "/="; id "10"; END];
+      "x &= 10", `Return [id "x"; ASSIGN_OP "&="; id "10"; END];
+      "x |= 10", `Return [id "x"; ASSIGN_OP "|="; id "10"; END];
+      "x %= 10", `Return [id "x"; ASSIGN_OP "%="; id "10"; END];
+      "x ++= 10", `Return [id "x"; ASSIGN_OP "++="; id "10"; END];
+
+      "-10", `Return [id "-10"; END];
+      "-x", `Return [PREFIX_OP "-"; id "x"; END];
+      "!true", `Return [PREFIX_OP "!"; id "true"; END];
+
       "foo.bar", `Return [id "foo"; DOT; id "bar"; END];
       "foo.bar.baz", `Return [id "foo"; DOT; id "bar"; DOT; id "baz"; END];
       "x.10", `Return [id "x"; DOT; id "10"; END];

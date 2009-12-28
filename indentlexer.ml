@@ -423,7 +423,7 @@ end = struct
       [intRule; negIntRule])
     @ (
       let postfixOps = ["++"; "--"; "..."; "*"] in
-      let prefixOps = ["*"; "&"; "++"; "--"] in
+      let prefixOps = ["*"; "&"; "++"; "--"; "!"; "-"] in
       let buildRE oplist =
         "\\(" ^ Common.combine "\\|" (List.map Str.quote oplist) ^ "\\)+"
       in
@@ -479,7 +479,7 @@ end = struct
     @ opRules "%" (fun s -> MOD_OP s)
     @ opRules "**" (fun s -> MULT_OP s)
     @ opRules "++" (fun s -> ADD_OP s)
-    @ opRulesMultiSym ["="; ":="] (fun s -> ASSIGN_OP s)
+    @ opRulesMultiSym ["="; ":="; "+="; "-="; "*="; "/="; "&="; "|="; "%="; "++="] (fun s -> ASSIGN_OP s)
     @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> COMPARE_OP s)
     @ opRulesMultiSym ["&&"; "||"] (fun s -> LAZY_BOOL_OP s)
     @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
