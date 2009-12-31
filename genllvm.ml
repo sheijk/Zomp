@@ -523,13 +523,13 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
 
 let gencodeSequence gencode exprs =
   let rec lastVarAndCode var code firstBBCode = function
-    | [] -> var, code, firstBBCode
+    | [] -> var, List.rev code, List.rev firstBBCode
     | expr :: tail ->
         let result = gencode expr in
         lastVarAndCode
           result.gcrVar
-          (code @ [result.gcrCode])
-          (firstBBCode @ [result.gcrFirstBBCode])
+          (result.gcrCode :: code)
+          (result.gcrFirstBBCode :: firstBBCode)
           tail
   in
   let resultVar, code, firstBBCode = lastVarAndCode noVar [] [] exprs in
