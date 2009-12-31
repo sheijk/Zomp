@@ -1456,6 +1456,9 @@ end
 
 module Overloaded_ops : Zomp_transformer =
 struct
+  (** creates a macro which turns baseName(l,r) into
+    * baseName_ltype_rtype(l,r). Has special handling for op+/op- and pointer
+    * arguments *)
   let overloadedOperator baseName (env :exprTranslateF env) = function
     | {args = [leftExpr; rightExpr]} ->
         begin
@@ -1568,6 +1571,12 @@ struct
       "greaterEqual", "op>=";
       "less", "op<";
       "lessEqual", "op<=";
+      "and", "op&";
+      "or", "op|";
+      "xor", "op^";
+      "shl", "op<<";
+      "shr", "op>>";
+      "pow", "op**";
     ];
     let addFun name = addF ("zmp:cee:" ^ name) (overloadedFunction name) in
     List.iter addFun

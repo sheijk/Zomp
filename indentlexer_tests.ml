@@ -12,7 +12,7 @@ struct
 
   let printInput str = printf "%s" str
 
-  let printOutput tokens = printTokens tokens 
+  let printOutput tokens = printTokens tokens
 
   let outputEqual l r =
     if List.length l = List.length r then
@@ -34,14 +34,12 @@ struct
       let idTokens = List.map (fun str -> (IDENTIFIER str :> token)) stringList in
       idTokens
     in
-    let parsedAsId id =
-      id, `Return [IDENTIFIER id; END]
-    in
-    let infixOp op optoken =
-      ["l " ^ op ^ " r", `Return [id "l"; optoken; id "r"; END];
-       parsedAsId ("op" ^ op)]
-    in
     let isValidId id = id, `Return [IDENTIFIER id; END] in
+    let isValidBinOp tokenF op =
+      ["l" ^ op ^ "r", `Return [id "l"; tokenF op; id "r"; END];
+       isValidId ("op" ^ op)]
+    in
+    let areValidBinOps ops tokenF = List.flatten (List.map (isValidBinOp tokenF) ops) in
     ignore( ids [] );
     [
       isValidId "single";
@@ -318,11 +316,11 @@ struct
       next\n",
       `Exception "Should fail because indent level is reduced too much";
 
-      parsedAsId "op&&";
-      parsedAsId "op||";
-      parsedAsId "op++";
-      parsedAsId "op*";
-      parsedAsId "op==_str";
+      isValidId "op&&";
+      isValidId "op||";
+      isValidId "op++";
+      isValidId "op*";
+      isValidId "op==_str";
       (* TODO: alle operatoren testen *)
 
       "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];
@@ -360,19 +358,25 @@ struct
 
       "10 == -10", `Return [id "10"; COMPARE_OP "=="; id "-10"; END];
     ]
-    @ infixOp "+" (ADD_OP "+")
-    @ infixOp "-" (ADD_OP "-")
-    @ infixOp "&&" (LAZY_BOOL_OP "&&")
-    @ infixOp "||" (LAZY_BOOL_OP "||")
-    @ infixOp "=" (ASSIGN_OP "=")
-    @ infixOp "==" (COMPARE_OP "==")
-    @ infixOp "!=" (COMPARE_OP "!=")
+    @ areValidBinOps ["*"; "/"; "**"] (fun n -> MULT_OP n)
+    @ areValidBinOps ["+"; "-"; "+."; "++"] (fun n -> ADD_OP n)
+    @ areValidBinOps [
+      "=";
+      "*="; "/="; "**="; "+="; "-="; "+.="; "++=";
+      "&&="; "||=";
+      "&="; "|="; "^="; "<<="; ">>=";
+      "%=";]
+      (fun n -> ASSIGN_OP n)
+    @ areValidBinOps [">"; ">="; "<"; "<="; "=="; "!="] (fun n -> COMPARE_OP n)
+    @ areValidBinOps ["&&"; "||"] (fun n -> LAZY_BOOL_OP n)
+    @ areValidBinOps ["&"; "|"; "^"; "<<"; ">>"] (fun n -> STRICT_BOOL_OP n)
+    @ areValidBinOps ["%"] (fun n -> MOD_OP n)
 end
 
 let () =
   let module M = Tester(IndentLexerTestCase) in
   M.runTestsAndReport "indentlexer"
-  
+
 let () =
   let testCases = [
     "iff", "end", true;
@@ -382,7 +386,7 @@ let () =
     "iff", "end iff blah", false;
     "iff", "end   iff", true;
   ] in
-  
+
   let blockEndRE name = sprintf "end\\( +%s\\)? *$" name in
 
   printf "\n";

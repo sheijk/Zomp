@@ -49,14 +49,6 @@ macro uniqueIds purpose ids...:
   ret code
 end
 
-template op| l r:
-  int:or #l #r
-end
-
-template op& l r:
-  int:and #l #r
-end
-
 macro op|| l r:
   uniqueId result "||"
 
@@ -715,12 +707,32 @@ template op/ l r:
   zmp:cee:div #l #r
 end
 
+template op| l r:
+  zmp:cee:or #l #r
+end
+
+template op& l r:
+  zmp:cee:and #l #r
+end
+
+template op^ l r:
+  zmp:cee:xor #l #r
+end
+
 template op% l r:
   u32:mod #l #r
 end
 
 template op+= l r:
   #l = #l + #r
+end
+
+template op+.= l r:
+  #l = #l +. #r
+end
+
+template op++= l r:
+  #l = #l ++ #r
 end
 
 template op-= l r:
@@ -735,12 +747,40 @@ template op/= l r:
   #l = #l / #r
 end
 
+template op**= l r:
+  #l = #l ** #r
+end
+
 template op&= l r:
   #l = #l & #r
 end
 
 template op|= l r:
   #l = #l | #r
+end
+
+template op^= l r:
+  #l = #l ^ #r
+end
+
+template op%= l r:
+  #l = #l % #r
+end
+
+template op&&= l r:
+  #l = #l && #r
+end
+
+template op||= l r:
+  #l = #l || #r
+end
+
+template op<<= l r:
+  #l = #l << #r
+end
+
+template op>>= l r:
+  #l = #l >> #r
 end
 
 template op%= l r:
@@ -807,6 +847,46 @@ func bool op==_bool_bool(bool l, bool r):
   ret bool:not(bool:xor l r)
 end
 
+func bool op&_bool_bool(bool l, bool r):
+  ret bool:and(l, r)
+end
+
+func bool op|_bool_bool(bool l, bool r):
+  ret bool:or(l, r)
+end
+
+func bool op^_bool_bool(bool l, bool r):
+  ret bool:xor(l, r)
+end
+
+func u32 op&_u32_u32(u32 l, u32 r):
+  ret u32:and(l, r)
+end
+
+func u32 op|_u32_u32(u32 l, u32 r):
+  ret u32:or(l, r)
+end
+
+func u32 op^_u32_u32(u32 l, u32 r):
+  ret u32:xor(l, r)
+end
+
+func int neg_u32(int x):
+  ret int:neg(x)
+end
+
+func float neg_float(float x):
+  ret float:neg(x)
+end
+
+// func double neg_double(double x):
+//   ret double:neg(x)
+// end
+
+func bool not_bool(bool x):
+  ret bool:not(x)
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: Overloaded printing
 ///-----------------------------------------------------------------------------
@@ -866,7 +946,7 @@ func void printBits(int bitmask):
   for i 0 32:
     bitnum := 31 - i
     mask := int:shl 1 bitnum
-    bit := int:lshr (bitmask & mask) bitnum
+    bit := int:lshr (int:and bitmask mask) bitnum
     printInt bit
   end
 end
@@ -984,22 +1064,6 @@ end
 
 func char* "toCString_char*"(char* c):
   c
-end
-
-func int neg_u32(int x):
-  ret int:neg(x)
-end
-
-func float neg_float(float x):
-  ret float:neg(x)
-end
-
-// func double neg_double(double x):
-//   ret double:neg(x)
-// end
-
-func bool not_bool(bool x):
-  ret bool:not(x)
 end
 
 macro ofunc rettype nameAndArgs impl:

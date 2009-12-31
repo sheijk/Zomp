@@ -165,14 +165,13 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | END -> "END\n", ind
             | IDENTIFIER str -> str, noind
             | COMMA -> ",", noind
-            | ADD_OP arg
-            | MULT_OP arg
-            | MOD_OP arg
-            | ASSIGN_OP arg
-            | COMPARE_OP arg
-            | LAZY_BOOL_OP arg
-            | STRICT_BOOL_OP arg
-              -> "op" ^ arg, noind
+            | ADD_OP arg -> "ADD_OP " ^ arg, noind
+            | MULT_OP arg -> "MULT_OP " ^ arg, noind
+            | MOD_OP arg -> "MOD_OP " ^ arg, noind
+            | ASSIGN_OP arg -> "ASSIGN_OP " ^ arg, noind
+            | COMPARE_OP arg -> "COMPARE_OP " ^ arg, noind
+            | LAZY_BOOL_OP arg -> "LAZY_BOOL_OP " ^ arg, noind
+            | STRICT_BOOL_OP arg -> "STRICT_BOOL_OP " ^ arg, noind
             | POSTFIX_OP arg -> "post" ^ arg, noind
             | PREFIX_OP arg -> "pre" ^ arg, noind
             | OPEN_PAREN -> "(", noind
@@ -235,7 +234,7 @@ end = struct
 
   type rule = (charre * Str.regexp)
 
-  let opSymbols = "-+\\*/&.><=!|:;,%"
+  let opSymbols = "-+\\*/&.><=!|:;,%^"
 
   let rec charreMatch cre token =
     let isOperator = function
@@ -479,10 +478,13 @@ end = struct
     @ opRules "%" (fun s -> MOD_OP s)
     @ opRules "**" (fun s -> MULT_OP s)
     @ opRules "++" (fun s -> ADD_OP s)
-    @ opRulesMultiSym ["="; ":="; "+="; "-="; "*="; "/="; "&="; "|="; "%="; "++="] (fun s -> ASSIGN_OP s)
+    @ opRulesMultiSym
+      ["="; ":="; "+="; "-="; "*="; "/="; "&="; "|="; "%="; "++="; "**="; "+.=";
+       "&&="; "||="; "^="; "<<="; ">>="]
+      (fun s -> ASSIGN_OP s)
     @ opRulesMultiSym ["=="; "!="; ">"; ">="; "<"; "<=";] (fun s -> COMPARE_OP s)
     @ opRulesMultiSym ["&&"; "||"] (fun s -> LAZY_BOOL_OP s)
-    @ opRulesMultiSym ["&"; "|"; "^"] (fun s -> STRICT_BOOL_OP s)
+    @ opRulesMultiSym ["&"; "|"; "^"; "<<"; ">>"] (fun s -> STRICT_BOOL_OP s)
       (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
 
   let ruleMatchesAt ~prevToken ~source ~pos ((prevCharRE, regexp), _) =
