@@ -6,7 +6,8 @@ linkclib "libglfw.dylib" "libGLEW.dylib"
 
 static:setRequireLibDebug true
 
-requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array unittest quicktext
+requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array
+  unittest quicktext
 
 ///-----------------------------------------------------------------------------
 /// Section: list
@@ -307,7 +308,8 @@ macro twgroup optionString settings:
       typeId := ast:child s 1
       name := ast:child s 2
       var := ast:child s 3
-      ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
+      ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var)
+        #optionString}
     else:
       ret ${error "Expected rw TYPE NAME VAR" #s}
     end
@@ -407,8 +409,14 @@ func GLint debugMaterial():
   ret shader
 end
 
-func void gluLookAtf(float eyex, float eyey, float eyez, float cx, float cy, float cz, float ux, float uy, float uz):
-  gluLookAt (toDouble eyex) (toDouble eyey) (toDouble eyez) (toDouble cx) (toDouble cy) (toDouble cz) (toDouble ux) (toDouble uy) (toDouble uz)
+func void gluLookAtf(
+    float eyex, float eyey, float eyez,
+    float cx, float cy, float cz,
+    float ux, float uy, float uz):
+  gluLookAt
+    (toDouble eyex) (toDouble eyey) (toDouble eyez)
+    (toDouble cx) (toDouble cy) (toDouble cz)
+    (toDouble ux) (toDouble uy) (toDouble uz)
 end
 
 struct MeshInfo:
@@ -495,7 +503,10 @@ func float unlerp(float t, float a, float b):
   return ((t - a) / (b - a))
 end
 
-func float remapRange(float t, float oldMin, float oldMax, float newMin, float newMax):
+func float remapRange(
+    float t,
+    float oldMin, float oldMax,
+    float newMin, float newMax):
   return lerp(unlerp t oldMin oldMax, newMin, newMax)
 end
 
@@ -888,7 +899,12 @@ func Color color(float red, float green, float blue):
   ret (structlit Color red red green green blue blue)
 end
 
-func void renderTimeline(float startTime, float endTime, int markerCount, float* markerPos, Color* markerColors):
+func void renderTimeline(
+    float startTime,
+    float endTime, int markerCount,
+    float* markerPos,
+    Color* markerColors):
+
   if (startTime >= endTime):
     return void
   end
@@ -969,7 +985,8 @@ func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):
   this.id = aiString:cstring &source.mName
 end
 
-func void SceneGraph:collectNodes(SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum):
+func void SceneGraph:collectNodes(
+    SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum):
   node := aptr this.nodes nodeNum*
   SceneGraphNode:init node source
   nodeNum* += 1
@@ -1045,7 +1062,10 @@ func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id):
   ret -1
 end
 
-func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Array nodes):
+func void Animation:init(
+    Animation* this,
+    aiAnimation* source,
+    SceneGraphNode_Array nodes):
   this.duration = toFloat source.mDuration
   this.name = aiString:cstring &source.mName
   NodeAnimation_Array:init &this.channels source.mNumChannels
@@ -1126,7 +1146,8 @@ func int main():
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
-  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals
+  loadOptions :=
+    aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals
   // loadOptions := 0
 
   scene := aiImportFile sceneFilename loadOptions
@@ -1166,7 +1187,8 @@ func int main():
   objmat := debugMaterial()
   onReturn glDeleteProgram(objmat)
   objmat_obj2cam := glGetUniformLocation objmat "_object_to_ndc"
-  objmat_falloff_amount := glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
+  objmat_falloff_amount :=
+    glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
   println "objmat_obj2cam = " objmat_obj2cam
   println "objmat_falloff_amount = " objmat_falloff_amount
 
@@ -1238,7 +1260,8 @@ func int main():
     glLoadIdentity()
     aspect := toDouble(windowWidth) / toDouble(windowHeight)
     camDistance := 0.8
-    farPlaneDist := camDistance * meshSize * 2.0 + float:max(sqrtf (20.*20.*2.), 0.5 * meshSize)
+    farPlaneDist := camDistance * meshSize * 2.0 +
+      float:max(sqrtf (20.*20.*2.), 0.5 * meshSize)
     nearPlaneDist := float:max(1.0, camDistance - meshSize)
     gluPerspective 90.0d aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
