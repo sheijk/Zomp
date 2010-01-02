@@ -435,10 +435,15 @@ editor to trigger recompilations etc. and possibly resume main()"
         (isAtEnd nil)
         (wordAtLineBeginning "")
         (endAtNextLine nil)
+        (startOfIndentBlock nil)
         (endQuotationAtNextLine nil)
         (nextLineIndentDiff 0))
 
     (setq isAtEnd (looking-at " *$"))
+
+    (save-excursion
+      (end-of-line)
+      (setq startOfIndentBlock (looking-back " *:")))
 
     (save-excursion
       (move-beginning-of-line 1)
@@ -483,7 +488,8 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     (when (and (not isStar)
                (not isComment)
-               (member wordAtLineBeginning zomp-indent-keywords)
+               ;; (member wordAtLineBeginning zomp-indent-keywords)
+               startOfIndentBlock
                (not (and endAtNextLine (>= nextLineIndentDiff 0)))
                (<= nextLineIndentDiff 0)
                isAtEnd)
