@@ -72,14 +72,15 @@ indent the next line when they occur at the beginning of a line"
 
 (defvar zomp-imenu-generic-expression nil)
 (defun zomp-id (str)
-  (replace-regexp-in-string "ID" "\\(?:[a-zA-Z0-9:*+-/!=><_|&]\\|\\[\\|\\]\\)+" str t t))
+  (replace-regexp-in-string "ID" "\\(?:[a-zA-Z0-9:*+-/!=><_|&^]\\|\\[\\|\\]\\)+" str t t))
 (setq zomp-imenu-generic-expression
       `((nil ,(zomp-id "^(?macro +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
+        (nil ,(zomp-id "^(?ofunc +ID +\\(ID(ID\\)") 1)
         (nil ,(zomp-id "^(?var +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?const +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?type +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?struct +\\(ID\\)") 1)
+        (nil ,(zomp-id "^(?struct +\\(ID\\):") 1)
         (nil ,(zomp-id "^(?template +\\(ID\\)") 1)
         (nil ,(zomp-id "^\\(/// *.* *///\\) *$") 1)
         (nil ,(zomp-id "^\\(/// +Section: +.*\\)") 1)
@@ -336,6 +337,7 @@ editor to trigger recompilations etc. and possibly resume main()"
     (save-excursion
       (back-to-indentation)
       (setq oldindent (current-column))
+      ;; not in first line
       (when (> (current-line) 1)
         (save-excursion
           (setq left
@@ -357,21 +359,27 @@ editor to trigger recompilations etc. and possibly resume main()"
           (let ((w (zomp-symbol-at-point)))
             (cond ((looking-at "\\*")
                    (setq left (- left 1)))
-                  ((member w zomp-indent-keywords)
-                   (setq left (+ left 2)))
+                  ;; ((member w zomp-indent-keywords)
+                  ;;  (setq left (+ left 2)))
                   ((looking-at "end}")
                    (setq left (+ left 2)))
                   ))
-          ;; (when (looking-at "\\*")
-          ;;   (setq left (- left 1)))
 
-          (let* ((line-start (progn (beginning-of-line) (point)))
-                (line-end (progn (end-of-line) (point)))
-                (open-parens (how-many "[({]" line-start line-end))
-                (closing-parens (how-many "[)}]" line-start line-end)))
-            (cond ((> open-parens closing-parens) (setq left (+ left 2)))
-                  ((< open-parens closing-parens) (setq left (- left 2))))
-            (next-line))))
+          (end-of-line)
+          (when (looking-back " *:")
+            (setq left (+ left 2)))
+          (when (looking-back " *[+-*/=><&|,(]")
+            (setq left (+ left 4)))
+          (next-line)
+
+          ;; (let* ((line-start (progn (beginning-of-line) (point)))
+          ;;       (line-end (progn (end-of-line) (point)))
+          ;;       (open-parens (how-many "[({]" line-start line-end))
+          ;;       (closing-parens (how-many "[)}]" line-start line-end)))
+          ;;   (cond ((> open-parens closing-parens) (setq left (+ left 2)))
+          ;;         ((< open-parens closing-parens) (setq left (- left 2))))
+          ;;   (next-line))))
+          ))
 
       (beginning-of-line)
 
