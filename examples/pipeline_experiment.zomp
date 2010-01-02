@@ -1240,6 +1240,149 @@ end
 
 var float angle 0.0
 
+struct Camera:
+  RBTransform transform
+  cstring id
+  float horizontalFOV aspect
+  float nearPlaneDist farPlaneDist
+end
+
+func void Camera:init(Camera* this):
+  makeOrigin &this.transform
+  this.id = "-camera-"
+  this.horizontalFOV = 90.0
+  this.aspect = 1.0
+  this.nearPlaneDist = 1.0
+  this.farPlaneDist = 100.0
+end
+
+func void RBTransform:toRotMatrix4x4(RBTransform* this, float* mat44):
+  mat44[0] = this.xaxis.x
+  mat44[1] = this.yaxis.x
+  mat44[2] = this.zaxis.x
+  mat44[3] = 0.0
+  mat44[4] = this.xaxis.y
+  mat44[5] = this.yaxis.y
+  mat44[6] = this.zaxis.y
+  mat44[7] = 0.0
+  mat44[8] = this.xaxis.z
+  mat44[9] = this.yaxis.z
+  mat44[10] = this.zaxis.z
+  mat44[11] = 0.0
+  mat44[12] = 0.0
+  mat44[13] = 0.0
+  mat44[14] = 0.0
+  mat44[15] = 1.0
+end
+
+func void RBTransform:toTransMatrix44(RBTransform* this, float* mat44):
+  for i 0 16 (mat44[i] = 0.0)
+  mat44[0] = 1.0
+  mat44[5] = 1.0
+  mat44[10] = 1.0
+  mat44[15] = 1.0
+  mat44[12] = -this.origin.x
+  mat44[13] = -this.origin.y
+  mat44[14] = -this.origin.z
+end
+
+func void Camera:applyGL(Camera* this):
+  var float[16] mat_
+  mat := zmp:array:addr(&mat_)
+
+  RBTransform:toRotMatrix4x4 &this.transform mat
+  glMultMatrixf mat
+
+  RBTransform:toTransMatrix44 &this.transform mat
+  glMultMatrixf mat
+end
+
+func void Camera:draw(Camera* this):
+  rendergl GL_LINES:
+    glColor3f 0. 0. 1.
+    glVertex this.transform.origin
+    glVertex (this.transform.origin - this.transform.zaxis)
+    glColor3f 0. 1. 0.
+    glVertex this.transform.origin
+    glVertex (this.transform.origin + this.transform.yaxis)
+  end
+end
+
+func bool keyDown(GLint key):
+  ret(glfwGetKey key == GLFW_PRESS)
+end
+
+func bool mouseButtonDown(int button):
+  glfwGetMouseButton button == GLFW_PRESS
+end
+
+func quatf quatf:fromAxisAngle(v3f axis, float angleRad):
+  r := undef quatf
+  sinx := sinf (0.5 * angleRad)
+  cosy := cosf (0.5 * angleRad)
+
+  r.x = axis.x * sinx
+  r.y = axis.y * sinx
+  r.z = axis.z * sinx
+  r.w = cosy
+
+  ret r
+end
+
+// template applyF lval function:
+//   #lval = #function #lval
+// end
+
+func void Camera:move(Camera* this, float time):
+  delta := mv3f 0. 0. 0.
+
+  if (keyDown GLFW_KEY_A) (delta.x -= 1.0)
+  if (keyDown GLFW_KEY_D) (delta.x += 1.0)
+  if (keyDown GLFW_KEY_W) (delta.z -= 1.0)
+  if (keyDown GLFW_KEY_S) (delta.z += 1.0)
+  if (keyDown GLFW_KEY_F) (delta.y -= 1.0)
+  if (keyDown GLFW_KEY_R) (delta.y += 1.0)
+
+  speed := 2.0
+  rspeed := 2.0
+  if (keyDown GLFW_KEY_LSHIFT):
+    speed *= 4.0
+    rspeed *= 4.0
+  end
+
+  delta = RBTransform:rotate2(&this.transform, delta)
+  delta *= time * speed
+
+  rot := mv3f 0. 0. 0.
+
+  if (keyDown GLFW_KEY_UP) (rot.x += 1.0)
+  if (keyDown GLFW_KEY_DOWN) (rot.x -= 1.0)
+  if (keyDown GLFW_KEY_RIGHT) (rot.y -= 1.0)
+  if (keyDown GLFW_KEY_LEFT) (rot.y += 1.0)
+  if (keyDown GLFW_KEY_Q) (rot.z += 1.0)
+  if (keyDown GLFW_KEY_E) (rot.z -= 1.0)
+
+  rot *= time * rspeed
+
+  if (rot.x != 0.0):
+    rx := quatf:fromAxisAngle this.transform.xaxis rot.x
+    this.transform.yaxis = quatf:rotate rx this.transform.yaxis
+    this.transform.zaxis = quatf:rotate rx this.transform.zaxis
+  end
+  if (rot.y != 0.0):
+    ry := quatf:fromAxisAngle this.transform.yaxis rot.y
+    this.transform.xaxis = quatf:rotate ry this.transform.xaxis
+    this.transform.zaxis = quatf:rotate ry this.transform.zaxis
+  end
+  if (rot.z != 0.0):
+    rz := quatf:fromAxisAngle this.transform.zaxis rot.z
+    this.transform.xaxis = quatf:rotate rz this.transform.xaxis
+    this.transform.yaxis = quatf:rotate rz this.transform.yaxis
+  end
+
+  this.transform.origin += delta
+end
+
 func int main():
   init()
 
@@ -1336,6 +1479,10 @@ func int main():
   glEnable GL_BLEND
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
+  cam := local Camera
+  cam.transform.origin = mv3f 1.5 0. 5.
+  camNum := 0
+
   animTime := 0.0
   mainloop:
     angle = angle + rotationSpeed * frameDuration
@@ -1361,9 +1508,12 @@ func int main():
       if (keyEvent.action == GLFW_PRESS):
         if (keyEvent.key == GLFW_KEY_P):
           SceneGraph:print &sg
+        elseif (keyEvent.key == GLFW_KEY_C):
+          ++camNum
         end
       end
     end
+    Camera:move(&cam, frameDuration)
 
     autoSetupViewport()
 
@@ -1381,8 +1531,14 @@ func int main():
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    gluLookAtf cameraOffsetX cameraOffsetY cameraOffsetZ 0. 0. 0. 0. 1. 0.
-    glRotatef angle 0. 1. 0.
+    camNum = camNum % 2
+    if (camNum == 0):
+      gluLookAtf cameraOffsetX cameraOffsetY cameraOffsetZ 0. 0. 0. 0. 1. 0.
+      glRotatef angle 0. 1. 0.
+      Camera:draw &cam
+    elseif (camNum == 1):
+      Camera:applyGL &cam
+    end
 
     AABB:render &meshBB
     withShader objmat:
