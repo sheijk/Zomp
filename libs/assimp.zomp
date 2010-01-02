@@ -51,7 +51,7 @@ var int aiPrimitiveType_POLYGON 8
 
 var int aiProcess_CalcTangentSpace 1
 var int aiProcess_JoinIdenticalVertices 2
-var int aiProcess_ConvertToLeftHanded 4
+var int aiProcess_MakeLeftHanded 4
 var int aiProcess_Triangulate 8
 var int aiProcess_RemoveComponent 16
 var int aiProcess_GenNormals 32
@@ -63,12 +63,49 @@ var int aiProcess_ValidateDataStructure 1024
 var int aiProcess_ImproveCacheLocality 2048
 var int aiProcess_RemoveRedundantMaterials 4096
 var int aiProcess_FixInfacingNormals 8192
-var int aiProcess_OptimizeGraph 16384
+// var int aiProcess_OptimizeGraph 16384
 var int aiProcess_SortByPType 32768
 var int aiProcess_FindDegenerates 65536
 var int aiProcess_FindInvalidData 131072
 var int aiProcess_GenUVCoords 262144
 var int aiProcess_TransformUVCoords 524288
+var int aiProcess_FindInstances 1048576
+var int aiProcess_OptimizeMeshes 2097152
+var int aiProcess_OptimizeGraph 4194304
+var int aiProcess_FlipUV 8388608
+var int aiProcess_FlipWindingOrder 1048576
+
+// var int aiProcess_ConvertToLeftHanded (aiProcess_MakeLeftHanded | aiProcess_FlipUVs | aiProcess_FlipWindingOrder)
+// #define aiProcessPreset_TargetRealtime_Fast ( \
+// 	aiProcess_CalcTangentSpace		|  \
+// 	aiProcess_GenNormals			|  \
+// 	aiProcess_JoinIdenticalVertices |  \
+// 	aiProcess_Triangulate			|  \
+// 	aiProcess_GenUVCoords           |  \
+// 	aiProcess_SortByPType           |  \
+// 	0 )
+
+// #define aiProcessPreset_TargetRealtime_Quality ( \
+// 	aiProcess_CalcTangentSpace				|  \
+// 	aiProcess_GenSmoothNormals				|  \
+// 	aiProcess_JoinIdenticalVertices			|  \
+// 	aiProcess_ImproveCacheLocality			|  \
+// 	aiProcess_LimitBoneWeights				|  \
+// 	aiProcess_RemoveRedundantMaterials      |  \
+// 	aiProcess_SplitLargeMeshes				|  \
+// 	aiProcess_Triangulate					|  \
+// 	aiProcess_GenUVCoords                   |  \
+// 	aiProcess_SortByPType                   |  \
+// 	aiProcess_FindDegenerates               |  \
+// 	aiProcess_FindInvalidData               |  \
+// 	0 )
+
+// #define aiProcessPreset_TargetRealtime_MaxQuality ( \
+// 	aiProcessPreset_TargetRealtime_Quality   |  \
+// 	aiProcess_FindInstances                  |  \
+// 	aiProcess_ValidateDataStructure          |  \
+// 	aiProcess_OptimizeMeshes                 |  \
+// 	0 )
 
 type uint int
 
@@ -106,6 +143,7 @@ func void aiMatrix3x3:print(aiMatrix3x3* this):
   print "aiMatrix3x3(TODO)"
 end
 
+/// row major. translate in (a4,b4,c4)
 struct aiMatrix4x4:
   float a1 a2 a3 a4
   float b1 b2 b3 b4
@@ -113,8 +151,41 @@ struct aiMatrix4x4:
   float d1 d2 d3 d4
 end
 
-func void aiMatrix4x4:print(aiMatrix4x4* this):
-  print "aiMatrix4x4(TODO)"
+func v3f transformNormal(aiMatrix4x4* mat, v3f v):
+  ret mv3f(
+      v.x * mat.a1 + v.y * mat.a2 + v.z * mat.a3,
+      v.x * mat.b1 + v.y * mat.b2 + v.z * mat.b3,
+      v.x * mat.c1 + v.y * mat.c2 + v.z * mat.c3)
+end
+
+func v3f transformVector(aiMatrix4x4* mat, v3f v):
+  ret (transformNormal mat v + mv3f mat.a4 mat.b4 mat.c4)
+end
+
+func RBTransform aiMatrix4x4:toRBTransform(aiMatrix4x4* mat):
+  trans := undef RBTransform
+  trans.origin = transformVector mat mv3f(0.,0.,0.)
+  trans.xaxis = transformNormal mat mv3f(1.,0.,0.)
+  trans.yaxis = transformNormal mat mv3f(0.,1.,0.)
+  trans.zaxis = transformNormal mat mv3f(0.,0.,1.)
+  trans.scale = 1.0 // TODO
+  RBTransform:makeNormalized &trans
+  ret trans
+end
+
+func void aiMatrix4x4:print2(aiMatrix4x4* this, int indent_):
+  indent := indent_
+  times indent printChar(' ')
+  println "aiMatrix4x4:"
+  indent += 2
+  times indent printChar(' ')
+  println this.a1 ", " this.a2 ", " this.a3 ", " this.a4
+  times indent printChar(' ')
+  println this.b1 ", " this.b2 ", " this.b3 ", " this.b4
+  times indent printChar(' ')
+  println this.c1 ", " this.c2 ", " this.c3 ", " this.c4
+  times indent printChar(' ')
+  println this.d1 ", " this.d2 ", " this.d3 ", " this.d4
 end
 
 const int assimp:MAXLEN 1024
@@ -163,6 +234,7 @@ func void aiNode:print(aiNode* this, int indent):
   printString "aiNode '"
   aiString:print &(this.mName)
   println "':"
+  aiMatrix4x4:print2 &this.mTransformation (indent+2)
   printField mNumChildren
 
   times (2+indent) printChar(' ')

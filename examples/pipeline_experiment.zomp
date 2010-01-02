@@ -83,6 +83,29 @@ macro List:foreach list indexVar dataVar code:
   end}
 end
 
+macro printList list name printMemberF:
+  uniqueId ptr "printList"
+  uniqueId index "printList"
+  ret ${seq:
+    println #name ": "
+    List:foreach_ptr #list #index #ptr:
+      #printMemberF #ptr
+    end
+  end}
+end
+
+macro List:length count listPtr:
+  uniqueId ptr "List:length"
+  ret ${seq:
+    #ptr := #listPtr
+    #count = 0
+    while isNotNull(#ptr):
+      #count += 1
+      #ptr = #ptr.next
+    end
+  end}
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: experimental library extensions
 ///-----------------------------------------------------------------------------
@@ -346,6 +369,9 @@ var float playbackSpeed 1.0
 var float cameraOffsetX 0.
 var float cameraOffsetY 2.
 var float cameraOffsetZ 10.
+var bool wireframe false
+/// draw lines from origin to center of each mesh
+var bool showMeshPointers false
 
 template abortIf cond onFail:
   if #cond:
@@ -836,11 +862,14 @@ func void NodeAnimation:apply(NodeAnimation* this, float time):
 
   targetTransform := this.targetTransform
   if isNotNull(targetTransform):
-    targetTransform.origin = NodeAnimation:transformAt this rem
     scale := NodeAnimation:scaleAt this rem
     targetTransform.scale = scale.x
     rot := NodeAnimation:rotationAt this rem
     RBTransform:setRotation targetTransform rot
+    pos := NodeAnimation:transformAt this rem
+    pos = quatf:rotate rot pos
+    targetTransform.origin = pos
+    RBTransform:makeNormalized targetTransform
   end
 end
 
@@ -966,7 +995,18 @@ struct SceneGraphEdge:
 end
 
 defineArrayType SceneGraphEdge
+defineListType SceneGraphEdge
 defineArrayType Mesh
+
+func void SceneGraphEdge:init(SceneGraphEdge* this, int parent, int child):
+  this.parent = parent
+  this.child = child
+end
+
+
+func void SceneGraphEdge:print(SceneGraphEdge* this):
+  println this.parent " -> " this.child
+end
 
 struct SceneGraph:
   SceneGraphNode_Array nodes
@@ -977,7 +1017,8 @@ end
 
 func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):
   makeOrigin &this.globalSpace
-  makeOrigin &this.relativeTransform
+  // makeOrigin &this.relativeTransform
+  this.relativeTransform = aiMatrix4x4:toRBTransform &source.mTransformation
   int_Array:init &this.meshes source.mNumMeshes
   Array:foreach this.meshes meshNum:
     aset this.meshes meshNum *(source.mMeshes + meshNum)
@@ -985,14 +1026,28 @@ func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):
   this.id = aiString:cstring &source.mName
 end
 
+func void "print_void*"(void* ptr):
+  printPtr ptr
+end
+
 func void SceneGraph:collectNodes(
-    SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum):
+    SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum, SceneGraphEdge_List** edges):
   node := aptr this.nodes nodeNum*
   SceneGraphNode:init node source
+  parentIndex := nodeNum*
+  println "xxx created node " node.id "(" parentIndex ")"
   nodeNum* += 1
   for childNum 0 source.mNumChildren:
-    SceneGraph:collectNodes this *(source.mChildren + childNum) nodeNum edgeNum
-    // TODO collect edges, too
+    childIndex := nodeNum*
+    SceneGraph:collectNodes this *(source.mChildren + childNum) nodeNum edgeNum edges
+
+    pParent := aptr this.nodes parentIndex
+    pChild := aptr this.nodes childNum
+    println "XXX collecting edge " pParent.id "(" parentIndex ") -> " pChild.id "(" childIndex ")"
+
+    edge := local SceneGraphEdge parentIndex childIndex
+    edgeList := new SceneGraphEdge_List edge edges*
+    edges* = edgeList
   end
 end
 
@@ -1006,12 +1061,14 @@ func void SceneGraphNode:print(SceneGraphNode* this):
   print "SceneGraphNode('" this.id "', " this.meshes.length " meshes = ["
   for num 0 this.meshes.length:
     if (num > 0):
-      print(", ")
+      print ", "
     end
     print aget(this.meshes, num)
   end
   println "])"
-  println "  globalSpace = "
+  println "  relativeTransform ="
+  print this.relativeTransform
+  println "  globalSpace ="
   print this.globalSpace
 end
 
@@ -1048,6 +1105,7 @@ func void SceneGraph:print(SceneGraph* this):
   println "SceneGraph:"
   print "  "
   printArray this.nodes "nodes" SceneGraphNode:print
+  printArray this.edges "edges" SceneGraphEdge:print
   printArray this.anims "anims" Animation:print
   printArray this.meshes "meshes" MeshInfo:print
 end
@@ -1081,7 +1139,7 @@ func void Animation:init(
     nodeNum := SceneGraphNode:lookup &nodes name
     if (nodeNum >= 0):
       node := aptr nodes nodeNum
-      channel.targetTransform = fieldptr node globalSpace
+      channel.targetTransform = fieldptr node relativeTransform
     else:
       println "warning, could not connect anim channel " this.name
     end
@@ -1101,14 +1159,22 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
     makeOrigin &info.transform
   end
 
-  /// nodes
+  /// nodes and edges
   SceneGraphNode_Array:init &this.nodes aiScene:totalNodeCount(source)
-  SceneGraphEdge_Array:init &this.edges 0
   nodeNum := 0
   edgeNum := 0
-  SceneGraph:collectNodes this source.mRootNode &nodeNum &edgeNum
+  edgeList := nullptr SceneGraphEdge_List
+  SceneGraph:collectNodes this source.mRootNode &nodeNum &edgeNum &edgeList
   println "nodeNum = " nodeNum
-
+  printList edgeList "xxx edge list" SceneGraphEdge:print
+  edgeCount := 0
+  List:length edgeCount edgeList
+  println edgeCount " edges"
+  SceneGraphEdge_Array:init &this.edges edgeCount
+  List:foreach_ptr edgeList edgeNum2 pEdge:
+    aset this.edges edgeNum2 pEdge*
+  end
+  
   /// animations
   Animation_Array:init &this.anims source.mNumAnimations
   Array:foreach this.anims animNum:
@@ -1119,7 +1185,34 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
   end
 end
 
+func v3f RBTransform:rotate2(RBTransform* this, v3f v):
+  ret (v.x * this.xaxis + v.y * this.yaxis + v.z * this.zaxis)
+end
+
+func RBTransform RBTransform:concat(RBTransform* first, RBTransform* relative):
+  result := undef RBTransform
+  result.xaxis = RBTransform:rotate2 first relative.xaxis
+  result.yaxis = RBTransform:rotate2 first relative.yaxis
+  result.zaxis = RBTransform:rotate2 first relative.zaxis
+  result.origin = first.origin + RBTransform:rotate2 first relative.origin
+  result.scale = first.scale * relative.scale
+  ret result
+end
+
 func void SceneGraph:updateTransforms(SceneGraph* this):
+  if (this.nodes.length > 0):
+    rootNode := aptr this.nodes 0
+    rootNode.globalSpace = rootNode.relativeTransform
+  end
+
+  Array:foreach this.edges edgeNum:
+    edge := aget this.edges edgeNum
+    parent := aptr this.nodes edge.parent
+    child := aptr this.nodes edge.child
+    child.globalSpace = RBTransform:concat &parent.globalSpace &child.relativeTransform
+  end
+  
+  /// apply mesh transforms
   Array:foreach this.nodes nodeNum:
     node := aptr this.nodes nodeNum
     Array:foreach node.meshes meshNum:
@@ -1129,6 +1222,12 @@ func void SceneGraph:updateTransforms(SceneGraph* this):
     end
   end
 end
+
+struct Rect: 
+  float left right top bottom
+end
+
+var float angle 0.0
 
 func int main():
   init()
@@ -1140,14 +1239,18 @@ func int main():
   // sceneFilename := "data/pixeljourney/shared/obj/Reagenztest_tri.obj"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test5.dae"
   // sceneFilename := "data/pixeljourney/move_cube2.dae"
-  sceneFilename := "data/pixeljourney/pipetest/combined.dae"
+  // sceneFilename := "data/pixeljourney/pipetest/combined.dae"
+  sceneFilename :=
+    // "data/pixeljourney/pipetest/hierarchy.dae"
+    "data/pixeljourney/shared/pipeline_tests/COLLADA_maya/091228_D_Collada_maya_test_szene_02.dae"
+    // "data/pixeljourney/shared/pipeline_tests/COLLADA_maya/091228_D_Collada_maya_test_cube_01.dae"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test7_rolling_cube.dae"
   // sceneFilename := "data/collada_test2.dae"
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
-  loadOptions :=
-    aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals
+  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType
+  // | aiProcess_PreTransformVertices
   // loadOptions := 0
 
   scene := aiImportFile sceneFilename loadOptions
@@ -1159,7 +1262,7 @@ func int main():
 
   var SceneGraph sg
   SceneGraph:init &sg scene
-  SceneGraph:print &sg
+  // SceneGraph:print &sg
 
   meshes := sg.meshes
   // abortIf (isNull meshes) (println "Failed to convert scene to meshes")
@@ -1200,6 +1303,8 @@ func int main():
   twgroup "group=options precision=2":
     rw TW_TYPE_FLOAT "playback speed" playbackSpeed
     rw TW_TYPE_FLOAT "rot. speed" rotationSpeed
+    rw TW_TYPE_BOOL8 "wireframe" wireframe
+    rw TW_TYPE_BOOL8 "mesh pointers" showMeshPointers
     rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
     rw TW_TYPE_FLOAT "cam dy" cameraOffsetY
     rw TW_TYPE_FLOAT "cam dz" cameraOffsetZ
@@ -1214,8 +1319,6 @@ func int main():
   println "Mesh BB = " meshBB
 
   meshCenter := AABB:center &meshBB
-
-  angle := 0.0
 
   glEnable GL_DEPTH_TEST
   glDepthFunc GL_LEQUAL
@@ -1261,7 +1364,7 @@ func int main():
     aspect := toDouble(windowWidth) / toDouble(windowHeight)
     camDistance := 0.8
     farPlaneDist := camDistance * meshSize * 2.0 +
-      float:max(sqrtf (20.*20.*2.), 0.5 * meshSize)
+      float:max(sqrtf (20.*20.*2.), 0.5 * meshSize + v3f:length mv3f(cameraOffsetX, cameraOffsetY, cameraOffsetZ) * 10.0)
     nearPlaneDist := float:max(1.0, camDistance - meshSize)
     gluPerspective 90.0d aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
@@ -1272,17 +1375,17 @@ func int main():
 
     AABB:render &meshBB
     withShader objmat:
-      var float[16] viewMat
-      var float[16] projMat
-      var float[16] ndc
-      readGLMatrix GL_MODELVIEW_MATRIX (cast float* &viewMat)
-      readGLMatrix GL_PROJECTION_MATRIX (cast float* &projMat)
-      glMatrixMode GL_MODELVIEW
-      glPushMatrix()
-      glMultMatrixf(cast float* &viewMat)
-      glMultMatrixf(cast float* &projMat)
-      readGLMatrix GL_MODELVIEW_MATRIX (cast float* &ndc)
-      glPopMatrix()
+      // var float[16] viewMat
+      // var float[16] projMat
+      // var float[16] ndc
+      // readGLMatrix GL_MODELVIEW_MATRIX (cast float* &viewMat)
+      // readGLMatrix GL_PROJECTION_MATRIX (cast float* &projMat)
+      // glMatrixMode GL_MODELVIEW
+      // glPushMatrix()
+      // glMultMatrixf(cast float* &viewMat)
+      // glMultMatrixf(cast float* &projMat)
+      // readGLMatrix GL_MODELVIEW_MATRIX (cast float* &ndc)
+      // glPopMatrix()
       // for num 0 16
       //   zmp:array:set viewMat num 0.0
       // end
@@ -1290,14 +1393,38 @@ func int main():
       //   zmp:array:set viewMat (num*4+num) 1.0
       // end
       // glUniformMatrix1fv objmat_obj2cam 1 false (cast float* &viewMat)
-      glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
-      glUniform1f objmat_falloff_amount 0.5
+      // glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
+      // glUniform1f objmat_falloff_amount 0.5
       Array:foreach meshes meshNum2:
+      // for meshNum2 0 1:
         pMeshInfo := (meshes.elements + meshNum2)
         glPushMatrix()
         applyTransform &pMeshInfo.transform
-        Mesh:render &pMeshInfo.mesh GL_TRIANGLES 0
+        if wireframe:
+          Mesh:render &pMeshInfo.mesh GL_POINTS 0
+        else:
+          Mesh:render &pMeshInfo.mesh GL_TRIANGLES 0
+        end
+        drawCoordSys 1.0
+        // drawCoordSys 1.0
         glPopMatrix()
+      end
+    end
+    if showMeshPointers:
+      Array:foreach meshes meshNum3:
+        pMeshInfo2 := meshes.elements + meshNum3
+        rendergl GL_LINES:
+          glColor3f 1. 1. 1.
+          glVertex3f 0. 0. 0.
+          glVertex pMeshInfo2.transform.origin
+        end
+        saveAttribs GL_POINTS:
+          glPointSize 5.0
+          rendergl GL_POINTS:
+            glColor3f 1. 1. 0.
+            glVertex pMeshInfo2.transform.origin
+          end
+        end
       end
     end
 

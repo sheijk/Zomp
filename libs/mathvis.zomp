@@ -39,3 +39,7 @@ func void AABB:render(AABB* this):
   end
 end
 
+func void glVertex(v3f v):
+  glVertex3f v.x v.y v.z
+end
+

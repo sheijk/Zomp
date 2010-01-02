@@ -163,7 +163,14 @@ struct RBTransform:
 end
 
 ofunc void print(RBTransform t):
-  println "RBTransform:"
+  print "RBTransform:"
+  if (t.scale != 1.0) print(" scale")
+  if (t.origin != mv3f 0. 0. 0.) print(" origin")
+  if (t.xaxis != mv3f 1. 0. 0. ||
+      t.yaxis != mv3f 0. 1. 0. ||
+      t.zaxis != mv3f 0. 0. 1.)
+    print(" rot")
+  println()
   println "  xaxis = " t.xaxis
   println "  yaxis = " t.yaxis
   println "  zaxis = " t.zaxis

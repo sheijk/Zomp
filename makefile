@@ -125,9 +125,8 @@ libquicktext.dylib: glQuickText.o
 	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ glQuickText.o -framework OpenGL
 
 EXTLIB_DIR = extlibs
-# ASSIMP_DIR = $(EXTLIB_DIR)/assimp-r281--sdk
-ASSIMP_DIR = $(EXTLIB_DIR)/assimp--1.0.412-sdk
-# ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
+# ASSIMP_DIR = $(EXTLIB_DIR)/assimp--1.0.412-sdk
+ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
 
 SCONS = $(PWD)/extlibs/scons/scons.py
 ifeq ($(DEBUG), 1)
