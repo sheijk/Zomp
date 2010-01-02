@@ -878,6 +878,8 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO bitwise operators (<<, >>, |, &, ^, !) :quick:parser:
 ** TODO [#A] "refaketor"-ings und menü
    einfache dinge wie selection in neue funktion befördern
+** TODO [#A] underscores in literals
+** TODO [#A] binary and hexadecimal constants
 
 * Use Cases                                                            :usecase:
 

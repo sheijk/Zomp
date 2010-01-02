@@ -1101,11 +1101,25 @@ func void Animation:print(Animation* this):
   printArray this.channels "channels" NodeAnimation:print
 end
 
+func cstring SceneGraph:nodeName(SceneGraph* this, int nodeNum):
+  if (nodeNum < 0 || nodeNum >= this.nodes.length):
+    ret "-out of bounds-"
+  end
+
+  pNode := aptr this.nodes nodeNum
+  ret pNode.id
+end
+
 func void SceneGraph:print(SceneGraph* this):
   println "SceneGraph:"
   print "  "
   printArray this.nodes "nodes" SceneGraphNode:print
-  printArray this.edges "edges" SceneGraphEdge:print
+  println this.edges.length " edges:"
+  Array:foreach this.edges edgeNum:
+    edge := aptr this.edges edgeNum
+    println "  " SceneGraph:nodeName(this, edge.parent) " (" edge.parent ") -> "
+        SceneGraph:nodeName(this, edge.child) "(" edge.child ")"
+  end
   printArray this.anims "anims" Animation:print
   printArray this.meshes "meshes" MeshInfo:print
 end
@@ -1165,11 +1179,8 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
   edgeNum := 0
   edgeList := nullptr SceneGraphEdge_List
   SceneGraph:collectNodes this source.mRootNode &nodeNum &edgeNum &edgeList
-  println "nodeNum = " nodeNum
-  printList edgeList "xxx edge list" SceneGraphEdge:print
   edgeCount := 0
   List:length edgeCount edgeList
-  println edgeCount " edges"
   SceneGraphEdge_Array:init &this.edges edgeCount
   List:foreach_ptr edgeList edgeNum2 pEdge:
     aset this.edges edgeNum2 pEdge*
@@ -1249,7 +1260,7 @@ func int main():
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
-  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType
+  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType // | aiProcess_PreTransformVertices
   // | aiProcess_PreTransformVertices
   // loadOptions := 0
 

@@ -435,5 +435,20 @@ unittest:testCase test_onReturn:
   end
 end
 
+/// TODO
+// func void testBitOps():
+//   unittest:assertAll:
+//     true & false == false
+//     true & true == true
+//     true | false == true
+//     false | false == false
+//     true ^ false == true
+//     true ^ true == false
+// 
+//     15 & 7 == 7
+//     7 | 16 == 23
+//   end
+// end
+
 unittest:main
 
