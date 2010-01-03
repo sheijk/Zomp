@@ -547,10 +547,11 @@ end
 ///-----------------------------------------------------------------------------
 
 ///
-/// A simple loop construct. You can break from the loop using a break statement
+/// A simple loop construct. You can break from the loop using a break
+/// statement. Very experimental
 ///
 /// TODO attention: do not nest (checking not possible, yet)...
-macro loop code:
+macro cee:xp:loop code:
   uniqueId start "loop_start"
   uniqueId end "loop_end"
 
