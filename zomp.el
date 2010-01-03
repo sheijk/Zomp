@@ -358,27 +358,19 @@ editor to trigger recompilations etc. and possibly resume main()"
 
           (let ((w (zomp-symbol-at-point)))
             (cond ((looking-at "\\*")
-                   (setq left (- left 1)))
-                  ;; ((member w zomp-indent-keywords)
-                  ;;  (setq left (+ left 2)))
-                  ((looking-at "end}")
-                   (setq left (+ left 2)))
-                  ))
+                   (setq left (- left 1)))))
 
           (end-of-line)
           (when (looking-back " *:")
             (setq left (+ left 2)))
-          (when (looking-back " *[+-*/=><&|,(]")
+          ;; lines ending with operator or '(' probably continue in the next
+          ;; line, double-indent them (to keep visually seperate from indent
+          ;; block)
+          (when (and (looking-back "[+-*/=><&|,(] +")
+                     ;; don't double-indent after comments
+                     (not (looking-back "\\*/ *")))
             (setq left (+ left 4)))
           (next-line)
-
-          ;; (let* ((line-start (progn (beginning-of-line) (point)))
-          ;;       (line-end (progn (end-of-line) (point)))
-          ;;       (open-parens (how-many "[({]" line-start line-end))
-          ;;       (closing-parens (how-many "[)}]" line-start line-end)))
-          ;;   (cond ((> open-parens closing-parens) (setq left (+ left 2)))
-          ;;         ((< open-parens closing-parens) (setq left (- left 2))))
-          ;;   (next-line))))
           ))
 
       (beginning-of-line)
@@ -403,8 +395,6 @@ editor to trigger recompilations etc. and possibly resume main()"
     ;; place cursor correctly on newline-and-indent
     (when (equal (current-column) 0)
       (back-to-indentation))
-;;     (when (equal (+ 2 (point)) (save-excursion (end-of-line) (point)))
-;;       (forward-char 2))
     ))
 
 (defun zomp-indent-current ()
@@ -458,7 +448,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     (save-excursion
       (end-of-line)
-      (setq isQuotation (looking-back "${ *")))
+      (setq isQuotation (looking-back "${[^}]*")))
 
     (unless (eobp)
       (save-excursion
@@ -488,6 +478,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     (when (and (not isStar)
                (not isComment)
+               (not isQuotation)
                ;; (member wordAtLineBeginning zomp-indent-keywords)
                startOfIndentBlock
                (not (and endAtNextLine (>= nextLineIndentDiff 0)))
