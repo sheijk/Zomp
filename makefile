@@ -212,7 +212,7 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 	cd tests && time make clean_tests check
 
 runtestsuite: all
-	cd testsuite && time make all
+	cd testsuite && time make all report
 
 # FUNCTION_COUNTS=10 1000
 PERFTEST_GEN=

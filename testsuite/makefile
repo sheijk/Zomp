@@ -17,6 +17,14 @@ arrays.zomp testframework.zomp math.zomp stackoverflow.zomp
 
 all: $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.test))
 
+# experimental, results are incorrect because failed executions and compilations
+# still produce files
+report: report_start $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.print_report))
+report_start:
+	@echo "zomp test suite results (warning, report is incorrect!):"
+%.print_report:
+	@./print_test_results.sh $(@:.print_report=)
+
 fail: fail.test crash.test
 
 clean:
