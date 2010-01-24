@@ -3,6 +3,26 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** slim prelude, move stuff to libraries
+   for faster startup
+*** TODO warum dauert makros kompilieren soviel laenger?
+*** TODO remove deprecated AST functions/names
+*** TODO remove array accessors (?)
+*** TODO remove util functions
+*** TODO remove float ops and compare funcs
+*** TODO remove ast:addChilds (with s)
+*** TODO remove ast:addMappedChilds
+*** TODO remove setFieldsTo
+*** TODO remove ast:replace and ast:replaceId
+*** DONE remove unittest code
+*** TODO remove cstring:concat
+*** DONE remove times
+*** DONE remove ifExprInt
+*** TODO remove testMacro2, macroExec, macroTest (?)
+*** TODO implement ast:addChild, ast:fromFloat etc. in C (?)
+*** TODO remove cstring:quote, cstring:equal, printIndent
+*** DONE move string + utils to external function
+*** TODO replace if, when, unless by simple single form (?)
 ** TODO xpath genauer ankucken. evtl inspiration für pattern matching / tree rewriting
 ** TODO possible template syntax
     func void genericprogr()
@@ -880,7 +900,35 @@ von http://lambda-the-ultimate.org/node/2884
    einfache dinge wie selection in neue funktion befördern
 ** TODO [#A] underscores in literals
 ** TODO [#A] binary and hexadecimal constants
+** TODO [#A] C#-like initializer expressions
+   new T(a,b) { width = 20, height = 30 }
+   analog bei malloc und local
 
+** TODO [#A] || für beliebige typen erlauben
+
+   template opr|| l r
+     t := l
+     if !t (t = r)
+     t
+   end
+** TODO [#A] open/import auch für instanzen erlauben
+   c := new MyClass()
+   import c._
+   foo() // calls c.foo() if it has a valid member
+
+   kann u.a. für this / member methoden verwendet werden
+** TODO [#A] new + mixins erlauben
+   class String ...
+   mixin Reflection ...
+
+   x := new String() with Reflection
+
+   tut
+
+   class String' extends String
+     include Reflection
+     include String.constructors etc
+   end
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
