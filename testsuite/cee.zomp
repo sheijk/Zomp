@@ -262,23 +262,6 @@ unittest:testCase Assign:
   free (cast void* floatp)
 end
 
-unittest:testCase Loop:
-  sum := 0
-  count := 0
-
-  loop:
-    ++count
-    sum = sum + count
-    if (count > 9):
-      break
-    end
-  end
-
-  unittest:assertAll:
-    sum == 55
-  end
-end
-
 unittest:testCase OverloadedFuncs:
   onefString := toCString(1.0)
   unless (strncmp(onefString, "1.0", 3) == 0):

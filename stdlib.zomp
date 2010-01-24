@@ -128,88 +128,6 @@ std:base:func cstring u32:toCString(int x):
   int2cstring x
 end
 
-type string:
-  int length
-  char* chars
-end
-
-type pstring string*
-
-std:base:func int length(cstring s):
-  var char* ptr s
-  var int count -1
-
-  var char c 'x'
-  var bool b true
-
-  label start
-  assign c (load ptr)
-
-  assign ptr (ptradd ptr 1)
-  assign count (u32:add count 1)
-  assign b (char:equal c '\0')
-  branch b end start
-
-  label end
-
-  std:base:ret count
-end
-
-std:base:func string* makestring(cstring cstr):
-  var (ptr string) pstr (malloc string)
-  store (fieldptr pstr length) (length cstr)
-  store (fieldptr pstr chars) cstr
-  std:base:ret pstr
-end
-
-std:base:func string* newString(int length, char init):
-  var (ptr char) chars (malloc char (u32:add 1 length))
-  store (ptradd chars length) '\0'
-  var int index 0
-  var bool reachedEnd false
-  label start
-  store (ptradd chars index) init
-  assign index (u32:add index 1)
-  assign reachedEnd (u32:ugreaterEqual index length)
-  branch reachedEnd end start
-  label end
-
-  var (ptr string) result (malloc string)
-  store (fieldptr result length) length
-  store (fieldptr result chars) chars
-  std:base:ret result
-end
-
-std:base:func string* append(string* l, string* r):
-  var int length (u32:add (getField l length) (getField r length))
-  var (ptr string) result (newString length 'x')
-  var (ptr char) chars (getField result chars)
-  var (ptr char) leftChars (getField l chars)
-  var int leftLength (getField l length)
-  var (ptr char) rightChars (getField r chars)
-  var int rightLength (getField r length)
-
-  var int index 0
-
-  label lbegin
-  store (ptradd chars index) (load (ptradd leftChars index))
-  assign index (u32:add index 1)
-  var bool test (u32:uless index leftLength)
-  branch test lbegin lend
-  label lend
-
-  assign index 0
-  label rbegin
-  store (ptradd chars (u32:add leftLength index)) (load (ptradd rightChars index))
-  assign index (u32:add index 1)
-  var bool test2 (u32:uless index rightLength)
-  branch test2 rbegin rend
-  label rend
-
-  std:base:ret result
-end
-
-
 /// print count spaces
 std:base:func void printIndent(int count):
   var int counter count
@@ -228,7 +146,7 @@ std:base:func bool cstring:equal(cstring l, cstring r):
 end
 
 std:base:func cstring cstring:quote(cstring unquoted):
-  var int unquotedLength (length unquoted)
+  var int unquotedLength (strlen unquoted)
   var cstring quoted (malloc char (u32:add unquotedLength 3))
 
   strcpy (ptradd quoted 1) unquoted
@@ -367,20 +285,22 @@ std:base:func int newUniqueId():
 end
 
 std:base:func cstring cstrings:append(cstring l, cstring r):
-  var (ptr string) lstr (makestring l)
-  var (ptr string) rstr (makestring r)
-  var (ptr string) appended (append lstr rstr)
-  std:base:ret (getField appended chars)
+  var int lLength strlen(l)
+  var int rLength strlen(r)
+  var cstring appended (malloc char (u32:add 1 (u32:add lLength rLength)))
+  strcpy appended l
+  strcpy (ptradd appended lLength) r
+  std:base:ret appended
 end
 
 std:base:func cstring newUniqueName():
-  var int id (newUniqueId)
+  var int id newUniqueId()
   var cstring numstr (int2cstring id)
   std:base:ret (cstrings:append "_tmp_" numstr)
 end
 
 std:base:func cstring newUniqueNameFor(cstring purpose):
-  var cstring name (newUniqueName)
+  var cstring name newUniqueName()
   std:base:ret (cstrings:append (cstrings:append name "_") purpose)
 end
 
@@ -401,30 +321,6 @@ end
 /// Section: control flow
 ///-----------------------------------------------------------------------------
 
-macro for index min supremum code:
-  uniqueId startLabel "for_start"
-  uniqueId endLabel "for_exit"
-  uniqueId testResult "for_testvar"
-  uniqueId execLabel "for_body"
-
-  ret ${seq:
-    var int #index #min
-    var bool #testResult false
-
-    label #startLabel
-
-    assign #testResult (u32:sless #index #supremum)
-    branch #testResult #execLabel #endLabel
-
-    label #execLabel
-    #code
-    assign #index (u32:add #index 1)
-    branch #startLabel
-
-    label #endLabel
-  end}
-end
-
 macro while test body...:
   uniqueId begin "while_begin"
   uniqueId exit "while_exit"
@@ -440,6 +336,17 @@ macro while test body...:
     #body
     branch #begin
     label #exit
+  end}
+end
+
+macro for index min supremum code:
+  ret ${seq:
+    var int #index #min
+
+    while (u32:sless #index #supremum):
+      #code
+      assign #index (u32:add #index 1)
+    end
   end}
 end
 
@@ -459,16 +366,8 @@ macro when test onTrue:
 end
 
 macro unless test onFalse:
-  uniqueId testResult "unless_testresult"
-  uniqueId falseLabel "unless_block"
-  uniqueId endLabel "unless_end"
-
-  ret ${seq:
-    var bool #testResult #test
-    branch #testResult #endLabel #falseLabel
-    label #falseLabel
+  ret ${when bool:not(#test):
     #onFalse
-    label #endLabel
   end}
 end
 
@@ -485,6 +384,9 @@ end
 /// end
 macro if cond onTrue remArgs...:
   uniqueId endLabel "if_end"
+  uniqueId trueLabel "if_true"
+  uniqueId notTrueLabel "if_not_true"
+  uniqueId condVar "if_cond"
 
   var astp code ${seq}
 
@@ -519,37 +421,6 @@ macro if cond onTrue remArgs...:
   ast:addChild code ${label #endLabel}
 
   ret code
-end
-
-///TODO: generalize for arbitrary types once this is possible in zomp
-macro ifExprInt test onTrue onFalse:
-  uniqueId trueLabel "iftrue"
-  uniqueId falseLabel "iffalse"
-  uniqueId endLabel "ifend"
-  uniqueId testResult "iftestresult"
-  uniqueId resultVar "ifResult"
-
-  var (ptr ast) result ${seq:
-    var int #resultVar 0
-    var bool #testResult #test
-    branch #testResult #trueLabel #falseLabel
-
-    label #trueLabel
-    assign #resultVar #onTrue
-    branch #endLabel
-
-    label #falseLabel
-    assign #resultVar #onFalse
-
-    label #endLabel
-    #resultVar
-  end}
-  ret result
-end
-
-macro times count code...:
-  uniqueId counterVar "timesCounter"
-  ret ${for #counterVar 0 #count #code}
 end
 
 /// execute code for each node of ast
@@ -625,11 +496,6 @@ macro assert checkCode:
   end}
 end
 
-std:base:func void printHLine(char chr, int count):
-  times count (printChar chr)
-  printNewline()
-end
-
 macro cstring:concat firstString strings...:
   var (ptr ast) code ${}
   uniqueId resultString "cstring_concat"
@@ -645,70 +511,6 @@ macro cstring:concat firstString strings...:
   ret code
 end
 
-
-///-----------------------------------------------------------------------------
-/// Section: Unit tests
-///-----------------------------------------------------------------------------
-
-var int unittest:failedCount 0
-
-/// Executes the given expression and prints an error
-/// message containing the passed ast if it does not
-/// evaluate to true
-macro unittest:assert testCode:
-  ret ${seq:
-    unless #testCode:
-      assign unittest:failedCount (int:add unittest:failedCount 1)
-      printHLine '-' 40
-      printlnString "error: Assertion failed"
-      ast:print ${#testCode} 0
-    end
-  end}
-end
-
-/// Calls unittest:assert on all childs of the passed
-/// sequence expression
-macro unittest:assertAll checks:
-  var (ptr ast) code ${}
-  forEachAstChild check checks:
-    when (cstring:equal (getField check id) "opseq"):
-      printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported"
-    end
-    ast:addChild code ${unittest:assert #check}
-  end
-
-  ret code
-end
-
-
-/// Will define a function name_tests_nr which will
-/// call all unittest:assert on all given testCases
-macro unittest:testCasesFor name testCases...:
-  var cstring testName (cstring:concat "test_" (getField name id) "_" (u32:toCString (newUniqueId)))
-
-  var astp impl (ast:fromString "unittest:assertAll")
-  forEachAstChild testCase testCases:
-    ast:addChild impl testCase
-  end
-  var ast* decl ast:fromString("opcall")
-  ast:addChild decl ast:fromString(testName)
-  var astp funcDecl ${std:base:func void #decl:
-    #impl
-  end}
-
-  ret funcDecl
-end
-
-std:base:func cstring unittest:newTestFuncNameFor(cstring funcName):
-  cstring:concat "test_" funcName "_" (u32:toCString (newUniqueId))
-end
-
-macro unittest:testFunc funcName impl:
-  var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id))
-  var ast* decl ast:fromString("opcall")
-  ast:addChild decl ast:fromString(testFuncName)
-  ret ${std:base:func void #decl #impl}
-end
 
 ///-----------------------------------------------------------------------------
 /// Section: More
@@ -728,28 +530,6 @@ template pret code:
   ast:print #code 0
   ret ${}
 end
-
-// not supported for now
-// /// Will define a function which will be executed only on
-// /// the first call and will print a warning on subsequent calls
-// macro runOnceFunc rettype name args impl
-//   uniqueId initialized (cstrings:append (getField name id) "_already_called")
-//
-//   ret ${
-//     var bool #initialized false
-//     func #rettype #name #args
-//       when #initialized
-//         printString (getField ${#name} id)
-//         printString " was already called before!"
-//         printNewline
-//       end
-//       unless #initialized
-//         assign #initialized true
-//         #impl
-//       end
-//     end
-//   end}
-// end
 
 ///-----------------------------------------------------------------------------
 /// Section: Additional AST functions
@@ -785,15 +565,6 @@ std:base:func void ast:replaceId(ast* tree, cstring placeholder, cstring newid):
   end
 end
 
-macro setFieldsTo record value fields...:
-  var (ptr ast) code ${}
-  forEachAstChild field fields:
-    ast:addChild code ${setField #record #field #value}
-  end
-
-  ret code
-end
-
 ///-----------------------------------------------------------------------------
 /// Section: Floating point support
 ///-----------------------------------------------------------------------------
@@ -817,7 +588,6 @@ float:aliasNoQNAN less
 float:aliasNoQNAN greater
 float:aliasNoQNAN lessEqual
 float:aliasNoQNAN greaterEqual
-
 
 std:base:func int main()
 
@@ -882,108 +652,7 @@ macro addMappedChilds parent mapf childs...:
   ret code
 end
 
-template static:id foo #foo
-
-macro ast:addChilds parent childs...:
-  var (ptr ast) code ${addMappedChilds #parent static:id}
-  forEachAstChild child childs:
-    ast:addChild code child
-  end
-  ret code
-end
-
-macro defineOp op func:
-  var (ptr ast) def $template
-  ast:addChild def (ast:fromString (getField op id))
-  addMappedChilds def ast:fromString "l" "r"
-  var (ptr ast) impl func
-  ast:addChild impl $${#l}
-  ast:addChild impl $${#r}
-  ast:addChild def impl
-  ret def
-end
-
-macro defineOpNS op postfix func namespace:
-  template id astx (getField #astx id)
-
-  var cstring funcName (cstring:concat (id namespace) ":" (id func))
-  var cstring opName (cstring:concat (id op) (id postfix))
-
-  ret ${defineOp #opName #funcName}
-end
-
-macro defineFloatOps postfix namespace:
-  ret ${seq:
-    defineOpNS op+ #postfix add #namespace
-    defineOpNS op- #postfix sub #namespace
-    defineOpNS op* #postfix mul #namespace
-    defineOpNS op/ #postfix fdiv #namespace
-
-    defineOpNS op== #postfix equal #namespace
-    defineOpNS op!= #postfix notEqual #namespace
-
-    defineOpNS op> #postfix ogreater #namespace
-    defineOpNS op>= #postfix ogreaterEqual #namespace
-    defineOpNS op< #postfix oless #namespace
-    defineOpNS op<= #postfix olessEqual #namespace
-  end}
-end
-
-defineFloatOps _f float
-defineFloatOps _d double
-
 template op= l r (assign #l #r)
-
-macro compareFunc type name compareF:
-  var cstring typeName (getField type id)
-
-  var (ptr ast) compareCode compareF
-  ast:addChilds compareCode $l $r
-
-  ret ${std:base:func #typeName #name(#typeName l, #typeName r):
-    var bool cmp #compareCode
-    branch cmp lgreater rgreater
-    label lgreater
-    ret l
-    label rgreater
-    ret r
-  end}
-end
-
-// TODO: replace this with branchless impl once this makes a difference
-compareFunc int u32:max op>
-compareFunc int u32:min op<
-
-compareFunc float float:max op>_f
-compareFunc float float:min op<_f
-
-compareFunc double double:max op>_d
-compareFunc double double:min op<_d
-
-std:base:func float float:clamp(float min, float max, float x):
-  float:min max (float:max min x)
-end
-
-std:base:func int u32:clamp(int min, int max, int x):
-  u32:min max (u32:max min x)
-end
-
-std:base:func bool float:equalDelta(float delta, float l, float r):
-  const float diff (fabsf (l -_f r))
-  ret (diff <=_f delta)
-end
-
-///-----------------------------------------------------------------------------
-/// Section: Arrays
-///-----------------------------------------------------------------------------
-
-template zmp:array:get array index:
-  load ptradd(zmp:array:addr ptr(#array), #index)
-end
-
-template zmp:array:set array index value:
-  store ptradd(zmp:array:addr ptr(#array), #index) #value
-end
 
 ///-----------------------------------------------------------------------------
 /// Section: Deprecation
@@ -1062,15 +731,6 @@ macro deprecated name replacementName args...:
 
   ret code
 end
-
-///-----------------------------------------------------------------------------
-/// Section: Deprecated functions
-///-----------------------------------------------------------------------------
-
-deprecated astChild ast:child parent index
-deprecated simpleAst ast:fromString name
-deprecated printAst ast:print t indent
-deprecated addChild ast:addChild tree child
 
 ///-----------------------------------------------------------------------------
 /// Section: Aliasing int to u32

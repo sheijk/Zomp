@@ -1,0 +1,165 @@
+/**
+ * some stuff which was removed from the prelude but might be useful in
+ * the future
+ */
+
+///TODO: generalize for arbitrary types once this is possible in zomp
+macro ifExprInt test onTrue onFalse:
+  uniqueId trueLabel "iftrue"
+  uniqueId falseLabel "iffalse"
+  uniqueId endLabel "ifend"
+  uniqueId testResult "iftestresult"
+  uniqueId resultVar "ifResult"
+
+  var (ptr ast) result ${seq:
+    var int #resultVar 0
+    var bool #testResult #test
+    branch #testResult #trueLabel #falseLabel
+
+    label #trueLabel
+    assign #resultVar #onTrue
+    branch #endLabel
+
+    label #falseLabel
+    assign #resultVar #onFalse
+
+    label #endLabel
+    #resultVar
+  end}
+  ret result
+end
+
+///-----------------------------------------------------------------------------
+/// Section: string library
+///-----------------------------------------------------------------------------
+type string:
+  int length
+  char* chars
+end
+
+type pstring string*
+
+std:base:func int length(cstring s):
+  var char* ptr s
+  var int count -1
+
+  var char c 'x'
+  var bool b true
+
+  label start
+  assign c (load ptr)
+
+  assign ptr (ptradd ptr 1)
+  assign count (u32:add count 1)
+  assign b (char:equal c '\0')
+  branch b end start
+
+  label end
+
+  std:base:ret count
+end
+
+std:base:func string* makestring(cstring cstr):
+  var (ptr string) pstr (malloc string)
+  store (fieldptr pstr length) (length cstr)
+  store (fieldptr pstr chars) cstr
+  std:base:ret pstr
+end
+
+std:base:func string* newString(int length, char init):
+  var (ptr char) chars (malloc char (u32:add 1 length))
+  store (ptradd chars length) '\0'
+  var int index 0
+  var bool reachedEnd false
+  label start
+  store (ptradd chars index) init
+  assign index (u32:add index 1)
+  assign reachedEnd (u32:ugreaterEqual index length)
+  branch reachedEnd end start
+  label end
+
+  var (ptr string) result (malloc string)
+  store (fieldptr result length) length
+  store (fieldptr result chars) chars
+  std:base:ret result
+end
+
+std:base:func string* append(string* l, string* r):
+  var int length (u32:add (getField l length) (getField r length))
+  var (ptr string) result (newString length 'x')
+  var (ptr char) chars (getField result chars)
+  var (ptr char) leftChars (getField l chars)
+  var int leftLength (getField l length)
+  var (ptr char) rightChars (getField r chars)
+  var int rightLength (getField r length)
+
+  var int index 0
+
+  label lbegin
+  store (ptradd chars index) (load (ptradd leftChars index))
+  assign index (u32:add index 1)
+  var bool test (u32:uless index leftLength)
+  branch test lbegin lend
+  label lend
+
+  assign index 0
+  label rbegin
+  store (ptradd chars (u32:add leftLength index)) (load (ptradd rightChars index))
+  assign index (u32:add index 1)
+  var bool test2 (u32:uless index rightLength)
+  branch test2 rbegin rend
+  label rend
+
+  std:base:ret result
+end
+
+
+///-----------------------------------------------------------------------------
+/// Section: more
+///-----------------------------------------------------------------------------
+
+// not supported for now
+// /// Will define a function which will be executed only on
+// /// the first call and will print a warning on subsequent calls
+// macro runOnceFunc rettype name args impl
+//   uniqueId initialized (cstrings:append (getField name id) "_already_called")
+//
+//   ret ${
+//     var bool #initialized false
+//     func #rettype #name #args
+//       when #initialized
+//         printString (getField ${#name} id)
+//         printString " was already called before!"
+//         printNewline
+//       end
+//       unless #initialized
+//         assign #initialized true
+//         #impl
+//       end
+//     end
+//   end}
+// end
+
+// template static:id foo #foo
+// 
+// macro ast:addChilds parent childs...:
+//   var (ptr ast) code ${addMappedChilds #parent static:id}
+//   forEachAstChild child childs:
+//     ast:addChild code child
+//   end
+//   ret code
+// end
+
+///-----------------------------------------------------------------------------
+/// Section: Arrays
+///-----------------------------------------------------------------------------
+
+// template zmp:array:get array index:
+//   load ptradd(zmp:array:addr ptr(#array), #index)
+// end
+// 
+// template zmp:array:set array index value:
+//   store ptradd(zmp:array:addr ptr(#array), #index) #value
+// end
+
+

@@ -1,0 +1,84 @@
+/**
+ * Basic arithmetic operators
+ */
+
+macro defineOp op func:
+  var (ptr ast) def $template
+  ast:addChild def (ast:fromString (getField op id))
+  addMappedChilds def ast:fromString "l" "r"
+  var (ptr ast) impl func
+  ast:addChild impl $${#l}
+  ast:addChild impl $${#r}
+  ast:addChild def impl
+  ret def
+end
+
+macro defineOpNS op postfix func namespace:
+  template id astx (getField #astx id)
+
+  var cstring funcName (cstring:concat (id namespace) ":" (id func))
+  var cstring opName (cstring:concat (id op) (id postfix))
+
+  ret ${defineOp #opName #funcName}
+end
+
+macro defineFloatOps postfix namespace:
+  ret ${seq:
+    defineOpNS op+ #postfix add #namespace
+    defineOpNS op- #postfix sub #namespace
+    defineOpNS op* #postfix mul #namespace
+    defineOpNS op/ #postfix fdiv #namespace
+
+    defineOpNS op== #postfix equal #namespace
+    defineOpNS op!= #postfix notEqual #namespace
+
+    defineOpNS op> #postfix ogreater #namespace
+    defineOpNS op>= #postfix ogreaterEqual #namespace
+    defineOpNS op< #postfix oless #namespace
+    defineOpNS op<= #postfix olessEqual #namespace
+  end}
+end
+
+defineFloatOps _f float
+defineFloatOps _d double
+
+macro compareFunc type name compareF:
+  var cstring typeName (getField type id)
+
+  var (ptr ast) compareCode compareF
+  ast:addChild compareCode $l
+  ast:addChild compareCode $r
+
+  ret ${std:base:func #typeName #name(#typeName l, #typeName r):
+    var bool cmp #compareCode
+    branch cmp lgreater rgreater
+    label lgreater
+    ret l
+    label rgreater
+    ret r
+  end}
+end
+
+// TODO: replace this with branchless impl once this makes a difference
+compareFunc int u32:max op>
+compareFunc int u32:min op<
+
+compareFunc float float:max op>_f
+compareFunc float float:min op<_f
+
+compareFunc double double:max op>_d
+compareFunc double double:min op<_d
+
+std:base:func float float:clamp(float min, float max, float x):
+  float:min max (float:max min x)
+end
+
+std:base:func int u32:clamp(int min, int max, int x):
+  u32:min max (u32:max min x)
+end
+
+std:base:func bool float:equalDelta(float delta, float l, float r):
+  const float diff (fabsf (l -_f r))
+  ret (diff <=_f delta)
+end
+

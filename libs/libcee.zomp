@@ -5,6 +5,7 @@
 !syntax indent
  */
 
+requireLibs basic_ops
 
 ///-----------------------------------------------------------------------------
 /// Section: C functions (memory)
@@ -25,6 +26,16 @@ template dealloc ptr free(cast void* #ptr)
 ///-----------------------------------------------------------------------------
 /// Section: Untested
 ///-----------------------------------------------------------------------------
+
+/// initialize multiple fields
+macro setFieldsTo record value fields...:
+  var (ptr ast) code ${}
+  forEachAstChild field fields:
+    ast:addChild code ${setField #record #field #value}
+  end
+
+  ret code
+end
 
 ///
 /// Declares a function. Use this to prevent emacs indentation in next line :)
@@ -567,6 +578,12 @@ macro cee:xp:loop code:
   end}
 end
 
+/// execute code n times
+macro times count code...:
+  uniqueId counterVar "timesCounter"
+  ret ${for #counterVar 0 #count #code}
+end
+
 ///
 /// switch statement
 ///
@@ -952,6 +969,11 @@ func void printBits(int bitmask):
   end
 end
 
+std:base:func void printHLine(char chr, int count):
+  times count (printChar chr)
+  printNewline()
+end
+
 
 
 macro structlit structType fieldsAndValues...:
@@ -1097,7 +1119,71 @@ macro ofunc rettype nameAndArgs impl:
 end
 
 ///-----------------------------------------------------------------------------
-/// Section: Assertions
+/// Section: Unit tests
+///-----------------------------------------------------------------------------
+
+var int unittest:failedCount 0
+
+/// Executes the given expression and prints an error
+/// message containing the passed ast if it does not
+/// evaluate to true
+macro unittest:assert testCode:
+  ret ${seq:
+    unless #testCode:
+      assign unittest:failedCount (int:add unittest:failedCount 1)
+      printHLine '-' 40
+      printlnString "error: Assertion failed"
+      ast:print ${#testCode} 0
+    end
+  end}
+end
+
+/// Calls unittest:assert on all childs of the passed
+/// sequence expression
+macro unittest:assertAll checks:
+  var (ptr ast) code ${}
+  forEachAstChild check checks:
+    when (cstring:equal (getField check id) "opseq"):
+      printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported"
+    end
+    ast:addChild code ${unittest:assert #check}
+  end
+
+  ret code
+end
+
+
+/// Will define a function name_tests_nr which will
+/// call all unittest:assert on all given testCases
+macro unittest:testCasesFor name testCases...:
+  var cstring testName (cstring:concat "test_" (getField name id) "_" (u32:toCString newUniqueId()))
+
+  var astp impl (ast:fromString "unittest:assertAll")
+  forEachAstChild testCase testCases:
+    ast:addChild impl testCase
+  end
+  var ast* decl ast:fromString("opcall")
+  ast:addChild decl ast:fromString(testName)
+  var astp funcDecl ${std:base:func void #decl:
+    #impl
+  end}
+
+  ret funcDecl
+end
+
+std:base:func cstring unittest:newTestFuncNameFor(cstring funcName):
+  cstring:concat "test_" funcName "_" (u32:toCString newUniqueId())
+end
+
+macro unittest:testFunc funcName impl:
+  var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id))
+  var ast* decl ast:fromString("opcall")
+  ast:addChild decl ast:fromString(testFuncName)
+  ret ${std:base:func void #decl #impl}
+end
+
+///-----------------------------------------------------------------------------
+/// Section: Assertions and testing
 ///-----------------------------------------------------------------------------
 
 macro assert testCode:
