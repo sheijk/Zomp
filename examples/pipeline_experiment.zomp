@@ -116,6 +116,52 @@ macro default type:
   ret ${#ctorName()}
 end
 
+/// calculates a 4x4 column major float matrix from the rotation component
+func void RBTransform:toRotMatrix4x4(RBTransform* this, float* mat44):
+  mat44[0] = this.xaxis.x
+  mat44[1] = this.yaxis.x
+  mat44[2] = this.zaxis.x
+  mat44[3] = 0.0
+  mat44[4] = this.xaxis.y
+  mat44[5] = this.yaxis.y
+  mat44[6] = this.zaxis.y
+  mat44[7] = 0.0
+  mat44[8] = this.xaxis.z
+  mat44[9] = this.yaxis.z
+  mat44[10] = this.zaxis.z
+  mat44[11] = 0.0
+  mat44[12] = 0.0
+  mat44[13] = 0.0
+  mat44[14] = 0.0
+  mat44[15] = 1.0
+end
+
+/// calculates a 4x4 column major float matrix from the translation component
+func void RBTransform:toTransMatrix44(RBTransform* this, float* mat44):
+  for i 0 16 (mat44[i] = 0.0)
+  mat44[0] = 1.0
+  mat44[5] = 1.0
+  mat44[10] = 1.0
+  mat44[15] = 1.0
+  mat44[12] = -this.origin.x
+  mat44[13] = -this.origin.y
+  mat44[14] = -this.origin.z
+end
+
+func v3f RBTransform:rotate2(RBTransform* this, v3f v):
+  ret (v.x * this.xaxis + v.y * this.yaxis + v.z * this.zaxis)
+end
+
+func RBTransform RBTransform:concat(RBTransform* first, RBTransform* relative):
+  result := undef RBTransform
+  result.xaxis = RBTransform:rotate2 first relative.xaxis
+  result.yaxis = RBTransform:rotate2 first relative.yaxis
+  result.zaxis = RBTransform:rotate2 first relative.zaxis
+  result.origin = first.origin + RBTransform:rotate2 first relative.origin
+  result.scale = first.scale * relative.scale
+  ret result
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: events
 ///-----------------------------------------------------------------------------
@@ -485,17 +531,17 @@ func void applyTransform(RBTransform* this):
   // converting to matrix, then applying. not pretty...
   var float[16] mat_
   mat := zmp:array:addr &mat_
-  mat[0] = this.xaxis.x
-  mat[1] = this.xaxis.y
-  mat[2] = this.xaxis.z
+  mat[0] = this.xaxis.x * this.scale
+  mat[1] = this.xaxis.y * this.scale
+  mat[2] = this.xaxis.z * this.scale
   mat[3] = 0.0
-  mat[4] = this.yaxis.x
-  mat[5] = this.yaxis.y
-  mat[6] = this.yaxis.z
+  mat[4] = this.yaxis.x * this.scale
+  mat[5] = this.yaxis.y * this.scale
+  mat[6] = this.yaxis.z * this.scale
   mat[7] = 0.0
-  mat[8] =  this.zaxis.x
-  mat[9] =  this.zaxis.y
-  mat[10] = this.zaxis.z
+  mat[8] =  this.zaxis.x * this.scale
+  mat[9] =  this.zaxis.y * this.scale
+  mat[10] = this.zaxis.z * this.scale
   mat[11] = 0.0
   mat[12] = this.origin.x
   mat[13] = this.origin.y
@@ -1031,19 +1077,30 @@ func void "print_void*"(void* ptr):
 end
 
 func void SceneGraph:collectNodes(
-    SceneGraph* this, aiNode* source, int* nodeNum, int* edgeNum, SceneGraphEdge_List** edges):
+    SceneGraph* this,
+    aiNode* source,
+    int* nodeNum,
+    int* edgeNum,
+    SceneGraphEdge_List** edges,
+    RBTransform parentTransform):
+
   node := aptr this.nodes nodeNum*
   SceneGraphNode:init node source
+
+  node.relativeTransform = aiMatrix4x4:toRBTransform &source.mTransformation
+  node.globalSpace = RBTransform:concat &parentTransform &node.relativeTransform
+
   parentIndex := nodeNum*
-  println "xxx created node " node.id "(" parentIndex ")"
   nodeNum* += 1
   for childNum 0 source.mNumChildren:
     childIndex := nodeNum*
-    SceneGraph:collectNodes this *(source.mChildren + childNum) nodeNum edgeNum edges
+    // relTransform := aiMatrix4x4:toRBTransform &srcNode.mTransformation
+    // childTransform := RBTransform:concat &transform &relTransform
+    srcNode := *(source.mChildren + childNum)
+    SceneGraph:collectNodes this srcNode nodeNum edgeNum edges node.globalSpace
 
     pParent := aptr this.nodes parentIndex
     pChild := aptr this.nodes childNum
-    println "XXX collecting edge " pParent.id "(" parentIndex ") -> " pChild.id "(" childIndex ")"
 
     edge := local SceneGraphEdge parentIndex childIndex
     edgeList := new SceneGraphEdge_List edge edges*
@@ -1051,13 +1108,14 @@ func void SceneGraph:collectNodes(
   end
 end
 
-func void MeshInfo:print(MeshInfo* this):
-  println "MeshInfo '" this.id "':"
-  Mesh:print &this.mesh
-  print this.transform
+func void MeshInfo:print(MeshInfo* this, int indent):
+  iprintln indent "MeshInfo '" this.id "':"
+  Mesh:print &this.mesh (indent+2)
+  RBTransform:print &this.transform (indent+2)
 end
 
-func void SceneGraphNode:print(SceneGraphNode* this):
+func void SceneGraphNode:print(SceneGraphNode* this, int indent):
+  printIndent indent
   print "SceneGraphNode('" this.id "', " this.meshes.length " meshes = ["
   for num 0 this.meshes.length:
     if (num > 0):
@@ -1066,14 +1124,18 @@ func void SceneGraphNode:print(SceneGraphNode* this):
     print aget(this.meshes, num)
   end
   println "])"
-  println "  relativeTransform ="
-  print this.relativeTransform
-  println "  globalSpace ="
-  print this.globalSpace
+  iprintln indent "  relativeTransform =:"
+  RBTransform:print &this.relativeTransform (indent+4)
+  iprintln indent "  globalSpace =:"
+  RBTransform:print &this.relativeTransform (indent+4)
 end
 
-func void NodeAnimation:print(NodeAnimation* this):
-  print "NodeAnimation(" this.transformKeyframes.length
+func void SceneGraphNode:printUnindented(SceneGraphNode* this):
+  SceneGraphNode:print this 0
+end
+
+func void NodeAnimation:print(NodeAnimation* this, int indent):
+  iprint indent "NodeAnimation(" this.transformKeyframes.length
   print "/" this.rotationKeyFrames.length "/" this.scaleKeyFrames.length
   if isNull(this.targetTransform):
     print " no target!"
@@ -1082,23 +1144,23 @@ func void NodeAnimation:print(NodeAnimation* this):
   Array:foreach this.transformKeyframes tnum:
     pos := aget this.transformKeyframes tnum
     ttime := aget this.transformTimes tnum
-    println "  time=" ttime ", pos=" pos
+    iprintln (indent+2) "time=" ttime ", pos=" pos
   end
   Array:foreach this.scaleKeyFrames snum:
     scale := aget this.scaleKeyFrames snum
     stime := aget this.scaleTimes snum
-    println "  time=" stime ", scale=" scale
+    iprintln (indent+2) "time=" stime ", scale=" scale
   end
   Array:foreach this.rotationKeyFrames rnum:
     rot := aget this.rotationKeyFrames rnum
     rtime := aget this.rotatationTimes rnum
-    println "  time=" rtime ", rot=" rot
+    iprintln (indent+2) "time=" rtime ", rot=" rot
   end
 end
 
-func void Animation:print(Animation* this):
-  println "Animation '" this.name "', duration=" this.duration
-  printArray this.channels "channels" NodeAnimation:print
+func void Animation:print(Animation* this, int indent):
+  iprintln indent "Animation '" this.name "', duration=" this.duration
+  iprintArray this.channels "channels" NodeAnimation:print (indent+2)
 end
 
 func cstring SceneGraph:nodeName(SceneGraph* this, int nodeNum):
@@ -1110,18 +1172,19 @@ func cstring SceneGraph:nodeName(SceneGraph* this, int nodeNum):
   ret pNode.id
 end
 
-func void SceneGraph:print(SceneGraph* this):
-  println "SceneGraph:"
-  print "  "
-  printArray this.nodes "nodes" SceneGraphNode:print
-  println this.edges.length " edges:"
+func void SceneGraph:print(SceneGraph* this, int indent):
+  iprintln indent "SceneGraph:"
+
+  iprintArray this.nodes "nodes" SceneGraphNode:print (indent+2)
+  iprintln (indent+2) this.edges.length " edges:"
   Array:foreach this.edges edgeNum:
     edge := aptr this.edges edgeNum
-    println "  " SceneGraph:nodeName(this, edge.parent) " (" edge.parent ") -> "
-        SceneGraph:nodeName(this, edge.child) "(" edge.child ")"
+    iprintln (indent+2) "  " SceneGraph:nodeName(this, edge.parent)
+        " (" edge.parent ") -> " SceneGraph:nodeName(this, edge.child)
+        "(nr. " edge.child ")"
   end
-  printArray this.anims "anims" Animation:print
-  printArray this.meshes "meshes" MeshInfo:print
+  iprintArray this.anims "anims" Animation:print (indent+2)
+  iprintArray this.meshes "meshes" MeshInfo:print (indent+2)
 end
 
 func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id):
@@ -1178,14 +1241,18 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
   nodeNum := 0
   edgeNum := 0
   edgeList := nullptr SceneGraphEdge_List
-  SceneGraph:collectNodes this source.mRootNode &nodeNum &edgeNum &edgeList
+  SceneGraph:collectNodes
+      this source.mRootNode &nodeNum &edgeNum &edgeList RBTransform:identity()
   edgeCount := 0
   List:length edgeCount edgeList
   SceneGraphEdge_Array:init &this.edges edgeCount
   List:foreach_ptr edgeList edgeNum2 pEdge:
     aset this.edges edgeNum2 pEdge*
   end
-  
+
+  // TODO: find nodes using the same mesh with different transform matrices,
+  // add relative transforms or split those meshes (maybe even consider animations?)
+
   /// animations
   Animation_Array:init &this.anims source.mNumAnimations
   Array:foreach this.anims animNum:
@@ -1194,20 +1261,6 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
     // targetNodeNum := SceneGraph:lookupNode this anim.name
     // TODO lookup target
   end
-end
-
-func v3f RBTransform:rotate2(RBTransform* this, v3f v):
-  ret (v.x * this.xaxis + v.y * this.yaxis + v.z * this.zaxis)
-end
-
-func RBTransform RBTransform:concat(RBTransform* first, RBTransform* relative):
-  result := undef RBTransform
-  result.xaxis = RBTransform:rotate2 first relative.xaxis
-  result.yaxis = RBTransform:rotate2 first relative.yaxis
-  result.zaxis = RBTransform:rotate2 first relative.zaxis
-  result.origin = first.origin + RBTransform:rotate2 first relative.origin
-  result.scale = first.scale * relative.scale
-  ret result
 end
 
 func void SceneGraph:updateTransforms(SceneGraph* this):
@@ -1222,7 +1275,7 @@ func void SceneGraph:updateTransforms(SceneGraph* this):
     child := aptr this.nodes edge.child
     child.globalSpace = RBTransform:concat &parent.globalSpace &child.relativeTransform
   end
-  
+
   /// apply mesh transforms
   Array:foreach this.nodes nodeNum:
     node := aptr this.nodes nodeNum
@@ -1234,7 +1287,7 @@ func void SceneGraph:updateTransforms(SceneGraph* this):
   end
 end
 
-struct Rect: 
+struct Rect:
   float left right top bottom
 end
 
@@ -1254,36 +1307,6 @@ func void Camera:init(Camera* this):
   this.aspect = 1.0
   this.nearPlaneDist = 1.0
   this.farPlaneDist = 100.0
-end
-
-func void RBTransform:toRotMatrix4x4(RBTransform* this, float* mat44):
-  mat44[0] = this.xaxis.x
-  mat44[1] = this.yaxis.x
-  mat44[2] = this.zaxis.x
-  mat44[3] = 0.0
-  mat44[4] = this.xaxis.y
-  mat44[5] = this.yaxis.y
-  mat44[6] = this.zaxis.y
-  mat44[7] = 0.0
-  mat44[8] = this.xaxis.z
-  mat44[9] = this.yaxis.z
-  mat44[10] = this.zaxis.z
-  mat44[11] = 0.0
-  mat44[12] = 0.0
-  mat44[13] = 0.0
-  mat44[14] = 0.0
-  mat44[15] = 1.0
-end
-
-func void RBTransform:toTransMatrix44(RBTransform* this, float* mat44):
-  for i 0 16 (mat44[i] = 0.0)
-  mat44[0] = 1.0
-  mat44[5] = 1.0
-  mat44[10] = 1.0
-  mat44[15] = 1.0
-  mat44[12] = -this.origin.x
-  mat44[13] = -this.origin.y
-  mat44[14] = -this.origin.z
 end
 
 func void Camera:applyGL(Camera* this):
@@ -1403,7 +1426,7 @@ func int main():
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
-  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType // | aiProcess_PreTransformVertices
+  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenSmoothNormals
   // | aiProcess_PreTransformVertices
   // loadOptions := 0
 
@@ -1416,7 +1439,8 @@ func int main():
 
   var SceneGraph sg
   SceneGraph:init &sg scene
-  // SceneGraph:print &sg
+  SceneGraph:updateTransforms &sg
+  SceneGraph:print &sg 0
 
   meshes := sg.meshes
   // abortIf (isNull meshes) (println "Failed to convert scene to meshes")
@@ -1441,8 +1465,12 @@ func int main():
   // objmat := objectMaterial()
   // objmat := loadGLSLShader "data/simple.vert" "data/simple.frag"
   // objmat := loadGLSLShader "data/incidence.vert" "data/incidence.frag"
+  // objmat := loadGLSLShader "data/pixeljourney/shared/Shaders/Exported/constant_color_v.gl" "data/pixeljourney/shared/Shaders/Exported/constant_color_f.gl"
+  // objmat := loadGLSLShader "data/pixeljourney/test_incidence_v.gl" "data/pixeljourney/test_incidence_f.gl"
   objmat := debugMaterial()
   onReturn glDeleteProgram(objmat)
+  objmat_color := glGetUniformLocation objmat "msl_constant_color_1_color"
+  println "objmat_color = " objmat_color
   objmat_obj2cam := glGetUniformLocation objmat "_object_to_ndc"
   objmat_falloff_amount :=
     glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
@@ -1507,7 +1535,7 @@ func int main():
     while fetchNextKeyEvent(&keyEvent):
       if (keyEvent.action == GLFW_PRESS):
         if (keyEvent.key == GLFW_KEY_P):
-          SceneGraph:print &sg
+          SceneGraph:print &sg 0
         elseif (keyEvent.key == GLFW_KEY_C):
           ++camNum
         end
@@ -1562,6 +1590,7 @@ func int main():
       // glUniformMatrix1fv objmat_obj2cam 1 false (cast float* &viewMat)
       // glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
       // glUniform1f objmat_falloff_amount 0.5
+      glUniform4f objmat_color 1.0 0.5 0.0 1.0
       Array:foreach meshes meshNum2:
       // for meshNum2 0 1:
         pMeshInfo := (meshes.elements + meshNum2)

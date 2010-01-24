@@ -152,6 +152,28 @@ func v3f v3f:lerp(float t, v3f a, v3f b):
   ret ((1. - t) * a + t * b)
 end
 
+/// rotate two dense matrices of size (resultRows,size), (size, resultColumns) and stores result in
+/// matrix of size (resultRows, resultColumns)
+func void matrixMult(float* result, int resultRows, int resultColumns, int side, float* lhs, float* rhs):
+  lhsRows := resultRows
+  lhsColums := side
+  rhsRows := side
+  rhsColumns := resultColumns
+
+  pos := result
+  for row 0 resultRows:
+    for column 0 resultColumns:
+      c := 0.0
+      for s 0 side:
+        l := (lhs + row * lhsColums + side)*
+        r := (rhs + side * rhsColumns + column)*
+        c += l * r
+      end
+      pos* = c
+    end
+  end
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: rigid body transformations
 ///-----------------------------------------------------------------------------
@@ -162,20 +184,30 @@ struct RBTransform:
   float scale
 end
 
-ofunc void print(RBTransform t):
+func void RBTransform:print(RBTransform* this, int indent):
+  printIndent indent
   print "RBTransform:"
-  if (t.scale != 1.0) print(" scale")
-  if (t.origin != mv3f 0. 0. 0.) print(" origin")
-  if (t.xaxis != mv3f 1. 0. 0. ||
-      t.yaxis != mv3f 0. 1. 0. ||
-      t.zaxis != mv3f 0. 0. 1.)
+  if (this.scale != 1.0) print(" scale")
+  if (this.origin != mv3f 0. 0. 0.) print(" pos")
+  if (this.xaxis != mv3f 1. 0. 0. ||
+      this.yaxis != mv3f 0. 1. 0. ||
+      this.zaxis != mv3f 0. 0. 1.)
     print(" rot")
   println()
-  println "  xaxis = " t.xaxis
-  println "  yaxis = " t.yaxis
-  println "  zaxis = " t.zaxis
-  println "  origin = " t.origin
-  println "  scale  = " t.scale
+  printIndent indent
+  println "  xaxis = " this.xaxis
+  printIndent indent
+  println "  yaxis = " this.yaxis
+  printIndent indent
+  println "  zaxis = " this.zaxis
+  printIndent indent
+  println "  origin = " this.origin
+  printIndent indent
+  println "  scale  = " this.scale
+end
+
+ofunc void print(RBTransform t):
+  RBTransform:print &t 0
 end
 
 func void makeOrigin(RBTransform* this):
@@ -199,6 +231,12 @@ func void RBTransform:setAxisScales(RBTransform* this, v3f lengths):
   this.yaxis = this.yaxis * lengths.y
   v3f:makeNormalized &this.zaxis
   this.zaxis = this.zaxis * lengths.z
+end
+
+func RBTransform RBTransform:identity():
+  var RBTransform t
+  makeOrigin &t
+  ret t
 end
 
 ///-----------------------------------------------------------------------------

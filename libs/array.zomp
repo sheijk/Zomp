@@ -106,3 +106,13 @@ macro printArray array name printMemberF:
   end}
 end
 
+macro iprintArray array name printMemberF indent:
+  uniqueId counter "printArray"
+  ret ${seq:
+    iprintln #indent #array.length " " #name ": "
+    Array:foreach #array #counter:
+      #printMemberF aptr(#array, #counter) (#indent + 2)
+    end
+  end}
+end
+

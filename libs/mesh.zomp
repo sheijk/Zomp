@@ -153,9 +153,9 @@ macro Mesh:foreachStream mesh streamptr code:
   end}
 end
 
-func void Mesh:print(Mesh* this):
-  println "Mesh"
-  println "  streamCount=" this.streamCount
+func void Mesh:print(Mesh* this, int indent):
+  iprintln indent "Mesh"
+  iprintln indent "  streamCount=" this.streamCount
 
   macro printVS stream:
     name := cstring:quote stream.id
@@ -167,7 +167,7 @@ func void Mesh:print(Mesh* this):
     end}
   end
 
-  print "  default streams: "
+  iprint indent "  default streams: "
   printVS positions
   printVS normals
   printVS colors
@@ -177,7 +177,7 @@ func void Mesh:print(Mesh* this):
   println()
 
   for streamnum 0 this.streamCount:
-    printString "  "
+    iprint indent "  "
     VertexStream:print ptradd(this.streams, streamnum)
     println()
   end

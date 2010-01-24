@@ -947,8 +947,34 @@ macro print args...:
   ret code
 end
 
+macro iprint indent args...:
+  var astp code ${seq:
+    printIndent #indent
+  end}
+
+  forEachAstChild arg args:
+    ast:addChild code ${zmp:cee:print #arg}
+  end
+
+  ret code
+end
+
 macro println args...:
   var astp code ${}
+
+  forEachAstChild arg args:
+    ast:addChild code ${zmp:cee:print #arg}
+  end
+
+  ast:addChild code ${printNewline()}
+
+  ret code
+end
+
+macro iprintln indent args...:
+  var astp code ${seq:
+    printIndent #indent
+  end}
 
   forEachAstChild arg args:
     ast:addChild code ${zmp:cee:print #arg}

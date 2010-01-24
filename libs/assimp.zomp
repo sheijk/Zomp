@@ -159,8 +159,15 @@ func v3f transformNormal(aiMatrix4x4* mat, v3f v):
 end
 
 func v3f transformVector(aiMatrix4x4* mat, v3f v):
-  ret (transformNormal mat v + mv3f mat.a4 mat.b4 mat.c4)
+  ret mv3f(
+      v.x * mat.a1 + v.y * mat.a2 + v.z * mat.a3 + mat.a4,
+      v.x * mat.b1 + v.y * mat.b2 + v.z * mat.b3 + mat.b4,
+      v.x * mat.c1 + v.y * mat.c2 + v.z * mat.c3 + mat.c4)
 end
+
+// func v3f transformVector(aiMatrix4x4* mat, v3f v):
+//   ret (transformNormal mat v + mv3f mat.a4 mat.b4 mat.c4)
+// end
 
 func RBTransform aiMatrix4x4:toRBTransform(aiMatrix4x4* mat):
   trans := undef RBTransform
@@ -168,8 +175,9 @@ func RBTransform aiMatrix4x4:toRBTransform(aiMatrix4x4* mat):
   trans.xaxis = transformNormal mat mv3f(1.,0.,0.)
   trans.yaxis = transformNormal mat mv3f(0.,1.,0.)
   trans.zaxis = transformNormal mat mv3f(0.,0.,1.)
-  trans.scale = 1.0 // TODO
-  RBTransform:makeNormalized &trans
+  // trans.scale = (v3f:length trans.xaxis + v3f:length trans.yaxis + v3f:length trans.zaxis) / 3.0
+  trans.scale = 1.0
+  // RBTransform:makeNormalized &trans
   ret trans
 end
 
