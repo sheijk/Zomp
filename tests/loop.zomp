@@ -13,7 +13,7 @@ struct Loop:
   cstring counterName
 end
 
-func void loop_modifier_for(Loop* loop, ast* args, int* childNum):
+func void loop_modifier_var(Loop* loop, ast* args, int* childNum):
   name := getField ast:child(args, childNum* + 1) id
   childNum*++
   counterName := loop.counterName
@@ -78,8 +78,10 @@ end
 
 macro loop modsAndBody...:
   loop := undef Loop
-  loop.init = ${println "[loop.init]"}
-  loop.test = ${println "[loop.test]"}
+  // loop.init = ${println "[loop.init]"}
+  // loop.test = ${println "[loop.test]"}
+  loop.init  = ${}
+  loop.test = ${}
   loop.body = ast:child modsAndBody (modsAndBody.childCount-1)
   loop.initLabel = "no init label.."
   loop.testLabel = newUniqueNameFor "loop.test"
@@ -91,8 +93,8 @@ macro loop modsAndBody...:
   childNum := 0
   while (childNum < modsAndBody.childCount - 1):
     child := ast:child(modsAndBody, childNum)
-    if (child.id ==_str "for"):
-      loop_modifier_for(&loop, modsAndBody, &childNum)
+    if (child.id ==_str "var"):
+      loop_modifier_var(&loop, modsAndBody, &childNum)
     elseif (child.id ==_str "to"):
       loop_modifier_to(&loop, modsAndBody, &childNum)
     elseif (child.id ==_str "from"):
@@ -123,7 +125,7 @@ macro loop modsAndBody...:
   exitLabel := loop.exitLabel
   continueLabel := loop.continueLabel
 
-  mret ${seq:
+  ret ${seq:
     var int #counterName 0
     #init
     label #testLabel
@@ -139,13 +141,23 @@ end
 
 func int main():
   count := 0
-  loop for i from 3 to 20 for x if (i > 5) while (x < 19):
+  loop var i from 3 to 20 var x if (i > 5) while (x < 19):
     // if (count >= 100) ret(99)
     print "  count = " count
     print "  i = " i
     print "  x = " x
     println()
     ++count
+  end
+
+  print "3 dots: "
+  loop to 3:
+    print '.'
+  end
+  println()
+
+  loop var i2 from 10 while (i2 < 12):
+    println "lalal"
   end
 
   ret 0
