@@ -910,12 +910,12 @@ func void NodeAnimation:apply(NodeAnimation* this, float time):
   if isNotNull(targetTransform):
     scale := NodeAnimation:scaleAt this rem
     targetTransform.scale = scale.x
-    rot := NodeAnimation:rotationAt this rem
-    RBTransform:setRotation targetTransform rot
+    // rot := NodeAnimation:rotationAt this rem
+    // RBTransform:setRotation targetTransform rot
     pos := NodeAnimation:transformAt this rem
-    pos = quatf:rotate rot pos
+    // pos = quatf:rotate rot pos
     targetTransform.origin = pos
-    RBTransform:makeNormalized targetTransform
+    // RBTransform:makeNormalized targetTransform
   end
 end
 
@@ -1054,6 +1054,10 @@ func void SceneGraphEdge:print(SceneGraphEdge* this):
   println this.parent " -> " this.child
 end
 
+ofunc void print(SceneGraphEdge edge):
+  SceneGraphEdge:print &edge
+end
+
 struct SceneGraph:
   SceneGraphNode_Array nodes
   SceneGraphEdge_Array edges
@@ -1127,7 +1131,7 @@ func void SceneGraphNode:print(SceneGraphNode* this, int indent):
   iprintln indent "  relativeTransform =:"
   RBTransform:print &this.relativeTransform (indent+4)
   iprintln indent "  globalSpace =:"
-  RBTransform:print &this.relativeTransform (indent+4)
+  RBTransform:print &this.globalSpace (indent+4)
 end
 
 func void SceneGraphNode:printUnindented(SceneGraphNode* this):
@@ -1513,24 +1517,17 @@ func int main():
 
   animTime := 0.0
   mainloop:
+    /// update logic
     angle = angle + rotationSpeed * frameDuration
     animTime = animTime + playbackSpeed * frameDuration
     animTime = fmodf animTime animDuration
-    // if (frameNum <= 0)
-    //   println "mesh translate = " meshes.data.transform.origin
-    // end
-    // if isNotNull(anim)
-    //   NodeAnimation:apply anim time
-    //   if (frameNum <= 0)
-    //     println "anim transform[0] = " getField(aget(anim.transformKeyFrames, 0),value)
-    //     println "anim transform[1] = " getField(aget(anim.transformKeyFrames, 1),value)
-    //   end
-    // end
+
     Array:foreach anims animNum:
       Animation:apply (anims.elements+animNum) animTime
     end
     SceneGraph:updateTransforms &sg
 
+    /// input events
     keyEvent := default KeyEvent
     while fetchNextKeyEvent(&keyEvent):
       if (keyEvent.action == GLFW_PRESS):
@@ -1543,6 +1540,7 @@ func int main():
     end
     Camera:move(&cam, frameDuration)
 
+    /// rendering
     autoSetupViewport()
 
     glClearColor 0. 0. 0. 0.

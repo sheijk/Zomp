@@ -159,10 +159,12 @@ func v3f transformNormal(aiMatrix4x4* mat, v3f v):
 end
 
 func v3f transformVector(aiMatrix4x4* mat, v3f v):
-  ret mv3f(
+  f := v.x * mat.d1 + v.y * mat.d2 + v.z * mat.d3 + mat.d4
+  r := mv3f(
       v.x * mat.a1 + v.y * mat.a2 + v.z * mat.a3 + mat.a4,
       v.x * mat.b1 + v.y * mat.b2 + v.z * mat.b3 + mat.b4,
       v.x * mat.c1 + v.y * mat.c2 + v.z * mat.c3 + mat.c4)
+  ret (r / f)
 end
 
 // func v3f transformVector(aiMatrix4x4* mat, v3f v):

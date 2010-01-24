@@ -136,6 +136,10 @@ ofunc v3f op*(float factor, v3f v):
   ret (v * factor)
 end
 
+ofunc v3f op/(v3f v, float divisor):
+  ret (v * (1.0 / divisor))
+end
+
 func v3f v3f:normalized(v3f v):
   l := 1.0 / v3f:length(v)
   ret mv3f(v.x * l, v.y * l, v.z * l)
