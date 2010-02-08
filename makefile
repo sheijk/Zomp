@@ -16,16 +16,18 @@ endif
 ZOMP_TOOL_PATH=$(PWD)/tools
 include config.mk
 
-
 PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
 help:
-	@$(ECHO) "PATH = $(PATH)" | $(TR) : \\n
-	@$(ECHO) "CXX_FLAGS = '"$(CXX_FLAGS)"'"
+	@$(ECHO) "PATH = "
+	@$(ECHO) "$(PATH)" | $(TR) : \\n
+	@$(ECHO) "CXXFLAGS = '"$(CXXFLAGS)"'"
+	@$(ECHO) "CCFLAGS = " $(CCFLAGS)
 	@$(ECHO) "LLVM_BIN_DIR = $(LLVM_BIN_DIR)"
 	@$(ECHO) "LLVM_CONFIG = $(LLVM_CONFIG)"
 	@$(ECHO) "CC = $(CC)"
 	@$(ECHO) "CXX = $(CXX)"
+	@$(ECHO) "BUILD_PLATFORM = $(BUILD_PLATFORM)"
 
 FLYMAKE_LOG=flymake.log
 
@@ -33,12 +35,12 @@ CAML_INCLUDE=
 CAML_PP=
 
 CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
-CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
+CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p -fPIC
 
 ARCHFLAG = -m32
 
-CXX_FLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
-C_FLAGS=-I /usr/local/lib/ocaml/ $(ARCHFLAG)
+CXXFLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
+CCFLAGS=-I /usr/local/lib/ocaml/ $(ARCHFLAG)
 
 # ifeq ($(DEBUG),1)
 # $(echo "Debug build")
@@ -46,15 +48,12 @@ C_FLAGS=-I /usr/local/lib/ocaml/ $(ARCHFLAG)
 # $(echo "Release build")
 # endif
 
-CFLAGS = $(C_FLAGS)
-CXXFLAGS = $(CXX_FLAGS)
-
 ifeq ($(DEBUG), 1)
 OCAMLC += -g
-CXX_FLAGS += -pg -g
-C_FLAGS += -pg -g
+CXXFLAGS += -pg -g
+CCFLAGS += -pg -g
 else
-CXX_FLAGS += -O5
+CXXFLAGS += -O5
 endif
 
 CAML_LIBS = str.cma bigarray.cma
@@ -99,11 +98,11 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
 	touch $@ # tar sets date from archive. avoid downloading the archive twice
 	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS=$(ARCHFLAG)
+	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
 
 tools/llvm: tools/llvm-$(LLVM_VERSION)
 	@$(ECHO) Building LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && make
+	cd tools/llvm-$(LLVM_VERSION) && make && make ENABLE_OPTIMIZED=0
 	@$(ECHO) Linking $@ to tools/llvm-$(LLVM_VERSION)
 	ln -s llvm-$(LLVM_VERSION) $@
 
@@ -118,11 +117,11 @@ tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 
 libglut.dylib:
 	@$(ECHO) Building $@ ...
-	$(CC) $(CFLAGS) -dynamiclib -framework GLUT -o $@
+	$(CC) $(CFLAGS) $(DLL_FLAG) $(LINK_GLUT) -o $@
 
 libquicktext.dylib: glQuickText.o
 	@$(ECHO) Building $@ ...
-	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ glQuickText.o -framework OpenGL
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ glQuickText.o $(LINK_GL)
 
 EXTLIB_DIR = extlibs
 # ASSIMP_DIR = $(EXTLIB_DIR)/assimp--1.0.412-sdk
@@ -141,7 +140,7 @@ libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
 	ln -s $< $@
 
 assimp.dylib: libassimp.a makefile forcelinkassimp.c
-	$(CXX) $(CXXFLAGS) -dynamiclib -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
 # opengl.dylib: opengl.c
 # 	@$(ECHO) Building $@ ...
@@ -152,9 +151,11 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o stdlib.ll
 	@$(ECHO) Building $@ ...
-	$(LLVM_CXX) $(CXX_FLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
-	$(CC) $(CFLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
+	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
+	$(CXX) $(DLL_FLAG) -o zompvm -DPIC -fPIC zompvm.o stdlib.o machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+# for OS X:
+# ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 
 sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
 	@$(ECHO) Building $@ ...
@@ -284,6 +285,9 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 %.zomp: %.skel gencode
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
+
+%.o: %.c
+	$(CC) $(CCFLAGS) -c -o $@ $<
 
 opengl20print.zomp: opengl20.skel gencode
 	@$(ECHO) Generating OpenGL enum printer ...

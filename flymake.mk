@@ -14,10 +14,10 @@ LLVM_CXXFLAGS = -I/Users/sheijk/Documents/Development/dword/trunk/Stuff/ocaml/la
 LLVM_CFLAGS = -I/Users/sheijk/Documents/Development/dword/trunk/Stuff/ocaml/lang/git/tools/llvm/Release/include  -D_DEBUG  -D_GNU_SOURCE -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -O3  
 
 cpp_check:
-	@$(LLVM_GXX) -c $(CHK_SOURCES) $(CXX_FLAGS) -Wall $(LLVM_CXXFLAGS) -fsyntax-only
+	@$(LLVM_GXX) -c $(CHK_SOURCES) $(CXXFLAGS) -Wall $(LLVM_CXXFLAGS) -fsyntax-only
 
 c_check:
-	@$(LLVM_GCC) -c $(CHK_SOURCES) $(C_FLAGS) -Wall $(LLVM_CFLAGS) -fsyntax-only
+	@$(LLVM_GCC) -c $(CHK_SOURCES) $(CCFLAGS) -Wall $(LLVM_CFLAGS) -fsyntax-only
 
 check-source: $(patsubst %.c,c_check, $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES))))
 	@cat $(FLYMAKE_BUILD) || exit 0

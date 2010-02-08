@@ -90,6 +90,8 @@ int zompLoadLib(const char* name) {
   return ptrToInt(handle);
 }
 
+typedef int bool;
+
 bool zompCheckNativeSymbol(const char* name) {
   return dlsym( NULL, name ) != NULL;
 }
