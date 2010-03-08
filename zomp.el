@@ -46,6 +46,12 @@ indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type `(repeat string))
 
+(defcustom zomp-continued-line-regexp "[-+*/=><&|,(] *\\(?://.*\\)?"
+  "A line whose ends matches this string (using `looking-back' is
+  considered to be one which continues on the next line"
+  :group 'zomp
+  :type 'string)
+
 (defvar zomp-mode-hook nil)
 
 (defun goto-match-paren (arg)
@@ -361,16 +367,22 @@ editor to trigger recompilations etc. and possibly resume main()"
                    (setq left (- left 1)))))
 
           (end-of-line)
-          (when (looking-back " *:")
+          (when (looking-back ": *")
             (setq left (+ left 2)))
-          ;; lines ending with operator or '(' probably continue in the next
+          ;; lines ending with an operator or '(' probably continue in the next
           ;; line, double-indent them (to keep visually seperate from indent
           ;; block)
-          (when (and (looking-back "[+-*/=><&|,(] +")
+          (when (and (looking-back zomp-continued-line-regexp)
                      ;; don't double-indent after comments
                      (not (looking-back "\\*/ *")))
             (setq left (+ left 4)))
-          (next-line)
+
+          ;; if previous line was already a continued line, don't indent this
+          ;; one again
+          (previous-line)
+          (end-of-line)
+          (when (looking-back zomp-continued-line-regexp)
+            (setq left (- left 4)))
           ))
 
       (beginning-of-line)
