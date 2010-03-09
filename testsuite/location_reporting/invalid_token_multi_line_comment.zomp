@@ -1,0 +1,11 @@
+
+/**
+ * a multi line comment
+ */
+
+invalidCharBetweenHere ` andHere
+
+func int main():
+  ret 0
+end
+

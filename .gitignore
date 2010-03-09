@@ -89,3 +89,4 @@ tools
 /bk/*
 /examples/*.o
 /examples/*.s
+/testsuite/location_reporting/*.tmp
