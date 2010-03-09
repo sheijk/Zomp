@@ -947,6 +947,7 @@ macro print args...:
   ret code
 end
 
+/// print indent levels of spaces, then pass remaining arguments to print macro
 macro iprint indent args...:
   var astp code ${seq:
     printIndent #indent
@@ -959,6 +960,7 @@ macro iprint indent args...:
   ret code
 end
 
+/// as iprint but pass arguments to println macro
 macro println args...:
   var astp code ${}
 

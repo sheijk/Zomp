@@ -96,6 +96,15 @@ macro Array:foreach array indexVar code:
   end}
 end
 
+macro Array:foreach2 array indexVar ptr code:
+  uniqueId count "array_size"
+
+  ret ${for #indexVar 0 #array.length:
+    #ptr := aptr #array #indexVar
+    #code
+  end}
+end
+
 macro printArray array name printMemberF:
   uniqueId counter "printArray"
   ret ${seq:

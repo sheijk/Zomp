@@ -128,6 +128,10 @@ func v3f op*_cross(v3f l, v3f r):
   ret (structlit v3f x (l.y*r.z - l.z*r.y) y (l.z*r.x - l.x*r.z) z (l.x*r.y - l.y*r.x))
 end
 
+ofunc v3f op*(v3f l, v3f r):
+  ret (structlit v3f x (l.x * r.x) y (l.y * r.y) z (l.z * r.z))
+end
+
 ofunc v3f op*(v3f v, float factor):
   ret (structlit v3f x (v.x * factor) y (v.y * factor) z (v.z * factor))
 end

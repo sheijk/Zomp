@@ -22,15 +22,6 @@ require "libs/mesh.zomp"
 // var int aiComponent_MATERIALS 0x800
 // var int _aiComponent_Force32Bit 0x9ffffff
 
-macro iprint args...:
-  code := ${}
-  ast:addChild code ${times indent printChar(' ')}
-  forEachAstChild arg args:
-    ast:addChild code arg
-  end
-  ret code
-end
-
 macro printField fieldName:
   fieldNameQuoted := cstring:quote fieldName.id
   ret ${seq:
@@ -48,6 +39,42 @@ var int aiPrimitiveType_POINT 1
 var int aiPrimitiveType_LINE 2
 var int aiPrimitiveType_TRIANGLE 4
 var int aiPrimitiveType_POLYGON 8
+
+template areBitSet num bits:
+  #num & #bits == #bits
+end
+
+func cstring assimp:primTypeDescr(int primType):
+  if (primType == 0):
+    ret "none"
+  end
+
+  template append str:
+    if isFirst:
+      descr ++= #str
+    else:
+      descr ++= ", " ++ #str
+    end
+    isFirst = false
+  end
+
+  isFirst := true
+  descr := ""
+  if (areBitSet primType aiPrimitiveType_POINT):
+    append "Points"
+  end
+  if (areBitSet primType aiPrimitiveType_LINE):
+    append "Lines"
+  end
+  if (areBitSet primType aiPrimitiveType_TRIANGLE):
+    append "Triangles"
+  end
+  if (areBitSet primType aiPrimitiveType_POLYGON):
+    append "Polygon"
+  end
+
+  ret descr
+end
 
 var int aiProcess_CalcTangentSpace 1
 var int aiProcess_JoinIdenticalVertices 2
@@ -204,6 +231,10 @@ struct aiString:
   char[1024] data
 end
 
+struct aiColor3D:
+  float r g b
+end
+
 func cstring aiString:cstring(aiString* this):
   ret strdup(zmp:array:addr &(this.data))
 end
@@ -310,7 +341,11 @@ end
 func void aiMesh:print(aiMesh* this, int indent):
   printIndent indent
   printlnString "aiMesh:"
-  printField mPrimitiveTypes
+  seq:
+    primDescr := assimp:primTypeDescr this.mPrimitiveTypes
+    iprintln (indent+2) "mPrimitiveTypes = " primDescr
+    dealloc primDescr
+  end
   printField mNumVertices
   printField mNumFaces
 
@@ -455,14 +490,219 @@ func void aiAnimation:print(aiAnimation* this, int indent):
   end
 end
 
-type aiMaterial
-type aiTexture
-type aiLight
+///-----------------------------------------------------------------------------
+/// Section: aiMaterial.h
+///-----------------------------------------------------------------------------
+
+var cstring AI_DEFAULT_MATERIAL_NAME "DefaultMaterial"
+var cstring AI_DEFAULT_TEXTURED_MATERIAL_NAME "TexturedDefaultMaterial"
+
+var int aiTextureOp_Multiply 0
+var int aiTextureOp_Add 1
+var int aiTextureOp_Subtract 2
+var int aiTextureOp_Divide 3
+var int aiTextureOp_SmoothAdd 4
+var int aiTextureOp_SignedAdd 5
+
+var int aiTextureMapMode_Wrap 0
+var int aiTextureMapMode_Clamp 1
+var int aiTextureMapMode_Decal 3
+var int aiTextureMapMode_Mirror 2
+
+var int aiTextureMapping_UV 0
+var int aiTextureMapping_SPHERE 1
+var int aiTextureMapping_CYLINDER 2
+var int aiTextureMapping_BOX 3
+var int aiTextureMapping_PLANE 4
+var int aiTextureMapping_OTHER 5
+
+var int aiTextureType_NONE 0
+var int aiTextureType_DIFFUSE 1
+var int aiTextureType_SPECULAR 2
+var int aiTextureType_AMBIENT 3
+var int aiTextureType_EMISSIVE 4
+var int aiTextureType_HEIGHT 5
+var int aiTextureType_NORMALS 6
+var int aiTextureType_SHININESS 7
+var int aiTextureType_OPACITY 8
+var int aiTextureType_DISPLACEMENT 9
+var int aiTextureType_LIGHTMAP 10
+var int aiTextureType_REFLECTION 11
+var int aiTextureType_UNKNOWN 12
+
+var int aiShadingMode_Flat 1
+var int aiShadingMode_Gouraud 2
+var int aiShadingMode_Phong 3
+var int aiShadingMode_Blinn 4
+var int aiShadingMode_Toon 5
+var int aiShadingMode_OrenNayar 6
+var int aiShadingMode_Minnaert 7
+var int aiShadingMode_CookTorrance 8
+var int aiShadingMode_NoShading 9
+var int aiShadingMode_Fresnel 10
+
+var int aiTextureFlags_Invert 1
+var int aiTextureFlags_UseAlpha 2
+var int aiTextureFlags_IgnoreAlpha 4
+
+var int aiBlendMode_Default 0
+var int aiBlendMode_Additive 1
+
+struct aiUVTransform:
+  aiVector2D mTransformation mScaling
+  float mRotation
+end
+
+var int aiPTI_Float   1
+var int aiPTI_String  3
+var int aiPTI_Integer 4
+var int aiPTI_Buffer  5
+type aiPropertyTypeInfo int
+
+func cstring aiPropertyTypeInfo:toCString(aiPropertyTypeInfo pti):
+  if (pti == aiPTI_Float):
+    ret "aiPTI_Float"
+  elseif (pti == aiPTI_String):
+    ret "aiPTI_String"
+  elseif (pti == aiPTI_Integer):
+    ret "aiPTI_Integer"
+  elseif (pti == aiPTI_Buffer):
+    ret "aiPTI_Buffer"
+  end
+  ret "invalid"
+end
+
+struct aiMaterialProperty:
+  aiString mKey
+  int mSemantic mIndex mDataLength
+  aiPropertyTypeInfo mType
+  cstring mData
+end
+
+func void aiMaterialProperty:print(aiMaterialProperty* this, int indent):
+  iprintln indent "aiMaterialProperty"
+  iprint (indent+2) "mKey = "
+  aiString:print &this.mKey
+  println()
+  printFieldi mSemantic
+  printFieldi mIndex
+  printFieldi mDataLength
+  iprintln (indent+2) "mType = " aiPropertyTypeInfo:toCString(this.mType)
+  iprint (indent+2) "mData = "
+  if (this.mType == aiPTI_Float):
+    for fnum 0 (this.mDataLength/4):
+      if (fnum > 0) print(", ")
+      print *(cast float* this.mData + fnum)
+    end
+    println()
+  elseif (this.mType == aiPTI_String):
+    data := cast aiString* this.mData
+    print '"'
+    aiString:print data
+    println '"'
+  elseif (this.mType == aiPTI_Integer):
+    for inum 0 (this.mDataLength/4):
+      if (inum > 0) print(", ")
+      print *(cast int* this.mData + inum)
+    end
+    println()
+  elseif (this.mType == aiPTI_Buffer):
+    println "buffer"
+  else:
+    println "invalid"
+  end
+end
+
+struct aiMaterial:
+  aiMaterialProperty** mProperties
+  int mNumProperties
+  int mNumAllocated
+end
 
 func void aiMaterial:print(aiMaterial* this, int indent):
   times indent printChar(' ')
   printlnString "aiMaterial"
+  printFieldi mNumProperties
+  printFieldi mNumAllocated
+  for propnum 0 this.mNumProperties:
+    aiMaterialProperty:print *(this.mProperties+propnum) (indent+2)
+  end
 end
+
+// dfunc aiReturn aiGetMaterialProperty(aiMaterial* mat, cstring key, uint type, uint index, aiMaterialProperty** propOut)
+// dfunc aiReturn aiGetMaterialFloatArray(
+//     aiMaterial* pmat,
+//     cstring pKey,
+//     uint type,
+//     uint index,
+//     float* pOut,
+//     uint* pMax)
+// ASSIMP_API C_ENUM aiReturn aiGetMaterialIntegerArray(const C_STRUCT aiMaterial* pMat, 
+//     const char* pKey,
+// 	 unsigned int  type,
+// 	 unsigned int  index,
+//     int* pOut,
+//     unsigned int* pMax)
+// ASSIMP_API C_ENUM aiReturn aiGetMaterialColor(const C_STRUCT aiMaterial* pMat, 
+//     const char* pKey,
+// 	 unsigned int type,
+//     unsigned int index,
+// 	 C_STRUCT aiColor4D* pOut)
+//  ASSIMP_API C_ENUM aiReturn aiGetMaterialString(const C_STRUCT aiMaterial* pMat, 
+//     const char* pKey,
+// 	 unsigned int type,
+//     unsigned int index,
+//     C_STRUCT aiString* pOut)
+// ASSIMP_API unsigned int aiGetMaterialTextureCount(const C_STRUCT aiMaterial* pMat,  
+// 	C_ENUM aiTextureType type);
+// C_ENUM aiReturn aiGetMaterialTexture(const C_STRUCT aiMaterial* mat,
+//     C_ENUM aiTextureType type,
+//     unsigned int  index,
+//     C_STRUCT aiString* path,
+// 	C_ENUM aiTextureMapping* mapping	/*= NULL*/,
+//     unsigned int* uvindex				/*= NULL*/,
+//     float* blend						/*= NULL*/,
+//     C_ENUM aiTextureOp* op				/*= NULL*/,
+// 	C_ENUM aiTextureMapMode* mapmode	/*= NULL*/,
+// 	unsigned int* flags                 /*= NULL*/)
+
+///-----------------------------------------------------------------------------
+/// Section: aiTexture.h
+///-----------------------------------------------------------------------------
+
+struct aiTexel:
+  char b g r a
+end
+
+struct aiTexture:
+  uint mWidth mHeight
+  char[4] achFormatHint
+  aiTexel* pcData
+end
+
+///-----------------------------------------------------------------------------
+/// Section: aiLight.h
+///-----------------------------------------------------------------------------
+
+const uint aiLightSource_UNDEFINED 0
+const uint aiLightSource_DIRECTIONAL 1
+const uint aiLightSource_POINT 2
+const uint aiLightSource_SPOT 3
+
+type aiLightSourceType uint
+
+struct aiLight:
+  aiString mName
+  aiLightSourceType mType
+  aiVector3D mPosition mDirection
+  float mAttenuationConstant mAttenuationLinear mAttenuationQuadratic
+  aiColor3D mColorDiffuse mColorSpecular mColorAmbient
+  float mAngleInnerCone mAngleOuterCone
+end
+
+///-----------------------------------------------------------------------------
+/// Section: more
+///-----------------------------------------------------------------------------
 
 struct aiCamera:
   aiString mName
@@ -476,16 +716,16 @@ ofunc void print(aiVector3D vec):
   print "aiVector3D(" vec.x ", " vec.y ", " vec.z ")"
 end
 
-func void aiCamera:print(aiCamera* cam):
-  print "aiCamera "
+func void aiCamera:print(aiCamera* cam, int indent):
+  iprint indent "aiCamera "
   aiString:print &(cam.mName)
   println()
-  println "  mPosition = " cam.mPosition
-  println "  mUp = " cam.mUp
-  println "  mLookAt = " cam.mLookAt
-  println "  mClipPlaneNear = " cam.mClipPlaneNear
-  println "  mClipPlaneFar = " cam.mClipPlaneFar
-  println "  mAspect = " cam.mAspect
+  iprintln indent "  mPosition = " cam.mPosition
+  iprintln indent "  mUp = " cam.mUp
+  iprintln indent "  mLookAt = " cam.mLookAt
+  iprintln indent "  mClipPlaneNear = " cam.mClipPlaneNear
+  iprintln indent "  mClipPlaneFar = " cam.mClipPlaneFar
+  iprintln indent "  mAspect = " cam.mAspect
 end
 
 struct aiScene:
@@ -526,8 +766,8 @@ funcd cstring aiGetErrorString()
 func void aiScene:print(aiScene* this):
   indent := 2
 
-  printlnString "aiScene"
-  printString "  mFlags="
+  println "aiScene"
+  print "  mFlags="
   printBits this.mFlags
   println()
   printFieldi mNumMeshes
@@ -536,23 +776,26 @@ func void aiScene:print(aiScene* this):
   printFieldi mNumTextures
   printFieldi mNumLights
   printFieldi mNumCameras
-  printlnString "  mRootNode:"
+  println "  mRootNode:"
   aiNode:print this.mRootNode 4
-  printlnString "  mMeshes:"
+  println "  mMeshes(" this.mNumMeshes "):"
   for meshnum 0 this.mNumMeshes:
     aiMesh:print load(this.mMeshes +_ptr meshnum) 4
   end
-  println "  mAnimations:"
+  println "  mAnimations(" this.mNumAnimations "):"
   for animnum 0 this.mNumAnimations:
     aiAnimation:print *(this.mAnimations +_ptr animnum) 4
   end
-  // for camnum 0 this.mNumCameras
-  //   aiCamera:print *(this.mCameras +_ptr camnum)
-  // end
-  // printlnString "  mMaterials:"
-  // for matnum 0 this.mNumMaterials
-  //   aiMaterial:print load(ptradd this.mMaterials matnum) 4
-  // end
+  println "  mCameras (" this.mNumCameras "):"
+  for camnum 0 this.mNumCameras:
+    aiCamera:print *(this.mCameras +_ptr camnum) 4
+  end
+  println "  mMaterials (" this.mNumMaterials "):"
+  for matnum 0 this.mNumMaterials:
+    aiMaterial:print load(ptradd this.mMaterials matnum) 4
+  end
+  println "  mTextures (" this.mNumTextures "):"
+  println "  mLights (" this.mNumLights "):"
   println()
 end
 

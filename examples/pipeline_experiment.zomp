@@ -116,6 +116,10 @@ macro default type:
   ret ${#ctorName()}
 end
 
+///-----------------------------------------------------------------------------
+/// Section: math
+///-----------------------------------------------------------------------------
+
 /// calculates a 4x4 column major float matrix from the rotation component
 func void RBTransform:toRotMatrix4x4(RBTransform* this, float* mat44):
   mat44[0] = this.xaxis.x
@@ -157,10 +161,166 @@ func RBTransform RBTransform:concat(RBTransform* first, RBTransform* relative):
   result.xaxis = RBTransform:rotate2 first relative.xaxis
   result.yaxis = RBTransform:rotate2 first relative.yaxis
   result.zaxis = RBTransform:rotate2 first relative.zaxis
-  result.origin = first.origin + RBTransform:rotate2 first relative.origin
+  result.origin = first.origin + RBTransform:rotate2 first relative.origin * first.scale
   result.scale = first.scale * relative.scale
   ret result
 end
+
+func float lerp(float t, float a, float b):
+  return ((1. - t) * a + t * b)
+end
+
+unittest:testCase float_lerp:
+  unittest:assertAll:
+    lerp 0.0 10. 20. == 10.
+    lerp 0.5 10. 20. == 15.
+    lerp 1.0 10. 20. == 20.
+  end
+end
+
+// proof of 'unlerp(lerp(t,a,b), a, b) = t', no unit tests needed for this
+//   unlerp(lerp(t,a,b), a, b)
+// = unlerp(((1-t)*a + t*b), a, b)
+// = ((((1-t)*a + t*b) - a) / (b - a))
+// = ((a - t*a + t*b - a) / (b - a))
+// = ((-t*a + t*b) / (b - a)
+// = t * (b-a) / (b-a)
+// = t
+func float unlerp(float t, float a, float b):
+  return ((t - a) / (b - a))
+end
+
+func float remapRange(
+    float t,
+    float oldMin, float oldMax,
+    float newMin, float newMax):
+  return lerp(unlerp t oldMin oldMax, newMin, newMax)
+end
+
+func bool op==_eps(float l, float r):
+  // stupid value..
+  eps := 0.0001
+  return (fabsf (l-r) < eps)
+end
+
+unittest:testCase remapRange:
+  unittest:assertAll:
+    remapRange 10.0 10. 20. 50. 100. ==_eps 50.
+    remapRange 20.0 10. 20. 50. 100. ==_eps 100.
+    remapRange 15.0 10. 20. 50. 100. ==_eps 75.
+  end
+end
+
+func float smoothstep(float t):
+  return ((3. - 2. * t)*(t*t))
+end
+
+func float cubicBezier1d(float t, float p0, float p1, float p2, float p3):
+  i := 1. - t
+  return (i*i*i*p0 + 3.*i*i*t*p1 + 3.*i*t*t*p2 + t*t*t*p3)
+end
+
+struct quatf:
+  float x y z w
+end
+
+func void quatf:makeConjugate(quatf* this):
+  this.x = float:neg this.x
+  this.y = float:neg this.y
+  this.z = float:neg this.z
+end
+
+func quatf quatf:conjugate(quatf q):
+  conj := q
+  quatf:makeConjugate &conj
+  ret conj
+end
+
+func float quatf:magnitude(quatf q):
+  ret sqrtf(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+end
+
+func void quatf:makeNormalized(quatf* this):
+  mag := quatf:magnitude *this
+  this.x *= mag
+  this.y *= mag
+  this.z *= mag
+  this.w *= mag
+end
+
+func quatf quatf:normalized(quatf q):
+  r := q
+  quatf:makeNormalized &r
+  ret r
+end
+
+/// adpated from gmtl
+func quatf quatf:lerp(float t, quatf a, quatf b):
+  // calc cosine theta
+  cosom := a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+
+  // adjust signs (if necessary)
+  b2 := b
+  if (cosom < 0.0):
+    cosom = float:neg cosom
+    b2.x = float:neg b2.x
+    b2.y = float:neg b2.y
+    b2.z = float:neg b2.z
+    b2.w = float:neg b2.w
+  end
+
+  // Calculate coefficients
+  sclp := 0.0
+  sclq := 0.0
+
+  if ( (1.0f - cosom) > 0.0001f): // 0.0001 -> some epsillon
+    // Standard case (slerp)
+    omega := acosf cosom
+    sinom := sinf omega // extract theta from dot product's cos theta
+    sclp  = sinf( (1.0 - t) * omega) / sinom
+    sclq  = sinf( t * omega) / sinom
+  else:
+    // Very close, do linear interp (because it's faster)
+    sclp = 1.0f - t
+    sclq = t
+  end
+
+  result := undef quatf
+  result.x = sclp * a.x + sclq * b2.x
+  result.y = sclp * a.y + sclq * b2.y
+  result.z = sclp * a.z + sclq * b2.z
+  result.w = sclp * a.w + sclq * b2.w
+  ret result
+end
+
+defineArrayType quatf
+
+func quatf aiQuaternion:quatf(aiQuaternion q):
+  ret (structlit quatf x q.x y q.y z q.z w q.w)
+end
+
+/// approach by fg
+func v3f quatf:rotate(quatf rot, v3f v):
+  rot_xyz := mv3f rot.x rot.y rot.z
+  t := 2.0 * (rot_xyz *_cross v)
+  rv := v + rot.w * t + rot_xyz *_cross t
+  ret rv
+end
+
+func quatf quatf:fromAxisAngle(v3f axis, float angleRad):
+  r := undef quatf
+  sinx := sinf (0.5 * angleRad)
+  cosy := cosf (0.5 * angleRad)
+
+  r.x = axis.x * sinx
+  r.y = axis.y * sinx
+  r.z = axis.z * sinx
+  r.w = cosy
+
+  ret r
+end
+
+defineArrayType v3f
 
 ///-----------------------------------------------------------------------------
 /// Section: events
@@ -218,7 +378,9 @@ var bool initCalled false
 func void init():
   if bool:not(initCalled):
     glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 2
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glfwSwapInterval 1
     glewInit()
     times 2 glfwPollEvents()
 
@@ -377,8 +539,7 @@ macro twgroup optionString settings:
       typeId := ast:child s 1
       name := ast:child s 2
       var := ast:child s 3
-      ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var)
-        #optionString}
+      ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
     else:
       ret ${error "Expected rw TYPE NAME VAR" #s}
     end
@@ -416,6 +577,8 @@ var float cameraOffsetX 0.
 var float cameraOffsetY 2.
 var float cameraOffsetZ 10.
 var bool wireframe false
+var bool showCameraPositions false
+var bool showAnimationKeyframes false
 /// draw lines from origin to center of each mesh
 var bool showMeshPointers false
 
@@ -491,43 +654,7 @@ func void gluLookAtf(
     (toDouble ux) (toDouble uy) (toDouble uz)
 end
 
-struct MeshInfo:
-  Mesh mesh
-  cstring id
-  RBTransform transform
-end
-
-defineListType Mesh
-defineListType MeshInfo
-defineArrayType MeshInfo
-
-func MeshInfo_Array collectMeshes(aiScene* scene):
-  var MeshInfo_Array meshes
-  MeshInfo_Array:init &meshes scene.mNumMeshes
-
-  for meshnum 0 scene.mNumMeshes:
-    aimesh := *(scene.mMeshes+meshnum)
-    info := meshes.elements + meshnum
-    newMesh := aiMesh:toMesh aimesh
-    info.mesh = newMesh*
-    info.id = ""
-    makeOrigin &info.transform
-  end
-
-  ret meshes
-end
-
-func MeshInfo* lookupMesh(MeshInfo_Array meshes, cstring id):
-  Array:foreach meshes num:
-    mesh := meshes.elements + num
-    if (mesh.id ==_str id):
-      ret mesh
-    end
-  end
-  ret nullptr(MeshInfo)
-end
-
-func void applyTransform(RBTransform* this):
+func void applyTransformGL(RBTransform* this):
   // converting to matrix, then applying. not pretty...
   var float[16] mat_
   mat := zmp:array:addr &mat_
@@ -551,133 +678,6 @@ func void applyTransform(RBTransform* this):
   glMultMatrixf mat
 end
 
-func float lerp(float t, float a, float b):
-  return ((1. - t) * a + t * b)
-end
-
-unittest:testCase float_lerp:
-  unittest:assertAll:
-    lerp 0.0 10. 20. == 10.
-    lerp 0.5 10. 20. == 15.
-    lerp 1.0 10. 20. == 20.
-  end
-end
-
-// proof of 'unlerp(lerp(t,a,b), a, b) = t', no unit tests needed for this
-//   unlerp(lerp(t,a,b), a, b)
-// = unlerp(((1-t)*a + t*b), a, b)
-// = ((((1-t)*a + t*b) - a) / (b - a))
-// = ((a - t*a + t*b - a) / (b - a))
-// = ((-t*a + t*b) / (b - a)
-// = t * (b-a) / (b-a)
-// = t
-func float unlerp(float t, float a, float b):
-  return ((t - a) / (b - a))
-end
-
-func float remapRange(
-    float t,
-    float oldMin, float oldMax,
-    float newMin, float newMax):
-  return lerp(unlerp t oldMin oldMax, newMin, newMax)
-end
-
-func bool op==_eps(float l, float r):
-  // stupid value..
-  eps := 0.0001
-  return (fabsf (l-r) < eps)
-end
-
-unittest:testCase remapRange:
-  unittest:assertAll:
-    remapRange 10.0 10. 20. 50. 100. ==_eps 50.
-    remapRange 20.0 10. 20. 50. 100. ==_eps 100.
-    remapRange 15.0 10. 20. 50. 100. ==_eps 75.
-  end
-end
-
-func float smoothstep(float t):
-  return ((3. - 2. * t)*(t*t))
-end
-
-func float cubicBezier1d(float t, float p0, float p1, float p2, float p3):
-  i := 1. - t
-  return (i*i*i*p0 + 3.*i*i*t*p1 + 3.*i*t*t*p2 + t*t*t*p3)
-end
-
-struct quatf:
-  float x y z w
-end
-
-func void quatf:makeConjugate(quatf* this):
-  this.x = float:neg this.x
-  this.y = float:neg this.y
-  this.z = float:neg this.z
-end
-
-func quatf quatf:conjugate(quatf q):
-  conj := q
-  quatf:makeConjugate &conj
-  ret conj
-end
-
-func float quatf:magnitude(quatf q):
-  ret sqrtf(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
-end
-
-func void quatf:makeNormalized(quatf* this):
-  mag := quatf:magnitude *this
-  this.x *= mag
-  this.y *= mag
-  this.z *= mag
-  this.w *= mag
-end
-
-func quatf quatf:normalized(quatf q):
-  r := q
-  quatf:makeNormalized &r
-  ret r
-end
-
-/// adpated from gmtl
-func quatf quatf:lerp(float t, quatf a, quatf b):
-  // calc cosine theta
-  cosom := a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
-
-  // adjust signs (if necessary)
-  b2 := b
-  if (cosom < 0.0):
-    cosom = float:neg cosom
-    b2.x = float:neg b2.x
-    b2.y = float:neg b2.y
-    b2.z = float:neg b2.z
-    b2.w = float:neg b2.w
-  end
-
-  // Calculate coefficients
-  sclp := 0.0
-  sclq := 0.0
-
-  if ( (1.0f - cosom) > 0.0001f): // 0.0001 -> some epsillon
-    // Standard case (slerp)
-    omega := acosf cosom
-    sinom := sinf omega // extract theta from dot product's cos theta
-    sclp  = sinf( (1.0 - t) * omega) / sinom
-    sclq  = sinf( t * omega) / sinom
-  else:
-    // Very close, do linear interp (because it's faster)
-    sclp = 1.0f - t
-    sclq = t
-  end
-
-  result := undef quatf
-  result.x = sclp * a.x + sclq * b2.x
-  result.y = sclp * a.y + sclq * b2.y
-  result.z = sclp * a.z + sclq * b2.z
-  result.w = sclp * a.w + sclq * b2.w
-  ret result
-end
-
 // TODO move to libcee <<<
 funcd int toupper(int chr)
 funcd int tolower(int chr)
@@ -690,20 +690,6 @@ func char char:lowerCase(char chr):
   ret toChar(tolower(toInt chr))
 end
 // >>>
-
-defineArrayType quatf
-
-func quatf aiQuaternion:quatf(aiQuaternion q):
-  ret (structlit quatf x q.x y q.y z q.z w q.w)
-end
-
-/// approach by fg
-func v3f quatf:rotate(quatf rot, v3f v):
-  rot_xyz := mv3f rot.x rot.y rot.z
-  t := 2.0 * (rot_xyz *_cross v)
-  rv := v + rot.w * t + rot_xyz *_cross t
-  ret rv
-end
 
 struct KeyFrameVector:
   double time
@@ -754,8 +740,6 @@ end
 
 defineArrayType KeyFrameVector
 defineArrayType KeyFrameQuat
-
-defineArrayType v3f
 
 struct NodeAnimation:
   float duration //TODO remove
@@ -889,15 +873,22 @@ func void RBTransform:setRotation(RBTransform* this, quatf rot):
 
   var float[9] mat2
   mat := zmp:array:addr &mat2
-  this.xaxis.x = 1. - 2. * ( yy + zz )
-  this.xaxis.y = 2. * ( xy - zw )
-  this.xaxis.z = 2. * ( xz + yw )
-  this.yaxis.x = 2. * ( xy + zw )
-  this.yaxis.y = 1. - 2. * ( xx + zz )
-  this.yaxis.z = 2. * ( yz - xw )
-  this.zaxis.x = 2. * ( xz - yw )
-  this.zaxis.y = 2. * ( yz + xw )
-  this.zaxis.z = 1. - 2. * ( xx + yy )
+  this.xaxis.x = 1. - 2. * (yy + zz)
+  this.xaxis.y = 2. * (xy - zw)
+  this.xaxis.z = 2. * (xz + yw)
+  this.yaxis.x = 2. * (xy + zw)
+  this.yaxis.y = 1. - 2. * (xx + zz)
+  this.yaxis.z = 2. * (yz - xw)
+  this.zaxis.x = 2. * (xz - yw)
+  this.zaxis.y = 2. * (yz + xw)
+  this.zaxis.z = 1. - 2. * (xx + yy)
+end
+
+func void RBTransform:setPosRotScale(RBTransform* this, v3f pos, quatf rot, float scale):
+  this.origin = pos
+  RBTransform:setRotation this rot
+  this.scale = scale
+  RBTransform:makeNormalized this
 end
 
 func void NodeAnimation:apply(NodeAnimation* this, float time):
@@ -908,20 +899,17 @@ func void NodeAnimation:apply(NodeAnimation* this, float time):
 
   targetTransform := this.targetTransform
   if isNotNull(targetTransform):
+    // scale := mv3f 1.0 1.0 1.0
+    // rot := quatf:fromAxisAngle mv3f(0.,1.,0.) 0.
+    // pos := mv3f 0. 10. 0.
     scale := NodeAnimation:scaleAt this rem
-    targetTransform.scale = scale.x
-    // rot := NodeAnimation:rotationAt this rem
-    // RBTransform:setRotation targetTransform rot
+    rot := NodeAnimation:rotationAt this rem
     pos := NodeAnimation:transformAt this rem
+    // pos = pos * scale
     // pos = quatf:rotate rot pos
-    targetTransform.origin = pos
+    RBTransform:setPosRotScale targetTransform pos rot ((scale.x + scale.y + scale.z) / 3.0)
     // RBTransform:makeNormalized targetTransform
   end
-end
-
-func void test2():
-  x := new float_Array 10
-  y := newArray float 10
 end
 
 func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source):
@@ -946,7 +934,11 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source):
   for scalenum 0 source.mNumScalingKeys:
     skey := *(source.mScalingKeys +_ptr scalenum)
     aset this.scaleTimes scalenum toFloat(skey.mTime)
-    aset this.scaleKeyFrames scalenum aiVector3D:vec3f(skey.mValue)
+    scale := aiVector3D:vec3f(skey.mValue)
+    aset this.scaleKeyFrames scalenum scale
+    if (float:max(fabsf(scale.x - scale.y), fabsf(scale.x - scale.z)) > 0.0001 * (scale.x + scale.y + scale.z)):
+      println "Found non uniform scaling " scale
+    end
   end
 
   for rotnum 0 source.mNumRotationKeys:
@@ -1002,7 +994,7 @@ func void renderTimeline(
       glVertex3f x2 0.1 0.
       fullSecond += 1.0
     end
-  
+
     pos := markerPos
     color := markerColors
     for markerNum 0 markerCount:
@@ -1024,8 +1016,132 @@ func void scaleTo2dArea(float left, float bottom, float right, float top):
 end
 
 ///-----------------------------------------------------------------------------
+/// Section: camera
+///-----------------------------------------------------------------------------
+
+struct Camera:
+  RBTransform transform
+  cstring id
+  float horizontalFOV aspect
+  float nearPlaneDist farPlaneDist
+end
+
+defineArrayType Camera
+
+func void Camera:init(Camera* this):
+  makeOrigin &this.transform
+  this.id = "-camera-"
+  this.horizontalFOV = 60.0
+  this.aspect = 1.0
+  this.nearPlaneDist = 1.0
+  this.farPlaneDist = 100.0
+end
+
+func void Camera:print(Camera* this, int indent):
+  iprintln indent "Camera '" this.id "'"
+  iprintln indent "aspect = " this.aspect
+  iprintln indent "horizontalFOV = " this.horizontalFOV
+  iprintln indent "nearPlaneDist = " this.nearPlaneDist
+  iprintln indent "farPlaneDist = " this.farPlaneDist
+  RBTransform:print &this.transform (indent+2)
+end
+
+func void Camera:applyGL(Camera* this):
+  var float[16] mat_
+  mat := zmp:array:addr(&mat_)
+
+  RBTransform:toRotMatrix4x4 &this.transform mat
+  glMultMatrixf mat
+
+  RBTransform:toTransMatrix44 &this.transform mat
+  glMultMatrixf mat
+end
+
+func void Camera:draw(Camera* this):
+  rendergl GL_LINES:
+    glColor3f 0. 0. 1.
+    glVertex this.transform.origin
+    glVertex (this.transform.origin - this.transform.zaxis)
+    glColor3f 0. 1. 0.
+    glVertex this.transform.origin
+    glVertex (this.transform.origin + this.transform.yaxis)
+  end
+end
+
+func bool keyDown(GLint key):
+  ret(glfwGetKey key == GLFW_PRESS)
+end
+
+func bool mouseButtonDown(int button):
+  glfwGetMouseButton button == GLFW_PRESS
+end
+
+func void Camera:move(Camera* this, float time):
+  delta := mv3f 0. 0. 0.
+
+  if (keyDown GLFW_KEY_A) (delta.x -= 1.0)
+  if (keyDown GLFW_KEY_D) (delta.x += 1.0)
+  if (keyDown GLFW_KEY_W) (delta.z -= 1.0)
+  if (keyDown GLFW_KEY_S) (delta.z += 1.0)
+  if (keyDown GLFW_KEY_F) (delta.y -= 1.0)
+  if (keyDown GLFW_KEY_R) (delta.y += 1.0)
+
+  speed := 2.0
+  rspeed := 2.0
+  if (keyDown GLFW_KEY_LSHIFT):
+    speed *= 4.0
+    rspeed *= 4.0
+  elseif (keyDown GLFW_KEY_LCTRL):
+    speed *= 0.25
+    rspeed *= 0.25
+  end
+
+  delta = RBTransform:rotate2 &this.transform delta
+  delta *= time * speed
+
+  rot := mv3f 0. 0. 0.
+
+  if (keyDown GLFW_KEY_UP) (rot.x += 1.0)
+  if (keyDown GLFW_KEY_DOWN) (rot.x -= 1.0)
+  if (keyDown GLFW_KEY_RIGHT) (rot.y -= 1.0)
+  if (keyDown GLFW_KEY_LEFT) (rot.y += 1.0)
+  if (keyDown GLFW_KEY_Q) (rot.z += 1.0)
+  if (keyDown GLFW_KEY_E) (rot.z -= 1.0)
+
+  rot *= time * rspeed
+
+  if (rot.x != 0.0):
+    rx := quatf:fromAxisAngle this.transform.xaxis rot.x
+    this.transform.yaxis = quatf:rotate rx this.transform.yaxis
+    this.transform.zaxis = quatf:rotate rx this.transform.zaxis
+  end
+  if (rot.y != 0.0):
+    ry := quatf:fromAxisAngle this.transform.yaxis rot.y
+    this.transform.xaxis = quatf:rotate ry this.transform.xaxis
+    this.transform.zaxis = quatf:rotate ry this.transform.zaxis
+  end
+  if (rot.z != 0.0):
+    rz := quatf:fromAxisAngle this.transform.zaxis rot.z
+    this.transform.xaxis = quatf:rotate rz this.transform.xaxis
+    this.transform.yaxis = quatf:rotate rz this.transform.yaxis
+  end
+
+  this.transform.origin += delta
+end
+
+///-----------------------------------------------------------------------------
 /// Section: scene graph
 ///-----------------------------------------------------------------------------
+
+struct MeshInfo:
+  Mesh mesh
+  cstring id
+  RBTransform transform
+end
+
+defineListType Mesh
+defineListType MeshInfo
+defineArrayType MeshInfo
 
 struct SceneGraphNode:
   RBTransform globalSpace
@@ -1033,6 +1149,14 @@ struct SceneGraphNode:
   int_Array meshes
   cstring id
 end
+
+struct CameraInfo:
+  Camera camera
+  SceneGraphNode* parentNode
+  // TODO: maintain original relative transform of the aiCamera
+end
+
+defineArrayType CameraInfo
 
 defineArrayType SceneGraphNode
 
@@ -1043,6 +1167,42 @@ end
 defineArrayType SceneGraphEdge
 defineListType SceneGraphEdge
 defineArrayType Mesh
+
+struct SceneGraph:
+  SceneGraphNode_Array nodes
+  SceneGraphEdge_Array edges
+  MeshInfo_Array meshes
+  Animation_Array animations
+  CameraInfo_Array cameras
+end
+
+//--- functions
+
+func MeshInfo_Array collectMeshes(aiScene* scene):
+  var MeshInfo_Array meshes
+  MeshInfo_Array:init &meshes scene.mNumMeshes
+
+  for meshnum 0 scene.mNumMeshes:
+    aimesh := *(scene.mMeshes+meshnum)
+    info := meshes.elements + meshnum
+    newMesh := aiMesh:toMesh aimesh
+    info.mesh = newMesh*
+    info.id = ""
+    makeOrigin &info.transform
+  end
+
+  ret meshes
+end
+
+func MeshInfo* lookupMesh(MeshInfo_Array meshes, cstring id):
+  Array:foreach meshes num:
+    mesh := meshes.elements + num
+    if (mesh.id ==_str id):
+      ret mesh
+    end
+  end
+  ret nullptr(MeshInfo)
+end
 
 func void SceneGraphEdge:init(SceneGraphEdge* this, int parent, int child):
   this.parent = parent
@@ -1058,13 +1218,6 @@ ofunc void print(SceneGraphEdge edge):
   SceneGraphEdge:print &edge
 end
 
-struct SceneGraph:
-  SceneGraphNode_Array nodes
-  SceneGraphEdge_Array edges
-  MeshInfo_Array meshes
-  Animation_Array anims
-end
-
 func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):
   makeOrigin &this.globalSpace
   // makeOrigin &this.relativeTransform
@@ -1074,6 +1227,27 @@ func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):
     aset this.meshes meshNum *(source.mMeshes + meshNum)
   end
   this.id = aiString:cstring &source.mName
+end
+
+func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id):
+  Array:foreach this nodeNum:
+    node := aptr this nodeNum
+    if (node.id ==_str id):
+      ret nodeNum
+    end
+  end
+  ret -1
+end
+
+func void CameraInfo:init(CameraInfo* this, aiCamera* aicam, SceneGraphNode_Array* nodes):
+  Camera:init &this.camera
+  this.camera.id = aiString:cstring(&aicam.mName)
+  parentNodeIndex := SceneGraphNode:lookup nodes this.camera.id
+  if (parentNodeIndex >= 0):
+    this.parentNode = aptr(nodes, parentNodeIndex)
+  else:
+    this.parentNode = nullptr SceneGraphNode
+  end
 end
 
 func void "print_void*"(void* ptr):
@@ -1176,6 +1350,16 @@ func cstring SceneGraph:nodeName(SceneGraph* this, int nodeNum):
   ret pNode.id
 end
 
+func void CameraInfo:print(CameraInfo* this, int indent):
+  iprint indent "CameraInfo"
+  if isNull(this.parentNode):
+    print "(connected)"
+  else:
+    println "(not in scene graph)"
+  end
+  Camera:print &this.camera (indent+2)
+end
+
 func void SceneGraph:print(SceneGraph* this, int indent):
   iprintln indent "SceneGraph:"
 
@@ -1184,27 +1368,15 @@ func void SceneGraph:print(SceneGraph* this, int indent):
   Array:foreach this.edges edgeNum:
     edge := aptr this.edges edgeNum
     iprintln (indent+2) "  " SceneGraph:nodeName(this, edge.parent)
-        " (" edge.parent ") -> " SceneGraph:nodeName(this, edge.child)
+        " (nr. " edge.parent ") -> " SceneGraph:nodeName(this, edge.child)
         "(nr. " edge.child ")"
   end
-  iprintArray this.anims "anims" Animation:print (indent+2)
+  iprintArray this.animations "animations" Animation:print (indent+2)
   iprintArray this.meshes "meshes" MeshInfo:print (indent+2)
+  iprintArray this.cameras "cameras" CameraInfo:print (indent+2)
 end
 
-func int SceneGraphNode:lookup(SceneGraphNode_Array* this, cstring id):
-  Array:foreach this nodeNum:
-    node := aptr this nodeNum
-    if (node.id ==_str id):
-      ret nodeNum
-    end
-  end
-  ret -1
-end
-
-func void Animation:init(
-    Animation* this,
-    aiAnimation* source,
-    SceneGraphNode_Array nodes):
+func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Array nodes):
   this.duration = toFloat source.mDuration
   this.name = aiString:cstring &source.mName
   NodeAnimation_Array:init &this.channels source.mNumChannels
@@ -1258,16 +1430,22 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
   // add relative transforms or split those meshes (maybe even consider animations?)
 
   /// animations
-  Animation_Array:init &this.anims source.mNumAnimations
-  Array:foreach this.anims animNum:
-    anim := aptr(this.anims, animNum)
+  Animation_Array:init &this.animations source.mNumAnimations
+  Array:foreach this.animations animNum:
+    anim := aptr(this.animations, animNum)
     Animation:init anim *(source.mAnimations+animNum) this.nodes
-    // targetNodeNum := SceneGraph:lookupNode this anim.name
-    // TODO lookup target
+  end
+
+  /// cameras
+  CameraInfo_Array:init &this.cameras source.mNumCameras
+  Array:foreach this.cameras camNum:
+    camInfo := aptr this.cameras camNum
+    CameraInfo:init camInfo *(source.mCameras+camNum) &this.nodes
   end
 end
 
 func void SceneGraph:updateTransforms(SceneGraph* this):
+  /// apply hierarchical node transforms
   if (this.nodes.length > 0):
     rootNode := aptr this.nodes 0
     rootNode.globalSpace = rootNode.relativeTransform
@@ -1289,126 +1467,113 @@ func void SceneGraph:updateTransforms(SceneGraph* this):
       info.transform = node.globalSpace
     end
   end
+
+  /// apply transforms to cameras
+  Array:foreach2 this.cameras camNum camInfo:
+    unless isNull(camInfo.parentNode):
+      t := (camInfo.parentNode)*.globalSpace
+      camInfo.camera.transform = t
+    end
+  end
 end
+
+func void SceneGraph:visualizeCameras(SceneGraph* this):
+  glMatrixMode GL_MODELVIEW
+  Array:foreach2 this.cameras camNum camInfo:
+    unless isNull(camInfo.parentNode):
+      t := (camInfo.parentNode)*.globalSpace
+      glPushMatrix()
+      applyTransformGL &t
+      // drawCoordSys 1.0
+      rendergl GL_LINES:
+        glColor3f 1. 0.4 0.0
+        glVertex3f 0. 0. 0.
+        glVertex3f 0.5 0. 0.
+        glVertex3f 0. 0. 0.
+        glVertex3f 0. 1. 0.
+        glColor3f 1. 0.8 0.0
+        glVertex3f 0. 0. 0.
+        glVertex3f 0. 0. -1.
+      end
+      glPopMatrix()
+    end
+  end
+end
+
+func void RBTransform:visualize(RBTransform* this):
+  rendergl GL_LINES:
+    glColor3f 1. 0. 0.
+    glVertex this.origin
+    glVertex (this.origin + this.xaxis)
+    glColor3f 0. 1. 0.
+    glVertex this.origin
+    glVertex (this.origin + this.yaxis)
+    glColor3f 0. 0. 1.
+    glVertex this.origin
+    glVertex (this.origin + this.zaxis)
+  end
+end
+
+func void visualizeTransform(v3f origin, v3f xaxis, v3f yaxis, v3f zaxis, v3f scale):
+  rendergl GL_LINES:
+    glColor3f 1. 0. 0.
+    glVertex origin
+    glVertex (origin + xaxis * scale.x)
+    glColor3f 0. 1. 0.
+    glVertex origin
+    glVertex (origin + yaxis * scale.y)
+    glColor3f 0. 0. 1.
+    glVertex origin
+    glVertex (origin + zaxis * scale.z)
+  end
+end
+
+func void NodeAnimation:visualize(NodeAnimation* this):
+  count := this.transformKeyframes.length
+  assert (count == this.rotationKeyFrames.length)
+  assert (count == this.scaleKeyFrames.length)
+
+  for kfnum 0 count:
+    pos := aget this.transformKeyframes kfnum
+    rot := aget this.rotationKeyFrames kfnum
+    scale := aget this.scaleKeyFrames kfnum
+    transform := undef RBTransform
+    RBTransform:setPosRotScale &transform pos rot 1.0
+    visualizeTransform pos transform.xaxis transform.yaxis transform.zaxis scale
+  end
+
+  rendergl GL_LINE_STRIP:
+    glColor3f 1. 0.4 0.
+    for kfnum2 0 count:
+      pos2 := aget this.transformKeyframes kfnum2
+      rot2 := aget this.rotationKeyFrames kfnum2
+      scale2 := aget this.scaleKeyFrames kfnum2
+      transform2 := undef RBTransform
+      RBTransform:setPosRotScale &transform2 pos2 rot2 1.0
+      glVertex transform2.origin
+    end
+  end
+end
+
+func void Animation:visualize(Animation* this):
+  Array:foreach2 this.channels num channel:
+    NodeAnimation:visualize channel
+  end
+end
+
 
 struct Rect:
   float left right top bottom
 end
 
 var float angle 0.0
-
-struct Camera:
-  RBTransform transform
-  cstring id
-  float horizontalFOV aspect
-  float nearPlaneDist farPlaneDist
-end
-
-func void Camera:init(Camera* this):
-  makeOrigin &this.transform
-  this.id = "-camera-"
-  this.horizontalFOV = 90.0
-  this.aspect = 1.0
-  this.nearPlaneDist = 1.0
-  this.farPlaneDist = 100.0
-end
-
-func void Camera:applyGL(Camera* this):
-  var float[16] mat_
-  mat := zmp:array:addr(&mat_)
-
-  RBTransform:toRotMatrix4x4 &this.transform mat
-  glMultMatrixf mat
-
-  RBTransform:toTransMatrix44 &this.transform mat
-  glMultMatrixf mat
-end
-
-func void Camera:draw(Camera* this):
-  rendergl GL_LINES:
-    glColor3f 0. 0. 1.
-    glVertex this.transform.origin
-    glVertex (this.transform.origin - this.transform.zaxis)
-    glColor3f 0. 1. 0.
-    glVertex this.transform.origin
-    glVertex (this.transform.origin + this.transform.yaxis)
-  end
-end
-
-func bool keyDown(GLint key):
-  ret(glfwGetKey key == GLFW_PRESS)
-end
-
-func bool mouseButtonDown(int button):
-  glfwGetMouseButton button == GLFW_PRESS
-end
-
-func quatf quatf:fromAxisAngle(v3f axis, float angleRad):
-  r := undef quatf
-  sinx := sinf (0.5 * angleRad)
-  cosy := cosf (0.5 * angleRad)
-
-  r.x = axis.x * sinx
-  r.y = axis.y * sinx
-  r.z = axis.z * sinx
-  r.w = cosy
-
-  ret r
-end
+var int visAnim -1
+var int visNodeAnim 0
+var int camNum 0
 
 // template applyF lval function:
 //   #lval = #function #lval
 // end
-
-func void Camera:move(Camera* this, float time):
-  delta := mv3f 0. 0. 0.
-
-  if (keyDown GLFW_KEY_A) (delta.x -= 1.0)
-  if (keyDown GLFW_KEY_D) (delta.x += 1.0)
-  if (keyDown GLFW_KEY_W) (delta.z -= 1.0)
-  if (keyDown GLFW_KEY_S) (delta.z += 1.0)
-  if (keyDown GLFW_KEY_F) (delta.y -= 1.0)
-  if (keyDown GLFW_KEY_R) (delta.y += 1.0)
-
-  speed := 2.0
-  rspeed := 2.0
-  if (keyDown GLFW_KEY_LSHIFT):
-    speed *= 4.0
-    rspeed *= 4.0
-  end
-
-  delta = RBTransform:rotate2(&this.transform, delta)
-  delta *= time * speed
-
-  rot := mv3f 0. 0. 0.
-
-  if (keyDown GLFW_KEY_UP) (rot.x += 1.0)
-  if (keyDown GLFW_KEY_DOWN) (rot.x -= 1.0)
-  if (keyDown GLFW_KEY_RIGHT) (rot.y -= 1.0)
-  if (keyDown GLFW_KEY_LEFT) (rot.y += 1.0)
-  if (keyDown GLFW_KEY_Q) (rot.z += 1.0)
-  if (keyDown GLFW_KEY_E) (rot.z -= 1.0)
-
-  rot *= time * rspeed
-
-  if (rot.x != 0.0):
-    rx := quatf:fromAxisAngle this.transform.xaxis rot.x
-    this.transform.yaxis = quatf:rotate rx this.transform.yaxis
-    this.transform.zaxis = quatf:rotate rx this.transform.zaxis
-  end
-  if (rot.y != 0.0):
-    ry := quatf:fromAxisAngle this.transform.yaxis rot.y
-    this.transform.xaxis = quatf:rotate ry this.transform.xaxis
-    this.transform.zaxis = quatf:rotate ry this.transform.zaxis
-  end
-  if (rot.z != 0.0):
-    rz := quatf:fromAxisAngle this.transform.zaxis rot.z
-    this.transform.xaxis = quatf:rotate rz this.transform.xaxis
-    this.transform.yaxis = quatf:rotate rz this.transform.yaxis
-  end
-
-  this.transform.origin += delta
-end
 
 func int main():
   init()
@@ -1422,29 +1587,39 @@ func int main():
   // sceneFilename := "data/pixeljourney/move_cube2.dae"
   // sceneFilename := "data/pixeljourney/pipetest/combined.dae"
   sceneFilename :=
-    // "data/pixeljourney/pipetest/hierarchy.dae"
-    "data/pixeljourney/shared/pipeline_tests/COLLADA_maya/091228_D_Collada_maya_test_szene_02.dae"
-    // "data/pixeljourney/shared/pipeline_tests/COLLADA_maya/091228_D_Collada_maya_test_cube_01.dae"
+      // "data/pixeljourney/pipetest/check_scale.dae"
+      // "data/pixeljourney/shared/pipeline_tests/COLLADA_maya/091228_D_Collada_maya_test_szene_02.dae"
+      // "data/pixeljourney/shared/pipeline_tests/COLLADA_maya/091228_D_Collada_maya_test_cube_01.dae"
+      // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test7_rolling_cube.dae"
+      // "data/pixeljourney/shared/pipeline_tests/from_xsi/100131_cube_translate_rotate_x_300.dae"
+      // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test1_tri.dae"
+      // "data/pixeljourney/shared/pipeline_tests/from_xsi/100208_camrot_03.dae"
+      // "/Users/sheijk/Documents/ArtyFarty/Toying_around/ringed.dae"
+      // "data/pixeljourney/mayatest.dae"
+      "data/pixeljourney/ringed.dae"
+      // "data/pixeljourney/first_scene_mats.dae"
+      // "data/pixeljourney/shared/pipeline_tests/from_xsi/100207_Pixeljums_cambaked_singlecube.dae"
+      // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test6.dae"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test7_rolling_cube.dae"
   // sceneFilename := "data/collada_test2.dae"
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
-  loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenSmoothNormals
+  loadOptions :=
+      aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenSmoothNormals
   // | aiProcess_PreTransformVertices
-  // loadOptions := 0
 
   scene := aiImportFile sceneFilename loadOptions
   abortIf isNull(scene):
     println "assimp error when loading scene: " aiGetErrorString()
   end
 
-  aiScene:print scene
+  // aiScene:print scene
 
   var SceneGraph sg
   SceneGraph:init &sg scene
   SceneGraph:updateTransforms &sg
-  SceneGraph:print &sg 0
+  // SceneGraph:print &sg 0
 
   meshes := sg.meshes
   // abortIf (isNull meshes) (println "Failed to convert scene to meshes")
@@ -1455,16 +1630,18 @@ func int main():
     end
   end
 
-  anims := sg.anims
-  println "Loaded " anims.length " animations"
+  animations := sg.animations
+  println "Loaded " animations.length " animations"
   animDuration := 10.0
-  if (anims.length > 0):
-    firstAnim := aptr anims 0
+  if (animations.length > 0):
+    firstAnim := aptr animations 0
     animDuration = firstAnim.duration
   end
 
-  aiReleaseImport scene
-  scene = nullptr aiScene
+  onReturn:
+    aiReleaseImport scene
+    scene = nullptr aiScene
+  end
 
   // objmat := objectMaterial()
   // objmat := loadGLSLShader "data/simple.vert" "data/simple.frag"
@@ -1481,19 +1658,30 @@ func int main():
   println "objmat_obj2cam = " objmat_obj2cam
   println "objmat_falloff_amount = " objmat_falloff_amount
 
+  cam := local Camera
+  cam.transform.origin = mv3f 1.5 0. 5.
+
   bar := TwNewBar "Settings"
   onReturn TwDeleteAllBars()
-  TwDefine "Settings refresh=0.01 position='0 20' size='200 200'"
-  TwAddSeparator bar (nullptr char) " "
+  TwDefine "Settings refresh=0.01 position='0 20' size='200 400'"
+  // TwAddSeparator bar (nullptr char) " "
 
   twgroup "group=options precision=2":
     rw TW_TYPE_FLOAT "playback speed" playbackSpeed
     rw TW_TYPE_FLOAT "rot. speed" rotationSpeed
-    rw TW_TYPE_BOOL8 "wireframe" wireframe
-    rw TW_TYPE_BOOL8 "mesh pointers" showMeshPointers
     rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
     rw TW_TYPE_FLOAT "cam dy" cameraOffsetY
     rw TW_TYPE_FLOAT "cam dz" cameraOffsetZ
+    rw TW_TYPE_INT32 "cam num" camNum
+  end
+
+  twgroup "group=debugging ":
+    rw TW_TYPE_BOOL8 "wireframe" wireframe
+    rw TW_TYPE_BOOL8 "mesh pointers" showMeshPointers
+    rw TW_TYPE_BOOL8 "camera positions" showCameraPositions
+    rw TW_TYPE_BOOL8 "show keyframes" showAnimationKeyframes
+    rw TW_TYPE_INT32 "  anim num" visAnim
+    rw TW_TYPE_INT32 "  channel num" visNodeAnim
   end
 
   var AABB meshBB
@@ -1511,10 +1699,6 @@ func int main():
   glEnable GL_BLEND
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
-  cam := local Camera
-  cam.transform.origin = mv3f 1.5 0. 5.
-  camNum := 0
-
   animTime := 0.0
   mainloop:
     /// update logic
@@ -1522,8 +1706,8 @@ func int main():
     animTime = animTime + playbackSpeed * frameDuration
     animTime = fmodf animTime animDuration
 
-    Array:foreach anims animNum:
-      Animation:apply (anims.elements+animNum) animTime
+    Array:foreach animations animNum:
+      Animation:apply (animations.elements+animNum) animTime
     end
     SceneGraph:updateTransforms &sg
 
@@ -1532,11 +1716,27 @@ func int main():
     while fetchNextKeyEvent(&keyEvent):
       if (keyEvent.action == GLFW_PRESS):
         if (keyEvent.key == GLFW_KEY_P):
-          SceneGraph:print &sg 0
+          if (keyDown GLFW_KEY_LSHIFT):
+            aiScene:print scene
+          else:
+            SceneGraph:print &sg 0
+            // meshI := aptr sg.meshes 1
+            // Mesh:printDetailed &meshI.mesh
+          end
         elseif (keyEvent.key == GLFW_KEY_C):
-          ++camNum
+          if (keyDown GLFW_KEY_LSHIFT):
+            --camNum
+          else:
+            ++camNum
+          end
         end
       end
+    end
+    if (visAnim < -1) (visAnim = -1)
+    if (visAnim >= sg.animations.length) (visAnim = sg.animations.length - 1)
+    if (visAnim >= 0):
+      anim := aptr sg.animations visAnim
+      visNodeAnim %= anim.channels.length
     end
     Camera:move(&cam, frameDuration)
 
@@ -1553,17 +1753,21 @@ func int main():
     farPlaneDist := camDistance * meshSize * 2.0 +
       float:max(sqrtf (20.*20.*2.), 0.5 * meshSize + v3f:length mv3f(cameraOffsetX, cameraOffsetY, cameraOffsetZ) * 10.0)
     nearPlaneDist := float:max(1.0, camDistance - meshSize)
-    gluPerspective 90.0d aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
+    gluPerspective toDouble(cam.horizontalFOV) aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    camNum = camNum % 2
+    specialCamCount := 2
+    camNum = camNum % (specialCamCount + sg.cameras.length)
     if (camNum == 0):
       gluLookAtf cameraOffsetX cameraOffsetY cameraOffsetZ 0. 0. 0. 0. 1. 0.
       glRotatef angle 0. 1. 0.
       Camera:draw &cam
     elseif (camNum == 1):
       Camera:applyGL &cam
+    else:
+      camInfo := aptr(sg.cameras, camNum - specialCamCount)
+      Camera:applyGL &camInfo.camera
     end
 
     AABB:render &meshBB
@@ -1593,14 +1797,13 @@ func int main():
       // for meshNum2 0 1:
         pMeshInfo := (meshes.elements + meshNum2)
         glPushMatrix()
-        applyTransform &pMeshInfo.transform
+        applyTransformGL &pMeshInfo.transform
         if wireframe:
           Mesh:render &pMeshInfo.mesh GL_POINTS 0
         else:
           Mesh:render &pMeshInfo.mesh GL_TRIANGLES 0
         end
         drawCoordSys 1.0
-        // drawCoordSys 1.0
         glPopMatrix()
       end
     end
@@ -1624,17 +1827,42 @@ func int main():
 
     drawOrientationGrid2 0.2 1.0
 
-    nowColor := color 0.3 0.8 0.2
-    scaleTo2dArea 0.03 0.03 0.47 0.13
-    renderTimeline 0. animDuration 1 &animTime &nowColor
+    if showCameraPositions:
+      SceneGraph:visualizeCameras &sg
+    end
+
+    if (visAnim >= 0):
+      anim2 := aptr sg.animations visAnim
+      NodeAnimation:visualize (aptr anim2.channels visNodeAnim)
+    elseif (showAnimationKeyframes):
+      Array:foreach2 sg.animations anim3Num anim3:
+        Animation:visualize anim3
+      end
+    end
+
+    saveAttribs:
+      glDisable GL_DEPTH_TEST
+      nowColor := color 0.3 0.8 0.2
+      scaleTo2dArea 0.03 0.03 0.47 0.13
+      renderTimeline 0. animDuration 1 &animTime &nowColor
+    end
+
+    // makeGLIdentityTransforms()
+    // glColor3f 1. 1. 1.
+    // glqtPrintfAt -1. -0.6 0. 0.002 int2cstring(visNodeAnim)
+    // glqtPrintfAt -1. -0.7 0. 0.002 int2cstring(visAnim)
 
     printGLError()
 
     TwDraw()
+    flushStdout()
   end
 
   drawPausedOverlay()
   glfwSwapBuffers()
+
+  println()
+  println (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
 
   return 0
 end
