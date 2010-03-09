@@ -28,19 +28,13 @@ help:
 	@$(ECHO) "CC = $(CC)"
 	@$(ECHO) "CXX = $(CXX)"
 	@$(ECHO) "BUILD_PLATFORM = $(BUILD_PLATFORM)"
+	@$(ECHO) "LLVM_EXTRA_OPTIONS = " $(LLVM_EXTRA_OPTIONS)
 
 FLYMAKE_LOG=flymake.log
 
-CAML_INCLUDE=
-CAML_PP=
-
-CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
-CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p -fPIC
-
-ARCHFLAG = -m32
-
-CXXFLAGS=-I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
-CCFLAGS=-I /usr/local/lib/ocaml/ $(ARCHFLAG)
+CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
+CCFLAGS = -I /usr/local/lib/ocaml/ $(ARCHFLAG)
+LDFLAGS = $(ARCHFLAG)
 
 # ifeq ($(DEBUG),1)
 # $(echo "Debug build")
@@ -102,7 +96,7 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 
 tools/llvm: tools/llvm-$(LLVM_VERSION)
 	@$(ECHO) Building LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && make && make ENABLE_OPTIMIZED=0
+	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
 	@$(ECHO) Linking $@ to tools/llvm-$(LLVM_VERSION)
 	ln -s llvm-$(LLVM_VERSION) $@
 
@@ -155,9 +149,11 @@ dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o stdlib.ll
 	@$(ECHO) Building $@ ...
 	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
-	$(CXX) $(DLL_FLAG) -o zompvm -DPIC -fPIC zompvm.o stdlib.o machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
-# for OS X:
-# ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+ifeq "$(BUILD_PLATFORM)" "Linux"
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o zompvm -DPIC -fPIC zompvm.o stdlib.o machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+else # OS X
+	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+endif
 
 sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
 	@$(ECHO) Building $@ ...

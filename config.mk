@@ -22,8 +22,8 @@ LLVM_VARIANT=Debug
 LLVM_BIN_DIR=$(ZOMP_TOOL_PATH)/llvm/$(LLVM_VARIANT)/bin
 LLVM_INCLUDE_DIR=$(ZOMP_TOOL_PATH)/llvm/include
 LLVM_LIB_DIR=$(ZOMP_TOOL_PATH)/llvm/$(LLVM_VARIANT)/lib
-# LLVM_GCC_BIN_DIR=$(ZOMP_TOOL_PATH)/llvm-gcc/bin
-LLVM_GCC_BIN_DIR=/usr/bin
+LLVM_GCC_BIN_DIR=$(ZOMP_TOOL_PATH)/llvm-gcc/bin
+# LLVM_GCC_BIN_DIR=/usr/bin
 
 LLVM_GCC=$(LLVM_GCC_BIN_DIR)/llvm-gcc
 LLVM_GXX=$(LLVM_GCC_BIN_DIR)/llvm-g++
@@ -52,14 +52,24 @@ CXX=g++
 AS=as
 LD=ld
 
+CAML_INCLUDE=
+CAML_PP=
+
+CAML_FLAGS= $(CAML_INCLUDE) $(CAML_PP)
+CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP) -p
+
+ARCHFLAG = -m32
+
+LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
+
 BUILD_PLATFORM=$(shell 'uname')
 
 ifeq "$(BUILD_PLATFORM)" "Linux"
 DLL_FLAG = -shared
-LLVM_EXTRA_OPTIONS = "$(ARCHFLAG) -fPIC -DPIC"
+LLVM_EXTRA_OPTIONS += -fPIC -DPIC
+CAML_NATIVE_FLAGS += -fPIC
 else # os x
 DLL_FLAG = -dynamiclib
-LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
 endif
 
 # setting up link flags for libraries
@@ -72,6 +82,6 @@ CCFLAGS += -fPIC
 CXXFLAGS += -fPIC
 else
 LINK_GLUT = -framework GLUT
-LINK_GL = -framework GL
+LINK_GL = -framework OpenGL
 endif
 
