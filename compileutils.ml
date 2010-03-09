@@ -85,8 +85,8 @@ let compileCode bindings input outstream fileName =
              | Parseutils.Exprs exprs -> exprs
              | Parseutils.Error error ->
                  let errorWithCorrectFile = {
-                   location =
-                     match error.location with
+                   error with
+                     location = match error.location with
                        | Some l -> Some { l with Indentlexer.fileName = fileName }
                        | None -> error.location }
                  in

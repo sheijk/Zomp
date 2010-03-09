@@ -17,39 +17,6 @@ let toSingleExpr = function
   | [single] -> single
   | multiOrNone -> seqExpr multiOrNone
 
-let testAst = {
-  id = "main"; args = [
-    { id = "foreach";
-      args = [ idExpr "x"; idExpr "in"; idExpr "objects";
-               { id = "seq"; args = [
-                   simpleExpr "print" ["x"];
-                   simpleExpr "print" ["hello"; "x"]] }
-             ] };
-    simpleExpr "echo" ["this"; "be"; "echo"];
-    { id = "while";
-      args = [simpleExpr "greater" ["x"; "100"];
-              seqExpr [
-                simpleExpr "print" ["x still greater"];
-                simpleExpr "+=" ["x"; "1"];
-                simpleExpr "register" ["manager"; "x"];
-              ]]}
-  ]}
-
-let runtests printerF =
-  let tests = [
-    simpleExpr "print" ["x"; "y"];
-    { id = "foreach"; args = [idExpr "x"; idExpr "in"; idExpr "lst"; seqExpr [] ]};
-    { id = "func"; args = [idExpr "int"; idExpr "main"; seqExpr [];
-                           seqExpr [
-                             simpleExpr "print" ["x"];
-                             simpleExpr "+=" ["x"; "1"];
-                             simpleExpr "register" ["manager"; "x"];
-                           ] ] };
-    testAst;
-  ]
-  in
-  List.iter (fun e -> printf "---\n%s.\n" (printerF e)) tests
-
 let rec expression2string sexpr =
   let idString =
     if sexpr.id = "seq" && List.length sexpr.args = 0 then "()"

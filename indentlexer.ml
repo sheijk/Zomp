@@ -12,11 +12,15 @@ type location = {
   fileName :string;
 }
 
+let location_to_string loc = sprintf "%s:%d" loc.fileName loc.line
+
 exception UnknowToken of location * string * string
-let raiseUnknownToken loc str reason = raise (UnknowToken (loc, str, reason))
+let raiseUnknownToken loc str reason =
+  raise (UnknowToken (loc, str, reason))
 
 exception IndentError of location * string
-let raiseIndentError loc str = raise (IndentError (loc, str))
+let raiseIndentError loc str =
+  raise (IndentError (loc, str))
 
 type token = Newparser.token
 open Newparser
@@ -57,10 +61,34 @@ end
 
 open Util
 
-let stripComments source =
-  let fakeLocation = { line = 0; fileName = "fake" } in
+let stripComments fileName source =
   let sourceLength = String.length source in
-  let readPos = ref 0 in
+
+  let getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine =
+    let readPos = ref 0 in
+    let line = ref 0 in
+
+    let getReadPos() = !readPos in
+    let getLine() = !line in
+    let readOneChar() =
+      let chr = source.[!readPos] in
+      if chr = '\n' then
+        line := !line + 1;
+      readPos := !readPos + 1;
+      chr
+    in
+    let readTwoChars() =
+      (* weird errors when omitting the let bindings here *)
+      let a = readOneChar() in
+      let b = readOneChar() in
+      a, b
+    in
+    let moveBackReadPos() =
+      readPos := !readPos - 1
+    in
+    getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine
+  in
+
   let strippedSource = String.make (sourceLength+1) '\n' in
   let writePos = ref 0 in
   let writeChar chr =
@@ -68,32 +96,30 @@ let stripComments source =
     incr writePos
   in
   let unexpectedEofInComment() =
-    raiseIndentError fakeLocation "Unexpected Eof while parsing comment"
+    raiseIndentError { line = getLine(); fileName = fileName } "Unexpected Eof while parsing comment"
   in
   let rec copySource() =
-    if !readPos <= sourceLength - 2 then begin
-      readPos := !readPos + 2;
-      match source.[!readPos-2], source.[!readPos-1] with
+    if getReadPos() <= sourceLength - 2 then begin
+      match readTwoChars() with
         | '/', '/' ->
             skipSingleLineComment()
         | '/', '*' ->
             skipMultiLineComment()
         | chr1, '/' ->
             writeChar chr1;
-            readPos := !readPos - 1;
+            moveBackReadPos();
             copySource();
         | chr1, chr2 ->
             writeChar chr1;
             writeChar chr2;
             copySource()
     end else begin
-      if !readPos = sourceLength - 1 then
+      if getReadPos() = sourceLength - 1 then
         writeChar source.[sourceLength - 1]
     end
   and skipSingleLineComment() =
-    if !readPos <= sourceLength - 1 then
-      let chr = source.[!readPos] in
-      incr readPos;
+    if getReadPos() <= sourceLength - 1 then
+      let chr = readOneChar() in
       if chr = '\n' then begin
         writeChar '\n';
         copySource()
@@ -102,14 +128,19 @@ let stripComments source =
     else
       unexpectedEofInComment()
   and skipMultiLineComment() =
-    if !readPos <= sourceLength - 2 then begin
-      readPos := !readPos + 2;
-      match source.[!readPos-2], source.[!readPos-1] with
+    if getReadPos() <= sourceLength - 2 then begin
+      match readTwoChars() with
         | '*', '/' -> copySource()
         | chr, '*' ->
-            decr readPos;
+            if chr = '\n' then
+              writeChar '\n';
+            moveBackReadPos();
             skipMultiLineComment()
-        | _, _ ->
+        | chr1, chr2 ->
+            if chr1 = '\n' then
+              writeChar '\n';
+            if chr2 = '\n' then
+              writeChar '\n';
             skipMultiLineComment()
     end else
       unexpectedEofInComment()
@@ -777,14 +808,14 @@ let token (lexbuf : token lexerstate) : token =
   token
 
 let makeLexbuf fileName source =
-  let buffer = stripComments source in
+  let buffer = stripComments fileName source in
   markIndentBlocks buffer;
   let rec lexbuf =
     {
       content = buffer;
       contentLength = String.length buffer;
       position = 0;
-      location = { line = 0; fileName = fileName };
+      location = { line = 1; fileName = fileName };
       prevIndent = 0;
       pushedTokens = [];
       readTokenBefore = false;

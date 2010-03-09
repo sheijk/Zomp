@@ -83,6 +83,21 @@ let getBasename filename =
   else
     None
 
+type compilation_failure_reason =
+  | Compiler_did_not_return_result
+  | Compilation_failed_with_error of string
+  | Failed_to_init_vm
+
+type compilation_result =
+  | Compilation_succeeded
+  | Compilation_failed of compilation_failure_reason
+
+let compilation_result_to_string = function
+  | Compilation_succeeded -> 0
+  | Compilation_failed (Compilation_failed_with_error _) -> 1
+  | Compilation_failed Compiler_did_not_return_result -> 2
+  | Compilation_failed Failed_to_init_vm -> 4
+
 let compile fileName instream outstream =
   let preludeDir = Filename.dirname Sys.executable_name in
   let input =
@@ -90,8 +105,7 @@ let compile fileName instream outstream =
   in
 
   if not( Zompvm.zompInit() ) then begin
-    eprintf "Could not init ZompVM\n";
-    4
+    Compilation_failed Failed_to_init_vm
   end else begin
     Zompvm.zompVerifyCode false;
     let exitCode =
@@ -104,12 +118,10 @@ let compile fileName instream outstream =
                                output_string outstream llvmCode)
            in
            match Compileutils.compileCode bindings input outstream fileName with
-             | Some _ -> 0
-             | None -> 2
+             | Some _ -> Compilation_succeeded
+             | None -> Compilation_failed Compiler_did_not_return_result
          end)
-        ~onError:(fun msg ->
-                    printf "Failed compilation: %s" msg;
-                    1)
+        ~onError:(fun msg -> Compilation_failed (Compilation_failed_with_error msg))
     in
     Zompvm.zompShutdown();
     exitCode
@@ -213,11 +225,18 @@ let () =
                     let exitCode = compile inputFileName inStream outStream in
                     close_in inStream;
                     close_out outStream;
-                    if exitCode <> 0 then begin
-                      eprintf "Failed to compile\n";
-                      Sys.remove outputFileName;
+                    begin match exitCode with
+                      | Compilation_succeeded -> ()
+                      | Compilation_failed reason ->
+                          eprintf "Failed to compile: %s\n"
+                            begin match reason with
+                              | Failed_to_init_vm -> "Could to init VM"
+                              | Compiler_did_not_return_result -> "Compiler did not return a result"
+                              | Compilation_failed_with_error msg -> msg
+                            end;
+                          Sys.remove outputFileName;
                     end;
-                    exit exitCode
+                    exit (compilation_result_to_string exitCode)
                   with
                     | Sexprlexer.Eof ->
                         close_in inStream;

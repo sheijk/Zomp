@@ -24,6 +24,7 @@ let parseSExpr input =
 
 type parseError = {
   location :Indentlexer.location option;
+  reason :string;
 }
 
 let parseErrorToString pe =
@@ -32,10 +33,11 @@ let parseErrorToString pe =
       | Some loc -> loc.Indentlexer.fileName, loc.Indentlexer.line
       | None -> "???.zomp", -1
   in
-  sprintf "%s: %d: parser error\n" file line
+  sprintf "%s:%d: parsing error %s\n" file line pe.reason
 
 type parsingResult =
-    Exprs of Ast2.sexpr list | Error of parseError
+  | Exprs of Ast2.sexpr list
+  | Error of parseError
 
 let parseSExprs source =
   let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
@@ -50,8 +52,11 @@ let parseSExprs source =
     let parseF = Sexprparser.main Sexprlexer.token in
     let exprs = parse parseF lexbuf [] in
     Exprs exprs
-  with _ ->
-    Error { location = None }
+  with exc ->
+    Error {
+      location = None;
+      reason = sprintf "Unknow exception: %s" (Printexc.to_string exc)
+    }
 
 let parseIExprsFromLexbuf lexbuf lexstate =
   let lexFunc _ = Indentlexer.token lexstate in
@@ -75,8 +80,11 @@ let parseIExprs source =
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   try
     Exprs (parseIExprsFromLexbuf lexbuf lexstate)
-  with _ ->
-    Error { location = Some (Indentlexer.locationOfLexstate lexstate) }
+  with exc ->
+    Error {
+      location = Some (Indentlexer.locationOfLexstate lexstate);
+      reason = sprintf "Unknow exception: %s" (Printexc.to_string exc)
+    }
 
 let parseIExprsOpt source =
   match parseIExprs source with
