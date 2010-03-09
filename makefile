@@ -133,13 +133,15 @@ SCONSFLAGS += "debug=1"
 endif
 
 extlib_assimp:
+	@echo Building assimp library ...
 	cd $(ASSIMP_DIR)/workspaces/SCons; $(SCONS) $(SCONSFLAGS)
 
 libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
-	- rm -f $@
+	- rm -f $@ # prefix '-' means this rule is allowed to fail
 	ln -s $< $@
 
 assimp.dylib: libassimp.a makefile forcelinkassimp.c
+	@echo Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
 # opengl.dylib: opengl.c

@@ -929,6 +929,15 @@ von http://lambda-the-ultimate.org/node/2884
      include Reflection
      include String.constructors etc
    end
+** TODO [#A] branchless max
+   typedef long long int64;
+   typedef unsigned long long uint64;
+   typedef unsigned int uint;
+
+   int64 diff( uint a, uint b ) { return (int64( a ) - int64( b )); }
+   uint sign( int64 val ) { return uint( uint64( val ) >> ( (sizeof( uint64 ) * 8) -1 )); }
+   uint branchless_sel( uint r1, uint r2, uint val ) { return r1*(1-val) + r2*val; }
+   uint max_branchless( uint r1, uint r2 ) { return branchless_sel(r1, r2, sign(diff(r1, r2)) ); }
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]

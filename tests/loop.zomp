@@ -4,6 +4,7 @@
  */
 // TODO: make sure that all orders of modifiers yield the same result,
 // especially interaction of if and while
+// TODO: have a look at REXX's do/looping construct
 
 requireLibs libcee
 
@@ -12,6 +13,8 @@ struct Loop:
   cstring initLabel testLabel bodyLabel exitLabel continueLabel
   cstring counterName
 end
+
+"foobar"
 
 func void loop_modifier_var(Loop* loop, ast* args, int* childNum):
   name := getField ast:child(args, childNum* + 1) id
