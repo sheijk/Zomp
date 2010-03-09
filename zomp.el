@@ -46,7 +46,7 @@ indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type `(repeat string))
 
-(defcustom zomp-continued-line-regexp "[-+*/=><&|,(] *\\(?://.*\\)?"
+(defcustom zomp-continued-line-regexp "\\(?: [-+*/=><&|:]*[-+*/=><&|]\\|[,({\\[]\\) *\\(?://.*\\)?"
   "A line whose ends matches this string (using `looking-back' is
   considered to be one which continues on the next line"
   :group 'zomp
@@ -388,10 +388,8 @@ editor to trigger recompilations etc. and possibly resume main()"
       (beginning-of-line)
 
       ;; lines like " * foo" are indented by one more space
-      ;; (when (looking-at " *\\*")
-        ;; (set 'left (+ left 1)))
       (when (looking-at " *\\*")
-          (set 'left (+ left 1)))
+        (set 'left (+ left 1)))
 
       ;; unindent end lines
       (back-to-indentation)
@@ -404,6 +402,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
       (delete-horizontal-space)
       (indent-to-column left))
+
     ;; place cursor correctly on newline-and-indent
     (when (equal (current-column) 0)
       (back-to-indentation))
@@ -536,7 +535,8 @@ editor to trigger recompilations etc. and possibly resume main()"
   (setq comment-start-skip "// *")
   (setq comment-end "")
 
-  (modify-syntax-entry ?: "w")
+  (dolist (op (list ?: ?+ ?- ?= ?! ?? ?* ?/ ?& ?| ?^))
+    (modify-syntax-entry op "."))
 
   (setq indent-tabs-mode nil)
 
