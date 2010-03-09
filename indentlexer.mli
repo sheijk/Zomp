@@ -1,5 +1,6 @@
 exception Eof
 type location = { line : int; fileName : string; }
+val locationToString : location -> string
 type token = Newparser.token
 type 'a lexerstate
 val readChar : 'a lexerstate -> char

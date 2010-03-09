@@ -1940,9 +1940,19 @@ let translateInclude includePath handleLLVMCodeF env expr =
                in
                try
                  importFile fileName
-               with error ->
-                 let msg = Printexc.to_string error in
-                 Error [sprintf "%s, while compiling included file %s" msg fileName]
+               with
+                 | Indentlexer.UnknowToken(loc,token,reason) -> begin
+                     let msg = sprintf "%s: unknown token '%s' (%s)"
+                       (Indentlexer.locationToString {
+                          loc with Indentlexer.fileName = fileName })
+                       token
+                       reason
+                     in
+                     Error [msg]
+                   end
+                 | error ->
+                     let msg = Printexc.to_string error in
+                     Error [sprintf "%s, while compiling included file %s" msg fileName]
              end
          | _ ->
              Error ["Expecting 'include \"fileName.zomp\"'"])

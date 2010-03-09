@@ -12,7 +12,7 @@ type location = {
   fileName :string;
 }
 
-let location_to_string loc = sprintf "%s:%d" loc.fileName loc.line
+let locationToString loc = sprintf "%s:%d" loc.fileName loc.line
 
 exception UnknowToken of location * string * string
 let raiseUnknownToken loc str reason =
