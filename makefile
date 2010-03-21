@@ -111,7 +111,7 @@ tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 
 libglut.dylib:
 	@$(ECHO) Building $@ ...
-	$(CC) $(CFLAGS) $(DLL_FLAG) $(LINK_GLUT) -o $@
+	$(CC) $(DLL_FLAG) $(LDFLAGS) $(LINK_GLUT) -o $@
 
 libquicktext.dylib: glQuickText.o
 	@$(ECHO) Building $@ ...
