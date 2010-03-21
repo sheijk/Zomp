@@ -938,6 +938,15 @@ von http://lambda-the-ultimate.org/node/2884
    uint sign( int64 val ) { return uint( uint64( val ) >> ( (sizeof( uint64 ) * 8) -1 )); }
    uint branchless_sel( uint r1, uint r2, uint val ) { return r1*(1-val) + r2*val; }
    uint max_branchless( uint r1, uint r2 ) { return branchless_sel(r1, r2, sign(diff(r1, r2)) ); }
+** TODO [#A] 1e5 notation for floats                                   :smallpt:
+** TODO init global variables                                          :smallpt:
+** TODO global variables of sized array types                     :smallpt:
+** TODO initializer expressions for arrays (int x[] = { 1, 2, 3 }) :smallpt:
+** TODO [#A] create default factory for structs                        :smallpt:
+** TODO [#A] type for literal values (to allow double d; d + 1)        :smallpt:
+** TODO [#A] short type                                                :smallpt:
+** TODO unsigned ints                                                  :smallpt:
+** TODO [#A] detect writing of function parameters                     :smallpt:
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]

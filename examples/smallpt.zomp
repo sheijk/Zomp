@@ -1,0 +1,340 @@
+/**
+ * Port of smallpt to Zomp + libcee
+ */
+
+requireLibs libcee math stdio
+
+struct Ray:
+  v3f o d
+end
+
+func Ray mray(v3f o, v3f d):
+  r := undef Ray
+  r.o = o
+  r.d = d
+  ret r
+end
+
+macro enum name cases:
+  code := ${}
+  ast:addChild code ${type #name int}
+
+  caseNum := 0
+  forEachAstChild enumCase cases:
+    if ast:matchesShape(enumCase, ${_}):
+      caseName := name.id ++ ":" ++ enumCase.id
+      ast:addChild code ${const int #caseName #caseNum}
+    else:
+      ret ${error "Only identifiers allowed for enum cases" #enumCase}
+    end
+    ++caseNum
+  end
+
+  ret code
+end
+
+enum Refl:
+  DIFF
+  SPEC
+  REFR
+end
+
+struct Sphere:
+  double rad
+  v3f p e c
+  Refl refl
+end
+
+macro hasType var type:
+  uniqueId tmp "hasType"
+  ret ${seq:
+    #tmp := nullptr #type
+    #tmp = &#var
+  end}
+end
+
+func double Sphere:intersect(Sphere* this, Ray* r):
+  op := this.p - r.o
+  eps := 0.001d
+  b := toDouble (op *_dot r.d)
+  det := b * b - toDouble (op *_dot op) + toDouble (this.rad * this.rad)
+
+  if (det < 0.0d):
+    ret 0.0d
+  else:
+    det = sqrt det
+  end
+
+  t := b - det
+
+  if (t > eps):
+    ret t
+  end
+
+  t = b + det
+  if (t > eps):
+    ret t
+  end
+
+  ret 0.0d
+end
+
+func Sphere makeSphere(double rad, v3f p, v3f e, v3f c, Refl refl):
+  var Sphere s
+  s.rad = rad
+  s.p = p
+  s.e = e
+  s.c = c
+  s.refl = refl
+  ret s
+end
+
+const int sphereCount 9
+var Sphere* spheres null
+
+func void init:spheres():
+  s := malloc Sphere sphereCount
+
+  rad := 100000.0d
+  o := mv3f 0. 0. 0.
+
+  s[0] = makeSphere(rad, mv3f(1.00001,40.8,81.6), o, mv3f(.75,.25,.25), Refl:DIFF)
+  s[1] = makeSphere(rad, mv3f(toFloat(rad+1.0d),40.8,81.6), o, mv3f(.75,.25,.25), Refl:DIFF)
+  s[2] = makeSphere(rad, mv3f(toFloat(-rad+99.0d),40.8,81.6), o, mv3f(.25,.25,.75), Refl:DIFF)
+  s[3] = makeSphere(rad, mv3f(50.,40.8, toFloat rad), o, mv3f(.75,.75,.75), Refl:DIFF)
+  s[4] = makeSphere(rad, mv3f(50.,40.8,toFloat(-rad+170.0d)), o, o, Refl:DIFF)
+  s[5] = makeSphere(rad, mv3f(50., toFloat rad, 81.6), o, mv3f(.75,.75,.75), Refl:DIFF)
+  s[6] = makeSphere(rad, mv3f(50.,toFloat(-rad+81.6d),81.6), o, mv3f(.75,.75,.75), Refl:DIFF)
+  s[7] = makeSphere(16.5d, mv3f(27.,16.5,47.), o, mv3f(1.,1.,1.)*0.999, Refl:SPEC)
+  s[8] = makeSphere(16.5d, mv3f(73.,16.5,78.), o, mv3f(1.,1.,1.)*0.999, Refl:REFR)
+  s[9] = makeSphere(600.0d, mv3f(50.,681.6-0.27,81.6), mv3f(12.,12.,12.), o, Refl:DIFF)
+
+  spheres = s
+end
+
+func double clampUnit(double x):
+  if (x >= 1.0d):
+    ret 1.0d
+  elseif (x <= 0.0d):
+    ret 0.0d
+  end
+  ret x
+end
+
+func int d2int(double d):
+  ret toInt(pow(clampUnit(d), 1.0d/2.2d) * 255.0d + 0.5d)
+end
+
+func bool intersect(Ray r, double* t, int* id):
+  inf := toDouble 100000000000000000000.0
+  t* = inf
+  for i 0 sphereCount:
+    d := Sphere:intersect (spheres+i) &r
+    if (d > 0.0d && d < t*):
+      t* = d
+      id* = i
+    end
+  end
+
+  ret (t* < inf)
+end
+
+func float v3f:maxComponent(v3f v):
+  if (v.x > v.y && v.x > v.z):
+    ret v.x
+  elseif (v.y > v.z):
+    ret v.y
+  end
+  ret v.z
+end
+
+type ushort int
+
+func double erand48(ushort* Xi):
+  // TODO, port to BSD erand48 function!
+  ret 0.0d
+end
+
+macro select type default boolExpr a b:
+  uniqueId tmp "select_tmp"
+  ret ${seq:
+    var #type #tmp #default
+    if #boolExpr:
+      #tmp = #a
+    else:
+      #tmp = #b
+    end
+    #tmp
+  end}
+end
+
+template float:select boolExpr a b:
+  select float 0.0 #boolExpr #a #b
+end
+
+template int:select boolExpr a b:
+  select int 0 #boolExpr #b #b
+end
+
+template v3f:select boolExpr a b:
+  select v3f mv3f(0.,0.,0.) #boolExpr #a #b
+end
+
+template double:select boolExpr a b:
+  select double 0.0d #boolExpr #a #b
+end
+
+func v3f radiance(Ray r, int initialDepth, ushort* Xi):
+  t := 0.0d
+  id := 0
+  depth := initialDepth
+
+  if !intersect(r, &t, &id):
+    ret mv3f(0.,0.,0.)
+  end
+
+  obj := spheres + id
+  x := r.o + r.d * toFloat t
+  n := v3f:normalized(x-obj.p)
+  var v3f nl
+  if (n *_dot r.d > 0.0):
+    nl = n
+  else:
+    nl = n * -1.0
+  end
+  f := obj.c
+  p := v3f:maxComponent f
+
+  if (++depth>5):
+    if (erand48(Xi) < toDouble p):
+      f = f * (1.0/p)
+    else:
+      return obj.e
+    end
+  end
+
+  if (obj.refl == Refl:DIFF):
+    r1 := 2.0d * toDouble math:pi * erand48(Xi)
+    r2 := erand48(Xi)
+    r2s := sqrt(r2)
+    w := nl
+    u := v3f:normalized (v3f:select (fabsf(w.x) > .1) mv3f(0.,1.,0.) mv3f(1.,0.,0.) *_cross w)
+    v := w *_cross u
+    d := v3f:normalized (u * cosf(toFloat r1) * toFloat r2s + v * sinf(toFloat r1) * toFloat r2s + w * sqrtf(1.0 - toFloat r2))
+    ret (obj.e + f * radiance(mray(x,d),depth,Xi))
+  elseif (obj.refl == Refl:SPEC):
+    ret (obj.e + f * (radiance(mray(x,r.d-n*2.0*(n *_dot r.d)),depth,Xi)))
+  end
+
+  reflRay := mray(x, r.d-n*2.0*(n *_dot r.d))
+  into := n *_dot nl > 0.0 // Ray from outside going in?
+  nc := 1.0d
+  nt := 1.5d
+  nnt := double:select into (nc/nt) (nt/nc)
+  ddn := toDouble(r.d *_dot nl)
+  cos2t := 1.0d - nnt * nnt * (1.0d - ddn * ddn)
+  if (cos2t < 0.0d):
+    ret (obj.e + f * radiance(reflRay,depth,Xi))
+  end
+  tdir := v3f:normalized(r.d * toFloat nnt - n * toFloat(double:select into 1.0d -1.0d * (ddn * nnt + sqrt(cos2t))))
+  a := nt - nc
+  b := nt + nc
+  R0 := a*a/(b*b)
+  c := 1.0d - (double:select into -ddn toDouble(tdir *_dot n))
+  Re := R0+(1.0d-R0)*c*c*c*c*c
+  Tr := 1.0d - Re
+  P := 0.25d+0.5d*Re
+  RP:=Re/P
+  TP:=Tr/(1.0d-P)
+
+  var v3f tmp
+  if (depth > 2):
+    tmp = v3f:select (erand48(Xi)<P) (radiance(reflRay,depth,Xi)*toFloat RP) (radiance(mray(x,tdir),depth,Xi)*toFloat TP)
+  else:
+    tmp = radiance(reflRay,depth,Xi) * toFloat Re + radiance(mray(x,tdir),depth,Xi) * toFloat Tr
+  end
+
+  ret (obj.e + f * tmp)
+end
+
+dfunc size_t fwrite(void* ptr, size_t size, size_t count, FILE* file)
+
+func void fwrite_cstring(FILE* file, cstring str):
+  fwrite(cast void* str, 1, strlen str, file)
+  ret void
+end
+
+func void fwrite_int(FILE* file, int num):
+  str := int2cstring(num)
+  fwrite_cstring(file, str)
+  dealloc str
+end
+
+func void fwrite_newline(FILE* file):
+  fwrite(cast void* "\n", 1, 1, file)
+  ret void
+end
+
+func void fwrite_v3f(FILE* file, v3f v):
+  fwrite_int(file, d2int toDouble(v.x))
+  fwrite_cstring(file, " ")
+  fwrite_int(file, d2int toDouble(v.y))
+  fwrite_cstring(file, " ")
+  fwrite_int(file, d2int toDouble(v.z))
+  fwrite_cstring(file, " ")
+end
+
+func int main():
+  init:spheres()
+
+  w := 1024
+  h := 768
+  samps := 1
+  // int w=1024, h=768, samps = argc==2 ? atoi(argv[1])/4 : 1; // # samples
+  cam := mray(mv3f 50. 52. 295.6, v3f:normalized(mv3f 0. -0.042612 -1.))
+  cx := mv3f(toFloat w * 0.5135 / toFloat h, 0., 0.)
+  cy := v3f:normalized(cx *_cross cam.d)
+  var v3f r
+  c := malloc v3f (w*h)
+
+  for y 0 h:
+    println "Rendering (" (samps*4) " spp) " (100.0 * toFloat y / toFloat(h-1)) "%"
+    var ushort[3] Xi_
+    Xi := zmp:array:addr &Xi_
+    Xi[0] = 0
+    Xi[1] = 0
+    Xi[2] = y*y*y
+    for x 0 w:
+      i := (h-y-1)*w+x
+      for sy 0 2:
+        for sx 0 2:
+          r = mv3f 0. 0. 0.
+          for s 0 samps:
+            r1 := 2.0d * erand48(Xi)
+            dx := double:select (r1<1.0d) (sqrt r1 - 1.0d) (1.0d - sqrt(2.0d-r1))
+            r2 := 2.0d * erand48(Xi)
+            dy := double:select (r2<1.0d) (sqrt r2 - 1.0d) (1.0d - sqrt(2.0d-r2))
+            d := cx * toFloat(((toDouble sx + 0.5d + dx)/2.0d + toDouble x)/toDouble w - 0.5d)
+            d += cy * toFloat(((toDouble sy + 0.5d + dy)/2.0d + toDouble y)/toDouble h - 0.5d)
+            r = r + radiance(mray(cam.o+d*140.0,v3f:normalized(d)),0,Xi)*(1.0/toFloat samps)
+          end
+        end
+      end
+    end
+  end
+  f := fopen("image.ppm", "w")
+  fwrite_cstring(f, "P3\n")
+  fwrite_int(f, w)
+  fwrite_cstring(f, " ")
+  fwrite_int(f, h)
+  fwrite_newline(f)
+  fwrite_int(f, 255)
+  fwrite_newline(f)
+
+  for iii 0 (w*h):
+    fwrite_v3f(f, *(c + iii))
+  end
+
+  ret 0
+end
+

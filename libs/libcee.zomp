@@ -553,6 +553,24 @@ func ast* ast:shiftLeft(ast* code):
   ret newcode
 end
 
+macro enum name cases:
+  code := ${}
+  ast:addChild code ${type #name int}
+
+  caseNum := 0
+  forEachAstChild enumCase cases:
+    if ast:matchesShape(enumCase, ${_}):
+      caseName := name.id ++ ":" ++ enumCase.id
+      ast:addChild code ${const int #caseName #caseNum}
+    else:
+      ret ${error "Only identifiers allowed for enum cases" #enumCase}
+    end
+    ++caseNum
+  end
+
+  ret code
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: control flow
 ///-----------------------------------------------------------------------------
@@ -897,9 +915,9 @@ func float neg_float(float x):
   ret float:neg(x)
 end
 
-// func double neg_double(double x):
-//   ret double:neg(x)
-// end
+func double neg_double(double x):
+  ret (0.0d - x)
+end
 
 func bool not_bool(bool x):
   ret bool:not(x)

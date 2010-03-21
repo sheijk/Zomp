@@ -90,3 +90,6 @@ tools
 /examples/*.o
 /examples/*.s
 /testsuite/location_reporting/*.tmp
+/examples/smallpt/smallpt-cpp
+/examples/smallpt/image.png
+/examples/smallpt/image.ppm
