@@ -1571,10 +1571,6 @@ var int visAnim -1
 var int visNodeAnim 0
 var int camNum 0
 
-// template applyF lval function:
-//   #lval = #function #lval
-// end
-
 func int main():
   init()
 
@@ -1664,7 +1660,21 @@ func int main():
   bar := TwNewBar "Settings"
   onReturn TwDeleteAllBars()
   TwDefine "Settings refresh=0.01 position='0 20' size='200 400'"
-  // TwAddSeparator bar (nullptr char) " "
+
+  specialCamCount := 2
+  camCount := sg.cameras.length + specialCamCount
+  cameraEnums := malloc TwEnumVal camCount
+  onReturn (dealloc cameraEnums)
+  cameraEnums[0].value = 0
+  cameraEnums[0].label = "Rotate around scene"
+  cameraEnums[1].value = 1
+  cameraEnums[1].label = "Keyboard navigation"
+  Array:foreach sg.cameras camIndex:
+    cameraEnums[camIndex+specialCamCount].value = camIndex + specialCamCount
+    cam2 := aptr sg.cameras camIndex
+    cameraEnums[camIndex+specialCamCount].label = cam2.camera.id
+  end
+  cameraEnumType := TwDefineEnum("Camera", cameraEnums, camCount)
 
   twgroup "group=options precision=2":
     rw TW_TYPE_FLOAT "playback speed" playbackSpeed
@@ -1673,6 +1683,7 @@ func int main():
     rw TW_TYPE_FLOAT "cam dy" cameraOffsetY
     rw TW_TYPE_FLOAT "cam dz" cameraOffsetZ
     rw TW_TYPE_INT32 "cam num" camNum
+    rw cameraEnumType "Camera" camNum
   end
 
   twgroup "group=debugging ":
@@ -1757,7 +1768,6 @@ func int main():
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    specialCamCount := 2
     camNum = camNum % (specialCamCount + sg.cameras.length)
     if (camNum == 0):
       gluLookAtf cameraOffsetX cameraOffsetY cameraOffsetZ 0. 0. 0. 0. 1. 0.
