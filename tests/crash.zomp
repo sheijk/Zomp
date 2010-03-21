@@ -1,0 +1,10 @@
+/**
+ * A program which will crash. Used to check that printing the callstack on crashes works
+ */
+
+func int main():
+  store (nullptr int) 10
+  ret 0
+end
+
+

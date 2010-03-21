@@ -34,6 +34,7 @@ extern "C" {
 }
 
 #include <signal.h>
+#include <execinfo.h>
 
 using std::printf;
 using namespace llvm;
@@ -589,12 +590,70 @@ extern "C" {
   }
 
   static void initPausingSignalHandler() {
-    if( signal(requestPauseSignal, requestPauseSignalHandler) == SIG_IGN ) {
+    if( signal(requestPauseSignal, requestPauseSignalHandler) == SIG_ERR ) {
       fprintf(stderr,
               "Failed to install signal handler. "
               "Requesting pause functionality will not be available");
       fflush(stderr);
     }
+  }
+
+  static const char* signalName(int signalNumber) {
+    switch(signalNumber) {
+    case SIGHUP:
+      return "SIGHUP";
+    case SIGINT:
+      return "SIGINT";
+    case SIGQUIT:
+      return "SIGQUIT";
+    case SIGILL:
+      return "SIGILL";
+    case SIGTRAP:
+      return "SIGTRAP";
+    case SIGABRT:
+      return "SIGABRT";
+    case SIGBUS:
+      return "SIGBUS";
+    case SIGSEGV:
+      return "SIGSEGV";
+    default:
+      return "Unknown signal";
+    }
+  }
+
+  static void onCrash(int signalNumber) {
+    static bool first = true;
+    if( first ) {
+      first = false;
+      fprintf(stderr, "Received signal %s. Callstack:\n", signalName(signalNumber));
+
+      const int max_stack_size = 128;
+      void* callstack[max_stack_size];
+      int frame_count = backtrace(callstack, max_stack_size);
+      backtrace_symbols_fd(callstack, frame_count, STDERR_FILENO);
+      fflush(stderr);
+
+      // do not receive signals like SIGBUS multiple times
+      signal(signalNumber, SIG_DFL);
+    }
+    else {
+      fprintf(stderr, "Received signal %s.\n", signalName(signalNumber));
+      fflush(stderr);
+    }
+  }
+
+  static void initCrashSignalHandler() {
+    int signals_to_handle[] = { SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGABRT, SIGBUS, SIGSEGV };
+    for( size_t sig_num = 0; sig_num < sizeof(signals_to_handle)/sizeof(int); ++sig_num ) {
+      int sig = signals_to_handle[sig_num];
+      if( signal(sig, onCrash) == SIG_ERR ) {
+        fprintf(stderr, "Failed to install signal handler for %s "
+                "No callstacks will be printed on crashes", signalName(sig));
+        fflush(stderr);
+      }
+    }
+    printf("Installed crash handlers\n");
+    fflush(stdout);
   }
 
   bool zompInit() {
@@ -620,6 +679,7 @@ extern "C" {
     ZMP_ASSERT( ZompCallbacks::areValid(), );
 
     initPausingSignalHandler();
+    initCrashSignalHandler();
 
     return true;
   }

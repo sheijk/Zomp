@@ -1,0 +1,12 @@
+/**
+ * A program which will abort(). Used to check that printing the callstack on abort() works
+ */
+
+func void abort()
+
+func int main():
+  abort()
+  ret 0
+end
+
+
