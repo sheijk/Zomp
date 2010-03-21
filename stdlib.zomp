@@ -62,6 +62,7 @@ std:base:func float fabsf(float l)
 std:base:func float fmodf(float num, float divisor)
 
 std:base:func float sqrtf(float x)
+std:base:func double sqrt(double x)
 
 ///-----------------------------------------------------------------------------
 /// Section: Utility functions

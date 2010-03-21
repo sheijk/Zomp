@@ -226,6 +226,10 @@ func void makeOrigin(RBTransform* this):
   this.scale = 1.0
 end
 
+func void RBTransform:init(RBTransform* this):
+  makeOrigin this
+end
+
 func void RBTransform:makeNormalized(RBTransform* this):
   v3f:makeNormalized &this.xaxis
   v3f:makeNormalized &this.yaxis
@@ -268,12 +272,13 @@ struct AABB:
 end
 
 func void AABB:init(AABB* this):
-  this.min.x = 0.0
-  this.min.y = 0.0
-  this.min.z = 0.0
-  this.max.x = 0.0
-  this.max.y = 0.0
-  this.max.z = 0.0
+  inf := powf(2.0, 128.0)
+  this.min.x = inf
+  this.min.y = inf
+  this.min.z = inf
+  this.max.x = -inf
+  this.max.y = -inf
+  this.max.z = -inf
 end
 
 func void AABB:print(AABB* this):

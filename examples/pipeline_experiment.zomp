@@ -307,15 +307,19 @@ func v3f quatf:rotate(quatf rot, v3f v):
   ret rv
 end
 
+/// axis is the normal (yes, that implies it needs to be normalized!) of the
+/// plane of rotation
+/// angleRad is the counter clockwise rotation angle (as seen when looking down
+/// on the plane of rotation from the direction the normal points to)
 func quatf quatf:fromAxisAngle(v3f axis, float angleRad):
   r := undef quatf
-  sinx := sinf (0.5 * angleRad)
-  cosy := cosf (0.5 * angleRad)
+  sinr := sinf (0.5 * angleRad)
+  cosr := cosf (0.5 * angleRad)
 
-  r.x = axis.x * sinx
-  r.y = axis.y * sinx
-  r.z = axis.z * sinx
-  r.w = cosy
+  r.x = axis.x * sinr
+  r.y = axis.y * sinr
+  r.z = axis.z * sinr
+  r.w = cosr
 
   ret r
 end
@@ -553,18 +557,27 @@ func GLint objectMaterial():
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
   varying vec3 normal;
+  varying vec3 lightDir;
+  uniform mat4 pj_ModelMatrix;
+  uniform mat4 pj_CameraMatrix;
   "
   vertexSource := "
+  vec3 unhomo(vec4 v) { return v.xyz / v.w; }
+
   void main(void) {
     gl_Position = ftransform();
-    normal = gl_Normal;
+    normal = gl_NormalMatrix * gl_Normal;
+    vec3 wsPos = unhomo(pj_ModelMatrix * gl_Vertex);
+    vec3 wsLightPos = vec3(100., 10., 0.);
+    lightDir = wsLightPos - wsPos;
     }"
   fragmentSource := "
   void main(void) {
-    // gl_FragColor = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
-    float br = dot(normalize(normal), vec3(0,0,1));
-    br += 0.5;
-    gl_FragColor = vec4(br, br, br, 1.0);
+    // gl_FragColor = vec4(normalize(lightDir) * 0.5 + 0.5, 1.0);
+    gl_FragColor = vec4(length(lightDir), length(lightDir), length(lightDir), 1.0);
+    // float br = dot(normalize(normal), normalize(lightDir));
+    // br += 0.1;
+    // gl_FragColor = vec4(br, br, br, 1.0);
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
@@ -871,17 +884,25 @@ func void RBTransform:setRotation(RBTransform* this, quatf rot):
   zz := rot.z * rot.z
   zw := rot.z * rot.w
 
-  var float[9] mat2
-  mat := zmp:array:addr &mat2
   this.xaxis.x = 1. - 2. * (yy + zz)
-  this.xaxis.y = 2. * (xy - zw)
-  this.xaxis.z = 2. * (xz + yw)
-  this.yaxis.x = 2. * (xy + zw)
+  this.yaxis.x = 2. * (xy - zw)
+  this.zaxis.x = 2. * (xz + yw)
+  this.xaxis.y = 2. * (xy + zw)
   this.yaxis.y = 1. - 2. * (xx + zz)
-  this.yaxis.z = 2. * (yz - xw)
-  this.zaxis.x = 2. * (xz - yw)
-  this.zaxis.y = 2. * (yz + xw)
+  this.zaxis.y = 2. * (yz - xw)
+  this.xaxis.z = 2. * (xz - yw)
+  this.yaxis.z = 2. * (yz + xw)
   this.zaxis.z = 1. - 2. * (xx + yy)
+
+  // this.xaxis.x = 1. - 2. * (yy + zz)
+  // this.xaxis.y = 2. * (xy - zw)
+  // this.xaxis.z = 2. * (xz + yw)
+  // this.yaxis.x = 2. * (xy + zw)
+  // this.yaxis.y = 1. - 2. * (xx + zz)
+  // this.yaxis.z = 2. * (yz - xw)
+  // this.zaxis.x = 2. * (xz - yw)
+  // this.zaxis.y = 2. * (yz + xw)
+  // this.zaxis.z = 1. - 2. * (xx + yy)
 end
 
 func void RBTransform:setPosRotScale(RBTransform* this, v3f pos, quatf rot, float scale):
@@ -1571,6 +1592,38 @@ var int visAnim -1
 var int visNodeAnim 0
 var int camNum 0
 
+var float farPlaneFactor 1.0
+var float nearPlaneFactor 1.0
+var float keyboardCamSpeedFactor 1.0
+
+func float deg2rad(float degree):
+  degree * math:pi * 2.0 / 360.0
+end
+
+func void renderRotationTest():
+  trans := local RBTransform
+  trans.origin = mv3f 1.5 3.5 0.5
+  rotQ := quatf:fromAxisAngle mv3f(0.,1.,0.) toFloat(0.5d * glfwGetTime())
+  // rotQ := quatf:fromAxisAngle mv3f(0.,1.,0.) 0.0
+  RBTransform:setRotation &trans rotQ
+  // trans.xaxis = quatf:rotate rotQ trans.xaxis
+  // trans.yaxis = quatf:rotate rotQ trans.yaxis
+  // trans.zaxis = quatf:rotate rotQ trans.zaxis
+
+  trans2 := local RBTransform
+  trans2.origin = mv3f 1. 0. 0.
+
+  global := RBTransform:concat &trans &trans2
+
+  saveTransforms:
+    applyTransformGL &global
+    glColor3f 1. 0. 0.
+    drawCoordSys 1.0
+  end
+end
+
+var RBTransform* keyboardCameraOrientation null
+
 func int main():
   init()
 
@@ -1592,10 +1645,12 @@ func int main():
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100208_camrot_03.dae"
       // "/Users/sheijk/Documents/ArtyFarty/Toying_around/ringed.dae"
       // "data/pixeljourney/mayatest.dae"
-      "data/pixeljourney/ringed.dae"
+      // "data/pixeljourney/pipetest/ringed.dae"
       // "data/pixeljourney/first_scene_mats.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100207_Pixeljums_cambaked_singlecube.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test6.dae"
+      // "data/pixeljourney/shared/obj/100321_D01_racetrack_01.obj"
+      "data/pixeljourney/camera_import/test_cam_rig_rue_modified.dae"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test7_rolling_cube.dae"
   // sceneFilename := "data/collada_test2.dae"
   // sceneFilename := "data/pjm2.obj"
@@ -1639,12 +1694,12 @@ func int main():
     scene = nullptr aiScene
   end
 
-  // objmat := objectMaterial()
   // objmat := loadGLSLShader "data/simple.vert" "data/simple.frag"
   // objmat := loadGLSLShader "data/incidence.vert" "data/incidence.frag"
   // objmat := loadGLSLShader "data/pixeljourney/shared/Shaders/Exported/constant_color_v.gl" "data/pixeljourney/shared/Shaders/Exported/constant_color_f.gl"
   // objmat := loadGLSLShader "data/pixeljourney/test_incidence_v.gl" "data/pixeljourney/test_incidence_f.gl"
   objmat := debugMaterial()
+  // objmat := objectMaterial()
   onReturn glDeleteProgram(objmat)
   objmat_color := glGetUniformLocation objmat "msl_constant_color_1_color"
   println "objmat_color = " objmat_color
@@ -1655,7 +1710,11 @@ func int main():
   println "objmat_falloff_amount = " objmat_falloff_amount
 
   cam := local Camera
-  cam.transform.origin = mv3f 1.5 0. 5.
+  if isNull(keyboardCameraOrientation):
+    cam.transform.origin = mv3f 1.5 0. 5.
+  else:
+    cam.transform = keyboardCameraOrientation*
+  end
 
   bar := TwNewBar "Settings"
   onReturn TwDeleteAllBars()
@@ -1682,8 +1741,11 @@ func int main():
     rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
     rw TW_TYPE_FLOAT "cam dy" cameraOffsetY
     rw TW_TYPE_FLOAT "cam dz" cameraOffsetZ
+    rw TW_TYPE_FLOAT "keyboard movement factor" keyboardCamSpeedFactor
     rw TW_TYPE_INT32 "cam num" camNum
     rw cameraEnumType "Camera" camNum
+    rw TW_TYPE_FLOAT "far planefactor" farPlaneFactor
+    rw TW_TYPE_FLOAT "near plane factor" nearPlaneFactor
   end
 
   twgroup "group=debugging ":
@@ -1749,7 +1811,7 @@ func int main():
       anim := aptr sg.animations visAnim
       visNodeAnim %= anim.channels.length
     end
-    Camera:move(&cam, frameDuration)
+    Camera:move(&cam, frameDuration * keyboardCamSpeedFactor)
 
     /// rendering
     autoSetupViewport()
@@ -1764,6 +1826,8 @@ func int main():
     farPlaneDist := camDistance * meshSize * 2.0 +
       float:max(sqrtf (20.*20.*2.), 0.5 * meshSize + v3f:length mv3f(cameraOffsetX, cameraOffsetY, cameraOffsetZ) * 10.0)
     nearPlaneDist := float:max(1.0, camDistance - meshSize)
+    farPlaneDist *= farPlaneFactor
+    nearPlaneDist *= nearPlaneFactor
     gluPerspective toDouble(cam.horizontalFOV) aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
 
     glMatrixMode GL_MODELVIEW
@@ -1837,6 +1901,8 @@ func int main():
 
     drawOrientationGrid2 0.2 1.0
 
+    renderRotationTest()
+
     if showCameraPositions:
       SceneGraph:visualizeCameras &sg
     end
@@ -1873,6 +1939,9 @@ func int main():
 
   println()
   println (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
+
+  keyboardCameraOrientation = new RBTransform
+  keyboardCameraOrientation* = cam.transform
 
   return 0
 end
