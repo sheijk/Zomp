@@ -1,0 +1,12 @@
+/**
+ * The obligatory "Hello, World" example program
+ */
+
+requireLibs libcee
+
+func int main():
+  println "Hello, Zomp"
+  ret 0
+end
+
+

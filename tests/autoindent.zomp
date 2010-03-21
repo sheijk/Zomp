@@ -1,0 +1,64 @@
+/**
+ * Test file to check if zomp.el can correctly guess how to indent a line
+ */
+
+first non comment line on column 0
+next line as well
+
+block begin:
+  indent this 2 more
+  this on same level
+end
+
+back to normal after "end"
+
+nested level 1:
+  nested level 2:
+    lines ending with operators :=
+        are probably continued lines - indent them twice
+
+    next line should be back to normal
+
+    this can be done =
+        multiple times +
+        for very long expressions +
+        which go on an on
+
+    next line should be back to normal
+
+    function calls(
+        can be split,
+        over mutliple lines,
+        and be indented correctly too)
+    next line should be back to normal
+  end
+end
+
+nested level 1 with comments:
+  nested level 2:
+    lines ending with operators := // comments at the end are fine
+        are probably continued lines - indent them twice
+
+    next line should be back to normal
+
+    this can be done =
+        multiple times +
+        for very long expressions + // lalala
+        which go on an on
+
+    next line should be back to normal
+
+    function calls(
+        can be split,
+        // over mutliple lines,
+        and be indented correctly too)
+    next line should be back to normal
+  end
+end
+
+
+func int main():
+  ret 0
+end
+
+
