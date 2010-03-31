@@ -1,0 +1,66 @@
+/**
+ * a for loop which supports an else clause
+ */
+
+requireLibs libcee
+
+func void test():
+  code := ${{a b c}}
+  print code
+  if ast:matchesShape(code, ${__}):
+    println "ok"
+  else:
+    println "meh"
+  end
+end
+
+macro xfor varName initExpr supremum args...:
+  uniqueId supremumValue "xfor"
+
+  println()
+
+  elseBody := ${}
+  if (args.childCount == 3 && ast:matchesShape(ast:child args 1, ${onEmpty})):
+    elseBody = ast:child args 2
+  elseif (args.childCount != 1):
+    ret ${error "Expected 'fxfor name init supremum expr [onEmpty expr]'"}
+  end
+
+  loopBody := ast:child args 0
+
+  code := ${seq:
+    #varName := #initExpr
+    #supremumValue := #supremum
+    if (#supremumValue > #varName):
+      while (#varName < #supremumValue):
+        #loopBody
+        ++#varName
+      end
+    else:
+      #elseBody
+    end
+  end}
+
+  ret code
+end
+
+func int main():
+  sum := 0
+  xfor x 0 5:
+    sum += x
+  end
+
+  elseWorks := false
+  xfor x2 0 0:
+    elseWorks = false
+  onEmpty:
+    elseWorks = true
+  end
+
+  assert (sum == 10)
+  assert elseWorks
+
+  ret 0
+end
+
+
