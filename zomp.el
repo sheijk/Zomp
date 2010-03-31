@@ -558,15 +558,15 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(meta p)] 'zomp-prev-tl-expr)
   (local-set-key [(meta k)] 'zomp-mark-sexp)
 
-  ;; expand templates
-  ;; (local-set-key [(control ?.)] 'snippetio-complete)
-
   ;; extra comfort (insert ///, * in matching places, * / => */ etc.)
   (local-set-key "\r" 'zomp-newline)
   (local-set-key [(control j)] 'zomp-newline)
   (local-set-key [(?/)] 'zomp-electric-slash)
   (local-set-key (kbd "DEL") 'zomp-electric-backspace)
 
+  (local-set-key [(?:)] '(lambda () (interactive)
+                           (zomp-indent-line)
+                           (insert ":")))
 
   (local-set-key [(control c)(control k)] '(lambda () (interactive)
                                              (zomp-tl-do "!")))
