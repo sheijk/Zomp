@@ -213,6 +213,26 @@ struct
       "line1; line2", `Return [se2 "op;" "line1" "line2"];
       "line1;line2", `Return [se2 "op;" "line1" "line2"];
       "line1 ; line2", `Return [se2 "op;" "line1" "line2"];
+      "line1 arg0 arg1; line2", `Return [
+        expr "op;" [
+          jux ["line1"; "arg0"; "arg1"];
+          id "line2"]];
+      "line1 + arg; line2", `Return [
+        expr "op;" [
+          se2  "op+" "line1" "arg";
+          id "line2"]];
+      "line1 + arg; line2 == 10", `Return [
+        expr "op;" [
+          se2 "op+" "line1" "arg";
+          se2 "op==" "line2" "10"]];
+      "sum = sum + 1; sum", `Return [
+        expr "op;" [
+          expr "op=" [id "sum"; se2 "op+" "sum" "1"];
+          id "sum"]];
+      "line1; line2 ; line3", `Return [
+        expr "op;" [
+          se2 "op;" "line1" "line2";
+          id "line3"]];
       "macro op; l r", `Return [jux ["macro"; "op;"; "l"; "r"]];
 
       (** indexed operators *)

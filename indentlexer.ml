@@ -216,6 +216,8 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | OPEN_BRACKET -> "[", noind
             | OPEN_BRACKET_POSTFIX -> "post[", noind
             | CLOSE_BRACKET -> "]", noind
+            | SEMICOLON str -> "SEMICOLON" ^
+                (if String.length str > 0 then "(" ^ str ^ ")" else ""), noind
         in
         indentString lineIndent ^ str, (indent, doindent)
 
@@ -265,13 +267,13 @@ end = struct
 
   type rule = (charre * Str.regexp)
 
-  let opSymbols = "-+\\*/&.><=!|:;,%^"
+  let opSymbols = "-+\\*/&.><=!|:;,%^{}"
 
   let rec charreMatch cre token =
     let isOperator = function
       | ADD_OP _ | MULT_OP _ | ASSIGN_OP _ | COMPARE_OP _ | LAZY_BOOL_OP _ | STRICT_BOOL_OP _ | MOD_OP _
       | PREFIX_OP _ | POSTFIX_OP _ | QUOTE _
-      | COMMA
+      | COMMA | SEMICOLON _
           -> true
       | IDENTIFIER _ | END | BEGIN_BLOCK | END_BLOCK _
       | OPEN_PAREN | CLOSE_PAREN | OPEN_ARGLIST | OPEN_CURLY | CLOSE_CURLY
@@ -335,7 +337,7 @@ end = struct
       ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
     in
     let identifierRule =
-      re identifierRE, (fun str -> `Token (IDENTIFIER str));
+      re identifierRE, (fun str -> `Token (IDENTIFIER str))
     in
     let opRule symbol (tokenF :string -> token) =
       (Not (Or (Whitespace, Or (Operator, OpenParen))),
@@ -499,7 +501,7 @@ end = struct
       quoteRule "#";
       stringRule;
       charRule;
-      contextInsensitiveOp ";" (fun s -> LAZY_BOOL_OP s);
+      contextInsensitiveOp ";" (fun s -> SEMICOLON s);
     ]
     @ opRules "+" (fun s -> ADD_OP s)
     @ opRules "+." (fun s -> ADD_OP s)

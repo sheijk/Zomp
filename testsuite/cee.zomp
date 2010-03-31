@@ -188,6 +188,12 @@ unittest:testCase ArrayPtrDot:
   dealloc points
 end
 
+unittest:testCase Semicolon:
+  sum := 0
+  sum = sum + 999; sum = 0; sum = sum + 1; sum = sum + 2
+  unittest:assert (sump == 3)
+end
+
 unittest:testCase For:
   sum := 0
 

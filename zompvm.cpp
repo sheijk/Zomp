@@ -679,7 +679,7 @@ extern "C" {
     ZMP_ASSERT( ZompCallbacks::areValid(), );
 
     initPausingSignalHandler();
-    initCrashSignalHandler();
+    // initCrashSignalHandler();
 
     return true;
   }
@@ -1013,7 +1013,9 @@ extern "C" {
       || (c == '^')
       || (c == '|')
       || (c == '[')
-      || (c == ']');
+      || (c == ']')
+      || (c == '{')
+      || (c == '}');
   }
 
   void checkId(const char* id, const char* func) {

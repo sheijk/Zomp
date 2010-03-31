@@ -196,7 +196,7 @@ struct
       "[1 2]", `Return [OPEN_BRACKET; id "1"; id "2"; CLOSE_BRACKET; END];
       "{x y}", `Return [OPEN_CURLY; id "x"; id "y"; CLOSE_CURLY; END];
 
-      (let semi = LAZY_BOOL_OP ";" in
+      (let semi = SEMICOLON ";" in
       "a;b;c",  `Return [id "a"; semi; id "b"; semi; id "c"; END]);
 
       "l +. r", `Return [id "l"; ADD_OP "+."; id "r"; END];
@@ -321,6 +321,8 @@ struct
       isValidId "op++";
       isValidId "op*";
       isValidId "op==_str";
+      isValidId "op{}";
+      isValidId "op;";
       (* TODO: alle operatoren testen *)
 
       "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];

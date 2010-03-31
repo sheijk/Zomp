@@ -641,6 +641,24 @@ macro switch intvalue default cases...:
   ret code
 end
 
+/// put multiple statements into a single line like
+///   print "foo"; println()
+template op; a b:
+  #a
+  #b
+end
+
+// /// Use {} for blocks inside a single line
+// /// not yet in libcee, as it can be replaced with () anyways so it might be better
+// /// to safe this for other things
+// macro op{} statements...:
+//   code := ${seq}
+//   forEachAstChild stmnt statements:
+//     ast:addChild code stmnt
+//   end
+//   ret code
+// end
+
 ///-----------------------------------------------------------------------------
 /// Section: Overloaded operators
 ///-----------------------------------------------------------------------------

@@ -119,8 +119,9 @@
 %token <string> POSTFIX_OP
 %token <string> QUOTE
 %token <string> KEYWORD_ARG
-(* %token EXTENDED_INDENT *)
+%token <string> SEMICOLON
 
+%left SEMICOLON
 %nonassoc ASSIGN_OP
 %left LAZY_BOOL_OP
 %nonassoc COMPARE_OP
@@ -270,5 +271,6 @@ opExpr:
 | o = COMPARE_OP
 | o = LAZY_BOOL_OP
 | o = STRICT_BOOL_OP
+| o = SEMICOLON
 { o }
 
