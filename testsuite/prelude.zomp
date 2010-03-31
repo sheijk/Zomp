@@ -3,6 +3,8 @@
 !syntax indent
  */
 
+requireLibs unittest
+
 var int MAX_INT 2147483647
 var int MIN_INT -2147483648
 

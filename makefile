@@ -2,7 +2,8 @@
 # Makefile for zomp project
 #
 
-# Config #
+################################################################################
+# Config
 ################################################################################
 
 ifndef DEBUG
@@ -13,10 +14,16 @@ ifndef PWD
 PWD=`pwd`
 endif
 
-ZOMP_TOOL_PATH=$(PWD)/tools
+ZOMP_TOOL_PATH = $(PWD)/tools
 include config.mk
 
-PATH:=$(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
+FLYMAKE_LOG=flymake.log
+include flymake.mk
+
+include depends.mk
+include testsuite/makefile
+
+PATH := $(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
 help:
 	@$(ECHO) "PATH = "
@@ -30,17 +37,9 @@ help:
 	@$(ECHO) "BUILD_PLATFORM = $(BUILD_PLATFORM)"
 	@$(ECHO) "LLVM_EXTRA_OPTIONS = " $(LLVM_EXTRA_OPTIONS)
 
-FLYMAKE_LOG=flymake.log
-
 CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS = -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS = $(ARCHFLAG)
-
-# ifeq ($(DEBUG),1)
-# $(echo "Debug build")
-# else
-# $(echo "Release build")
-# endif
 
 ifeq ($(DEBUG), 1)
 OCAMLC += -g
@@ -50,99 +49,31 @@ else
 CXXFLAGS += -O5
 endif
 
-CAML_LIBS = str.cma bigarray.cma
-LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
-lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo dllzompvm.so \
-machine.cmo zompvm.cmo indentlexer.cmo newparser.cmo parseutils.cmo expander.cmo \
-testing.cmo compileutils.cmo
-
-SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
-bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo common.cmo \
-machine.cmo dllzompvm.so zompvm.cmo newparser.cmo indentlexer.cmo \
-parseutils.cmo expander.cmo testing.cmo compileutils.cmo testing.cmo \
-sexprtoplevel.cmo
-
-LLVM_LIBS=`$(LLVM_CONFIG) --libs all | $(SED) 's![^ ]*/Release/lib/LLVMCBase.o!!'`
-LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
-LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx      \
-typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib -lstdc++  \
-$(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx indentlexer.cmx newparser.cmx         \
-parseutils.cmx expander.cmx testing.cmx compileutils.cmx
-
-# Combined targets
+################################################################################
+# Combined/main targets
 ################################################################################
 
-all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest zompvm_dummy.o
-libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp libglut.dylib quicktext.zomp libquicktext.dylib
+all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest \
+    zompvm_dummy.o
+libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp \
+    libglut.dylib quicktext.zomp libquicktext.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
-# LLVM download and compilation
-################################################################################
+CAML_LIBS = str.cma bigarray.cma
+LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
+    lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo     \
+    dllzompvm.so machine.cmo zompvm.cmo indentlexer.cmo newparser.cmo    \
+    parseutils.cmo expander.cmo testing.cmo compileutils.cmo
 
-LLVM_VERSION=2.5
-
-tools/llvm-$(LLVM_VERSION).tar.gz:
-	@$(ECHO) Downloading $@ ...
-	mkdir -p tools
-	curl http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tar.gz -o $@ -s -S
-
-tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
-	@$(ECHO) Unpacking $@ ...
-	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
-	touch $@ # tar sets date from archive. avoid downloading the archive twice
-	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
-
-tools/llvm: tools/llvm-$(LLVM_VERSION)
-	@$(ECHO) Building LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
-	@$(ECHO) Linking $@ to tools/llvm-$(LLVM_VERSION)
-	ln -s llvm-$(LLVM_VERSION) $@
-
-tools/llvm-$(LLVM_VERSION)/TAGS:
-	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
-	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
-
-tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
+SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
+    bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo  \
+    common.cmo machine.cmo dllzompvm.so zompvm.cmo newparser.cmo    \
+    indentlexer.cmo parseutils.cmo expander.cmo testing.cmo         \
+    compileutils.cmo testing.cmo sexprtoplevel.cmo
 
 ################################################################################
-# External libraries
-
-libglut.dylib:
-	@$(ECHO) Building $@ ...
-	$(CC) $(DLL_FLAG) $(LDFLAGS) $(LINK_GLUT) -o $@
-
-libquicktext.dylib: glQuickText.o
-	@$(ECHO) Building $@ ...
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ glQuickText.o $(LINK_GL)
-
-EXTLIB_DIR = extlibs
-# ASSIMP_DIR = $(EXTLIB_DIR)/assimp--1.0.412-sdk
-ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
-
-SCONS = $(PWD)/extlibs/scons/scons.py
-ifeq ($(DEBUG), 1)
-SCONSFLAGS += "debug=1"
-endif
-
-extlib_assimp:
-	@echo Building assimp library ...
-	cd $(ASSIMP_DIR)/workspaces/SCons; $(SCONS) $(SCONSFLAGS)
-
-libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
-	- rm -f $@ # prefix '-' means this rule is allowed to fail
-	ln -s $< $@
-
-assimp.dylib: libassimp.a makefile forcelinkassimp.c
-	@echo Building $@ ...
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
-
-# opengl.dylib: opengl.c
-# 	@$(ECHO) Building $@ ...
-# 	$(CC) -c opengl.c -o opengl.o
-# 	$(CC) -dynamiclib -framework OpenGL opengl.o -o $@
-
+# Zomp tools
 ################################################################################
 
 dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o stdlib.ll
@@ -181,10 +112,14 @@ machine.c machine.ml: gencode machine.skel
 
 NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo
 
-# Tests #
+################################################################################
+# Tests
 ################################################################################
 
 TEST_CMOS = indentlexer_tests.cmo newparser_tests.cmo
+
+.PHONY: runtestsuite perftest2 perftest runtestsuite runtests \
+   profile_comp exampletests runmltests mltest alltests
 
 alltests: runmltests runtestsuite exampletests
 
@@ -230,10 +165,6 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-# perftest_quick: zompc.native zompc
-# 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="10 1000 2000 4000"
-# 	gnuplot makeperfgraph.gnuplot || $(ECHO) "Could not execute gnuplot"
-
 stdlib.bc stdlib.ll: stdlib.c
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(LLVM_CC) --emit-llvm -c $< -o stdlib.bc
@@ -242,18 +173,9 @@ stdlib.bc stdlib.ll: stdlib.c
 	$(RM) -f stdlib.bc stdlib.orig.ll
 	$(LLVM_AS) < stdlib.ll > stdlib.bc
 
-# generate a file for graphviz which visualizes the dependencies
-# between modules
-deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
-	@$(ECHO) Generating dependency graph for graphviz ...
-	ocamldot depends.mk > deps.dot || $(ECHO) "ocamldot not found, no graphviz deps graph generated"
-	dot -Tpng deps.dot > deps.png || $(ECHO) "dot not found, deps.png not generated"
-
-# Rules #
 ################################################################################
-
-.PHONY: clean clean_all runtestsuite perftest2 perftest runtestsuite runtests \
-   profile_comp exampletests runmltests mltest alltests
+# Rules
+################################################################################
 
 %.ml: %.mly
 	@$(ECHO) Generating parser $< ...
@@ -263,10 +185,6 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 %.ml: %.mll
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
-
-# %.cmi: %.ml
-# 	@$(ECHO) Compiling $< triggered by $@ ...
-# 	$(OCAMLC) $(CAML_FLAGS)  -c $<
 
 %.cmi: %.mli
 	@$(ECHO) "Compiling $@ ..."
@@ -280,12 +198,44 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	@$(ECHO) "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
+%.o: %.c
+	$(CC) $(CCFLAGS) -c -o $@ $<
+
+################################################################################
+# External libraries
+################################################################################
+
+libglut.dylib:
+	@$(ECHO) Building $@ ...
+	$(CC) $(DLL_FLAG) $(LDFLAGS) $(LINK_GLUT) -o $@
+
+libquicktext.dylib: glQuickText.o
+	@$(ECHO) Building $@ ...
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ glQuickText.o $(LINK_GL)
+
+EXTLIB_DIR = extlibs
+ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
+
+SCONS = $(PWD)/extlibs/scons/scons.py
+ifeq ($(DEBUG), 1)
+SCONSFLAGS += "debug=1"
+endif
+
+extlib_assimp:
+	@echo Building assimp library ...
+	cd $(ASSIMP_DIR)/workspaces/SCons; $(SCONS) $(SCONSFLAGS)
+
+libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
+	- rm -f $@ # prefix '-' means this rule is allowed to fail
+	ln -s $< $@
+
+assimp.dylib: libassimp.a makefile forcelinkassimp.c
+	@echo Building $@ ...
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
+
 %.zomp: %.skel gencode
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
 	./gencode -lang zomp $(<:.skel=)
-
-%.o: %.c
-	$(CC) $(CCFLAGS) -c -o $@ $<
 
 opengl20print.zomp: opengl20.skel gencode
 	@$(ECHO) Generating OpenGL enum printer ...
@@ -293,17 +243,58 @@ opengl20print.zomp: opengl20.skel gencode
 	./gencode -lang zomp-glprinter opengl20print
 	$(RM) -f opengl20print.skel
 
-CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml \
-indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml         \
-newparser_tests.ml parseutils.ml compileutils.ml semantic.ml sexprtoplevel.ml  \
-testing.ml typesystems.ml zompc.ml zompvm.ml
+################################################################################
+# LLVM download and compilation
+################################################################################
 
-# Dependencies #
+LLVM_VERSION=2.5
+
+tools/llvm-$(LLVM_VERSION).tar.gz:
+	@$(ECHO) Downloading $@ ...
+	mkdir -p tools
+	curl http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tar.gz -o $@ -s -S
+
+tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
+	@$(ECHO) Unpacking $@ ...
+	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
+	touch $@ # tar sets date from archive. avoid downloading the archive twice
+	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
+
+tools/llvm: tools/llvm-$(LLVM_VERSION)
+	@$(ECHO) Building LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
+	@$(ECHO) Linking $@ to tools/llvm-$(LLVM_VERSION)
+	ln -s llvm-$(LLVM_VERSION) $@
+
+tools/llvm-$(LLVM_VERSION)/TAGS:
+	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
+	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
+
+tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
+
+LLVM_LIBS=`$(LLVM_CONFIG) --libs all | $(SED) 's![^ ]*/Release/lib/LLVMCBase.o!!'`
+LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
+LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx  \
+    typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib   \
+    -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx indentlexer.cmx      \
+    newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
+
+################################################################################
+# Dependencies
+#
+# Try to detect dependencies automatically. Does not work for everything, yet,
+# add additional ones here. Use something like make -j 20 for a quick test
 ################################################################################
 
 depends.mk: $(CAMLDEP_INPUT)
 	@$(ECHO) Calculating dependencies ...
 	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
+
+CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml \
+    indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml     \
+    newparser_tests.ml parseutils.ml compileutils.ml semantic.ml               \
+    sexprtoplevel.ml testing.ml typesystems.ml zompc.ml zompvm.ml
 
 glfw.zomp: gencode
 opengl20.zomp: gencode
@@ -321,26 +312,29 @@ machine.cmx: machine.skel dllzompvm.so
 zompvm.cmo: machine.cmo
 zompvm.cmx: machine.cmx
 
-# genllvm.cmo: genllvm.cmi
-# genllvm.cmx: genllvm.cmi
-
 lang.cmi: common.cmo
 bindings.cmi: common.cmo lang.cmo
 
-# Generate tags if otags exists #
 ################################################################################
-
+# Additional utility targets
+################################################################################
 tags:
 	@$(ECHO) Generating tags ...
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
-# Cleaning #
+# generate a file for graphviz which visualizes the dependencies between modules
+deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
+	@$(ECHO) Generating dependency graph for graphviz ...
+	ocamldot depends.mk > deps.dot || $(ECHO) "ocamldot not found, no graphviz deps graph generated"
+	dot -Tpng deps.dot > deps.png || $(ECHO) "dot not found, deps.png not generated"
+
+################################################################################
+# Cleaning
 ################################################################################
 
-cleanml:
-	$(RM) -f *.cmo *.cmi
+.PHONY: clean clean_tags clean_all
 
-clean:
+clean: testsuite/clean
 	@$(ECHO) Cleaning...
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
@@ -370,7 +364,6 @@ clean:
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
 	cd examples/ && make clean
-	cd testsuite/ && make clean
 
 clean_tags:
 	$(RM) -f *.annot
@@ -379,7 +372,4 @@ clean_tags:
 	$(RM) -f $(FLYMAKE_LOG)
 
 clean_all: clean clean_tags
-
-include flymake.mk
-include depends.mk
 

@@ -3,6 +3,7 @@
  * Zomp
  */
 
+requireLibs unittest
 
 macro printNameUsage name:
   var cstring messageFound (cstring:quote (cstring:concat (getField name id) " is bound!\n"))

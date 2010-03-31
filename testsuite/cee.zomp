@@ -164,6 +164,7 @@ unittest:testCase ArrayPtrDot:
   for i 0 size:
     store (points + i) malloc(Point)
 
+    // TODO
     // (points + i)**.x = i * i
     // (*(points + i))*.y = 10 * i
     setField load(ptradd points i) x (i * i)
@@ -191,7 +192,7 @@ end
 unittest:testCase Semicolon:
   sum := 0
   sum = sum + 999; sum = 0; sum = sum + 1; sum = sum + 2
-  unittest:assert (sump == 3)
+  unittest:assert (sum == 3)
 end
 
 unittest:testCase For:

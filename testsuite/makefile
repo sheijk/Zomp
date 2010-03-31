@@ -2,76 +2,75 @@
 # Makefile to run the test suite
 #
 
-ZOMP_TOOL_PATH=$(PWD)/../tools
-include ../config.mk
-
 ################################################################################
 # Targets
 ################################################################################
 
-TEST_CASES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp   \
+TESTSUITE_CASES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp   \
 simple-func.zomp variables.zomp astmatch.zomp cee.zomp                  \
 bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp  \
 float.zomp std_bindings.zomp indent.comments.zomp require.zomp          \
 arrays.zomp testframework.zomp math.zomp stackoverflow.zomp
 
-all: $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.test))
+testsuite/all: $(foreach FILE, $(TESTSUITE_CASES), testsuite/$(FILE:.zomp=.test))
 
-# experimental, results are incorrect because failed executions and compilations
-# still produce files
-report: report_start $(foreach FILE, $(TEST_CASES), $(FILE:.zomp=.print_report))
-report_start:
-	@echo "zomp test suite results (warning, report is incorrect!):"
-%.print_report:
-	@./print_test_results.sh $(@:.print_report=)
+# # experimental, results are incorrect because failed executions and compilations
+# # still produce files
+# testsuite/report: testsuite/report_start $(foreach FILE, $(TESTSUITE_CASES), testsuite/$(FILE:.zomp=.print_report))
+# testsuite/report_start:
+# 	@echo "zomp test suite results (warning, report is incorrect!):"
+# %.print_report:
+# 	@./testsuite/print_test_results.sh $(@:.print_report=)
 
-fail: fail.test crash.test
+testsuite/fail: fail.test crash.test
 
-clean:
-	rm -f *.bc *.o.bc *.ll *.test gmon.out
+.PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/all
 
-clear-results:
-	rm -f *.test
+testsuite/clean:
+	cd testsuite && rm -f *.bc *.o.bc *.ll *.test gmon.out
 
-redo: clear-results all
+testsuite/clear-results:
+	cd testsuite && rm -f *.test
+
+testsuite/redo: clear-results all
 
 ################################################################################
 # Additional dependencies
 ################################################################################
 
-cee.ll: ../libs/libcee.zomp ../libs/unittest.zomp
-astmatch.ll: ../libs/libcee.zomp
+testsuite/cee.ll: libs/libcee.zomp libs/unittest.zomp
+testsuite/astmatch.ll: libs/libcee.zomp
 
 ################################################################################
 # Rules
 ################################################################################
 
 .PRECIOUS: .ll
-.PHONY: preludevalid
+.PHONY: testsuite/preludevalid testsuite/all
 
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
 # tests to avoid having all tests run and fail because the prelude/compiler is
 # completely broken
-preludevalid: ../zompc.native ../zomp-check-syntax.sh ../stdlib.zomp ../stdlib.c
+testsuite/preludevalid: $(ZOMPC) stdlib.zomp stdlib.c
 	@$(ECHO) Checking whether prelude compiles ...
 	@rm -f $@.zomp $@.ll $@.o.bc $@.bc $@
-	@echo "std:base:func int main():\n  ret 0\nend\n" > preludevalid.zomp
-	@../zomp-check-syntax.sh preludevalid.zomp
-	@$(LLVM_AS) -f preludevalid.ll -o preludevalid.o.bc
-	@$(LLVM_LINK) -f ../stdlib.bc preludevalid.o.bc -o preludevalid.bc
-	@$(LLVM_LLI) preludevalid.bc
-	@touch preludevalid
+	@echo "std:base:func int main():\n  ret 0\nend\n" > testsuite/preludevalid.zomp
+	@$(ZOMPC) -c testsuite/preludevalid.zomp
+	@$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
+	@$(LLVM_LINK) -f stdlib.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
+	@$(LLVM_LLI) testsuite/preludevalid.bc
+	@touch $@
 
-%.ll: %.zomp ../zompc.native ../stdlib.zomp preludevalid
+testsuite/%.ll: testsuite/%.zomp zompc.native stdlib.zomp testsuite/preludevalid $(ZOMPC)
 	@$(ECHO) Compiling $(<) to .ll ...
-	@../zomp-check-syntax.sh $<
+	@$(ZOMPC) -c $<
 
-%.bc: %.ll ../stdlib.zomp ../stdlib.c
+testsuite/%.bc: testsuite/%.ll stdlib.zomp stdlib.c
 	@echo Compiling $< to $@
 	@$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	@$(LLVM_LINK) -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
+	@$(LLVM_LINK) -f stdlib.bc $(<:.ll=.o.bc) -o $@
 
-%.test: %.bc
+testsuite/%.test: testsuite/%.bc
 	@$(ECHO) Running test $(<:.bc=) ...
 	@$(LLVM_LLI) $<
 	@touch $@

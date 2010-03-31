@@ -2,6 +2,8 @@
  * Demonstrates very basic usage of variables
  */
 
+requireLibs unittest
+
 func void testBasics():
   var int i 10
   unittest:assert (i == 10)

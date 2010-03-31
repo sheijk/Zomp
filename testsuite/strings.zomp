@@ -3,6 +3,8 @@
 !syntax indent
  */
 
+requireLibs unittest
+
 template op==_chr l r:
   char:equal #l #r
 end

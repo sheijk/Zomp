@@ -4,6 +4,8 @@
 !verify off
  */
 
+requireLibs unittest
+
 func int main():
   unittest:assert true
   unittest:assertAll:

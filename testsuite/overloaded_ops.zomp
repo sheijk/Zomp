@@ -2,65 +2,68 @@
  * Testing overloaded operators
  */
 
-func int op+_u32_u32(int l, int r):
-  l + r
-end
+// TODO port unittest to a version not using libcee, then uncomment stuff below..
+requireLibs unittest
 
-func int op-_u32_u32(int l, int r):
-  l - r
-end
-
-func int op*_u32_u32(int l, int r):
-  l * r
-end
-
-func int op/_u32_u32(int l, int r):
-  l / r
-end
-
-func bool op>_u32_u32(int l, int r):
-  l > r
-end
-
-func bool op>=_u32_u32(int l, int r):
-  l >= r
-end
-
-func bool op<_u32_u32(int l, int r):
-  l < r
-end
-
-func bool op<=_u32_u32(int l, int r):
-  l <= r
-end
-
-func bool op==_u32_u32(int l, int r):
-  l == r
-end
-
-func bool op!=_u32_u32(int l, int r):
-  l != r
-end
-
-func float op+_float_float(float l, float r):
-  l +_f r
-end
-
-func bool op==_float_float(float l, float r):
-  l ==_f r
-end
-
-template op+ l r:
-  zmp:cee:add #l #r
-end
-
-template op- l r:
-  zmp:cee:sub #l #r
-end
-
-template op== l r:
-  zmp:cee:equal #l #r
-end
+// func int op+_u32_u32(int l, int r):
+//   l + r
+// end
+// 
+// func int op-_u32_u32(int l, int r):
+//   l - r
+// end
+// 
+// func int op*_u32_u32(int l, int r):
+//   l * r
+// end
+// 
+// func int op/_u32_u32(int l, int r):
+//   l / r
+// end
+// 
+// func bool op>_u32_u32(int l, int r):
+//   l > r
+// end
+// 
+// func bool op>=_u32_u32(int l, int r):
+//   l >= r
+// end
+// 
+// func bool op<_u32_u32(int l, int r):
+//   l < r
+// end
+// 
+// func bool op<=_u32_u32(int l, int r):
+//   l <= r
+// end
+// 
+// func bool op==_u32_u32(int l, int r):
+//   l == r
+// end
+// 
+// func bool op!=_u32_u32(int l, int r):
+//   l != r
+// end
+// 
+// func float op+_float_float(float l, float r):
+//   float:add l r
+// end
+// 
+// func bool op==_float_float(float l, float r):
+//   float:notEqual l r
+// end
+// 
+// template op+ l r:
+//   zmp:cee:add #l #r
+// end
+// 
+// template op- l r:
+//   zmp:cee:sub #l #r
+// end
+// 
+// template op== l r:
+//   zmp:cee:equal #l #r
+// end
 
 func void testOps():
   // var bool fail1 (zmp:cee:add 10 2.0)
@@ -92,43 +95,43 @@ func void testOps():
   end
 end
 
-func void print_u32(int i):
-  printInt i
-end
-
-func void print_float(float f):
-  printFloat f
-end
-
-func void print_char(char c):
-  printChar c
-end
-
-func void print_bool(bool b):
-  printBool b
-end
-
-func void print_double(double d):
-  printDouble d
-end
-
-func void "print_char*"(char* string):
-  printString string
-end
-
-func void "print_ast*"(ast* code):
-  ast:print code 0
-end
-
-macro print args...:
-  var astp code ${}
-
-  forEachAstChild arg args:
-    ast:addChild code ${zmp:cee:print #arg}
-  end
-
-  ret code
-end
+// func void print_u32(int i):
+//   printInt i
+// end
+// 
+// func void print_float(float f):
+//   printFloat f
+// end
+// 
+// func void print_char(char c):
+//   printChar c
+// end
+// 
+// func void print_bool(bool b):
+//   printBool b
+// end
+// 
+// func void print_double(double d):
+//   printDouble d
+// end
+// 
+// func void "print_char*"(char* string):
+//   printString string
+// end
+// 
+// func void "print_ast*"(ast* code):
+//   ast:print code 0
+// end
+// 
+// macro print args...:
+//   var astp code ${}
+// 
+//   forEachAstChild arg args:
+//     ast:addChild code ${zmp:cee:print #arg}
+//   end
+// 
+//   ret code
+// end
 
 func void testPrint():
   var cstring nl "\n  "
@@ -141,22 +144,22 @@ func void testPrint():
   print "ast: " ${x := 10 * sin(x)}
 end
 
-alias toFloat zmp:cee:toFloat x
-alias toInt zmp:cee:toInt x
-alias toChar zmp:cee:toChar x
-alias toCString zmp:cee:toCString x
-
-func float toFloat_u32(u32 i):
-  int:toFloat i
-end
-
-func int toInt_float(float f):
-  float:toInt f
-end
-
-func int toInt_double(double d):
-  double:toInt d
-end
+// alias toFloat zmp:cee:toFloat x
+// alias toInt zmp:cee:toInt x
+// alias toChar zmp:cee:toChar x
+// alias toCString zmp:cee:toCString x
+// 
+// func float toFloat_u32(u32 i):
+//   int:toFloat i
+// end
+// 
+// func int toInt_float(float f):
+//   float:toInt f
+// end
+// 
+// func int toInt_double(double d):
+//   double:toInt d
+// end
 
 func void testConversion():
   var float f toFloat(100)
@@ -194,13 +197,13 @@ func void testPointerAdd():
   end
 end
 
-func bool op<_ptr_ptr(void* l, void* r):
-  ret u32:uless(cast int l, cast int r)
-end
-
-template op< l r:
-  zmp:cee:less #l #r
-end
+// func bool op<_ptr_ptr(void* l, void* r):
+//   ret u32:uless(cast int l, cast int r)
+// end
+// 
+// template op< l r:
+//   zmp:cee:less #l #r
+// end
 
 func void testOpsWithPointers():
   const int size 10
