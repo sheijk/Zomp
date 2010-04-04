@@ -360,6 +360,18 @@ func void drawOrientationGrid2(float alpha, float brightness):
     lineTo 0. 1. 0.
     lineTo 0. 0. 1.
   end
+
+  saveAttribs:
+    glPointSize 10.
+    rendergl GL_POINTS:
+      glColor4f br 0. 0. 1.0
+      glVertex3f size 0. 0.
+      glColor4f 0. br 0. 1.0
+      glVertex3f 0. size 0.
+      glColor4f 0. 0. br 1.0
+      glVertex3f 0. 0. size
+    end
+  end
 end
 
 func void drawOrientationGrid():

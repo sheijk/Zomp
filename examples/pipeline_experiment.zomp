@@ -569,24 +569,28 @@ func GLint objectMaterial():
     // wsNormal = gl_NormalMatrix * gl_Normal;
     wsNormal = (pj_ModelMatrix * vec4(gl_Normal,0.0)).xyz;
     vec3 wsPos = unhomo(pj_ModelMatrix * gl_Vertex);
-    vec3 wsLightPos = vec3(100., 10., 0.);
+    vec3 wsLightPos = vec3(10., 10., 10.);
     wsLightDir = wsLightPos - wsPos;
     }"
   fragmentSource := "
   uniform float red;
   uniform float green;
+  uniform float diffuseFactor = 1.0;
+  uniform vec3 ambientGroundColor = vec3(0.1,0.2,0.05);
+  uniform vec3 ambientSkyColor = vec3(0.,0.,0.2);
   void main(void) {
     // gl_FragColor = vec4(normalize(lightDir) * 0.5 + 0.5, 1.0);
     // gl_FragColor = vec4(length(wsLightDir), length(wsLightDir), length(wsLightDir), 1.0);
-    gl_FragColor = vec4(wsNormal*0.5+vec3(0.5),1.0);
-    // float b = mix(dot(wsNormal, vec3(0.,1.,0.)), 1.0, 0.5);
-    // gl_FragColor = vec4(b,b,b, 1.0);
+    // gl_FragColor = vec4(normalize(wsLightDir)*0.5+vec3(0.5),1.0);
+    vec3 diffuse = diffuseFactor * vec3(dot(normalize(wsLightDir), normalize(wsNormal)));
+    // vec3 diffuse = vec3(0.);
 
-    // gl_FragColor.r = red;
-    // gl_FragColor.g = green;
-    // float br = dot(normalize(normal), normalize(lightDir));
-    // br += 0.1;
-    // gl_FragColor = vec4(br, br, br, 1.0);
+    vec3 ambientHemi = 3.*mix(
+        ambientGroundColor,
+        ambientSkyColor,
+        dot(wsNormal, vec3(0.,1.,0.))*0.5+0.5);
+
+    gl_FragColor = vec4(diffuse + ambientHemi,1.0);
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
@@ -1654,26 +1658,34 @@ defineListType GLSLParameter
 
 /// @obsolete - use GLSLParameter:apply
 func void GLSLParameter:applyFloat(GLSLParameter* param):
-  pFloat := cast float* param.data
-  flushGLErrors()
-  glUniform1f param.location pFloat*
-  error := glGetError()
-  if (error != GL_NO_ERROR):
-    println "Error when setting " param* ": " gluErrorString(error)
-    program := gl:getInteger GL_CURRENT_PROGRAM
-    size := 0
-    type := 0
-    glGetActiveUniform program param.location 0 nullptr(int) &size &type nullptr(char)
-    println "GL_CURRENT_PROGRAM=" program ", size=" size ", type=" glenum2cstring(type)
-  end
+  println "obsolete function called, ignoring"
+  ret void
+  // pFloat := cast float* param.data
+  // flushGLErrors()
+  // glUniform1f param.location pFloat*
+  // error := glGetError()
+  // if (error != GL_NO_ERROR):
+  //   println "Error when setting " param* ": " gluErrorString(error)
+  //   program := gl:getInteger GL_CURRENT_PROGRAM
+  //   size := 0
+  //   type := 0
+  //   glGetActiveUniform program param.location 0 nullptr(int) &size &type nullptr(char)
+  //   println "GL_CURRENT_PROGRAM=" program ", size=" size ", type=" glenum2cstring(type)
+  // end
 end
 
 func void GLSLParameter:apply(GLSLParameter* param):
-  pFloat := cast float* param.data
-  glUniform1f param.location pFloat*
+  if (param.gltype == GL_FLOAT):
+    pFloat := cast float* param.data
+    glUniform1f param.location pFloat*
+  elseif (param.gltype == GL_FLOAT_VEC3):
+    pFloat3 := cast float* param.data
+    glUniform3f param.location (pFloat3+0)* (pFloat3+1)* (pFloat3+2)*
+  end
 end
 
 func GLSLParameter GLSLParameter:makeFloat(cstring name, GLint location):
+  println "obsolete function GLSLParameter:makeFloat called!"
   var GLSLParameter param
   param.name = strdup(name)
   param.location = location
@@ -1681,7 +1693,30 @@ func GLSLParameter GLSLParameter:makeFloat(cstring name, GLint location):
   pFloat := malloc float
   pFloat* = 0.5
   param.data = cast void* pFloat
-  param.apply = &GLSLParameter:applyFloat
+  param.apply = &GLSLParameter:apply
+
+  ret param
+end
+
+func GLSLParameter GLSLParameter:make(cstring name, GLint location, GLenum type):
+  var GLSLParameter param
+  param.name = strdup(name)
+  param.location = location
+  param.gltype = type
+  if (type == GL_FLOAT):
+    pFloat := malloc float
+    pFloat* = 0.5
+    param.data = cast void* pFloat
+  elseif (type == GL_FLOAT_VEC3):
+    pFloat3 := malloc float 3
+    pFloat3[0] = 0.5
+    pFloat3[1] = 0.5
+    pFloat3[2] = 0.5
+    param.data = cast void* pFloat3
+  else:
+    param.gltype = 0
+  end
+  param.apply = &GLSLParameter:apply
 
   ret param
 end
@@ -1690,6 +1725,14 @@ macro List:prepend type listVar newElement:
   listType := List:listTypeName type.id
 
   ret ${#listVar = new #listType #newElement #listVar}
+end
+
+macro isOneOf value firstLegalValue moreLegalValues...:
+  code := ${#value == #firstLegalValue}
+  forEachAstChild legalVal moreLegalValues:
+    code = ${#value == #legalVal || #code}
+  end
+  ret code
 end
 
 func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
@@ -1701,7 +1744,7 @@ func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
     index := 0
     name := malloc char 100
     onReturn dealloc(name)
-  
+
     println "Shader parameters:"
     while !abort:
       length := 0
@@ -1709,30 +1752,35 @@ func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
       type := 0
 
       glGetActiveUniform shader index 100 &length &size &type name
-      printGLError()
-  
-      if (type == GL_FLOAT):
+      flushGLErrors()
+
+      if (isOneOf type GL_FLOAT GL_FLOAT_VEC3):
         println "  index = " index ", name = " name ", type = " glenum2cstring(type)
-            ", size = " size ", length = " length
+            ", size = " size
 
         location := glGetUniformLocation shader name
-        List:prepend GLSLParameter paramList GLSLParameter:makeFloat(name, location)
-        // paramList.data.apply &paramList.data
-        GLSLParameter:applyFloat &paramList.data
-        pFloat := cast float* paramList.data.data
-        TwAddVarRW bar name TW_TYPE_FLOAT (cast void* pFloat) "group='Shader params' precision=2"
+        List:prepend GLSLParameter paramList GLSLParameter:make(name, location, type)
+        GLSLParameter:apply &paramList.data
+        // pFloat := cast float* paramList.data.data
+        param := paramList.data.data
+        if (type == GL_FLOAT):
+          TwAddVarRW bar name TW_TYPE_FLOAT param "group='Shader params' precision=2"
+        elseif (type == GL_FLOAT_VEC3):
+          TwAddVarRW bar name TW_TYPE_COLOR3F param "group='Shader params'"
+        end
       elseif (type == 0):
         abort = true
       else:
-        println "  index = " index ", name = " name ", type = " glenum2cstring(type)
-            ", size = " size ", length = " length " (unsupported, skipping param)"
+        println "  index=" index ", name=" name ", type=" glenum2cstring(type)
+            ", size=" size " (unsupported, skipping param)"
       end
-  
-      if (index > 100):
+
+      maxParamCount := 100
+      if (index > maxParamCount):
         abort = true
-        println "max param limit reached"
+        println "max param limit (" maxParamCount ") reached, skipping all following"
       end
-  
+
       ++index
     end
   end
@@ -1988,7 +2036,7 @@ func int main():
       Camera:applyGL &camInfo.camera
     end
 
-    var mat44 pj_CameraMatrix
+    var float[16] pj_CameraMatrix
     readGLMatrix GL_MODELVIEW_MATRIX (cast float* &pj_CameraMatrix)
     // println "pj_CameraMatrix:"
     // printlnMatrix44 (cast float* &pj_CameraMatrix) 4
@@ -2021,7 +2069,7 @@ func int main():
       // glUniform1f objmat_loc_dampening objmat_dampening
       List:foreach objmat_params paramIndex2 param2:
       //   // param2.apply &param2
-        GLSLParameter:applyFloat &param2
+        GLSLParameter:apply &param2
       end
       Array:foreach meshes meshNum2:
         pMeshInfo := (meshes.elements + meshNum2)
