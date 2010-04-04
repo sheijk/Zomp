@@ -556,25 +556,34 @@ func GLint objectMaterial():
   varyingSource := "
   #version 120
   #extension GL_EXT_gpu_shader4 : enable
-  varying vec3 normal;
-  varying vec3 lightDir;
+  varying vec3 wsNormal;
+  varying vec3 wsLightDir;
   uniform mat4 pj_ModelMatrix;
-  uniform mat4 pj_CameraMatrix;
+  uniform mat4 pj_CameraMatrix; // guaranteed to be "nice"
   "
   vertexSource := "
   vec3 unhomo(vec4 v) { return v.xyz / v.w; }
 
   void main(void) {
     gl_Position = ftransform();
-    normal = gl_NormalMatrix * gl_Normal;
+    // wsNormal = gl_NormalMatrix * gl_Normal;
+    wsNormal = (pj_ModelMatrix * vec4(gl_Normal,0.0)).xyz;
     vec3 wsPos = unhomo(pj_ModelMatrix * gl_Vertex);
     vec3 wsLightPos = vec3(100., 10., 0.);
-    lightDir = wsLightPos - wsPos;
+    wsLightDir = wsLightPos - wsPos;
     }"
   fragmentSource := "
+  uniform float red;
+  uniform float green;
   void main(void) {
     // gl_FragColor = vec4(normalize(lightDir) * 0.5 + 0.5, 1.0);
-    gl_FragColor = vec4(length(lightDir), length(lightDir), length(lightDir), 1.0);
+    // gl_FragColor = vec4(length(wsLightDir), length(wsLightDir), length(wsLightDir), 1.0);
+    gl_FragColor = vec4(wsNormal*0.5+vec3(0.5),1.0);
+    // float b = mix(dot(wsNormal, vec3(0.,1.,0.)), 1.0, 0.5);
+    // gl_FragColor = vec4(b,b,b, 1.0);
+
+    // gl_FragColor.r = red;
+    // gl_FragColor.g = green;
     // float br = dot(normalize(normal), normalize(lightDir));
     // br += 0.1;
     // gl_FragColor = vec4(br, br, br, 1.0);
@@ -649,8 +658,12 @@ func GLint debugMaterial():
     normal = gl_NormalMatrix * gl_Normal;
     }"
   fragmentSource := "
+  uniform float dampening;
+  uniform float red;
   void main(void) {
-    gl_FragColor = vec4(normalize(normal)*0.5+vec3(0.5),1.0);
+    float intensity = 1.0 - dampening;
+    gl_FragColor = vec4((normalize(normal)*0.5+vec3(0.5))*intensity,1.0);
+    gl_FragColor.r = red;
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
@@ -667,26 +680,30 @@ func void gluLookAtf(
     (toDouble ux) (toDouble uy) (toDouble uz)
 end
 
+func void RBTransform:toMatrix4x4(RBTransform* this, float* mat44):
+  mat44[0] = this.xaxis.x * this.scale
+  mat44[1] = this.xaxis.y * this.scale
+  mat44[2] = this.xaxis.z * this.scale
+  mat44[3] = 0.0
+  mat44[4] = this.yaxis.x * this.scale
+  mat44[5] = this.yaxis.y * this.scale
+  mat44[6] = this.yaxis.z * this.scale
+  mat44[7] = 0.0
+  mat44[8] =  this.zaxis.x * this.scale
+  mat44[9] =  this.zaxis.y * this.scale
+  mat44[10] = this.zaxis.z * this.scale
+  mat44[11] = 0.0
+  mat44[12] = this.origin.x
+  mat44[13] = this.origin.y
+  mat44[14] = this.origin.z
+  mat44[15] = 1.0
+end
+
 func void applyTransformGL(RBTransform* this):
   // converting to matrix, then applying. not pretty...
   var float[16] mat_
   mat := zmp:array:addr &mat_
-  mat[0] = this.xaxis.x * this.scale
-  mat[1] = this.xaxis.y * this.scale
-  mat[2] = this.xaxis.z * this.scale
-  mat[3] = 0.0
-  mat[4] = this.yaxis.x * this.scale
-  mat[5] = this.yaxis.y * this.scale
-  mat[6] = this.yaxis.z * this.scale
-  mat[7] = 0.0
-  mat[8] =  this.zaxis.x * this.scale
-  mat[9] =  this.zaxis.y * this.scale
-  mat[10] = this.zaxis.z * this.scale
-  mat[11] = 0.0
-  mat[12] = this.origin.x
-  mat[13] = this.origin.y
-  mat[14] = this.origin.z
-  mat[15] = 1.0
+  RBTransform:toMatrix4x4 this mat
 
   glMultMatrixf mat
 end
@@ -1406,7 +1423,6 @@ func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Ar
     aianim := *(source.mChannels+channelNum)
     NodeAnimation:init channel aianim
     channel.duration = toFloat this.duration
-    println "channel.duration = " channel.duration
 
     /// connect to target node
     name := aiString:cstring &aianim.mNodeName
@@ -1622,7 +1638,120 @@ func void renderRotationTest():
   end
 end
 
+struct GLSLParameter:
+  cstring name
+  GLint location
+  GLenum gltype
+  void* data
+  (fptr void GLSLParameter*) apply
+end
+
+ofunc void print(GLSLParameter param):
+  print "(GLSLParameter name='" param.name "', location=" param.location ", type=" glenum2cstring(param.gltype) ")"
+end
+
+defineListType GLSLParameter
+
+/// @obsolete - use GLSLParameter:apply
+func void GLSLParameter:applyFloat(GLSLParameter* param):
+  pFloat := cast float* param.data
+  flushGLErrors()
+  glUniform1f param.location pFloat*
+  error := glGetError()
+  if (error != GL_NO_ERROR):
+    println "Error when setting " param* ": " gluErrorString(error)
+    program := gl:getInteger GL_CURRENT_PROGRAM
+    size := 0
+    type := 0
+    glGetActiveUniform program param.location 0 nullptr(int) &size &type nullptr(char)
+    println "GL_CURRENT_PROGRAM=" program ", size=" size ", type=" glenum2cstring(type)
+  end
+end
+
+func void GLSLParameter:apply(GLSLParameter* param):
+  pFloat := cast float* param.data
+  glUniform1f param.location pFloat*
+end
+
+func GLSLParameter GLSLParameter:makeFloat(cstring name, GLint location):
+  var GLSLParameter param
+  param.name = strdup(name)
+  param.location = location
+  param.gltype = GL_FLOAT
+  pFloat := malloc float
+  pFloat* = 0.5
+  param.data = cast void* pFloat
+  param.apply = &GLSLParameter:applyFloat
+
+  ret param
+end
+
+macro List:prepend type listVar newElement:
+  listType := List:listTypeName type.id
+
+  ret ${#listVar = new #listType #newElement #listVar}
+end
+
+func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
+  paramList := makeList GLSLParameter
+
+  withShader shader:
+    paramNum := 0
+    abort := false
+    index := 0
+    name := malloc char 100
+    onReturn dealloc(name)
+  
+    println "Shader parameters:"
+    while !abort:
+      length := 0
+      size := 0
+      type := 0
+
+      glGetActiveUniform shader index 100 &length &size &type name
+      printGLError()
+  
+      if (type == GL_FLOAT):
+        println "  index = " index ", name = " name ", type = " glenum2cstring(type)
+            ", size = " size ", length = " length
+
+        location := glGetUniformLocation shader name
+        List:prepend GLSLParameter paramList GLSLParameter:makeFloat(name, location)
+        // paramList.data.apply &paramList.data
+        GLSLParameter:applyFloat &paramList.data
+        pFloat := cast float* paramList.data.data
+        TwAddVarRW bar name TW_TYPE_FLOAT (cast void* pFloat) "group='Shader params' precision=2"
+      elseif (type == 0):
+        abort = true
+      else:
+        println "  index = " index ", name = " name ", type = " glenum2cstring(type)
+            ", size = " size ", length = " length " (unsupported, skipping param)"
+      end
+  
+      if (index > 100):
+        abort = true
+        println "max param limit reached"
+      end
+  
+      ++index
+    end
+  end
+  flushGLErrors()
+  return paramList
+end
+
 var RBTransform* keyboardCameraOrientation null
+
+func void printlnMatrix44(float* mat, int indent):
+  times indent printChar(' ')
+  println (mat+0)* " " (mat+4)* " " (mat+8)* " " (mat+12)*
+  times indent printChar(' ')
+  println (mat+1)* " " (mat+5)* " " (mat+9)* " " (mat+13)*
+  times indent printChar(' ')
+  println (mat+2)* " " (mat+6)* " " (mat+10)* " " (mat+14)*
+  times indent printChar(' ')
+  println (mat+3)* " " (mat+7)* " " (mat+11)* " " (mat+15)*
+end
 
 func int main():
   init()
@@ -1643,14 +1772,13 @@ func int main():
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100131_cube_translate_rotate_x_300.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test1_tri.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100208_camrot_03.dae"
-      // "/Users/sheijk/Documents/ArtyFarty/Toying_around/ringed.dae"
       // "data/pixeljourney/mayatest.dae"
-      // "data/pixeljourney/pipetest/ringed.dae"
+      "data/pixeljourney/pipetest/ringed.dae"
       // "data/pixeljourney/first_scene_mats.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100207_Pixeljums_cambaked_singlecube.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test6.dae"
       // "data/pixeljourney/shared/obj/100321_D01_racetrack_01.obj"
-      "data/pixeljourney/camera_import/test_cam_rig_rue_modified.dae"
+      // "data/pixeljourney/camera_import/test_cam_rig_rue_modified.dae"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test7_rolling_cube.dae"
   // sceneFilename := "data/collada_test2.dae"
   // sceneFilename := "data/pjm2.obj"
@@ -1698,16 +1826,22 @@ func int main():
   // objmat := loadGLSLShader "data/incidence.vert" "data/incidence.frag"
   // objmat := loadGLSLShader "data/pixeljourney/shared/Shaders/Exported/constant_color_v.gl" "data/pixeljourney/shared/Shaders/Exported/constant_color_f.gl"
   // objmat := loadGLSLShader "data/pixeljourney/test_incidence_v.gl" "data/pixeljourney/test_incidence_f.gl"
-  objmat := debugMaterial()
-  // objmat := objectMaterial()
+  objmat := objectMaterial()
+  // objmat := debugMaterial()
   onReturn glDeleteProgram(objmat)
+
+  objmat_pj_CameraMatrix := glGetUniformLocation objmat "pj_CameraMatrix"
+  objmat_pj_ModelMatrix := glGetUniformLocation objmat "pj_ModelMatrix"
+
   objmat_color := glGetUniformLocation objmat "msl_constant_color_1_color"
   println "objmat_color = " objmat_color
   objmat_obj2cam := glGetUniformLocation objmat "_object_to_ndc"
   objmat_falloff_amount :=
-    glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
+      glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
   println "objmat_obj2cam = " objmat_obj2cam
   println "objmat_falloff_amount = " objmat_falloff_amount
+  objmat_dampening := 0.0
+  objmat_loc_dampening := glGetUniformLocation objmat "dampening"
 
   cam := local Camera
   if isNull(keyboardCameraOrientation):
@@ -1746,6 +1880,7 @@ func int main():
     rw cameraEnumType "Camera" camNum
     rw TW_TYPE_FLOAT "far planefactor" farPlaneFactor
     rw TW_TYPE_FLOAT "near plane factor" nearPlaneFactor
+    // rw TW_TYPE_FLOAT "dampening" objmat_dampening
   end
 
   twgroup "group=debugging ":
@@ -1756,6 +1891,12 @@ func int main():
     rw TW_TYPE_INT32 "  anim num" visAnim
     rw TW_TYPE_INT32 "  channel num" visNodeAnim
   end
+
+  objmat_params := addControlsForUniforms3 objmat bar
+
+  // List:foreach objmat_params paramIndex param:
+  //   println param
+  // end
 
   var AABB meshBB
   // Mesh:calcAABB &meshBB mesh
@@ -1802,6 +1943,9 @@ func int main():
           else:
             ++camNum
           end
+        elseif (keyEvent.key == GLFW_KEY_X):
+          camInfo2 := aptr(sg.cameras, camNum - specialCamCount)
+          print "Camera transform = " (camInfo2.parentNode)*.globalSpace
         end
       end
     end
@@ -1844,8 +1988,15 @@ func int main():
       Camera:applyGL &camInfo.camera
     end
 
+    var mat44 pj_CameraMatrix
+    readGLMatrix GL_MODELVIEW_MATRIX (cast float* &pj_CameraMatrix)
+    // println "pj_CameraMatrix:"
+    // printlnMatrix44 (cast float* &pj_CameraMatrix) 4
+    // running = false
+
     AABB:render &meshBB
     withShader objmat:
+      glUniformMatrix4fv objmat_pj_CameraMatrix 1 false (cast float* &pj_CameraMatrix)
       // var float[16] viewMat
       // var float[16] projMat
       // var float[16] ndc
@@ -1867,11 +2018,19 @@ func int main():
       // glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
       // glUniform1f objmat_falloff_amount 0.5
       glUniform4f objmat_color 1.0 0.5 0.0 1.0
+      // glUniform1f objmat_loc_dampening objmat_dampening
+      List:foreach objmat_params paramIndex2 param2:
+      //   // param2.apply &param2
+        GLSLParameter:applyFloat &param2
+      end
       Array:foreach meshes meshNum2:
-      // for meshNum2 0 1:
         pMeshInfo := (meshes.elements + meshNum2)
         glPushMatrix()
-        applyTransformGL &pMeshInfo.transform
+        // applyTransformGL &pMeshInfo.transform
+        var float[16] pj_ModelMatrix
+        RBTransform:toMatrix4x4 &pMeshInfo.transform (cast float* &pj_ModelMatrix)
+        glUniformMatrix4fv objmat_pj_ModelMatrix 1 false (cast float* &pj_ModelMatrix)
+        glMultMatrixf (cast float* &pj_ModelMatrix)
         if wireframe:
           Mesh:render &pMeshInfo.mesh GL_POINTS 0
         else:
