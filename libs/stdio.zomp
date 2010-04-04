@@ -3,15 +3,107 @@
 !verify off
  */
 
+type size_t u32
 type FILE
 
-type size_t u32
+func int remove(cstring filename) 
+func int rename(cstring old, cstring new)
+func FILE* tmpfile()
+func char* tmpnam(char* s)
+// func int fclose(FILE* stream)
+// func int fflush(FILE* stream)
+func FILE* fopen(cstring filename, cstring mode)
+func FILE* freopen(cstring filename, cstring mode, FILE* stream)
 
-func int ferror(FILE* stream)
-func FILE* fopen(cstring name, cstring access)
-// func int fclose(FILE* file)
+func void setbuf(FILE* stream, char* buf)
 
-// func size_t fread(void* ptr, size_t size, size_t nitems, FILE* file)
-func int getc(FILE* f)
+func int setvbuf(FILE* stream, char* buf, int mode, size_t size)
+// func int fprintf(FILE* stream, cstring format, ...)
+// func int fscanf(FILE* stream, cstring format, ...)
+// func int printf(cstring format, ...)
+// func int scanf(cstring format, ...)
+// func int snprintf(char* s, size_t n, cstring format, ...)
+// func int sprintf(char* s, cstring format, ...)
+// func int sscanf(cstring s, cstring format, ...)
+// func int vfprintf(FILE* stream, cstring format, va_list arg)
+// func int vfscanf(FILE* stream, cstring format, va_list arg)
+// func int vprintf(cstring format, va_list arg)
+// func int vscanf(cstring format, va_list arg)
+// func int vsnprintf(char* s, size_t n, cstring format, va_list arg)
+// func int vsprintf(char* s, cstring format, va_list arg)
+// func int vsscanf(cstring s, cstring format, va_list arg)
+func int fgetc(FILE* stream)
 func char* fgets(char* s, int n, FILE* stream)
+func int fputc(int c, FILE* stream)
+func int fputs(cstring s, FILE* stream)
+func int getc(FILE* stream)
+func int getchar()
+func char* gets(char* s)
+func int putc(int c, FILE* stream)
+func int putchar(int c)
+func int puts(cstring s)
+func int ungetc(int c, FILE* stream)
+// func size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream)
+func size_t fwrite(void* ptr, size_t size, size_t nmemb, FILE* stream)
+// func int fgetpos(FILE* stream, fpos_t* pos)
+// func int fseek(FILE* stream, long int offset, int whence)
+// func int fsetpos(FILE* stream, const fpos_t* pos)
+// func long int ftell(FILE* stream)
+func void rewind(FILE* stream)
+func void clearerr(FILE* stream)
+func int feof(FILE* stream)
+func int ferror(FILE* stream)
+func void perror(cstring s)
+
+///-----------------------------------------------------------------------------
+/// Section: Wrappers for more comfort
+///-----------------------------------------------------------------------------
+
+func int writeInt(FILE* file, int val):
+  ret zomp_writeInt(cast void* file, val)
+end
+
+func int writeCString(FILE* file, char* val):
+  ret zomp_writeCString(cast void* file, val)
+end
+
+func int writeFloat(FILE* file, float val):
+  ret zomp_writeFloat(cast void* file, val)
+end
+
+func int writeDouble(FILE* file, double val):
+  ret zomp_writeDouble(cast void* file, val)
+end
+
+func int writeChar(FILE* file, char val):
+  ret zomp_writeChar(cast void* file, val)
+end
+
+func int writePtr(FILE* file, void* val):
+  ret zomp_writePtr(cast void* file, val)
+end
+
+func int writeNewline(FILE* file):
+  ret zomp_writeCString(cast void* file, "\n")
+end
+
+func int closeFile(FILE* file):
+  ret zomp_closeFile(cast void* file)
+end
+
+func int readInt(FILE* file, int* val):
+  ret zomp_readInt(cast void* file, val)
+end
+
+func int readFloat(FILE* file, float* val):
+  ret zomp_readFloat(cast void* file, val)
+end
+
+func int readDouble(FILE* file, double* val):
+  ret zomp_readDouble(cast void* file, val)
+end
+
+func int readChar(FILE* file, char* val):
+  ret zomp_readChar(cast void* file, val)
+end
 

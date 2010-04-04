@@ -8,6 +8,9 @@
 
 #include "zomputils.h"
 
+//------------------------------------------------------------------------------
+//- printing to stdout
+
 void printInt( int i ) {
   printf( "%d", i );
 }
@@ -40,9 +43,61 @@ void flushStdout() {
   fflush(stdout);
 }
 
-/* int* nullptr() { */
-/*   return NULL; */
-/* } */
+//------------------------------------------------------------------------------
+//- writing to files
+
+int zomp_closeFile(void* file) {
+    return fclose((FILE*)file);
+}
+
+int zomp_writeInt(void* file, int i) {
+    return fprintf((FILE*)file, "%d", i);
+}
+
+int zomp_writeCString(void* file, char* val) {
+    return fprintf((FILE*)file, "%s", val);
+}
+
+int zomp_writeFloat(void* file, float val) {
+    return fprintf((FILE*)file, "%f", val);
+}
+
+int zomp_writeDouble(void* file, double val) {
+    return fprintf((FILE*)file, "%f", val);
+}
+
+int zomp_writeChar(void* file, char val) {
+    return fprintf((FILE*)file, "%c", val);
+}
+
+int zomp_writePtr(void* file, void* val) {
+    return fprintf((FILE*)file, "%p", val);
+}
+
+//------------------------------------------------------------------------------
+//- loading from files
+
+int zomp_readInt(void* file, int* val) {
+    return fscanf((FILE*)file, "%d", val);
+}
+
+int zomp_readFloat(void* file, float* val) {
+    return fscanf((FILE*)file, "%f", val);
+}
+
+int zomp_readDouble(void* file, double* val) {
+    float tmp = 0.0;
+    int result = fscanf((FILE*)file, "%f", &tmp);
+    *val = tmp;
+    return result;
+}
+
+int zomp_readChar(void* file, char* val) {
+    return fscanf((FILE*)file, "%c", val);
+}
+
+//------------------------------------------------------------------------------
+//- conversions
 
 char* copyString(char* str) {
     size_t charCount = strlen( str );

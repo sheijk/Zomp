@@ -7,7 +7,7 @@ linkclib "libglfw.dylib" "libGLEW.dylib"
 static:setRequireLibDebug true
 
 requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array
-  unittest quicktext
+  unittest quicktext stdio
 
 ///-----------------------------------------------------------------------------
 /// Section: list
@@ -583,7 +583,6 @@ func GLint objectMaterial():
     // gl_FragColor = vec4(length(wsLightDir), length(wsLightDir), length(wsLightDir), 1.0);
     // gl_FragColor = vec4(normalize(wsLightDir)*0.5+vec3(0.5),1.0);
     vec3 diffuse = diffuseFactor * vec3(dot(normalize(wsLightDir), normalize(wsNormal)));
-    // vec3 diffuse = vec3(0.);
 
     vec3 ambientHemi = 3.*mix(
         ambientGroundColor,
@@ -591,6 +590,8 @@ func GLint objectMaterial():
         dot(wsNormal, vec3(0.,1.,0.))*0.5+0.5);
 
     gl_FragColor = vec4(diffuse + ambientHemi,1.0);
+
+    // gl_FragColor = vec4(red, green, 0.2, 1.0);
     }"
   shader := createShader varyingSource vertexSource fragmentSource
   assert (shader != 0)
@@ -1650,8 +1651,29 @@ struct GLSLParameter:
   (fptr void GLSLParameter*) apply
 end
 
+func cstring GLSLParameter:valueToString(GLSLParameter* param):
+  if (param.gltype == GL_FLOAT):
+    ret float2cstring(*(cast float* param.data))
+  elseif (param.gltype == GL_FLOAT_VEC3):
+    pFloat3 := cast float* param.data
+    s0 := float2cstring((pFloat3+0)*)
+    s1 := float2cstring((pFloat3+1)*)
+    s2 := float2cstring((pFloat3+2)*)
+    str := s0 ++ " " ++ s1 ++ " " ++ s2
+    dealloc s0
+    dealloc s1
+    dealloc s2
+    ret str
+  end
+  ret ""
+end
+
 ofunc void print(GLSLParameter param):
-  print "(GLSLParameter name='" param.name "', location=" param.location ", type=" glenum2cstring(param.gltype) ")"
+  print "(GLSLParameter name='" param.name
+  print "', location=" param.location
+  print ", type=" glenum2cstring(param.gltype)
+  print ", data=" GLSLParameter:valueToString(&param)
+  print ")"
 end
 
 defineListType GLSLParameter
@@ -1735,7 +1757,16 @@ macro isOneOf value firstLegalValue moreLegalValues...:
   ret code
 end
 
-func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
+func GLSLParameter* GLSLParameter:findByName(cstring name, GLSLParameter_List* params):
+  if isNull(params):
+    ret nullptr(GLSLParameter)
+  elseif (params.data.name ==_str name):
+    ret &params.data
+  end
+  ret GLSLParameter:findByName(name, params.next)
+end
+
+func GLSLParameter_List* addControlsForUniforms2(GLenum shader, TwBar* bar):
   paramList := makeList GLSLParameter
 
   withShader shader:
@@ -1754,31 +1785,34 @@ func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
       glGetActiveUniform shader index 100 &length &size &type name
       flushGLErrors()
 
-      if (isOneOf type GL_FLOAT GL_FLOAT_VEC3):
-        println "  index = " index ", name = " name ", type = " glenum2cstring(type)
-            ", size = " size
-
-        location := glGetUniformLocation shader name
-        List:prepend GLSLParameter paramList GLSLParameter:make(name, location, type)
-        GLSLParameter:apply &paramList.data
-        // pFloat := cast float* paramList.data.data
-        param := paramList.data.data
-        if (type == GL_FLOAT):
-          TwAddVarRW bar name TW_TYPE_FLOAT param "group='Shader params' precision=2"
-        elseif (type == GL_FLOAT_VEC3):
-          TwAddVarRW bar name TW_TYPE_COLOR3F param "group='Shader params'"
-        end
-      elseif (type == 0):
+      if (type == 0):
         abort = true
       else:
-        println "  index=" index ", name=" name ", type=" glenum2cstring(type)
-            ", size=" size " (unsupported, skipping param)"
+        print "  index = " index ", name = " name ", type = " glenum2cstring(type)
+            ", size = " size
+
+        if (isOneOf type GL_FLOAT GL_FLOAT_VEC3):
+          location := glGetUniformLocation shader name
+          List:prepend GLSLParameter paramList GLSLParameter:make(name, location, type)
+
+          GLSLParameter:apply &paramList.data
+
+          param := paramList.data.data
+          if (type == GL_FLOAT):
+            TwAddVarRW bar name TW_TYPE_FLOAT param "group='Shader params' precision=2"
+          elseif (type == GL_FLOAT_VEC3):
+            TwAddVarRW bar name TW_TYPE_COLOR3F param "group='Shader params'"
+          end
+        else:
+          print " (unsupported type, skipping)"
+        end
+        println()
       end
 
       maxParamCount := 100
       if (index > maxParamCount):
         abort = true
-        println "max param limit (" maxParamCount ") reached, skipping all following"
+        println "max param limit (" maxParamCount ") reached, skipping all following params"
       end
 
       ++index
@@ -1788,7 +1822,129 @@ func GLSLParameter_List* addControlsForUniforms3(GLenum shader, TwBar* bar):
   return paramList
 end
 
+func void GLSLParameter:saveParamsToFileDescr(FILE* file, GLSLParameter_List* paramList):
+  if isNull(paramList):
+    ret void
+  end
+
+  param := &paramList.data
+
+  writeCString file param.name
+  writeCString file "="
+  str := GLSLParameter:valueToString param
+  writeCString file str
+  dealloc str
+  writeNewline file
+
+  GLSLParameter:saveParamsToFileDescr file paramList.next
+end
+
+func void GLSLParameter:saveParamsToFile(cstring fileName, GLSLParameter_List* paramList):
+  file := fopen fileName "w"
+  GLSLParameter:saveParamsToFileDescr file paramList
+  closeFile file
+  ret void
+end
+
+func bool readUntil2(FILE* file, char stopper, int maxLength, cstring* target):
+  eof := false
+  pos := 0
+
+  writeTarget := target*
+  store writeTarget '\0'
+
+  while !eof:
+    if (pos >= maxLength):
+      ret false
+    end
+
+    result := getc(file)
+    chr := toChar result
+    if (result < 0):
+      ret false
+    end
+
+    if (chr == stopper):
+      store writeTarget '\0'
+      ret true
+    else:
+      store writeTarget chr
+    end
+    ++pos
+    writeTarget = writeTarget + 1
+  end
+
+  ret false
+end
+
+func int readFloats(FILE* file, int count, float* target):
+  read := 0
+  for i 0 count:
+    value := 0.0
+    newlyRead := readFloat(file, target+i)
+    if (newlyRead < 0):
+      ret -1
+    end
+    read += newlyRead
+  end
+  ret read
+end
+
+func void GLSLParameter:readValueFromFile(GLSLParameter* this, FILE* file):
+  bufferSize := 100
+  buffer := malloc char bufferSize
+
+  readSomething := true
+
+  if (this.gltype == GL_FLOAT):
+    value := 0.0
+    readFloat file (cast float* this.data)
+  elseif (this.gltype == GL_FLOAT_VEC3):
+    readFloats file 3 (cast float* this.data)
+  else:
+    readSomething = false
+  end
+
+  if readSomething:
+    println "read new value for " this*
+  end
+
+  // skip until end of line
+  readUntil2(file, '\n', bufferSize, &buffer)
+
+  dealloc buffer
+
+  ret void
+end
+
+func void GLSLParameter:loadParamsFromFile(cstring fileName, GLSLParameter_List* paramList):
+  file := fopen fileName "r"
+  if isNull(file):
+    ret void
+  end
+
+  eof := false
+
+  maxNameLength := 100
+  name := malloc char maxNameLength
+
+  while !eof:
+    eof = !readUntil2(file, '=', maxNameLength, &name)
+    unless eof:
+      param := GLSLParameter:findByName(name, paramList)
+      if isNotNull(param):
+        GLSLParameter:readValueFromFile(param, file)
+      end
+    end
+  end
+
+  dealloc name
+  closeFile file
+  ret void
+end
+
 var RBTransform* keyboardCameraOrientation null
+var GLSLParameter_List* shaderParameterValues null
 
 func void printlnMatrix44(float* mat, int indent):
   times indent printChar(' ')
@@ -1940,7 +2096,10 @@ func int main():
     rw TW_TYPE_INT32 "  channel num" visNodeAnim
   end
 
-  objmat_params := addControlsForUniforms3 objmat bar
+  objmat_params := addControlsForUniforms2 objmat bar
+  shaderParameterValues = objmat_params
+  shaderValueFileName := "shader_params.cfg"
+  GLSLParameter:loadParamsFromFile shaderValueFileName shaderParameterValues
 
   // List:foreach objmat_params paramIndex param:
   //   println param
@@ -2147,8 +2306,15 @@ func int main():
   println()
   println (toDouble frameNum / (glfwGetTime() - toDouble startTime)) " fps"
 
+  /// store persistent values
+
+  unless isNull(keyboardCameraOrientation):
+    dealloc keyboardCameraOrientation
+  end
   keyboardCameraOrientation = new RBTransform
   keyboardCameraOrientation* = cam.transform
+
+  GLSLParameter:saveParamsToFile shaderValueFileName shaderParameterValues
 
   return 0
 end

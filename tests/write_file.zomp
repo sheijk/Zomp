@@ -1,0 +1,114 @@
+/**
+ * testing writing to a file
+ */
+
+requireLibs libcee stdio unittest
+
+func void writeFile(cstring fileName):
+  file := fopen fileName "w"
+  writeInt file 10
+  writeNewline file
+
+  writeFloat file 1.0
+  writeNewline file
+
+  writeDouble file 3.3d
+  writeNewline file
+
+  writeChar file 'x'
+  writeNewline file
+
+  writePtr file (cast void* (malloc int))
+  writeNewline file
+
+  writeCString file "lalalal"
+  writeNewline file
+
+  closeFile file
+  ret void
+end
+
+macro printNonZeroResults compare intExprs:
+  uniqueId result "printNonZeroResults"
+
+  code := ${seq:
+    #result := 0
+  end}
+
+  ast:replaceId(compare, "_", result)
+
+  forEachAstChild expr intExprs:
+    ast:addChild code ${seq:
+      #result = #expr
+      if !(#compare):
+        println "Warning, expression " ${#expr} " returned " #result
+      end
+    end}
+  end
+
+  ret code
+end
+
+func bool op==_eps(float l, float r):
+  // stupid value..
+  eps := 0.0001
+  return (fabsf (l-r) < eps)
+end
+
+func bool op==_epsd(double l, double r):
+  // stupid value..
+  eps := 0.0001d
+  return (fabs (l-r) < eps)
+end
+
+func void testRead(cstring fileName):
+  i := 10
+  f := 3.2
+  d := 9.23d
+  c := 'd'
+
+  file := fopen fileName "w"
+  printNonZeroResults (0 <= _):
+    writeInt file i
+    writeChar file ' '
+    writeFloat file f
+    writeChar file ' '
+    writeDouble file d
+    writeChar file ' '
+    writeChar file c
+    writeChar file ' '
+  end
+  closeFile file
+
+  i2 := 0
+  f2 := 0.0
+  d2 := 0.0d
+  c2 := '$'
+
+  file = fopen fileName "r"
+  printNonZeroResults (0 <= _):
+    readInt file &i2
+    readFloat file &f2
+    readDouble file &d2
+    readChar file &c2
+  end
+  closeFile file
+
+  unittest:assertAll:
+    i == i2
+    f ==_eps f2
+    d ==_epsd d2
+    c == c2
+  end
+
+  ret void
+end
+
+func int main():
+  writeFile "/tmp/foobar.txt"
+  testRead "/tmp/foobar2.txt"
+
+  ret 0
+end
+
+
