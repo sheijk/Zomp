@@ -552,6 +552,28 @@ editor to trigger recompilations etc. and possibly resume main()"
       (comment-region start (point))
       )))
 
+(defun zomp-move-up ()
+  "Move cursor up one indentation level"
+  (interactive)
+  ;; skip empty line(s)
+  (while (save-excursion
+           (beginning-of-line)
+           (looking-at " *$"))
+    (previous-line))
+
+  (let ((oldpoint (point))
+        (moved-lines 0)
+        (column (save-excursion (back-to-indentation) (current-column))))
+    (message "column = %s" column)
+    (previous-line)
+    (while (or
+            (>= (progn (back-to-indentation) (current-column)) column)
+            (looking-at " *$"))
+      (previous-line)
+      (setq moved-lines (+ 1 moved-lines)))
+    (when (> moved-lines 3)
+      (push-mark oldpoint))))
+
 (defun zomp-setup ()
   (setq comment-start "//")
   (setq comment-start-skip "// *")
@@ -579,6 +601,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(meta n)] 'zomp-next-tl-expr)
   (local-set-key [(meta p)] 'zomp-prev-tl-expr)
   (local-set-key [(meta k)] 'zomp-mark-sexp)
+  (local-set-key [(control c)(control u)] 'zomp-move-up)
 
   ;; extra comfort (insert ///, * in matching places, * / => */ etc.)
   (local-set-key "\r" 'zomp-newline)
