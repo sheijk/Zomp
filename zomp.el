@@ -530,6 +530,28 @@ editor to trigger recompilations etc. and possibly resume main()"
          ((looking-back "^ \\*") 2)
          (t prefix))))
 
+(defun zomp-comment-block ()
+  "Will comment out the current indentation block"
+  (interactive)
+  (save-excursion
+    (let ((start (save-excursion (beginning-of-line) (point)))
+          (column (save-excursion (back-to-indentation) (current-column))))
+      ;; (save-excursion
+      ;;   (while (progn (back-to-indentation)
+      ;;                 (>= (current-column) column))
+      ;;     (previous-line))
+      ;;   (beginning-of-line)
+      ;;   (setq start (point)))
+      (next-line)
+      (while (progn (back-to-indentation)
+                    (or (eolp)
+                        (> (current-column) column)))
+        (next-line))
+      (next-line)
+      (beginning-of-line)
+      (comment-region start (point))
+      )))
+
 (defun zomp-setup ()
   (setq comment-start "//")
   (setq comment-start-skip "// *")
@@ -563,6 +585,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(control j)] 'zomp-newline)
   (local-set-key [(?/)] 'zomp-electric-slash)
   (local-set-key (kbd "DEL") 'zomp-electric-backspace)
+  (local-set-key [(control c)(control ?/)] 'zomp-comment-block)
 
   (local-set-key [(?:)] '(lambda () (interactive)
                            (zomp-indent-line)
