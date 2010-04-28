@@ -46,7 +46,8 @@ indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type `(repeat string))
 
-(defcustom zomp-continued-line-regexp "\\(?: [-+*/=><&|:]*[-+*/=><&|]\\|[,({\\[]\\) *\\(?://.*\\)?"
+(defcustom zomp-continued-line-regexp
+  "\\(?: [-+*/=><&|:]*[-+*/=><&|]\\|[,({\\[]\\) *\\(?:///.*\\)?"
   "A line whose ends matches this string (using `looking-back' is
   considered to be one which continues on the next line"
   :group 'zomp
@@ -759,12 +760,11 @@ editor to trigger recompilations etc. and possibly resume main()"
 
 (defun zomp-symbol-at-point ()
   (interactive)
-  (let ((linestart 0) (parenopen 0) funcend linesym funcsym)
+  (let ((linestart 0) (parenopen 0) exprstart funcend linesym funcsym)
     (setq linesym
           (save-excursion
             (back-to-indentation)
             (setq linestart (point))
-            ;; (forward-word)
             (condition-case nil
                 (search-forward-regexp zomp-identifier-regexp)
               (error nil))
@@ -774,10 +774,11 @@ editor to trigger recompilations etc. and possibly resume main()"
             (when (search-backward-regexp " [:=/*+-]+ " linestart t)
               (forward-char 1)
               (search-forward-regexp "[ a-aA-Z0-9]")
-              (forward-word 1)
-              (let ((wordend (point)))
-                (backward-word 1)
-                (buffer-substring (point) wordend)))))
+              (setq exprstart (point))
+              (condition-case nil
+                  (search-forward-regexp zomp-identifier-regexp)
+                (error nil))
+              (buffer-substring exprstart (point)))))
     (setq funcsym
           (save-excursion
             (condition-case nil
@@ -798,6 +799,7 @@ editor to trigger recompilations etc. and possibly resume main()"
               (error nil))))
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
+    ;; (message "exprsym = %s, funcsym = %s, linesym = %s" exprsym funcsym linesym)
     (or exprsym funcsym linesym "nothing found")))
 
 (defun zomp-get-eldoc-string ()
