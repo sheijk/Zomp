@@ -947,6 +947,9 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] short type                                                :smallpt:
 ** TODO unsigned ints                                                  :smallpt:
 ** TODO [#A] detect writing of function parameters                     :smallpt:
+** TODO [#A] more structured type system?                                  :bug:
+   just introduce parametric types, but only support builtin-ones in the base
+   type system?
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
