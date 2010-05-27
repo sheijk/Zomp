@@ -230,7 +230,7 @@ func bool file:makeBackup(cstring fileName):
 
     ++num
   end
-  
+
   ret succeeded
 end
 
@@ -525,56 +525,22 @@ end
 /// when the main app starts
 defineEvent startup
 
-///-----------------------------------------------------------------------------
-/// Section: event handling
-///-----------------------------------------------------------------------------
+func void twMoveBar(cstring barName, int left, int top, int right, int bottom):
+  leftStr := int2cstring left
+  topStr := int2cstring top
+  widthStr := int2cstring(right - left)
+  heightStr := int2cstring(bottom - top)
 
-func void onTweakbarError(char* msg):
-  println "AntTweakBar error: " msg
-end
-
-func void onWindowResize(int newWidth, int newHeight):
-  // desiredAspect := toFloat windowWidth / toFloat windowHeight
-  // correctHeight := toFloat newWidth / desiredAspect
-  // glfwSetWindowSize newWidth toInt(correctHeight)
-  // windowWidth = newWidth
-  // windowHeight = toInt correctHeight
-  // TwWindowSize windowWidth windowHeight
-  windowWidth = newWidth
-  windowHeight = newHeight
-  glfwSetWindowSize windowWidth windowHeight
-  TwWindowSize windowWidth windowHeight
+  options := barName ++ " position='" ++ leftStr ++ " " ++ topStr ++
+      "' size='" ++ widthStr ++ " " ++ heightStr ++ "'"
+  TwDefine options
+  // TODO clean up memory
   ret void
 end
 
-var int lastMouseX 0
-var int lastMouseY 0
-var int mouseXDelta 0
-var int mouseYDelta 0
-
-dfunc void timelineOnMouseMove(int x, int y)
-
-func void onMouseMove(int x, int y):
-  TwEventMousePosGLFW x y
-
-  timelineOnMouseMove x y
-
-  mouseXDelta = lastMouseX - x
-  mouseYDelta = lastMouseY - y
-
-  lastMouseX = x
-  lastMouseY = y
-end
-
-var int lastMouseWheel 0
-var int mouseWheelDelta 0
-
-func void onMouseWheel(int pos):
-  TwEventMouseWheelGLFW pos
-
-  mouseWheelDelta = lastMouseWheel - pos
-  lastMouseWheel = pos
-end
+///-----------------------------------------------------------------------------
+/// Section: event handling
+///-----------------------------------------------------------------------------
 
 struct KeyEvent:
   int key
@@ -624,6 +590,58 @@ func void clearKeyEvents():
   while fetchNextKeyEvent(&ignore) void
 end
 
+func void onTweakbarError(char* msg):
+  println "AntTweakBar error: " msg
+end
+
+func void onWindowResize(int newWidth, int newHeight):
+  // desiredAspect := toFloat windowWidth / toFloat windowHeight
+  // correctHeight := toFloat newWidth / desiredAspect
+  // glfwSetWindowSize newWidth toInt(correctHeight)
+  // windowWidth = newWidth
+  // windowHeight = toInt correctHeight
+  // TwWindowSize windowWidth windowHeight
+
+  guiBottom := newHeight * 17 / 20
+  twMoveBar "Settings" 0 20 200 guiBottom
+  twMoveBar "Shaders" (newWidth-300) 20 (newWidth-2) guiBottom
+
+  windowWidth = newWidth
+  windowHeight = newHeight
+  glfwSetWindowSize windowWidth windowHeight
+  TwWindowSize windowWidth windowHeight
+  ret void
+end
+
+var int lastMouseX 0
+var int lastMouseY 0
+var int mouseXDelta 0
+var int mouseYDelta 0
+
+dfunc void timelineOnMouseMove(int x, int y)
+
+func void onMouseMove(int x, int y):
+  TwEventMousePosGLFW x y
+
+  timelineOnMouseMove x y
+
+  mouseXDelta = lastMouseX - x
+  mouseYDelta = lastMouseY - y
+
+  lastMouseX = x
+  lastMouseY = y
+end
+
+var int lastMouseWheel 0
+var int mouseWheelDelta 0
+
+func void onMouseWheel(int pos):
+  TwEventMouseWheelGLFW pos
+
+  mouseWheelDelta = lastMouseWheel - pos
+  lastMouseWheel = pos
+end
+
 func int onKey(int key, int action):
   storeKeyEvent key action glfwGetTime()
   TwEventKeyGLFW key action
@@ -637,7 +655,7 @@ func int onMouseButton(int button, int action):
     event.mouseX = lastMouseX
     event.mouseY = lastMouseY
   end
-  
+
   ret 0
 end
 
@@ -1707,12 +1725,57 @@ defineArrayType SceneGraphEdge
 defineListType SceneGraphEdge
 defineArrayType Mesh
 
+struct Texture:
+  GLint glname
+  GLenum format
+  cstring fileName
+  int width heigth
+end
+
+defineArrayType Texture
+
+struct Material:
+  cstring name
+  Texture_Array textures
+  GLint shader
+end
+
+defineArrayType Material
+
+// ofunc bool op==(aiString aistr, cstring str):
+//   ret false
+// end
+
+func bool op==_aistr(aiString aistr, cstring str):
+  ret (strcmp(cast cstring &aistr.data, str) == 0)
+end
+
+var cstring aiMaterial:propName "?mat.name"
+
+func void Material:initFromAI(Material* this, aiMaterial* aimat):
+  this.name = nullptr char
+  Texture_Array:init &this.textures 0
+  this.shader = -1
+
+  for propnum 0 aimat.mNumProperties:
+    prop := *(aimat.mProperties + propnum)
+    if (prop.mType == aiPTI_String && prop.mKey ==_aistr aiMaterial:propName):
+      this.name = aiString:cstring (cast aiString* prop.mData)
+    end
+  end
+
+  unless isNull(this.name):
+    println "loaded material " this.name
+  end
+end
+
 struct SceneGraph:
   SceneGraphNode_Array nodes
   SceneGraphEdge_Array edges
   MeshInfo_Array meshes
   Animation_Array animations
   CameraInfo_Array cameras
+  Material_Array materials
 end
 
 //--- functions
@@ -1899,6 +1962,10 @@ func void CameraInfo:print(CameraInfo* this, int indent):
   Camera:print &this.camera (indent+2)
 end
 
+func void Material:print(Material* this, int indent):
+  ret void
+end
+
 func void SceneGraph:print(SceneGraph* this, int indent):
   iprintln indent "SceneGraph:"
 
@@ -1913,6 +1980,7 @@ func void SceneGraph:print(SceneGraph* this, int indent):
   iprintArray this.animations "animations" Animation:print (indent+2)
   iprintArray this.meshes "meshes" MeshInfo:print (indent+2)
   iprintArray this.cameras "cameras" CameraInfo:print (indent+2)
+  iprintArray this.materials "materials" Material:print (indent+2)
 end
 
 func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Array nodes):
@@ -1938,6 +2006,15 @@ func void Animation:init(Animation* this, aiAnimation* source, SceneGraphNode_Ar
 end
 
 func void SceneGraph:init(SceneGraph* this, aiScene* source):
+  /// materials
+
+  Material_Array:init &this.materials source.mNumMaterials
+  Array:foreach this.materials matnum:
+    aimat := *(source.mMaterials + matnum)
+    mat := aptr this.materials matnum
+    Material:initFromAI mat aimat
+  end
+
   /// meshes
   MeshInfo_Array:init &this.meshes source.mNumMeshes
 
@@ -2180,19 +2257,6 @@ func void onPlayPauseButton2(void* ignored):
   end
 end
 
-func void twMoveBar(cstring barName, int left, int top, int right, int bottom):
-  leftStr := int2cstring left
-  topStr := int2cstring top
-  widthStr := int2cstring(right - left)
-  heightStr := int2cstring(bottom - top)
-
-  options := barName ++ " position='" ++ leftStr ++ " " ++ topStr ++
-      "' size='" ++ widthStr ++ " " ++ heightStr ++ "'"
-  TwDefine options
-  // TODO clean up memory
-  ret void
-end
-
 func Rect makeRect(float l, float t, float r, float b):
   var Rect rect
   rect.left = l
@@ -2202,29 +2266,34 @@ func Rect makeRect(float l, float t, float r, float b):
   ret rect
 end
 
-struct Timeline2:
+struct Timeline:
   float* currentTime
   float totalTime
 
   float startTime
   float endTime
 
+  float restrictedStartTime restrictedEndTime
+
   Rect screenPos
 end
 
-func void Timeline2:init(Timeline2* this, float totalTime, float* currentTime):
+func void Timeline:init(Timeline* this, float totalTime, float* currentTime):
   this.currentTime = currentTime
   this.startTime = 0.2
   this.endTime = 0.4
   this.totalTime = totalTime
   this.screenPos = makeRect 0.03 0.03 0.97 0.13
+  this.restrictedStartTime = this.startTime
+  this.restrictedEndTime = this.endTime
 end
 
-func void Timeline2:render(Timeline2* this):
+func void Timeline:render(Timeline* this):
   saveAttribs:
     glDisable GL_DEPTH_TEST
     // nowColor := color 0.3 0.8 0.2
-    scaleTo2dArea 0.03 0.03 0.97 0.13
+    // scaleTo2dArea 0.03 0.03 0.97 0.13
+    scaleTo2dArea this.screenPos.left this.screenPos.top this.screenPos.right this.screenPos.bottom
     markers := malloc float 3
     colors := malloc Color 3
     onReturn:
@@ -2476,7 +2545,8 @@ func void relativePos(float* x, float* y, Rect* r):
 end
 
 var int timelineSelectedItem -1
-var Timeline2* timeline null
+var Timeline* timeline null
+var float timelineLastButtonClickTime 0.0
 
 func void timelineOnMouseMove(int x, int y):
   if isNull(timeline):
@@ -2489,39 +2559,74 @@ func void timelineOnMouseMove(int x, int y):
     relativePos &csMouseX &csMouseY &timeline.screenPos
     if (timelineSelectedItem == 0):
       timeline.startTime = csMouseX * timeline.totalTime
+      timeline.restrictedStartTime = timeline.startTime
     elseif (timelineSelectedItem == 1):
       timeline.endTime = csMouseX * timeline.totalTime
+      timeline.restrictedEndTime = timeline.endTime
     elseif (timelineSelectedItem == 2):
       (timeline.currentTime)* = csMouseX * timeline.totalTime
     end
   end
 end
 
-func void onTimelineButton2(KeyEvent* keyEvent):
+var float doubleClickTime 0.3
+
+func void onTimelineButton(KeyEvent* keyEvent):
   csMouseX := toFloat keyEvent.mouseX / toFloat windowWidth
   csMouseY := toFloat (windowHeight - keyEvent.mouseY) / toFloat windowHeight
-  
+
   if (keyEvent.action == GLFW_PRESS):
-    if insideRect(csMouseX, csMouseY, &timeline.screenPos):
-      relativePos &csMouseX &csMouseY &timeline.screenPos
-      relStartTime := timeline.startTime / timeline.totalTime
-      relEndTime := timeline.endTime / timeline.totalTime
-      startDistance := fabsf( csMouseX - relStartTime )
-      endDistance := fabsf( csMouseX - relEndTime )
-      if (float:min startDistance endDistance < 0.02):
-        if (startDistance < endDistance):
-          timelineSelectedItem = 0
-        else:
-          timelineSelectedItem = 1
-        end
+    sinceLastClick := toFloat glfwGetTime() - timelineLastButtonClickTime
+    if (sinceLastClick < doubleClickTime):
+      println "Double click! " sinceLastClick "s"
+      isUnrestricted := timeline.startTime == 0.0 && timeline.endTime == timeline.totalTime
+      if isUnrestricted:
+        println "unrestricted"
+        timeline.startTime = timeline.restrictedStartTime
+        timeline.endTime = timeline.restrictedEndTime
       else:
-        (timeline.currentTime)* = csMouseX * timeline.totalTime
-        timelineSelectedItem = 2
+        println "restricted"
+        timeline.startTime = 0.0
+        timeline.endTime = timeline.totalTime
+      end
+      println "timeline.startTime = " timeline.startTime
+      println "timeline.endTime = " timeline.endTime
+    else:
+      if insideRect(csMouseX, csMouseY, &timeline.screenPos):
+        relativePos &csMouseX &csMouseY &timeline.screenPos
+        relStartTime := timeline.startTime / timeline.totalTime
+        relEndTime := timeline.endTime / timeline.totalTime
+        startDistance := fabsf( csMouseX - relStartTime )
+        endDistance := fabsf( csMouseX - relEndTime )
+        if (float:min startDistance endDistance < 0.02):
+          if (startDistance < endDistance):
+            timelineSelectedItem = 0
+          else:
+            timelineSelectedItem = 1
+          end
+        else:
+          (timeline.currentTime)* = csMouseX * timeline.totalTime
+          timelineSelectedItem = 2
+        end
       end
     end
+    timelineLastButtonClickTime = toFloat glfwGetTime()
   else:
     timelineSelectedItem = -1
   end
+end
+
+macro arraylit type elements...:
+  uniqueId name "arraylit"
+  size := elements.childCount
+  code := ${seq}
+  ast:addChild code ${var #type[#size] #name}
+  for i 0 size:
+    child := ast:child elements i
+    ast:addChild code ${zmp:array:set #name #i #child}
+  end
+  ast:addChild code ast:fromString(name)
+  ret code
 end
 
 func int main():
@@ -2545,7 +2650,8 @@ func int main():
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100208_camrot_03.dae"
       // "data/pixeljourney/mayatest.dae"
       // "data/pixeljourney/pipetest/car_w_mat.dae"
-      "data/pixeljourney/pipetest/ringed.dae"
+      // "data/pixeljourney/pipetest/ringed.dae"
+      "data/pixeljourney/pipetest/cow.dae"
       // "data/pixeljourney/first_scene_mats.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100207_Pixeljums_cambaked_singlecube.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test6.dae"
@@ -2652,7 +2758,12 @@ func int main():
   end
   cameraEnumType := TwDefineEnum("Camera", cameraEnums, camCount)
 
-  // TwAddButton(mainBar, "Pause", &onPlayPauseButton2, nullptr void, "group=options")
+  backgroundColor := arraylit float 0. 0. 0.3
+  // var float[3] backgroundColor
+  // zmp:array:set backgroundColor 0 0.0
+  // zmp:array:set backgroundColor 1 0.0
+  // zmp:array:set backgroundColor 2 0.3
+
   twgroup mainBar "group=options precision=2":
     button "Play/Pause" &onPlayPauseButton2 nullptr(void)
     rw TW_TYPE_FLOAT "playback speed" playbackSpeed
@@ -2668,7 +2779,8 @@ func int main():
     rw TW_TYPE_FLOAT "far planefactor" farPlaneFactor
     rw TW_TYPE_FLOAT "near plane factor" nearPlaneFactor
     separator
-    // rw TW_TYPE_COLOR4F "bg color" backgroundColor
+    rw TW_TYPE_FLOAT "Double click" doubleClickTime
+    rw TW_TYPE_COLOR3F "bg color" backgroundColor
     // rw TW_TYPE_FLOAT "dampening" objmat_dampening
   end
 
@@ -2723,7 +2835,11 @@ func int main():
   glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
 
   animTime := 0.0
-  timeline = local Timeline2 animDuration &animTime
+  if isNull(timeline):
+    timeline = new Timeline animDuration &animTime
+  else:
+    timeline.currentTime = &animTime
+  end
 
   mainloop:
     /// update logic
@@ -2742,7 +2858,7 @@ func int main():
     keyEvent := default KeyEvent
     while fetchNextKeyEvent(&keyEvent):
       if (keyEvent.key == GLFW_MOUSE_BUTTON_LEFT):
-        onTimelineButton2 &keyEvent
+        onTimelineButton &keyEvent
       elseif (keyEvent.action == GLFW_PRESS):
         if (keyEvent.key == GLFW_KEY_P):
           if (keyDown GLFW_KEY_LSHIFT):
@@ -2772,13 +2888,19 @@ func int main():
     end
     Camera:move(cam, frameDuration * keyboardCamSpeedFactor)
 
+    // var int[2] mainBarSize
+    // TwGetParam mainBar nullptr(char) "size" TW_TYPE_INT32 2 (cast void* &mainBarSize)
+    // zmp:array:set mainBarSize 1 (windowHeight * 17 / 20 - 20)
+    // TwSetParam mainBar nullptr(char) "size" TW_TYPE_INT32 2 (cast void* &mainBarSize)
+
     /// rendering
     autoSetupViewport()
 
     renderToTarget fbo:
-      glClearColor 0. 0. 0.3 0.
+      // glClearColor 0. 0. 0.3 0.
+      glClearColor backgroundColor[0] backgroundColor[1] backgroundColor[2] 1.0
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    
+
       glEnable GL_DEPTH_TEST
       glEnable GL_BLEND
 
@@ -2792,7 +2914,7 @@ func int main():
       farPlaneDist *= farPlaneFactor
       nearPlaneDist *= nearPlaneFactor
       gluPerspective toDouble(cam.horizontalFOV) aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
-    
+
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       camNum = camNum % (specialCamCount + sg.cameras.length)
@@ -2806,13 +2928,13 @@ func int main():
         camInfo := aptr(sg.cameras, camNum - specialCamCount)
         Camera:applyGL &camInfo.camera
       end
-    
+
       var float[16] pj_CameraMatrix
       readGLMatrix GL_MODELVIEW_MATRIX (cast float* &pj_CameraMatrix)
       // println "pj_CameraMatrix:"
       // printlnMatrix44 (cast float* &pj_CameraMatrix) 4
       // running = false
-    
+
       AABB:render &meshBB
       withShader objmat:
         glUniformMatrix4fv objmat_pj_CameraMatrix 1 false (cast float* &pj_CameraMatrix)
@@ -2876,15 +2998,15 @@ func int main():
           end
         end
       end
-    
-      drawOrientationGrid2 0.2 1.0
-    
+
+      // drawOrientationGrid2 0.2 1.0
+
       renderRotationTest()
-    
+
       if showCameraPositions:
         SceneGraph:visualizeCameras &sg
       end
-    
+
       if (visAnim >= 0):
         anim2 := aptr sg.animations visAnim
         NodeAnimation:visualize (aptr anim2.channels visNodeAnim)
@@ -2898,16 +3020,16 @@ func int main():
     // renderToTarget fbo:
     //   glClearColor 0. 0. 0. 0.
     //   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    //   
+    //
     //   glMatrixMode GL_PROJECTION
     //   glLoadIdentity()
     //   aspect := toDouble(windowWidth) / toDouble(windowHeight)
     //   gluPerspective 60.0d aspect 1.0d 20.0d
-    // 
+    //
     //   glMatrixMode GL_MODELVIEW
     //   glLoadIdentity()
     //   glTranslatef -2. -1. -8.
-    // 
+    //
     //   glutSolidSphere 3.0d 30 30
     //   drawOrientationGrid2 1.0 1.0
     // end renderToTarget
@@ -2927,7 +3049,7 @@ func int main():
       end
       showTextureAt fbo.colorTexture -1. -1. 2. 2.
     end
-    
+
     // glScalef (1. / toFloat aspect) 1. 1.
     // glTranslatef 1.0 -0.5 0.
     // glTranslatef -0.5 -0.5 0.
@@ -2940,7 +3062,7 @@ func int main():
     //   end
     // end
 
-    Timeline2:render timeline
+    Timeline:render timeline
 
     // makeGLIdentityTransforms()
     // glColor3f 1. 1. 1.
