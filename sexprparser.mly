@@ -41,37 +41,39 @@ main:
 | PAREN_OPEN e = operatorExpr PAREN_CLOSE
     { e }
 | PAREN_OPEN PAREN_CLOSE
-        {{ Ast2.id = "seq"; args = [] }}
+        {{ Ast2.id = "seq"; args = []; location = None }}
 | q = QUOTE e = main
-    {{ Ast2.id = quoteId q; args = [e] }}
+    {{ Ast2.id = quoteId q; args = [e]; location = None }}
 | q = QUOTE e = IDENTIFIER
-    {{ Ast2.id = quoteId q; args = [{Ast2.id = e; args = []}] }}
+    {{ Ast2.id = quoteId q;
+       args = [{Ast2.id = e; args = []; location = None}];
+       location = None }}
 | id = IDENTIFIER op = POST_OP
     { Ast2.simpleExpr ("post" ^ operatorName op) [id] }
 | op = PRE_OP id = IDENTIFIER
     { Ast2.simpleExpr ("pre" ^ operatorName op) [id] }
 sexpr:
 | id = IDENTIFIER args = sexprArg*
-    {{ Ast2.id = id; args = args }}
+    {{ Ast2.id = id; args = args; location = None }}
 | id = main args = sexprArg*
-    {{ Ast2.id = "seq"; args = id :: args }}
+    { Ast2.seqExpr (id :: args) }
 sexprArg:
 | id = IDENTIFIER
-    {{ Ast2.id = id; args = [] }}
+    { Ast2.idExpr id }
 | e = main
     { e }
 operatorExpr:
 | l = operatorArg op = ADD_OP r = operatorArg
-    {{ Ast2.id = operatorName op; args = [l; r] }}
+    {{ Ast2.id = operatorName op; args = [l; r]; location = None }}
 | l = operatorArg op = MULT_OP r = operatorArg
-    {{ Ast2.id = operatorName op; args = [l; r] }}
+    {{ Ast2.id = operatorName op; args = [l; r]; location = None }}
 | l = operatorArg op = COMPARE_OP r = operatorArg
-    {{ Ast2.id = operatorName op; args = [l; r] }}
+    {{ Ast2.id = operatorName op; args = [l; r]; location = None }}
 | left = IDENTIFIER BRACKET_OPEN right = sexpr BRACKET_CLOSE
-    {{ Ast2.id = "op[]"; Ast2.args = [Ast2.idExpr left; right] }}
+    {{ Ast2.id = "op[]"; Ast2.args = [Ast2.idExpr left; right]; location = None }}
 operatorArg:
 | e = sexpr
     { e }
 | e = operatorExpr
     { e }
-        
+

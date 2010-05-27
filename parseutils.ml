@@ -98,7 +98,7 @@ let parseIExpr source =
       | Exprs [singleExpr] ->
           Some singleExpr
       | Exprs multipleExprs ->
-          Some { Ast2.id = "opseq"; args = multipleExprs }
+          Some (Ast2.seqExpr multipleExprs)
       | Error _ ->
           None
   else

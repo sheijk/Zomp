@@ -625,7 +625,7 @@ struct
         in
         getChilds 0
       in
-      { id = name; args = childs }
+      Ast2.expr name childs
 
   let rec buildNativeAst = function
     | {id = id; args = []} ->
@@ -642,7 +642,7 @@ let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames
   let foundArgCount = List.length args in
   if expectedArgCount <> foundArgCount then
     raiseIllegalExpression
-      { id = name; args = args }
+      (Ast2.expr name args)
       (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
 
   let rec repeatedList element count =
@@ -733,7 +733,7 @@ let translateVariadicFuncMacro
   let internalArgCount = List.length argNames in
   let inflatedArgs =
     let regularArgs, variadicArgs = Common.splitAfter (internalArgCount-1) args in
-    regularArgs @ [{ id = "seq"; args = variadicArgs}]
+    regularArgs @ [Ast2.seqExpr variadicArgs]
   in
   translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
 
@@ -807,7 +807,7 @@ let translateTypedef translateF (bindings :bindings) =
       in
       function
         | { id = typeName; args = [{ id = componentName; args = []}] } ->
-            translate componentName { id = typeName; args = [] }
+            translate componentName (Ast2.idExpr typeName)
         | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
             when seq = macroSequence || seq = macroJuxOp ->
             translate componentName typeExpr
@@ -932,7 +932,7 @@ let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) 
     | { id = id; args = [typeExpr] } when id = macroNullptr ->
         convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
     | { id = id; args = [typeExpr] } when id = macroMalloc ->
-        buildMallocInstruction typeExpr { id = "1"; args = [] }
+        buildMallocInstruction typeExpr (Ast2.idExpr "1")
     | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
         buildMallocInstruction typeExpr countExpr
     | { id = id; args = [{ id = varName; args = [] }] } when id = macroGetaddr ->
@@ -1154,7 +1154,7 @@ struct
            | `IsNotVariadic -> begin
                if argCount <> paramCount then begin
                  raiseIllegalExpression
-                   {Ast2.id = name; args = args}
+                   (Ast2.expr name args)
                    (sprintf "Expected %d args but found %d" paramCount argCount);
                end else begin
                  invokeMacro args
@@ -1163,7 +1163,7 @@ struct
            | `IsVariadic -> begin
                if argCount < paramCount-1 then begin
                  raiseIllegalExpression
-                   {Ast2.id = name; args = args}
+                   (Ast2.expr name args)
                    (sprintf "Expected at least %d args but found only %d"
                       (paramCount-1) argCount)
                end;
@@ -1827,7 +1827,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         | { id = "seq"; args = [typeExpr; { id = varName; args = []};] } ->
             translate varName typeExpr
         | { id = typeName; args = [{ id = varName; args = [] }] } ->
-            translate varName { id = typeName; args = [] }
+            translate varName (Ast2.idExpr typeName)
         | _ as expr ->
             raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
