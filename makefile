@@ -6,6 +6,9 @@
 # Config
 ################################################################################
 
+# guard for makefiles in sub directories
+ZOMP_MAIN_MAKEFILE = 1
+
 ifndef DEBUG
 DEBUG=1
 endif
@@ -22,6 +25,7 @@ include flymake.mk
 
 include depends.mk
 include testsuite/makefile
+include examples/makefile
 
 PATH := $(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
@@ -42,10 +46,12 @@ CCFLAGS = -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS = $(ARCHFLAG)
 
 ifeq ($(DEBUG), 1)
+$(info Debug build, LLVM variant = $(LLVM_VARIANT))
 OCAMLC += -g
 CXXFLAGS += -pg -g
 CCFLAGS += -pg -g
 else
+$(info Release build, LLVM variant = $(LLVM_VARIANT))
 CXXFLAGS += -O5
 endif
 
@@ -145,8 +151,7 @@ runtests: $(LANG_CMOS) #expander_tests.cmo
 	@$(ECHO) Running tests ...
 	cd tests && time make clean_tests check
 
-runtestsuite: all
-	cd testsuite && time make all report
+runtestsuite: all testsuite/all
 
 # FUNCTION_COUNTS=10 1000
 PERFTEST_GEN=
@@ -334,7 +339,7 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 
 .PHONY: clean clean_tags clean_all
 
-clean: testsuite/clean
+clean: testsuite/clean examples/clean
 	@$(ECHO) Cleaning...
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})

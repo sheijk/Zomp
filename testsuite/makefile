@@ -2,6 +2,10 @@
 # Makefile to run the test suite
 #
 
+ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
+$(error "Call make from the main zomp dir, only")
+endif
+
 ################################################################################
 # Targets
 ################################################################################
@@ -52,14 +56,19 @@ testsuite/astmatch.ll: libs/libcee.zomp
 # tests to avoid having all tests run and fail because the prelude/compiler is
 # completely broken
 testsuite/preludevalid: $(ZOMPC) stdlib.zomp stdlib.c
+ifeq "$(TESTSUITE_NO_PRELUDE)" ""
 	@$(ECHO) Checking whether prelude compiles ...
-	@rm -f $@.zomp $@.ll $@.o.bc $@.bc $@
+	@rm -f testsuite/$@.zomp testsuite/$@.ll testsuite/$@.o.bc testsuite/$@.bc testsuite/$@
 	@echo "std:base:func int main():\n  ret 0\nend\n" > testsuite/preludevalid.zomp
 	@$(ZOMPC) -c testsuite/preludevalid.zomp
 	@$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
 	@$(LLVM_LINK) -f stdlib.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
 	@$(LLVM_LLI) testsuite/preludevalid.bc
 	@touch $@
+else
+	@$(ECHO) Ignoring whether prelude compiles ...
+	@$(ECHO) "Checking of prelude validity disabled by TESTSUITE_NO_PRELUDE" > $@
+endif
 
 testsuite/%.ll: testsuite/%.zomp zompc.native stdlib.zomp testsuite/preludevalid $(ZOMPC)
 	@$(ECHO) Compiling $(<) to .ll ...

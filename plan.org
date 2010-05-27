@@ -950,6 +950,7 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] more structured type system?                                  :bug:
    just introduce parametric types, but only support builtin-ones in the base
    type system?
+** TODO [#A] global var of double type fails                         :bug:quick:
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
@@ -2272,7 +2273,6 @@ let x :int = 10
 *** Arithmetic types (sum, product types)
 *** Generic types
 *** How much in kernel language, how much as macros?
-
 *** checked/unchecked vars im type system (checked = auf konsistenz usw. geprueft)
     Als ADT realisieren?
 

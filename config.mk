@@ -25,7 +25,11 @@ OTAGS = otags
 # LLVM binaries
 ################################################################################
 
+ifeq "$(DEBUG)" "1"
 LLVM_VARIANT = Debug
+else
+LLVM_VARIANT = Release
+endif
 
 LLVM_BIN_DIR = $(ZOMP_TOOL_PATH)/llvm/$(LLVM_VARIANT)/bin
 LLVM_INCLUDE_DIR = $(ZOMP_TOOL_PATH)/llvm/include
@@ -75,7 +79,11 @@ LD = ld
 # Zomp binaries
 ################################################################################
 
+ifeq "$(PROFILE_ZOMPC)" ""
 ZOMPC = ./zompc.native
+else
+ZOMPC = /usr/bin/time ./zompc.native
+endif
 
 ################################################################################
 # Build flags
@@ -113,4 +121,12 @@ else
 LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
+
+# more libraries
+LINK_QUICKTEXT = libquicktext.dylib
+LINK_ANTTWEAKBAR = libAntTweakBar.dylib
+LINK_ASSIMP = libassimp.a
+LINK_CPPSTDLIB = -lstdc++
+LINK_GLEW = libGLEW.dylib
+LINK_GLFW = libglfw.dylib
 

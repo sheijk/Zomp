@@ -93,3 +93,5 @@ tools
 /examples/smallpt/smallpt-cpp
 /examples/smallpt/image.png
 /examples/smallpt/image.ppm
+/assimp.dylib.dSYM
+/examples/.DS_Store
