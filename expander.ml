@@ -247,17 +247,11 @@ let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
           end
       | `Array(memberType, size) as typ ->
           begin
-            match valueExpr with
-              | None ->
-                  begin
-                    let var = variable name typ (defaultValue typ) MemoryStorage false in
-                    let defvar = `DefineVariable (var, None) in
-                    match typeCheck bindings defvar with
-                      | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-                      | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-                  end
-              | Some valueExpr ->
-                  raiseIllegalExpression valueExpr "Array type var may not have a default value"
+            let var = variable name typ (defaultValue typ) MemoryStorage false in
+            let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
+            match typeCheck bindings defvar with
+              | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
+              | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
           end
       | (`Record _ as typ) ->
           begin
@@ -1063,6 +1057,20 @@ let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings
                       Some( newBindings, [`GlobalVar var] )
                     else
                       raiseIllegalExpression expr "only null values supported for global pointers currently"
+                | `Array (targetType, size) ->
+                    if valueString = "0" then
+                      let var = globalVar name (`Array (targetType,size)) (ArrayVal (targetType, [])) in
+                      let newBindings = addVar bindings var in
+                      Some( newBindings, [`GlobalVar var] )
+                    else
+                      raiseIllegalExpression expr "only 0 supported to init global pointers currently"
+                | `Record recordT ->
+                    if valueString = "0" then
+                      let var = globalVar name (`Record recordT) (RecordVal (recordT.rname, [])) in
+                      let newBindings = addVar bindings var in
+                      Some( newBindings, [`GlobalVar var] )
+                    else
+                      raiseIllegalExpression expr "only 0 supported to init global structs currently"
                 | _ -> raiseIllegalExpression expr
                     "only integral types legal for global variables at this time"
             end

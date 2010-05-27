@@ -138,5 +138,14 @@ unittest:testCase Return:
   unittest:assert(expect p2 11 33)
 end
 
+var Point globalStructVar 0
+
+unittest:testCase SupportGlobalStructVar:
+  unittest:assertAll:
+    getField globalStructVar x == 0
+    getField globalStructVar y == 0
+  end
+end
+
 unittest:main
 

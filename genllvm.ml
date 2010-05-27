@@ -984,10 +984,19 @@ let gencodeGlobalVar var =
         raiseCodeGenError ~msg:"global constant of type void not allowed"
     | FunctionVal _ ->
         raiseCodeGenError ~msg:"global function pointers not supported, yet"
+    | RecordVal (_,[]) ->
+        sprintf "@%s = global %s zeroinitializer\n" varname (llvmTypeName var.typ)
     | RecordVal _ ->
-        raiseCodeGenError ~msg:"global constant of record type not supported, yet"
-    | ArrayVal _ ->
-        raiseCodeGenError ~msg:"global constant of array type not supported, yet"
+        raiseCodeGenError ~msg:"global constant of record type with initializer not supported, yet"
+    | ArrayVal (memberType, values) ->
+        let valueStr =
+          if values = [] then
+            "zeroinitializer"
+          else
+            let valueStrings = List.map Typesystems.Zomp.valueString values in
+            "[" ^ Common.combine ", " valueStrings ^ "]"
+        in
+        sprintf "@%s = global %s %s\n" varname (llvmTypeName var.typ) valueStr
 
 let gencodeDefineFunc func =
   let makeSignature retvalName paramString =

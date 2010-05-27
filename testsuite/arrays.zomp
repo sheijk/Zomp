@@ -59,6 +59,21 @@ func void testStructArray():
   end
 end
 
+//------------------------------------------------------------------------------
+// check global variables of array type
+
+var int[3] globalArray 0
+
+func void checkGlobalArray():
+  zmp:array:set globalArray 0 10
+  var int x (zmp:array:get globalArray 0)
+end
+
+func void checkLocalArray():
+  var int[2] posA
+  var2 posB posA
+end
+
 func int main():
   testPrimitiveTypeArray()
   testStructArray()
