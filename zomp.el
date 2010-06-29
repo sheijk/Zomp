@@ -94,6 +94,44 @@ indent the next line when they occur at the beginning of a line"
         (nil "^testf *$" 0)
         ))
 
+(defun zomp-onkey-do (key code)
+  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; support for find file at point (ffap)
+
+(defvar zomp-symbol-at-point-before-ff nil
+  "The symbol at point before ff-find-other-file was
+invoked. Used by zomp-ff-extract-lib.")
+
+(defun zomp-ff-pre-find-hook ()
+  "Called before ffap starts looking for files and moves the point around"
+  (when (string-match (word-at-point) "requireLibs?")
+    (forward-word 2))
+  (setq zomp-symbol-at-point-before-ff
+        (let ((illegal-char "[^a-zA-Z0-9_]"))
+          (save-excursion
+            (buffer-substring
+             (progn (search-backward-regexp illegal-char) (forward-char 1) (point))
+             (progn (search-forward-regexp illegal-char) (backward-char 1) (point)))))))
+
+(defun zomp-ff-extract-lib ()
+  (format "../libs/%s.zomp" zomp-symbol-at-point-before-ff))
+
+(defcustom zomp-ff-special-constructs
+  '(("^requireLibs? " . zomp-ff-extract-lib))
+  "Value for ff-special-constructs in zomp buffers. Set to nil to
+use global one"
+  :group 'zomp)
+
+(defun zomp-ffap-init ()
+  (add-hook 'ff-pre-find-hook 'zomp-ff-pre-find-hook)
+  (make-variable-buffer-local 'ff-special-constructs)
+  (setq ff-special-constructs zomp-ff-special-constructs))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; editing
+
 (defun zomp-mark-sexp ()
   (interactive)
   (cond (mark-active
@@ -124,9 +162,6 @@ indent the next line when they occur at the beginning of a line"
             (forward-word)
           (goto-char next-line-pos)))
       )))
-
-(defun zomp-onkey-do (key code)
-  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; toplevel interaction
@@ -678,8 +713,9 @@ editor to trigger recompilations etc. and possibly resume main()"
   ;; (local-set-key [(control c)(=)] 'show-entry)
   ;; (local-set-key [(control c)(+)] 'show-all)
 
-  (run-mode-hooks 'zomp-mode-hook)
-  )
+  (zomp-ffap-init)
+
+  (run-mode-hooks 'zomp-mode-hook))
 
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
