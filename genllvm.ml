@@ -227,15 +227,16 @@ let sexpr2codeNoAntiquotes recursion = function
           args = [
             simpleExpr "ptr" ["ast"];
             idExpr tempVarName;
-            simpleExpr "ast:fromString" ["\"" ^ sexprWithArgs.id ^ "\""]]
-        }
+            simpleExpr "ast:fromString" ["\"" ^ sexprWithArgs.id ^ "\""]];
+          location = None }
       in
       let returnExpr = idExpr tempVarName in
       let addChildExpr childExpr =
-        { id = "ast:addChild"; args = [
+        { id = "ast:addChild";
+          args = [
             idExpr tempVarName;
-            childExpr;
-          ] }
+            childExpr;];
+        location = None }
       in
       let argExprs = List.map recursion sexprWithArgs.args in
 (*       let argExprs = List.map (sexpr2code ~antiquoteF) sexprWithArgs.args in *)
@@ -244,7 +245,7 @@ let sexpr2codeNoAntiquotes recursion = function
 
 let rec sexpr2codeasis expr = sexpr2codeNoAntiquotes sexpr2codeasis expr
 
-let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = function
+let rec sexpr2code ?(antiquoteF = Ast2.expr) = function
   | { id = "antiquote"; args = [{ id = id; args = args}] } ->
       begin
         antiquoteF id args
@@ -255,17 +256,18 @@ let rec sexpr2code ?(antiquoteF = (fun id args -> { id = id; args = args })) = f
 (** will turn #foo into (astFromInt foo) if foo evaluates to `Int etc. *)
 let insertAstConstructors bindings =
   fun id args ->
-    let default = { id = id; args = args } in
+    let default = Ast2.expr id args in
     match args with
       | [] ->
           begin match lookup bindings id with
             | VarSymbol { typ = `Int32 } ->
-                { id = "ast:fromInt"; args = [idExpr id] }
+                Ast2.expr "ast:fromInt" [idExpr id]
             | VarSymbol { typ = `Float } ->
-                { id = "ast:fromFloat"; args = [idExpr id] }
+                Ast2.expr "ast:fromFloat" [idExpr id]
             | VarSymbol { typ = `Pointer `Char } ->
-                { id = "ast:fromString"; args = [idExpr id] }
-            | _ -> default
+                Ast2.expr "ast:fromString" [idExpr id]
+            | _ ->
+                default
           end
       | _ -> default
 
@@ -392,7 +394,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
            match args with
              | [quotedExpr] -> sexpr2code ~antiquoteF:(insertAstConstructors bindings) quotedExpr
              | [] -> simpleExpr "ast:fromString" ["seq"]
-             | args -> { id = "quote"; args = args }
+             | args -> Ast2.expr "quote" args
         )
     in
     let quoteasisMacro =
@@ -401,7 +403,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
            match args with
              | [quotedExpr] -> sexpr2codeasis quotedExpr
              | [] -> simpleExpr "ast:fromString" ["seq"]
-             | args -> { id = "quote"; args = args }
+             | args -> Ast2.expr "quote" args
         )
     in
     let bindingsIsNameUsed =

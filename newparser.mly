@@ -3,12 +3,12 @@
   exception ParseError of string
   let raiseParseError str = raise (ParseError str)
 
-  let juxExpr hd args = { Ast2.id = "opjux"; args = hd :: args }
-  let callExpr hd args = { Ast2.id = "opcall"; args = hd :: args }
+  let juxExpr = Ast2.juxExpr
+  let callExpr = Ast2.callExpr
   let idExpr = Ast2.idExpr
-  let seqExpr args = { Ast2.id = "opseq"; args = args }
-  let expr id args = { Ast2.id = id; args = args }
-    
+  let seqExpr = Ast2.seqExpr
+  let expr = Ast2.expr
+
   let quoteId = function
     | "`" -> "quote"
     | "$" -> "quote"
@@ -26,11 +26,11 @@
   let mergeJux l r =
     match l, r with
       | {Ast2.id = "opjux"; args = largs }, _ ->
-          {Ast2.id = "opjux"; args = largs @ [r]}
+          Ast2.expr "opjux" (largs @ [r])
       | _, {Ast2.id = "opjux"; args = rargs } ->
-          {Ast2.id = "opjux"; args = l :: rargs}
+          Ast2.expr "opjux" (l :: rargs)
       | _ ->
-          {Ast2.id = "opjux"; args = [l;r]}
+          Ast2.expr "opjux" [l;r]
 
   let checkTerminators expr terminators =
     let rec checkAll = function
@@ -162,7 +162,7 @@ expr:
 | first = exprArg; argsAndT = exprArgList;
   { let args, terminators = argsAndT in
     checkTerminators first terminators;
-    juxExpr first args }
+    juxExpr (first :: args) }
 
 | e = juxExpr;
   { e }
@@ -173,7 +173,7 @@ juxExpr:
   { e }
 
 | first = exprArg; args = exprArg+;
-  { juxExpr first args }
+  { juxExpr (first :: args) }
 
 | e = opExpr;
   { e }
@@ -181,7 +181,7 @@ juxExpr:
 | e = opExpr; blockAndTerm = block;
   { let block, terminators = blockAndTerm in
     checkTerminators e terminators;
-    juxExpr e [block] }
+    juxExpr [e; block] }
 
 exprArgList:
 | blockAndT = block;
@@ -224,7 +224,7 @@ exprArgInner:
 | q = QUOTE; id = IDENTIFIER;
   { expr (quoteId q) [idExpr id] }
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
-  { expr (quoteId q) [{Ast2.id = "seq"; args = []}] }
+  { expr (quoteId q) [seqExpr []] }
 | q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
   { expr (quoteId q) [e] }
 | q = QUOTE; OPEN_CURLY; blockAndT = block; CLOSE_CURLY;
@@ -234,7 +234,7 @@ exprArgInner:
 | head = exprArgInner; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
   { expr "postop[]" [head; arg] }
 | head = exprArgInner; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  { callExpr head args }
+  { callExpr (head :: args) }
 | call = exprArgInner; op = POSTFIX_OP;
   { expr ("post" ^ opName op) [call] }
 
@@ -261,7 +261,7 @@ opExpr:
 | l = juxExpr; o = opSymbol; rAndT = block;
   { let r, terminators = rAndT in
     expectNoTerminators terminators;
-    expr (opName o) [l; r] }
+    Ast2.expr (opName o) [l; r] }
 
 %inline opSymbol:
 | o = ADD_OP

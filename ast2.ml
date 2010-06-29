@@ -1,17 +1,25 @@
 open Printf
 
+type location = {
+  fileName :string;
+  line :int
+}
+
 type sexpr = {
   id :string;
   args :sexpr list;
+  location :location option;
 }
 
 type t = sexpr
 
-let idExpr name = { id = name; args = [] }
-let simpleExpr name args = { id = name; args = List.map idExpr args }
-let emptyExpr = { id = "seq"; args = [] }
-let seqExpr args = { id = "seq"; args = args }
-let expr name args = { id = name; args = args }
+let idExpr name = { id = name; args = []; location = None }
+let simpleExpr name args = { id = name; args = List.map idExpr args; location = None }
+let emptyExpr = { id = "seq"; args = []; location = None }
+let seqExpr args = { id = "seq"; args = args; location = None }
+let expr name args = { id = name; args = args; location = None }
+let juxExpr args = { id = "opjux"; args = args; location = None }
+let callExpr args = { id = "opcall"; args = args; location = None }
 
 let toSingleExpr = function
   | [single] -> single
@@ -86,21 +94,26 @@ let rec replaceParams params args expr =
   let replacementList = List.combine params args in
   let replace name =
     try List.assoc name replacementList
-    with Not_found -> { id = name; args = [] }
+    with Not_found -> { id = name; args = []; location = None }
   in
   match replace expr.id, expr.args with
     | replacement, [] -> replacement
-    | { id = name; args = [] }, _ -> { id = name; args = List.map (replaceParams params args) expr.args; }
-    | head, (_::_) -> { id = "seq"; args = head :: List.map (replaceParams params args) expr.args; }
-
+    | { id = name; args = [] }, _ ->
+        { id = name;
+          args = List.map (replaceParams params args) expr.args;
+          location = None }
+    | head, (_::_) ->
+        { id = "seq";
+          args = head :: List.map (replaceParams params args) expr.args;
+          location = None }
 
 let shiftId = function
   | {id = firstArgId; args = []} :: remArgs ->
-      { id = firstArgId; args = remArgs }
+      { id = firstArgId; args = remArgs; location = None }
   | _ ->
       failwith "shiftId"
 
 let shiftLeft = function
-  | { id = id; args = [] } :: args -> { id = id; args = args }
-  | args -> { id = "seq"; args = args }
+  | { id = id; args = [] } as first :: args -> { first with args = args }
+  | args -> { id = "seq"; args = args; location = None }
 

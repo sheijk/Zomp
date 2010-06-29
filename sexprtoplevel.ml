@@ -485,12 +485,12 @@ let () =
            let immediateFuncName = "toplevel:immediate" in
 
            let exprInFunc =
-             { id = "func"; args = [
-                 idExpr "void";
-                 idExpr immediateFuncName;
-                 seqExpr [];
-                 seqExpr [expr]
-               ] }
+             Ast2.expr "func" [
+               idExpr "void";
+               idExpr immediateFuncName;
+               seqExpr [];
+               seqExpr [expr]
+             ]
            in
            try
              let newBindings, simpleforms, llvmCode =

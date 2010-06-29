@@ -74,9 +74,9 @@ struct
   let testCases : (input * result) list =
     let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in
     let se = Ast2.simpleExpr
-    and jux args = { Ast2.id = "opjux"; args = List.map Ast2.idExpr args }
-    and call args = { Ast2.id = "opcall"; args = List.map Ast2.idExpr args }
-    and seqExpr args = { Ast2.id = "opseq"; args = args }
+    and jux args = Ast2.juxExpr (List.map Ast2.idExpr args)
+    and call args = Ast2.callExpr (List.map Ast2.idExpr args)
+    and seqExpr args = Ast2.seqExpr args
     and se2 f l r = Ast2.simpleExpr f [l; r]
     and se1 f arg = Ast2.simpleExpr f [arg]
     and id = Ast2.idExpr
@@ -90,7 +90,7 @@ struct
     ignore(se "" []);
     ignore(jux []);
 
-    let expr id args = {Ast2.id = id; args =  args} in
+    let expr id args = Ast2.expr id args in
     let juxExpr = expr "opjux" in
     let callExpr = expr "opcall" in
     ignore(juxExpr []);
@@ -115,10 +115,10 @@ struct
 
       (** s-expressions *)
       "foo (nested bar)",
-      `Return [ {Ast2.id = "opjux"; args = [
-                   id "foo";
-                   jux ["nested"; "bar"];
-                 ]} ];
+      `Return [Ast2.expr "opjux" [
+                 id "foo";
+                 jux ["nested"; "bar"];
+               ]];
       "(ptr float) x",
       `Return [juxExpr [jux ["ptr"; "float"]; id "x"]];
 
@@ -342,12 +342,11 @@ struct
       \  int y\n\
       end",
       `Return [
-        { Ast2.id = "opjux";
-          args = [
-            id "type";
-            id "point";
-            seqExpr [jux ["int"; "x"]; jux ["int"; "y"]];
-          ]}];
+        Ast2.juxExpr [
+          id "type";
+          id "point";
+          seqExpr [jux ["int"; "x"]; jux ["int"; "y"]];
+        ]];
 
       "simple:\n\
       \  single\n\
