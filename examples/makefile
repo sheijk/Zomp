@@ -3,7 +3,7 @@
 #
 
 ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
-$(error "Call make from the main zomp dir, only")
+$(error "Call make from the main zomp dir, only (examples)")
 endif
 
 examples/clean:
@@ -12,7 +12,7 @@ examples/clean:
 EXAMPLES = \
   billboardmix.zomp cee.zomp fib.zomp instrument.zomp lighting.zomp \
   metaball2d.zomp metaballs.zomp opengl.zomp shaderfun.zomp tweakbar.zomp \
-  using_assimp.zomp
+  using_assimp.zomp smallpt.zomp
 
 NOT_WORKING_EXAMPLES = static.zomp
 

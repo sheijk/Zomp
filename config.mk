@@ -66,6 +66,9 @@ SED = sed
 # TR = tc
 TR = tr
 
+# image magick
+CONVERT_IMAGE = convert
+
 ################################################################################
 # Native tool chain (C/C++/Assembler/Linker/...) binaries
 ################################################################################
@@ -111,18 +114,24 @@ endif
 
 # setting up link flags for libraries
 ifeq "$(BUILD_PLATFORM)" "Linux"
-LINK_GLUT = -lglut
-LINK_GL = -lGL
 LDFLAGS += -L/usr/lib64 -L/usr/local/lib64
 LDFLAGS += -fPIC
 CCFLAGS += -fPIC
 CXXFLAGS += -fPIC
+endif
+
+################################################################################
+# Libraries
+################################################################################
+
+ifeq "$(BUILD_PLATFORM)" "Linux"
+LINK_GLUT = -lglut
+LINK_GL = -lGL
 else
 LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
 
-# more libraries
 LINK_QUICKTEXT = libquicktext.dylib
 LINK_ANTTWEAKBAR = libAntTweakBar.dylib
 LINK_ASSIMP = libassimp.a

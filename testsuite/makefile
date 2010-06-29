@@ -3,7 +3,7 @@
 #
 
 ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
-$(error "Call make from the main zomp dir, only")
+$(error "Call make from the main zomp dir, only (testsuite)")
 endif
 
 ################################################################################

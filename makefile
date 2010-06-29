@@ -7,7 +7,7 @@
 ################################################################################
 
 # guard for makefiles in sub directories
-ZOMP_MAIN_MAKEFILE = 1
+ZOMP_MAIN_MAKEFILE=1
 
 ifndef DEBUG
 DEBUG=1
@@ -16,18 +16,6 @@ endif
 ifndef PWD
 PWD=`pwd`
 endif
-
-ZOMP_TOOL_PATH = $(PWD)/tools
-include config.mk
-
-FLYMAKE_LOG=flymake.log
-include flymake.mk
-
-include depends.mk
-include testsuite/makefile
-include examples/makefile
-
-PATH := $(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
 help:
 	@$(ECHO) "PATH = "
@@ -39,7 +27,21 @@ help:
 	@$(ECHO) "CC = $(CC)"
 	@$(ECHO) "CXX = $(CXX)"
 	@$(ECHO) "BUILD_PLATFORM = $(BUILD_PLATFORM)"
-	@$(ECHO) "LLVM_EXTRA_OPTIONS = " $(LLVM_EXTRA_OPTIONS)
+	@$(ECHO) "LLVM_EXTRA_OPTIONS = $(LLVM_EXTRA_OPTIONS)"
+	@$(ECHO) "ZOMP_MAIN_MAKEFILE = $(ZOMP_MAIN_MAKEFILE)"
+
+ZOMP_TOOL_PATH = $(PWD)/tools
+include config.mk
+
+FLYMAKE_LOG=flymake.log
+include flymake.mk
+
+include depends.mk
+include testsuite/makefile
+include examples/makefile
+include examples/smallpt/makefile
+
+PATH := $(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
 
 CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS = -I /usr/local/lib/ocaml/ $(ARCHFLAG)
@@ -368,7 +370,6 @@ clean: testsuite/clean examples/clean
 	$(RM) -f glQuickText.o libquicktext.dylib libglut.dylib
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
-	cd examples/ && make clean
 
 clean_tags:
 	$(RM) -f *.annot
