@@ -6,7 +6,7 @@
   let juxExpr = Ast2.juxExpr
   let callExpr = Ast2.callExpr
   let idExpr = Ast2.idExpr
-  let seqExpr = Ast2.seqExpr
+  let seqExpr = Ast2.opseqExpr
   let expr = Ast2.expr
 
   let quoteId = function

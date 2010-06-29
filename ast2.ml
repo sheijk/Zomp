@@ -17,6 +17,7 @@ let idExpr name = { id = name; args = []; location = None }
 let simpleExpr name args = { id = name; args = List.map idExpr args; location = None }
 let emptyExpr = { id = "seq"; args = []; location = None }
 let seqExpr args = { id = "seq"; args = args; location = None }
+let opseqExpr args = { id = "opseq"; args = args; location = None }
 let expr name args = { id = name; args = args; location = None }
 let juxExpr args = { id = "opjux"; args = args; location = None }
 let callExpr args = { id = "opcall"; args = args; location = None }
