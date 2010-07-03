@@ -1,0 +1,55 @@
+/**
+ * improving the switch statement
+ */
+
+requireLibs libcee
+
+///
+/// switch statement
+///
+/// Example:
+///
+/// switch _intExpression:
+/// case _intExpression:
+///   _code
+/// ...
+/// end
+///
+macro switch intvalue cases...:
+  uniqueId value "the_value"
+
+  first := true
+  code := ${if false:
+    printNewline()
+  end}
+
+  ast:foreach3 case caseval casecode cases:
+    unless ast:matchesShape(case, ${case}):
+      caseNode := ast:shiftLeft ${#case #caseval #casecode}
+      ret ${error "Expected 'case VAL EXPR'" #caseNode}
+    end
+
+    ast:addChild code $elseif
+    ast:addChild code ${#value == #caseval}
+    ast:addChild code casecode
+  end
+
+  code = ${seq:
+    var int #value #intvalue
+    #code
+  end}
+
+  ret code
+end
+
+func int main():
+  switch 10:
+  case 1:
+    println 1
+  case 10:
+    println 10
+  end
+
+  ret 0
+end
+

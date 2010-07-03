@@ -1,0 +1,41 @@
+/**
+ * checking some border cases of if/then/else and syntax
+ */
+
+requireLibs libcee unittest
+
+/// Use {} for blocks inside a single line
+/// not yet in libcee, as it can be replaced with () anyways so it might be better
+/// to safe this for other things
+macro op{} statements...:
+  code := ${seq}
+  forEachAstChild stmnt statements:
+    ast:addChild code stmnt
+  end
+  ret code
+end
+
+func int main():
+  if false:
+    println "error, if false branch"
+  else:
+    println "multi-line if/else works"
+  end
+
+  // TODO: put this into parser unit tests
+  if true println("single expression if/else works") else println("uhoh")
+
+  print "op;"; println " works"
+
+  { println("{} block with single instruction works") }
+  if true { print "if with {} block "; println "works" }
+  if true { print "if/else with {} block works" } else { println "wuargh" }
+
+  ( print "grouping by () and ;"; println " works" )
+  if true ( print "if with () block "; println "works" )
+  if true ( print "if/else with () block works" ) else ( println "wuargh" )
+
+  ret 0
+end
+
+
