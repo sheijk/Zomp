@@ -44,6 +44,39 @@ and macroJuxOp = "opjux"
 and macroSeqOp = "opseq"
 and macroCallOp = "opcall"
 
+
+module Utilities =
+struct
+  let log message =
+    (* () *)
+    eprintf "%s\n" message;
+    flush stderr
+
+  let trace message f =
+    log ("-> " ^ message);
+    let result = f() in
+    log ("<- " ^ message);
+    result
+
+  let foldString str f init =
+    let strLength = String.length str in
+    let rec worker index v =
+      if index >= strLength then v
+      else worker (index+1) (f v str.[index])
+    in
+    worker 0 init
+
+  let rec listContains element = function
+    | [] -> false
+    | e :: rem when e = element -> true
+    | _ :: rem -> listContains element rem
+
+end
+
+open Utilities
+
+exception IllegalExpression of sexpr * string
+
 let rec findTypeName bindings = function
   | #Lang.integralType | `Array _ as integralType -> Lang.typeName integralType
   | `Pointer targetType -> findTypeName bindings targetType ^ "*"
@@ -58,539 +91,216 @@ let rec findTypeName bindings = function
       with Not_found ->
         Lang.typeName typ
 
-let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
-  let typeName = function
-    | `Any description -> description
-    | #Lang.typ as t -> findTypeName bindings t
-  in
-  sprintf "Type error: %s, expected %s but found %s in expression %s"
-    msg
-    (typeName expectedType)
-    (typeName foundType)
-    (match fe with
-       | Semantic.Form form -> Lang.formToString form
-       | Semantic.Ast ast -> Ast2.toString ast)
-
-exception IllegalExpression of sexpr * string
-
-let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
-
-let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
-  raiseIllegalExpression expr
-    (typeErrorMessage Bindings.defaultBindings (formOrExpr, msg,found,expected))
-
-let raiseInvalidType typeExpr =
-  raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
-
-(* TODO: use in translateDefineVar and translateGlobalVar + test *)
-let determineStorage typ =
-  match typ with
-    | `Pointer _ -> MemoryStorage
-    | _ -> RegisterStorage
-
-let lookupType bindings name =
-  try
-    Some (Lang.parseType name)
-  with
-    | Typesystems.Zomp.CouldNotParseType _ ->
-        match lookup bindings name with
-          | TypedefSymbol t -> Some t
-          | _ -> None
-
-let rec translateType bindings typeExpr =
-  let translatePtr targetTypeExpr =
-    match translateType bindings targetTypeExpr with
-      | Some t -> Some (`Pointer t)
-      | None -> None
-  in
-  let translateArray memberTypeExpr sizeExpr =
-    let potentialSize =
-      match sizeExpr with
-        | { id = number; args = [] } ->
-            begin try
-              Some(int_of_string number)
-            with Failure _ ->
-              None
-            end
-        | _ -> None
+module Translation_utils =
+struct
+  let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
+    let typeName = function
+      | `Any description -> description
+      | #Lang.typ as t -> findTypeName bindings t
     in
-    match translateType bindings memberTypeExpr, potentialSize with
-      | Some t, Some size -> Some (`Array(t, size))
-      | _, _ -> None
-  in
-  match typeExpr with
-    | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
-        begin try
-          let translate typ =
-            match translateType bindings typ with
-              | Some t -> t
-              | None -> failwith ""
-          in
-          begin
-            Some (`Pointer (`Function {
-                              returnType = translate returnTypeExpr;
-                              argTypes = List.map translate argTypeExprs;
-                            }))
+    sprintf "Type error: %s, expected %s but found %s in expression %s"
+      msg
+      (typeName expectedType)
+      (typeName foundType)
+      (match fe with
+         | Semantic.Form form -> Lang.formToString form
+         | Semantic.Ast ast -> Ast2.toString ast)
+
+  (* TODO: use in translateDefineVar and translateGlobalVar + test *)
+  let determineStorage typ =
+    match typ with
+      | `Pointer _ -> MemoryStorage
+      | _ -> RegisterStorage
+
+  let lookupType bindings name =
+    try
+      Some (Lang.parseType name)
+    with
+      | Typesystems.Zomp.CouldNotParseType _ ->
+          match lookup bindings name with
+            | TypedefSymbol t -> Some t
+            | _ -> None
+
+  let rec translateType bindings typeExpr =
+    let translatePtr targetTypeExpr =
+      match translateType bindings targetTypeExpr with
+        | Some t -> Some (`Pointer t)
+        | None -> None
+    in
+    let translateArray memberTypeExpr sizeExpr =
+      let potentialSize =
+        match sizeExpr with
+          | { id = number; args = [] } ->
+              begin try
+                Some(int_of_string number)
+              with Failure _ ->
+                None
+              end
+          | _ -> None
+      in
+      match translateType bindings memberTypeExpr, potentialSize with
+        | Some t, Some size -> Some (`Array(t, size))
+        | _, _ -> None
+    in
+    match typeExpr with
+      | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
+          begin try
+            let translate typ =
+              match translateType bindings typ with
+                | Some t -> t
+                | None -> failwith ""
+            in
+            begin
+              Some (`Pointer (`Function {
+                                returnType = translate returnTypeExpr;
+                                argTypes = List.map translate argTypeExprs;
+                              }))
+            end
+          with Failure _ ->
+            None
           end
-        with Failure _ ->
-          None
-        end
-    | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
-        translateType bindings (shiftId args)
-    | { id = "postop*"; args = [targetTypeExpr] }
-    | { id = "ptr"; args = [targetTypeExpr]; } ->
-        translatePtr targetTypeExpr
-    | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
-    | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
-        translateArray memberTypeExpr sizeExpr
-    | { id = name; args = [] } ->
+      | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
+          translateType bindings (shiftId args)
+      | { id = "postop*"; args = [targetTypeExpr] }
+      | { id = "ptr"; args = [targetTypeExpr]; } ->
+          translatePtr targetTypeExpr
+      | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
+      | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
+          translateArray memberTypeExpr sizeExpr
+      | { id = name; args = [] } ->
+          begin
+            lookupType bindings name
+          end
+      | _ -> None
+
+  let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
+
+  let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
+    raiseIllegalExpression expr
+      (typeErrorMessage Bindings.defaultBindings (formOrExpr, msg,found,expected))
+
+  let raiseInvalidType typeExpr =
+    raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
+
+  type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form]
+
+  let formWithTLsEmbeddedToString = function
+    | #Lang.form as form -> Lang.formToString form
+    | `ToplevelForm tlform -> Lang.toplevelFormToString tlform
+
+  type exprTranslateF = bindings -> sexpr -> bindings * formWithTLsEmbedded list
+
+  let rec extractToplevelForms = function
+    | [] -> [], []
+    | head :: rem ->
         begin
-          lookupType bindings name
+          let remTL, remImpl = extractToplevelForms rem in
+          match head with
+            | `ToplevelForm #toplevelExpr as tlform -> tlform::remTL, remImpl
+            | #Lang.form as implF -> remTL, implF::remImpl
+        end
+
+
+  let translatelst translateF bindings expr =
+    let rec worker bindings = function
+      | [] -> bindings, []
+      | expr :: tail ->
+          let newBindings, sf = translateF bindings expr in
+          let resultingBindings, sfuncs = worker newBindings tail in
+          resultingBindings, (sf @ sfuncs)
+    in
+    worker bindings expr
+
+  let rec expr2value typ expr =
+    match typ with
+      | #integralType -> begin
+          match expr with
+            | { id = value; args = [] } -> string2integralValue value
+            | _ -> raiseIllegalExpression expr
+                (Printf.sprintf "expected value of type %s" (Lang.typeName typ))
+        end
+      | `Record components -> begin
+          raiseIllegalExpression expr "records not supported"
+        end
+      | _ -> raiseIllegalExpression expr "unsupported value expression"
+
+  let expr2VarOrConst (bindings :bindings) = function
+    | { id = name; args = [] } -> begin
+        match lookup bindings name with
+          | VarSymbol v ->
+              Some (`Variable v)
+          | _ ->
+              match string2integralValue name with
+                | Some c -> Some (`Constant c)
+                | None -> None
+      end
+    | { id = "preop&"; args = [{id = name; args = []}] } ->
+        begin
+          match lookup bindings name with
+            | FuncSymbol f ->
+                let name = f.fname in
+                let typ = `Function {
+                  returnType = f.rettype;
+                  argTypes = List.map snd f.Lang.fargs;
+                } in
+                let var = variable name (`Pointer typ) (defaultValue typ) RegisterStorage true in
+                Some (`Variable var)
+            | _ ->
+                None
         end
     | _ -> None
 
-(* let translateType = Common.sampleFunc2 "translateType" translateType *)
 
-type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form]
+  let lastTempVarNum = ref 0
 
-let formWithTLsEmbeddedToString = function
-  | #Lang.form as form -> Lang.formToString form
-  | `ToplevelForm tlform -> Lang.toplevelFormToString tlform
-
-type exprTranslateF = bindings -> sexpr -> bindings * formWithTLsEmbedded list
-
-let rec extractToplevelForms = function
-  | [] -> [], []
-  | head :: rem ->
-      begin
-        let remTL, remImpl = extractToplevelForms rem in
-        match head with
-          | `ToplevelForm #toplevelExpr as tlform -> tlform::remTL, remImpl
-          | #Lang.form as implF -> remTL, implF::remImpl
-      end
-
-
-let translatelst translateF bindings expr =
-  let rec worker bindings = function
-    | [] -> bindings, []
-    | expr :: tail ->
-        let newBindings, sf = translateF bindings expr in
-        let resultingBindings, sfuncs = worker newBindings tail in
-        resultingBindings, (sf @ sfuncs)
-  in
-  worker bindings expr
-
-let translateSeq translateF bindings = function
-  | { id = id; args = sequence } when id = macroSequence || id = macroSeqOp ->
-      Some (translatelst translateF bindings sequence)
-  | _ ->
-      None
-
-let rec expr2value typ expr =
-  match typ with
-    | #integralType -> begin
-        match expr with
-          | { id = value; args = [] } -> string2integralValue value
-          | _ -> raiseIllegalExpression expr
-              (Printf.sprintf "expected value of type %s" (Lang.typeName typ))
-      end
-    | `Record components -> begin
-        raiseIllegalExpression expr "records not supported"
-      end
-    | _ -> raiseIllegalExpression expr "unsupported value expression"
-
-
-let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
-  let transform id name typeExpr valueExpr =
-    let declaredType = match typeExpr with
-      | Some e ->
-          begin
-            match translateType bindings e with
-              | Some t -> Some t
-              | None -> raise (CouldNotParseType (Ast2.expression2string e))
-          end
-      | None -> None
-    in
-    let valueType, toplevelForms, implForms =
-      match valueExpr with
-        | Some valueExpr ->
-            begin
-              let _, simpleform = translateF bindings valueExpr in
-              let toplevelForms, implForms = extractToplevelForms simpleform in
-              match typeCheck bindings (`Sequence implForms) with
-                | TypeOf t -> Some t, toplevelForms, implForms
-                | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
-            end
-        | None -> None, [], []
-    in
-    let varType =
-      match declaredType, valueType with
-        | Some declaredType, Some valueType when equalTypes bindings declaredType valueType ->
-            declaredType
-        | Some declaredType, Some valueType ->
-            raiseIllegalExpressionFromTypeError expr
-              (Semantic.Ast expr, "Types do not match",declaredType,valueType)
-        | None, Some valueType -> valueType
-        | Some declaredType, None -> declaredType
-        | None, None ->
-            raiseIllegalExpression expr "var needs either a default value or declare a type"
-    in
-    match varType with
-      | #integralType | `Pointer _ | `Function _ as typ ->
-          begin
-            let var = variable name typ (defaultValue typ) MemoryStorage false in
-            let defvar = `DefineVariable (var, Some (`Sequence implForms))
-            in
-            match typeCheck bindings defvar with
-              | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-              | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-          end
-      | `Array(memberType, size) as typ ->
-          begin
-            let var = variable name typ (defaultValue typ) MemoryStorage false in
-            let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
-            match typeCheck bindings defvar with
-              | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-              | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-          end
-      | (`Record _ as typ) ->
-          begin
-            match valueExpr with
-              | None ->
-                  let var = variable name typ (defaultValue typ) MemoryStorage false in
-                  Some( addVar bindings var, [ `DefineVariable (var, None) ] )
-              | Some valueExpr ->
-                  let var = variable name typ (defaultValue typ) MemoryStorage false in
-                  Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
-          end
-      | `TypeRef _ ->
-          raiseIllegalExpression expr "Internal error: received unexpected type ref"
-  in
-  match expr with
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          valueExpr
-        ] }
-        when (id = macroVar) ->
-        transform id name (Some typeExpr) (Some valueExpr)
-
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-        ] }
-        when (id = macroVar) ->
-        transform id name (Some typeExpr) None
-
-    | { id = id; args = [
-          { id = name; args = [] };
-          valueExpr
-        ] }
-        when id = "var2" ->
-        transform id name None (Some valueExpr)
-
-    | _ ->
-        None
-
-let expr2VarOrConst (bindings :bindings) = function
-  | { id = name; args = [] } -> begin
+  let getUnusedName ?(prefix = "temp") bindings =
+    let rec tryTempVar num =
+      let name = (Printf.sprintf "%s_%d" prefix num) in
       match lookup bindings name with
-        | VarSymbol v ->
-            Some (`Variable v)
-        | _ ->
-            match string2integralValue name with
-              | Some c -> Some (`Constant c)
-              | None -> None
-    end
-  | { id = "preop&"; args = [{id = name; args = []}] } ->
-      begin
-        match lookup bindings name with
-          | FuncSymbol f ->
-              let name = f.fname in
-              let typ = `Function {
-                returnType = f.rettype;
-                argTypes = List.map snd f.Lang.fargs;
-              } in
-              let var = variable name (`Pointer typ) (defaultValue typ) RegisterStorage true in
-              Some (`Variable var)
-          | _ ->
-              None
-      end
-  | _ -> None
-
-
-let lastTempVarNum = ref 0
-
-let getUnusedName ?(prefix = "temp") bindings =
-  let rec tryTempVar num =
-    let name = (Printf.sprintf "%s_%d" prefix num) in
-    match lookup bindings name with
-      | UndefinedSymbol -> name
-      | _ -> tryTempVar (num + 1)
-  in
-  incr lastTempVarNum;
-  tryTempVar !lastTempVarNum
-
-let getNewGlobalVar bindings typ =
-  let newVarName = getUnusedName ~prefix:"tempvar" bindings in
-  let default = defaultValue typ in
-  let var = globalVar ~name:newVarName ~typ ~default in
-  (addVar bindings var, var)
-
-let getNewLocalVar bindings typ =
-  let newVarName = getUnusedName bindings in
-  (* let var = localVar ~name:newVarName ~typ in *)
-  let var = Lang.variable
-    ~name:newVarName
-    ~typ
-    ~storage:MemoryStorage
-    ~global:false
-    ~default:(Typesystems.Zomp.defaultValue typ)
-  in
-  (addVar bindings var, var)
-
-let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
-  match expr2VarOrConst bindings expr with
-    | Some varOrConst ->
-        begin match varOrConst with
-          | `Constant StringLiteral string ->
-              begin
-                let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
-                let var = { var with vdefault = StringLiteral string } in
-                Some( newBindings, [`ToplevelForm (`GlobalVar var); `Variable var] )
-              end
-          | _ -> Some (bindings, [varOrConst] )
-        end
-    | None -> None
-
-
-let translateToForms (translateF :exprTranslateF) bindings expr =
-  let newBindings, xforms = translateF bindings expr in
-  let tlforms, forms = extractToplevelForms xforms in
-  newBindings, toSingleForm forms, tlforms
-
-let rec flattenLeft = function
-  | [] -> [], []
-  | (list, x) :: rem ->
-      let remList, remX = flattenLeft rem in
-      (list @ remList, x :: remX)
-
-let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
-  let buildCall name rettype argTypes isPointer bindings args =
-    let evalArg (argExpr :Ast2.sexpr) =
-      let _, xforms = translateF bindings argExpr in
-      let toplevelForms, forms = extractToplevelForms xforms in
-      toplevelForms, toSingleForm forms
+        | UndefinedSymbol -> name
+        | _ -> tryTempVar (num + 1)
     in
-    let x = List.map evalArg args in
-    let toplevelForms, argForms = flattenLeft x in
-    let funccall = `FuncCall {
-      fcname = name;
-      fcrettype = rettype;
-      fcparams = argTypes;
-      fcargs = argForms;
-      fcptr = isPointer;
-    }
+    incr lastTempVarNum;
+    tryTempVar !lastTempVarNum
+
+  let getNewGlobalVar bindings typ =
+    let newVarName = getUnusedName ~prefix:"tempvar" bindings in
+    let default = defaultValue typ in
+    let var = globalVar ~name:newVarName ~typ ~default in
+    (addVar bindings var, var)
+
+  let getNewLocalVar bindings typ =
+    let newVarName = getUnusedName bindings in
+    (* let var = localVar ~name:newVarName ~typ in *)
+    let var = Lang.variable
+      ~name:newVarName
+      ~typ
+      ~storage:MemoryStorage
+      ~global:false
+      ~default:(Typesystems.Zomp.defaultValue typ)
     in
-    match typeCheck bindings funccall with
-      | TypeOf _ ->
-          Some( bindings, toplevelForms @ [funccall] )
-      | TypeError (fe,msg,f,e) ->
-          raiseIllegalExpression expr (typeErrorMessage bindings (fe,msg,f,e))
-  in
-  match expr with
-    | { id = name; args = args; } ->
-        match lookup bindings name with
-          | FuncSymbol func ->
-              begin
-                buildCall name func.rettype (List.map snd func.fargs) `NoFuncPtr bindings args
-              end
-          | VarSymbol var ->
-              begin
-                match var.typ with
-                  | `Pointer `Function ft ->
-                      begin
-                        buildCall name ft.returnType ft.argTypes `FuncPtr bindings args
-                      end
-                  | _ ->
-                      raiseIllegalExpression
-                        expr
-                        (sprintf "Variable should be a function pointer but has type %s"
-                           (typeName var.typ))
-              end
-          | _ -> None
+    (addVar bindings var, var)
 
+  let translateToForms (translateF :exprTranslateF) bindings expr =
+    let newBindings, xforms = translateF bindings expr in
+    let tlforms, forms = extractToplevelForms xforms in
+    newBindings, toSingleForm forms, tlforms
 
-let translateMacro translateF (bindings :bindings) expr =
-  match expr with
-    | { id = macroName; args = args; } as expr ->
-        match lookup bindings macroName with
-          | MacroSymbol macro ->
-              begin try
-                let transformedExpr = macro.mtransformFunc bindings args in
-                Some (translateF bindings transformedExpr)
-              with
-                | Failure msg ->
-                    raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
-              end
-          | _ -> None
+  let rec flattenLeft = function
+    | [] -> [], []
+    | (list, x) :: rem ->
+        let remList, remX = flattenLeft rem in
+        (list @ remList, x :: remX)
 
-let astType = `Record {
-  rname = "ast";
-  fields = [
-    "id", `Pointer `Char;
-    "childCount", `Int32;
-    "childs", `Pointer (`Pointer (`TypeRef "ast"))
-  ] }
-let astPtrType = `Pointer astType
+  let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
 
-let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
+  type toplevelExprTranslateF = bindings -> sexpr -> bindings * toplevelExpr list
 
-let macroFuncs = ref []
+end
 
-let rec listContains element = function
-  | [] -> false
-  | e :: rem when e = element -> true
-  | _ :: rem -> listContains element rem
+open Translation_utils
 
-
-(* let createNativeMacro translateF bindings macroName argNames impl = *)
-(*   let sexprImpl = impl in *)
-(*   let bindings = *)
-(*     List.fold_left *)
-(*       (fun bindings name -> *)
-(*          Bindings.addVar bindings *)
-(*            (Lang.variable *)
-(*               ~name *)
-(*               ~typ:astPtrType *)
-(*               ~default:(PointerVal (astPtrType, None)) *)
-(*               ~storage:Lang.RegisterStorage *)
-(*               ~global:false) ) *)
-(*       bindings argNames *)
-(*   in *)
-(*   let _, xforms = translateF bindings sexprImpl in *)
-(*   let initForms, implforms = extractToplevelForms xforms in *)
-(*   let initForms = flattenNestedTLForms initForms in *)
-(*   let localVar ~typ ~name = *)
-(*     Lang.variable ~typ ~name ~storage:MemoryStorage *)
-(*     ~global:false ~default:(Typesystems.Zomp.defaultValue typ) *)
-(*   in *)
-(*   let astType = *)
-(*     match lookupType bindings "ast" with *)
-(*       | Some t -> t *)
-(*       | None -> raiseIllegalExpression (Ast2.idExpr "ast") "Could not find prelude type 'ast'" *)
-(*   in *)
-(*   let argParamName = "__macro_args" in *)
-(*   let extractParamExprs : Lang.form list = *)
-(*     let makeExtractCode argNum argName = *)
-(*       let argNum = Int32.of_int argNum in *)
-(*       let argName = argName ^ "_dummy" in *)
-(*       (\* var ast* argName (ptradd __macro_args argNum) *\) *)
-(*       let astPtr = `Pointer astType in *)
-(*       let argVar = localVar ~typ:astPtr ~name:argName in *)
-(*       let macroArgs = `Variable (localVar ~typ:(`Pointer astPtr) ~name:argParamName) in *)
-(*       let argNumConstant = `Constant (Int32Val argNum) in *)
-(*       `DefineVariable (argVar, Some (`LoadIntrinsic (`PtrAddIntrinsic *)
-(*                                                        (macroArgs, *)
-(*                                                         argNumConstant)))) *)
-(*     in *)
-(*     Common.listMapi makeExtractCode argNames *)
-(*   in *)
-(*   (\* let argsDummy : Lang.form = *\) *)
-(*   (\*   `DefineVariable (localVar *\) *)
-(*   (\*                      ~typ:(`Pointer (`Pointer astType)) *\) *)
-(*   (\*                      ~name:argParamName, *\) *)
-(*   (\*                    Some (`NullptrIntrinsic (`Pointer astType))) *\) *)
-(*   (\* in *\) *)
-(* (\* TODO: wieder alte methode von unten einbauen, neue special form "build macro impl ast" *\) *)
-(* (\*   crash: weil __macro_args mit null initialisiert wird *\) *)
-(*   (\* let implforms = argsDummy :: (extractParamExprs @ implforms) in *\) *)
-(*   let implforms = extractParamExprs @ implforms in *)
-(*   let macroFunc = { *)
-(*     Lang.fname = macroName; *)
-(*     rettype = astPtrType; *)
-(*     fargs = [argParamName, `Pointer (`Pointer astType)]; *)
-(*     (\* fargs = List.map (fun name -> (name, astPtrType)) argNames; *\) *)
-(*     impl = Some (toSingleForm implforms); *)
-(*   } in *)
-(*   printf "----- %s\n" macroName; *)
-(*   (\* printf "%s\n" (formToString argsDummy); *\) *)
-(*   List.iter (printf "%s\n" ++ formToString) extractParamExprs; *)
-(*   printf "=> %s\n" (funcToString macroFunc); *)
-(*   List.iter (printf "%s\n" ++ formToString) implforms; *)
-(*   printf "-----\n"; *)
-(*   flush stdout; *)
-(*   let tlforms = initForms @ [`DefineFunc macroFunc] in *)
-(*   let llvmCodes = List.map Genllvm.gencodeTL tlforms in *)
-(*   let llvmCode = Common.combine "\n" llvmCodes in *)
-(*   Zompvm.evalLLVMCodeB *)
-(*     ~targetModule:Zompvm.Runtime *)
-(*     (if listContains macroName !macroFuncs then *)
-(*        [macroName] *)
-(*      else begin *)
-(*        macroFuncs := macroName :: !macroFuncs; *)
-(*        [] *)
-(*      end) *)
-(*     (tlforms @ [`DefineFunc macroFunc]) *)
-(*     llvmCode *)
-
-let createNativeMacro translateF bindings macroName argNames impl =
-  let sexprImpl = impl in
-  let bindings =
-    List.fold_left
-      (fun bindings name ->
-         Bindings.addVar bindings
-           (Lang.variable
-              ~name
-              ~typ:astPtrType
-              ~default:(PointerVal (astPtrType, None))
-              ~storage:Lang.RegisterStorage
-              ~global:false) )
-      bindings argNames
-  in
-  let _, xforms = translateF bindings sexprImpl in
-  let initForms, implforms = extractToplevelForms xforms in
-  let initForms = flattenNestedTLForms initForms in
-  let macroFunc = {
-    Lang.fname = macroName;
-    rettype = astPtrType;
-    fargs = List.map (fun name -> (name, astPtrType)) argNames;
-    impl = Some (toSingleForm implforms);
-  } in
-  let tlforms = initForms @ [`DefineFunc macroFunc] in
-  let llvmCodes = List.map Genllvm.gencodeTL tlforms in
-  let llvmCode = Common.combine "\n" llvmCodes in
-  Zompvm.evalLLVMCodeB
-    ~targetModule:Zompvm.Runtime
-    (if listContains macroName !macroFuncs then
-       [macroName]
-     else begin
-       macroFuncs := macroName :: !macroFuncs;
-       []
-     end)
-    (tlforms @ [`DefineFunc macroFunc])
-    llvmCode
-
-let log message =
-  (* () *)
-  eprintf "%s\n" message;
-  flush stderr
-
-let trace message f =
-  log ("-> " ^ message);
-  let result = f() in
-  log ("<- " ^ message);
-  result
-
-let foldString str f init =
-  let strLength = String.length str in
-  let rec worker index v =
-    if index >= strLength then v
-    else worker (index+1) (f v str.[index])
-  in
-  worker 0 init
-
-(** Utilites to convert between Ast2.sexpr and Zomp native AST *)
+(** Utilities to convert between Ast2.sexpr and Zomp native AST *)
 module NativeAst =
 struct
 
@@ -631,458 +341,673 @@ struct
         nativeAst
 end
 
-let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
-  let expectedArgCount = List.length argNames in
-  let foundArgCount = List.length args in
-  if expectedArgCount <> foundArgCount then
-    raiseIllegalExpression
-      (Ast2.expr name args)
-      (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
-
-  let rec repeatedList element count =
-    if count > 0 then element :: repeatedList element (count-1)
-    else []
-  in
-
-  let constructCallerFunction args =
-    log "building arg expr";
-    let argAstExprs = List.map Genllvm.sexpr2codeasis args in
-    List.iter (fun expr -> log (Ast2.expression2string expr)) argAstExprs;
-    log "translating to simpleform";
-    let tlforms, argAstForms = List.fold_left
-      (fun (prevTLForms, prevForms) expr ->
-         let _, xforms = translateNestedF bindings expr in
-         let tlforms, simpleforms = extractToplevelForms xforms in
-         prevTLForms @ tlforms, prevForms @ [(toSingleForm simpleforms)] )
-      ([], [])
-      argAstExprs
-    in
-    let resultVar =
-      Lang.variable
-        ~name:"result"
-        ~typ:astPtrType
-        ~storage:MemoryStorage
-        ~global:false
-        ~default:(Typesystems.Zomp.defaultValue astPtrType)
-    in
-    log "building function impl";
-    let implForms = [
-      `DefineVariable(resultVar,
-                      Some (`FuncCall { fcname = name;
-                                        fcrettype = astPtrType;
-                                        fcparams = repeatedList astPtrType (List.length argAstForms);
-                                        fcargs = argAstForms;
-                                        fcptr = `NoFuncPtr;
-                                      }) );
-      `CastIntrinsic (`Int32, `Variable resultVar);
-    ]
-    in
-    let func = `DefineFunc {
-      Lang.fname = "macroExec";
-      rettype = `Int32;
-      fargs = [];
-      impl = Some (`Sequence implForms);
-    } in
-    log "...";
-    let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
-    let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
-    let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
-    Zompvm.evalLLVMCodeB
-      ~targetModule:Zompvm.Runtime
-      ["macroExec"]
-      alltlforms
-      llvmCode
-  in
-
-  if false then constructCallerFunction [];
-
-  let createArgs() =
-    List.map NativeAst.buildNativeAst args;
-  in
-
-  let callMacro args =
-    Zompvm.zompResetArgs();
-    List.iter (fun astAddr -> Zompvm.zompAddPointerArg astAddr) args;
-    Zompvm.zompRunFunctionPointerWithArgs name
-  in
-
-  log "Creating args";
-  let argsAddresses = createArgs() in
-  log "Calling macro";
-  let astAddress = callMacro argsAddresses in
-
-  (* log (sprintf "extracting result from address %d" astAddress); *)
-  let sexpr = NativeAst.extractSExprFromNativeAst astAddress in
-  (* log (sprintf "extracted:\n%s" (Ast2.toString sexpr)); *)
-  sexpr
-
-let translateVariadicFuncMacro
-    (translateNestedF :exprTranslateF)
-    name
-    bindings
-    argNames
-    args
-    impl
-    =
-  let internalArgCount = List.length argNames in
-  let inflatedArgs =
-    let regularArgs, variadicArgs = Common.splitAfter (internalArgCount-1) args in
-    regularArgs @ [Ast2.seqExpr variadicArgs]
-  in
-  translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
-
-let translateDefineMacro translateNestedF translateF (bindings :bindings) = function
-  | { id = id; args =
-        { id = name; args = [] }
-        :: paramImpl
-    } when id = macroMacro or id = macroReplacement ->
-      let result =
-        begin match List.rev paramImpl with
-          | [] -> None
-          | impl :: args ->
+module Translators_deprecated_style =
+struct
+  let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
+    let transform id name typeExpr valueExpr =
+      let declaredType = match typeExpr with
+        | Some e ->
+            begin
+              match translateType bindings e with
+                | Some t -> Some t
+                | None -> raise (CouldNotParseType (Ast2.expression2string e))
+            end
+        | None -> None
+      in
+      let valueType, toplevelForms, implForms =
+        match valueExpr with
+          | Some valueExpr ->
               begin
-                let args = List.rev args in
-                let argNames, isVariadic =
-                  let rec worker accum = function
-                    | [] ->
-                        accum, false
-                    | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
-                        (name :: accum), true
-                    | { id = name; args = [] } :: rem ->
-                        worker (name :: accum) rem
-                    | (_ as arg) :: _ ->
-                        raiseIllegalExpression arg "only identifiers allowed as macro parameter"
-                  in
-                  let reversed, isVariadic = worker [] args in
-                  List.rev reversed, isVariadic
-                in
-                let docstring =
-                  Common.combine " " argNames ^ if isVariadic then "..." else ""
-                in
-                let macroF =
-                  if id = macroMacro then begin
-                    createNativeMacro translateNestedF bindings name argNames impl;
-                    if isVariadic then
-                      translateVariadicFuncMacro translateNestedF name
-                    else
-                      translateFuncMacro translateNestedF name
-                  end else
-                    (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
-                in
-                Some( Bindings.addMacro bindings name docstring
-                        (fun bindings args -> macroF bindings argNames args impl), [] )
+                let _, simpleform = translateF bindings valueExpr in
+                let toplevelForms, implForms = extractToplevelForms simpleform in
+                match typeCheck bindings (`Sequence implForms) with
+                  | TypeOf t -> Some t, toplevelForms, implForms
+                  | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
               end
-        end
+          | None -> None, [], []
       in
-      if not (id = macroReplacement) then begin
-        printf "Warning: Invoked old translateDefineMacro for '%s'\n" name;
-        flush stdout;
-      end;
-      result
-  | _ ->
-      None
-
-let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [expr] } when id = macroReturn ->
-      begin
-        let _, form, toplevelExprs = translateToForms translateF bindings expr in
-        Some( bindings, toplevelExprs @ [`Return form] )
-      end
-  | _ -> None
-
-let translateTypedef translateF (bindings :bindings) =
-  let translateRecordTypedef typeName componentExprs expr =
-    let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
-    let expr2component =
-      let translate name typeExpr =
-        match translateType tempBindings typeExpr with
-          | Some typ -> name, typ
-          | None -> raise (CouldNotParseType typeName)
+      let varType =
+        match declaredType, valueType with
+          | Some declaredType, Some valueType when equalTypes bindings declaredType valueType ->
+              declaredType
+          | Some declaredType, Some valueType ->
+              raiseIllegalExpressionFromTypeError expr
+                (Semantic.Ast expr, "Types do not match",declaredType,valueType)
+          | None, Some valueType -> valueType
+          | Some declaredType, None -> declaredType
+          | None, None ->
+              raiseIllegalExpression expr "var needs either a default value or declare a type"
       in
-      function
-        | { id = typeName; args = [{ id = componentName; args = []}] } ->
-            translate componentName (Ast2.idExpr typeName)
-        | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
-            when seq = macroSequence || seq = macroJuxOp ->
-            translate componentName typeExpr
-        | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
+      match varType with
+        | #integralType | `Pointer _ | `Function _ as typ ->
+            begin
+              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let defvar = `DefineVariable (var, Some (`Sequence implForms))
+              in
+              match typeCheck bindings defvar with
+                | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
+                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+            end
+        | `Array(memberType, size) as typ ->
+            begin
+              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
+              match typeCheck bindings defvar with
+                | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
+                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+            end
+        | (`Record _ as typ) ->
+            begin
+              match valueExpr with
+                | None ->
+                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    Some( addVar bindings var, [ `DefineVariable (var, None) ] )
+                | Some valueExpr ->
+                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
+            end
+        | `TypeRef _ ->
+            raiseIllegalExpression expr "Internal error: received unexpected type ref"
     in
-    let components = List.map expr2component componentExprs in
-    let recordType = `Record { rname = typeName; fields = components } in
-    Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
-  in
-  function
-    | { id = id; args = [
-          { id = typeName; args = [] };
-          { id = opseq; args = componentExprs }
-        ] } as expr
-        when id = macroTypedef && opseq = macroSeqOp ->
-        translateRecordTypedef typeName componentExprs expr
-    | { id = id; args = [
-          { id = newTypeName; args = [] };
-          targetTypeExpr;
-        ] }
-        when id = macroTypedef ->
-        (** type foo typeExpr *)
+    match expr with
+      | { id = id; args = [
+            typeExpr;
+            { id = name; args = [] };
+            valueExpr
+          ] }
+          when (id = macroVar) ->
+          transform id name (Some typeExpr) (Some valueExpr)
+
+      | { id = id; args = [
+            typeExpr;
+            { id = name; args = [] };
+          ] }
+          when (id = macroVar) ->
+          transform id name (Some typeExpr) None
+
+      | { id = id; args = [
+            { id = name; args = [] };
+            valueExpr
+          ] }
+          when id = "var2" ->
+          transform id name None (Some valueExpr)
+
+      | _ ->
+          None
+
+  let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
+    match expr2VarOrConst bindings expr with
+      | Some varOrConst ->
+          begin match varOrConst with
+            | `Constant StringLiteral string ->
+                begin
+                  let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
+                  let var = { var with vdefault = StringLiteral string } in
+                  Some( newBindings, [`ToplevelForm (`GlobalVar var); `Variable var] )
+                end
+            | _ -> Some (bindings, [varOrConst] )
+          end
+      | None -> None
+
+
+  let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
+    let buildCall name rettype argTypes isPointer bindings args =
+      let evalArg (argExpr :Ast2.sexpr) =
+        let _, xforms = translateF bindings argExpr in
+        let toplevelForms, forms = extractToplevelForms xforms in
+        toplevelForms, toSingleForm forms
+      in
+      let x = List.map evalArg args in
+      let toplevelForms, argForms = flattenLeft x in
+      let funccall = `FuncCall {
+        fcname = name;
+        fcrettype = rettype;
+        fcparams = argTypes;
+        fcargs = argForms;
+        fcptr = isPointer;
+      }
+      in
+      match typeCheck bindings funccall with
+        | TypeOf _ ->
+            Some( bindings, toplevelForms @ [funccall] )
+        | TypeError (fe,msg,f,e) ->
+            raiseIllegalExpression expr (typeErrorMessage bindings (fe,msg,f,e))
+    in
+    match expr with
+      | { id = name; args = args; } ->
+          match lookup bindings name with
+            | FuncSymbol func ->
+                begin
+                  buildCall name func.rettype (List.map snd func.fargs) `NoFuncPtr bindings args
+                end
+            | VarSymbol var ->
+                begin
+                  match var.typ with
+                    | `Pointer `Function ft ->
+                        begin
+                          buildCall name ft.returnType ft.argTypes `FuncPtr bindings args
+                        end
+                    | _ ->
+                        raiseIllegalExpression
+                          expr
+                          (sprintf "Variable should be a function pointer but has type %s"
+                             (typeName var.typ))
+                end
+            | _ -> None
+
+  let translateReturn (translateF :exprTranslateF) (bindings :bindings) = function
+    | { id = id; args = [expr] } when id = macroReturn ->
         begin
-          match translateType bindings targetTypeExpr with
-            | None -> raiseInvalidType targetTypeExpr
-            | Some t -> Some (addTypedef bindings newTypeName t, [`Typedef (newTypeName, t)] )
+          let _, form, toplevelExprs = translateToForms translateF bindings expr in
+          Some( bindings, toplevelExprs @ [`Return form] )
         end
-    | { id = id; args =
-          { id = typeName; args = [] }
-          :: componentExprs
-      } as expr
-        when id = macroTypedef ->
-        (** record typedef *)
-        translateRecordTypedef typeName componentExprs expr
     | _ -> None
 
-let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args =
-        { id = name; args = []; }
-        :: componentExprs
-    } as expr
-      when id = macroRecord ->
-      begin
-        match lookup bindings name with
-          | TypedefSymbol `Record record ->
-              begin
-                let recordInitFunc name components =
-                  { fname = name ^ "_init";
-                    rettype = `Void;
-                    fargs = components;
-                    impl = None;
-                  }
-                in
-                let initFunc = recordInitFunc name record.fields in
-                let translate param compExpr = match (param, compExpr) with
-                  | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
-                      begin
-                        if argName = compName then begin
-                          let _, form, toplevelForms = translateToForms translateF bindings argExpr in
-                          if List.length toplevelForms > 0 then
-                            raiseIllegalExpression expr "No nested toplevel forms allowed inside record";
-                          form
-                        end else
-                          raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
-                      end
-                  | _, invalidCompExpr ->
-                      raiseIllegalExpression invalidCompExpr "expected (componentName expr)"
-                in
-                let call = {
-                  fcname = initFunc.fname;
-                  fcrettype = initFunc.rettype;
-                  fcparams = List.map snd initFunc.fargs;
-                  fcargs = List.map2 translate initFunc.fargs componentExprs;
-                  fcptr = `NoFuncPtr;
-                } in
-                Some( bindings, [`FuncCall call] )
-              end
-          | UndefinedSymbol -> raiseIllegalExpression expr (sprintf "%s is undefined" name)
-          | _ -> raiseIllegalExpression expr (sprintf "%s is not a record" name)
-      end
-  | _ -> None
-
-let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr =
-  let convertSimple typeExpr constructF =
-    match translateType bindings typeExpr with
-      | Some typ -> Some (bindings, [constructF typ] )
-      | None -> None
-  in
-  let buildMallocInstruction typeExpr countExpr =
-    let typ =
-      match translateType bindings typeExpr with
-        | Some t -> t
-        | None -> raiseIllegalExpression typeExpr "Could not translate type"
+  let translateTypedef translateF (bindings :bindings) =
+    let translateRecordTypedef typeName componentExprs expr =
+      let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
+      let expr2component =
+        let translate name typeExpr =
+          match translateType tempBindings typeExpr with
+            | Some typ -> name, typ
+            | None -> raise (CouldNotParseType typeName)
+        in
+        function
+          | { id = typeName; args = [{ id = componentName; args = []}] } ->
+              translate componentName (Ast2.idExpr typeName)
+          | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
+              when seq = macroSequence || seq = macroJuxOp ->
+              translate componentName typeExpr
+          | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
+      in
+      let components = List.map expr2component componentExprs in
+      let recordType = `Record { rname = typeName; fields = components } in
+      Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
     in
-    let _, rightHandForm, toplevelForms = translateToForms translateF bindings countExpr in
-    let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
-    match typeCheck bindings mallocForm with
-      | TypeOf _ -> Some( bindings, toplevelForms @ [mallocForm] )
-      | TypeError (fe,m,f,e) ->
-          raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-  in
-  let buildStoreInstruction ptrExpr rightHandExpr =
-    let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
-    let _, rightHandForm, toplevelForms2 = translateToForms translateF bindings rightHandExpr in
-    let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
-    match typeCheck bindings storeInstruction with
-      | TypeOf _ ->
-          Some( bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
-      | TypeError (fe,m,f,e) ->
-          raiseIllegalExpressionFromTypeError rightHandExpr (fe,m,f,e)
-  in
-  let buildLoadInstruction ptrExpr =
-    let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
-    let loadForm = `LoadIntrinsic ptrForm in
-    match typeCheck bindings loadForm with
-      | TypeOf _ ->
-          Some( bindings, toplevelForms @ [loadForm] )
-      | TypeError (fe,m,f,e) ->
-          raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-  in
-  match expr with
-    | { id = id; args = [typeExpr] } when id = macroNullptr ->
-        convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
-    | { id = id; args = [typeExpr] } when id = macroMalloc ->
-        buildMallocInstruction typeExpr (Ast2.idExpr "1")
-    | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
-        buildMallocInstruction typeExpr countExpr
-    | { id = id; args = [{ id = varName; args = [] }] } when id = macroGetaddr ->
+    function
+      | { id = id; args = [
+            { id = typeName; args = [] };
+            { id = opseq; args = componentExprs }
+          ] } as expr
+          when id = macroTypedef && opseq = macroSeqOp ->
+          translateRecordTypedef typeName componentExprs expr
+      | { id = id; args = [
+            { id = newTypeName; args = [] };
+            targetTypeExpr;
+          ] }
+          when id = macroTypedef ->
+          (** type foo typeExpr *)
+          begin
+            match translateType bindings targetTypeExpr with
+              | None -> raiseInvalidType targetTypeExpr
+              | Some t -> Some (addTypedef bindings newTypeName t, [`Typedef (newTypeName, t)] )
+          end
+      | { id = id; args =
+            { id = typeName; args = [] }
+            :: componentExprs
+        } as expr
+          when id = macroTypedef ->
+          (** record typedef *)
+          translateRecordTypedef typeName componentExprs expr
+      | _ -> None
+
+  let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
+    | { id = id; args =
+          { id = name; args = []; }
+          :: componentExprs
+      } as expr
+        when id = macroRecord ->
         begin
-          match lookup bindings varName with
-            | VarSymbol var -> Some (bindings, [`GetAddrIntrinsic var] )
-            | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
+          match lookup bindings name with
+            | TypedefSymbol `Record record ->
+                begin
+                  let recordInitFunc name components =
+                    { fname = name ^ "_init";
+                      rettype = `Void;
+                      fargs = components;
+                      impl = None;
+                    }
+                  in
+                  let initFunc = recordInitFunc name record.fields in
+                  let translate param compExpr = match (param, compExpr) with
+                    | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
+                        begin
+                          if argName = compName then begin
+                            let _, form, toplevelForms = translateToForms translateF bindings argExpr in
+                            if List.length toplevelForms > 0 then
+                              raiseIllegalExpression expr "No nested toplevel forms allowed inside record";
+                            form
+                          end else
+                            raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
+                        end
+                    | _, invalidCompExpr ->
+                        raiseIllegalExpression invalidCompExpr "expected (componentName expr)"
+                  in
+                  let call = {
+                    fcname = initFunc.fname;
+                    fcrettype = initFunc.rettype;
+                    fcparams = List.map snd initFunc.fargs;
+                    fcargs = List.map2 translate initFunc.fargs componentExprs;
+                    fcptr = `NoFuncPtr;
+                  } in
+                  Some( bindings, [`FuncCall call] )
+                end
+            | UndefinedSymbol -> raiseIllegalExpression expr (sprintf "%s is undefined" name)
+            | _ -> raiseIllegalExpression expr (sprintf "%s is not a record" name)
         end
-    | { id = id; args = [ptrExpr; rightHandExpr] } when id = macroStore ->
+    | _ -> None
+
+  let translateGenericIntrinsic (translateF :exprTranslateF) (bindings :bindings) expr =
+    let convertSimple typeExpr constructF =
+      match translateType bindings typeExpr with
+        | Some typ -> Some (bindings, [constructF typ] )
+        | None -> None
+    in
+    let buildMallocInstruction typeExpr countExpr =
+      let typ =
+        match translateType bindings typeExpr with
+          | Some t -> t
+          | None -> raiseIllegalExpression typeExpr "Could not translate type"
+      in
+      let _, rightHandForm, toplevelForms = translateToForms translateF bindings countExpr in
+      let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
+      match typeCheck bindings mallocForm with
+        | TypeOf _ -> Some( bindings, toplevelForms @ [mallocForm] )
+        | TypeError (fe,m,f,e) ->
+            raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+    in
+    let buildStoreInstruction ptrExpr rightHandExpr =
+      let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
+      let _, rightHandForm, toplevelForms2 = translateToForms translateF bindings rightHandExpr in
+      let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
+      match typeCheck bindings storeInstruction with
+        | TypeOf _ ->
+            Some( bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
+        | TypeError (fe,m,f,e) ->
+            raiseIllegalExpressionFromTypeError rightHandExpr (fe,m,f,e)
+    in
+    let buildLoadInstruction ptrExpr =
+      let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
+      let loadForm = `LoadIntrinsic ptrForm in
+      match typeCheck bindings loadForm with
+        | TypeOf _ ->
+            Some( bindings, toplevelForms @ [loadForm] )
+        | TypeError (fe,m,f,e) ->
+            raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+    in
+    match expr with
+      | { id = id; args = [typeExpr] } when id = macroNullptr ->
+          convertSimple typeExpr (fun t -> `NullptrIntrinsic t)
+      | { id = id; args = [typeExpr] } when id = macroMalloc ->
+          buildMallocInstruction typeExpr (Ast2.idExpr "1")
+      | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
+          buildMallocInstruction typeExpr countExpr
+      | { id = id; args = [{ id = varName; args = [] }] } when id = macroGetaddr ->
+          begin
+            match lookup bindings varName with
+              | VarSymbol var -> Some (bindings, [`GetAddrIntrinsic var] )
+              | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
+          end
+      | { id = id; args = [ptrExpr; rightHandExpr] } when id = macroStore ->
+          begin
+            buildStoreInstruction ptrExpr rightHandExpr
+          end
+      | { id = id; args = [ ptrExpr ] } when id = macroLoad ->
+          begin
+            buildLoadInstruction ptrExpr
+          end
+      | { id = id; args = [ptrExpr; indexExpr] } when id = macroPtradd ->
+          begin
+            let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
+            let _, indexForm, toplevelForms2 = translateToForms translateF bindings indexExpr in
+            let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
+            match typeCheck bindings ptradd with
+              | TypeOf _ -> Some( bindings, toplevelForms @ toplevelForms2 @ [ptradd] )
+              | TypeError (fe,m,f,e) ->
+                  raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+          end
+      | { id = id; args = [
+            recordExpr;
+            { id = fieldName; args = [ ] };
+          ] } when id = macroFieldptr ->
+          begin
+            let _, recordForm, toplevelForms = translateToForms translateF bindings recordExpr in
+            let (moreForms : formWithTLsEmbedded list), (recordForm' :Lang.form) =
+              match recordForm with
+                | `Variable ({ typ = `Record _; } as recordVar) ->
+                    [], `GetAddrIntrinsic recordVar
+                | _ ->
+                    begin match typeCheck bindings recordForm with
+                      | TypeOf (`Record _ as typ) ->
+                          let newBindings, tempVar = getNewLocalVar bindings typ in
+                          [((`DefineVariable (tempVar, Some recordForm)) :> formWithTLsEmbedded)],
+                          `GetAddrIntrinsic tempVar
+                      | TypeOf `Pointer `Record _ -> [], recordForm
+                      | TypeOf invalidType ->
+                          raiseIllegalExpression expr
+                            (sprintf "%s but found %s"
+                               ("Can only access struct members from a var of [pointer to] record type")
+                               (typeName invalidType))
+                      | TypeError (fe,m,f,e) ->
+                          raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+                    end
+            in
+            let fieldptr = `GetFieldPointerIntrinsic (recordForm', fieldName) in
+            match typeCheck bindings fieldptr with
+              | TypeOf _ -> Some( bindings, toplevelForms @ moreForms @ [fieldptr] )
+              | TypeError (fe,m,f,e) ->
+                  begin
+                    raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+                  end
+          end
+      | { id = id; args = [targetTypeExpr; valueExpr] } when id = macroCast ->
+          begin
+            match translateType bindings targetTypeExpr with
+              | Some typ ->
+                  let _, valueForm, toplevelForms = translateToForms translateF bindings valueExpr in
+                  let castForm = `CastIntrinsic( typ, valueForm ) in
+                  Some( bindings, toplevelForms @ [castForm] )
+              | None ->
+                  raiseIllegalExpression targetTypeExpr "Expected a valid type"
+          end
+      | _ ->
+          None
+
+  let translateLabel (translateF :exprTranslateF) (bindings :bindings) = function
+    | { id = id; args = [{ id = name; args = [] }] } when id = macroLabel ->
         begin
-          buildStoreInstruction ptrExpr rightHandExpr
+          Some( addLabel bindings name, [`Label { lname = name; }] )
         end
-    | { id = id; args = [ ptrExpr ] } when id = macroLoad ->
+    | _ -> None
+
+  let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
+    | { id = id; args = [{ id = labelName; args = [] }] } when id = macroBranch ->
         begin
-          buildLoadInstruction ptrExpr
-        end
-    | { id = id; args = [ptrExpr; indexExpr] } when id = macroPtradd ->
-        begin
-          let _, ptrForm, toplevelForms = translateToForms translateF bindings ptrExpr in
-          let _, indexForm, toplevelForms2 = translateToForms translateF bindings indexExpr in
-          let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
-          match typeCheck bindings ptradd with
-            | TypeOf _ -> Some( bindings, toplevelForms @ toplevelForms2 @ [ptradd] )
-            | TypeError (fe,m,f,e) ->
-                raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+          Some( bindings, [`Jump { lname = labelName; }] )
         end
     | { id = id; args = [
-          recordExpr;
-          { id = fieldName; args = [ ] };
-        ] } when id = macroFieldptr ->
+          { id = condVarName; args = [] };
+          { id = trueLabelName; args = [] };
+          { id = falseLabelName; args = [] };
+        ] } as expr when id = macroBranch ->
         begin
-          let _, recordForm, toplevelForms = translateToForms translateF bindings recordExpr in
-          let (moreForms : formWithTLsEmbedded list), (recordForm' :Lang.form) =
-            match recordForm with
-              | `Variable ({ typ = `Record _; } as recordVar) ->
-                  [], `GetAddrIntrinsic recordVar
-              | _ ->
-                  begin match typeCheck bindings recordForm with
-                    | TypeOf (`Record _ as typ) ->
-                        let newBindings, tempVar = getNewLocalVar bindings typ in
-                        [((`DefineVariable (tempVar, Some recordForm)) :> formWithTLsEmbedded)],
-                        `GetAddrIntrinsic tempVar
-                    | TypeOf `Pointer `Record _ -> [], recordForm
-                    | TypeOf invalidType ->
-                        raiseIllegalExpression expr
-                          (sprintf "%s but found %s"
-                             ("Can only access struct members from a var of [pointer to] record type")
-                             (typeName invalidType))
-                    | TypeError (fe,m,f,e) ->
-                        raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-                  end
-          in
-          let fieldptr = `GetFieldPointerIntrinsic (recordForm', fieldName) in
-          match typeCheck bindings fieldptr with
-            | TypeOf _ -> Some( bindings, toplevelForms @ moreForms @ [fieldptr] )
-            | TypeError (fe,m,f,e) ->
+          match lookup bindings condVarName with
+            | VarSymbol var when var.typ = `Bool ->
                 begin
-                  raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+                  Some( bindings, [`Branch {
+                                     bcondition = { var with typ = `Bool };
+                                     trueLabel = { lname = trueLabelName};
+                                     falseLabel = { lname = falseLabelName}; }] )
                 end
+            | _ ->
+                raiseIllegalExpression expr "Branch requires a bool variable as condition"
         end
-    | { id = id; args = [targetTypeExpr; valueExpr] } when id = macroCast ->
+    | _ -> None
+
+  let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          { id = valueString; args = [] }
+        ] } as expr
+        when id = macroVar ->
         begin
-          match translateType bindings targetTypeExpr with
-            | Some typ ->
-                let _, valueForm, toplevelForms = translateToForms translateF bindings valueExpr in
-                let castForm = `CastIntrinsic( typ, valueForm ) in
-                Some( bindings, toplevelForms @ [castForm] )
-            | None ->
-                raiseIllegalExpression targetTypeExpr "Expected a valid type"
+          match translateType bindings typeExpr with
+            | Some ctyp -> begin
+                match ctyp with
+                  | (#integralType as typ) | (`Pointer `Char as typ) ->
+                      let value = parseValue typ valueString in
+                      let var = globalVar name typ value in
+                      let newBindings = addVar bindings var in
+                      Some( newBindings, [ `GlobalVar var ] )
+                  | `Pointer targetType ->
+                      if valueString = "null" then
+                        let var = globalVar name (`Pointer targetType) (PointerVal (targetType, None)) in
+                        let newBindings = addVar bindings var in
+                        Some( newBindings, [`GlobalVar var] )
+                      else
+                        raiseIllegalExpression expr "only null values supported for global pointers currently"
+                  | `Array (targetType, size) ->
+                      if valueString = "0" then
+                        let var = globalVar name (`Array (targetType,size)) (ArrayVal (targetType, [])) in
+                        let newBindings = addVar bindings var in
+                        Some( newBindings, [`GlobalVar var] )
+                      else
+                        raiseIllegalExpression expr "only 0 supported to init global pointers currently"
+                  | `Record recordT ->
+                      if valueString = "0" then
+                        let var = globalVar name (`Record recordT) (RecordVal (recordT.rname, [])) in
+                        let newBindings = addVar bindings var in
+                        Some( newBindings, [`GlobalVar var] )
+                      else
+                        raiseIllegalExpression expr "only 0 supported to init global structs currently"
+                  | _ -> raiseIllegalExpression expr
+                      "only integral types legal for global variables at this time"
+              end
+            | None -> raiseInvalidType typeExpr
         end
     | _ ->
         None
 
-let translateLabel (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [{ id = name; args = [] }] } when id = macroLabel ->
-      begin
-        Some( addLabel bindings name, [`Label { lname = name; }] )
-      end
-  | _ -> None
+end
 
-let translateBranch (translateF :exprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [{ id = labelName; args = [] }] } when id = macroBranch ->
-      begin
-        Some( bindings, [`Jump { lname = labelName; }] )
-      end
-  | { id = id; args = [
-        { id = condVarName; args = [] };
-        { id = trueLabelName; args = [] };
-        { id = falseLabelName; args = [] };
-      ] } as expr when id = macroBranch ->
-      begin
-        match lookup bindings condVarName with
-          | VarSymbol var when var.typ = `Bool ->
-              begin
-                Some( bindings, [`Branch {
-                                   bcondition = { var with typ = `Bool };
-                                   trueLabel = { lname = trueLabelName};
-                                   falseLabel = { lname = falseLabelName}; }] )
-              end
-          | _ ->
-              raiseIllegalExpression expr "Branch requires a bool variable as condition"
-      end
-  | _ -> None
+let astType = `Record {
+  rname = "ast";
+  fields = [
+    "id", `Pointer `Char;
+    "childCount", `Int32;
+    "childs", `Pointer (`Pointer (`TypeRef "ast"))
+  ] }
+let astPtrType = `Pointer astType
 
+let macroFuncs = ref []
 
-type toplevelExprTranslateF = bindings -> sexpr -> bindings * toplevelExpr list
+module Old_macro_support =
+struct
+  let translateMacro translateF (bindings :bindings) expr =
+    match expr with
+      | { id = macroName; args = args; } as expr ->
+          match lookup bindings macroName with
+            | MacroSymbol macro ->
+                begin try
+                  let transformedExpr = macro.mtransformFunc bindings args in
+                  Some (translateF bindings transformedExpr)
+                with
+                  | Failure msg ->
+                      raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
+                end
+            | _ -> None
 
-let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
-  | { id = id; args = [
-        typeExpr;
-        { id = name; args = [] };
-        { id = valueString; args = [] }
-      ] } as expr
-      when id = macroVar ->
-      begin
-        match translateType bindings typeExpr with
-          | Some ctyp -> begin
-              match ctyp with
-                | (#integralType as typ) | (`Pointer `Char as typ) ->
-                    let value = parseValue typ valueString in
-                    let var = globalVar name typ value in
-                    let newBindings = addVar bindings var in
-                    Some( newBindings, [ `GlobalVar var ] )
-                | `Pointer targetType ->
-                    if valueString = "null" then
-                      let var = globalVar name (`Pointer targetType) (PointerVal (targetType, None)) in
-                      let newBindings = addVar bindings var in
-                      Some( newBindings, [`GlobalVar var] )
-                    else
-                      raiseIllegalExpression expr "only null values supported for global pointers currently"
-                | `Array (targetType, size) ->
-                    if valueString = "0" then
-                      let var = globalVar name (`Array (targetType,size)) (ArrayVal (targetType, [])) in
-                      let newBindings = addVar bindings var in
-                      Some( newBindings, [`GlobalVar var] )
-                    else
-                      raiseIllegalExpression expr "only 0 supported to init global pointers currently"
-                | `Record recordT ->
-                    if valueString = "0" then
-                      let var = globalVar name (`Record recordT) (RecordVal (recordT.rname, [])) in
-                      let newBindings = addVar bindings var in
-                      Some( newBindings, [`GlobalVar var] )
-                    else
-                      raiseIllegalExpression expr "only 0 supported to init global structs currently"
-                | _ -> raiseIllegalExpression expr
-                    "only integral types legal for global variables at this time"
-            end
-          | None -> raiseInvalidType typeExpr
-      end
-  | _ ->
-      None
+  let createNativeMacro translateF bindings macroName argNames impl =
+    let sexprImpl = impl in
+    let bindings =
+      List.fold_left
+        (fun bindings name ->
+           Bindings.addVar bindings
+             (Lang.variable
+                ~name
+                ~typ:astPtrType
+                ~default:(PointerVal (astPtrType, None))
+                ~storage:Lang.RegisterStorage
+                ~global:false) )
+        bindings argNames
+    in
+    let _, xforms = translateF bindings sexprImpl in
+    let initForms, implforms = extractToplevelForms xforms in
+    let initForms = flattenNestedTLForms initForms in
+    let macroFunc = {
+      Lang.fname = macroName;
+      rettype = astPtrType;
+      fargs = List.map (fun name -> (name, astPtrType)) argNames;
+      impl = Some (toSingleForm implforms);
+    } in
+    let tlforms = initForms @ [`DefineFunc macroFunc] in
+    let llvmCodes = List.map Genllvm.gencodeTL tlforms in
+    let llvmCode = Common.combine "\n" llvmCodes in
+    Zompvm.evalLLVMCodeB
+      ~targetModule:Zompvm.Runtime
+      (if listContains macroName !macroFuncs then
+         [macroName]
+       else begin
+         macroFuncs := macroName :: !macroFuncs;
+         []
+       end)
+      (tlforms @ [`DefineFunc macroFunc])
+      llvmCode
 
-(* type env = { *)
-(*   bindings :Bindings.t; *)
-(*   translateF :exprTranslateF; *)
-(* } *)
+  let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
+    let expectedArgCount = List.length argNames in
+    let foundArgCount = List.length args in
+    if expectedArgCount <> foundArgCount then
+      raiseIllegalExpression
+        (Ast2.expr name args)
+        (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
+
+    let rec repeatedList element count =
+      if count > 0 then element :: repeatedList element (count-1)
+      else []
+    in
+
+    let constructCallerFunction args =
+      log "building arg expr";
+      let argAstExprs = List.map Genllvm.sexpr2codeasis args in
+      List.iter (fun expr -> log (Ast2.expression2string expr)) argAstExprs;
+      log "translating to simpleform";
+      let tlforms, argAstForms = List.fold_left
+        (fun (prevTLForms, prevForms) expr ->
+           let _, xforms = translateNestedF bindings expr in
+           let tlforms, simpleforms = extractToplevelForms xforms in
+           prevTLForms @ tlforms, prevForms @ [(toSingleForm simpleforms)] )
+        ([], [])
+        argAstExprs
+      in
+      let resultVar =
+        Lang.variable
+          ~name:"result"
+          ~typ:astPtrType
+          ~storage:MemoryStorage
+          ~global:false
+          ~default:(Typesystems.Zomp.defaultValue astPtrType)
+      in
+      log "building function impl";
+      let implForms = [
+        `DefineVariable(resultVar,
+                        Some (`FuncCall { fcname = name;
+                                          fcrettype = astPtrType;
+                                          fcparams = repeatedList astPtrType (List.length argAstForms);
+                                          fcargs = argAstForms;
+                                          fcptr = `NoFuncPtr;
+                                        }) );
+        `CastIntrinsic (`Int32, `Variable resultVar);
+      ]
+      in
+      let func = `DefineFunc {
+        Lang.fname = "macroExec";
+        rettype = `Int32;
+        fargs = [];
+        impl = Some (`Sequence implForms);
+      } in
+      log "...";
+      let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
+      let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
+      let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
+      Zompvm.evalLLVMCodeB
+        ~targetModule:Zompvm.Runtime
+        ["macroExec"]
+        alltlforms
+        llvmCode
+    in
+
+    if false then constructCallerFunction [];
+
+    let createArgs() =
+      List.map NativeAst.buildNativeAst args;
+    in
+
+    let callMacro args =
+      Zompvm.zompResetArgs();
+      List.iter (fun astAddr -> Zompvm.zompAddPointerArg astAddr) args;
+      Zompvm.zompRunFunctionPointerWithArgs name
+    in
+
+    log "Creating args";
+    let argsAddresses = createArgs() in
+    log "Calling macro";
+    let astAddress = callMacro argsAddresses in
+
+    (* log (sprintf "extracting result from address %d" astAddress); *)
+    let sexpr = NativeAst.extractSExprFromNativeAst astAddress in
+    (* log (sprintf "extracted:\n%s" (Ast2.toString sexpr)); *)
+    sexpr
+
+  let translateVariadicFuncMacro
+      (translateNestedF :exprTranslateF)
+      name
+      bindings
+      argNames
+      args
+      impl
+      =
+    let internalArgCount = List.length argNames in
+    let inflatedArgs =
+      let regularArgs, variadicArgs = Common.splitAfter (internalArgCount-1) args in
+      regularArgs @ [Ast2.seqExpr variadicArgs]
+    in
+    translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
+
+  let translateDefineMacro translateNestedF translateF (bindings :bindings) = function
+    | { id = id; args =
+          { id = name; args = [] }
+          :: paramImpl
+      } when id = macroMacro or id = macroReplacement ->
+        let result =
+          begin match List.rev paramImpl with
+            | [] -> None
+            | impl :: args ->
+                begin
+                  let args = List.rev args in
+                  let argNames, isVariadic =
+                    let rec worker accum = function
+                      | [] ->
+                          accum, false
+                      | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
+                          (name :: accum), true
+                      | { id = name; args = [] } :: rem ->
+                          worker (name :: accum) rem
+                      | (_ as arg) :: _ ->
+                          raiseIllegalExpression arg "only identifiers allowed as macro parameter"
+                    in
+                    let reversed, isVariadic = worker [] args in
+                    List.rev reversed, isVariadic
+                  in
+                  let docstring =
+                    Common.combine " " argNames ^ if isVariadic then "..." else ""
+                  in
+                  let macroF =
+                    if id = macroMacro then begin
+                      createNativeMacro translateNestedF bindings name argNames impl;
+                      if isVariadic then
+                        translateVariadicFuncMacro translateNestedF name
+                      else
+                        translateFuncMacro translateNestedF name
+                    end else
+                      (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
+                  in
+                  Some( Bindings.addMacro bindings name docstring
+                          (fun bindings args -> macroF bindings argNames args impl), [] )
+                end
+          end
+        in
+        if not (id = macroReplacement) then begin
+          printf "Warning: Invoked old translateDefineMacro for '%s'\n" name;
+          flush stdout;
+        end;
+        result
+    | _ ->
+        None
+end
+
+(** "new" compiler types *)
 
 type 'translateF env = {
   bindings :Bindings.t;
@@ -1261,7 +1186,7 @@ struct
 
             Zompvm.evalLLVMCodeB
               ~targetModule:Zompvm.Runtime
-              (if listContains name !macroFuncs then
+              (if Utilities.listContains name !macroFuncs then
                  [name]
                else begin
                  macroFuncs := name :: !macroFuncs;
@@ -1369,6 +1294,13 @@ struct
       | _ ->
           Error [sprintf "Expecting '%s name valueExpr'" expr.id]
 
+  let translateSeq (env :exprTranslateF env) expr =
+    match expr with
+      | { id = id; args = sequence } when id = macroSequence || id = macroSeqOp ->
+          Result (translatelst env.translateF env.bindings sequence)
+      | _ ->
+          Error [sprintf "Expected %s or %s as head" macroSequence macroSeqOp]
+
   (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
   let translateAssignVar (env :exprTranslateF env) expr =
     let doTranslation id varName rightHandExpr =
@@ -1403,6 +1335,8 @@ struct
   let register addF =
     addF "std:base:localVar" translateDefineLocalVar;
     addF macroAssign translateAssignVar;
+    addF macroSequence translateSeq;
+    addF macroSeqOp translateSeq;
 end
 
 module Array : Zomp_transformer =
@@ -1641,17 +1575,16 @@ let rec translate errorF translators bindings expr =
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateFromDict baseInstructions;
-    translateSeq;
-    translateDefineVar;
-    translateSimpleExpr;
-    translateFuncCall;
-    translateMacro;
-    translateDefineMacro translateNested;
-    translateGenericIntrinsic;
-    translateRecord;
-    translateReturn;
-    translateLabel;
-    translateBranch;
+    Translators_deprecated_style.translateDefineVar;
+    Translators_deprecated_style.translateSimpleExpr;
+    Translators_deprecated_style.translateFuncCall;
+    Old_macro_support.translateMacro;
+    Old_macro_support.translateDefineMacro translateNested;
+    Translators_deprecated_style.translateGenericIntrinsic;
+    Translators_deprecated_style.translateRecord;
+    Translators_deprecated_style.translateReturn;
+    Translators_deprecated_style.translateLabel;
+    Translators_deprecated_style.translateBranch;
   ]
   translateF bindings
 let translateNested = sampleFunc2 "translateNested" translateNested
@@ -1914,11 +1847,11 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
 and translateTL bindings expr = translate raiseIllegalExpression
   [
     sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions);
-    sampleFunc3 "translateGlobalVar" translateGlobalVar;
+    sampleFunc3 "translateGlobalVar" Translators_deprecated_style.translateGlobalVar;
     sampleFunc3 "translateFunc" translateFunc;
-    sampleFunc3 "translateTypedef" translateTypedef;
-    sampleFunc3 "translateDefineMacro" (translateDefineMacro translateNested);
-    sampleFunc3 "translateMacro" translateMacro;
+    sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
+    sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
+    sampleFunc3 "translateMacro" Old_macro_support.translateMacro;
     sampleFunc3 "translateCompileTimeVar" translateCompileTimeVar;
   ]
   bindings expr
