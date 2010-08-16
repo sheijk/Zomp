@@ -18,6 +18,7 @@ open Bindings
 open Printf
 
 let macroVar = "var"
+and macroVar2 = "var2"
 and macroFunc = "std:base:func"
 and macroAssign = "assign"
 and macroSequence = "seq"
@@ -490,7 +491,8 @@ struct
                     | _ ->
                         raiseIllegalExpression
                           expr
-                          (sprintf "Variable should be a function pointer but has type %s"
+                          (sprintf "Trying to call variable '%s' as a function but has type %s"
+                             var.vname
                              (typeName var.typ))
                 end
             | _ -> None
