@@ -960,10 +960,6 @@ func v3f aiVector3D:vec3f(aiVector3D v):
   ret r
 end
 
-ofunc void print(aiVector3D v):
-  aiVector3D:print &v
-end
-
 ofunc void print(aiVectorKey vk):
   aiVectorKey:print &vk
 end
@@ -1962,8 +1958,21 @@ func void CameraInfo:print(CameraInfo* this, int indent):
   Camera:print &this.camera (indent+2)
 end
 
+func void Texture:print(Texture* this, int indent):
+  xind := indent + 2
+  iprintln indent "Texture"
+  iprintln xind "file name = " this.fileName
+  iprintln xind "glname = " this.glname
+  iprintln xind "size = " this.width "x" this.heigth
+  iprintln xind "format = " glenum2cstring(this.format)
+end
+
 func void Material:print(Material* this, int indent):
-  ret void
+  xind := indent + 2
+  iprintln indent "Material"
+  iprintln xind "name = '" this.name "'"
+  iprintln xind "shader = " this.shader
+  iprintArray this.textures "textures" Texture:print xind
 end
 
 func void SceneGraph:print(SceneGraph* this, int indent):
@@ -2651,7 +2660,7 @@ func int main():
       // "data/pixeljourney/mayatest.dae"
       // "data/pixeljourney/pipetest/car_w_mat.dae"
       // "data/pixeljourney/pipetest/ringed.dae"
-      "data/pixeljourney/pipetest/cow.dae"
+      "data/pixeljourney/pipetest/cow25.dae"
       // "data/pixeljourney/first_scene_mats.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100207_Pixeljums_cambaked_singlecube.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test6.dae"
