@@ -951,6 +951,7 @@ von http://lambda-the-ultimate.org/node/2884
    just introduce parametric types, but only support builtin-ones in the base
    type system?
 ** TODO [#A] global var of double type fails                         :bug:quick:
+** TODO [#A] Cmd-e fails if end is spelled eend                            :bug:
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
@@ -1192,6 +1193,33 @@ von http://lambda-the-ultimate.org/node/2884
 **** DONE pointer by appending a star (int*, float*, MyStruct**, ...)
      CLOSED: [2009-03-12 Thu 23:37]
 **** TODO signed(int), sint, uint, slong, ulong, ...
+
+*** TODO literals
+    - [X] int, bool, string
+    - [ ] arrays
+    - [ ] structs
+*** TODO automation
+    - [ ] generate printers
+    - [ ] generate parsers
+*** TODO misc
+    - [ ] references (?)
+    - [ ] dot notation for function calls
+          var.func(a) => VarType::func(var, a)
+    - [ ] projections for member read/write
+          foo.bar => FooType:getBar(&foo)
+          foo.bar = 10 => FooType:setBar(&foo, 10)
+    - [ ] macro patterns(?)
+          macro defIntVar(Identifier name, IntExpr value)
+    - [ ] static reflection API (lookup variables type etc.)
+    - [ ] function pointers - new syntax?
+          int(float, float)
+    - [ ] slim syntax for function definitions?
+          print(int a, float b):
+          instead of
+          func void print(int a, float b):
+
+          how to do return types? first id resolves to type?
+          int foo(int a, int b)
 
 ** zomp-ceepp
    Extension of cee, featuring an object system, type classes etc.
