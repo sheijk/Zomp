@@ -234,6 +234,27 @@ func bool file:makeBackup(cstring fileName):
   ret succeeded
 end
 
+macro op{} args...:
+  code := ${}
+  forEachAstChild child args:
+    ast:addChild code child
+  end
+  ret code
+end
+
+macro arraylit type elements...:
+  uniqueId name "arraylit"
+  size := elements.childCount
+  code := ${seq}
+  ast:addChild code ${var #type[#size] #name}
+  for i 0 size:
+    child := ast:child elements i
+    ast:addChild code ${zmp:array:set #name #i #child}
+  end
+  ast:addChild code ast:fromString(name)
+  ret code
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: math
 ///-----------------------------------------------------------------------------
@@ -1408,6 +1429,14 @@ struct Shader:
   GLSLParameter_List* params
 end
 
+func void Shader:print(Shader* this, int indent):
+  xind := indent+2
+  iprintln indent "Shader"
+  iprintln xind "name = " this.name
+  iprintln xind "glname = " this.glname
+  iprintln xind "params = TODO"
+end
+
 defineListType Shader
 
 struct ShaderManager:
@@ -1509,6 +1538,8 @@ func bool GLSLParameter:isSupportedType(GLenum gltype):
 end
 
 func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstring group):
+  debugPrinting := false
+
   paramList := makeList GLSLParameter
 
   // TODO release memory, again
@@ -1522,7 +1553,7 @@ func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstri
     name := malloc char 100
     onReturn dealloc(name)
 
-    println "Shader parameters:"
+    if debugPrinting { println "Shader parameters:" }
     while !abort:
       length := 0
       size := 0
@@ -1534,8 +1565,9 @@ func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstri
       if (gltype == 0):
         abort = true
       else:
-        print "  index = " index ", name = " name ", gltype = " glenum2cstring(gltype)
-            ", size = " size
+        if debugPrinting:
+          print "  index = " index ", name = " name ", gltype = " glenum2cstring(gltype) ", size = " size
+        end
 
         if (GLSLParameter:isSupportedType gltype):
           location := glGetUniformLocation shader name
@@ -1558,15 +1590,15 @@ func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstri
             TwAddVarRW bar name TW_TYPE_BOOL32 param optionGroup
           end
         else:
-          print " (unsupported type, skipping)"
+          if debugPrinting { print " (unsupported type, skipping)" }
         end
-        println()
+        if debugPrinting println()
       end
 
       maxParamCount := 100
       if (index > maxParamCount):
         abort = true
-        println "max param limit (" maxParamCount ") reached, skipping all following params"
+        println "warning: max param limit (" maxParamCount ") reached, skipping all following params"
       end
 
       ++index
@@ -1605,6 +1637,8 @@ func void GLSLParameter:saveParamsToFile(cstring fileName, GLSLParameter_List* p
 end
 
 func void GLSLParameter:readValueFromFile(GLSLParameter* this, FILE* file):
+  debugPrinting := false
+
   bufferSize := 100
   buffer := malloc char bufferSize
 
@@ -1626,7 +1660,7 @@ func void GLSLParameter:readValueFromFile(GLSLParameter* this, FILE* file):
     readSomething = false
   end
 
-  if readSomething:
+  if (debugPrinting && readSomething):
     println "read new value for " this*
   end
 
@@ -1733,7 +1767,12 @@ defineArrayType Texture
 struct Material:
   cstring name
   Texture_Array textures
-  GLint shader
+  // GLint shader
+  Shader* shader
+
+  // some standard parameters
+  float[4] ambient diffuse specular emissive
+  float shininess
 end
 
 defineArrayType Material
@@ -1747,21 +1786,108 @@ func bool op==_aistr(aiString aistr, cstring str):
 end
 
 var cstring aiMaterial:propName "?mat.name"
+var cstring aiMaterial:propAmbient "$clr.ambient"
+var cstring aiMaterial:propDiffuse "$clr.diffuse"
+var cstring aiMaterial:propSpecular "$clr.specular"
+var cstring aiMaterial:propEmissive "$clr.emissive"
+var cstring aiMaterial:propShininess "$mat.shininess"
+
+func void Texture:print(Texture* this, int indent):
+  xind := indent + 2
+  iprintln indent "Texture"
+  iprintln xind "file name = " this.fileName
+  iprintln xind "glname = " this.glname
+  iprintln xind "size = " this.width "x" this.heigth
+  iprintln xind "format = " glenum2cstring(this.format)
+end
+
+func void iprintlnFloat4WName(int indent, cstring name, float[4] v):
+  printIndent indent
+  v2 := v
+  println name " = [" v2[0] ", " v2[1] ", " v2[2] ", " v2[3] "]"
+end
+
+func void Material:print(Material* this, int indent):
+  xind := indent + 2
+  iprintln indent "Material"
+  iprintln xind "name = '" this.name "'"
+  iprintlnFloat4WName xind "ambient" this.ambient
+  iprintlnFloat4WName xind "diffuse" this.diffuse
+  iprintlnFloat4WName xind "specular" this.specular
+  iprintlnFloat4WName xind "emissive" this.emissive
+  iprintln xind "shininess = " this.shininess
+  if isNull(this.shader):
+    iprintln xind "shader = null"
+  else:
+    Shader:print this.shader xind
+  end
+  iprintArray this.textures "textures" Texture:print xind
+end
+
+ofunc void print(aiString s):
+  s2 := s
+  aiString:print(&s2)
+end
 
 func void Material:initFromAI(Material* this, aiMaterial* aimat):
   this.name = nullptr char
   Texture_Array:init &this.textures 0
-  this.shader = -1
+  this.shader = nullptr Shader
+
+  black := arraylit float 0.0 0.0 0.0 0.0
+  this.ambient = black
+  this.diffuse = black
+  this.specular = black
+  this.emissive = black
+  this.shininess = 0.0
 
   for propnum 0 aimat.mNumProperties:
     prop := *(aimat.mProperties + propnum)
     if (prop.mType == aiPTI_String && prop.mKey ==_aistr aiMaterial:propName):
       this.name = aiString:cstring (cast aiString* prop.mData)
+    elseif (prop.mType == aiPTI_Float && prop.mDataLength == 16):
+      rgba := *(cast float[4]* prop.mData)
+      println prop.mKey
+      iprintlnFloat4WName 0 "rgba" rgba
+      if (prop.mKey ==_aistr aiMaterial:propAmbient):
+        this.ambient = rgba
+        println "ambient"
+      elseif (prop.mKey ==_aistr aiMaterial:propDiffuse):
+        this.diffuse = rgba
+        println "diffuse"
+      elseif (prop.mKey ==_aistr aiMaterial:propSpecular):
+        this.specular = rgba
+        println "specular"
+      elseif (prop.mKey ==_aistr aiMaterial:propEmissive):
+        this.emissive = rgba
+        println "emissive"
+      else:
+        println "unknown material property key found: '" prop.mKey "'"
+      end
+    end
+  end
+
+  unless isNull(this.name):
+    shaderNameEnd := strstr this.name "__"
+    if isNotNull(shaderNameEnd):
+      instanceName := shaderNameEnd + 2
+      instanceNameLength := strlen(instanceName)
+      // TODO: allow to take the difference between two pointers
+      shaderNameLength := strlen(this.name) - strlen(instanceName) - 2
+      shaderName := malloc char (shaderNameLength + 1)
+      memcpy(cast void* shaderName, cast void* this.name, shaderNameLength)
+      shaderName[shaderNameLength] = '\0'
+
+      println "shader = '" shaderName "', instance '" instanceName "'"
+      dealloc shaderName
+    else:
+      println "could not detect shader/instance name for material " this.name
     end
   end
 
   unless isNull(this.name):
     println "loaded material " this.name
+    Material:print this 2
   end
 end
 
@@ -1956,23 +2082,6 @@ func void CameraInfo:print(CameraInfo* this, int indent):
     println "(not in scene graph)"
   end
   Camera:print &this.camera (indent+2)
-end
-
-func void Texture:print(Texture* this, int indent):
-  xind := indent + 2
-  iprintln indent "Texture"
-  iprintln xind "file name = " this.fileName
-  iprintln xind "glname = " this.glname
-  iprintln xind "size = " this.width "x" this.heigth
-  iprintln xind "format = " glenum2cstring(this.format)
-end
-
-func void Material:print(Material* this, int indent):
-  xind := indent + 2
-  iprintln indent "Material"
-  iprintln xind "name = '" this.name "'"
-  iprintln xind "shader = " this.shader
-  iprintArray this.textures "textures" Texture:print xind
 end
 
 func void SceneGraph:print(SceneGraph* this, int indent):
@@ -2625,26 +2734,12 @@ func void onTimelineButton(KeyEvent* keyEvent):
   end
 end
 
-macro arraylit type elements...:
-  uniqueId name "arraylit"
-  size := elements.childCount
-  code := ${seq}
-  ast:addChild code ${var #type[#size] #name}
-  for i 0 size:
-    child := ast:child elements i
-    ast:addChild code ${zmp:array:set #name #i #child}
-  end
-  ast:addChild code ast:fromString(name)
-  ret code
-end
-
 func int main():
   init()
 
   println "triggering event startup..."
   triggerEvent startup
 
-  println "loading scene..."
   // sceneFilename := "data/pixeljourney/shared/obj/Reagenztest_tri.obj"
   // sceneFilename := "data/pixeljourney/shared/obj/importing_experiments/091129_Colldada_Test5.dae"
   // sceneFilename := "data/pixeljourney/move_cube2.dae"
@@ -2673,6 +2768,7 @@ func int main():
   // sceneFilename := "data/pjm2.obj"
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
   // loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
+  println "loading scene " sceneFilename "..."
   loadOptions :=
       aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenSmoothNormals
   // | aiProcess_PreTransformVertices
