@@ -588,9 +588,9 @@ editor to trigger recompilations etc. and possibly resume main()"
       (comment-region start (point))
       )))
 
-(defun zomp-move-up ()
+(defun zomp-move-up (count)
   "Move cursor up one indentation level"
-  (interactive)
+  (interactive "p")
   ;; skip empty line(s)
   (while (save-excursion
            (beginning-of-line)
@@ -600,7 +600,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   (let ((oldpoint (point))
         (moved-lines 0)
         (column (save-excursion (back-to-indentation) (current-column))))
-    (message "column = %s" column)
     (previous-line)
     (while (or
             (>= (progn (back-to-indentation) (current-column)) column)
@@ -608,7 +607,29 @@ editor to trigger recompilations etc. and possibly resume main()"
       (previous-line)
       (setq moved-lines (+ 1 moved-lines)))
     (when (> moved-lines 3)
-      (push-mark oldpoint))))
+      (push-mark oldpoint)))
+  (when (and count (> count 1))
+    (zomp-move-up (- count 1))))
+
+(defun zomp-move-until-same-or-less-indent (line-change-func)
+  (let ((initial-indent (save-excursion
+                           (back-to-indentation)
+                           (current-column))))
+    (funcall line-change-func)
+    (while (or (< initial-indent (save-excursion
+                                   (back-to-indentation)
+                                   (current-column)))
+               (looking-at "\s*$"))
+      (funcall line-change-func))))
+
+(defun zomp-next-block (arg)
+  (interactive "P")
+  (zomp-move-until-same-or-less-indent 'next-line))
+
+(defun zomp-prev-block (arg)
+  (interactive "P")
+  (zomp-move-until-same-or-less-indent 'previous-line))
+
 
 (defun zomp-setup ()
   (setq comment-start "//")
@@ -638,6 +659,8 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(meta p)] 'zomp-prev-tl-expr)
   (local-set-key [(meta k)] 'zomp-mark-sexp)
   (local-set-key [(control c)(control u)] 'zomp-move-up)
+  (local-set-key [(control c)(control n)] 'zomp-next-block)
+  (local-set-key [(control c)(control p)] 'zomp-prev-block)
 
   ;; extra comfort (insert ///, * in matching places, * / => */ etc.)
   (local-set-key "\r" 'zomp-newline)
@@ -650,7 +673,7 @@ editor to trigger recompilations etc. and possibly resume main()"
                            (zomp-indent-line)
                            (insert ":")))
 
-  (local-set-key [(control c)(control k)] '(lambda () (interactive)
+  (local-set-key [(control c)(control l)] '(lambda () (interactive)
                                              (zomp-tl-do "!")))
 
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
@@ -697,8 +720,12 @@ editor to trigger recompilations etc. and possibly resume main()"
 
   (zomp-add-seperator zomp-sep-1)
   (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
-  (zomp-add-action zomp-start-or-show-toplevel [(control c)(control s)] "Start toplevel")
-  (zomp-add-action zomp-request-execution-abort [(control c)(control p)] "Request app to pause")
+  (zomp-add-action zomp-start-or-show-toplevel
+                   [(control c)(control s)]
+                   "Start toplevel")
+  (zomp-add-action zomp-request-execution-abort
+                   [(control c)(control k)]
+                   "Request app to pause")
 
   ;; set additional keys on OS X
   (local-set-key [(alt r)]' zomp-run)
