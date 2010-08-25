@@ -95,3 +95,5 @@ tools
 /examples/smallpt/image.ppm
 /assimp.dylib.dSYM
 /examples/.DS_Store
+/runtime.bc
+/runtime.ll

@@ -528,7 +528,7 @@ let () =
       ~onError:
       (fun msg -> begin
          printf "%s" msg;
-         eprintf "Could not load stdlib. Aborting\n";
+         eprintf "Could not load prelude. Aborting\n";
          exit (-2);
        end)
   in

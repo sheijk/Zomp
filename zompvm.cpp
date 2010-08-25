@@ -172,7 +172,7 @@ namespace {
     PointerType* cstringPtr = getPointerType(IntegerType::get(8));
     llvmModule->addTypeName("cstring", cstringPtr);
 
-    // see definition in stdlib.zomp
+    // see definition in prelude.zomp
     std::vector<const Type*> astStructFields;
     // id
     astStructFields.push_back(cstringPtr);
@@ -1292,4 +1292,48 @@ extern "C" {
   // }
 
 } // extern "C"
+
+//------------------------------------------------------------------------------
+//- hash table interface
+
+extern "C"
+{
+    typedef std::map<std::string, void*> StringMap;
+
+    StringMap* StringMap_new()
+    {
+        return new StringMap();
+    }
+
+    void StringMap_delete(StringMap* map)
+    {
+        delete map;
+    }
+
+    void StringMap_insert(StringMap* map, char* key, void* value)
+    {
+        if( map ) {
+            map->insert( std::make_pair(std::string(key), value) );
+        }
+    }
+
+    void StringMap_remove(StringMap* map, char* key)
+    {
+        if( map ) {
+            map->erase( map->find(key) );
+        }
+    }
+
+    void* StringMap_find(StringMap* map, char* key)
+    {
+        StringMap::iterator iter = map->find(key);
+        if( iter != map->end() ) {
+            return iter->second;
+        }
+        else {
+            return NULL;
+        }
+    }
+
+}
 

@@ -1,5 +1,6 @@
 #
-# Makefile to run the test suite
+# Makefile to run the test suite. This file is included by ../makefile, thus all
+# targets need to be prefixed with testsuite/
 #
 
 ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
@@ -10,11 +11,11 @@ endif
 # Targets
 ################################################################################
 
-TESTSUITE_CASES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp   \
-simple-func.zomp variables.zomp astmatch.zomp cee.zomp                  \
-bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp  \
-float.zomp std_bindings.zomp indent.comments.zomp require.zomp          \
-arrays.zomp testframework.zomp math.zomp stackoverflow.zomp
+TESTSUITE_CASES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp	\
+simple-func.zomp variables.zomp astmatch.zomp cee.zomp						\
+bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp		\
+float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp	\
+testframework.zomp math.zomp stackoverflow.zomp
 
 testsuite/all: $(foreach FILE, $(TESTSUITE_CASES), testsuite/$(FILE:.zomp=.test))
 
@@ -55,14 +56,14 @@ testsuite/astmatch.ll: libs/libcee.zomp
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
 # tests to avoid having all tests run and fail because the prelude/compiler is
 # completely broken
-testsuite/preludevalid: $(ZOMPC) stdlib.zomp stdlib.c
+testsuite/preludevalid: $(ZOMPC) prelude.zomp runtime.c
 ifeq "$(TESTSUITE_NO_PRELUDE)" ""
 	@$(ECHO) Checking whether prelude compiles ...
 	@rm -f testsuite/$@.zomp testsuite/$@.ll testsuite/$@.o.bc testsuite/$@.bc testsuite/$@
 	@echo "std:base:func int main():\n  ret 0\nend\n" > testsuite/preludevalid.zomp
 	@$(ZOMPC) -c testsuite/preludevalid.zomp
 	@$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
-	@$(LLVM_LINK) -f stdlib.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
+	@$(LLVM_LINK) -f runtime.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
 	@$(LLVM_LLI) testsuite/preludevalid.bc
 	@touch $@
 else
@@ -70,14 +71,14 @@ else
 	@$(ECHO) "Checking of prelude validity disabled by TESTSUITE_NO_PRELUDE" > $@
 endif
 
-testsuite/%.ll: testsuite/%.zomp zompc.native stdlib.zomp testsuite/preludevalid $(ZOMPC)
+testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevalid $(ZOMPC)
 	@$(ECHO) Compiling $(<) to .ll ...
 	@$(ZOMPC) -c $<
 
-testsuite/%.bc: testsuite/%.ll stdlib.zomp stdlib.c
+testsuite/%.bc: testsuite/%.ll prelude.zomp runtime.c
 	@echo Compiling $< to $@
 	@$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	@$(LLVM_LINK) -f stdlib.bc $(<:.ll=.o.bc) -o $@
+	@$(LLVM_LINK) -f runtime.bc $(<:.ll=.o.bc) -o $@
 
 testsuite/%.test: testsuite/%.bc
 	@$(ECHO) Running test $(<:.bc=) ...

@@ -154,7 +154,7 @@ bool zompCheckNativeSymbol(const char* name) {
 // ripped from http://www.anyexample.com/programming/c/how_to_load_file_into_memory_using_plain_ansi_c_language.xml
 int zompLoadFileToMemory(const char *filename, char **result)
 {
-    int size = 0;
+    size_t size = 0;
     FILE *f = fopen(filename, "rb");
     if (f == NULL) 
     {

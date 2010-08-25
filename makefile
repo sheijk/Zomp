@@ -61,7 +61,7 @@ endif
 # Combined/main targets
 ################################################################################
 
-all: byte native stdlib.bc stdlib.ll libbindings tags deps.png mltest \
+all: byte native runtime.bc runtime.ll libbindings tags deps.png mltest \
     zompvm_dummy.o
 libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp \
     libglut.dylib quicktext.zomp libquicktext.dylib
@@ -84,14 +84,14 @@ SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: zompvm.h zompvm.cpp machine.c stdlib.o stdlib.ll
+dllzompvm.so: zompvm.h zompvm.cpp machine.c runtime.o runtime.ll
 	@$(ECHO) Building $@ ...
 	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o zompvm -DPIC -fPIC zompvm.o stdlib.o machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o zompvm -DPIC -fPIC zompvm.o runtime.o machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o zompvm zompvm.o stdlib.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o zompvm zompvm.o runtime.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 endif
 
 sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
@@ -145,7 +145,7 @@ exampletests:
 
 PROF_COMP_TARGET=metaballs
 
-profile_comp: zompc zompc.native stdlib.bc opengl20.zomp glfw.zomp
+profile_comp: zompc zompc.native runtime.bc opengl20.zomp glfw.zomp
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
@@ -172,13 +172,13 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-stdlib.bc stdlib.ll: stdlib.c
+runtime.bc runtime.ll: runtime.c
 	@$(ECHO) Building bytecode standard library $@ ...
-	$(LLVM_CC) --emit-llvm -c $< -o stdlib.bc
-	$(LLVM_DIS) < stdlib.bc > stdlib.orig.ll
-	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < stdlib.orig.ll > stdlib.ll
-	$(RM) -f stdlib.bc stdlib.orig.ll
-	$(LLVM_AS) < stdlib.ll > stdlib.bc
+	$(LLVM_CC) --emit-llvm -c $< -o runtime.bc
+	$(LLVM_DIS) < runtime.bc > runtime.orig.ll
+	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < runtime.orig.ll > runtime.ll
+	$(RM) -f runtime.bc runtime.orig.ll
+	$(LLVM_AS) < runtime.ll > runtime.bc
 
 ################################################################################
 # Rules
@@ -348,7 +348,7 @@ clean: testsuite/clean examples/clean
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) zompc.o sexprtoplevel.o
 	$(RM) -f expander_tests.cm?
 	$(RM) -f zompc.cm? zompc
-	$(RM) -f stdlib.bc stdlib.o
+	$(RM) -f runtime.bc runtime.ll runtime.o
 	$(RM) -f sexprlexer.cmi sexprlexer.cmo sexprlexer.ml
 	$(RM) -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
 	$(RM) -f sexprtoplevel sexprtoplevel.cmi sexprtoplevel.cmo
@@ -361,7 +361,6 @@ clean: testsuite/clean examples/clean
 	$(RM) -f *.cmx *.native
 	$(RM) -f deps.png deps.dot
 	$(RM) -f depends.mk
-	$(RM) -f stdlib.ll
 	$(RM) -f opengl20.zomp glfw.zomp opengl20print.zomp
 	$(RM) -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	$(RM) -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o

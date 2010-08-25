@@ -127,11 +127,13 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
   in
 
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
-  let llvmPreludeFile = dir ^ "stdlib.ll" in
+  let runtimeBaseName = "runtime" in
+  let llvmRuntimeFile = dir ^ runtimeBaseName ^ ".ll" in
   (collectTimingInfo "loading .ll file"
-     (fun () -> Zompvm.loadLLVMFile llvmPreludeFile));
+     (fun () -> Zompvm.loadLLVMFile llvmRuntimeFile));
 
-  let zompPreludeFile = dir ^ "stdlib.zomp" in
+  let preludeBaseName = "prelude" in
+  let zompPreludeFile = dir ^ preludeBaseName ^ ".zomp" in
   let source = Common.readFile zompPreludeFile in
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
