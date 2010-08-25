@@ -294,6 +294,10 @@ windows displaying it"
   (process-send-string (zomp-get-toplevel-buffer) "")
   (zomp-tl-move-point-to-end))
 
+(defun zomp-tl-discard-input ()
+  (interactive)
+  (zomp-tl-do "!"))
+
 (defun zomp-tl-run-test ()
   (interactive)
   (message "Running function test")
@@ -630,7 +634,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   (interactive "P")
   (zomp-move-until-same-or-less-indent 'previous-line))
 
-
 (defun zomp-setup ()
   (setq comment-start "//")
   (setq comment-start-skip "// *")
@@ -673,9 +676,6 @@ editor to trigger recompilations etc. and possibly resume main()"
                            (zomp-indent-line)
                            (insert ":")))
 
-  (local-set-key [(control c)(control l)] '(lambda () (interactive)
-                                             (zomp-tl-do "!")))
-
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
@@ -711,6 +711,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
 
   (zomp-add-seperator zomp-sep-2)
+  (zomp-add-action zomp-tl-discard-input [(control c)(control l)] "Discard entered text")
   (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
   (zomp-add-action zomp-tl-eval-region [(control c)(control r)] "Eval region")
   (zomp-add-action zomp-tl-eval-current [(control c)(control e)] "Eval function at point")
