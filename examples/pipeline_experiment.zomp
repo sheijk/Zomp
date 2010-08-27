@@ -6,7 +6,7 @@ linkclib "libglfw.dylib" "libGLEW.dylib"
 
 static:setRequireLibDebug true
 
-requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array unittest quicktext stdio
+requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array unittest quicktext stdio utils
 
 ///-----------------------------------------------------------------------------
 /// Section: list
@@ -871,6 +871,27 @@ func GLint objectMaterial():
   ret shader
 end
 
+func GLint lambertMaterial():
+  varyingSource := "
+  #version 120
+  #extension GL_EXT_gpu_shader4 : enable
+  varying vec3 normal;
+  "
+  vertexSource := "
+  void main(void) {
+    gl_Position = ftransform();
+    normal = gl_NormalMatrix * gl_Normal;
+    }"
+  fragmentSource := "
+  uniform vec4 diffuse;
+  void main(void) {
+    gl_FragColor = vec4(diffuse.rgb * dot(normal, vec3(0,0,1)), 1.0);
+    }"
+  shader := createShader varyingSource vertexSource fragmentSource
+  assert (shader != 0)
+  ret shader
+end
+
 func GLint simplePPMaterial():
   varyingSource := "
   #version 120
@@ -1426,7 +1447,7 @@ defineListType GLSLParameter
 struct Shader:
   cstring name
   GLint glname
-  GLSLParameter_List* params
+  // GLSLParameter_List* params
 end
 
 func void Shader:print(Shader* this, int indent):
@@ -1439,10 +1460,39 @@ end
 
 defineListType Shader
 
+struct Texture:
+  GLint glname
+  GLenum format
+  cstring fileName
+  int width heigth
+end
+
+defineArrayType Texture
+
+struct Material:
+  cstring name
+  Texture_Array textures
+  // GLint shader
+  Shader* shader
+  GLSLParameter_List* params
+
+  // some standard parameters
+  float[4] ambient diffuse specular emissive
+  float shininess
+end
+
+defineArrayType Material
+defineListType Material
+type MaterialPtr Material*
+defineListType MaterialPtr
+
 struct ShaderManager:
   Shader_List* shaders
+  MaterialPtr_List* materials
   cstring settingsFile
   TwBar* bar
+  StringMap* shadersByName
+  StringMap* materialsByName
 end
 
 func cstring GLSLParameter:valueToString(GLSLParameter* param):
@@ -1537,8 +1587,10 @@ func bool GLSLParameter:isSupportedType(GLenum gltype):
   ret (isOneOf gltype GL_FLOAT GL_FLOAT_VEC2 GL_FLOAT_VEC3 GL_FLOAT_VEC4 GL_BOOL)
 end
 
+var int addControlsForUniforms_shaderParamSeq 0
+
 func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstring group):
-  debugPrinting := false
+  debugPrinting := true
 
   paramList := makeList GLSLParameter
 
@@ -1566,7 +1618,7 @@ func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstri
         abort = true
       else:
         if debugPrinting:
-          print "  index = " index ", name = " name ", gltype = " glenum2cstring(gltype) ", size = " size
+          println "  index = " index ", name = " name ", gltype = " glenum2cstring(gltype) ", size = " size
         end
 
         if (GLSLParameter:isSupportedType gltype):
@@ -1575,24 +1627,37 @@ func GLSLParameter_List* addControlsForUniforms(GLenum shader, TwBar* bar, cstri
 
           GLSLParameter:apply &paramList.data
 
+          dummyName := int2cstring(addControlsForUniforms_shaderParamSeq)
+          ++addControlsForUniforms_shaderParamSeq
+
+          explicitSetName := true
           param := paramList.data.data
           if (gltype == GL_FLOAT):
-            TwAddVarRW bar name TW_TYPE_FLOAT param optionForFloat
+            TwAddVarRW bar dummyName TW_TYPE_FLOAT param optionForFloat
           elseif (gltype == GL_FLOAT_VEC2):
             // TODO investigate why (name++".x") results in ".x"
             TwAddVarRW bar (name ++ ".x") TW_TYPE_FLOAT (param+0) optionForFloat
             TwAddVarRW bar (name ++ ".y") TW_TYPE_FLOAT (param+4) optionForFloat
+            explicitSetName = false
           elseif (gltype == GL_FLOAT_VEC3):
-            TwAddVarRW bar name TW_TYPE_COLOR3F param optionGroup
+            TwAddVarRW bar dummyName TW_TYPE_COLOR3F param optionGroup
           elseif (gltype == GL_FLOAT_VEC4):
-            TwAddVarRW bar name TW_TYPE_COLOR4F param optionGroup
+            TwAddVarRW bar dummyName TW_TYPE_COLOR4F param optionGroup
           elseif (gltype == GL_BOOL):
-            TwAddVarRW bar name TW_TYPE_BOOL32 param optionGroup
+            TwAddVarRW bar dummyName TW_TYPE_BOOL32 param optionGroup
+          else:
+            explicitSetName = false
+            println "error: failed to handle type " glenum2cstring(gltype)
+          end
+
+          if explicitSetName:
+            opts := "Shaders/" ++ dummyName ++ " label='" ++ name ++ "'"
+            // println "opts = " opts
+            TwDefine opts
           end
         else:
-          if debugPrinting { print " (unsupported type, skipping)" }
+          if debugPrinting { println "  (unsupported type, skipping)" }
         end
-        if debugPrinting println()
       end
 
       maxParamCount := 100
@@ -1675,13 +1740,14 @@ end
 func void GLSLParameter:loadParamsFromFile(cstring fileName, GLSLParameter_List* paramList):
   file := fopen fileName "r"
   if isNull(file):
-    ret void
+    return void
   end
 
   eof := false
 
   maxNameLength := 100
   name := malloc char maxNameLength
+  onReturn dealloc(name)
 
   while !eof:
     eof = !readUntil2(file, '=', maxNameLength, &name)
@@ -1693,27 +1759,131 @@ func void GLSLParameter:loadParamsFromFile(cstring fileName, GLSLParameter_List*
     end
   end
 
-  dealloc name
   closeFile file
-  ret void
+  return void
 end
 
 func void ShaderManager:init(ShaderManager* this, cstring settingsFile, TwBar* bar):
   this.shaders = nullptr Shader_List
   this.settingsFile = settingsFile
   this.bar = bar
+  this.shadersByName = StringMap_new()
+  this.materials = nullptr MaterialPtr_List
+  this.materialsByName = StringMap_new()
 end
 
 func Shader* ShaderManager:add(ShaderManager* this, GLint glname, cstring name):
   var Shader shader
   shader.name = name
   shader.glname = glname
-  shader.params = nullptr GLSLParameter_List
+  // shader.params = nullptr GLSLParameter_List
 
   List:prepend Shader this.shaders shader
 
+  shaderList := this.shaders
+  shaderp := &shaderList.data
+  StringMap_insert this.shadersByName name (cast void* &(shaderList.data))
+  println "registered shader " name
+
   tmp := this.shaders
   ret &tmp.data
+end
+
+func void ShaderManager:delete(ShaderManager* this):
+  StringMap_delete this.shadersByName
+end
+
+func void ShaderManager:dump(ShaderManager* this):
+  StringMap_debugPrint this.shadersByName
+end
+
+func void ShaderManager:createControls(ShaderManager* this):
+  List:foreach this.materials shaderNum material:
+    shader := material.shader
+    // println "adding controls for " material.name
+    material.params = addControlsForUniforms shader.glname this.bar material.name
+
+    List:foreach material.params paramNum param:
+      v4ptr := nullptr float
+      if (param.name ==_str "diffuse" && param.gltype == GL_FLOAT_VEC4):
+        v4ptr = cast float* &material.diffuse
+        // Material:print material 2
+        // print "setting diffuse to "
+      end
+
+      value := cast float* param.data
+      if isNotNull(v4ptr):
+        for i 0 4:
+          value[i] = *(v4ptr + i)
+          // print *(value + i) " "
+        end
+        // println()
+      end
+    end
+  end
+end
+
+func void ShaderManager:addMaterial(ShaderManager* this, Material* material):
+  if isNotNull(material.shader):
+    println "warning: material " material.name " added twice"
+    ret void
+  end
+
+  println "added material " material.name
+
+  // split into instance and shader name
+  shaderNameEnd := strstr material.name "__"
+  if isNotNull(shaderNameEnd):
+    instanceName := shaderNameEnd + 2
+    instanceNameLength := strlen(instanceName)
+    // TODO: allow to take the difference between two pointers
+    shaderNameLength := strlen(material.name) - strlen(instanceName) - 2
+    // TODO: release memory
+    shaderName := malloc char (shaderNameLength + 1)
+    memcpy(cast void* shaderName, cast void* material.name, shaderNameLength)
+    shaderName[shaderNameLength] = '\0'
+
+    shader := cast Shader* StringMap_find(this.shadersByName, shaderName)
+
+    if isNotNull(shader):
+      material.shader = shader
+      List:prepend MaterialPtr this.materials material
+      StringMap_insert this.materialsByName material.name (cast void* material)
+    else:
+      println "warning: could not find shader " shaderName " for material " material.name
+    end
+  else:
+    println "warning: could not detect shader/instance name for material " material.name
+  end
+end
+
+func void ShaderManager:addMaterialArray(ShaderManager* this, Material_Array* materials):
+  Array:foreach2 materials matnum mat:
+    ShaderManager:addMaterial(this, mat)
+  end
+end
+
+
+func Shader* Shader:createFromGL(GLenum glname, cstring name):
+  shader := malloc Shader
+  shader.glname = glname
+  shader.name = name
+  // shader.params = nullptr(GLSLParameter_List)
+  ret shader
+end
+
+func void Shader:delete(Shader* this):
+  glDeleteProgram this.glname
+  // delete param list
+  // delete name string
+end
+
+func Shader* createObjectMaterial():
+  ret Shader:createFromGL( objectMaterial(), "default-material" )
+end
+
+func Shader* createSimplePPMaterial():
+  ret Shader:createFromGL( simplePPMaterial(), "simple-pp-material" )
 end
 
 ///-----------------------------------------------------------------------------
@@ -1724,6 +1894,7 @@ struct MeshInfo:
   Mesh mesh
   cstring id
   RBTransform transform
+  Material* material
 end
 
 defineListType Mesh
@@ -1754,28 +1925,6 @@ end
 defineArrayType SceneGraphEdge
 defineListType SceneGraphEdge
 defineArrayType Mesh
-
-struct Texture:
-  GLint glname
-  GLenum format
-  cstring fileName
-  int width heigth
-end
-
-defineArrayType Texture
-
-struct Material:
-  cstring name
-  Texture_Array textures
-  // GLint shader
-  Shader* shader
-
-  // some standard parameters
-  float[4] ambient diffuse specular emissive
-  float shininess
-end
-
-defineArrayType Material
 
 // ofunc bool op==(aiString aistr, cstring str):
 //   ret false
@@ -2014,6 +2163,12 @@ func void MeshInfo:print(MeshInfo* this, int indent):
   iprintln indent "MeshInfo '" this.id "':"
   Mesh:print &this.mesh (indent+2)
   RBTransform:print &this.transform (indent+2)
+  mat := this.material
+  if isNotNull(mat):
+    iprintln (indent+2) "material = " mat.name
+  else:
+    iprintln (indent+2) "material = null"
+  end
 end
 
 func void SceneGraphNode:print(SceneGraphNode* this, int indent):
@@ -2142,6 +2297,7 @@ func void SceneGraph:init(SceneGraph* this, aiScene* source):
     info := aptr this.meshes meshNum
     info.mesh = newMesh*
     info.id = "- SceneGraph mesh-"
+    info.material = aptr this.materials aimesh.mMaterialIndex
     makeOrigin &info.transform
   end
 
@@ -2810,22 +2966,22 @@ func int main():
   // objmat := loadGLSLShader "data/incidence.vert" "data/incidence.frag"
   // objmat := loadGLSLShader "data/pixeljourney/shared/Shaders/Exported/constant_color_v.gl" "data/pixeljourney/shared/Shaders/Exported/constant_color_f.gl"
   // objmat := loadGLSLShader "data/pixeljourney/test_incidence_v.gl" "data/pixeljourney/test_incidence_f.gl"
-  objmat := objectMaterial()
+  objmat := createObjectMaterial()
   // objmat := debugMaterial()
-  onReturn glDeleteProgram(objmat)
+  onReturn Shader:delete(objmat)
 
-  objmat_pj_CameraMatrix := glGetUniformLocation objmat "pj_CameraMatrix"
-  objmat_pj_ModelMatrix := glGetUniformLocation objmat "pj_ModelMatrix"
+  objmat_pj_CameraMatrix := glGetUniformLocation objmat.glname "pj_CameraMatrix"
+  objmat_pj_ModelMatrix := glGetUniformLocation objmat.glname "pj_ModelMatrix"
 
-  objmat_color := glGetUniformLocation objmat "msl_constant_color_1_color"
+  objmat_color := glGetUniformLocation objmat.glname "msl_constant_color_1_color"
   println "objmat_color = " objmat_color
-  objmat_obj2cam := glGetUniformLocation objmat "_object_to_ndc"
+  objmat_obj2cam := glGetUniformLocation objmat.glname "_object_to_ndc"
   objmat_falloff_amount :=
-      glGetUniformLocation objmat "_msl_Component_falloff_1_amount"
+      glGetUniformLocation objmat.glname "_msl_Component_falloff_1_amount"
   println "objmat_obj2cam = " objmat_obj2cam
   println "objmat_falloff_amount = " objmat_falloff_amount
   objmat_dampening := 0.0
-  objmat_loc_dampening := glGetUniformLocation objmat "dampening"
+  objmat_loc_dampening := glGetUniformLocation objmat.glname "dampening"
 
   postprocessMaterial := simplePPMaterial()
   postprocessMaterial_texture := glGetUniformLocation postprocessMaterial "texture"
@@ -2898,17 +3054,17 @@ func int main():
     rw TW_TYPE_INT32 "  channel num" visNodeAnim
   end
 
-  objmat_params := addControlsForUniforms objmat shaderBar "objmat"
-  shaderParameterValues = objmat_params
+  // objmat_params := addControlsForUniforms objmat.glname shaderBar "objmat"
+  // shaderParameterValues = objmat_params
   shaderValueFileName := "data/settings/shader_params.cfg"
-  GLSLParameter:loadParamsFromFile shaderValueFileName shaderParameterValues
+  // GLSLParameter:loadParamsFromFile shaderValueFileName shaderParameterValues
   pp_params := addControlsForUniforms postprocessMaterial shaderBar "postprocessing"
-  onReturn:
-    /// only save if shader compiled successfully
-    if (objmat != 0):
-      GLSLParameter:saveParamsToFile shaderValueFileName shaderParameterValues
-    end
-  end
+  // onReturn:
+  //   /// only save if shader compiled successfully
+  //   if (objmat.glname != 0):
+  //     GLSLParameter:saveParamsToFile shaderValueFileName shaderParameterValues
+  //   end
+  // end
 
   fbo := new Framebuffer 1024 1024
   Framebuffer:attachColorTexture fbo
@@ -2945,6 +3101,18 @@ func int main():
   else:
     timeline.currentTime = &animTime
   end
+
+  shaderMngr := local ShaderManager "data/settings/shader_params.cfg" shaderBar
+  onReturn ShaderManager:delete(shaderMngr)
+
+  lambert := lambertMaterial()
+
+  ShaderManager:add shaderMngr objmat.glname "objmat"
+  ShaderManager:add shaderMngr lambert "lambert"
+  ShaderManager:add shaderMngr postprocessMaterial "simple-pp-material"
+  ShaderManager:dump shaderMngr
+  ShaderManager:addMaterialArray shaderMngr &sg.materials
+  ShaderManager:createControls(shaderMngr)
 
   mainloop:
     /// update logic
@@ -3041,42 +3209,73 @@ func int main():
       // running = false
 
       AABB:render &meshBB
-      withShader objmat:
-        glUniformMatrix4fv objmat_pj_CameraMatrix 1 false (cast float* &pj_CameraMatrix)
-        // var float[16] viewMat
-        // var float[16] projMat
-        // var float[16] ndc
-        // readGLMatrix GL_MODELVIEW_MATRIX (cast float* &viewMat)
-        // readGLMatrix GL_PROJECTION_MATRIX (cast float* &projMat)
-        // glMatrixMode GL_MODELVIEW
-        // glPushMatrix()
-        // glMultMatrixf(cast float* &viewMat)
-        // glMultMatrixf(cast float* &projMat)
-        // readGLMatrix GL_MODELVIEW_MATRIX (cast float* &ndc)
-        // glPopMatrix()
-        // for num 0 16
-        //   zmp:array:set viewMat num 0.0
-        // end
-        // for num2 0 4
-        //   zmp:array:set viewMat (num*4+num) 1.0
-        // end
-        // glUniformMatrix1fv objmat_obj2cam 1 false (cast float* &viewMat)
-        // glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
-        // glUniform1f objmat_falloff_amount 0.5
-        glUniform4f objmat_color 1.0 0.5 0.0 1.0
-        // glUniform1f objmat_loc_dampening objmat_dampening
-        List:foreach objmat_params paramIndex2 param2:
-        //   // param2.apply &param2
-          GLSLParameter:apply &param2
+      // withShader objmat.glname:
+      //   glUniformMatrix4fv objmat_pj_CameraMatrix 1 false (cast float* &pj_CameraMatrix)
+      //   // var float[16] viewMat
+      //   // var float[16] projMat
+      //   // var float[16] ndc
+      //   // readGLMatrix GL_MODELVIEW_MATRIX (cast float* &viewMat)
+      //   // readGLMatrix GL_PROJECTION_MATRIX (cast float* &projMat)
+      //   // glMatrixMode GL_MODELVIEW
+      //   // glPushMatrix()
+      //   // glMultMatrixf(cast float* &viewMat)
+      //   // glMultMatrixf(cast float* &projMat)
+      //   // readGLMatrix GL_MODELVIEW_MATRIX (cast float* &ndc)
+      //   // glPopMatrix()
+      //   // for num 0 16
+      //   //   zmp:array:set viewMat num 0.0
+      //   // end
+      //   // for num2 0 4
+      //   //   zmp:array:set viewMat (num*4+num) 1.0
+      //   // end
+      //   // glUniformMatrix1fv objmat_obj2cam 1 false (cast float* &viewMat)
+      //   // glUniform4fv objmat_obj2cam 4 (cast float* &ndc)
+      //   // glUniform1f objmat_falloff_amount 0.5
+      //   glUniform4f objmat_color 1.0 0.5 0.0 1.0
+      //   // glUniform1f objmat_loc_dampening objmat_dampening
+      //   List:foreach objmat_params paramIndex2 param2:
+      //   //   // param2.apply &param2
+      //     GLSLParameter:apply &param2
+      //   end
+      //   Array:foreach meshes meshNum2:
+      //     pMeshInfo := (meshes.elements + meshNum2)
+      //     glPushMatrix()
+      //     // applyTransformGL &pMeshInfo.transform
+      //     var float[16] pj_ModelMatrix
+      //     RBTransform:toMatrix4x4 &pMeshInfo.transform (cast float* &pj_ModelMatrix)
+      //     glUniformMatrix4fv objmat_pj_ModelMatrix 1 false (cast float* &pj_ModelMatrix)
+      //     glMultMatrixf (cast float* &pj_ModelMatrix)
+      //     if wireframe:
+      //       Mesh:render &pMeshInfo.mesh GL_POINTS 0
+      //     else:
+      //       Mesh:render &pMeshInfo.mesh GL_TRIANGLES 0
+      //     end
+      //     drawCoordSys 1.0
+      //     glPopMatrix()
+      //   end
+      // end
+
+      Array:foreach meshes meshNum2:
+        // glUniformMatrix4fv objmat_pj_CameraMatrix 1 false (cast float* &pj_CameraMatrix)
+        // glUniform4f objmat_color 1.0 0.5 0.0 1.0
+        pMeshInfo := (meshes.elements + meshNum2)
+        glPushMatrix()
+        meshmat := pMeshInfo.material
+        meshshader := objmat
+        if isNotNull(meshmat):
+          meshshader = meshmat.shader
         end
-        Array:foreach meshes meshNum2:
-          pMeshInfo := (meshes.elements + meshNum2)
-          glPushMatrix()
-          // applyTransformGL &pMeshInfo.transform
-          var float[16] pj_ModelMatrix
-          RBTransform:toMatrix4x4 &pMeshInfo.transform (cast float* &pj_ModelMatrix)
-          glUniformMatrix4fv objmat_pj_ModelMatrix 1 false (cast float* &pj_ModelMatrix)
-          glMultMatrixf (cast float* &pj_ModelMatrix)
+        withShader meshshader.glname:
+          unless isNull(meshmat):
+            List:foreach meshmat.params paramIndex2 param2:
+              GLSLParameter:apply &param2
+            end
+          end
+          applyTransformGL &pMeshInfo.transform
+          // var float[16] pj_ModelMatrix
+          // RBTransform:toMatrix4x4 &pMeshInfo.transform (cast float* &pj_ModelMatrix)
+          // glUniformMatrix4fv objmat_pj_ModelMatrix 1 false (cast float* &pj_ModelMatrix)
+          // glMultMatrixf (cast float* &pj_ModelMatrix)
           if wireframe:
             Mesh:render &pMeshInfo.mesh GL_POINTS 0
           else:
@@ -3086,6 +3285,7 @@ func int main():
           glPopMatrix()
         end
       end
+
       if showMeshPointers:
         Array:foreach meshes meshNum3:
           pMeshInfo2 := meshes.elements + meshNum3
