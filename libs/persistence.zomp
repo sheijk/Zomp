@@ -1,0 +1,115 @@
+///
+/// A very simple library for persistence. Allows to store hierarchical mappings
+/// between string keys and string values into a file
+///
+
+struct Section:
+  cstring name
+  // <cstring>
+  StringMap* settings
+  // <Section>
+  StringMap* subsections
+end
+
+func void Section:init(Section* this, cstring name):
+  this.name = name
+  this.settings = StringMap_new()
+  this.subsections = StringMap_new()
+end
+
+func char* findOneOf(char* buffer, char* delims, bool inverted):
+  pos := buffer
+  while (!isNull(pos) && pos* != '\0'):
+    foundDelim := false
+    currentDelim := delims
+    if isNotNull(delims):
+      while (currentDelim* != '\0'):
+        if (currentDelim* == pos*):
+          foundDelim = true
+        end
+        ++currentDelim
+      end
+    end
+
+    if (foundDelim != inverted):
+      ret pos
+    end
+
+    ++pos
+  end
+
+  ret nullptr(char)
+end
+
+func char* findFirstIn(char* buffer, char* delim):
+  ret findOneOf(buffer, delim, false)
+end
+
+func char* findFirstNotIn(char* buffer, char* delim):
+  ret findOneOf(buffer, delim, true)
+end
+
+func char* copyStringRange(char* start, char* end_):
+  // TODO well.. if we had pointer substraction right now..
+  pos := start
+  count := 0
+  while (pos != end_):
+    ++count
+    ++pos
+  end
+
+  buffer := malloc char (count+1)
+  strncpy(buffer, start, count)
+  buffer[count] = '\0'
+  return buffer
+end
+
+func void Section:loadFrom2(Section* this, cstring fileName):
+  println "Loading buffer " fileName ":"
+  buffer := nullptr char
+  loadResult := zompLoadFileToMemory( fileName, &buffer )
+  if (loadResult < 0):
+    println "failed: " loadResult
+    return void
+  end
+  onReturn dealloc(buffer)
+
+  println buffer
+
+  template atEnd (isNull(pos) || pos* == '\0')
+
+  pos := buffer
+  while !atEnd:
+    tokenStart := findFirstNotIn(pos, " \n")
+    tokenEnd := findFirstIn(tokenStart, " =")
+    name := copyStringRange tokenStart tokenEnd
+
+    tokenStart = findFirstNotIn(tokenEnd, " =")
+    tokenEnd = findFirstIn(tokenStart, " \n")
+    value := copyStringRange tokenStart tokenEnd
+
+    if (name* != '\0' && value* != '\0'):
+      print "'" name "' = '" value "', pos = "
+      printPtr (cast void* pos)
+      print ", pos* = " toInt(pos*)
+      println()
+      StringMap_insert this.settings name (cast void* value)
+    else:
+      dealloc value
+    end
+
+    dealloc name
+
+    pos = tokenEnd
+  end
+end
+
+func int main():
+  s := new Section "testing"
+  Section:loadFrom2 s "examples/test.cfg"
+  StringMap_debugPrint s.settings
+  StringMap_debugPrint s.subsections
+  dealloc s
+  ret 0
+end
+
