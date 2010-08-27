@@ -353,6 +353,17 @@ editor to trigger recompilations etc. and possibly resume main()"
 (zomp-dofun zomp-tl-toggle-parsed-ast-printing "!printAst")
 (zomp-dofun zomp-tl-toggle-verify "!verify")
 
+(defun zomp-tl-sexpr-syntax ()
+  "Use indentation based syntax"
+  (interactive)
+  (zomp-tl-do "!")
+  (zomp-tl-do "!syntax indent"))
+(defun zomp-tl-indent-syntax ()
+  "Use sepxr based syntax (deprecated)"
+  (interactive)
+  (zomp-tl-do "!")
+  (zomp-tl-do "!syntax sexpr"))
+
 (defmacro zomp-add-action (command key caption &rest path)
   `(list (local-set-key ,key (quote ,command))
          (local-set-key [menu-bar zomp ,@path ,command] '(,caption . ,command))))
@@ -641,6 +652,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
   (dolist (op (list ?: ?+ ?- ?= ?! ?? ?* ?/ ?& ?| ?^))
     (modify-syntax-entry op "."))
+  (modify-syntax-entry ?_ "w")
 
   (setq indent-tabs-mode nil)
 
@@ -692,12 +704,8 @@ editor to trigger recompilations etc. and possibly resume main()"
   ;; (zomp-add-action zomp-tl-toggle-verify
   ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
 
-  (local-set-key [(control c) (?.) (?s)] '(lambda () (interactive)
-                                            (zomp-tl-do "!")
-                                            (zomp-tl-do "!syntax sexpr")))
-  (local-set-key [(control c) (?.) (?i)] (lambda () (interactive)
-                                           (zomp-tl-do "!")
-                                           (zomp-tl-do "!syntax indent")))
+  (local-set-key [(control c) (?.) (?s)] 'zomp-tl-sexpr-syntax)
+  (local-set-key [(control c) (?.) (?i)] 'zomp-tl-indent-syntax)
 
   (zomp-add-seperator zomp-sep-3)
   (zomp-add-action zomp-tl-run [(control c)(control d)] "Run function...")
