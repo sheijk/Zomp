@@ -611,6 +611,8 @@ end
 /// a = b - for first class types
 /// a.x = b - for struct members
 /// ptr[10] = b - for pointers
+/// ptr* = b - for pointers
+/// *ptr = b - for pointers
 macro op= l r:
   if ast:matchesShape(l, ${_[_]}):
     var ast* array ast:child(l, 0)
@@ -619,7 +621,7 @@ macro op= l r:
   elseif ast:matchesShape(l, ${__.__}):
     laddr := getMemberAddress(l)
     ret ${store #laddr #r}
-  elseif ast:matchesShape(l, ${__*}):
+  elseif (bool:or ast:matchesShape(l, ${__*}) ast:matchesShape(l, ${*__})):
     addr := ast:child l 0
     ret ${store #addr #r}
   else:
@@ -702,6 +704,26 @@ macro local type args...:
     #initCall
     &#name
   end}
+end
+
+func void bool:init(bool* this, bool value):
+  this* = value
+end
+
+func void char:init(char* this, char value):
+  this* = value
+end
+
+func void int:init(int* this, int value):
+  this* = value
+end
+
+func void float:init(float* this, float value):
+  this* = value
+end
+
+func void double:init(double* this, double value):
+  this* = value
 end
 
 template op++ lstring rstring:

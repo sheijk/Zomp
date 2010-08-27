@@ -952,6 +952,7 @@ von http://lambda-the-ultimate.org/node/2884
    type system?
 ** TODO [#A] global var of double type fails                         :bug:quick:
 ** TODO [#A] Cmd-e fails if end is spelled eend                            :bug:
+** TODO [#A] onReturn does not catch all ret instructions                  :bug:
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
