@@ -37,14 +37,15 @@ endif
 
 ZOMP_STDLIBS = zompvm_dummy.o runtime.o
 LIBS = $(ZOMP_STDLIBS)
-GL_LIBS = $(ZOMP_STDLIBS) $(LINK_GLFW) $(LINK_GLEW) $(LINK_GL) $(LINK_GLUT)
+GL_LIBS = $(LINK_GLFW) $(LINK_GLEW) $(LINK_GL) $(LINK_GLUT)
 
-examples/opengl.exe examples/billboardmix.exe examples/metaball2d.exe examples/shaderfun.exe: override LIBS = $(GL_LIBS)
-examples/metaballs.exe: override LIBS = $(GL_LIBS) $(LINK_QUICKTEXT)
-examples/using_assimp.exe: override LIBS = $(GL_LIBS) $(LINK_QUICKTEXT) $(LINK_CPPSTDLIB) $(LINK_ASSIMP)
-examples/tweakbar.exe: override LIBS = $(GL_LIBS) $(LINK_ANTTWEAKBAR)
-examples/lighting.exe: override LIBS = $(GL_LIBS) $(LINK_ANTTWEAKBAR) $(LINK_CPPSTDLIB) $(LINK_ASSIMP)
-examples/pipeline_experiment.exe: override LIBS = $(GL_LIBS) $(LINK_ANTTWEAKBAR) $(LINK_CPPSTDLIB) $(LINK_ASSIMP)
+examples/opengl.exe examples/billboardmix.exe examples/metaball2d.exe examples/shaderfun.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS)
+examples/metaballs.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_QUICKTEXT)
+examples/using_assimp.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_QUICKTEXT) $(LINK_CPPSTDLIB) $(LINK_ASSIMP)
+examples/tweakbar.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEAKBAR)
+examples/lighting.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEAKBAR) $(LINK_CPPSTDLIB) $(LINK_ASSIMP)
+examples/pipeline_experiment.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEAKBAR) $(LINK_CPPSTDLIB) $(LINK_ASSIMP) $(LINK_UTILS)
+examples/utilsdemo.exe: override LIBS = $(ZOMP_STDLIBS) $(LINK_CPPSTDLIB) $(LINK_UTILS)
 
 ################################################################################
 # Dependencies
@@ -61,6 +62,7 @@ examples/using_assimp.zomp: libs/libcee.zomp opengl20.zomp glfw.zomp libs/glutil
 ################################################################################
 
 .PRECIOUS: examples/%.ll
+.PHONY: examples/%.run
 
 examples/%.ll: examples/%.zomp zompc.native
 	$(ECHO) Compiling $(<) to .ll...
@@ -92,5 +94,9 @@ examples/runtime.s: runtime.zomp
 
 examples/%.exe: examples/%.o runtime.o
 	@$(ECHO) Making $@ ...
-	$(CC) $(CFLAGS) -o $@ -L. -L.. $(LIBS) $< -arch i386
+	$(CC) $(CFLAGS) -o $@ -L. -L./examples $(LIBS) $< -arch i386
+
+examples/%.run: examples/%.exe
+	@$(ECHO) Running $@ ...
+	DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:. ./$<
 

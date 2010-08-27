@@ -1,0 +1,34 @@
+///
+/// Demonstrating how to use the builtin utils lib
+///
+
+requireLibs libcee utils
+
+func void stringmapDemo():
+  a := new int 10
+  b := new int 20
+  c := new int 30
+  m := StringMap_new()
+
+  StringMap_insert m "a" (cast void* a)
+  StringMap_insert m "b" (cast void* b)
+  StringMap_insert m "c" (cast void* c)
+
+  println "lookup a = " *(cast int* StringMap_find(m, "a"))
+  println "lookup b = " *(cast int* StringMap_find(m, "b"))
+  println "lookup c = " *(cast int* StringMap_find(m, "c"))
+
+  StringMap_debugPrint m
+
+  StringMap_delete m
+  dealloc a
+  dealloc b
+  dealloc c
+end
+
+func int main():
+  stringmapDemo()
+  ret 0
+end
+
+

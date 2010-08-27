@@ -275,46 +275,6 @@ namespace {
         "macroAstChild", llvmModule); 
       macroAstChild->setCallingConv(CallingConv::C);
     }
-
-//     { // simpleAst def
-//       Constant* const_int32_117 = Constant::getNullValue(IntegerType::get(32));
-//       ConstantInt* const_int32_174 = ConstantInt::get(APInt(32,  "1", 10));
-//       ConstantInt* const_int32_187 = ConstantInt::get(APInt(32,  "2", 10));
-//       Constant* const_ptr_188 = Constant::getNullValue(cstringPtr);
-
-//       Function::arg_iterator args = simpleAst->arg_begin();
-//       Value* ptr_name = args++;
-//       ptr_name->setName("name");
-
-//       BasicBlock* label_404 = new BasicBlock("",simpleAst,0);
-
-//       // Block  (label_404)
-//       AllocaInst* ptr_a = new AllocaInst(astPtr, "a", label_404);
-//       MallocInst* ptr_temp123 = new MallocInst(ast, "temp123", label_404);
-//       StoreInst* void_405 = new StoreInst(ptr_temp123, ptr_a, false, label_404);
-//       LoadInst* ptr_temp125 = new LoadInst(ptr_a, "temp125", false, label_404);
-//       std::vector<Value*> ptr_temp124_indices;
-//       ptr_temp124_indices.push_back(const_int32_117);
-//       ptr_temp124_indices.push_back(const_int32_117);
-//       Instruction* ptr_temp124 = new GetElementPtrInst(ptr_temp125, ptr_temp124_indices.begin(), ptr_temp124_indices.end(), "temp124", label_404);
-//       StoreInst* void_406 = new StoreInst(ptr_name, ptr_temp124, false, label_404);
-//       LoadInst* ptr_temp127 = new LoadInst(ptr_a, "temp127", false, label_404);
-//       std::vector<Value*> ptr_temp126_indices;
-//       ptr_temp126_indices.push_back(const_int32_117);
-//       ptr_temp126_indices.push_back(const_int32_174);
-//       Instruction* ptr_temp126 = new GetElementPtrInst(ptr_temp127, ptr_temp126_indices.begin(), ptr_temp126_indices.end(), "temp126", label_404);
-//       StoreInst* void_407 = new StoreInst(const_int32_117, ptr_temp126, false, label_404);
-//       LoadInst* ptr_temp129 = new LoadInst(ptr_a, "temp129", false, label_404);
-//       std::vector<Value*> ptr_temp128_indices;
-//       ptr_temp128_indices.push_back(const_int32_117);
-//       ptr_temp128_indices.push_back(const_int32_187);
-//       Instruction* ptr_temp128 = new GetElementPtrInst(ptr_temp129, ptr_temp128_indices.begin(), ptr_temp128_indices.end(), "temp128", label_404);
-//       CastInst* ptr_temp130 = new BitCastInst(const_ptr_188, astPtrPtr, "temp130", label_404);
-//       StoreInst* void_408 = new StoreInst(ptr_temp130, ptr_temp128, false, label_404);
-//       LoadInst* ptr_temp131 = new LoadInst(ptr_a, "temp131", false, label_404);
-//       new ReturnInst(ptr_temp131, label_404);
-
-//     }
   }
 
   static void assureModuleExists() {
@@ -397,7 +357,6 @@ llvm::GenericValue runFunctionWithArgs(
     func = Function::Create( voidType, GlobalVariable::ExternalLinkage, name, NULL );
   }
 
-  //   std::vector<GenericValue> args;
   GenericValue retval = executionEngine->runFunction( func, args );
 
   fflush( stdout );
@@ -439,11 +398,11 @@ namespace
     return v;
   }
 
-  static GenericValue ptrValue(int i) {
-    GenericValue v;
-    v.PointerVal = bitcast<void*>(i);
-    return v;
-  }
+  // static GenericValue ptrValue(int i) {
+  //   GenericValue v;
+  //   v.PointerVal = bitcast<void*>(i);
+  //   return v;
+  // }
 
 //   static GenericValue intValue(int i) {
 //     GenericValue v;
@@ -620,19 +579,19 @@ extern "C" {
       return "Unknown signal";
     }
   }
-
+  
   static void onCrash(int signalNumber) {
     static bool first = true;
     if( first ) {
       first = false;
       fprintf(stderr, "Received signal %s. Callstack:\n", signalName(signalNumber));
-
+  
       const int max_stack_size = 128;
       void* callstack[max_stack_size];
       int frame_count = backtrace(callstack, max_stack_size);
       backtrace_symbols_fd(callstack, frame_count, STDERR_FILENO);
       fflush(stderr);
-
+  
       // do not receive signals like SIGBUS multiple times
       signal(signalNumber, SIG_DFL);
     }
@@ -641,7 +600,7 @@ extern "C" {
       fflush(stderr);
     }
   }
-
+  
   static void initCrashSignalHandler() {
     int signals_to_handle[] = { SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGABRT, SIGBUS, SIGSEGV };
     for( size_t sig_num = 0; sig_num < sizeof(signals_to_handle)/sizeof(int); ++sig_num ) {
@@ -664,22 +623,14 @@ extern "C" {
     modulePassManager = new PassManager();
     setupOptimizerPasses();
 
-    // value* closure_f = NULL;
-    // closure_f = caml_named_value("helloCallback");
-    // caml_callback(*closure_f, Val_unit);
-    //
-    // value* printString = caml_named_value("printString");
-    // caml_callback(*printString, caml_copy_string("This is ZompVM"));
-    //
-    // value* getTrue = caml_named_value("getTrue");
-    // value result = caml_callback(*getTrue, Val_unit);
-    // std::cout << "Received bool from OCaml: " << Bool_val(result) << std::endl;
-
     ZompCallbacks::init();
     ZMP_ASSERT( ZompCallbacks::areValid(), );
 
     initPausingSignalHandler();
-    // initCrashSignalHandler();
+    /// causes some sort of problem, don't remember which one exactly..
+    if( false ) {
+      initCrashSignalHandler();
+    }
 
     return true;
   }
@@ -1292,48 +1243,4 @@ extern "C" {
   // }
 
 } // extern "C"
-
-//------------------------------------------------------------------------------
-//- hash table interface
-
-extern "C"
-{
-    typedef std::map<std::string, void*> StringMap;
-
-    StringMap* StringMap_new()
-    {
-        return new StringMap();
-    }
-
-    void StringMap_delete(StringMap* map)
-    {
-        delete map;
-    }
-
-    void StringMap_insert(StringMap* map, char* key, void* value)
-    {
-        if( map ) {
-            map->insert( std::make_pair(std::string(key), value) );
-        }
-    }
-
-    void StringMap_remove(StringMap* map, char* key)
-    {
-        if( map ) {
-            map->erase( map->find(key) );
-        }
-    }
-
-    void* StringMap_find(StringMap* map, char* key)
-    {
-        StringMap::iterator iter = map->find(key);
-        if( iter != map->end() ) {
-            return iter->second;
-        }
-        else {
-            return NULL;
-        }
-    }
-
-}
 

@@ -42,13 +42,6 @@ std:base:func char* char2cstring(char c)
 
 std:base:func char* copyString(char* str)
 
-type StringMap
-std:base:func StringMap* StringMap_new()
-std:base:func void StringMap_delete(StringMap* map)
-std:base:func void StringMap_insert(StringMap* map, char* key, void* value)
-std:base:func void StringMap_remove(StringMap* map, char* key)
-std:base:func void* StringMap_find(StringMap* map, char* key)
-
 ///-----------------------------------------------------------------------------
 /// Section: ZompVM
 ///-----------------------------------------------------------------------------

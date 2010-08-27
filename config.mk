@@ -125,17 +125,20 @@ endif
 ################################################################################
 
 ifeq "$(BUILD_PLATFORM)" "Linux"
+DLL_EXTENSION = so
 LINK_GLUT = -lglut
 LINK_GL = -lGL
 else
+DLL_EXTENSION = dylib
 LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
 
-LINK_QUICKTEXT = libquicktext.dylib
-LINK_ANTTWEAKBAR = libAntTweakBar.dylib
+LINK_QUICKTEXT = libquicktext.$(DLL_EXTENSION)
+LINK_ANTTWEAKBAR = libAntTweakBar.$(DLL_EXTENSION)
 LINK_ASSIMP = libassimp.a
 LINK_CPPSTDLIB = -lstdc++
-LINK_GLEW = libGLEW.dylib
-LINK_GLFW = libglfw.dylib
+LINK_GLEW = libGLEW.$(DLL_EXTENSION)
+LINK_GLFW = libglfw.$(DLL_EXTENSION)
+LINK_UTILS = libutils.$(DLL_EXTENSION)
 

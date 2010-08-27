@@ -61,10 +61,10 @@ endif
 # Combined/main targets
 ################################################################################
 
-all: byte native runtime.bc runtime.ll libbindings tags deps.png mltest \
+all: byte native runtime.bc runtime.ll libbindings TAGS deps.png mltest \
     zompvm_dummy.o
 libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp \
-    libglut.dylib quicktext.zomp libquicktext.dylib
+    libglut.dylib quicktext.zomp libquicktext.dylib libutils.dylib
 byte: dllzompvm.so zompc sexprtoplevel
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
 
@@ -220,6 +220,10 @@ libquicktext.dylib: glQuickText.o
 	@$(ECHO) Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ glQuickText.o $(LINK_GL)
 
+libutils.dylib: libutils.cpp
+	@$(ECHO) Building $@ ...
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) $< -o $@
+
 EXTLIB_DIR = extlibs
 ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
 
@@ -325,15 +329,15 @@ bindings.cmi: common.cmo lang.cmo
 ################################################################################
 # Additional utility targets
 ################################################################################
-tags:
+TAGS:
 	@$(ECHO) Generating tags ...
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
 # generate a file for graphviz which visualizes the dependencies between modules
 deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	@$(ECHO) Generating dependency graph for graphviz ...
-	ocamldot depends.mk > deps.dot || $(ECHO) "ocamldot not found, no graphviz deps graph generated"
-	dot -Tpng deps.dot > deps.png || $(ECHO) "dot not found, deps.png not generated"
+	ocamldot depends.mk > deps.dot || $(ECHO) "warning: ocamldot not found, no graphviz dependency graph generated"
+	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
 
 ################################################################################
 # Cleaning
