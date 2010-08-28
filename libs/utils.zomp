@@ -17,3 +17,10 @@ std:base:func void StringMap_remove(StringMap* map, char* key)
 std:base:func void* StringMap_find(StringMap* map, char* key)
 std:base:func void StringMap_debugPrint(StringMap* map)
 
+type StringMapRange
+std:base:func StringMapRange* StringMap_range(StringMap* map)
+std:base:func bool StringMapRange_hasNext(StringMapRange* range)
+std:base:func void StringMapRange_next(StringMapRange* range)
+std:base:func cstring StringMapRange_key(StringMapRange* range)
+std:base:func void* StringMapRange_value(StringMapRange* range)
+

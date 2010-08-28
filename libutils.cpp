@@ -6,6 +6,10 @@
 extern "C"
 {
     typedef std::map<std::string, void*> StringMap;
+    struct StringMapRange
+    {
+        StringMap::iterator begin, end;
+    };
 
     StringMap* StringMap_new()
     {
@@ -52,6 +56,29 @@ extern "C"
             }
             fflush( stdout );
         }
+    }
+
+    StringMapRange* StringMap_range(StringMap* map) {
+        StringMapRange* range = (StringMapRange*)malloc(sizeof(StringMapRange));
+        range->begin = map->begin();
+        range->end = map->end();
+        return range;
+    }
+
+    bool StringMapRange_hasNext(StringMapRange* range) {
+        return range->begin != range->end;
+    }
+
+    void StringMapRange_next(StringMapRange* range) {
+        ++range->begin;
+    }
+
+    const char* StringMapRange_key(StringMapRange* range) {
+        return range->begin->first.c_str();
+    }
+
+    void* StringMapRange_value(StringMapRange* range) {
+        return range->begin->second;
     }
 }
 
