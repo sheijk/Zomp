@@ -71,67 +71,112 @@ func char* copyStringRange(char* start, char* end_):
   return buffer
 end
 
+func void Section:loadFromAst(Section* this, ast* tree):
+  sectionPattern := ${_:
+    __...
+  end}
+
+  if (tree.id ==_str "seq" || tree.id ==_str "opseq"):
+    forEachAstChild item tree:
+      if (item.id ==_str "op="):
+        name := getField ast:child(item, 0) id
+        value := getField ast:child(item, 1) id
+        StringMap_insert this.settings name (cast void* value)
+      elseif ast:matchesShape(item, sectionPattern):
+        sectionName := getField ast:child(item, 0) id
+        subsection := new Section sectionName
+        Section:loadFromAst subsection ast:child(item, 1)
+        StringMap_insert this.subsections sectionName (cast void* subsection)
+      else:
+        println "Found invalid entry, skipping"
+        ast:print item 1
+        println()
+      end
+    end
+  else:
+    println "Invalid section, skipping"
+    ast:print tree 1
+    println()
+  end
+end
+
 func void Section:loadFrom(Section* this, cstring fileName):
   buffer := nullptr char
   loadResult := zompLoadFileToMemory( fileName, &buffer )
   return if: loadResult < 0
-  onReturn dealloc(buffer)
 
-  pos := buffer
-  while !(isNull(pos) || pos* == '\0'):
-    tokenStart := findFirstNotIn(pos, " \n")
+  code := parseZompSource buffer
+  dealloc buffer
+  Section:loadFromAst this code
+end
 
-    tokenEnd := findFirstIn(tokenStart, " =")
-    name := copyStringRange tokenStart tokenEnd
+func void Section:print(Section* this, (fptr void cstring) printF_, int indent):
+  printF := printF_
 
-    tokenStart = findFirstNotIn(tokenEnd, " =")
-    tokenEnd = findFirstIn(tokenStart, " \n")
-    value := copyStringRange tokenStart tokenEnd
+  pos := StringMap_range this.settings
+  while StringMapRange_hasNext(pos):
+    name := cast cstring StringMapRange_key(pos)
+    value := cast cstring StringMapRange_value(pos)
 
-    if (name* != '\0' && value* != '\0'):
-      StringMap_insert this.settings name (cast void* value)
-    else:
-      dealloc value
+    times indent:
+      printF " "
     end
+    printF name
+    printF " = "
+    printF value
+    printF "\n"
 
-    dealloc name
-
-    pos = tokenEnd
+    StringMapRange_next(pos)
   end
+
+  subsection := StringMap_range this.subsections
+  while StringMapRange_hasNext(subsection):
+    sectionName := cast cstring StringMapRange_key(subsection)
+    sec := cast Section* StringMapRange_value(subsection)
+
+    times indent:
+      printF " "
+    end
+    printF sectionName
+    printF ":\n"
+    Section:print(sec, printF, indent+2)
+    times indent:
+      printF " "
+    end
+    printF "end\n"
+
+    StringMapRange_next subsection
+  end
+end
+
+var FILE* Section:currentFile_ null
+func void Section:printToCurrentFile_(cstring str):
+  writeCString(Section:currentFile_, str)
   return
 end
 
 func void Section:writeTo(Section* this, cstring fileName):
   file := fopen(fileName, "w")
   return if: isNull(file)
-  onReturn closeFile(file)
 
-  range := StringMap_range this.settings
-  while StringMapRange_hasNext(range):
-    name := StringMapRange_key(range)
-    value := cast cstring StringMapRange_value(range)
-
-    writeCString(file, name)
-    writeCString(file, " = ")
-    writeCString(file, value)
-    writeNewline(file)
-
-    StringMapRange_next range
-  end
+  Section:currentFile_ = file
+  Section:print(this, &Section:printToCurrentFile_, 0)
+  Section:currentFile_ = nullptr FILE
+  closeFile(file)
   return
 end
 
-func int main():
-  s := new Section "testing"
-  Section:loadFrom s "examples/test.cfg"
-  StringMap_debugPrint s.settings
-  StringMap_debugPrint s.subsections
-  Section:writeTo s "examples/test2.cfg"
-  dealloc s
-
-  code := parseZompSource "a + b * 3 c"
-  ast:print code 2
-
-  ret 0
-end
+// func int main():
+//   s := new Section "testing"
+//   fileName := "examples/test.cfg"
+//   Section:loadFrom s fileName
+//   StringMap_debugPrint s.settings
+//   StringMap_debugPrint s.subsections
+//   Section:writeTo s "examples/test2.cfg"
+//   println "Content of " fileName ":"
+//   Section:print s &printString 0
+//   dealloc s
+// 
+//   ret 0
+// end
 
