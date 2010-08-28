@@ -58,20 +58,6 @@ struct
     let result = f() in
     log ("<- " ^ message);
     result
-
-  let foldString str f init =
-    let strLength = String.length str in
-    let rec worker index v =
-      if index >= strLength then v
-      else worker (index+1) (f v str.[index])
-    in
-    worker 0 init
-
-  let rec listContains element = function
-    | [] -> false
-    | e :: rem when e = element -> true
-    | _ :: rem -> listContains element rem
-
 end
 
 open Utilities
@@ -300,47 +286,6 @@ struct
 end
 
 open Translation_utils
-
-(** Utilities to convert between Ast2.sexpr and Zomp native AST *)
-module NativeAst =
-struct
-
-  let isValidId name =
-    foldString
-      name (fun wasValid chr -> wasValid && Char.code chr < 128) true
-
-  let rec extractSExprFromNativeAst astAddress =
-    if Zompvm.zompAstIsNull astAddress then
-      Ast2.idExpr "error, macro returned NULL"
-    else
-      let name =
-        let extracted = Machine.zompAstId astAddress in
-        if isValidId extracted then extracted
-        else sprintf "compiler:error:invalidId '%s'" extracted
-      in
-      let childCount = Machine.zompAstChildCount astAddress in
-      let childs =
-        let rec getChilds num =
-          if num < childCount then
-            let childAddress = Machine.zompAstChild astAddress num in
-            let child = extractSExprFromNativeAst childAddress in
-            child :: getChilds (num+1)
-          else
-            []
-        in
-        getChilds 0
-      in
-      Ast2.expr name childs
-
-  let rec buildNativeAst = function
-    | {id = id; args = []} ->
-        Zompvm.zompSimpleAst id
-    | ast ->
-        let childs = List.map buildNativeAst ast.args in
-        let nativeAst = Zompvm.zompSimpleAst ast.id in
-        List.iter (fun child -> Zompvm.zompAddChild ~parent:nativeAst ~child) childs;
-        nativeAst
-end
 
 module Translators_deprecated_style =
 struct
@@ -768,7 +713,7 @@ struct
     if false then constructCallerFunction [];
 
     let createArgs() =
-      List.map NativeAst.buildNativeAst args;
+      List.map Zompvm.NativeAst.buildNativeAst args;
     in
 
     let callMacro args =
@@ -783,7 +728,7 @@ struct
     let astAddress = callMacro argsAddresses in
 
     (* log (sprintf "extracting result from address %d" astAddress); *)
-    let sexpr = NativeAst.extractSExprFromNativeAst astAddress in
+    let sexpr = Zompvm.NativeAst.extractSExprFromNativeAst astAddress in
     (* log (sprintf "extracted:\n%s" (Ast2.toString sexpr)); *)
     sexpr
 
@@ -925,11 +870,11 @@ struct
     (fun bindings args ->
        begin
          let invokeMacro args =
-           let nativeArgs = List.map NativeAst.buildNativeAst args in
+           let nativeArgs = List.map Zompvm.NativeAst.buildNativeAst args in
            Machine.zompResetMacroArgs();
            List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
            let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
-           let resultAst = NativeAst.extractSExprFromNativeAst nativeResultAst in
+           let resultAst = Zompvm.NativeAst.extractSExprFromNativeAst nativeResultAst in
            resultAst
          in
          let argCount = List.length args in
@@ -1036,7 +981,7 @@ struct
 
             Zompvm.evalLLVMCodeB
               ~targetModule:Zompvm.Runtime
-              (if Utilities.listContains name !macroFuncs then
+              (if listContains name !macroFuncs then
                  [name]
                else begin
                  macroFuncs := name :: !macroFuncs;

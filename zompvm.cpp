@@ -49,16 +49,19 @@ using namespace llvm;
 namespace ZompCallbacks {
   value* isBoundCB = NULL;
   value* lookupCB = NULL;
+  value* parseCB = NULL;
 
   void init() {
     isBoundCB = caml_named_value("isBound");
     lookupCB = caml_named_value("lookup");
+    parseCB = caml_named_value("parse");
   }
 
   bool areValid() {
     return
       isBoundCB != NULL &&
       lookupCB != NULL;
+    // parseCB != NULL;
   }
 
   extern "C" {
@@ -83,6 +86,12 @@ namespace ZompCallbacks {
       ZMP_ASSERT( ZompCallbacks::lookupCB != NULL,);
       value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
       return Int_val(result);
+    }
+
+    void* zompParse(char* source) {
+      ZMP_ASSERT( ZompCallbacks::parseCB != NULL,);
+      value result = caml_callback(*ZompCallbacks::parseCB, caml_copy_string(source));
+      return (void*)(result);
     }
 
   } // extern "C"

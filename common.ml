@@ -473,3 +473,16 @@ let splitup oplist str =
   in
   worker str []
 
+let foldString str f init =
+  let strLength = String.length str in
+  let rec worker index v =
+    if index >= strLength then v
+    else worker (index+1) (f v str.[index])
+  in
+  worker 0 init
+
+let rec listContains element = function
+  | [] -> false
+  | e :: rem when e = element -> true
+  | _ :: rem -> listContains element rem
+

@@ -427,6 +427,17 @@ struct
         Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id]
 end
 
+let parse str =
+  let expr =
+    match Parseutils.parseIExprs str with
+      | Parseutils.Exprs [expr] -> expr
+      | Parseutils.Exprs exprs -> Ast2.seqExpr exprs
+      | Parseutils.Error error ->
+          let msg = Parseutils.parseErrorToString error in
+          Ast2.juxExpr [Ast2.idExpr "error"; Ast2.idExpr msg]
+  in
+  Zompvm.NativeAst.buildNativeAst expr
+
 let () =
   at_exit (fun () ->
              Profiling.printTimings();
@@ -511,6 +522,7 @@ let () =
   let addToplevelBindings bindings = bindings in
 
   let init() =
+    Callback.register "parse" parse;
     if not (Machine.zompInit()) then begin
       eprintf "Could not initialize ZompVM\n";
       exit(-1);
@@ -556,6 +568,5 @@ let () =
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
   run initialBindings
-
 
 

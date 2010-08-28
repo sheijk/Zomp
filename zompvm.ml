@@ -5,6 +5,47 @@ open Lang
 
 include Machine
 
+(** Utilities to convert between Ast2.sexpr and Zomp native AST *)
+module NativeAst =
+struct
+
+  let isValidId name =
+    foldString
+      name (fun wasValid chr -> wasValid && Char.code chr < 128) true
+
+  let rec extractSExprFromNativeAst astAddress =
+    if zompAstIsNull astAddress then
+      Ast2.idExpr "error, macro returned NULL"
+    else
+      let name =
+        let extracted = Machine.zompAstId astAddress in
+        if isValidId extracted then extracted
+        else sprintf "compiler:error:invalidId '%s'" extracted
+      in
+      let childCount = Machine.zompAstChildCount astAddress in
+      let childs =
+        let rec getChilds num =
+          if num < childCount then
+            let childAddress = Machine.zompAstChild astAddress num in
+            let child = extractSExprFromNativeAst childAddress in
+            child :: getChilds (num+1)
+          else
+            []
+        in
+        getChilds 0
+      in
+      Ast2.expr name childs
+
+  let rec buildNativeAst = function
+    | {Ast2.id = id; args = []} ->
+        zompSimpleAst id
+    | ast ->
+        let childs = List.map buildNativeAst ast.Ast2.args in
+        let nativeAst = zompSimpleAst ast.Ast2.id in
+        List.iter (fun child -> zompAddChild ~parent:nativeAst ~child) childs;
+        nativeAst
+end
+
 (* exception FailedToEvaluateLLVMCode of string * string *)
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))

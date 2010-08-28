@@ -19,6 +19,11 @@ func void Section:init(Section* this, cstring name):
   this.subsections = StringMap_new()
 end
 
+func void* zompParse(cstring source)
+func ast* parseZompSource(cstring source):
+  ret (cast ast* zompParse(source))
+end
+
 func char* findOneOf(char* buffer, char* delims, bool inverted):
   pos := buffer
   while (!isNull(pos) && pos* != '\0'):
@@ -72,11 +77,10 @@ func void Section:loadFrom(Section* this, cstring fileName):
   return if: loadResult < 0
   onReturn dealloc(buffer)
 
-  template atEnd (isNull(pos) || pos* == '\0')
-
   pos := buffer
-  while !atEnd:
+  while !(isNull(pos) || pos* == '\0'):
     tokenStart := findFirstNotIn(pos, " \n")
+
     tokenEnd := findFirstIn(tokenStart, " =")
     name := copyStringRange tokenStart tokenEnd
 
@@ -124,6 +128,10 @@ func int main():
   StringMap_debugPrint s.subsections
   Section:writeTo s "examples/test2.cfg"
   dealloc s
+
+  code := parseZompSource "a + b * 3 c"
+  ast:print code 2
+
   ret 0
 end
 
