@@ -425,6 +425,24 @@ unittest:testCase test_onReturn:
   end
 end
 
+func void return_void():
+  // should default to 'return void'
+  return
+end
+
+unittest:testCase test_keyword_if:
+  test_if := 0
+  test_unless := 0
+
+  test_if = 10 if: true == true
+  test_unless = 20 unless: true == false
+
+  unittest:assertAll:
+    test_if == 10
+    test_unless == 20
+  end
+end
+
 /// TODO
 // func void testBitOps():
 //   unittest:assertAll:

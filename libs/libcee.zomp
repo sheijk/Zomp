@@ -428,14 +428,23 @@ macro onReturn cleanupCode:
   std:base:ret ${}
 end
 
-macro return expr:
+macro return expr...:
+  retval := nullptr ast
+  if (getField expr childCount == 1):
+    retval = ast:child(expr, 0)
+  elseif (getField expr childCount == 0):
+    retval = ${void}
+  else:
+    std:base:ret ${error "return expects one or zero arguments" #expr}
+  end
+
   code := ${}
   current := cee:internal:onReturnCleanupCode
   while (cast void* current !=_ptr nullptr void):
     ast:addChild code getField(current,ast)
     current = getField current next
   end
-  ast:addChild code ${std:base:ret #expr}
+  ast:addChild code ${std:base:ret #retval}
   std:base:ret code
 end
 
@@ -961,6 +970,31 @@ end
 template op; a b:
   #a
   #b
+end
+
+macro opkeyword rem...:
+  code := ast:fromString "tobereplaced"
+
+  id := "kwd"
+
+  ast:foreach2 kwd block rem:
+    id = id ++ "_" ++ kwd.id
+    ast:addChild code block
+  end
+
+  code.id = id
+
+  ret code
+end
+
+/// return unless: everything == ok
+template kwd_default_unless block cond:
+  unless #cond #block
+end
+
+/// return if: result == error
+template kwd_default_if block condition:
+  if #condition #block
 end
 
 // /// Use {} for blocks inside a single line

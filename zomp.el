@@ -764,6 +764,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     ("// *\\(TODO\\)" 1 todo-face t t)
 
+    ("\\b[a-zA-Z0-9_]+\\b:" 0 font-lock-keyword-face)
     ("\\bconst\\b" 0 font-lock-keyword-face)
     ("\\bvar\\b" 0 font-lock-keyword-face)
     ("\\bfunc\\b" 0 font-lock-keyword-face)
