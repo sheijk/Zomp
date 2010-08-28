@@ -19,6 +19,10 @@ func void Section:init(Section* this, cstring name):
   this.subsections = StringMap_new()
 end
 
+func void Section:delete(Section* this):
+  println "TODO: implement Section:delete"
+end
+
 func void* zompParse(cstring source)
 func ast* parseZompSource(cstring source):
   ret (cast ast* zompParse(source))
@@ -72,6 +76,8 @@ func char* copyStringRange(char* start, char* end_):
 end
 
 func void Section:loadFromAst(Section* this, ast* tree):
+  return if: isNull this || isNull tree
+
   sectionPattern := ${_:
     __...
   end}
@@ -81,6 +87,11 @@ func void Section:loadFromAst(Section* this, ast* tree):
       if (item.id ==_str "op="):
         name := getField ast:child(item, 0) id
         value := getField ast:child(item, 1) id
+        valueLength := strlen(value)
+        if (*(value+0) == '"' && *(value + valueLength - 1) == '"'):
+          (value + valueLength - 1)* = '\0'
+          value += 1
+        end
         StringMap_insert this.settings name (cast void* value)
       elseif ast:matchesShape(item, sectionPattern):
         sectionName := getField ast:child(item, 0) id
@@ -112,6 +123,8 @@ end
 
 func void Section:print(Section* this, (fptr void cstring) printF_, int indent):
   printF := printF_
+  quoteSign := "x"
+  quoteSign[0] = '"' // '"' lalal, fucked up syntax highlighting
 
   pos := StringMap_range this.settings
   while StringMapRange_hasNext(pos):
@@ -123,7 +136,9 @@ func void Section:print(Section* this, (fptr void cstring) printF_, int indent):
     end
     printF name
     printF " = "
+    printF quoteSign
     printF value
+    printF quoteSign
     printF "\n"
 
     StringMapRange_next(pos)

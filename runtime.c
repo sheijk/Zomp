@@ -44,6 +44,37 @@ void flushStdout() {
 }
 
 //------------------------------------------------------------------------------
+//- reading from files
+
+float parseFloat(const char* str) {
+    float f;
+    sscanf( str, "%f", &f );
+    return f;
+}
+
+int parseInt(const char* str) {
+    int i;
+    sscanf( str, "%i", &i );
+    return i;
+}
+
+char* parseFloats(char* str, int count, float* dest) {
+    char* pos = str;
+    int i;
+    for( i = 0; i < count; ++i ) {
+        *dest = parseFloat(pos);
+        ++dest;
+
+        while( *pos != ' ' && *pos != '\0' )
+            ++pos;
+        while( *pos == ' ' )
+            ++pos;
+    }
+
+    return pos;
+}
+
+//------------------------------------------------------------------------------
 //- writing to files
 
 int zomp_closeFile(void* file) {

@@ -289,6 +289,7 @@ open Translation_utils
 
 module Translators_deprecated_style =
 struct
+
   let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
     let transform id name typeExpr valueExpr =
       let declaredType = match typeExpr with
@@ -1320,7 +1321,113 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected 'cast typeExpr valueExpr'"
-          
+
+  let translateDefineVar_Unused (env :exprTranslateF env) expr :translationResult =
+    let transformUnsafe id name typeExpr valueExpr :translationResult =
+      let declaredType = match typeExpr with
+        | Some e ->
+            begin
+              match translateType env.bindings e with
+                | Some t -> Some t
+                | None -> raise (CouldNotParseType (Ast2.expression2string e))
+            end
+        | None -> None
+      in
+      let valueType, toplevelForms, implForms =
+        match valueExpr with
+          | Some valueExpr ->
+              begin
+                let _, simpleform = env.translateF env.bindings valueExpr in
+                let toplevelForms, implForms = extractToplevelForms simpleform in
+                match typeCheck env.bindings (`Sequence implForms) with
+                  | TypeOf t -> Some t, toplevelForms, implForms
+                  | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
+              end
+          | None -> None, [], []
+      in
+      let varType =
+        match declaredType, valueType with
+          | Some declaredType, Some valueType when equalTypes env.bindings declaredType valueType ->
+              declaredType
+          | Some declaredType, Some valueType ->
+              raiseIllegalExpressionFromTypeError expr
+                (Semantic.Ast expr, "Types do not match",declaredType,valueType)
+          | None, Some valueType -> valueType
+          | Some declaredType, None -> declaredType
+          | None, None ->
+              raiseIllegalExpression expr "var needs either a default value or declare a type"
+      in
+      match varType with
+        | #integralType | `Pointer _ | `Function _ as typ ->
+            begin
+              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let defvar = `DefineVariable (var, Some (`Sequence implForms))
+              in
+              match typeCheck env.bindings defvar with
+                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+            end
+        | `Array(memberType, size) as typ ->
+            begin
+              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
+              match typeCheck env.bindings defvar with
+                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+            end
+        | (`Record _ as typ) ->
+            begin
+              match valueExpr with
+                | None ->
+                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
+                | Some valueExpr ->
+                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    Result( addVar env.bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
+            end
+        | `TypeRef _ ->
+            raiseIllegalExpression expr "Internal error: received unexpected type ref"
+    in
+    let transform id name typeExpr valueExpr :translationResult =
+      try
+        transformUnsafe id name typeExpr valueExpr
+      with
+          IllegalExpression (expr, msg) ->
+            errorFromExpr expr msg
+    in
+    match expr with
+      | { id = id; args = [
+            typeExpr;
+            { id = name; args = [] };
+            valueExpr
+          ] }
+          when (id = macroVar) ->
+          transform id name (Some typeExpr) (Some valueExpr)
+
+      | { id = id; args = [
+            typeExpr;
+            { id = name; args = [] };
+          ] }
+          when (id = macroVar) ->
+          transform id name (Some typeExpr) None
+
+      | { id = id; args = [
+            { id = name; args = [] };
+            valueExpr
+          ] }
+          when id = "var2" ->
+          transform id name None (Some valueExpr)
+
+      | _ ->
+          if expr.id == "var" then
+            errorFromExpr expr "Expected var typeExpr nameId valueExpr"
+          else if expr.id == "var2" then
+            errorFromExpr expr "Expected var2 nameId valueExpr"
+          else
+            errorFromExpr expr
+              (sprintf "Internal compiler error, invoked handler for '%s' but can only handle %s and %s"
+                 expr.id macroVar macroVar2)
+
   let register addF =
     addF "std:base:localVar" translateDefineLocalVar;
     addF macroAssign translateAssignVar;
@@ -1337,6 +1444,8 @@ struct
     addF macroPtradd translatePtradd;
     addF macroGetaddr translateGetaddr;
     addF macroNullptr translateNullptr;
+    (* addF macroVar translateDefineVar; *)
+    (* addF macroVar2 translateDefineVar; *)
 end
 
 module Array : Zomp_transformer =
@@ -1584,6 +1693,49 @@ let rec translateNested translateF bindings = translate raiseIllegalExpression
   ]
   translateF bindings
 let translateNested = sampleFunc2 "translateNested" translateNested
+
+(* let translateNew bindings expr = *)
+(*   try *)
+(*     Result (translateNested bindings expr) *)
+(*   with IllegalExpression (expr, msg) -> *)
+(*     errorFromExpr expr "Could not find handler for expression" *)
+
+(* let translateDict *)
+(*     baseInstructions *)
+(*     translateF *)
+(*     (bindings :bindings) *)
+(*     (expr :Ast2.sexpr) *)
+(*     = *)
+(*   match Bindings.lookup bindings expr.id with *)
+(*     | VarSymbol var -> *)
+(*         None *)
+(*     | FuncSymbol func -> *)
+(*         None *)
+(*     | MacroSymbol macro -> *)
+(*         None *)
+(*     | TypedefSymbol typedef -> *)
+(*         None *)
+(*     | LabelSymbol label -> *)
+(*         None *)
+(*     | UndefinedSymbol -> *)
+(*         begin try *)
+(*           let handler = Hashtbl.find baseInstructions expr.id in *)
+(*           let env = { *)
+(*             bindings = bindings; *)
+(*             translateF = translateF; *)
+(*             parseF = Parseutils.parseIExprsOpt; *)
+(*           } in *)
+(*           match handler env expr with *)
+(*             | Error errors -> *)
+(*                 print_string (combineErrors "Swallowed errors: " errors); *)
+(*                 print_newline(); *)
+(*                 flush stdout; *)
+(*                 None *)
+(*             | Result (bindings, tlexprs) -> *)
+(*                 Some (bindings, tlexprs) *)
+(*         with Not_found -> *)
+(*           None *)
+(*         end *)
 
 let translateAndEval handleLLVMCodeF env exprs =
   collectTimingInfo "translateAndEval"

@@ -428,6 +428,10 @@ macro onReturn cleanupCode:
   std:base:ret ${}
 end
 
+macro onFunctionEnd:
+  ret ${}
+end
+
 macro return expr...:
   retval := nullptr ast
   if (getField expr childCount == 1):
@@ -439,6 +443,7 @@ macro return expr...:
   end
 
   code := ${}
+  ast:addChild code ${onFunctionEnd}
   current := cee:internal:onReturnCleanupCode
   while (cast void* current !=_ptr nullptr void):
     ast:addChild code getField(current,ast)
@@ -452,7 +457,10 @@ macro ret expr:
   if (cast void* cee:internal:onReturnCleanupCode !=_ptr nullptr void):
     std:base:ret ${error "You can only return from functions using onReturn with return, ret is illegal" #expr}
   end
-  std:base:ret ${std:base:ret #expr}
+  std:base:ret ${seq:
+    onFunctionEnd
+    std:base:ret #expr
+  end}
 end
 
 macro cee:internal:cleanupBeforeFunc:
@@ -485,11 +493,29 @@ macro cee:internal:cleanupOnReturn:
   std:base:ret ${}
 end
 
+macro onFunctionBegin name:
+  ret ${}
+end
+
 macro func args...:
-  var ast* funcCode ${std:base:func}
-  forEachAstChild child args:
-    ast:addChild funcCode child
+  if (getField args childCount > 3 || getField args childCount < 2):
+    ret ${error "Expected 'func rettype name(param list..) impl?"}
   end
+
+  rettype := ast:child args 0
+  nameAndArgs := ast:child args 1
+  name := cstring:quote(getField(ast:child nameAndArgs 0, id))
+  var ast* funcCode ${std:base:func #rettype #nameAndArgs}
+  if (getField args childCount >= 3):
+    impl := ast:child args 2
+    newImpl := ${}
+    ast:addChild newImpl ${onFunctionBegin #name}
+    forEachAstChild child impl:
+      ast:addChild newImpl child
+    end
+    ast:addChild funcCode newImpl
+  end
+
   cee:internal:insideCeeFunc = true
   std:base:ret ${seq:
     cee:internal:cleanupBeforeFunc

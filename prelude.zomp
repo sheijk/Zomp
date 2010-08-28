@@ -22,6 +22,10 @@ std:base:func void printPtr(void* ptr)
 std:base:func void printNewline()
 std:base:func void flushStdout()
 
+std:base:func float parseFloat(char* str)
+std:base:func int parseInt(char* str)
+std:base:func char* parseFloats(char* std, int count, float* dest)
+
 std:base:func int zomp_closeFile(void* file)
 std:base:func int zomp_writeInt(void* file, int i)
 std:base:func int zomp_writeCString(void* file, char* val)
