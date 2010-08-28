@@ -3,6 +3,8 @@
 /// between string keys and string values into a file
 ///
 
+requireLibs libcee stdio utils
+
 struct Section:
   cstring name
   // <cstring>
@@ -64,17 +66,11 @@ func char* copyStringRange(char* start, char* end_):
   return buffer
 end
 
-func void Section:loadFrom2(Section* this, cstring fileName):
-  println "Loading buffer " fileName ":"
+func void Section:loadFrom(Section* this, cstring fileName):
   buffer := nullptr char
   loadResult := zompLoadFileToMemory( fileName, &buffer )
-  if (loadResult < 0):
-    println "failed: " loadResult
-    return void
-  end
+  return if: loadResult < 0
   onReturn dealloc(buffer)
-
-  println buffer
 
   template atEnd (isNull(pos) || pos* == '\0')
 
@@ -89,10 +85,6 @@ func void Section:loadFrom2(Section* this, cstring fileName):
     value := copyStringRange tokenStart tokenEnd
 
     if (name* != '\0' && value* != '\0'):
-      print "'" name "' = '" value "', pos = "
-      printPtr (cast void* pos)
-      print ", pos* = " toInt(pos*)
-      println()
       StringMap_insert this.settings name (cast void* value)
     else:
       dealloc value
@@ -102,13 +94,35 @@ func void Section:loadFrom2(Section* this, cstring fileName):
 
     pos = tokenEnd
   end
+  return
+end
+
+func void Section:writeTo(Section* this, cstring fileName):
+  file := fopen(fileName, "w")
+  return if: isNull(file)
+  onReturn closeFile(file)
+
+  range := StringMap_range this.settings
+  while StringMapRange_hasNext(range):
+    name := StringMapRange_key(range)
+    value := cast cstring StringMapRange_value(range)
+
+    writeCString(file, name)
+    writeCString(file, " = ")
+    writeCString(file, value)
+    writeNewline(file)
+
+    StringMapRange_next range
+  end
+  return
 end
 
 func int main():
   s := new Section "testing"
-  Section:loadFrom2 s "examples/test.cfg"
+  Section:loadFrom s "examples/test.cfg"
   StringMap_debugPrint s.settings
   StringMap_debugPrint s.subsections
+  Section:writeTo s "examples/test2.cfg"
   dealloc s
   ret 0
 end
