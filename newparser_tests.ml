@@ -76,7 +76,7 @@ struct
     let se = Ast2.simpleExpr
     and jux args = Ast2.juxExpr (List.map Ast2.idExpr args)
     and call args = Ast2.callExpr (List.map Ast2.idExpr args)
-    and seqExpr args = Ast2.seqExpr args
+    and seqExpr args = Ast2.opseqExpr args
     and se2 f l r = Ast2.simpleExpr f [l; r]
     and se1 f arg = Ast2.simpleExpr f [arg]
     and id = Ast2.idExpr
@@ -546,7 +546,7 @@ struct
       (** quotations *)
       "$foo", `Return [se1 "quote" "foo"];
       "$$blah", `Return [se1 "quoteasis" "blah"];
-      "${}", `Return [se1 "quote" "seq"];
+      "${}", `Return [se1 "quote" "opseq"];
       "${foo}", `Return [se1 "quote" "foo"];
       "${sexpr arg0 arg1}", `Return [expr "quote" [jux ["sexpr"; "arg0"; "arg1"]]];
       (* "${call(foo)}", `Return [expr "quote" [call  ["call"; "foo"]]]; *)

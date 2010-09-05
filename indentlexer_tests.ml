@@ -72,17 +72,21 @@ struct
       isValidId "-20";
       isValidId "\"foobar\"";
       isValidId "\"windows\\\\path\"";
+      isValidId "\"\"";
       isValidId "'x'";
       isValidId "'\\n'";
       isValidId "'\\0'";
-      isValidId "'\\\\'";
+      isValidId "'\\\\'"; (* that's two backslashes in zomp syntax.. *)
 
       (* comments *)
       "a // b c d", `Return [id "a"; END];
       "a /* xxx */ b", `Return [id "a"; id "b"; END];
+      "\" //foo\"", `Return [id "\" //foo\""; END];
       "\"//foo\"", `Return [id "\"//foo\""; END];
-      (let str = "\"/*no comment*/\"" in
+      (let str = "\" /*no comment*/\"" in
       sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
+      (let str = "\"/*no comment*/\"" in
+       sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
 
       (* operators *)
       "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
@@ -302,8 +306,8 @@ struct
       \  foobar\n\
       end block",
       `Return [IDENTIFIER "block"; BEGIN_BLOCK;
-               IDENTIFIER "foobar";
-               END_BLOCK ["block"]];
+               IDENTIFIER "foobar"; END;
+               END_BLOCK ["block"]; END];
 
       "block:\n\" ^
       \  foobar()\n\
@@ -328,7 +332,7 @@ struct
       default:\n\
         stuff\n\
       end",
-      `Return [IDENTIFIER "switch"; IDENTIFIER "expr";
+      `Return [IDENTIFIER "switch"; IDENTIFIER "expr"; BEGIN_BLOCK; END_BLOCK [];
                IDENTIFIER "case"; IDENTIFIER "1"; END; BEGIN_BLOCK;
                IDENTIFIER "print"; IDENTIFIER "one"; END;
                END_BLOCK []; IDENTIFIER "default"; BEGIN_BLOCK;

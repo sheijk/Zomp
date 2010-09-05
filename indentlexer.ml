@@ -95,27 +95,37 @@ let stripComments fileName source =
     strippedSource.[!writePos] <- chr;
     incr writePos
   in
-  let unexpectedEofInComment() =
-    raiseIndentError { line = getLine(); fileName = fileName } "Unexpected Eof while parsing comment"
+  let unexpectedEof src =
+    raiseIndentError { line = getLine(); fileName = fileName } (sprintf "Unexpected Eof while parsing %s" src)
+  in
+  let unexpectedEofInComment() = unexpectedEof "comment"
+  and unexpectedEofInStringLiteral() = unexpectedEof "string literal"
   in
   let rec copySource() =
-    if getReadPos() <= sourceLength - 2 then begin
-      match readTwoChars() with
-        | '/', '/' ->
-            skipSingleLineComment()
-        | '/', '*' ->
-            skipMultiLineComment()
-        | chr1, '/' ->
-            writeChar chr1;
-            moveBackReadPos();
-            copySource();
-        | chr1, chr2 ->
-            writeChar chr1;
-            writeChar chr2;
+    if getReadPos() <= sourceLength - 1 then begin
+      match readOneChar() with
+        | '/' ->
+            if getReadPos() <= sourceLength - 1 then begin
+              match readOneChar() with
+                | '/' ->
+                    writeChar ' '; writeChar ' ';
+                    skipSingleLineComment();
+                | '*' ->
+                    writeChar ' '; writeChar ' ';
+                    skipMultiLineComment()
+                | '"' ->
+                    writeChar '/'; writeChar '"';
+                    copyStringLiteral()
+                | chr ->
+                    writeChar '/'; writeChar chr;
+                    copySource()
+            end
+        | '"' ->
+            writeChar '"';
+            copyStringLiteral()
+        | chr ->
+            writeChar chr;
             copySource()
-    end else begin
-      if getReadPos() = sourceLength - 1 then
-        writeChar source.[sourceLength - 1]
     end
   and skipSingleLineComment() =
     if getReadPos() <= sourceLength - 1 then
@@ -144,6 +154,17 @@ let stripComments fileName source =
             skipMultiLineComment()
     end else
       unexpectedEofInComment()
+  and copyStringLiteral() =
+    if getReadPos() <= sourceLength - 1 then begin
+      match readOneChar() with
+        | '"' ->
+            writeChar '"';
+            copySource()
+        | chr ->
+            writeChar chr;
+            copyStringLiteral()
+    end else
+      unexpectedEofInStringLiteral()
   in
   copySource();
   String.sub strippedSource 0 (!writePos + 1)
@@ -727,7 +748,7 @@ let token (lexbuf : token lexerstate) : token =
     end else begin
       collectTimingInfo "no newline"
         (fun () ->
-           let rec findToken() =
+           let findToken() =
              let matchingRules =
                let unsorted =
                  mapFilter
