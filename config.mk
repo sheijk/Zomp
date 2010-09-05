@@ -65,6 +65,9 @@ RM = rm
 SED = sed
 # TR = tc
 TR = tr
+LINE_COUNT = wc -l
+SORT = sort
+LS = ls
 
 # image magick
 CONVERT_IMAGE = convert

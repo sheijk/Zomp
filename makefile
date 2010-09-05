@@ -339,6 +339,30 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	ocamldot depends.mk > deps.dot || $(ECHO) "warning: ocamldot not found, no graphviz dependency graph generated"
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
 
+
+
+# Warning, ugly. But at least not essential so who cares :)
+.PHONY: loc_stats loc_stats_no_summary
+
+ML_SRC_FILES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
+    expander.ml gencode.ml genllvm.ml indentlexer.ml indentlexer.mli         \
+    indentlexer_tests.ml lang.ml machine.ml newparser.mly newparser_tests.ml \
+    parseutils.ml semantic.ml sexprlexer.mll sexprparser.mly sexprtoplevel.ml\
+    testing.ml typesystems.ml zompc.ml zompvm.ml
+
+loc_stats_no_summary:
+	$(LS) $(wildcard *.ml *.mli *.mly *.mll) | grep -v sexprparser.ml | grep -v newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
+	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
+	$(LINE_COUNT) libutils.cpp prelude.zomp runtime.c zomp.el zomputils.h zompvm.cpp zompvm.h zompvm_dummy.cpp | $(SORT) -n
+	$(LINE_COUNT) $(wildcard *.skel) | $(SORT) -n
+	$(LS) $(wildcard libs/*.zomp) | grep -v opengl20.\*\.zomp | grep -v glfw\.zomp | grep -v quicktext\.zomp | grep -v glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
+	$(LINE_COUNT) $(wildcard examples/*.zomp) | $(SORT) -n
+	$(LINE_COUNT) $(wildcard testsuite/*.zomp) | $(SORT) -n
+	$(LS) $(wildcard tests/*.zomp) | grep -v sharkperf.zomp | xargs $(LINE_COUNT) | $(SORT) -n
+
+loc_stats: loc_stats_no_summary
+	make -ks loc_stats_no_summary | grep total | awk '{ sum = sum + $$1; } END { print sum " total lines of code "; }'
+
 ################################################################################
 # Cleaning
 ################################################################################
