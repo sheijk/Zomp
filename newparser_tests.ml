@@ -54,8 +54,8 @@ struct
   type input = string
   type output = Ast2.sexpr list
 
-  let printInput = print_string
-  let printOutput = printEachOnLine (printf "%s" ++ Ast2.toString)
+  let inputToString s = s
+  let outputToString exprs = Common.combine "\n" (List.map (sprintf "%s" ++ Ast2.toString) exprs)
 
   let outputEqual l r =
     List.length l = List.length r
@@ -745,8 +745,7 @@ end
 
 let () =
   let module M = Testing.Tester(IndentParserTestCase) in
-  M.runTestsAndReport "indentparser"
-
-
-
+  let testCount, errorCount, errors = M.runTests() in
+  List.iter M.printError errors;
+  at_exit (fun () -> M.printTestSummary "indentparser" (testCount, errorCount, errors))
 

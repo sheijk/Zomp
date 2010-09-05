@@ -10,9 +10,8 @@ struct
   type input = string
   type output = token list
 
-  let printInput str = printf "%s" str
-
-  let printOutput tokens = printTokens tokens
+  let inputToString str = sprintf "%s" str
+  let outputToString tokens = tokensToString tokens
 
   let outputEqual l r =
     if List.length l = List.length r then
@@ -77,6 +76,13 @@ struct
       isValidId "'\\n'";
       isValidId "'\\0'";
       isValidId "'\\\\'";
+
+      (* comments *)
+      "a // b c d", `Return [id "a"; END];
+      "a /* xxx */ b", `Return [id "a"; id "b"; END];
+      "\"//foo\"", `Return [id "\"//foo\""; END];
+      (let str = "\"/*no comment*/\"" in
+      sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
 
       (* operators *)
       "foo(3) + 1", `Return [id "foo"; OPEN_ARGLIST; id "3"; CLOSE_PAREN;
@@ -292,6 +298,18 @@ struct
                @ ids ["printLine"; "num"] @ [END]
                @ [END_BLOCK ["foreach"; "num"]; END] );
 
+      "block:\n\
+      \  foobar\n\
+      end block",
+      `Return [IDENTIFIER "block"; BEGIN_BLOCK;
+               IDENTIFIER "foobar";
+               END_BLOCK ["block"]];
+
+      "block:\n\" ^
+      \  foobar()\n\
+      end wrong terminator",
+      `Exception "Tokens following end must appear line starting block";
+
       (* multi-part multi-line expressions *)
       "if cond then:\n\
       \  print 1\n\
@@ -303,6 +321,19 @@ struct
                @ [END_BLOCK []; id "else"; BEGIN_BLOCK]
                @ ids ["print"; "2"] @ [END]
                @ [END_BLOCK []; END] );
+
+      "switch expr:\n\
+      case 1:\n\
+        print one\n\
+      default:\n\
+        stuff\n\
+      end",
+      `Return [IDENTIFIER "switch"; IDENTIFIER "expr";
+               IDENTIFIER "case"; IDENTIFIER "1"; END; BEGIN_BLOCK;
+               IDENTIFIER "print"; IDENTIFIER "one"; END;
+               END_BLOCK []; IDENTIFIER "default"; BEGIN_BLOCK;
+               IDENTIFIER "stuff"; END;
+               END_BLOCK []];
 
       (* leading whitespace/newlines *)
       "   a b c", `Return (ids ["a"; "b"; "c"] @ [END]);
@@ -377,7 +408,9 @@ end
 
 let () =
   let module M = Tester(IndentLexerTestCase) in
-  M.runTestsAndReport "indentlexer"
+  let testCount, errorCount, errors = M.runTests() in
+  List.iter M.printError errors;
+  at_exit (fun () -> M.printTestSummary "indentlexer" (testCount, errorCount, errors))
 
 let () =
   let testCases = [

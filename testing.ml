@@ -3,13 +3,13 @@
  *)
 
 open Printf
-  
+
 module type CASE_STRUCT = sig
   type input
   type output
 
-  val printInput : input -> unit
-  val printOutput : output -> unit
+  val inputToString : input -> string
+  val outputToString : output -> string
 
   val outputEqual : output -> output -> bool
 
@@ -21,16 +21,18 @@ end
 
 module Tester(Cases :CASE_STRUCT) = struct
   include Cases
-    
+
   type error = {
     input :input;
     found :result;
     expected :result;
   }
 
-  let printResult = function
-    | `Return output -> printOutput output
-    | `Exception msg -> printf "Exception '%s'" msg
+  let resultToString = function
+    | `Return output -> outputToString output
+    | `Exception msg -> sprintf "Exception '%s'" msg
+
+  let printResult r = print_string (resultToString r)
 
   let error ~input ~found ~expected =
     `Error {
@@ -39,8 +41,17 @@ module Tester(Cases :CASE_STRUCT) = struct
       expected = expected
     }
 
+  let errorToString error =
+    Common.combine "" [
+      sprintf "\n--- UnitTest Failure ---\n";
+      sprintf "Input: '\n"; inputToString error.input; sprintf "'\n";
+      sprintf "Expected: '\n"; resultToString error.expected; sprintf "'\n";
+      sprintf "Found: '\n"; resultToString error.found; sprintf "'\n" ]
+
+  let printError e = print_string (errorToString e)
+
   let runTestCase (input, expected) =
-    let found = 
+    let found =
       try
         `Return (testedFunc input)
       with _ as exc ->
@@ -57,29 +68,25 @@ module Tester(Cases :CASE_STRUCT) = struct
       | _, _ ->
           error ~input ~found ~expected
 
-  let runTests () : error list =
+  (** test case count, error count, error list *)
+  let runTests () : int * int * error list =
     let results = List.map runTestCase testCases in
     let errors = Common.mapFilter (function `Error e -> Some e | _ -> None) results in
-    errors
-
-  let runTestsAndReport name =
-    let printError error =
-      printf "\n--- UnitTest Failure ---\n";
-      printf "Input: '\n"; printInput error.input; printf "'\n";
-      printf "Expected: '\n"; printResult error.expected; printf "'\n";
-      printf "Found: '\n"; printResult error.found; printf "'\n";
-    in
-    let errors = runTests() in
-    List.iter printError errors;
     let errorCount = List.length errors in
     let testCount = List.length testCases in
+    testCount, errorCount, errors
+
+  let printTestSummary name (testCount, errorCount, errors) =
     if errorCount > 0 then
       printf "%d/%d %s tests failed\n" errorCount testCount name
     else
       printf "All %d %s tests succeeded\n" testCount name
-  
-      
+
+  let runTestsAndReport name =
+    let testCount, errorCount, errors = runTests() in
+    List.iter printError errors;
+    printTestSummary name (testCount, errorCount, errors)
+
   exception UnitTestFailure of error list
 end
 
-  
