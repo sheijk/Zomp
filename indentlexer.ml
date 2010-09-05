@@ -667,139 +667,147 @@ let token (lexbuf : token lexerstate) : token =
     backTrack lexbuf len
   in
 
+  let rec consumeWhitespaceAndReturnIndent indent =
+    let eof, nextChar =
+      try false, readChar lexbuf
+      with Eof -> true, '\n'
+    in
+    if eof then
+      indent
+    else if isWhitespace nextChar then
+      consumeWhitespaceAndReturnIndent (indent+1)
+    else if isNewline nextChar then
+      consumeWhitespaceAndReturnIndent 0
+    else begin
+      backTrack lexbuf 1;
+      indent
+    end
+  in
+
+  let findToken() =
+    let matchingRules =
+      let unsorted =
+        mapFilter
+          (fun rule ->
+             match
+               Rules.ruleMatchesAt
+                 ~prevToken:lexbuf.previousToken
+                 ~source:lexbuf.content
+                 ~pos:lexbuf.position
+                 rule
+             with
+               | Some len -> Some (len, rule)
+               | None -> None)
+          Rules.rules
+      in
+      List.sort (fun (len1, _) (len2, _) -> 1 - compare len1 len2) unsorted
+    in
+    let input = String.sub lexbuf.content lexbuf.position 1 in
+    let ptokenToString = function
+      | `Whitespace -> "< >"
+      | `Token t -> token2str t
+    in
+    let length, (rule, makeToken) =
+      match matchingRules with
+        | [] ->
+            raiseUnknownToken lexbuf.location input
+              (sprintf "no matching rules (after '%s')" (ptokenToString lexbuf.previousToken))
+        | [single] -> single
+        | first :: second :: _ ->
+            if (fst first > fst second) then
+              first
+            else
+              raiseUnknownToken lexbuf.location input
+                (sprintf "multiple rules matching (after '%s')" (ptokenToString lexbuf.previousToken))
+    in
+    ignore rule;
+    let tokenString = readChars lexbuf length in
+
+    let token : [`Ignore | `Token of token] =
+      match (makeToken tokenString : tokenOrAction) with
+        | `PutBack(token, prefetched) ->
+            putback lexbuf prefetched;
+            (`Token token :> [`Ignore|`Token of token])
+        | `Ignore -> `Ignore
+        | `Token token -> ((`Token token) : [`Ignore | `Token of token])
+        | `MultiTokens (firstToken::remTokens) ->
+            returnMultipleTokens lexbuf (`Token firstToken) remTokens
+        | `MultiTokens [] -> `Ignore
+    in
+    token
+  in
+
+  let interpreteNewline currentChar continueLexing =
+    lexbuf.previousToken <- `Whitespace;
+    let indent = consumeWhitespaceAndReturnIndent 0 in
+    let prevIndent = lexbuf.prevIndent in
+
+    if lexbuf.readTokenBefore = false then begin
+      if indent = prevIndent then continueLexing ()
+      else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
+    end else begin
+      let onSameIndent() =
+        `Token END
+      and onMoreIndent() =
+        lexbuf.prevIndent <- indent;
+        if indent = prevIndent then
+          returnMultipleTokens lexbuf (`Token BEGIN_BLOCK) [END_BLOCK []]
+        else
+          `Token BEGIN_BLOCK
+      and continueLine() =
+        `Ignore
+      and onLessIndent() =
+        lexbuf.prevIndent <- indent;
+        let line = readUntil isNewline lexbuf in
+        if isBlockEndLine line then begin
+          putback lexbuf "\n";
+          if line =~ "^end\\(.*\\)$" then
+            match List.rev (Str.split whitespaceRE (nthmatch 1)) with
+              | "}" :: args ->
+                  returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args); CLOSE_CURLY]
+              | args ->
+                  returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args)]
+          else
+            failwith "splitting block end line failed"
+        end else begin
+          putback lexbuf (line ^ "\n");
+          returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
+        end
+      in
+      (** lookup forward for `Ignore and possibly reset indent? *)
+      if currentChar = beginIndentBlockChar then
+        onMoreIndent()
+      else if indent = prevIndent then begin
+        onSameIndent()
+      end else if indent = prevIndent + 2 then begin
+        continueLine()
+      end else if indent > prevIndent then begin
+        raiseIndentError lexbuf.location
+          (sprintf "Indentation was increased by %d spaces but only 2 are legal"
+             (indent - prevIndent))
+      end else if indent = prevIndent - 2 then begin
+        onLessIndent()
+      (** indent is more than one level less than in previous line *)
+      end else begin
+        raiseIndentError lexbuf.location
+          (sprintf
+             "Indentation was reduced by %d spaces but only steps of 2 are legal"
+             (prevIndent - indent))
+      end
+    end
+  in
+
   let rec worker () =
     let currentChar = readChar lexbuf in
 
     if currentChar = beginIndentBlockChar or isNewline currentChar then begin
-      lexbuf.previousToken <- `Whitespace;
       collectTimingInfo "newline"
         (fun () ->
-           let rec consumeWhitespaceAndReturnIndent indent =
-             let eof, nextChar =
-               try false, readChar lexbuf
-               with Eof -> true, '\n'
-             in
-             if eof then
-               indent
-             else if isWhitespace nextChar then
-               consumeWhitespaceAndReturnIndent (indent+1)
-             else if isNewline nextChar then
-               consumeWhitespaceAndReturnIndent 0
-             else begin
-               backTrack lexbuf 1;
-               indent
-             end
-           in
-           let indent = consumeWhitespaceAndReturnIndent 0 in
-           let prevIndent = lexbuf.prevIndent in
-
-           if lexbuf.readTokenBefore = false then begin
-             if indent = prevIndent then worker ()
-             else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
-           end else begin
-             let onSameIndent() =
-               `Token END
-             and onMoreIndent() =
-               lexbuf.prevIndent <- indent;
-               `Token BEGIN_BLOCK
-             and continueLine() =
-               `Ignore
-             and onLessIndent() =
-               lexbuf.prevIndent <- indent;
-               let line = readUntil isNewline lexbuf in
-               if isBlockEndLine line then begin
-                 putback lexbuf "\n";
-                 if line =~ "^end\\(.*\\)$" then
-                   match List.rev (Str.split whitespaceRE (nthmatch 1)) with
-                     | "}" :: args ->
-                         returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args); CLOSE_CURLY]
-                     | args ->
-                         returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args)]
-                 else
-                   failwith "splitting block end line failed"
-               end else begin
-                 putback lexbuf (line ^ "\n");
-                 returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
-               end
-             in
-             (** lookup forward for `Ignore and possibly reset indent? *)
-             if currentChar = beginIndentBlockChar then
-               onMoreIndent()
-             else if indent = prevIndent then begin
-               onSameIndent()
-             end else if indent > prevIndent then begin
-               continueLine()
-             end else if indent > prevIndent then begin
-               raiseIndentError lexbuf.location
-                 (sprintf "Indentation was increased by %d spaces but only 2 are legal"
-                    (indent - prevIndent))
-             end else if indent = prevIndent - 2 then begin
-               onLessIndent()
-                 (** indent is more than one level less than in previous line *)                 
-             end else begin
-               raiseIndentError lexbuf.location
-                 (sprintf
-                    "Indentation was reduced by %d spaces but only steps of 2 are legal"
-                    (prevIndent - indent))
-             end
-           end)
-
+           interpreteNewline currentChar worker)
     (** no newline *)
     end else begin
       collectTimingInfo "no newline"
         (fun () ->
-           let findToken() =
-             let matchingRules =
-               let unsorted =
-                 mapFilter
-                   (fun rule ->
-                      match
-                        Rules.ruleMatchesAt
-                          ~prevToken:lexbuf.previousToken
-                          ~source:lexbuf.content
-                          ~pos:lexbuf.position
-                          rule
-                      with
-                        | Some len -> Some (len, rule)
-                        | None -> None)
-                   Rules.rules
-               in
-               List.sort (fun (len1, _) (len2, _) -> 1 - compare len1 len2) unsorted
-             in
-             let input = String.sub lexbuf.content lexbuf.position 1 in
-             let ptokenToString = function
-               | `Whitespace -> "< >"
-               | `Token t -> token2str t
-             in
-             let length, (rule, makeToken) =
-               match matchingRules with
-                 | [] ->
-                     raiseUnknownToken lexbuf.location input
-                       (sprintf "no matching rules (after '%s')" (ptokenToString lexbuf.previousToken))
-                 | [single] -> single
-                 | first :: second :: _ ->
-                     if (fst first > fst second) then
-                       first
-                     else
-                       raiseUnknownToken lexbuf.location input
-                         (sprintf "multiple rules matching (after '%s')" (ptokenToString lexbuf.previousToken))
-             in
-             ignore rule;
-             let tokenString = readChars lexbuf length in
-
-             let token : [`Ignore | `Token of token] =
-               match (makeToken tokenString : tokenOrAction) with
-                 | `PutBack(token, prefetched) ->
-                     putback lexbuf prefetched;
-                     (`Token token :> [`Ignore|`Token of token])
-                 | `Ignore -> `Ignore
-                 | `Token token -> ((`Token token) : [`Ignore | `Token of token])
-                 | `MultiTokens (firstToken::remTokens) ->
-                     returnMultipleTokens lexbuf (`Token firstToken) remTokens
-                 | `MultiTokens [] -> `Ignore
-             in
-             token
-           in
            backTrack lexbuf 1;
            incr stats.foundTokens;
            findToken())

@@ -328,16 +328,16 @@ struct
 
       "switch expr:\n\
       case 1:\n\
-        print one\n\
+      \  print one\n\
       default:\n\
-        stuff\n\
+      \  stuff\n\
       end",
       `Return [IDENTIFIER "switch"; IDENTIFIER "expr"; BEGIN_BLOCK; END_BLOCK [];
-               IDENTIFIER "case"; IDENTIFIER "1"; END; BEGIN_BLOCK;
+               IDENTIFIER "case"; IDENTIFIER "1"; BEGIN_BLOCK;
                IDENTIFIER "print"; IDENTIFIER "one"; END;
                END_BLOCK []; IDENTIFIER "default"; BEGIN_BLOCK;
                IDENTIFIER "stuff"; END;
-               END_BLOCK []];
+               END_BLOCK []; END];
 
       (* leading whitespace/newlines *)
       "   a b c", `Return (ids ["a"; "b"; "c"] @ [END]);
