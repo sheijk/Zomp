@@ -251,7 +251,7 @@ exprArg:
   { e }
 
 %inline block:
-| BEGIN_BLOCK; exprs = main+; terminators = END_BLOCK;
+| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
 
 

@@ -457,10 +457,6 @@ struct
         "end wrong",
       `Exception "Should fail because 'wrong' would need to be 'main' or be omitted";
 
-      (* "empty block\n" ^ *)
-      (*   "end", *)
-      (* `Return [juxExpr [id "empty"; id "block"; seqExpr[]]]; *)
-
       (*       "for: p in primes\n\ *)
       (*       \  print p\n\ *)
       (*       \  log p", *)
@@ -477,6 +473,23 @@ struct
       \  nested2\n\
       end main",
       `Exception "Should fail because \"nested\" has no end terminator";
+
+      "empty block:\n\
+      end",
+      `Return [juxExpr [id "empty"; id "block"; seqExpr []]];
+
+      "switch e:\n\
+      case 1:\n\
+      \  print one\n\
+      default:\n\
+      \  print def\n\
+      end",
+      `Return [juxExpr [id "switch"; id "e";
+                        seqExpr[];
+                        id "case"; id "1";
+                        seqExpr [juxExpr [id "print"; id "one"]];
+                        id "default";
+                        seqExpr [juxExpr [id "print"; id "def"]]]];
 
       (** dot notation *)
       "foo.bar", `Return [se2 "op." "foo" "bar"];

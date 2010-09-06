@@ -5,8 +5,10 @@ open Printf
 open Newparser
 open Common
 
-module IndentLexerTestCase : CASE_STRUCT =
-struct
+module IndentLexerTestCase : sig
+  include CASE_STRUCT
+  val validateTestCases : unit -> string option
+end = struct
   type input = string
   type output = token list
 
@@ -84,7 +86,7 @@ struct
       "\" //foo\"", `Return [id "\" //foo\""; END];
       "\"//foo\"", `Return [id "\"//foo\""; END];
       (let str = "\" /*no comment*/\"" in
-      sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
+       sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
       (let str = "\"/*no comment*/\"" in
        sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
 
@@ -96,7 +98,7 @@ struct
                OPEN_ARGLIST; id "a"; COMMA; id "b"; CLOSE_PAREN; END];
 
       "foo (3) + 1", `Return [id "foo"; OPEN_PAREN; id "3"; CLOSE_PAREN;
-                             ADD_OP "+"; id "1"; END];
+                              ADD_OP "+"; id "1"; END];
 
       "foo bar", `Return [id "foo"; id "bar"; END];
 
@@ -175,8 +177,8 @@ struct
       "blup(x*)", `Return [id "blup"; OPEN_ARGLIST; id "x";
                            POSTFIX_OP "*"; CLOSE_PAREN; END];
       "blup(x*++)", `Return [id "blup"; OPEN_ARGLIST; id "x";
-                            POSTFIX_OP "*"; POSTFIX_OP "++";
-                           CLOSE_PAREN; END];
+                             POSTFIX_OP "*"; POSTFIX_OP "++";
+                             CLOSE_PAREN; END];
       "foo()++", `Return [id "foo"; OPEN_ARGLIST; CLOSE_PAREN; POSTFIX_OP "++"; END];
       "*deref", `Return [PREFIX_OP "*"; id "deref"; END];
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
@@ -185,7 +187,7 @@ struct
 
       "char**", `Return [id "char"; POSTFIX_OP "*"; POSTFIX_OP "*"; END];
       "(float*)*", `Return [OPEN_PAREN; id "float"; POSTFIX_OP "*";
-                          CLOSE_PAREN; POSTFIX_OP "*"; END];
+                            CLOSE_PAREN; POSTFIX_OP "*"; END];
       "(foo baz*)", `Return
         [OPEN_PAREN; id "foo"; id "baz"; POSTFIX_OP "*"; CLOSE_PAREN; END];
 
@@ -207,7 +209,7 @@ struct
       "{x y}", `Return [OPEN_CURLY; id "x"; id "y"; CLOSE_CURLY; END];
 
       (let semi = SEMICOLON ";" in
-      "a;b;c",  `Return [id "a"; semi; id "b"; semi; id "c"; END]);
+       "a;b;c",  `Return [id "a"; semi; id "b"; semi; id "c"; END]);
 
       "l +. r", `Return [id "l"; ADD_OP "+."; id "r"; END];
 
@@ -247,29 +249,29 @@ struct
                 id "second"; id "line"; END] );
 
       "this is a very long line\n" ^
-      "  continued on the next one",
+        "  continued on the next one",
       `Return([id "this"; id "is"; id "a"; id "very"; id "long"; id "line";
                id "continued"; id "on"; id "the"; id "next"; id "one"; END]);
 
       "the continued\n" ^
-      "  line here\n" ^
-      "next line",
+        "  line here\n" ^
+        "next line",
       `Return([id "the"; id "continued"; id "line"; id "here"; END;
                id "next"; id "line"; END]);
 
       "indent block:\n" ^
-      "  content of block\n" ^
-      "end",
+        "  content of block\n" ^
+        "end",
       `Return [id "indent"; id "block"; BEGIN_BLOCK;
                id "content"; id "of"; id "block"; END;
                END_BLOCK[]; END];
 
       "multi block:\n" ^
-      "  first line\n" ^
-      "  second line\n" ^
-      "else:\n" ^
-      "  third line\n" ^
-      "end",
+        "  first line\n" ^
+        "  second line\n" ^
+        "else:\n" ^
+        "  third line\n" ^
+        "end",
       `Return [id "multi"; id "block"; BEGIN_BLOCK;
                id "first"; id "line"; END;
                id "second"; id "line"; END;
@@ -278,10 +280,10 @@ struct
                END_BLOCK []; END];
 
       "cont begin\n" ^
-      "  of block:\n" ^
-      "  line 1\n" ^
-      "  line 2\n" ^
-      "end",
+        "  of block:\n" ^
+        "  line 1\n" ^
+        "  line 2\n" ^
+        "end",
       `Return [id "cont"; id "begin"; id "of"; id "block"; BEGIN_BLOCK;
                id "line"; id "1"; END;
                id "line"; id "2"; END;
@@ -326,6 +328,9 @@ struct
                @ ids ["print"; "2"] @ [END]
                @ [END_BLOCK []; END] );
 
+      "empty block:\nend", `Return [IDENTIFIER "empty"; IDENTIFIER "block";
+                                    BEGIN_BLOCK; END_BLOCK []; END];
+
       "switch expr:\n\
       case 1:\n\
       \  print one\n\
@@ -338,6 +343,18 @@ struct
                END_BLOCK []; IDENTIFIER "default"; BEGIN_BLOCK;
                IDENTIFIER "stuff"; END;
                END_BLOCK []; END];
+
+      "class:\n\
+       public:\n\
+       private:\n\
+       end",
+      `Return [IDENTIFIER "class"; BEGIN_BLOCK; END_BLOCK[];
+               IDENTIFIER "public"; BEGIN_BLOCK; END_BLOCK[];
+               IDENTIFIER "private"; BEGIN_BLOCK; END_BLOCK[]; END];
+
+      "empty ${seq:\nend}",
+      `Return [IDENTIFIER "empty"; QUOTE "$"; OPEN_CURLY; IDENTIFIER "seq"; BEGIN_BLOCK;
+               END_BLOCK []; CLOSE_CURLY; END];
 
       (* leading whitespace/newlines *)
       "   a b c", `Return (ids ["a"; "b"; "c"] @ [END]);
@@ -408,13 +425,36 @@ struct
     @ areValidBinOps ["&&"; "||"] (fun n -> LAZY_BOOL_OP n)
     @ areValidBinOps ["&"; "|"; "^"; "<<"; ">>"] (fun n -> STRICT_BOOL_OP n)
     @ areValidBinOps ["%"] (fun n -> MOD_OP n)
+
+  let validateTestCases() =
+    let errors =
+      mapFilter
+        (fun (i, o) ->
+           match o with
+             | `Return tokens ->
+                 if lastElement tokens <> Some END then
+                   Some (sprintf "Test case lacks END:\n%s\n%s\n\n"
+                           i (tokensToString tokens))
+                 else
+                   None
+             | _ -> None)
+        testCases
+    in
+    match errors with
+      | [] -> None
+      | _ -> Some (Common.combine "\n" errors)
 end
 
 let () =
   let module M = Tester(IndentLexerTestCase) in
-  let testCount, errorCount, errors = M.runTests() in
-  List.iter M.printError errors;
-  at_exit (fun () -> M.printTestSummary "indentlexer" (testCount, errorCount, errors))
+  match IndentLexerTestCase.validateTestCases() with
+    | None ->
+        let testCount, errorCount, errors = M.runTests() in
+        List.iter M.printError errors;
+        at_exit (fun () -> M.printTestSummary "indentlexer" (testCount, errorCount, errors))
+    | Some errors ->
+        printf "Errors in indentlexer test cases:\n%s\n" errors;
+        at_exit (fun () -> printf "Invalid indentlexer test cases, no results\n")
 
 let () =
   let testCases = [

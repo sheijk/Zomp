@@ -737,6 +737,24 @@ let token (lexbuf : token lexerstate) : token =
     token
   in
 
+  let handleEndLineOrPutTokens firstToken secondToken =
+    let line = readUntil isNewline lexbuf in
+    if isBlockEndLine line then begin
+      putback lexbuf "\n";
+      if line =~ "^end\\(.*\\)$" then
+        match List.rev (Str.split whitespaceRE (nthmatch 1)) with
+          | "}" :: args ->
+              Some (END_BLOCK (List.rev args), [CLOSE_CURLY])
+          | args ->
+              Some (END_BLOCK (List.rev args), [])
+      else
+        failwith "splitting block end line failed"
+    end else begin
+      putback lexbuf (line ^ "\n");
+      None
+    end
+  in
+
   let interpreteNewline currentChar continueLexing =
     lexbuf.previousToken <- `Whitespace;
     let indent = consumeWhitespaceAndReturnIndent 0 in
@@ -751,28 +769,18 @@ let token (lexbuf : token lexerstate) : token =
       and onMoreIndent() =
         lexbuf.prevIndent <- indent;
         if indent = prevIndent then
-          returnMultipleTokens lexbuf (`Token BEGIN_BLOCK) [END_BLOCK []]
+          match handleEndLineOrPutTokens BEGIN_BLOCK (END_BLOCK []) with
+            | Some (hd, rem) -> returnMultipleTokens lexbuf (`Token BEGIN_BLOCK) (hd::rem)
+            | None -> returnMultipleTokens lexbuf (`Token BEGIN_BLOCK) [END_BLOCK[]]
         else
           `Token BEGIN_BLOCK
       and continueLine() =
         `Ignore
       and onLessIndent() =
         lexbuf.prevIndent <- indent;
-        let line = readUntil isNewline lexbuf in
-        if isBlockEndLine line then begin
-          putback lexbuf "\n";
-          if line =~ "^end\\(.*\\)$" then
-            match List.rev (Str.split whitespaceRE (nthmatch 1)) with
-              | "}" :: args ->
-                  returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args); CLOSE_CURLY]
-              | args ->
-                  returnMultipleTokens lexbuf (`Token END) [END_BLOCK (List.rev args)]
-          else
-            failwith "splitting block end line failed"
-        end else begin
-          putback lexbuf (line ^ "\n");
-          returnMultipleTokens lexbuf (`Token END) [END_BLOCK []]
-        end
+        match handleEndLineOrPutTokens END (END_BLOCK []) with
+          | Some (hd, remTokens) -> returnMultipleTokens lexbuf (`Token END) (hd :: remTokens)
+          | None -> returnMultipleTokens lexbuf (`Token END) [END_BLOCK[]]
       in
       (** lookup forward for `Ignore and possibly reset indent? *)
       if currentChar = beginIndentBlockChar then
