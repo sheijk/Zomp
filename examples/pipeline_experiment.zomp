@@ -845,7 +845,7 @@ func GLint objectMaterial():
   varying vec3 wsLightDir;
   varying float depth;
   uniform mat4 pj_ModelMatrix;
-  uniform mat4 pj_CameraMatrix; // guaranteed to be "nice"
+  uniform mat4 pj_CameraMatrix; // guaranteed to be 'nice'
   "
   vertexSource := "
   vec3 unhomo(vec4 v) { return v.xyz / v.w; }

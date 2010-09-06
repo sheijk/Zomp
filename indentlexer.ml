@@ -827,12 +827,12 @@ let token (lexbuf : token lexerstate) : token =
         onMoreIndent()
       else if indent = prevIndent then begin
         onSameIndent()
-      end else if indent = prevIndent + 2 then begin
-        continueLine()
+      (* end else if indent = prevIndent + 4 then begin *)
       end else if indent > prevIndent then begin
-        raiseIndentError lexbuf.location
-          (sprintf "Indentation was increased by %d spaces but only 2 are legal"
-             (indent - prevIndent))
+        continueLine()
+        (* raiseIndentError lexbuf.location *)
+        (*   (sprintf "Indentation was increased by %d spaces but only 2 are legal" *)
+        (*      (indent - prevIndent)) *)
       end else if indent = prevIndent - 2 then begin
         onLessIndent()
       (** indent is more than one level less than in previous line *)
