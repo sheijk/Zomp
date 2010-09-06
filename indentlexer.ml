@@ -98,9 +98,20 @@ let stripComments fileName source =
   let unexpectedEof src =
     raiseIndentError { line = getLine(); fileName = fileName } (sprintf "Unexpected Eof while parsing %s" src)
   in
+  let copyChar signalError =
+    if getReadPos() <= sourceLength - 1 then begin
+      let chr = readOneChar() in
+      writeChar chr;
+      chr
+    end else
+      signalError()
+  in
+
   let unexpectedEofInComment() = unexpectedEof "comment"
   and unexpectedEofInStringLiteral() = unexpectedEof "string literal"
+  and unexpectedEofInCharLiteral() = unexpectedEof "char literal"
   in
+
   let rec copySource() =
     if getReadPos() <= sourceLength - 1 then begin
       match readOneChar() with
@@ -123,6 +134,9 @@ let stripComments fileName source =
         | '"' ->
             writeChar '"';
             copyStringLiteral()
+        | '\'' ->
+            writeChar '\'';
+            copyCharLiteral();
         | chr ->
             writeChar chr;
             copySource()
@@ -155,16 +169,40 @@ let stripComments fileName source =
     end else
       unexpectedEofInComment()
   and copyStringLiteral() =
-    if getReadPos() <= sourceLength - 1 then begin
-      match readOneChar() with
-        | '"' ->
-            writeChar '"';
-            copySource()
-        | chr ->
-            writeChar chr;
-            copyStringLiteral()
-    end else
-      unexpectedEofInStringLiteral()
+    let copyChar() = copyChar unexpectedEofInStringLiteral in
+    match copyChar() with
+      | '"' ->
+          copySource()
+      | '\\' ->
+          let _ = copyChar() in
+          copyStringLiteral()
+      | chr ->
+          copyStringLiteral()
+  and copyCharLiteral() =
+    let copyChar() = copyChar unexpectedEofInCharLiteral in
+    let invalidCharLiteral msg =
+      raiseIndentError
+        { line = getLine(); fileName = fileName }
+        (sprintf "Error in char literal %s" msg)
+    in
+    match copyChar() with
+      | '\\' ->
+          begin match copyChar(), copyChar() with
+            | _, '\'' ->
+                copySource()
+            | c1, c2 ->
+                invalidCharLiteral (sprintf "'\\%c%c is no a valid char literal" c1 c2)
+          end
+      | '\'' ->
+          invalidCharLiteral
+            "'' is not a valid char literal, use '\\'' if you want a quote char"
+      | c1 ->
+          begin match copyChar() with
+            | '\'' ->
+                copySource()
+            | c2 ->
+                invalidCharLiteral (sprintf "'%c%c is no a valid char literal" c1 c2)
+          end
   in
   copySource();
   String.sub strippedSource 0 (!writePos + 1)
@@ -389,8 +427,9 @@ end = struct
     let contextInsensitiveOp symbol f =
       (Any, Str.regexp symbol), (fun t -> `Token (f t))
     in
-    let stringRule = re "\"[^\"]*\"", idFunc in
-    let charRule = re "'[^']+'", idFunc in
+    let stringRule = re "\"\\([^\"\\]\\|\\\\.\\)*\"", idFunc in
+    let charRule = re "'[^']'", idFunc in
+    let escapedCharRule = re "'\\\\.'", idFunc in
     let quoteRule str =
       re (Str.quote str),
       (fun foundStr ->
@@ -522,6 +561,7 @@ end = struct
       quoteRule "#";
       stringRule;
       charRule;
+      escapedCharRule;
       contextInsensitiveOp ";" (fun s -> SEMICOLON s);
     ]
     @ opRules "+" (fun s -> ADD_OP s)

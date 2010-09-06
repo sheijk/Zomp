@@ -74,11 +74,13 @@ end = struct
       isValidId "-20";
       isValidId "\"foobar\"";
       isValidId "\"windows\\\\path\"";
+      isValidId "\"with escaped\\\" string quote\"";
       isValidId "\"\"";
       isValidId "'x'";
       isValidId "'\\n'";
       isValidId "'\\0'";
       isValidId "'\\\\'"; (* that's two backslashes in zomp syntax.. *)
+      isValidId "'\\''";
 
       (* comments *)
       "a // b c d", `Return [id "a"; END];
@@ -88,6 +90,10 @@ end = struct
       (let str = "\" /*no comment*/\"" in
        sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
       (let str = "\"/*no comment*/\"" in
+       sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
+      "'\"' /*'*/ x",
+      `Return [id "'\"'"; id "x"; END];
+      (let str = "\"with escaped\\\" /*string*/ quote\"" in
        sprintf "stringlit %s" str, `Return [id "stringlit"; id str; END]);
 
       (* operators *)
