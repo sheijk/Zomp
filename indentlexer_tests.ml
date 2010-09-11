@@ -68,6 +68,19 @@ end = struct
       isValidId "-9.";
       isValidId "-.3";
       isValidId "-6.234f";
+      isValidId "0x12";
+      isValidId "0xff";
+      isValidId "0xFF";
+      isValidId "0xf0";
+      isValidId "0xF0";
+      isValidId "0x1c";
+      isValidId "0x1C";
+      isValidId "0b1001";
+      isValidId "1_000";
+      isValidId "20_090";
+      isValidId "451_034";
+      (** lexer does not validate int constants *)
+      isValidId "1_23_000";
 
       (* strings and numbers *)
       isValidId "1337";

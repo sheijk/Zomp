@@ -953,6 +953,13 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO [#A] global var of double type fails                         :bug:quick:
 ** TODO [#A] Cmd-e fails if end is spelled eend                            :bug:
 ** TODO [#A] onReturn does not catch all ret instructions                  :bug:
+** TODO typing : in first line fails                                     :emacs:
+
+   main:<- error here
+** TODO [#A] rebind operator
+   http://github.com/andyfischer/circa/blob/master/docs/syntax.md
+   @
+   is this useful?
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]

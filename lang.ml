@@ -56,21 +56,27 @@ let string2integralValue str =
     end else
       raise (Failure "parseWithSuffix")
   in
-  tryAll
-    [
-      lazy( Int32Val (Int32.of_string str) );
-      lazy( Int64Val (Int64.of_string str) );
-      (* lazy( Int8Val (Int32.of_string str) ); *)
-      (* lazy( Int16Val (Int32.of_string str) ); *)
-      lazy( FloatVal (parseWithSuffix float_of_string "f" str) );
-      lazy( FloatVal (float_of_string str) );
-      lazy( BoolVal (bool_of_string str) );
-      lazy( CharVal (dequoteChar str) );
-      lazy( StringLiteral (dequoteString '"' str) );
-      lazy( DoubleVal (parseWithSuffix float_of_string "d" str) );
-    ]
-    ~onSuccess:some
-    ~ifAllFailed:(lazy None)
+  let isDigit chr = chr >= '0' && chr <= '9' in
+  if isDigit str.[0] &&
+    String.contains str '_' &&
+    not (str =~ "^[1-9][0-9]?[0-9]?\\(_[0-9][0-9][0-9]\\)+$") then
+      None
+  else
+    tryAll
+      [
+        lazy( Int32Val (Int32.of_string str) );
+        lazy( Int64Val (Int64.of_string str) );
+        (* lazy( Int8Val (Int32.of_string str) ); *)
+        (* lazy( Int16Val (Int32.of_string str) ); *)
+        lazy( FloatVal (parseWithSuffix float_of_string "f" str) );
+        lazy( FloatVal (float_of_string str) );
+        lazy( BoolVal (bool_of_string str) );
+        lazy( CharVal (dequoteChar str) );
+        lazy( StringLiteral (dequoteString '"' str) );
+        lazy( DoubleVal (parseWithSuffix float_of_string "d" str) );
+      ]
+      ~onSuccess:some
+      ~ifAllFailed:(lazy None)
 
 type varStorage =
   | RegisterStorage

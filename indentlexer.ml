@@ -507,12 +507,17 @@ end = struct
       in
       [floatRule])
     @ (
-      let numberRE = "\\(0x\\|0b\\)?[0-9]+[a-zA-Z]*" in
-      let intRule = re numberRE, idFunc in
+      let numberRE = "\\(0\\|[1-9][0-9_]*\\)" in
       let negIntRule =
         (Not (Or (Identifier, ClosingParen)), Str.regexp ("-" ^ numberRE)), idFunc
       in
-      [intRule; negIntRule])
+      let hexnumberRE = "0x[0-9a-fA-F]+" in
+      let binnumberRE = "0b[01]+" in
+      [re numberRE, idFunc;
+       negIntRule;
+       re hexnumberRE, idFunc;
+       re binnumberRE, idFunc;
+      ])
     @ (
       let postfixOps = ["++"; "--"; "..."; "*"] in
       let prefixOps = ["*"; "&"; "++"; "--"; "!"; "-"] in
