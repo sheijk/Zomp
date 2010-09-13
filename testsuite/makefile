@@ -11,13 +11,16 @@ endif
 # Targets
 ################################################################################
 
-TESTSUITE_CASES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp	\
+TESTSUITE_SOURCES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp	\
 simple-func.zomp variables.zomp astmatch.zomp cee.zomp						\
 bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp		\
 float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp	\
 testframework.zomp math.zomp stackoverflow.zomp
 
-testsuite/all: $(foreach FILE, $(TESTSUITE_CASES), testsuite/$(FILE:.zomp=.test))
+TESTSUITE_CASES = $(foreach FILE, $(TESTSUITE_SOURCES), testsuite/$(FILE:.zomp=.test))
+
+testsuite/success: $(TESTSUITE_CASES)
+testsuite/all: testsuite/success testsuite/error_reporting/all
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files
@@ -84,4 +87,25 @@ testsuite/%.test: testsuite/%.bc
 	@$(ECHO) Running test $(<:.bc=) ...
 	@$(LLVM_LLI) $<
 	@touch $@
+
+################################################################################
+# Validating error location reporting
+################################################################################
+
+TESTSUITE_ERROR_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
+TESTSUITE_ERROR_CASES = $(TESTSUITE_ERROR_SOURCES:.zomp=.test)
+
+testsuite/error_reporting/all: $(TESTSUITE_ERROR_CASES)
+.PHONY: testsuite/error_reporting/all
+
+testsuite/error_reporting/invalid_token_bof.test: EXPECTED_LINE = 1
+testsuite/error_reporting/invalid_token_not_first_line.test: EXPECTED_LINE = 3
+testsuite/error_reporting/invalid_token_single_line_comment.test: EXPECTED_LINE = 5
+testsuite/error_reporting/invalid_token_multi_line_comment.test: EXPECTED_LINE = 6
+testsuite/error_reporting/duplicate_local_name.test: EXPECTED_LINE = 11
+
+testsuite/error_reporting/%.test: testsuite/error_reporting/%.zomp
+	@$(ECHO) "Checking if compiler reports error in $<:$(EXPECTED_LINE)"
+	($(ZOMPC) -c $< 2>&1) > $(<:.zomp=.tmp) || (exit 0)
+	(cat $(<:.zomp=.tmp) | grep "$<:$(EXPECTED_LINE)" --quiet) || (echo "Invalid error reporting:"; cat $(<:.zomp=.tmp); exit 1)
 
