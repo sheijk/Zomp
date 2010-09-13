@@ -290,98 +290,6 @@ open Translation_utils
 module Translators_deprecated_style =
 struct
 
-  let translateDefineVar (translateF :exprTranslateF) (bindings :bindings) expr =
-    let transform id name typeExpr valueExpr =
-      let declaredType = match typeExpr with
-        | Some e ->
-            begin
-              match translateType bindings e with
-                | Some t -> Some t
-                | None -> raise (CouldNotParseType (Ast2.expression2string e))
-            end
-        | None -> None
-      in
-      let valueType, toplevelForms, implForms =
-        match valueExpr with
-          | Some valueExpr ->
-              begin
-                let _, simpleform = translateF bindings valueExpr in
-                let toplevelForms, implForms = extractToplevelForms simpleform in
-                match typeCheck bindings (`Sequence implForms) with
-                  | TypeOf t -> Some t, toplevelForms, implForms
-                  | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
-              end
-          | None -> None, [], []
-      in
-      let varType =
-        match declaredType, valueType with
-          | Some declaredType, Some valueType when equalTypes bindings declaredType valueType ->
-              declaredType
-          | Some declaredType, Some valueType ->
-              raiseIllegalExpressionFromTypeError expr
-                (Semantic.Ast expr, "Types do not match",declaredType,valueType)
-          | None, Some valueType -> valueType
-          | Some declaredType, None -> declaredType
-          | None, None ->
-              raiseIllegalExpression expr "var needs either a default value or declare a type"
-      in
-      match varType with
-        | #integralType | `Pointer _ | `Function _ as typ ->
-            begin
-              let var = variable name typ (defaultValue typ) MemoryStorage false in
-              let defvar = `DefineVariable (var, Some (`Sequence implForms))
-              in
-              match typeCheck bindings defvar with
-                | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-            end
-        | `Array(memberType, size) as typ ->
-            begin
-              let var = variable name typ (defaultValue typ) MemoryStorage false in
-              let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
-              match typeCheck bindings defvar with
-                | TypeOf _ -> Some( addVar bindings var, toplevelForms @ [defvar] )
-                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-            end
-        | (`Record _ as typ) ->
-            begin
-              match valueExpr with
-                | None ->
-                    let var = variable name typ (defaultValue typ) MemoryStorage false in
-                    Some( addVar bindings var, [ `DefineVariable (var, None) ] )
-                | Some valueExpr ->
-                    let var = variable name typ (defaultValue typ) MemoryStorage false in
-                    Some( addVar bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
-            end
-        | `TypeRef _ ->
-            raiseIllegalExpression expr "Internal error: received unexpected type ref"
-    in
-    match expr with
-      | { id = id; args = [
-            typeExpr;
-            { id = name; args = [] };
-            valueExpr
-          ] }
-          when (id = macroVar) ->
-          transform id name (Some typeExpr) (Some valueExpr)
-
-      | { id = id; args = [
-            typeExpr;
-            { id = name; args = [] };
-          ] }
-          when (id = macroVar) ->
-          transform id name (Some typeExpr) None
-
-      | { id = id; args = [
-            { id = name; args = [] };
-            valueExpr
-          ] }
-          when id = "var2" ->
-          transform id name None (Some valueExpr)
-
-      | _ ->
-          None
-
   let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
     match expr2VarOrConst bindings expr with
       | Some varOrConst ->
@@ -1322,7 +1230,7 @@ struct
       | _ ->
           errorFromExpr expr "Expected 'cast typeExpr valueExpr'"
 
-  let translateDefineVar_Unused (env :exprTranslateF env) expr :translationResult =
+  let translateDefineVar (env :exprTranslateF env) expr :translationResult =
     let transformUnsafe id name typeExpr valueExpr :translationResult =
       let declaredType = match typeExpr with
         | Some e ->
@@ -1390,7 +1298,29 @@ struct
     in
     let transform id name typeExpr valueExpr :translationResult =
       try
-        transformUnsafe id name typeExpr valueExpr
+        match lookup env.bindings name with
+          | VarSymbol { vglobal = false } ->
+              let module Errors =
+                struct
+                  let lexerBaseCode = 100
+                  and parserBaseCode = 200
+                  and expanderBaseCode = 300
+
+                  let makeErrorString localErrorCode expr msg =
+                    let errorCode = expanderBaseCode + localErrorCode in
+                    match expr.location with
+                      | Some loc ->
+                          sprintf "error %d: %s: %d: %s" errorCode loc.fileName loc.line msg
+                      | None ->
+                          sprintf "error %d: %s in\n  %s" errorCode msg (Ast2.toString expr)
+                  let localVarDefinedTwice loc varName =
+                    Error [makeErrorString 1 expr
+                             (sprintf "Local variable name '%s' used twice" name)]
+                end
+              in
+              Errors.localVarDefinedTwice expr name
+          | _ ->
+              transformUnsafe id name typeExpr valueExpr
       with
           IllegalExpression (expr, msg) ->
             errorFromExpr expr msg
@@ -1444,8 +1374,8 @@ struct
     addF macroPtradd translatePtradd;
     addF macroGetaddr translateGetaddr;
     addF macroNullptr translateNullptr;
-    (* addF macroVar translateDefineVar; *)
-    (* addF macroVar2 translateDefineVar; *)
+    addF macroVar translateDefineVar;
+    addF macroVar2 translateDefineVar;
 end
 
 module Array : Zomp_transformer =
@@ -1684,7 +1614,6 @@ let rec translate errorF translators bindings expr =
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateFromDict baseInstructions;
-    Translators_deprecated_style.translateDefineVar;
     Translators_deprecated_style.translateSimpleExpr;
     Translators_deprecated_style.translateFuncCall;
     Old_macro_support.translateMacro;
@@ -1884,9 +1813,6 @@ let matchFunc =
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
   let sanityChecks returnType name params =
-    (* (match returnType with *)
-    (*    | `Record _ -> raiseIllegalExpression expr "Functions cannot return records, yet" *)
-    (*    | _ -> ()); *)
     let module StringSet = Set.Make(String) in
     let _ =
       List.fold_left
