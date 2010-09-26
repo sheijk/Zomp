@@ -336,7 +336,7 @@ TAGS:
 # generate a file for graphviz which visualizes the dependencies between modules
 deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	@$(ECHO) Generating dependency graph for graphviz ...
-	ocamldot depends.mk > deps.dot || $(ECHO) "warning: ocamldot not found, no graphviz dependency graph generated"
+	$(OCAMLDOC) -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) newparser.ml sexprlexer.ml sexprparser.ml
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
 
 

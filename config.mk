@@ -16,6 +16,7 @@ OCAMLC = $(OCAMLPATH)ocamlc$(OCAML_BIN_POSTFIX) -dtypes -warn-error A
 OCAMLOPT = $(OCAMLPATH)ocamlopt$(OCAML_BIN_POSTFIX) -dtypes -warn-error A
 OCAMLMKLIB = $(OCAMLPATH)ocamlmklib
 OCAMLDEP = $(OCAMLPATH)ocamldep$(OCAML_BIN_POSTFIX)
+OCAMLDOC = $(OCAMLPATH)ocamldoc$(OCAML_BIN_POSTFIX)
 
 # OCaml tags program (currently only works with OCaml 3.9 and thus is probably
 # not present anymore)
