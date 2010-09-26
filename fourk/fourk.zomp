@@ -1,0 +1,168 @@
+/**
+ * A simple experiment to create a shader based 4k
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
+
+var int windowWidth 400
+var int windowHeight 400
+var bool initCalled false
+
+func void init():
+  if bool:not(initCalled):
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else:
+    printString "Already initialized"
+    println()
+  end
+end
+
+func void onWindowResize(int newWidth, int newHeight):
+  windowWidth = newWidth
+  windowHeight = newHeight
+
+  /// dammit, needz varargs and sprintf!
+  title := int2cstring newWidth ++ "x" ++ int2cstring newHeight
+  glfwSetWindowTitle title
+  // misses a few allocated values..
+  dealloc title
+end
+
+///-----------------------------------------------------------------------------
+/// Section: Shader handling
+///-----------------------------------------------------------------------------
+
+struct Shader:
+  GLint shaderObject
+  int mostRecentTimestamp
+end
+
+func void Shader:init(Shader* this):
+  this.shaderObject = 0
+  this.mostRecentTimestamp = 0
+end
+
+func void Shader:delete(Shader* this):
+  glDeleteShader this.shaderObject
+  this.shaderObject = 0
+end
+
+func void Shader:updateFromFile(Shader* this, cstring fileBaseName):
+  vertexFile := fileBaseName ++ ".vert"
+  fragmentFile := fileBaseName ++ ".frag"
+  varyingFile := fileBaseName ++ ".glsl"
+  onReturn:
+    dealloc vertexFile
+    dealloc fragmentFile
+    dealloc varyingFile
+  end
+
+  newestChange := int:max(zompFileModificationTimestamp varyingFile,
+      int:max(zompFileModificationTimestamp vertexFile, zompFileModificationTimestamp fragmentFile))
+
+  if (newestChange == this.mostRecentTimestamp):
+    return
+  else:
+    this.mostRecentTimestamp = newestChange
+  end
+
+  vertexSrc := nullptr char
+  fragmentSrc := nullptr char
+  varyingSrc := nullptr char
+  result := 0
+
+  template tryToLoad fileName target:
+    result = zompLoadFileToMemory(#fileName, &#target)
+    if (result < 0):
+      println "Error " result " loading " #fileName
+      return
+    end
+  end
+
+  tryToLoad varyingFile varyingSrc
+  tryToLoad vertexFile vertexSrc
+  tryToLoad fragmentFile fragmentSrc
+
+  shader := createShader(varyingSrc, vertexSrc, fragmentSrc)
+  if (shader != 0):
+    this.shaderObject = shader
+    println "Loaded shader " fileBaseName
+  else:
+    println "Shader " fileBaseName " not updated, could not be created"
+  end
+  return
+end
+
+func int main():
+  init()
+  glfwSetWindowSizeCallback(cast void* &onWindowResize)
+
+  angle := 0.0
+
+  shader := local Shader
+
+  historySize := 100
+  var float[100] historyFrameMS
+  historyInsertPos := 0
+  for i 0 historySize:
+    zmp:array:set historyFrameMS i 0.0
+  end
+
+  mainloop:
+    Shader:updateFromFile(shader, "fourk/fourk")
+    timeLoc := glGetUniformLocation(shader.shaderObject, "time")
+    autoSetupViewport()
+    angle = angle + 128.0 * frameDuration
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    // glTranslatef 0. 0. -1.
+    withShader shader.shaderObject:
+      glUniform1f timeLoc time
+      renderQuad 1.0
+    end
+
+    /// show fps statistics
+    zmp:array:set historyFrameMS historyInsertPos frameDuration
+    historyInsertPos = (historyInsertPos + 1) % historySize
+    avg := 0.0
+    for i2 0 historySize:
+      avg += zmp:array:get historyFrameMS i2
+    end
+    avg /= toFloat historySize
+    fpsString := float2cstring(1.0/avg)
+    glqtPrintfAt(-1.0, 0.8, 0., 0.005, fpsString)
+    dealloc fpsString
+    // fpsString = float2cstring(1.0 / frameDuration)
+    // glqtPrintfAt(-1.0, 0.6, 0., 0.005, fpsString)
+    // dealloc fpsString
+  end
+
+  fps := toFloat frameNum / (endTime - startTime)
+  println "\n" fps " fps"
+
+  Shader:delete shader
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  ret 0
+end
+
