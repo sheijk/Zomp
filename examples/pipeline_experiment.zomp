@@ -285,6 +285,252 @@ macro arraylit type elements...:
   ret code
 end
 
+func cstring glfw:keyName(int key):
+  if (key == GLFW_KEY_SPACE):
+    ret "Space"
+  elseif (key == GLFW_KEY_SPECIAL):
+    ret "Special"
+  elseif (key == GLFW_KEY_ESC):
+    ret "Esc"
+  elseif (key == GLFW_KEY_F1):
+    ret "F1"
+  elseif (key == GLFW_KEY_F2):
+    ret "F2"
+  elseif (key == GLFW_KEY_F3):
+    ret "F3"
+  elseif (key == GLFW_KEY_F4):
+    ret "F4"
+  elseif (key == GLFW_KEY_F5):
+    ret "F5"
+  elseif (key == GLFW_KEY_F6):
+    ret "F6"
+  elseif (key == GLFW_KEY_F7):
+    ret "F7"
+  elseif (key == GLFW_KEY_F8):
+    ret "F8"
+  elseif (key == GLFW_KEY_F9):
+    ret "F9"
+  elseif (key == GLFW_KEY_F10):
+    ret "F10"
+  elseif (key == GLFW_KEY_F11):
+    ret "F11"
+  elseif (key == GLFW_KEY_F12):
+    ret "F12"
+  elseif (key == GLFW_KEY_F13):
+    ret "F13"
+  elseif (key == GLFW_KEY_F14):
+    ret "F14"
+  elseif (key == GLFW_KEY_F15):
+    ret "F15"
+  elseif (key == GLFW_KEY_F16):
+    ret "F16"
+  elseif (key == GLFW_KEY_F17):
+    ret "F17"
+  elseif (key == GLFW_KEY_F18):
+    ret "F18"
+  elseif (key == GLFW_KEY_F19):
+    ret "F19"
+  elseif (key == GLFW_KEY_F20):
+    ret "F20"
+  elseif (key == GLFW_KEY_F21):
+    ret "F21"
+  elseif (key == GLFW_KEY_F22):
+    ret "F22"
+  elseif (key == GLFW_KEY_F23):
+    ret "F23"
+  elseif (key == GLFW_KEY_F24):
+    ret "F24"
+  elseif (key == GLFW_KEY_F25):
+    ret "F25"
+  elseif (key == GLFW_KEY_UP):
+    ret "Cursor up"
+  elseif (key == GLFW_KEY_DOWN):
+    ret "Cursor down"
+  elseif (key == GLFW_KEY_LEFT):
+    ret "Cursor left"
+  elseif (key == GLFW_KEY_RIGHT):
+    ret "Cursor right"
+  elseif (key == GLFW_KEY_LSHIFT):
+    ret "Left shift"
+  elseif (key == GLFW_KEY_RSHIFT):
+    ret "Right shift"
+  elseif (key == GLFW_KEY_LCTRL):
+    ret "Left control"
+  elseif (key == GLFW_KEY_RCTRL):
+    ret "Right control"
+  elseif (key == GLFW_KEY_LALT):
+    ret "Left alt"
+  elseif (key == GLFW_KEY_RALT):
+    ret "Right alt"
+  elseif (key == GLFW_KEY_TAB):
+    ret "Tab"
+  elseif (key == GLFW_KEY_ENTER):
+    ret "Enter"
+  elseif (key == GLFW_KEY_BACKSPACE):
+    ret "Backspace"
+  elseif (key == GLFW_KEY_INSERT):
+    ret "Insert"
+  elseif (key == GLFW_KEY_DEL):
+    ret "Del"
+  elseif (key == GLFW_KEY_PAGEUP):
+    ret "Pageup"
+  elseif (key == GLFW_KEY_PAGEDOWN):
+    ret "Pagedown"
+  elseif (key == GLFW_KEY_HOME):
+    ret "Home"
+  elseif (key == GLFW_KEY_END):
+    ret "End"
+  elseif (key == GLFW_KEY_KP_0):
+    ret "Keypad 0"
+  elseif (key == GLFW_KEY_KP_1):
+    ret "Keypad 1"
+  elseif (key == GLFW_KEY_KP_2):
+    ret "Keypad 2"
+  elseif (key == GLFW_KEY_KP_3):
+    ret "Keypad 3"
+  elseif (key == GLFW_KEY_KP_4):
+    ret "Keypad 4"
+  elseif (key == GLFW_KEY_KP_5):
+    ret "Keypad 5"
+  elseif (key == GLFW_KEY_KP_6):
+    ret "Keypad 6"
+  elseif (key == GLFW_KEY_KP_7):
+    ret "Keypad 7"
+  elseif (key == GLFW_KEY_KP_8):
+    ret "Keypad 8"
+  elseif (key == GLFW_KEY_KP_9):
+    ret "Keypad 9"
+  elseif (key == GLFW_KEY_KP_DIVIDE):
+    ret "Keypad divide"
+  elseif (key == GLFW_KEY_KP_MULTIPLY):
+    ret "Keypad multiply"
+  elseif (key == GLFW_KEY_KP_SUBTRACT):
+    ret "Keypad subtract"
+  elseif (key == GLFW_KEY_KP_ADD):
+    ret "Keypad add"
+  elseif (key == GLFW_KEY_KP_DECIMAL):
+    ret "Keypad decimal"
+  elseif (key == GLFW_KEY_KP_EQUAL):
+    ret "Keypad equal"
+  elseif (key == GLFW_KEY_KP_ENTER):
+    ret "Keypad enter"
+  elseif (key == GLFW_KEY_LAST):
+    ret "Last"
+  elseif (key == GLFW_KEY_A):
+    ret "A"
+  elseif (key == GLFW_KEY_B):
+    ret "B"
+  elseif (key == GLFW_KEY_C):
+    ret "C"
+  elseif (key == GLFW_KEY_D):
+    ret "D"
+  elseif (key == GLFW_KEY_E):
+    ret "E"
+  elseif (key == GLFW_KEY_F):
+    ret "F"
+  elseif (key == GLFW_KEY_G):
+    ret "G"
+  elseif (key == GLFW_KEY_H):
+    ret "H"
+  elseif (key == GLFW_KEY_I):
+    ret "I"
+  elseif (key == GLFW_KEY_J):
+    ret "J"
+  elseif (key == GLFW_KEY_K):
+    ret "K"
+  elseif (key == GLFW_KEY_L):
+    ret "L"
+  elseif (key == GLFW_KEY_M):
+    ret "M"
+  elseif (key == GLFW_KEY_N):
+    ret "N"
+  elseif (key == GLFW_KEY_O):
+    ret "O"
+  elseif (key == GLFW_KEY_P):
+    ret "P"
+  elseif (key == GLFW_KEY_Q):
+    ret "Q"
+  elseif (key == GLFW_KEY_R):
+    ret "R"
+  elseif (key == GLFW_KEY_S):
+    ret "S"
+  elseif (key == GLFW_KEY_T):
+    ret "T"
+  elseif (key == GLFW_KEY_U):
+    ret "U"
+  elseif (key == GLFW_KEY_V):
+    ret "V"
+  elseif (key == GLFW_KEY_W):
+    ret "W"
+  elseif (key == GLFW_KEY_X):
+    ret "X"
+  elseif (key == GLFW_KEY_Y):
+    ret "Y"
+  elseif (key == GLFW_KEY_Z):
+    ret "Z"
+  elseif (key == GLFW_KEY_0):
+    ret "0"
+  elseif (key == GLFW_KEY_1):
+    ret "1"
+  elseif (key == GLFW_KEY_2):
+    ret "2"
+  elseif (key == GLFW_KEY_3):
+    ret "3"
+  elseif (key == GLFW_KEY_4):
+    ret "4"
+  elseif (key == GLFW_KEY_5):
+    ret "5"
+  elseif (key == GLFW_KEY_6):
+    ret "6"
+  elseif (key == GLFW_KEY_7):
+    ret "7"
+  elseif (key == GLFW_KEY_8):
+    ret "8"
+  elseif (key == GLFW_KEY_9):
+    ret "9"
+  elseif (key == GLFW_MOUSE_BUTTON_LEFT):
+    ret "Left mouse button"
+  elseif (key == GLFW_MOUSE_BUTTON_RIGHT):
+    ret "Right mouse button"
+  elseif (key == GLFW_MOUSE_BUTTON_MIDDLE):
+    ret "Middle mouse button"
+  elseif (key == GLFW_MOUSE_BUTTON_4):
+    ret "Mouse button 4"
+  elseif (key == GLFW_MOUSE_BUTTON_5):
+    ret "Mouse button 5"
+  elseif (key == GLFW_MOUSE_BUTTON_6):
+    ret "Mouse button 6"
+  elseif (key == GLFW_MOUSE_BUTTON_7):
+    ret "Mouse button 7"
+  elseif (key == GLFW_MOUSE_BUTTON_8):
+    ret "Mouse button 8"
+  end
+
+  ret "Unknown key"
+end
+
+struct Rect:
+  float left right top bottom
+end
+
+func Rect makeRect(float l, float t, float r, float b):
+  var Rect rect
+  rect.left = l
+  rect.top = t
+  rect.right = r
+  rect.bottom = b
+  ret rect
+end
+
+func bool insideRect(float x, float y, Rect* r):
+  ret (x >= r.left && x < r.right && y >= r.top && y < r.bottom)
+end
+
+func void relativePos(float* x, float* y, Rect* r):
+  x* = (x* - r.left) / (r.right - r.left)
+  y* = (y* - r.bottom) / (r.top - r.bottom)
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: math
 ///-----------------------------------------------------------------------------
@@ -923,6 +1169,64 @@ func GLint lambertMaterial():
   ret shader
 end
 
+func GLint ditherMaterial():
+  varyingSource := "
+    varying vec2 screenpos;
+    varying vec3 lightDir;
+    varying vec3 normal;
+  "
+  vertexSource := "
+    void main(void) {
+        gl_Position = ftransform();
+        screenpos = gl_Position.xy / gl_Position.z;
+        normal = gl_NormalMatrix * gl_Normal.xyz;
+
+        vec4 vertPos = gl_ModelViewMatrix * gl_Vertex;
+        vec4 lightPos = gl_LightSource[0].position;
+        lightDir = (lightPos - vertPos).xyz;
+    }
+  "
+  fragmentSource := "
+    uniform float amplitude;
+    uniform vec2 scale;
+    uniform vec4 baseColor;
+
+    float crng(float x) {
+        return 0.5 + (x / 2.0);
+    }
+
+    float brightnessAt(vec2 pos) {
+        return crng( sin(80.0 * pos.y) );
+    }
+
+    vec2 distort(vec2 pos) {
+        pos *= scale;
+        vec2 sinp = vec2(pos.x, pos.y + amplitude * sin(pos.x * 40.0) );
+        return sinp;
+    }
+
+    void main(void) {
+        // vec3 normal2 = normalize(normal);
+        // lightDir = normalize(lightDir);
+        float n = dot(normalize(normal), normalize(lightDir));
+        n = max(0.0, min(1.0, n));
+        n += 0.1;
+
+        vec2 newpos = distort(screenpos);
+        float threshold = brightnessAt(newpos);
+
+        float diff = max(0.0, n - threshold);
+        diff = smoothstep(-0.1, 0.6, diff);
+
+        gl_FragColor = baseColor * diff;
+    }
+  "
+  shader := createShader varyingSource vertexSource fragmentSource
+  assert (shader != 0)
+  ret shader
+end
+
+
 func GLint simplePPMaterial():
   varyingSource := "
   #version 120
@@ -1460,7 +1764,6 @@ func void Camera:move(Camera* this, float time):
 
   this.transform.origin += delta
 end
-
 
 ///-----------------------------------------------------------------------------
 /// Section: shader parameters
@@ -2048,6 +2351,7 @@ var cstring aiMaterial:propDiffuse "$clr.diffuse"
 var cstring aiMaterial:propSpecular "$clr.specular"
 var cstring aiMaterial:propEmissive "$clr.emissive"
 var cstring aiMaterial:propShininess "$mat.shininess"
+var cstring aiMaterial:propTextureFile "$tex.file"
 
 func void Texture:print(Texture* this, int indent):
   xind := indent + 2
@@ -2086,6 +2390,11 @@ ofunc void print(aiString s):
   aiString:print(&s2)
 end
 
+func void reportUnhandledMaterialProperty(aiMaterialProperty* prop, cstring reason):
+  println "Did not handle material property '" prop.mKey "' of type '"
+      aiPropertyTypeInfo:toCString(prop.mType) "': " reason
+end
+
 func void Material:initFromAI(Material* this, aiMaterial* aimat):
   this.name = nullptr char
   Texture_Array:init &this.textures 0
@@ -2101,27 +2410,31 @@ func void Material:initFromAI(Material* this, aiMaterial* aimat):
 
   for propnum 0 aimat.mNumProperties:
     prop := *(aimat.mProperties + propnum)
-    if (prop.mType == aiPTI_String && prop.mKey ==_aistr aiMaterial:propName):
-      this.name = aiString:cstring (cast aiString* prop.mData)
+    if (prop.mType == aiPTI_String):
+      strdata := cast aiString* prop.mData
+      if (prop.mKey ==_aistr aiMaterial:propName):
+        this.name = aiString:cstring strdata
+      elseif (prop.mKey ==_aistr aiMaterial:propTextureFile):
+        textureFileName := aiString:cstring strdata
+        println "texture file = " textureFileName
+      else:
+        reportUnhandledMaterialProperty(prop, "unknown key")
+      end
     elseif (prop.mType == aiPTI_Float && prop.mDataLength == 16):
       rgba := *(cast float[4]* prop.mData)
-      // println prop.mKey
-      // iprintlnFloat4WName 0 "rgba" rgba
       if (prop.mKey ==_aistr aiMaterial:propAmbient):
         this.ambient = rgba
-        // println "ambient"
       elseif (prop.mKey ==_aistr aiMaterial:propDiffuse):
         this.diffuse = rgba
-        // println "diffuse"
       elseif (prop.mKey ==_aistr aiMaterial:propSpecular):
         this.specular = rgba
-        // println "specular"
       elseif (prop.mKey ==_aistr aiMaterial:propEmissive):
         this.emissive = rgba
-        // println "emissive"
       else:
-        println "unknown material property key found: '" prop.mKey "'"
+        reportUnhandledMaterialProperty(prop, "unknow key")
       end
+    else:
+      reportUnhandledMaterialProperty(prop, "unknown type")
     end
   end
 
@@ -2559,10 +2872,9 @@ func void Animation:visualize(Animation* this):
   end
 end
 
-
-struct Rect:
-  float left right top bottom
-end
+///-----------------------------------------------------------------------------
+/// Section: application and unsorted stuff
+///-----------------------------------------------------------------------------
 
 var float angle 0.0
 var int visAnim -1
@@ -2640,14 +2952,9 @@ func void onPlayPauseButton2(void* ignored):
   end
 end
 
-func Rect makeRect(float l, float t, float r, float b):
-  var Rect rect
-  rect.left = l
-  rect.top = t
-  rect.right = r
-  rect.bottom = b
-  ret rect
-end
+///-----------------------------------------------------------------------------
+/// Section: Timeline
+///-----------------------------------------------------------------------------
 
 struct Timeline:
   float* currentTime
@@ -2672,11 +2979,16 @@ func void Timeline:init(Timeline* this, float totalTime, float* currentTime):
 end
 
 func void Timeline:render(Timeline* this):
+  // glColor3f 0. 1. 1.
+  // rendergl GL_LINES:
+  //   glVertex2f this.screenPos.left this.screenPos.top
+  //   glVertex2f this.screenPos.right this.screenPos.bottom
+  // end
+
   saveAttribs:
     glDisable GL_DEPTH_TEST
-    // nowColor := color 0.3 0.8 0.2
-    // scaleTo2dArea 0.03 0.03 0.97 0.13
-    scaleTo2dArea this.screenPos.left this.screenPos.top this.screenPos.right this.screenPos.bottom
+    scaleTo2dArea this.screenPos.left this.screenPos.top
+        this.screenPos.right this.screenPos.bottom
     markers := malloc float 3
     colors := malloc Color 3
     onReturn:
@@ -2689,242 +3001,66 @@ func void Timeline:render(Timeline* this):
     colors[1] = color 0.6 0.3 0.0
     markers[2] = this.endTime
     colors[2] = color 0.6 0.3 0.0
-    // renderTimeline 0. this.totalTime 1 this.currentTime &nowColor
     renderTimeline 0. this.totalTime 3 markers colors
   end
 end
 
-func cstring glfw:keyName(int key):
-  if (key == GLFW_KEY_SPACE):
-    ret "Space"
-  elseif (key == GLFW_KEY_SPECIAL):
-    ret "Special"
-  elseif (key == GLFW_KEY_ESC):
-    ret "Esc"
-  elseif (key == GLFW_KEY_F1):
-    ret "F1"
-  elseif (key == GLFW_KEY_F2):
-    ret "F2"
-  elseif (key == GLFW_KEY_F3):
-    ret "F3"
-  elseif (key == GLFW_KEY_F4):
-    ret "F4"
-  elseif (key == GLFW_KEY_F5):
-    ret "F5"
-  elseif (key == GLFW_KEY_F6):
-    ret "F6"
-  elseif (key == GLFW_KEY_F7):
-    ret "F7"
-  elseif (key == GLFW_KEY_F8):
-    ret "F8"
-  elseif (key == GLFW_KEY_F9):
-    ret "F9"
-  elseif (key == GLFW_KEY_F10):
-    ret "F10"
-  elseif (key == GLFW_KEY_F11):
-    ret "F11"
-  elseif (key == GLFW_KEY_F12):
-    ret "F12"
-  elseif (key == GLFW_KEY_F13):
-    ret "F13"
-  elseif (key == GLFW_KEY_F14):
-    ret "F14"
-  elseif (key == GLFW_KEY_F15):
-    ret "F15"
-  elseif (key == GLFW_KEY_F16):
-    ret "F16"
-  elseif (key == GLFW_KEY_F17):
-    ret "F17"
-  elseif (key == GLFW_KEY_F18):
-    ret "F18"
-  elseif (key == GLFW_KEY_F19):
-    ret "F19"
-  elseif (key == GLFW_KEY_F20):
-    ret "F20"
-  elseif (key == GLFW_KEY_F21):
-    ret "F21"
-  elseif (key == GLFW_KEY_F22):
-    ret "F22"
-  elseif (key == GLFW_KEY_F23):
-    ret "F23"
-  elseif (key == GLFW_KEY_F24):
-    ret "F24"
-  elseif (key == GLFW_KEY_F25):
-    ret "F25"
-  elseif (key == GLFW_KEY_UP):
-    ret "Cursor up"
-  elseif (key == GLFW_KEY_DOWN):
-    ret "Cursor down"
-  elseif (key == GLFW_KEY_LEFT):
-    ret "Cursor left"
-  elseif (key == GLFW_KEY_RIGHT):
-    ret "Cursor right"
-  elseif (key == GLFW_KEY_LSHIFT):
-    ret "Left shift"
-  elseif (key == GLFW_KEY_RSHIFT):
-    ret "Right shift"
-  elseif (key == GLFW_KEY_LCTRL):
-    ret "Left control"
-  elseif (key == GLFW_KEY_RCTRL):
-    ret "Right control"
-  elseif (key == GLFW_KEY_LALT):
-    ret "Left alt"
-  elseif (key == GLFW_KEY_RALT):
-    ret "Right alt"
-  elseif (key == GLFW_KEY_TAB):
-    ret "Tab"
-  elseif (key == GLFW_KEY_ENTER):
-    ret "Enter"
-  elseif (key == GLFW_KEY_BACKSPACE):
-    ret "Backspace"
-  elseif (key == GLFW_KEY_INSERT):
-    ret "Insert"
-  elseif (key == GLFW_KEY_DEL):
-    ret "Del"
-  elseif (key == GLFW_KEY_PAGEUP):
-    ret "Pageup"
-  elseif (key == GLFW_KEY_PAGEDOWN):
-    ret "Pagedown"
-  elseif (key == GLFW_KEY_HOME):
-    ret "Home"
-  elseif (key == GLFW_KEY_END):
-    ret "End"
-  elseif (key == GLFW_KEY_KP_0):
-    ret "Keypad 0"
-  elseif (key == GLFW_KEY_KP_1):
-    ret "Keypad 1"
-  elseif (key == GLFW_KEY_KP_2):
-    ret "Keypad 2"
-  elseif (key == GLFW_KEY_KP_3):
-    ret "Keypad 3"
-  elseif (key == GLFW_KEY_KP_4):
-    ret "Keypad 4"
-  elseif (key == GLFW_KEY_KP_5):
-    ret "Keypad 5"
-  elseif (key == GLFW_KEY_KP_6):
-    ret "Keypad 6"
-  elseif (key == GLFW_KEY_KP_7):
-    ret "Keypad 7"
-  elseif (key == GLFW_KEY_KP_8):
-    ret "Keypad 8"
-  elseif (key == GLFW_KEY_KP_9):
-    ret "Keypad 9"
-  elseif (key == GLFW_KEY_KP_DIVIDE):
-    ret "Keypad divide"
-  elseif (key == GLFW_KEY_KP_MULTIPLY):
-    ret "Keypad multiply"
-  elseif (key == GLFW_KEY_KP_SUBTRACT):
-    ret "Keypad subtract"
-  elseif (key == GLFW_KEY_KP_ADD):
-    ret "Keypad add"
-  elseif (key == GLFW_KEY_KP_DECIMAL):
-    ret "Keypad decimal"
-  elseif (key == GLFW_KEY_KP_EQUAL):
-    ret "Keypad equal"
-  elseif (key == GLFW_KEY_KP_ENTER):
-    ret "Keypad enter"
-  elseif (key == GLFW_KEY_LAST):
-    ret "Last"
-  elseif (key == GLFW_KEY_A):
-    ret "A"
-  elseif (key == GLFW_KEY_B):
-    ret "B"
-  elseif (key == GLFW_KEY_C):
-    ret "C"
-  elseif (key == GLFW_KEY_D):
-    ret "D"
-  elseif (key == GLFW_KEY_E):
-    ret "E"
-  elseif (key == GLFW_KEY_F):
-    ret "F"
-  elseif (key == GLFW_KEY_G):
-    ret "G"
-  elseif (key == GLFW_KEY_H):
-    ret "H"
-  elseif (key == GLFW_KEY_I):
-    ret "I"
-  elseif (key == GLFW_KEY_J):
-    ret "J"
-  elseif (key == GLFW_KEY_K):
-    ret "K"
-  elseif (key == GLFW_KEY_L):
-    ret "L"
-  elseif (key == GLFW_KEY_M):
-    ret "M"
-  elseif (key == GLFW_KEY_N):
-    ret "N"
-  elseif (key == GLFW_KEY_O):
-    ret "O"
-  elseif (key == GLFW_KEY_P):
-    ret "P"
-  elseif (key == GLFW_KEY_Q):
-    ret "Q"
-  elseif (key == GLFW_KEY_R):
-    ret "R"
-  elseif (key == GLFW_KEY_S):
-    ret "S"
-  elseif (key == GLFW_KEY_T):
-    ret "T"
-  elseif (key == GLFW_KEY_U):
-    ret "U"
-  elseif (key == GLFW_KEY_V):
-    ret "V"
-  elseif (key == GLFW_KEY_W):
-    ret "W"
-  elseif (key == GLFW_KEY_X):
-    ret "X"
-  elseif (key == GLFW_KEY_Y):
-    ret "Y"
-  elseif (key == GLFW_KEY_Z):
-    ret "Z"
-  elseif (key == GLFW_KEY_0):
-    ret "0"
-  elseif (key == GLFW_KEY_1):
-    ret "1"
-  elseif (key == GLFW_KEY_2):
-    ret "2"
-  elseif (key == GLFW_KEY_3):
-    ret "3"
-  elseif (key == GLFW_KEY_4):
-    ret "4"
-  elseif (key == GLFW_KEY_5):
-    ret "5"
-  elseif (key == GLFW_KEY_6):
-    ret "6"
-  elseif (key == GLFW_KEY_7):
-    ret "7"
-  elseif (key == GLFW_KEY_8):
-    ret "8"
-  elseif (key == GLFW_KEY_9):
-    ret "9"
-  elseif (key == GLFW_MOUSE_BUTTON_LEFT):
-    ret "Left mouse button"
-  elseif (key == GLFW_MOUSE_BUTTON_RIGHT):
-    ret "Right mouse button"
-  elseif (key == GLFW_MOUSE_BUTTON_MIDDLE):
-    ret "Middle mouse button"
-  elseif (key == GLFW_MOUSE_BUTTON_4):
-    ret "Mouse button 4"
-  elseif (key == GLFW_MOUSE_BUTTON_5):
-    ret "Mouse button 5"
-  elseif (key == GLFW_MOUSE_BUTTON_6):
-    ret "Mouse button 6"
-  elseif (key == GLFW_MOUSE_BUTTON_7):
-    ret "Mouse button 7"
-  elseif (key == GLFW_MOUSE_BUTTON_8):
-    ret "Mouse button 8"
+struct FrameStat2:
+  int size
+  int first
+  float* data
+end
+
+func void FrameStat2:init(FrameStat2* this, int size):
+  this.size = size
+  this.data = malloc float size
+
+  for i 0 size:
+    value := cosf(toFloat i * 0.1)
+    this.data[i] = value
   end
-
-  ret "Unknown key"
 end
 
-func bool insideRect(float x, float y, Rect* r):
-  ret (x >= r.left && x < r.right && y >= r.top && y < r.bottom)
+func void FrameStat2:delete(FrameStat2* this):
+  dealloc this.data
+  this.data = nullptr float
+  this.size = 0
+  this.first = 0
 end
 
-func void relativePos(float* x, float* y, Rect* r):
-  x* = (x* - r.left) / (r.right - r.left)
-  y* = (y* - r.bottom) / (r.top - r.bottom)
+func void FrameStat2:write(FrameStat2* this, float newValue):
+  this.data[this.first] = newValue
+  this.first = (this.first + 1) % this.size
+end
+
+var float averageFPS 0.0
+
+func void FrameStat2:render(FrameStat2* this, Rect area):
+  dx := 1.0 / toFloat this.size
+
+  maxy := -10000.0
+  miny := 10000.0
+  total := 0.0
+  for i1 0 this.size:
+    miny = float:min miny this.data[i1]
+    maxy = float:max maxy this.data[i1]
+    total += this.data[i1]
+  end
+  averageFPS = total / toFloat this.size
+
+  // glqtPrintfAt 0. 0. 0. 10.0 "foobar"
+
+  glColor3f 1. 1. 0.
+  rendergl GL_LINE_STRIP:
+    for i 0 this.size:
+      x := toFloat i * dx
+      // y := 0.5
+      idx := (i + this.first) % this.size
+      y := this.data[idx] * 3.0
+      // y := remapRange this.data[idx] miny maxy 0.0 1.0
+      glVertex2f x y
+    end
+  end
 end
 
 var int timelineSelectedItem -1
@@ -3210,6 +3346,10 @@ func int main():
   else:
     timeline.currentTime = &animTime
   end
+  fpsStat := local FrameStat2 100
+  onReturn:
+    FrameStat2:delete fpsStat
+  end
 
   shaderMngr := local ShaderManager shaderValueFileName shaderBar
   onReturn:
@@ -3225,6 +3365,7 @@ func int main():
   ShaderManager:add shaderMngr objmat.glname "objmat"
   ShaderManager:add shaderMngr lambert "lambert"
   ShaderManager:add shaderMngr postprocessMaterial "simple-pp-material"
+  ShaderManager:add shaderMngr ditherMaterial() "npr-dithered"
   // ShaderManager:dump shaderMngr
   ShaderManager:addMaterialArray shaderMngr &sg.materials
   ShaderManager:createControls(shaderMngr)
@@ -3234,8 +3375,12 @@ func int main():
   Section:delete(shaderMngrData)
 
   mainloop:
+    FrameStat2:write(fpsStat, frameDuration)
+    // FrameStat2:write(fpsStat, 0.2 * cosf(toFloat frameNum * 0.1))
+
     /// update logic
-    angle = angle + rotationSpeed * frameDuration
+    angle = fmodf(angle + rotationSpeed * frameDuration, 360.)
+
     animTime -= timeline.startTime
     animTime = animTime + playbackSpeed * frameDuration
     animTime = fmodf(animTime, timeline.endTime - timeline.startTime)
@@ -3486,7 +3631,16 @@ func int main():
     //   end
     // end
 
+    // saveTransforms:
+    //   makeGLIdentityTransforms()
+    //   glColor3f 1. 1. 1.
+    //   fdString := float2cstring frameDuration
+    //   glqtPrintfAt(0., 0., 0., 0.001, fdString)
+    //   dealloc fdString
+    // end
+
     Timeline:render timeline
+    FrameStat2:render fpsStat timeline.screenPos
 
     // makeGLIdentityTransforms()
     // glColor3f 1. 1. 1.
