@@ -215,7 +215,7 @@ std:base:func void ast:print((ptr ast) a, int indent):
   printIndent indent
   printString (load (fieldptr a id))
   var int childCount (getField a childCount)
-  var bool hasChilds (int:greater childCount 0)
+  var bool hasChilds (u32:sgreater childCount 0)
   branch hasChilds hasChildsYes hasChildsNo
   label hasChildsYes
   printString " ["

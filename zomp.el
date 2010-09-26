@@ -106,14 +106,15 @@ invoked. Used by zomp-ff-extract-lib.")
 
 (defun zomp-ff-pre-find-hook ()
   "Called before ffap starts looking for files and moves the point around"
-  (when (string-match (word-at-point) "requireLibs?")
-    (forward-word 2))
-  (setq zomp-symbol-at-point-before-ff
-        (let ((illegal-char "[^a-zA-Z0-9_]"))
-          (save-excursion
-            (buffer-substring
-             (progn (search-backward-regexp illegal-char) (forward-char 1) (point))
-             (progn (search-forward-regexp illegal-char) (backward-char 1) (point)))))))
+  (when (equal major-mode 'zomp-mode)
+    (when (string-match (word-at-point) "requireLibs?")
+      (forward-word 2))
+    (setq zomp-symbol-at-point-before-ff
+          (let ((illegal-char "[^a-zA-Z0-9_]"))
+            (save-excursion
+              (buffer-substring
+               (progn (search-backward-regexp illegal-char) (forward-char 1) (point))
+               (progn (search-forward-regexp illegal-char) (backward-char 1) (point))))))))
 
 (defun zomp-ff-extract-lib ()
   (format "../libs/%s.zomp" zomp-symbol-at-point-before-ff))

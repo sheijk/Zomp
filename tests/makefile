@@ -81,14 +81,14 @@ clean_tests:
 # 	$(LLI) $(<:.zomp=.bc)
 # 	@$(ECHO) Done
 
-%.ll: %.zomp ../zompc.native ../stdlib.zomp
+%.ll: %.zomp ../zompc.native ../prelude.zomp
 	@$(ECHO) Compiling $< to LLVM IR
 	../zomp-check-syntax.sh $<
 
-%.bc: %.ll ../stdlib.c
+%.bc: %.ll ../runtime.c
 	@$(ECHO) Compiling $< to $@
 	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	$(LLVM_LINK) -f ../stdlib.bc $(<:.ll=.o.bc) -o $@
+	$(LLVM_LINK) -f ../runtime.bc $(<:.ll=.o.bc) -o $@
 
 %.exe: %.bc
 	@$(ECHO) Building $@ ...
