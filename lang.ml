@@ -139,6 +139,7 @@ type 'argument funcCall = {
   fcparams :composedType list;
   fcargs :'argument list;
   fcptr : [`FuncPtr | `NoFuncPtr];
+  fcvarargs :bool;
 }
 and label = {
   lname :string;
@@ -193,6 +194,7 @@ and func = {
   rettype :composedType;
   fargs :(string * composedType) list;
   impl :form option;
+  cvarargs :bool;
 }
 and toplevelExpr = [
 | `GlobalVar of composedType variable
@@ -336,6 +338,15 @@ let func name rettype args impl = {
   rettype = rettype;
   fargs = args;
   impl = impl;
+  cvarargs = false;
+}
+
+let varargFunc name rettype args impl = {
+  fname = name;
+  rettype = rettype;
+  fargs = args;
+  impl = impl;
+  cvarargs = true;
 }
 
 let funcDecl name rettype args = {
@@ -343,6 +354,7 @@ let funcDecl name rettype args = {
   rettype = rettype;
   fargs = args;
   impl = None;
+  cvarargs = false;
 }
 
 let funcDef name rettype args impl = {
@@ -350,6 +362,7 @@ let funcDef name rettype args impl = {
   rettype = rettype;
   fargs = args;
   impl = Some impl;
+  cvarargs = false;
 }
 
 type 'bindings macro = {

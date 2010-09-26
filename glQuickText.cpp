@@ -77,9 +77,7 @@ static inline void init()
     }
 }
 
-double glQuickText::getFontHeight(
-    double  scale
-)
+float glqtGetFontHeight(float  scale)
 {
     init();
     return scale*fontHeight;
@@ -99,11 +97,11 @@ static int myvasprintf(
     #endif
 }
 
-void glQuickText::printfAt(
-    double	x0,
-    double	y0,
-    double	z0,
-    double	scale,
+extern "C" void glqtPrintfAt(
+    float	x0,
+    float	y0,
+    float	z0,
+    float	scale,
     const char  *format,
     ...
 )
@@ -128,8 +126,8 @@ void glQuickText::printfAt(
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-            double x= x0;
-            double y= y0;
+            float x= x0;
+            float y= y0;
             unsigned char *p= (unsigned char*)buf;
             while(1)
             {
@@ -149,16 +147,16 @@ void glQuickText::printfAt(
                     Char *fontChar= glQuickTextFontChars[c];
                     if(fontChar)
                     {
-                        double pad= 0.375f;
+                        float pad= 0.375f;
                         int w= fontChar->w;
                         int h= fontChar->h;
-                        double f= (double)fontChar->s;
-                        double l= -fontChar->l/10000.0f;
-                        double b= -fontChar->b/10000.0f;
-                        double tx0= (fontChar->x+pad)/f;
-                        double ty0= (fontChar->y+pad)/f;
-                        double tx1= tx0+(w-2*pad)/f;
-                        double ty1= ty0+(h-2*pad)/f;
+                        float f= (float)fontChar->s;
+                        float l= -fontChar->l/10000.0f;
+                        float b= -fontChar->b/10000.0f;
+                        float tx0= (fontChar->x+pad)/f;
+                        float ty0= (fontChar->y+pad)/f;
+                        float tx1= tx0+(w-2*pad)/f;
+                        float ty1= ty0+(h-2*pad)/f;
                         glPushMatrix();
                             glTranslated(x,y,z0);
                             glScaled(scale,scale,1.0f);
@@ -185,9 +183,9 @@ void glQuickText::printfAt(
     free(buf);
 }
 
-void glQuickText::stringBox(
-    double      *box,
-    double      scale,
+extern "C" void glqtStringBox(
+    float      *box,
+    float      scale,
     const char  *format,
     ...
 )
@@ -207,8 +205,8 @@ void glQuickText::stringBox(
     box[2] = -1e29f;
     box[3] = -1e29f;
 
-    double x = 0.0f;
-    double y = 0.0f;
+    float x = 0.0f;
+    float y = 0.0f;
     unsigned char *p= (unsigned char*)buf;
     while(1)
     {
@@ -230,13 +228,13 @@ void glQuickText::stringBox(
 	    {
 		int w= fontChar->w;
 		int h= fontChar->h;
-		double l= -fontChar->l/10000.0f;
-		double b= -fontChar->b/10000.0f;
+		float l= -fontChar->l/10000.0f;
+		float b= -fontChar->b/10000.0f;
 
-		double x0= x+l*scale;
-		double y0= y+b*scale;
-		double x1= x0+w*scale;
-		double y1= y0+h*scale;
+		float x0= x+l*scale;
+		float y0= y+b*scale;
+		float x1= x0+w*scale;
+		float y1= y0+h*scale;
 		if(x0<box[0]) box[0]= x0;
 		if(y0<box[1]) box[1]= y0;
 		if(x1>box[2]) box[2]= x1;
@@ -246,25 +244,6 @@ void glQuickText::stringBox(
 	}
 	}
 }
-
-extern "C" {
-	void glqtStringBox(float* box, float scale, const char* text) {
-        double dbox[4];
-		glQuickText::stringBox(dbox, scale, "%s", text);
-        for( int i = 0; i < 4; ++i ) {
-            box[i] = (float)dbox[i];
-        }
-	}
-
-	void glqtPrintfAt(float xpos, float ypos, float zpos, float scale, const char* text) {
-		glQuickText::printfAt(xpos, ypos, zpos, scale, "%s", text);
-	}
-
-	float glqtGetFontHeight(float scale) {
-		return glQuickText::getFontHeight(scale);
-	}
-}
-
 
 static Char c00 = {  87,    0,  11,  29,  -70616,   20370,   0,  256 };
 static Char c01 = {  23,  234,  16,  13,  -47530, -122220,  24,  256 };

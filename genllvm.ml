@@ -645,7 +645,11 @@ let gencodeFuncCall gencode call =
     | [] -> vars, code, firstBBCode
     | expr :: tail ->
         let result = gencode expr in
-        varsAndCode (vars @ [result.gcrVar.rvname]) (code ^ result.gcrCode) (firstBBCode @ [result.gcrFirstBBCode]) tail
+        varsAndCode
+          (vars @ [result.gcrVar.rvname, result.gcrVar.rvtypename])
+          (code ^ result.gcrCode)
+          (firstBBCode @ [result.gcrFirstBBCode])
+          tail
   in
   let vars, argevalCode, firstBBCode = varsAndCode [] "" [] call.fcargs in
   let resultVar = newLocalTempVar call.fcrettype in
@@ -674,10 +678,10 @@ let gencodeFuncCall gencode call =
             combine ", " argTypeNamesWRet
           in
           let argString =
-            let toTypeAndArg name typ =
-              llvmTypeName typ ^ " " ^ name
+            let toTypeAndArg (name, typename) =
+              typename ^ " " ^ name
             in
-            let typeAndArgs = List.map2 toTypeAndArg vars call.fcparams in
+            let typeAndArgs = List.map toTypeAndArg vars in
             match call.fcrettype with
               | `Record _ ->
                   combine ", " ((recordTempVar.rvtypename ^ "* " ^ recordTempVar.rvname) :: typeAndArgs)
@@ -685,7 +689,7 @@ let gencodeFuncCall gencode call =
                   combine ", " typeAndArgs
           in
           let comment =
-            sprintf "; calling function %s(%s)\n\n" call.fcname argString
+            sprintf "; calling function %s(%s%s)\n\n" call.fcname argString (if call.fcvarargs then ", ..." else "")
           in
           let calleeName, loadCode =
             match call.fcptr with
@@ -712,11 +716,12 @@ let gencodeFuncCall gencode call =
           comment,
           (loadCode
            ^ assignResultCode
-           ^ (sprintf "call %s (%s)* %s(%s)\n\n"
+           ^ (sprintf "call %s (%s%s)* %s(%s)\n\n"
                 (match call.fcrettype with
                    | `Record _ -> "void"
                    | _ -> llvmTypeName call.fcrettype)
                 signatureString
+                (if call.fcvarargs then ", ..." else "")
                 calleeName
                 argString)
            ^ loadRecordCode)
@@ -728,7 +733,7 @@ let gencodeFuncCall gencode call =
         assert( call.fcptr = `NoFuncPtr );
         let comment = sprintf "; calling intrinsic %s\n\n" call.fcname in
         let intrinsicCallCode =
-          assignResultCode ^ (gencallCodeF vars)
+          assignResultCode ^ (gencallCodeF (List.map fst vars))
         in
         returnCombi (
           resultVar,
@@ -1004,17 +1009,19 @@ let gencodeDefineFunc func =
   let makeSignature retvalName paramString =
     match func.rettype with
       | `Record _ ->
-          sprintf "void @%s(%s%s)\n"
+          sprintf "void @%s(%s%s%s)\n"
             (escapeName func.fname)
             (sprintf "%s* sret \"%s\""
                (llvmTypeName func.rettype)
                retvalName ^ if String.length paramString > 0 then ", " else "")
             paramString
+            (if func.cvarargs then ", ..." else "")
       | _ ->
-          sprintf "%s @%s(%s)\n"
+          sprintf "%s @%s(%s%s)\n"
             (llvmTypeName func.rettype)
             (escapeName func.fname)
             paramString
+            (if func.cvarargs then ", ..." else "")
   in
   match func.impl with
     | None ->
@@ -1066,7 +1073,8 @@ let gencodeDefineFunc func =
                                      fcrettype = `Void;
                                      fcparams = [];
                                      fcargs = [];
-                                     fcptr = `NoFuncPtr; })]
+                                     fcptr = `NoFuncPtr;
+                                     fcvarargs = false })]
           | other -> other (** TODO: correctly transform everything *)
         in
         let impl =

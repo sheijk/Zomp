@@ -306,7 +306,7 @@ struct
 
 
   let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
-    let buildCall name rettype argTypes isPointer bindings args =
+    let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
       let evalArg (argExpr :Ast2.sexpr) =
         let _, xforms = translateF bindings argExpr in
         let toplevelForms, forms = extractToplevelForms xforms in
@@ -320,6 +320,7 @@ struct
         fcparams = argTypes;
         fcargs = argForms;
         fcptr = isPointer;
+        fcvarargs = hasVarArgs
       }
       in
       match typeCheck bindings funccall with
@@ -333,14 +334,14 @@ struct
           match lookup bindings name with
             | FuncSymbol func ->
                 begin
-                  buildCall name func.rettype (List.map snd func.fargs) `NoFuncPtr bindings args
+                  buildCall name func.rettype (List.map snd func.fargs) `NoFuncPtr func.cvarargs bindings args
                 end
             | VarSymbol var ->
                 begin
                   match var.typ with
                     | `Pointer `Function ft ->
                         begin
-                          buildCall name ft.returnType ft.argTypes `FuncPtr bindings args
+                          buildCall name ft.returnType ft.argTypes `FuncPtr false bindings args
                         end
                     | _ ->
                         raiseIllegalExpression
@@ -409,13 +410,7 @@ struct
           match lookup bindings name with
             | TypedefSymbol `Record record ->
                 begin
-                  let recordInitFunc name components =
-                    { fname = name ^ "_init";
-                      rettype = `Void;
-                      fargs = components;
-                      impl = None;
-                    }
-                  in
+                  let recordInitFunc name components = func (name ^ "_init") `Void components None in
                   let initFunc = recordInitFunc name record.fields in
                   let translate param compExpr = match (param, compExpr) with
                     | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
@@ -437,6 +432,7 @@ struct
                     fcparams = List.map snd initFunc.fargs;
                     fcargs = List.map2 translate initFunc.fargs componentExprs;
                     fcptr = `NoFuncPtr;
+                    fcvarargs = initFunc.cvarargs
                   } in
                   Some( bindings, [`FuncCall call] )
                 end
@@ -536,12 +532,11 @@ struct
     let _, xforms = translateF bindings sexprImpl in
     let initForms, implforms = extractToplevelForms xforms in
     let initForms = flattenNestedTLForms initForms in
-    let macroFunc = {
-      Lang.fname = macroName;
-      rettype = astPtrType;
-      fargs = List.map (fun name -> (name, astPtrType)) argNames;
-      impl = Some (toSingleForm implforms);
-    } in
+    let macroFunc =
+      let fargs = List.map (fun name -> (name, astPtrType)) argNames
+      and impl = Some (toSingleForm implforms) in
+      func macroName astPtrType fargs impl
+    in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     let llvmCodes = List.map Genllvm.gencodeTL tlforms in
     let llvmCode = Common.combine "\n" llvmCodes in
@@ -598,16 +593,12 @@ struct
                                           fcparams = repeatedList astPtrType (List.length argAstForms);
                                           fcargs = argAstForms;
                                           fcptr = `NoFuncPtr;
+                                          fcvarargs = false;
                                         }) );
         `CastIntrinsic (`Int32, `Variable resultVar);
       ]
       in
-      let func = `DefineFunc {
-        Lang.fname = "macroExec";
-        rettype = `Int32;
-        fargs = [];
-        impl = Some (`Sequence implForms);
-      } in
+      let func = `DefineFunc (func "macroExec" `Int32 [] (Some (`Sequence implForms))) in
       log "...";
       let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
       let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
@@ -764,13 +755,11 @@ struct
         | Some t -> t
         | None -> raiseIllegalExpression (Ast2.idExpr "ast") "Could not find prelude type 'ast'"
     in
-    let macroFunc = {
-      Lang.fname = macroName;
-      rettype = astPtrType;
-      fargs = [argParamName, `Pointer (`Pointer astType)];
-      (* fargs = List.map (fun name -> (name, astPtrType)) argNames; *)
-      impl = Some (toSingleForm implforms);
-    } in
+    let macroFunc =
+      let fargs = [argParamName, `Pointer (`Pointer astType)]
+      and impl = Some (toSingleForm implforms) in
+      func macroName astPtrType fargs impl
+    in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     tlforms, macroFunc
 
@@ -1466,7 +1455,8 @@ struct
                                                           fcrettype = `Int32;
                                                           fcparams = [`Int32];
                                                           fcargs = [rightForm];
-                                                          fcptr = `NoFuncPtr })])
+                                                          fcptr = `NoFuncPtr;
+                                                          fcvarargs = false })])
                 end
             | _, TypeOf leftType, TypeOf rightType ->
                 begin
@@ -1487,7 +1477,8 @@ struct
                                               fcrettype = func.rettype;
                                               fcparams = List.map snd func.fargs;
                                               fcargs = [castFormL; castFormR];
-                                              fcptr = `NoFuncPtr; }])
+                                              fcptr = `NoFuncPtr;
+                                              fcvarargs = false }])
                       end
                     | _ -> begin
                         Error [sprintf "No overload for %s(%s, %s) found (expected function %s)"
@@ -1526,7 +1517,8 @@ struct
                                               fcrettype = func.rettype;
                                               fcparams = List.map snd func.fargs;
                                               fcargs = [argForm];
-                                              fcptr = `NoFuncPtr; }])
+                                              fcptr = `NoFuncPtr;
+                                              fcvarargs = false }])
                     | _ ->
                         Error [sprintf "No overload for %s(%s) found (expected function %s)"
                                  baseName (typeName argType) funcName]
@@ -1728,10 +1720,15 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
       None
 
 let matchFunc =
-  let convertParam = function
-    | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param }
+  let rec scanParams = function
+    | [{ id = "postop..."; args = [{ id = "cvarargs"; args = [] }] }] ->
+        [], true
+    | [] ->
+        [], false
+    | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param } :: remArgs
         when opjux = macroJuxOp ->
-        Ast2.shiftLeft param
+        let result, hasvarargs = scanParams remArgs in
+        (Ast2.shiftLeft param :: result, hasvarargs)
     | _ -> failwith ""
   in
   function
@@ -1743,7 +1740,7 @@ let matchFunc =
           { id = seq2; args = _ } as implExpr;
         ] }
         when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
-        `FuncDef (name, typeExpr, paramExprs, implExpr)
+        `FuncDef (name, typeExpr, paramExprs, false, implExpr)
 
     (** func decl from sexpr **)
     | { id = id; args = [
@@ -1752,7 +1749,7 @@ let matchFunc =
           { id = seq; args = paramExprs };
         ] }
         when id = macroFunc && seq = macroSequence ->
-        `FuncDecl (name, typeExpr, paramExprs)
+        `FuncDecl (name, typeExpr, paramExprs, false)
 
     (** func decl from iexpr with multiple/0 arguments **)
     | { id = id; args = [
@@ -1761,7 +1758,8 @@ let matchFunc =
         ] } as expr
         when id = macroFunc && opcall = macroCallOp ->
         begin try
-          `FuncDecl (name, typeExpr, List.map convertParam paramExprs)
+          let params, hasvararg = scanParams paramExprs in
+          `FuncDecl (name, typeExpr, params, hasvararg)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -1774,7 +1772,8 @@ let matchFunc =
         ] } as expr
         when id = macroFunc && jux = macroJuxOp ->
         begin try
-          `FuncDecl (name, typeExpr, List.map convertParam [paramExpr])
+          let params, hasvararg = scanParams [paramExpr] in
+          `FuncDecl (name, typeExpr, params, hasvararg)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -1789,7 +1788,8 @@ let matchFunc =
         ] } as expr
         when id = macroFunc && opcall = macroCallOp && opseq = macroSeqOp ->
         begin try
-          `FuncDef (name, typeExpr, List.map convertParam paramExprs, implExpr)
+          let params, hasvararg = scanParams paramExprs in
+          `FuncDef (name, typeExpr, params, hasvararg, implExpr)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -1803,7 +1803,8 @@ let matchFunc =
         ] } as expr
         when id = macroFunc && jux = macroJuxOp && seq = macroSeqOp ->
         begin try
-          `FuncDef (name, typeExpr, List.map convertParam [paramExpr], implExpr)
+          let params, hasvararg = scanParams [paramExpr] in
+          `FuncDef (name, typeExpr, params, hasvararg, implExpr)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -1830,7 +1831,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         (sprintf "Function names must match the following regexp: %s" nameRE);
     ()
   in
-  let buildFunction bindings typ uncheckedName paramExprs implExprOption =
+  let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption =
     let name = removeQuotes uncheckedName in
     let expr2param argExpr =
       let translate varName typeExpr =
@@ -1841,8 +1842,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
       match argExpr with
         | { id = "seq"; args = [typeExpr; { id = varName; args = []};] } ->
             translate varName typeExpr
-        | { id = typeName; args = [{ id = varName; args = [] }] } ->
-            translate varName (Ast2.idExpr typeName)
+        | { id = typeExpr; args = [{ id = varName; args = [] }] } ->
+            translate varName (Ast2.idExpr typeExpr)
         | _ as expr ->
             raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
@@ -1873,7 +1874,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           nestedTLForms, Some (`Sequence implFormsWithFixedVars)
       | None -> [], None
     in
-    let f = func name typ params impl in
+    let f = (if hasvarargs then varargFunc else func) name typ params impl in
     match Semantic.functionIsValid f with
       | `Ok ->
           let newBindings =
@@ -1887,13 +1888,13 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           expr (Common.combine "\n" ((sprintf "Could not translate function %s:" name)::messages))
   in
   match matchFunc expr with
-    | `FuncDef (name, typeExpr, paramExprs, implExpr) ->
+    | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr) ->
         begin
           match translateType bindings typeExpr with
             | Some typ -> begin
-                let tempBindings, _, _ = buildFunction bindings typ name paramExprs None in
+                let tempBindings, _, _ = buildFunction bindings typ name paramExprs hasvarargs None in
                 let newBindings, toplevelForms, funcDef =
-                  buildFunction tempBindings typ name paramExprs (Some implExpr)
+                  buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr)
                 in
                 match typeCheckTL newBindings funcDef with
                   | TypeOf _ -> Some( newBindings, toplevelForms @ [funcDef] )
@@ -1904,12 +1905,12 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
               end
             | None -> raiseInvalidType typeExpr
         end
-    | `FuncDecl (name, typeExpr, paramExprs) ->
+    | `FuncDecl (name, typeExpr, paramExprs, hasvarargs) ->
         begin
           match translateType bindings typeExpr with
             | Some typ ->
                 begin
-                  let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs None in
+                  let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs hasvarargs None in
                   Some (newBindings, [funcDecl] )
                 end
             | None ->

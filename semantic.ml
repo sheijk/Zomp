@@ -99,7 +99,7 @@ let rec typeCheck bindings form : typecheckResult =
           begin
             let paramCount = List.length call.fcparams
             and argCount = List.length call.fcargs in
-            if paramCount != argCount then
+            if (if call.fcvarargs then ( > ) else ( != )) paramCount argCount then
               TypeError (
                 Form funcallForm,
                 sprintf "Expected %d params, but used with %d args" paramCount argCount,
@@ -122,10 +122,10 @@ let rec typeCheck bindings form : typecheckResult =
                            form,
                            sprintf "Argument %d does not typecheck: %s" argNum msg,
                            invalidType,
-                           expectedType)
-                )
+                           expectedType))
                 (TypeOf (call.fcrettype :> composedType))
-                call.fcparams call.fcargs
+                call.fcparams
+                (fst (splitAfter paramCount call.fcargs))
           end
       | `AssignVar (v, expr) as assignVarForm -> begin
           match typeCheck bindings expr with

@@ -760,7 +760,7 @@ sig
   val printError : decl:string -> msg:string -> string
   val printConstant : name:string -> typ:string -> default:string -> string
   val printFunction : name:string -> rettype:string ->
-    params:([`Name of string] * [`Type of string]) list -> string
+    params:([`Name of string] * [`Type of string]) list -> hasVarargs:bool -> string
   val printUnknown : text:string -> string
   val printTypedef : name:string -> typ:string -> string
 end
@@ -784,7 +784,9 @@ struct
     else
       "\n"
 
-  let printFunction ~name ~rettype ~params =
+  let printFunction ~name ~rettype ~params ~hasVarargs =
+    if hasVarargs then
+      failwith "ZompSExprPrinter does not support C varargs";
     let paramStrings =
       List.map (fun (`Name name, `Type typ) -> sprintf "(%s %s)" typ name) params
     in
@@ -805,10 +807,11 @@ struct
   let printConstant ~name ~typ ~default =
     sprintf "const %s %s %s" typ name default
 
-  let printFunction ~name ~rettype ~params =
+  let printFunction ~name ~rettype ~params ~hasVarargs =
     let paramStrings =
+      let params = List.map (fun (`Name name, `Type typ) -> sprintf "%s %s" typ name) params in
       Utils.concat
-        (List.map (fun (`Name name, `Type typ) -> sprintf "%s %s" typ name) params)
+        (if hasVarargs then params @ ["cvarargs..."] else params)
         ", "
     in
     sprintf "func %s %s(%s)" rettype name paramStrings
@@ -906,7 +909,7 @@ struct
                               | Some oldMessage -> Some (oldMessage ^ ", " ^ newMessage));
                   ctype
           in
-          let params =
+          let params, hasVarargs =
             let toString param =
               let zompParamType = translateType param.ptype in
               `Name (match param.pname with
@@ -914,11 +917,20 @@ struct
                        | None -> UniqueId.nextString "arg"),
               `Type zompParamType
             in
-            List.map toString f.params
+            let rec helper = function
+              | [] ->
+                  [], false
+              | [{ptype = "..."}] ->
+                  [], true
+              | param :: remParams ->
+                  let rem, hasVarargs = helper remParams in
+                  (toString param :: rem), hasVarargs
+            in
+            helper f.params
           in
           let zompRetType = translateType f.retval in
           let declaration = CodePrinter.printFunction
-            ~rettype:zompRetType ~name:f.fname ~params
+            ~rettype:zompRetType ~name:f.fname ~params ~hasVarargs
           in
           match !error with
             | None -> declaration

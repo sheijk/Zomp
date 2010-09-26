@@ -147,12 +147,9 @@ func int main():
       avg += zmp:array:get historyFrameMS i2
     end
     avg /= toFloat historySize
-    fpsString := float2cstring(1.0/avg)
-    glqtPrintfAt(-1.0, 0.8, 0., 0.005, fpsString)
-    dealloc fpsString
-    // fpsString = float2cstring(1.0 / frameDuration)
-    // glqtPrintfAt(-1.0, 0.6, 0., 0.005, fpsString)
-    // dealloc fpsString
+
+    glqtPrintfAt -1.0 0.9 0.0 0.005 "%.0f fps" toDouble(1.0/avg)
+    glqtPrintfAt -1.0 0.8 0.0 0.005 "%1.3f ms" toDouble(avg)
   end
 
   fps := toFloat frameNum / (endTime - startTime)

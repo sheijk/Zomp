@@ -34,8 +34,8 @@
     };
 
 extern "C" {
-    void glqtStringBox(float* box, float scale, const char* text);
-    void glqtPrintfAt(float xpos, float ypos, float zpos, float scale, const char* text);
+    void glqtStringBox(float* box, float scale, const char* forma, ...);
+    void glqtPrintfAt(float xpos, float ypos, float zpos, float scale, const char* format, ...);
     float glqtGetFontHeight(float scale = 1.0);
 }
 

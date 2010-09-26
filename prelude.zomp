@@ -44,6 +44,9 @@ std:base:func char* float2cstring(float f)
 std:base:func char* double2cstring(double d)
 std:base:func char* char2cstring(char c)
 
+std:base:func int printf(char* format, cvarargs...)
+std:base:func int sprintf(char* buffer, char* format, cvarargs...)
+
 std:base:func char* copyString(char* str)
 
 ///-----------------------------------------------------------------------------
