@@ -10,17 +10,15 @@
 
 requireLibs libcee stdio
 
-func bool isBound(char* name)
+type SymbolKind int
+const SymbolKind ZOMP_SYMBOL_UNDEFINED 0
+const SymbolKind ZOMP_SYMBOL_VAR 1
+const SymbolKind ZOMP_SYMBOL_FUNC 2
+const SymbolKind ZOMP_SYMBOL_MACRO 3
+const SymbolKind ZOMP_SYMBOL_TYPEDEF 4
+const SymbolKind ZOMP_SYMBOL_LABEL 5
 
-type symbolKind int
-const symbolKind ZOMP_SYMBOL_UNDEFINED 0
-const symbolKind ZOMP_SYMBOL_VAR 1
-const symbolKind ZOMP_SYMBOL_FUNC 2
-const symbolKind ZOMP_SYMBOL_MACRO 3
-const symbolKind ZOMP_SYMBOL_TYPEDEF 4
-const symbolKind ZOMP_SYMBOL_LABEL 5
-
-func char* symbolKind:toString(symbolKind kind):
+func char* SymbolKind:toString(SymbolKind kind):
   if (kind == ZOMP_SYMBOL_UNDEFINED):
     ret "Undefined"
   elseif (kind == ZOMP_SYMBOL_VAR):
@@ -38,7 +36,8 @@ func char* symbolKind:toString(symbolKind kind):
   ret "internal error"
 end
 
-func symbolKind zompLookup(char* name)
+func SymbolKind zompLookup(char* name)
+func bool isBound(char* name)
 
 // template op== l r
 //   cstring:equal #l #r
@@ -144,8 +143,36 @@ end
 //   end
 // end
 
+func void ast:addChildsOf(ast* target, ast* parent):
+  forEachAstChild child parent:
+    ast:addChild target child
+  end
+end
+
+/// Support literal values of user defined types like
+/// 'Complex 1.0 0.3'
+macro opjux id args...:
+  code := nullptr ast
+
+  if (zompLookup id.id == ZOMP_SYMBOL_TYPEDEF):
+    code = ${local}
+    ast:addChild code id
+    ast:addChildsOf(code, args)
+    ret ${*#code}
+  end
+
+  code = ${#id}
+  ast:addChildsOf(code, args)
+  ret code
+end
+
 func void test2():
-  var int x 10
+  existing_local_var := 10
+  println "var = " existing_local_var
+
+  c := Complex 1.0 2.0
+  Complex:print(&c)
+  println()
 
   template printDefinitionInfo name:
     printString #name
@@ -154,10 +181,12 @@ func void test2():
     println()
   end
 
-  printDefinitionInfo "gipsdochganich"
-  printDefinitionInfo "x"
-
-  printlnString symbolKind:toString(zompLookup("x"))
+  printDefinitionInfo "non_existant_identifier"
+  /// doesn't work for local variables, yet
+  printDefinitionInfo "existing_local_var"
+  printDefinitionInfo "Complex"
+  
+  printlnString SymbolKind:toString(zompLookup("x"))
 end
 
 
@@ -196,6 +225,7 @@ end
 // end
 
 func int main():
+  test2()
 
   ret 0
 end
