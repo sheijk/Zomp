@@ -2,18 +2,6 @@
 open Common
 open Printf
 
-let compileExpr translateF bindings sexpr =
-  let newBindings, simpleforms =
-    collectTimingInfo "generating ast"
-      (fun () -> translateF bindings sexpr)
-  in
-  let llvmCodes =
-    collectTimingInfo "codegen"
-      (fun () -> List.map Genllvm.gencodeTL simpleforms)
-  in
-  let llvmCode = combine "\n" llvmCodes in
-  newBindings, simpleforms, llvmCode
-
 (** try to parse a string using s-expr syntax *)
 let parseSExpr input =
   try

@@ -49,7 +49,7 @@ tools
 /deps.png
 /dllzompvm.so
 /flymake.log
-/gencode
+/gen_c_bindings
 /glfw.zomp
 /glut.zomp
 /gmon.out
@@ -72,8 +72,8 @@ tools
 /sexprlexer.ml
 /sexprparser.ml
 /sexprparser.mli
-/sexprtoplevel
-/sexprtoplevel.native
+/zomp_shell
+/zomp_shell.native
 /stdlib.bc
 /stdlib.ll
 /tests/.DS_Store

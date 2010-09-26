@@ -63,10 +63,10 @@ endif
 
 all: byte native runtime.bc runtime.ll libbindings TAGS deps.png mltest \
     zompvm_dummy.o
-libbindings: gencode opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp \
+libbindings: gen_c_bindings opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp \
     libglut.dylib quicktext.zomp libquicktext.dylib libutils.dylib
-byte: dllzompvm.so zompc sexprtoplevel
-native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) sexprtoplevel.native zompc.native
+byte: dllzompvm.so zompc zomp_shell
+native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
@@ -78,7 +78,7 @@ SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
     bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo  \
     common.cmo machine.cmo dllzompvm.so zompvm.cmo newparser.cmo    \
     indentlexer.cmo parseutils.cmo expander.cmo testing.cmo         \
-    compileutils.cmo testing.cmo sexprtoplevel.cmo
+    compileutils.cmo testing.cmo zomp_shell.cmo
 
 ################################################################################
 # Zomp tools
@@ -94,13 +94,13 @@ else # OS X
 	ocamlmklib -o zompvm zompvm.o runtime.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 endif
 
-sexprtoplevel: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
+zomp_shell: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
 
-sexprtoplevel.native: $(SEXPR_TL_INPUT:.cmo=.cmx) $(TL_CMXS) dllzompvm.so machine.cmx zompvm.cmx
+zomp_shell.native: $(SEXPR_TL_INPUT:.cmo=.cmx) $(TL_CMXS) dllzompvm.so machine.cmx zompvm.cmx
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) sexprtoplevel.cmx
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) zomp_shell.cmx
 
 zompc.native: $(LANG_CMOS:.cmo=.cmx) zompc.cmx dllzompvm.so
 	@$(ECHO) Building $@ ...
@@ -110,13 +110,13 @@ zompc: $(LANG_CMOS) zompc.cmo dllzompvm.so
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(LANG_CMOS) dllzompvm.so machine.cmo zompvm.cmo zompc.cmo
 
-gencode: gencode.cmo gencode.ml
+gen_c_bindings: gen_c_bindings.cmo gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) gencode.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) gen_c_bindings.cmo
 
-machine.c machine.ml: gencode machine.skel
+machine.c machine.ml: gen_c_bindings machine.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
-	./gencode machine
+	./gen_c_bindings machine
 
 NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo
 
@@ -244,14 +244,14 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 	@echo Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
-%.zomp: %.skel gencode
+%.zomp: %.skel gen_c_bindings
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
-	./gencode -lang zomp $(<:.skel=)
+	./gen_c_bindings -lang zomp $(<:.skel=)
 
-opengl20print.zomp: opengl20.skel gencode
+opengl20print.zomp: opengl20.skel gen_c_bindings
 	@$(ECHO) Generating OpenGL enum printer ...
 	$(CP) opengl20.skel opengl20print.skel
-	./gencode -lang zomp-glprinter opengl20print
+	./gen_c_bindings -lang zomp-glprinter opengl20print
 	$(RM) -f opengl20print.skel
 
 ################################################################################
@@ -302,13 +302,13 @@ depends.mk: $(CAMLDEP_INPUT)
 	@$(ECHO) Calculating dependencies ...
 	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
 
-CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gencode.ml genllvm.ml \
+CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gen_c_bindings.ml genllvm.ml \
     indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml     \
     newparser_tests.ml parseutils.ml compileutils.ml semantic.ml               \
-    sexprtoplevel.ml testing.ml typesystems.ml zompc.ml zompvm.ml
+    zomp_shell.ml testing.ml typesystems.ml zompc.ml zompvm.ml
 
-glfw.zomp: gencode
-opengl20.zomp: gencode
+glfw.zomp: gen_c_bindings
+opengl20.zomp: gen_c_bindings
 
 newparser.ml: newparser.mly ast2.cmo
 newparser_tests.cmo: newparser.cmo
@@ -339,15 +339,13 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
 	$(OCAMLDOC) -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) newparser.ml sexprlexer.ml sexprparser.ml
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
 
-
-
 # Warning, ugly. But at least not essential so who cares :)
 .PHONY: loc_stats loc_stats_no_summary
 
 ML_SRC_FILES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
-    expander.ml gencode.ml genllvm.ml indentlexer.ml indentlexer.mli         \
+    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli         \
     indentlexer_tests.ml lang.ml machine.ml newparser.mly newparser_tests.ml \
-    parseutils.ml semantic.ml sexprlexer.mll sexprparser.mly sexprtoplevel.ml\
+    parseutils.ml semantic.ml sexprlexer.mll sexprparser.mly zomp_shell.ml\
     testing.ml typesystems.ml zompc.ml zompvm.ml
 
 loc_stats_no_summary:
@@ -373,14 +371,14 @@ clean: testsuite/clean examples/clean
 	@$(ECHO) Cleaning...
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
-	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) zompc.o sexprtoplevel.o
+	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) zompc.o zomp_shell.o
 	$(RM) -f expander_tests.cm?
 	$(RM) -f zompc.cm? zompc
 	$(RM) -f runtime.bc runtime.ll runtime.o
 	$(RM) -f sexprlexer.cmi sexprlexer.cmo sexprlexer.ml
 	$(RM) -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
-	$(RM) -f sexprtoplevel sexprtoplevel.cmi sexprtoplevel.cmo
-	$(RM) -f gencode.cmi gencode.cmo gencode
+	$(RM) -f zomp_shell zomp_shell.cmi zomp_shell.cmo
+	$(RM) -f gen_c_bindings.cmi gen_c_bindings.cmo gen_c_bindings
 	$(RM) -f machine.c machine.ml machine.cmi machine.cmo machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
 	$(RM) -f dllzompvm.so libzompvm.a zompvm.o

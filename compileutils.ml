@@ -9,6 +9,18 @@ open Parseutils
 exception CatchedError of string
 let signalError msg = raise (CatchedError msg)
 
+let compileExpr translateF bindings sexpr =
+  let newBindings, simpleforms =
+    collectTimingInfo "generating ast"
+      (fun () -> translateF bindings sexpr)
+  in
+  let llvmCodes =
+    collectTimingInfo "codegen"
+      (fun () -> List.map Genllvm.gencodeTL simpleforms)
+  in
+  let llvmCode = combine "\n" llvmCodes in
+  newBindings, simpleforms, llvmCode
+
 let rec parse parseF lexbuf bindings codeAccum =
   try
     let expr = parseF lexbuf in

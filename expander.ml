@@ -17,35 +17,6 @@ open Common
 open Bindings
 open Printf
 
-let macroVar = "var"
-and macroVar2 = "var2"
-and macroFunc = "std:base:func"
-and macroAssign = "assign"
-and macroSequence = "seq"
-and macroTypedef = "type"
-and macroRecord = "record"
-and macroField = "field"
-and macroPtr = "ptr"
-and macroReturn = "std:base:ret"
-and macroLabel = "label"
-and macroBranch = "branch"
-and macroMacro = "macro"
-and macroReplacement = "macroReplace"
-and macroFieldptr = "fieldptr"
-and macroLoad = "load"
-and macroStore = "store"
-and macroNullptr = "nullptr"
-and macroPtradd = "ptradd"
-and macroMalloc = "malloc"
-and macroGetaddr = "ptr"
-and macroCast = "cast"
-and macroInclude = "include"
-and macroRest = "postop..."
-and macroJuxOp = "opjux"
-and macroSeqOp = "opseq"
-and macroCallOp = "opcall"
-
-
 module Utilities =
 struct
   let log message =

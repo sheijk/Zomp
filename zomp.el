@@ -186,7 +186,7 @@ use global one"
     (zomp-tl-mode)
     (set (make-local-variable 'zomp-toplevel-buffer-name) zomp-new-tl-buffer-name)
     (zomp-tl-do (concat "cd " zomp-basedir))
-    (zomp-tl-do "./sexprtoplevel.native; exit")
+    (zomp-tl-do "./zomp_shell.native; exit")
     (message "Started zomp toplevel")
     (select-window oldwin)))
 
