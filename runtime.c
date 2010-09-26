@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
+#include <utime.h>
+#include <sys/stat.h>
 
 #include <dlfcn.h>
 
@@ -204,6 +207,13 @@ int zompLoadFileToMemory(const char *filename, char **result)
     fclose(f);
     (*result)[size] = 0;
     return size;
+}
+
+int zompFileModificationTimestamp(const char* filename)
+{
+    struct stat s;
+    stat(filename, &s);
+    return s.st_mtime;
 }
 
 /* NSBundle* webKitBundle; */

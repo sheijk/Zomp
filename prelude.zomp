@@ -55,6 +55,7 @@ std:base:func bool zompRequestedPause()
 std:base:func void zompSetRequestPause(bool request)
 
 std:base:func int zompLoadFileToMemory(char* filename, char** content)
+std:base:func int zompFileModificationTimestamp(char* filename)
 
 std:base:func void stdlibHello()
 

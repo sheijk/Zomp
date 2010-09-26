@@ -54,7 +54,7 @@ testsuite/astmatch.ll: libs/libcee.zomp
 ################################################################################
 
 .PRECIOUS: .ll
-.PHONY: testsuite/preludevalid testsuite/all
+.PHONY: testsuite/all
 
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
 # tests to avoid having all tests run and fail because the prelude/compiler is
