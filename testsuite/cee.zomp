@@ -27,6 +27,10 @@ struct Point:
   int y
 end
 
+ofunc void print(Point pt):
+  print "Point(x = " pt.x ", y = " pt.y ")"
+end
+
 struct TestStruct:
   int x
   float y
@@ -157,6 +161,51 @@ end
 template postop* ptr:
   load #ptr
 end
+
+struct NestedStruct:
+  Point valuePoint
+  Point* pointerPoint
+end
+
+ofunc void print(NestedStruct s):
+  print "NestedStruct(valuePoint = " s.valuePoint ", "
+  print "pointerPoint = "
+  if isNull(s.pointerPoint):
+    "nullptr"
+  else:
+    print "&" (s.pointerPoint)*
+  end
+  print ")"
+end
+
+unittest:testCase NestedStruct:
+  var NestedStruct nested
+  nested.valuePoint.x = 10
+  nested.valuePoint.y = 20
+  nested.pointerPoint = malloc Point
+  (nested.pointerPoint)*.x = 11
+  nested.pointerPoint*.y = 22
+
+  unittest:assertAll:
+    nested.valuePoint.x == 10
+    nested.valuePoint.y == 20
+    (nested.pointerPoint)*.x == 11
+    nested.pointerPoint*.y == 22
+  end
+end
+
+// - pointers
+//   - simple arithmetic
+//   - take address of global var, local var, parameter, struct member
+//   - casting (maybe)
+//   - dereferencing simple ptr, ptr in struct, ptr in array
+// - test stack allocation, check inside loops
+// - heap allocation
+// - arrays
+//   - allocate on stack, heap
+//   - [] notation to access
+//   - assignment
+//   - array of pointers, pointer to array, array of struct
 
 unittest:testCase ArrayPtrDot:
   size := 3
@@ -359,10 +408,6 @@ end
 
 ofunc bool op==(Point l, Point r):
   ret ((l.x == r.x) && (l.y == r.y))
-end
-
-ofunc void print(Point p):
-  print "Point(x=" p.x ", y=" p.y ")"
 end
 
 func Point pt(int x, int y):

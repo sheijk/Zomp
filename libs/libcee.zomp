@@ -613,6 +613,10 @@ func ast* getMemberAddress(ast* code):
     recordExpr := ast:child(code, 0)
     fieldName := getField ast:child(code, 1) id
     ret ${fieldptr #recordExpr #fieldName}
+  elseif ast:matchesShape(code, ${__._*}):
+    nestedPtr2 := getMemberAddress ast:child(code, 0)
+    fieldName3 := getField ast:child(ast:child(code, 1), 0) id
+    ret ${getField #nestedPtr2 #fieldName3}
   elseif ast:matchesShape(code, ${__._}):
     nestedPtr := getMemberAddress ast:child(code, 0)
     fieldName2 := getField ast:child(code, 1) id
@@ -630,8 +634,9 @@ func ast* getMemberAddress(ast* code):
     ret ${ptradd (load #arrayPtr) #indexExpr2}
   elseif (ast:matchesShape(code, ${__*}) || ast:matchesShape(code, ${*__})):
     ptrExpr := ast:child code 0
-    ret ${load #ptrExpr}
+    ret ptrExpr
   end
+
   ret ${error "Do not know how to get address of this expression" #code}
 end
 
