@@ -91,6 +91,7 @@ indent the next line when they occur at the beginning of a line"
         (nil ,(zomp-id "^(?template +\\(ID\\)") 1)
         (nil ,(zomp-id "^\\(/// *.* *///\\) *$") 1)
         (nil ,(zomp-id "^\\(/// +Section: +.*\\)") 1)
+        (nil ,(zomp-id "^(?unittest:testCase +\)\\(ID\\)") 1)
         (nil "^testf *$" 0)
         ))
 
@@ -407,6 +408,8 @@ editor to trigger recompilations etc. and possibly resume main()"
                           (previous-line)
                           (beginning-of-line)
                           (when (not (looking-at " *$"))
+                            (setq dontabort nil))
+                          (when (<= (current-line) 1)
                             (setq dontabort nil))))
 
                       ;; get indentation of previous line
@@ -431,10 +434,11 @@ editor to trigger recompilations etc. and possibly resume main()"
 
           ;; if previous line was already a continued line, don't indent this
           ;; one again
-          (previous-line)
-          (end-of-line)
-          (when (looking-back zomp-continued-line-regexp)
-            (setq left (- left 4)))
+          (when (> (current-line) 1)
+            (previous-line)
+            (end-of-line)
+            (when (looking-back zomp-continued-line-regexp)
+              (setq left (- left 4))))
           ))
 
       (beginning-of-line)

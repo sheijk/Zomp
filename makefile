@@ -70,15 +70,17 @@ native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
-    lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo genllvm.cmo     \
-    dllzompvm.so machine.cmo zompvm.cmo indentlexer.cmo newparser.cmo    \
-    parseutils.cmo expander.cmo testing.cmo compileutils.cmo
+    lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo machine.cmo zompvm.cmo \
+    genllvm.cmo dllzompvm.so indentlexer.cmo newparser.cmo parseutils.cmo \
+    expander.cmo testing.cmo compileutils.cmo
 
-SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
-    bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo  \
-    common.cmo machine.cmo dllzompvm.so zompvm.cmo newparser.cmo    \
-    indentlexer.cmo parseutils.cmo expander.cmo testing.cmo         \
-    compileutils.cmo testing.cmo zomp_shell.cmo
+SEXPR_TL_INPUT = $(LANG_CMOS) zomp_shell.cmo
+
+# SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
+#     bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo  \
+#     common.cmo machine.cmo dllzompvm.so zompvm.cmo newparser.cmo    \
+#     indentlexer.cmo parseutils.cmo expander.cmo testing.cmo         \
+#     compileutils.cmo testing.cmo zomp_shell.cmo
 
 ################################################################################
 # Zomp tools
@@ -94,13 +96,13 @@ else # OS X
 	ocamlmklib -o zompvm zompvm.o runtime.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 endif
 
-zomp_shell: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx) machine.cmo zompvm.cmo
+zomp_shell: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
 
-zomp_shell.native: $(SEXPR_TL_INPUT:.cmo=.cmx) $(TL_CMXS) dllzompvm.so machine.cmx zompvm.cmx
+zomp_shell.native: $(SEXPR_TL_INPUT:.cmo=.cmx) dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) zomp_shell.cmx
+	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) zomp_shell.cmx
 
 zompc.native: $(LANG_CMOS:.cmo=.cmx) zompc.cmx dllzompvm.so
 	@$(ECHO) Building $@ ...
@@ -286,10 +288,10 @@ tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 
 LLVM_LIBS=`$(LLVM_CONFIG) --libs all | $(SED) 's![^ ]*/Release/lib/LLVMCBase.o!!'`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
-LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx  \
-    typesystems.cmx lang.cmx semantic.cmx genllvm.cmx machine.cmx -cclib   \
-    -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a zompvm.cmx indentlexer.cmx      \
-    newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
+LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx \
+    typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
+    -cclib -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a indentlexer.cmx newparser.cmx \
+    parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
 ################################################################################
 # Dependencies

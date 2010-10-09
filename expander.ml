@@ -1630,30 +1630,39 @@ let translateNested = sampleFunc2 "translateNested" translateNested
 (*         end *)
 
 let translateAndEval handleLLVMCodeF env exprs =
-  collectTimingInfo "translateAndEval"
-    (fun () ->
-       let newBindings, tlexprsFromFile =
-         List.fold_left
-           (fun (bindings,prevExprs) sexpr ->
-              let newBindings, newExprs = env.translateF bindings sexpr in
-              List.iter
-                (fun form ->
-                   let llvmCode =
-                     collectTimingInfo "gencode"
-                       (fun () ->
-                          Genllvm.gencodeTL form) in
-                   collectTimingInfo "Zompvm.evalLLVMCode"
-                     (fun () ->
-                        Zompvm.evalLLVMCode bindings [form] llvmCode);
-                   collectTimingInfo "handleLLVMCodeF"
-                     (fun () ->
-                        handleLLVMCodeF llvmCode))
-                newExprs;
-              newBindings, prevExprs @ newExprs )
-           (env.bindings, [])
-           exprs
-       in
-       Result (newBindings, []))
+  let genLLVMCode form =
+    collectTimingInfo "gencode"
+      (fun () ->
+         Genllvm.gencodeTL form)
+  in
+  let evalLLVMCode bindings forms llvmCode =
+    collectTimingInfo "Zompvm.evalLLVMCode"
+      (fun () ->
+         Zompvm.evalLLVMCode bindings forms llvmCode)
+  in
+  let llvmCodeCallback llvmCode =
+    collectTimingInfo "handleLLVMCodeF"
+      (fun () ->
+         handleLLVMCodeF llvmCode)
+  in
+  let impl() =
+    let newBindings, tlexprsFromFile =
+      List.fold_left
+        (fun (bindings,prevExprs) sexpr ->
+           let newBindings, newExprs = env.translateF bindings sexpr in
+           List.iter
+             (fun form ->
+                let llvmCode = genLLVMCode form in
+                evalLLVMCode bindings [form] llvmCode;
+                llvmCodeCallback llvmCode)
+             newExprs;
+           newBindings, prevExprs @ newExprs )
+        (env.bindings, [])
+        exprs
+    in
+    Result (newBindings, [])
+  in
+  collectTimingInfo "translateAndEval" impl
 
 let translateSeqTL handleLLVMCodeF env expr =
   translateAndEval handleLLVMCodeF env expr.args

@@ -8,11 +8,6 @@ open Compileutils
 
 type llvmCode = string
 
-(* type compilationResult = *)
-(*   | CompilationSucceeded of llvmCode *)
-(*   | CouldNotParse of string *)
-(*   | CouldNotCompile of string *)
-
 type sourceloc = {
   fileName :string;
   line :int;
@@ -72,7 +67,7 @@ let printInstructions() =
   printf "zompc -c fileName.zomp\n";
   printf "to compile fileName.zomp into fileName.ll\n"
 
-let reportError message =
+let reportCommandLineArgumentError message =
   printf "Error: %s\n" message;
   printInstructions()
 
@@ -92,7 +87,7 @@ type compilation_result =
   | Compilation_succeeded
   | Compilation_failed of compilation_failure_reason
 
-let compilation_result_to_string = function
+let compilation_result_to_int = function
   | Compilation_succeeded -> 0
   | Compilation_failed (Compilation_failed_with_error _) -> 1
   | Compilation_failed Compiler_did_not_return_result -> 2
@@ -236,7 +231,7 @@ let () =
                             end;
                           Sys.remove outputFileName;
                     end;
-                    exit (compilation_result_to_string exitCode)
+                    exit (compilation_result_to_int exitCode)
                   with
                     | Sexprlexer.Eof ->
                         close_in inStream;
@@ -251,7 +246,7 @@ let () =
                         raise e
                 end
             | None ->
-                reportError "Invalid file name. Expected *.zomp"
+                reportCommandLineArgumentError "Invalid file name. Expected *.zomp"
         end
     | None ->
         printInstructions()
