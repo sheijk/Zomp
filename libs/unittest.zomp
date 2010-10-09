@@ -131,13 +131,26 @@ func TestCase* unittest:registerTestCase(cstring name):
 end
 
 macro unittest:testCase name code:
-  var TestCase* case unittest:registerTestCase(name.id)
-  var cstring funcName (getField case functionName)
-  ret ${seq:
+  case := unittest:registerTestCase(name.id)
+  funcName := (getField case functionName)
+  funcDef := ${seq:
     func void #funcName():
       #code
     end
   end}
+  if std:vm:isInteractive:
+    println "Interactive, running unit test function " funcName
+    ret ${seq:
+      func void test():
+        println "Last compilation of unit test failed!"
+      end
+      #funcDef
+      func void test():
+        #funcName()
+      end
+    end}
+  end
+  ret funcDef
 end
 
 macro unittest:runAllTestCases:

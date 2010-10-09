@@ -113,8 +113,12 @@ let loadLLVMFile filename =
 
 let currentBindings :Bindings.t ref = ref (Bindings.addTypedef Bindings.defaultBindings "asdf" `Int8)
 
+let isInteractiveFlag = ref false
+let isInteractive() = !isInteractiveFlag
+let setIsInteractive on = isInteractiveFlag := on
+
 (** Callbacks which can be called from Zomp *)
-module MeshCache : sig
+module Callbacks : sig
 end = struct
 
   let isBound name =

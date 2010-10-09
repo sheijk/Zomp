@@ -271,7 +271,6 @@ let insertAstConstructors bindings =
           end
       | _ -> default
 
-
 let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
@@ -477,12 +476,21 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       macro "opseq" "opseq args..."
         (fun bindings args -> Ast2.seqExpr args)
     in
+
+    let isInteractiveMacro =
+      macro "std:vm:isInteractive" "bool()"
+        (fun bindings args ->
+           Ast2.idExpr (if Zompvm.isInteractive() then "true" else "false"))
+    in
+
     [
       testMacro;
       quoteMacro;
       quoteasisMacro;
       bindingsIsNameUsed;
       bindingsLookupVar;
+
+      isInteractiveMacro;
 
       (** macros to support indent expressions *)
       opjuxMacro;
