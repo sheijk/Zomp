@@ -104,6 +104,35 @@ func void Shader:updateFromFile(Shader* this, cstring fileBaseName):
   return
 end
 
+func void renderSubdivQuad(float size, int steps):
+  uvDelta := 1.0 / toFloat steps
+  posDelta := 2.0 * uvDelta
+
+  rendergl GL_QUADS:
+    ffor u 0. 1. uvDelta:
+      ffor v 0. 1. uvDelta:
+        umax := u + uvDelta
+        vmax := v + uvDelta
+
+        x := 2. * u - 1.
+        y := 2. * v - 1.
+        xmax := x + 2.*uvDelta
+        ymax := y + 2.*uvDelta
+
+        glTexCoord2f u v
+        glVertex3f x y 0.
+
+        glTexCoord2f u vmax
+        glVertex3f x ymax 0.
+        glTexCoord2f umax vmax
+        glVertex3f xmax ymax 0.
+        glTexCoord2f umax v
+        glVertex3f xmax y 0.
+      end
+    end
+  end
+end
+
 func int main():
   init()
   glfwSetWindowSizeCallback(cast void* &onWindowResize)
@@ -136,7 +165,7 @@ func int main():
     // glTranslatef 0. 0. -1.
     withShader shader.shaderObject:
       glUniform1f timeLoc time
-      renderQuad 1.0
+      renderSubdivQuad 1.0 2
     end
 
     /// show fps statistics
