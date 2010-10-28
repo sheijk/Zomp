@@ -25,10 +25,16 @@ struct HitInfo
     float distance;
     vec3 normal;
     vec3 color;
+    int meshId;
 };
 
-void mindistSphere(vec3 spherePos, float sphereSize, bool deform, vec3 pos, inout HitInfo hit)
+void mindistSphere(
+    int meshId, int ignoreMeshId, inout HitInfo hit, vec3 pos,
+    vec3 spherePos, float sphereSize, bool deform)
 {
+    if( meshId == ignoreMeshId )
+        return;
+
     vec3 localSpherePos = pos - spherePos;
     if( deform )
     {
@@ -48,12 +54,18 @@ void mindistSphere(vec3 spherePos, float sphereSize, bool deform, vec3 pos, inou
             hit.hit = true;
             hit.normal = normalize(localSpherePos);
             hit.color = vec3( 1., 1., 1. );
+            hit.meshId = meshId;
         }
     }
 }
 
-void mindistPlane(vec3 planeDir, float planeDist, vec3 pos, inout HitInfo hit)
+void mindistPlane(
+    int meshId, int ignoreMeshId, inout HitInfo hit, vec3 pos,
+    vec3 planeDir, float planeDist)
 {
+    if( meshId == ignoreMeshId )
+        return;
+
     /* vec3 distortedPos = displace( pos ); */
     vec3 distortedPos = pos;
     float dist2plane = max( 0.0, dot(distortedPos - planeDist*planeDir, planeDir) );
@@ -65,6 +77,7 @@ void mindistPlane(vec3 planeDir, float planeDist, vec3 pos, inout HitInfo hit)
         {
             hit.hit = true;
             float d = 0.001;
+            hit.meshId = meshId;
             /* vec3 du = displace( vec3(pos.x + d, pos.y, pos.z) ) - displace( vec3(pos.x - d, pos.y, pos.z) ); */
             /* vec3 dv = displace( vec3(pos.x, pos.y, pos.z + d) ) - displace( vec3(pos.x, pos.y, pos.z - d) ); */
             /* normal = cross( normalize( dv ), normalize( du ) ); */
@@ -84,18 +97,24 @@ void mindistPlane(vec3 planeDir, float planeDist, vec3 pos, inout HitInfo hit)
     }
 }
 
-void mindist(vec3 pos, out HitInfo hit)
+void mindist(int ignoreMeshId, vec3 pos, out HitInfo hit)
 {
     hit.hit = false;
     hit.distance = 1000.0;
     hit.color = vec3( 0., 0., 0. );
     hit.normal = vec3( 0., 0., 0. );
+    hit.meshId = 0;
+
+    int id = 0;
+#define ENV ++id, ignoreMeshId, hit
 
     float t = 1.5 * time;
-    /* mindistSphere(vec3(sin(t),0.5 + 0.1*sin(10.*time),-2.3+cos(t)), 0.2, pos, mindist, hit, normal, color); */
-    mindistSphere(vec3(0.5, -1., 0.5), 0.2, false, vec3(mod(pos.x,1.0), pos.y, mod(pos.z,1.0)), hit);
-    mindistSphere(vec3(0.,-0.3,-2.51), 0.5, true, pos, hit);
-    mindistPlane(vec3(0.,1.,0.), -1., pos, hit);
+    mindistSphere(ENV, pos,
+        vec3(sin(t),0.5 + 0.1*sin(10.*time),-2.3+cos(t)), 0.2, false);
+    mindistSphere(ENV, vec3(mod(pos.x,1.0), pos.y, mod(pos.z,1.0)),
+        vec3(0.5, -1., 0.5), 0.2, false);
+    mindistSphere(ENV, pos, vec3(0.,-0.3,-2.51), 0.5, ignoreMeshId == 0 ? true : false);
+    mindistPlane(ENV, pos, vec3(0.,1.,0.), -1.);
 }
 
 vec4 sky(vec3 dir)
@@ -126,7 +145,7 @@ vec4 trace(vec3 pos, vec3 dir)
     const vec3 ambientColor = vec3( 0.05, 0.05, 0.1 );
     while( true ) {
         hit.hit = false;
-        mindist(pos, hit);
+        mindist(0, pos, hit);
         float d = hit.distance;
 
         if( hit.hit ) {
@@ -145,7 +164,7 @@ vec4 trace(vec3 pos, vec3 dir)
             {
                 vec3 vispos = pos + hit.normal * 0.5 * float(i);
                 /* float d = mindist( vispos, hit, dummyNormal, dummyColor ); */
-                mindist( vispos, dummyHit );
+                mindist( hit.meshId, vispos, dummyHit );
                 float occl = clamp( dummyHit.distance, 0.0, 1.0 );
                 vis += occl / float(i+1);
                 maxvis += 1.0 / float(i+1);
