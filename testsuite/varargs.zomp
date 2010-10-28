@@ -1,0 +1,22 @@
+///
+/// Testing C varargs
+///
+
+requireLibs unittest
+
+unittest:testCase callPrintf:
+  var char[10] data
+
+  sprintf( zmp:array:addr &data, "-%d-", 10 )
+
+  unittest:assertAll:
+    data[0] == '-'
+    data[1] == '1'
+    data[2] == '0'
+    data[3] == '-'
+    data[4] == '\0'
+  end
+end
+
+unittest:main
+
