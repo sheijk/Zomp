@@ -231,13 +231,15 @@ windows displaying it"
          (unless (zomp-get-toplevel-buffer)
            (zomp-toplevel)))))
 
-(defun zomp-tl-do (code &optional create-if-not-existing)
+(defun zomp-tl-do (code &optional create-if-not-existing append)
   "Send some text to the zomp toplevel. If
   `create-if-not-existing' is 'create then the toplevel will be
   started if it is not running, yet"
+  (process-send-string (zomp-get-toplevel-buffer) "!prompt")
   (process-send-string
    (zomp-get-toplevel-buffer create-if-not-existing)
-   (concat code "")))
+   (concat code (or append "")))
+  (process-send-string (zomp-get-toplevel-buffer) "!prompt #"))
 
 (defun zomp-tl-run (funcname)
   (interactive "MName of function: ")
@@ -254,8 +256,7 @@ windows displaying it"
   (interactive)
   (message "Evaluating region")
   (zomp-request-execution-abort)
-  (process-send-region (zomp-get-toplevel-buffer 'create) (region-beginning) (region-end))
-  (process-send-string (zomp-get-toplevel-buffer) ""))
+  (zomp-tl-do (buffer-substring (region-beginning) (region-end)) 'create ""))
 
 (defun zomp-tl-eval-current ()
   (interactive)
@@ -292,8 +293,7 @@ windows displaying it"
 (defun zomp-tl-eval-buffer ()
   (interactive)
   (message "Evaluating buffer")
-  (process-send-region (zomp-get-toplevel-buffer 'create) (buffer-end -1) (buffer-end 1))
-  (process-send-string (zomp-get-toplevel-buffer) "")
+  (zomp-tl-do (buffer-substring (buffer-end -1) (buffer-end 1)) 'create "")
   (zomp-tl-move-point-to-end))
 
 (defun zomp-tl-discard-input ()
@@ -830,8 +830,9 @@ editor to trigger recompilations etc. and possibly resume main()"
     (when (file-exists-p zomp-symbol-file)
       (set-buffer (get-buffer-create zomp-symbol-buffer))
       (insert-file-contents zomp-symbol-file nil nil nil t))
-    (zomp-tl-do (concat "!silent !writeSymbols " zomp-symbol-file))
-    ))
+    (process-send-string
+     (zomp-get-toplevel-buffer)
+     (concat "!silent !writeSymbols " zomp-symbol-file ""))))
 
 (defconst zomp-identifier-chars "a-zA-Z0-9:*_")
 (defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*_]*")
