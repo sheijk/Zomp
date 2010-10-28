@@ -263,8 +263,18 @@ end
 
 /// get pointer to index-th child of parent
 std:base:func astp ast:child((ptr ast) parent, int index):
+  var u32 childCount getField(parent, childCount)
+  var bool inRange bool:and(u32:sgreaterEqual index 0, u32:sgreater childCount index)
+  branch inRange onOk onError
+
+  label onOk
   var (ptr ast) child (load (ptradd (getField parent childs) index))
   std:base:ret child
+
+  label onError
+  printf "ast:child($(|%s [%d childs]...), %d) out of bounds\n"
+    (getField parent id) childCount index
+  std:base:ret nullptr(ast)
 end
 
 ///-----------------------------------------------------------------------------

@@ -56,5 +56,17 @@ unittest:testCase Parsing:
   end
 end
 
+unittest:testCase ast:child_OutOfBounds:
+  tree := ast:fromString "twoChilds"
+  ast:addChild tree ast:fromString("child0")
+  ast:addChild tree ast:fromString("child1")
+
+  outOfBounds := ast:child tree 2
+
+  unittest:assertAll:
+    isNull outOfBounds
+  end
+end
+
 unittest:main
 
