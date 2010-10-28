@@ -971,6 +971,28 @@ struct NestedStruct:
 end
 
 also needs to work for circular inclusion
+** TODO [#A] splicing quasi-quotations
+   like in lisp but depending on syntactical context:
+
+   v := list($a, $b, $c)
+
+   $(foo #,v bar) = foo a b c bar
+   $(foo(foo, #,v, bar)) = foo(foo, a, b, c, bar)
+   $(begin:
+     foo
+     #,v
+     bar
+   end) =
+   begin:
+     foo
+     a
+     b
+     c
+     bar
+   end
+   $(foo + #,v) = foo + a + b + c
+
+   etc.
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
