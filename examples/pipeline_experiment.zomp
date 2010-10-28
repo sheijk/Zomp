@@ -531,6 +531,14 @@ func void relativePos(float* x, float* y, Rect* r):
   y* = (y* - r.bottom) / (r.top - r.bottom)
 end
 
+macro hasType var type:
+  uniqueId tmp "hasType"
+  ret ${seq:
+    #tmp := nullptr #type
+    #tmp = &#var
+  end}
+end
+
 ///-----------------------------------------------------------------------------
 /// Section: math
 ///-----------------------------------------------------------------------------
@@ -1376,14 +1384,6 @@ struct Animation:
 end
 
 defineArrayType Animation
-
-macro hasType var type:
-  uniqueId tmp "hasType"
-  ret ${seq:
-    #tmp := nullptr #type
-    #tmp = &#var
-  end}
-end
 
 struct KeyframeInterpol:
   int first

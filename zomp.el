@@ -168,7 +168,7 @@ use global one"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; toplevel interaction
 
-(defvar zomp-toplevel-buffer-name "*zomp-toplevel*"
+(defvar zomp-toplevel-buffer-name "*zomp-shell*"
   "The name of the buffer in which the zomp toplevel runs")
 
 (define-derived-mode zomp-tl-mode shell-mode "ZompTL"
