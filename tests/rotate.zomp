@@ -1,0 +1,59 @@
+///
+/// A macro to rotate multiple variables
+///
+
+requireLibs unittest
+
+macro rotateL args...:
+  if (args.childCount == 0):
+    return ${}
+  end
+  
+  uniqueId first "rotateL"
+  firstArg := ast:child args 0
+  
+  code := ast:fromString "opseq"
+  ast:addChild code ${#first := #firstArg}
+  
+  for i 0 (args.childCount-1):
+    l := ast:child args i
+    r := ast:child args (i+1)
+    ast:addChild code ${#l = #r}
+  end
+
+  lastArg := ast:child args (args.childCount-1)
+  ast:addChild code ${#lastArg = #first}
+  
+  ret code
+end
+
+unittest:testCase RotateTwo:
+  a := 10
+  b := 20
+
+  rotateL a b
+
+  unittest:assertAll:
+    a == 20
+    b == 10
+  end
+end
+
+unittest:testCase RotateMore:
+  a := 1
+  b := 2
+  c := 3
+  d := 4
+
+  rotateL a b c d
+
+  unittest:assertAll:
+    a == 2
+    b == 3
+    c == 4
+    d == 1
+  end
+end
+
+unittest:main
+
