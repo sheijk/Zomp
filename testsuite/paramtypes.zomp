@@ -117,12 +117,26 @@ func bool same(T)(Twice(T)* pair):
   // return (pair.a == pair.b)
 end
 
-// func void test():
-//   var Twice(int) ints
-//   x := malloc int
-//   ints.a = x
-//   ints.b = x
-//   println same(&ints)
+func void test():
+  var Twice(int) ints
+  x := malloc int
+  ints.a = x
+  ints.b = x
+  // println same(&ints)
+end
+
+type RefCounted(T):
+  T value
+  int refCount
+end
+
+// func void RefCounted:release(T)(RefCounted(T)* rc):
+//   println "TODO"
+//   // rc.refCount--
+//   // 
+//   // if (rc.refCount == 0):
+//   //   println "deleting!"
+//   // end
 // end
 
 // type Allocatable(T):

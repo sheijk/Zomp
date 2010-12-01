@@ -1120,8 +1120,11 @@ let gencodeDefineFunc func =
              | Some s -> ";; firstBBCode\n" ^ s
              | None -> "") ^ "\n" ^ impl ^ "\n}\n"
 
-let gencodeTypedef name typ =
-  sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
+let gencodeTypedef name = function
+  | `ParametricType _ ->
+      ""
+  | typ ->
+      sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
 let gencodeTL = function
   | `GlobalVar var -> gencodeGlobalVar var
