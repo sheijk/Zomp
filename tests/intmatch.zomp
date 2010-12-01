@@ -1,0 +1,75 @@
+///
+/// Prototyping primitive pattern matching for integers
+///
+
+requireLibs libcee
+
+macro intmatch expr emptySeq cases...:
+  uniqueId exprResult "exprResult"
+
+  conditionalExpr := ${if false opseq}
+
+  println "cases:\n" cases
+
+  onElse := ${}
+  elseVar := nullptr ast
+
+  num := 0
+  ast:foreach3 case value onMatched cases:
+    println "case nr. " num
+    if (case.id ==_str "case"):
+      ast:print value 2
+      ast:print onMatched 2
+
+      ast:addChild conditionalExpr ${elseif}
+      ast:addChild conditionalExpr ${#exprResult == #value}
+      ast:addChild conditionalExpr onMatched
+    elseif (case.id ==_str "else"):
+      if isNull(elseVar):
+        onElse = onMatched
+        elseVar = value
+      else:
+        ret ${error "second else clause found" ${#case #value #onMatched}}
+      end
+    else:
+      ret ${error "expected 'case $expr $code' or 'else $id $code'"
+          ${#case #value #onMatched}}
+    end
+
+    ++num
+  end
+
+  if isNotNull(onElse):
+    ast:addChild conditionalExpr ${else}
+    ast:addChild conditionalExpr ${seq:
+      #elseVar := #exprResult
+      #onElse
+    end}
+  end
+
+  code := ${seq:
+    #exprResult := #expr
+    #conditionalExpr
+  end}
+
+  println "returning"
+  mret code
+end
+
+// TODO: write unit tests
+func int main():
+  for i 0 10:
+    intmatch (i * 2):
+    case 10:
+      println "it's a ten!"
+    case 0:
+      println "it's a zero!"
+    else n:
+      println "it's " n
+    end
+  end
+
+  ret 0
+end
+
+

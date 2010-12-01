@@ -1,0 +1,38 @@
+///
+/// Experimenting with literals
+///
+
+requireLibs unittest
+
+unittest:testCase intLiterals:
+  unittest:assertAll:
+    0 == 0
+    1 == 1
+    1 != 0
+    0 == 0x0
+  end
+end
+
+unittest:main
+
+func int main():
+  macro checkIntLiteral value:
+    quoted := cstring:quote value.id
+    ret ${println #quoted " = " #value}
+  end
+
+  checkIntLiteral 10
+  checkIntLiteral 0x10
+  checkIntLiteral 0x100
+  checkIntLiteral 0x12
+  checkIntLiteral 0b1001
+  checkIntLiteral 1_000
+  checkIntLiteral 1_234
+  checkIntLiteral 93_453_126
+  /// invalid int literals
+  // checkIntLiteral 1_3236_2
+
+  ret 0
+end
+
+

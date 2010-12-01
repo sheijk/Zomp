@@ -1,0 +1,76 @@
+///
+/// Prototyping integrated shaders
+///
+
+requireLibs libcee
+
+func bool isQuoted(cstring text):
+  len := strlen text
+  if (len < 2):
+    ret false
+  end
+
+  ret ((load text == '"') && (load (text+len-1) == '"'))
+end
+
+func cstring unquote(cstring quoted):
+  if isQuoted(quoted):
+    len := strlen quoted
+    unquotedLen := len - 2 + 1
+    unquoted := malloc char unquotedLen
+    for pos 0 (unquotedLen-1):
+      store (unquoted+pos) load(quoted+pos+1)
+    end
+    store (unquoted + unquotedLen - 1) '\0'
+
+    ret unquoted
+  end
+
+  ret quoted
+end
+
+macro shader name body:
+  println
+  println "Shader " name.id
+
+  structName := name.id ++ "_shader"
+  structMembers := ${}
+
+  commonSrc := ""
+  vertexSrc := ""
+
+  forEachAstChild decl body:
+    ast:print decl 0
+    if ast:matchesShape(decl, ${common _}):
+      commonSrc = unquote getField(ast:child decl 1, id)
+      println "  Common src:\n" commonSrc
+    elseif ast:matchesShape(decl, ${vertex _}):
+      vertexSrc = unquote getField(ast:child decl 1, id)
+      println "  Vertex shader src:\n" vertexSrc
+    elseif ast:matchesShape(decl, ${uniform _ _}):
+      uniformType := ast:child decl 1
+      uniformName := ast:child decl 2
+      println "uniform " uniformName " : " uniformType
+      // structMembers = ${#uniformType #uniformName}
+    else:
+      ret ${error "Invalid syntax in shader" #decl}
+    end
+  end
+
+  pret ${seq:
+    struct #structName #structMembers
+  end}
+end
+
+shader foobar:
+  uniform float foo
+  common "lalala"
+  vertex "void main() { gl_Position = ftransform(); }"
+  // geometry "xxx"
+end
+
+func int main():
+  ret 0
+end
+
+

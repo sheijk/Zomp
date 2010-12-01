@@ -1,0 +1,45 @@
+/// 
+/// testing printing of prompt in zomp shell
+/// 
+
+requireLibs libcee
+
+func void a():
+  println "function a"
+end
+
+func void b():
+  println "function b"
+end
+
+func void c():
+  print "function c"
+end
+
+func void d():
+  print "function d"
+end
+
+func void e():
+  print "function e"
+end
+
+func void f():
+  print "function f"
+end
+
+func void g():
+  print "function g"
+end
+
+func void xxx():
+  print "function xxx"
+  print 1
+  print 2
+  print 3
+end
+
+func int main():
+  ret 0
+end
+

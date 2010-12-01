@@ -1,0 +1,46 @@
+///
+/// Prototype for a new macro system
+///
+
+requireLibs libcee
+
+xmacro foo(v, expr n):
+  uniqueId nEvaluated "foo"
+  ret ${seq:
+    #v = #n * #n
+  end}
+end
+
+macro foo v n_:
+  nResult := macropattern_expr n_
+  if !nResult.success:
+    e := nResult.errorMessage
+    ret ${error #e}
+  end
+  n := nResult.argumentName
+  evalCode = ${seq:
+    #evalCode
+    #n.evalCode
+  end}
+
+  body...
+end
+
+struct MacroPatternResult:
+  cstring resultName
+  ast* evalCode
+  bool success
+end
+
+func MacroPatternResult macropattern_expr(cstring name):
+  uniqueId argName "expr"
+  var MacroPatternResult result
+  result.argumentName = argName
+  result.evalCode = ${#name := #argName}
+  ret result
+end
+
+func int main():
+  ret 0
+end
+
