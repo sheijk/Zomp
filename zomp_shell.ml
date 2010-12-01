@@ -120,10 +120,18 @@ let printBindings args (bindings :bindings) =
         | VarSymbol var ->
             printf "var %s %s\n" (Lang.typeName var.typ) var.vname
         | FuncSymbol f ->
-            let arg2string (name, typ) = Lang.typeName typ ^ " " ^ name in
-            let args = List.map arg2string f.fargs in
-            let argString = combine ", " args in
-            printf "func %s %s(%s)\n" (Lang.typeName f.rettype) f.fname argString
+            let funcSigString f =
+              let arg2string (name, typ) = Lang.typeName typ ^ " " ^ name in
+              let args = List.map arg2string f.fargs in
+              let argString = combine ", " args in
+              let typeParams = if f.fparametric then "!T" else "" in
+              sprintf "func %s %s%s(%s)\n"
+                (Lang.typeName f.rettype)
+                f.fname
+                typeParams
+                argString
+            in
+            printf "%s" (funcSigString f)
         | MacroSymbol m ->
             printf "macro %s %s\n" m.mname m.mdocstring
         | TypedefSymbol t ->
@@ -201,7 +209,6 @@ let writeSymbols args (bindings : Bindings.bindings) =
           let stream = open_out fileName in
           try
             let print = fprintf stream in
-            let typeName = Expander.findTypeName bindings in
             print "Symbol table\n";
             Bindings.iter (fun (name, symbol) ->
                          fprintf stream "%s =" name;

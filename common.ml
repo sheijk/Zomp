@@ -385,6 +385,13 @@ let multiMap func list =
   let nestedResults = List.map func list in
   List.flatten nestedResults
 
+let rec mapfold f initialValue = function
+  | [] -> [], initialValue
+  | hd :: tl ->
+      let mappedElements, newValue = f initialValue hd in
+      let tlmapped, finalValue = mapfold f newValue tl in
+      mappedElements @ tlmapped, finalValue
+
 let rec combineList seperator = function
   | [] -> []
   | [last] -> [last]

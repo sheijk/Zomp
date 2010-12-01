@@ -2,6 +2,10 @@
  * Demonstrates basic usage of functions
  */
 
+func int get5()
+func int incr(int i)
+func int sum(int a, int b, int c)
+
 func int get5():
   ret 5
 end
@@ -20,5 +24,4 @@ func int main():
 
   ret 0
 end
-
 

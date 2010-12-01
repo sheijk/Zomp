@@ -36,6 +36,7 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Double -> "double"
   | `TypeRef name -> "%\"" ^ name ^ "\""
   | `Pointer `Void -> "i8*"
+  | `Pointer `TypeParam -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | `Array (memberType, size) -> sprintf "[%d x %s]" size (llvmTypeName memberType)
   | `Record record ->
@@ -46,6 +47,13 @@ let rec llvmTypeName : Lang.typ -> string = function
       sprintf "%s (%s)"
         (llvmTypeName ft.returnType)
         (Common.combine ", " (List.map llvmTypeName ft.argTypes))
+  | `ParametricType t ->
+      (* raiseCodeGenError *)
+        (* ~msg:"Cannot generate LLVM type representation for parametric type" *)
+      llvmTypeName (t :> typ)
+  | `TypeParam ->
+      raiseCodeGenError
+        ~msg:"Cannot generate type representation for uninstantiated type parameter"
 
 let rec llvmTypeNameLong = function
   | `Record record ->
@@ -585,6 +593,7 @@ let gencodeDefineVariable gencode var default =
           let zeroElement = function
             | `Pointer _ | `Function _ -> Some "null"
             | `Record _ | `TypeRef _ | `Array _ -> None
+            | `TypeParam | `ParametricType _ -> None
             | #integralType as t -> Some (Lang.valueString (defaultValue t))
           in
           let initInstr = function
@@ -648,7 +657,7 @@ let gencodeConstant c =
     },
     "")
 
-let gencodeFuncCall gencode call =
+let gencodeFuncCall (gencode : Lang.form -> gencodeResult) call =
   let rec varsAndCode vars code firstBBCode = function
     | [] -> vars, code, firstBBCode
     | expr :: tail ->
@@ -991,14 +1000,12 @@ let gencodeGlobalVar var =
           varname
           (llvmTypeName var.typ)
           (Machine.float2string f)
-    | PointerVal _ ->
+    | NullpointerVal _ ->
         sprintf "@%s = constant %s null\n"
           varname
           (llvmTypeName var.typ)
     | VoidVal ->
         raiseCodeGenError ~msg:"global constant of type void not allowed"
-    | FunctionVal _ ->
-        raiseCodeGenError ~msg:"global function pointers not supported, yet"
     | RecordVal (_,[]) ->
         sprintf "@%s = global %s zeroinitializer\n" varname (llvmTypeName var.typ)
     | RecordVal _ ->
@@ -1049,7 +1056,7 @@ let gencodeDefineFunc func =
         let retvalVar = {
           vname = "$retval";
           typ = `Pointer func.rettype;
-          vdefault = PointerVal (`Pointer func.rettype, None);
+          vdefault = NullpointerVal (`Pointer func.rettype);
           vstorage = RegisterStorage;
           vmutable = false;
           vglobal = false;

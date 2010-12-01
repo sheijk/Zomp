@@ -1,0 +1,170 @@
+///
+/// Testing parameterized types
+///
+
+requireLibs unittest libcee
+
+/// typedef parametric type
+type Array(T):
+  int size
+  T* address
+end
+
+// type Ptr(T) T*
+
+// type List(T):
+//   Element data
+//   List(T)* next
+// end
+
+// type Ptr(T) T*
+// type Arr10(T) T[10]
+
+/// parametric struct containing instatiation of other parametric type
+
+type PartialArray(T):
+  Array(T) array
+  int used
+end
+
+/// typedef instance of parameterized type
+type IntArray Array(int)
+type PartialIntArray PartialArray(int)
+
+/// use instantiated type through instantiated name and directly
+/// local variable
+
+/// struct member
+
+unittest:testCase LocalVarThroughTypedef:
+  var IntArray ar
+  ar.size = 10
+  ar.address = malloc int 10
+  ar.address[9] = 123
+
+  unittest:assertAll:
+    ar.size == 10
+    ar.address[9] == 123
+  end
+end
+
+unittest:testCase LocalVarWithoutTypedef:
+  var Array(int) ar
+  ar.size = 10
+  ar.address = malloc int 10
+  ar.address[9] = 123
+
+  unittest:assertAll:
+    ar.size == 10
+    ar.address[9] == 123
+  end
+end
+
+unittest:testCase LocalVarWithoutTypedefNested:
+  var PartialArray(int) ar
+  ar.used = 2
+  ar.array.size = 10
+  ar.array.address = malloc int 10
+  ar.array.address[9] = 123
+
+  unittest:assertAll:
+    ar.array.address[9] == 123
+  end
+end
+
+/// global variable
+var Array(int) globalIntArray 0
+var IntArray globalIntArray3 0
+
+/// function parameter
+
+// type TypeArgByValue(T):
+//   T value
+//   bool valid
+// end
+
+type Twice(T):
+  T* a
+  T* b
+end
+
+// func bool same<T1, T2>(Twice<T1, T2>* x)
+// func bool same!(T1, T2)(Twice!(T1, T2)* xx)
+// func bool same<T>(Twice<T>* pair)
+// func bool same!T(Twice!T* pair)
+// func!T bool same(Twice!T* pair)
+
+func int sumIntArray(IntArray* array):
+  sum := 0
+  for i 0 array.size:
+    sum += (array.address + i)*
+  end
+  ret sum
+end
+
+func void printGenericPtr(T)(T* ptr):
+  printPtr (cast void* ptr)
+end
+
+func void test():
+  println "test()"
+  p := nullptr int
+  printGenericPtr p
+end
+
+func bool same(T)(Twice(T)* pair):
+  return false
+  // return (pair.a == pair.b)
+end
+
+// func void test():
+//   var Twice(int) ints
+//   x := malloc int
+//   ints.a = x
+//   ints.b = x
+//   println same(&ints)
+// end
+
+// type Allocatable(T):
+//   (fptr T* int) new
+//   (fptr void T*) delete
+// end
+//
+// type FloatAlloc2:
+//   (fptr float*) new
+//   (fptr void float*) delete
+// end
+//
+// func void xxxxx2(FloatAlloc2* tc, int size):
+//   x := nullptr float
+//   var (fptr float*) f tc.new
+//   // f := tc.new
+//   x = f()
+//   print 10
+//   // x = (tc.new)()
+// end
+//
+// func void Array:init(T)(Allocatable(T)* tc, Array(T)* a, int size):
+//   a.size = size
+//   t := nullptr T
+//   t = a.address
+//   r := tc.new 10
+//   t = r
+//
+//   // a.address = tc.new 10
+//   // a.address = malloc T size
+// end
+
+// func void foo(int i):
+// end
+//
+// func void test():
+//   var (fptr void int) f &foo
+// end
+//
+// func void foo0()
+// func void foo1(int x)
+// func void foo2(int a, int b)
+
+unittest:main
+

@@ -105,7 +105,7 @@ testsuite/error_reporting/invalid_token_single_line_comment.test: EXPECTED_LINE 
 testsuite/error_reporting/invalid_token_multi_line_comment.test: EXPECTED_LINE = 6
 testsuite/error_reporting/duplicate_local_name.test: EXPECTED_LINE = 11
 
-testsuite/error_reporting/%.test: testsuite/error_reporting/%.zomp
+testsuite/error_reporting/%.test: testsuite/error_reporting/%.zomp $(ZOMPC)
 	@$(ECHO) "Checking if compiler reports error in $<:$(EXPECTED_LINE)"
 	($(ZOMPC) -c $< 2>&1) > $@ || (exit 0)
 	($(CAT) $@ | grep "$<:$(EXPECTED_LINE)" --quiet) || \

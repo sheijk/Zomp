@@ -45,6 +45,86 @@ let rec equalTypes bindings ltype rtype =
     | `Pointer l, `Pointer r when equalTypes bindings l r -> true
     | _, _ -> ltype = rtype
 
+let typeCheckFuncCall typeCheck bindings funcallForm call =
+  let paramCount = List.length call.fcparams
+  and argCount = List.length call.fcargs in
+  if (if call.fcvarargs then argCount < paramCount else argCount != paramCount) then
+    TypeError (
+      Form funcallForm,
+      sprintf "Expected %d params, but used with %d args" paramCount argCount,
+      `Void,
+      `Void)
+  else
+    let errors = ref [] in
+    let addError formOrAst msg found expected =
+      errors := (formOrAst, msg, found, expected) :: !errors
+    in
+
+    let parametricTypeBinding = ref (None : typ option) in
+
+    let checkArgument argNum paramType argForm =
+      match typeCheck bindings argForm with
+        | TypeOf argType ->
+            begin match paramType with
+              | `Pointer `TypeParam ->
+                  begin match !parametricTypeBinding, argType with
+                    | None, `Pointer t ->
+                        parametricTypeBinding := Some t
+                    | None, wrongType ->
+                        addError
+                          (Form funcallForm)
+                          (sprintf "Argument %d has invalid type" argNum)
+                          wrongType
+                          (paramType :> typeRequirement)
+                    | Some t1, `Pointer t2 when equalTypes bindings t1 t2 ->
+                        ()
+                    | Some t, invalidType ->
+                        addError
+                          (Form funcallForm)
+                          "parametric type is already bound"
+                          argType
+                          ((`Pointer t) :> typeRequirement)
+                  (* if !parametricTypeBinding == None then *)
+                  (*   parametricTypeBinding := argType *)
+                  end
+              | `Pointer `ParametricType _
+              | `ParametricType _ ->
+                  addError
+                    (Form funcallForm)
+                    "parametric function parameters not supported, yet"
+                    argType
+                    (`TypeParam :> typeRequirement)
+              | _ ->
+                  if not (equalTypes bindings paramType argType) then
+                    addError
+                      (Form argForm)
+                      (sprintf "Argument %d has invalid type" argNum)
+                      argType
+                      (paramType :> typeRequirement)
+            end
+        | TypeError (formOrAst, msg, found, expected) ->
+            errors := (formOrAst, msg, found, expected) :: !errors
+    in
+
+    let rec check argNum = function
+      | [], [] -> ()
+      | (param :: remParams), (arg :: remArgs) ->
+          checkArgument argNum param arg;
+          check (argNum + 1) (remParams, remArgs)
+      | [], _ | _, [] ->
+          failwith "internal error, non-matching arg/param lists"
+    in
+
+    check 0 (call.fcparams, (fst (splitAfter paramCount call.fcargs)));
+    match !errors with
+      | [] -> TypeOf call.fcrettype
+      | (errorForm, msg, found, expected) :: _ ->
+          TypeError (
+            errorForm,
+            msg,
+            found,
+            expected)
+
 let rec typeCheck bindings form : typecheckResult =
   let result =
     let expectPointerType form =
@@ -96,37 +176,7 @@ let rec typeCheck bindings form : typecheckResult =
       | `Variable var -> TypeOf var.typ
       | `Constant value -> TypeOf (typeOf value)
       | `FuncCall call as funcallForm ->
-          begin
-            let paramCount = List.length call.fcparams
-            and argCount = List.length call.fcargs in
-            if (if call.fcvarargs then ( > ) else ( != )) paramCount argCount then
-              TypeError (
-                Form funcallForm,
-                sprintf "Expected %d params, but used with %d args" paramCount argCount,
-                `Void,
-                `Void)
-            else
-              listFold2i
-                (fun argNum prevResult typ arg ->
-                   match typeCheck bindings (arg :> form) with
-                     | TypeOf argType when equalTypes bindings typ argType ->
-                         prevResult
-                     | TypeOf invalidType ->
-                         TypeError (
-                           Form funcallForm,
-                           sprintf "type for argument %d does not match" argNum,
-                           invalidType,
-                           (typ :> typeRequirement))
-                     | TypeError(form, msg, invalidType, expectedType) ->
-                         TypeError (
-                           form,
-                           sprintf "Argument %d does not typecheck: %s" argNum msg,
-                           invalidType,
-                           expectedType))
-                (TypeOf (call.fcrettype :> composedType))
-                call.fcparams
-                (fst (splitAfter paramCount call.fcargs))
-          end
+          typeCheckFuncCall typeCheck bindings funcallForm call
       | `AssignVar (v, expr) as assignVarForm -> begin
           match typeCheck bindings expr with
             | TypeOf exprType when equalTypes bindings exprType v.typ -> TypeOf `Void
@@ -212,15 +262,29 @@ let rec typeCheck bindings form : typecheckResult =
       | `EmbeddedComment _ ->
           TypeOf `Void
   in
-  let rec removeTypeRefs bindings = function
+  let rec removeTypeRefsParam : typ parameterizableType -> typ parameterizableType = function
+    | `Pointer t ->
+        `Pointer (removeTypeRefs bindings t)
+    | `Record _ as t ->
+        t
+    (** breaks stuff, not sure why. might uncover another error *)
+    (* | `Record rt -> *)
+    (*     `Record { rt with fields = List.map (map2nd (removeTypeRefs bindings)) rt.fields } *)
+  and removeTypeRefs bindings = function
     | `TypeRef name as typeref ->
         begin match Bindings.lookup bindings name with
           | Bindings.TypedefSymbol t -> t
           | _ -> typeref
         end
-    | `Pointer t -> `Pointer (removeTypeRefs bindings t)
-    | `Record _ | #integralType as t -> t
-    | `Array (memberType, size) -> `Array (removeTypeRefs bindings memberType, size)
+    | `TypeParam
+    | #integralType as t ->
+        t
+    | `ParametricType t ->
+        `ParametricType (removeTypeRefsParam t)
+    | `Pointer _ | `Record _ as t ->
+        (removeTypeRefsParam t :> typ)
+    | `Array (memberType, size) ->
+        `Array (removeTypeRefs bindings memberType, size)
     | `Function ft ->
         `Function { returnType = removeTypeRefs bindings ft.returnType;
                     argTypes = List.map (removeTypeRefs bindings) ft.argTypes }
@@ -230,15 +294,6 @@ let rec typeCheck bindings form : typecheckResult =
         TypeOf (removeTypeRefs bindings t)
     | _ ->
         result
-
-
-let rec mapfold f initialValue = function
-  | [] -> [], initialValue
-  | hd :: tl ->
-      let mappedElements, newValue = f initialValue hd in
-      let tlmapped, finalValue = mapfold f newValue tl in
-      mappedElements @ tlmapped, finalValue
-
 
 let rec collectVars (form :Lang.form) =
   let returnTransformed form f =

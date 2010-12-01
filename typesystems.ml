@@ -26,19 +26,19 @@ struct
   | `UnsignedInt of intTypeSize
   | `SignedInt of intTypeSize
   | `Floating of Int64.t
-  | `Record of (string * recordFieldType) list
+  | `Record of (string * typ) list
   | `Array of typ * int
   | `Pointer of typ
   | `FunctionType of functionType
   | `NamedType of namedType
   | `TypeParamType of typ
   | `TypeParamInt of int
-  | `ParameterizedType of typ * typeParam list
+  | `ParametricType of typ * typeParam list
   ]
   and namedType = {
     tname :string;
     tparams :typeParam list;
-    trepr :typeRepr
+    trepr :typ
   }
   and functionType = {
     returnType :typ;
@@ -73,22 +73,49 @@ struct
   | `Char
   ]
 
+  type 'typ parameterizableType = [
+  | `Pointer of 'typ
+  | `Record of 'typ recordType
+  ]
+  and 'typ recordType = {
+    rname :string;
+    fields :(string * 'typ) list;
+  }
+
   type typ = [
   | integralType
-  | `Pointer of typ
   | `Array of typ * int
-  | `Record of recordType
   | `TypeRef of string
   | `Function of functionType
+  | typ parameterizableType
+
+  | `ParametricType of typ parameterizableType
+  | `TypeParam
   ]
-  and recordType = {
-    rname :string;
-    fields :(string * typ) list;
-  }
   and functionType = {
     returnType :typ;
     argTypes :typ list;
   }
+  (* and typeParam = *)
+  (*   | TypeParam *)
+  (*   | IntParam *)
+        (* | BoolParam of bool *)
+        (* | FloatParam of float *)
+        (* ... *)
+
+  let rec isTypeParametric : typ -> bool = function
+    | `TypeParam
+    | `ParametricType _ ->
+        true
+    | `Array (t, _)
+    | `Pointer t ->
+        isTypeParametric t
+    | `Record rv ->
+        List.exists (fun (_, t) -> isTypeParametric t) rv.fields
+    | `TypeRef _
+    | `Function _
+    | #integralType ->
+        false
 
   type value =
     | VoidVal
@@ -101,10 +128,9 @@ struct
     | StringLiteral of string
     | BoolVal of bool
     | CharVal of char
-    | PointerVal of typ * int option
+    | NullpointerVal of typ
     | ArrayVal of typ * value list
     | RecordVal of string * (string * value) list
-    | FunctionVal of functionType * int option
 
   exception CouldNotParseType of string
 
@@ -135,14 +161,13 @@ struct
     | StringLiteral _ -> (`Pointer `Char)
     | BoolVal _ -> `Bool
     | CharVal _ -> `Char
-    | PointerVal (t, _) -> t
+    | NullpointerVal t -> t
     | ArrayVal (typ, values) ->
         assert (List.for_all (fun value -> typ = typeOf value) values);
         typ
     | RecordVal (typeName, components) ->
         let convert (name, value) = name, typeOf value in
         `Record { rname = typeName; fields = List.map convert components }
-    | FunctionVal (t, _) -> `Function t
 
   (* val typeName : typ -> string *)
   let rec typeName : typ -> string = function
@@ -160,26 +185,32 @@ struct
     | `Array (baseType, size) ->
         sprintf "%s[%d]" (typeName baseType) size
     | `Record record ->
-        record.rname
+        let fieldNames =
+          List.map
+            (fun (name, typ) -> name ^ " : " ^ typeName typ)
+            record.fields
+        in
+        record.rname ^ " { " ^ Common.combine ", " fieldNames ^ " }"
     | `Function ft ->
         let retName = typeName ft.returnType in
         let argNames = List.map typeName ft.argTypes in
         sprintf "%s -> %s" (Common.combine ", " argNames) retName
+    | `ParametricType t ->
+        typeName (t :> typ) ^ "!T"
+    | `TypeParam -> "'T"
 
-  let typeDescr = function
+  let rec typeDescr = function
     | `Record record ->
         let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
         let componentStrings = List.map component2String record.fields in
-        "{" ^ Common.combine ", " componentStrings ^ "}"
+        record.rname ^ " {" ^ Common.combine ", " componentStrings ^ "}"
+    | `ParametricType t ->
+        "<T> " ^ typeDescr (t :> typ)
     | other ->
         typeName other
 
   (* val valueString : value -> string *)
   let rec valueString : value -> string =
-    let pointerValueName = function
-      | Some addr -> "0x" ^ string_of_int addr
-      | None -> "null"
-    in
     function
       | VoidVal -> raise (Failure "no values of void allowed")
       | Int8Val i -> Int32.to_string i
@@ -191,7 +222,7 @@ struct
       | StringLiteral s -> "\"" ^ s ^ "\""
       | BoolVal b -> string_of_bool b
       | CharVal c -> string_of_int (int_of_char c)
-      | PointerVal (_, target) -> pointerValueName target
+      | NullpointerVal _ -> "nullptr"
       | ArrayVal (_, values) ->
           sprintf "[%s]" (Common.combine ", " (List.map valueString values))
       | RecordVal (_, components) ->
@@ -201,7 +232,6 @@ struct
                 (Printf.sprintf "(%s = %s)" name (valueString value)) ^ (convert tail)
           in
           "(" ^ convert components ^ ")"
-      | FunctionVal (_, target) -> pointerValueName target
 
   (* val parseType : string -> typ *)
   let rec parseType (str :string) :typ =
@@ -235,24 +265,30 @@ struct
         error();
       value
     in
-    match typ with
-      | `TypeRef name -> failwith (sprintf "Cannot parse value of type %s referred by name" name)
-      | `Void -> failwith "no values of void allowed"
-      | `Int8 -> Int8Val (Int32.of_string str)
-      | `Int16 -> Int16Val (Int32.of_string str)
-      | `Int32 -> Int32Val (Int32.of_string str)
-      | `Int64 -> Int64Val (Int64.of_string str)
-      | `Float -> FloatVal (Common.restrictToSingleprecision (float_of_string str))
-      | `Double -> DoubleVal (float_of_string str)
-      | `Bool -> BoolVal (bool_of_string str)
-      | `Char -> CharVal (unquoted '\'' str).[0]
-      | `Pointer `Char -> StringLiteral (unquoted '"' str)
-      | `Pointer t -> if str == "null"
-        then PointerVal (t, None)
-        else raise (Failure (sprintf "%s is not a valid pointer value" str))
-      | `Array _ -> raise (Failure (sprintf "Cannot parse arrays (value was %s)" str))
-      | `Record _ -> raise (Failure (sprintf "Cannot parse records (value was %s)" str))
-      | `Function _ -> raise (Failure (sprintf "Cannot parse function ptr values (value was %s)" str))
+    try
+      begin match typ with
+        | `Void -> failwith "no values of void allowed"
+        | `Int8 -> Int8Val (Int32.of_string str)
+        | `Int16 -> Int16Val (Int32.of_string str)
+        | `Int32 -> Int32Val (Int32.of_string str)
+        | `Int64 -> Int64Val (Int64.of_string str)
+        | `Float -> FloatVal (Common.restrictToSingleprecision (float_of_string str))
+        | `Double -> DoubleVal (float_of_string str)
+        | `Bool -> BoolVal (bool_of_string str)
+        | `Char -> CharVal (unquoted '\'' str).[0]
+        | `Pointer `Char -> StringLiteral (unquoted '"' str)
+        | `Pointer t -> if str == "null"
+          then NullpointerVal t
+          else failwith "Only null is a valid pointer value"
+        | `Array _ -> failwith "Cannot parse arrays"
+        | `Record _ -> failwith "Cannot parse records"
+        | `Function _ -> failwith "Cannot parse function ptr values"
+        | `ParametricType _ -> failwith "Cannot parse parametric type"
+        | `TypeParam -> failwith "Cannot parse a type parameter"
+        | `TypeRef name ->
+            failwith (sprintf "Cannot parse value of type %s referred by name" name)
+      end with
+        | Failure s -> failwith (sprintf "%s (when parsing %s)" s str)
 
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
@@ -265,13 +301,18 @@ struct
     | `Double -> DoubleVal 0.0
     | `Bool -> BoolVal false
     | `Char -> CharVal (char_of_int 0)
-    | `Pointer t -> PointerVal (t, None)
+    | `Pointer t -> NullpointerVal t
     | `Record record ->
         let convert (name, typ) = name, defaultValue typ in
         RecordVal (record.rname, List.map convert record.fields)
     | `Array (memberType, size) ->
         ArrayVal (memberType, Common.listCreate size (defaultValue memberType))
-    | `Function t -> FunctionVal (t, None)
+    | `Function t -> NullpointerVal (`Function t)
+    | `ParametricType t ->
+        failwith (sprintf "No default value for parametric types (here: %s)"
+                    (typeName (t :> typ)))
+    | `TypeParam ->
+        failwith "no default value for type parameter"
 end
 
 module Tests =

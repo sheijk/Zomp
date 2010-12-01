@@ -35,26 +35,12 @@ open Utilities
 
 exception IllegalExpression of sexpr * string
 
-let rec findTypeName bindings = function
-  | #Lang.integralType | `Array _ as integralType -> Lang.typeName integralType
-  | `Pointer targetType -> findTypeName bindings targetType ^ "*"
-  | `Function ft ->
-      sprintf "%s -> %s"
-        (Common.combine ", " (List.map (findTypeName bindings) ft.argTypes))
-        (findTypeName bindings ft.returnType)
-  | `TypeRef name -> name
-  | `Record record as typ ->
-      try
-        record.rname
-      with Not_found ->
-        Lang.typeName typ
-
 module Translation_utils =
 struct
   let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
     let typeName = function
       | `Any description -> description
-      | #Lang.typ as t -> findTypeName bindings t
+      | #Lang.typ as t -> typeName t
     in
     sprintf "Type error: %s, expected %s but found %s in expression %s"
       msg
@@ -72,6 +58,7 @@ struct
 
   let lookupType bindings name =
     try
+      (** TODO: bug, this prevents built-in types to be shadowed *)
       Some (Lang.parseType name)
     with
       | Typesystems.Zomp.CouldNotParseType _ ->
@@ -80,6 +67,32 @@ struct
             | _ -> None
 
   let rec translateType bindings typeExpr =
+    let instantiateType parametricType argumentType =
+      let rec inst = function
+        | `TypeParam ->
+            argumentType
+        | `TypeRef _
+        | #integralType as t ->
+            t
+        | `Record rt ->
+            `Record { rt with fields = List.map (map2nd inst) rt.fields }
+        | `Pointer t ->
+            `Pointer (inst t)
+        (* | `ParametricType t -> *)
+        (*     `ParametricType (inst t) *)
+        | `Array (memberType, size) ->
+            `Array (inst memberType, size)
+        | `Function ft ->
+            `Function { returnType = inst ft.returnType;
+                        argTypes = List.map inst ft.argTypes }
+        | `ParametricType `Record rt ->
+            `Record { rt with fields = List.map (map2nd inst) rt.fields }
+        | `ParametricType `Pointer t ->
+            `Pointer (inst t)
+      in
+      inst parametricType
+    in
+
     let translatePtr targetTypeExpr =
       match translateType bindings targetTypeExpr with
         | Some t -> Some (`Pointer t)
@@ -119,6 +132,21 @@ struct
           end
       | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
           translateType bindings (shiftId args)
+      | { id = "opcall"; args = [
+            { id = paramTypeName; args = [] };
+            argumentTypeExpr ] } ->
+          begin
+            match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
+              | TypedefSymbol ((`ParametricType _) as t), Some `TypeParam ->
+                  printf "paramatric type %s\n" (typeDescr t);
+                  Some t
+              | TypedefSymbol (`ParametricType t), Some argumentType ->
+                  if paramTypeName = "Twice" then
+                    printf "translating type %s(%s)\n" paramTypeName (typeName argumentType);
+                  Some (instantiateType (t :> typ) argumentType)
+              | _, _ ->
+                  None
+          end
       | { id = "postop*"; args = [targetTypeExpr] }
       | { id = "ptr"; args = [targetTypeExpr]; } ->
           translatePtr targetTypeExpr
@@ -278,12 +306,34 @@ struct
 
   let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
     let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
-      let evalArg (argExpr :Ast2.sexpr) =
+      let evalArg (argExpr :Ast2.sexpr) paramType =
         let _, xforms = translateF bindings argExpr in
         let toplevelForms, forms = extractToplevelForms xforms in
-        toplevelForms, toSingleForm forms
+        let argForm =
+          match paramType with
+            | Some t when isTypeParametric t ->
+            (* | Some ((`ParametricType _) as t) -> *)
+                printf "Parametric type param %s" (typeDescr (t :> typ));
+                `CastIntrinsic (t, toSingleForm forms)
+            | _ ->
+                toSingleForm forms
+        in
+        (** TODO add cast if the parameter is a parametric type *)
+        toplevelForms, argForm
       in
-      let x = List.map evalArg args in
+      let rec evalArgs argExprs paramTypes =
+        (match argExprs, paramTypes with
+          | argExpr :: remArgs, paramType :: remParams ->
+              evalArg argExpr (Some paramType) :: evalArgs remArgs remParams
+          | argExpr :: remArgs, [] ->
+              evalArg argExpr None :: evalArgs remArgs []
+          | [], []->
+              []
+          | [], _ ->
+              failwith "too many argument types in translateFuncCall")
+      in
+      let x = evalArgs args argTypes in
+      (* let x = List.map2 evalArg args argTypes in *)
       let toplevelForms, argForms = flattenLeft x in
       let funccall = `FuncCall {
         fcname = name;
@@ -324,7 +374,7 @@ struct
             | _ -> None
 
   let translateTypedef translateF (bindings :bindings) =
-    let translateRecordTypedef typeName componentExprs expr =
+    let translateRecordTypedef bindings typeName componentExprs expr =
       let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
       let expr2component =
         let translate name typeExpr =
@@ -342,15 +392,41 @@ struct
       in
       let components = List.map expr2component componentExprs in
       let recordType = `Record { rname = typeName; fields = components } in
-      Some (addTypedef bindings typeName recordType, [`Typedef (typeName, recordType)] )
+      Some recordType
+    in
+    let returnRecordTypedef bindings name componentExprs expr =
+      match translateRecordTypedef bindings name componentExprs expr with
+        | Some rt ->
+            Some (addTypedef bindings name rt, [`Typedef (name, rt)])
+        | None ->
+            None
     in
     function
       | { id = id; args = [
             { id = typeName; args = [] };
             { id = opseq; args = componentExprs }
           ] } as expr
+          (** record with only one member *)
           when id = macroTypedef && opseq = macroSeqOp ->
-          translateRecordTypedef typeName componentExprs expr
+          returnRecordTypedef bindings typeName componentExprs expr
+      | { id = id; args = [
+            { id = opcall; args = [
+                { id = typeName; args = [] };
+                { id = "T"; args = [] } ] };
+            { id = opseq; args = componentExprs }
+          ] } as expr
+          when id = macroTypedef && opcall = macroCallOp && opseq = macroSeqOp ->
+          begin
+            let paramBindings = addTypedef bindings "T" `TypeParam in
+            match translateRecordTypedef paramBindings typeName componentExprs expr with
+              | Some recordType ->
+                  let parametricType = `ParametricType recordType in
+                  Some (
+                    addTypedef bindings typeName parametricType,
+                    [`Typedef (typeName, parametricType)])
+              | None ->
+                  None
+          end
       | { id = id; args = [
             { id = newTypeName; args = [] };
             targetTypeExpr;
@@ -368,7 +444,7 @@ struct
         } as expr
           when id = macroTypedef ->
           (** record typedef *)
-          translateRecordTypedef typeName componentExprs expr
+          returnRecordTypedef bindings typeName componentExprs expr
       | _ -> None
 
   let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
@@ -430,7 +506,11 @@ struct
                       Some( newBindings, [ `GlobalVar var ] )
                   | `Pointer targetType ->
                       if valueString = "null" then
-                        let var = globalVar name (`Pointer targetType) (PointerVal (targetType, None)) in
+                        let var =
+                          globalVar name
+                            (`Pointer targetType)
+                            (NullpointerVal targetType)
+                        in
                         let newBindings = addVar bindings var in
                         Some( newBindings, [`GlobalVar var] )
                       else
@@ -495,7 +575,7 @@ struct
              (Lang.variable
                 ~name
                 ~typ:astPtrType
-                ~default:(PointerVal (astPtrType, None))
+                ~default:(NullpointerVal astPtrType)
                 ~storage:Lang.RegisterStorage
                 ~global:false) )
         bindings argNames
@@ -704,7 +784,7 @@ struct
       (Lang.variable
          ~name:"macro_args"
          ~typ:(`Pointer astPtrType)
-         ~default:(PointerVal (`Pointer astPtrType, None))
+         ~default:(NullpointerVal (`Pointer astPtrType))
          ~storage:Lang.RegisterStorage
          ~global:false)
     in
@@ -947,6 +1027,10 @@ struct
             raiseIllegalExpression expr "Internal error: received unexpected type ref"
         | `Array _ ->
             raiseIllegalExpression expr "Array vars not supported, yet"
+        | `TypeParam ->
+            raiseIllegalExpression expr "Cannot define local variable of type parameter type"
+        | `ParametricType _ ->
+            raiseIllegalExpression expr "Cannot define local variable of parametric type"
     in
     match expr with
       | { args = [
@@ -1255,6 +1339,10 @@ struct
             end
         | `TypeRef _ ->
             raiseIllegalExpression expr "Internal error: received unexpected type ref"
+        | `TypeParam ->
+            raiseIllegalExpression expr "Cannot define local variable of type parameter type"
+        | `ParametricType _ ->
+            raiseIllegalExpression expr "Cannot define local variable of parametric type"
     in
     let transform id name typeExpr valueExpr :translationResult =
       try
@@ -1712,24 +1800,28 @@ let matchFunc =
     | _ -> failwith ""
   in
   function
-      (** func def from sexpr **)
+    (** func def from iexpr for polymorphic function *)
     | { id = id; args = [
           typeExpr;
-          { id = name; args = [] };
-          { id = seq1; args = paramExprs };
-          { id = seq2; args = _ } as implExpr;
-        ] }
-        when id = macroFunc && seq1 = macroSequence && seq2 = macroSequence ->
-        `FuncDef (name, typeExpr, paramExprs, false, implExpr)
-
-    (** func decl from sexpr **)
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          { id = seq; args = paramExprs };
-        ] }
-        when id = macroFunc && seq = macroSequence ->
-        `FuncDecl (name, typeExpr, paramExprs, false)
+          { id = opcall; args =
+              { id = opcall2; args =
+                  { id = name; args = [] }
+                  :: paramTypeExprs }
+              :: paramExprs };
+          { id = opseq; args = _ } as implExpr
+        ] } as expr
+        when id = macroFunc && opcall = macroCallOp && opcall2 = macroCallOp && opseq = macroSeqOp ->
+        begin try
+          let getParametricTypeName = function
+            | { id = name; args = [] } -> name
+            | _ -> failwith ""
+          in
+          let params, hasvararg = scanParams paramExprs in
+          let parametricTypes = List.map getParametricTypeName paramTypeExprs in
+          `FuncDef (name, typeExpr, params, hasvararg, implExpr, parametricTypes)
+        with Failure _ ->
+          `NotAFunc expr
+        end
 
     (** func decl from iexpr with multiple/0 arguments **)
     | { id = id; args = [
@@ -1739,20 +1831,6 @@ let matchFunc =
         when id = macroFunc && opcall = macroCallOp ->
         begin try
           let params, hasvararg = scanParams paramExprs in
-          `FuncDecl (name, typeExpr, params, hasvararg)
-        with Failure _ ->
-          `NotAFunc expr
-        end
-
-    (** func decl from iexpr with one argument **)
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          { id = jux; args = _ } as paramExpr;
-        ] } as expr
-        when id = macroFunc && jux = macroJuxOp ->
-        begin try
-          let params, hasvararg = scanParams [paramExpr] in
           `FuncDecl (name, typeExpr, params, hasvararg)
         with Failure _ ->
           `NotAFunc expr
@@ -1769,26 +1847,13 @@ let matchFunc =
         when id = macroFunc && opcall = macroCallOp && opseq = macroSeqOp ->
         begin try
           let params, hasvararg = scanParams paramExprs in
-          `FuncDef (name, typeExpr, params, hasvararg, implExpr)
+          `FuncDef (name, typeExpr, params, hasvararg, implExpr, [])
         with Failure _ ->
           `NotAFunc expr
         end
 
-    (** func def from iexpr with one argument **)
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          { id = jux; args = _ } as paramExpr;
-          { id = seq; args = _ } as implExpr
-        ] } as expr
-        when id = macroFunc && jux = macroJuxOp && seq = macroSeqOp ->
-        begin try
-          let params, hasvararg = scanParams [paramExpr] in
-          `FuncDef (name, typeExpr, params, hasvararg, implExpr)
-        with Failure _ ->
-          `NotAFunc expr
-        end
-
+    | { id = "std:base:func"; args = _ } as expr ->
+        `NotAFunc expr
     | expr ->
         `NotAFunc expr
 
@@ -1816,7 +1881,10 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let expr2param argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
-          | Some typ -> (varName, typ)
+          | Some typ ->
+              if name = "same" then
+                printf "func arg '%s' : '%s (%s)'\n" varName (typeName typ) (Ast2.toString typeExpr);
+              (varName, typ)
           | None -> raiseInvalidType typeExpr
       in
       match argExpr with
@@ -1868,11 +1936,20 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           expr (Common.combine "\n" ((sprintf "Could not translate function %s:" name)::messages))
   in
   match matchFunc expr with
-    | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr) ->
+    | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr, parametricTypes) ->
         begin
+          let bindingsWParametricTypes =
+            List.fold_left
+              (fun bindings parametricTypeName ->
+                 addTypedef bindings parametricTypeName `TypeParam)
+              bindings
+              parametricTypes
+          in
           match translateType bindings typeExpr with
             | Some typ -> begin
-                let tempBindings, _, _ = buildFunction bindings typ name paramExprs hasvarargs None in
+                let tempBindings, _, _ =
+                  buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None
+                in
                 let newBindings, toplevelForms, funcDef =
                   buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr)
                 in
@@ -1896,7 +1973,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
             | None ->
                 raiseInvalidType typeExpr
         end
-    | _ ->
+    | `NotAFunc _ ->
         None
 
 and translateTL bindings expr = translate raiseIllegalExpression

@@ -122,8 +122,7 @@ type 'typ variable = {
 let rec validateValue = function
   | VoidVal | CharVal _ | BoolVal _
   | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _
-  | PointerVal _ | StringLiteral _
-  | FunctionVal _ as value ->
+  | NullpointerVal _ | StringLiteral _ as value ->
       value
   | FloatVal _ | DoubleVal _ as value ->
       let valueString = Typesystems.Zomp.valueString value in
@@ -223,6 +222,7 @@ and func = {
   fargs :(string * composedType) list;
   impl :form option;
   cvarargs :bool;
+  fparametric :bool;
 }
 and toplevelExpr = [
 | `GlobalVar of composedType variable
@@ -360,6 +360,8 @@ let toSingleForm formlist =
     | [(singleForm :form)] -> singleForm
     | sequence -> `Sequence sequence
 
+let isFuncParametric args =
+  List.exists (isTypeParametric ++ snd) args
 
 let func name rettype args impl = {
   fname = name;
@@ -367,6 +369,7 @@ let func name rettype args impl = {
   fargs = args;
   impl = impl;
   cvarargs = false;
+  fparametric = isFuncParametric args;
 }
 
 let varargFunc name rettype args impl = {
@@ -375,6 +378,7 @@ let varargFunc name rettype args impl = {
   fargs = args;
   impl = impl;
   cvarargs = true;
+  fparametric = isFuncParametric args;
 }
 
 let funcDecl name rettype args = {
@@ -383,6 +387,7 @@ let funcDecl name rettype args = {
   fargs = args;
   impl = None;
   cvarargs = false;
+  fparametric = isFuncParametric args;
 }
 
 let funcDef name rettype args impl = {
@@ -391,6 +396,7 @@ let funcDef name rettype args impl = {
   fargs = args;
   impl = Some impl;
   cvarargs = false;
+  fparametric = isFuncParametric args;
 }
 
 type 'bindings macro = {
