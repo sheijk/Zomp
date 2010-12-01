@@ -31,7 +31,7 @@
       map<(int,string)> ints
       list[int] ints
       map[int,string] foo
-      list[[int,string]] ints
+      list[[int,string] ] ints
       list</int,string/>
       list<.int,string.>
       list.<int,string>.
@@ -150,7 +150,6 @@
 ** TODO [#A] ownership types
 ** TODO [#A] automatically derive data parallel code?
 ** TODO [#A] cee: 'a, b = 1, 2' should be possible
-
 ** TODO [#A] deref operator precedence
 
    c - c precedence rules, *foo, lowest precedence
@@ -204,7 +203,7 @@
 *** TODO concepts allow adding implementations to closed classed
     will not help for non-polymorphic methods
 
-** TODO [#A] foreach mit support fuer index                                                        :unsorted:
+** TODO [#A] foreach mit support fuer index                           :unsorted:
 ** TODO generics: share inlined implementation
    possible if binary data layout is the same
    => dummy parameters should not matter
@@ -726,11 +725,6 @@ von http://lambda-the-ultimate.org/node/2884
 ** TODO func void foo(float a, float a)                                    :bug:
    should be checked
 ** TODO [#A] unit test: writing function argument
-** TODO [#A] llvm::ParseAssemblyString does not add code to target module
-   parsedModule = ParseAssemblyString( code, targetModule, &errorInfo );
-   2.1: targetModule contains definitions
-   2.2/2.4: defs not added anymore
-
 ** TODO [#A] performance tests, ergebnisse loggen
 ** TODO [#A] letzte zeile vom toplevel aus in buffer/kill-ring befördern
 ** TODO design a library system for zomp                                   :pop:
@@ -911,6 +905,8 @@ von http://lambda-the-ultimate.org/node/2884
      if !t (t = r)
      t
    end
+
+   maybe use C# style "a ?? b" syntax
 ** TODO [#A] open/import auch für instanzen erlauben
    c := new MyClass()
    import c._
@@ -993,6 +989,11 @@ also needs to work for circular inclusion
    $(foo + #,v) = foo + a + b + c
 
    etc.
+** TODO [#A] make error messages parsable as zomp syntax?
+   error: "the message" file: "file/name.ext" line: 100 column: 20
+
+   or s-expressions?
+   (error "file/name.ext" 100 "error message")
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
@@ -1043,11 +1044,11 @@ also needs to work for circular inclusion
       - [ ] classes
       - [ ] mapping shaders to classes
 
-** persistent camera in toplevel [0/2]
+** persistent camera in toplevel [1/2]
 
    It should be possible to store the camera pos after main() returned
 
-   - [ ] global pointers
+   - [X] global pointers
    - [ ] module level init code (run on load)
 
 ** overloaded functions
@@ -1289,7 +1290,6 @@ also needs to work for circular inclusion
     int? => Option<int>
 
 * Tasks                                                                   :zomp:
-
 ** Performance
 
    | What                | 1000 lines |   Speedup | 2000 lines |   Speedup |
@@ -2244,10 +2244,8 @@ Put macro functions into seperate module
     CLOSED: [2007-11-25 Sun 00:35]
 
 ** Public
-
 *** TODO [#C] provide a (semi) public git repo
-
-*** TODO Find collaborators
+*** TODO Find collaborators?
 
 ** Syntax
 

@@ -303,22 +303,58 @@ a ** b <=> power
    #foo works symmetrically
 
    Also allow string antiquoting like "The successor of x is #{x + 1}"
+**** TODO fix this to get rid of {}
+
+     $x, $(10 + #foo), ... should be possible
+
+     use $: for indentation
+
+     ret $:
+       foo #bar
+       baz aldrin
+     end // or "end $"
 
 *** TODO is ascii enough or should zomp use unicode (more operators etc.)?
+    special unicode operators, greek alphabet etc.
+    nice to have, can be added later
+    until then mandate utf-8 encoding
 
-*** TODO Parentheses?
+*** DONE Parentheses?
 
-() for grouping / flexible
-{} for s-expressions
-<> for m-expressions
+    () for grouping / flexible
+    {} for s-expressions
+    <> for m-expressions
+*** TODO add special syntax for s-expressions
+    (foo bar) is turned into (opjux foo bar)
+
+    This is bad for matching against syntax patterns:
+    ast:matchesShape(foo, $(opjux foo bar)) not possible
+
+    Possibilities:
+    (|foo bar)
+    (|foo (bar baz)) // only require special symbol once
+    (.foo bar) // might conflict if we allow .xx for arbitrary infix operators
+    (>foo bar<)
+    (>foo (bar baz)<)
+    (>foo bar)
+    (>foo (bar baz))
+    <(foo baz) // conflict with prefix op, etc.?
+    (sexp (foo bar))
+    sexpr(foo bar)
 
 *** TODO Regular expressions?
-    
-    Support /foo/ as a regular expression.
+
+    Support /foo/ as a regular expression?
 
     Could an ambiguity with division arise?
     a/b/c -> division
     /a/ -> regexp
+
+    Use string literal postfixes?
+    "/foo/"re
+    "/foo/bar/"re
+
+    Support / postfix and prefix operator, use (preop/ (postop/ regexp)) as regexp?
 
 *** DONE Boolean operators
 
@@ -402,14 +438,16 @@ float* vs. *ptr vs. a * b aka. a*b
    if parens would be nesseccary otherwise
 
 ** DONE Special support for first id of expression?
-   Rejected, not needed due to jux with low priority
+   Rejected, adds irregularity and surprises to syntax
+   Was Rejected, not needed due to jux with lowest priority
 
    let foo = bar <=> (op= (let foo) bar)
-n
+
    Allow some syntax for..?
    let foo = bar <=> (let (op= foo bar))
 
-*** DONE Is it okay to require parenthesis on method calls when used as arguments of operators?
+*** DONE mandatory parentheses on method calls?
+    Is it okay to require parentheses on method calls when used as arguments of operators?
     Resolved: it is ok. C-style notation is used for function calls
     and m-exprs for structure defining macros (class, for, ...)
 
@@ -433,16 +471,16 @@ let x + y =
 (jux (op= (op+ x y) (seq (op() add x y))))
 
 *** DONE juxtaposition has highest or lowest priority?
-    Resolved: lowest priority
+    Resolved: hightes priority
+    want to support "sin x + 3" instead of requiring "(sin x) + 3" or "sin(x) + 3"
 
-foo a + bar b
-(op+ (foo a) (bar b))
+**** Was Resolved: lowest priority
 
-print 1 + 2
-(op+ (print 1) 2)
+     foo a + bar b
+     (op+ (foo a) (bar b))
 
-
-
+     print 1 + 2
+     (op+ (print 1) 2)
 *** DONE Where is this needed?
     Nowhere due to jux having lowest priority
 
@@ -527,7 +565,6 @@ third
 end first
 
 Require
-
 
 ** DONE Operators at the beginning/end of expressions?
    CLOSED: [2008-01-28 Mon 03:11]
