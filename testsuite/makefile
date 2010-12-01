@@ -107,6 +107,10 @@ testsuite/error_reporting/duplicate_local_name.test: EXPECTED_LINE = 11
 
 testsuite/error_reporting/%.test: testsuite/error_reporting/%.zomp
 	@$(ECHO) "Checking if compiler reports error in $<:$(EXPECTED_LINE)"
-	($(ZOMPC) -c $< 2>&1) > $(<:.zomp=.tmp) || (exit 0)
-	(cat $(<:.zomp=.tmp) | grep "$<:$(EXPECTED_LINE)" --quiet) || (echo "Invalid error reporting:"; cat $(<:.zomp=.tmp); exit 1)
+	($(ZOMPC) -c $< 2>&1) > $@ || (exit 0)
+	($(CAT) $@ | grep "$<:$(EXPECTED_LINE)" --quiet) || \
+		($(ECHO) "$<:$(EXPECTED_LINE): error: location not reported properly"; \
+			$(CAT) $@; \
+			rm -f $@; \
+			exit 1)
 

@@ -61,6 +61,7 @@ UPDATE = cp
 CP = cp
 SED = sed
 ECHO = echo
+CAT = cat
 CP = cp
 RM = rm
 SED = sed
