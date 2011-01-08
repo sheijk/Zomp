@@ -112,6 +112,11 @@ func void test():
   printGenericPtr p
 end
 
+func void initIntPair(Twice(int)* pair, int* a, int* b):
+  pair.a = a
+  pair.b = b
+end
+
 func bool same(T)(Twice(T)* pair):
   return false
   // return (pair.a == pair.b)
@@ -120,8 +125,9 @@ end
 func void test():
   var Twice(int) ints
   x := malloc int
-  ints.a = x
-  ints.b = x
+  initIntPair( &ints, x, x )
+  // ints.a = x
+  // ints.b = x
   // println same(&ints)
 end
 

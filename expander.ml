@@ -313,7 +313,7 @@ struct
           match paramType with
             | Some t when isTypeParametric t ->
             (* | Some ((`ParametricType _) as t) -> *)
-                printf "Parametric type param %s" (typeDescr (t :> typ));
+                printf "Parametric type param %s\n" (typeDescr (t :> typ));
                 `CastIntrinsic (t, toSingleForm forms)
             | _ ->
                 toSingleForm forms
