@@ -84,6 +84,7 @@ indent the next line when they occur at the beginning of a line"
       `((nil ,(zomp-id "^(?macro +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?ofunc +ID +\\(ID(ID\\)") 1)
+        (nil ,(zomp-id "^(?std:base:func +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?var +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?const +ID +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?type +\\(ID\\)") 1)
