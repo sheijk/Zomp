@@ -1348,6 +1348,7 @@ struct
       try
         match lookup env.bindings name with
           | VarSymbol { vglobal = false } ->
+              (* todo: move somewhere else *)
               let module Errors =
                 struct
                   let lexerBaseCode = 100
@@ -1363,7 +1364,7 @@ struct
                           sprintf "error %d: %s in\n  %s" errorCode msg (Ast2.toString expr)
                   let localVarDefinedTwice loc varName =
                     Error [makeErrorString 1 expr
-                             (sprintf "Local variable name '%s' used twice" name)]
+                             (sprintf "Local variable name '%s' defined twice" name)]
                 end
               in
               Errors.localVarDefinedTwice expr name
