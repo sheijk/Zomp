@@ -278,7 +278,6 @@ windows displaying it"
   (search-forward-regexp zomp-tl-expr-regexp)
   (backward-char)
   (when (looking-at "end")
-    (message "hit end statement")
     (next-line)
     (search-forward-regexp zomp-tl-expr-regexp)
     (backward-char)))
@@ -465,11 +464,19 @@ editor to trigger recompilations etc. and possibly resume main()"
       (back-to-indentation))
     ))
 
-(defun zomp-indent-current ()
+(defun zomp-point-is-in-comment (pt)
+  (interactive "d")
+  (let ((prop (get-char-property pt 'face)))
+    (or (equal prop 'font-lock-comment-face)
+        (equal prop 'font-lock-doc-face))))
+
+(defun zomp-indent-current-or-fill ()
   (interactive)
-  (save-excursion
-    (zomp-mark-current)
-    (indent-region (region-beginning) (region-end))))
+  (if (zomp-point-is-in-comment (point))
+      (fill-paragraph nil)
+    (save-excursion
+      (zomp-mark-current)
+      (indent-region (region-beginning) (region-end)))))
 
 (defun zomp-indent-buffer ()
   (interactive)
@@ -653,7 +660,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
 (defun zomp-setup ()
   (setq comment-start "//")
-  (setq comment-start-skip "// *")
+  (setq comment-start-skip "\\(?://+\\|/\\*+\\) *")
   (setq comment-end "")
 
   (dolist (op (list ?: ?+ ?- ?= ?! ?? ?* ?/ ?& ?| ?^))
@@ -721,7 +728,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-tl-help [(control c)(control h)] "Show toplevel help")
 
   (zomp-add-seperator zomp-sep4)
-  (zomp-add-action zomp-indent-current [(meta q)] "Indent current")
+  (zomp-add-action zomp-indent-current-or-fill [(meta q)] "Indent current")
   (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
 
   (zomp-add-seperator zomp-sep-2)
