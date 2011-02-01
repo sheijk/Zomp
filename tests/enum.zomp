@@ -1,26 +1,90 @@
+///
+/// A simple way to define enums
+///
 
-(macro enum name cases ... (
-  (var astp code `())
+requireLibs libcee
 
-  (const cstring nameId (getField name id))
+macro enum name fields:
+  code := ${seq:
+    type #name:
+      int value
+      // int dummy_wtf
+    end
+  end}
 
-  (var int index 0)
-  (forEachAstChild case cases (
-    (const cstring caseName (cstring:concat nameId ":" (getField case id)))
-    (addChild code `(var int #caseName #index))
-    (index = index + 1)
-    ))
+  value := -1
 
-  (addChild code `(type #name int))
-  
-  (printAst code 0)
-  (ret code)
-  ))
+  forEachAstChild field fields:
+    qualifiedName := ""
+    if ast:matchesShape(field, ${_}):
+      qualifiedName = name.id ++ ":" ++ field.id
+      value = value + 1
+    elseif ast:matchesShape(field, ${_ = _}):
+      qualifiedName = name.id ++ ":" ++ getField(ast:child field 0, id)
+      value = parseInt getField(ast:child field 1, id)
+    else:
+      ret ${error "expected 'Identifier' or 'Identifier = IntValue'" #field}
+    end
 
-(enum TypeCategory
-  int
-  float
-  record
-  pointer)
+    ast:addChild code ${const #name #qualifiedName #value}
+  end
+
+  mret code
+end
+
+//------------------------------------------------------------------------------
+
+enum Shape:
+  Circle
+  Point = 4
+  Square
+end
+
+unittest:testCase name:
+  unittest:assertAll:
+    toInt Circle == 0
+    toInt Point == 4
+    toInt Square == 5
+  end
+end
+
+// enum ErrorValueConflictExplicit:
+//   CaseA = 1
+//   CaseB = 2
+//   CaseC = 1 //!error: CaseC, CaseA, value
+// end
+// 
+// enum ErrorValueConflictImplicit:
+//   CaseA
+//   CaseB = 2
+//   CaseC = 1
+//   CaseD //!error: CaseD, CaseB, value
+// end
+
+unittest:main
+
+// (macro enum name cases ... (
+//   (var astp code `())
+// 
+//   (const cstring nameId (getField name id))
+// 
+//   (var int index 0)
+//   (forEachAstChild case cases (
+//     (const cstring caseName (cstring:concat nameId ":" (getField case id)))
+//     (addChild code `(var int #caseName #index))
+//     (index = index + 1)
+//     ))
+// 
+//   (addChild code `(type #name int))
+//   
+//   (printAst code 0)
+//   (ret code)
+//   ))
+// 
+// (enum TypeCategory
+//   int
+//   float
+//   record
+//   pointer)
 
 

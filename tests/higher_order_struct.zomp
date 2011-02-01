@@ -56,6 +56,34 @@ end
 
 makeStructPrinter Point3 point_fields
 
+macro superstruct name fields:
+  fieldsMacroName := "applyFieldsOf_" ++ name.id
+
+  applyFields := ${}
+  forEachAstChild field fields:
+    if (field.childCount != 2):
+      ret ${error "expected 'type fieldName'" #field}
+    end
+
+    line := ${}
+    ast:addChild line $${#apply}
+    ast:addChild line ast:child(field, 0)
+    ast:addChild line ast:child(field, 1)
+  end
+
+  ret ${seq:
+    template #fieldsMacroName apply #applyFields
+    makeStructDecl #name #fieldsMacroName
+    makeStructPrinter #name #fieldsMacroName
+  end}
+end
+
+superstruct Circle:
+  float x
+  float y
+  float radius
+end
+
 func int main():
   pt := structlit Point3 x 10 y 20
   print2 pt

@@ -1009,6 +1009,13 @@ also needs to work for circular inclusion
      println "---" (9/3) "---"
 
      etc.
+** TODO [#A] loop breaks by indentation?
+
+   loop:
+     stuff(&x)
+   break if (x > 10):
+     more(&x)
+   end
 
 * Use Cases                                                            :usecase:
 
