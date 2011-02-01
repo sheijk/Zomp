@@ -1,0 +1,97 @@
+///
+/// Testing creating structs and standard methods on them by representing the
+/// struct as a higher order function/macro
+///
+
+requireLibs libcee
+
+/// apply typeName name
+template point_fields apply:
+  #apply int x
+  #apply int y
+end
+
+template defineStructField type name:
+  ast:addChild fieldDecls ${#type #name}
+end
+
+macro makeStructDecl name fields:
+  /// ugly hack because we can't create a quotation for the desired result
+  /// below, yet
+  retexprInner := ${struct #name}
+  ast:addChild retexprInner $${#fieldDecls}
+  retexprQuoted := ${${#retexprInner}}
+
+  /// macro which will define the struct we want
+  decl := ${macro makeStructDeclHelper:
+    fieldDecls := ${}
+    #fields defineStructField
+    ret #retexprQuoted
+  end}
+
+  /// Create a macro which will create the definition and then invoke it. Do
+  /// this indirectly because "#fields defineStructField" cannot be called
+  /// directly inside the macro
+  ret ${seq:
+    #decl
+    makeStructDeclHelper
+  end}
+end
+
+makeStructDecl Point3 point_fields
+
+macro printField type name:
+  typeS := cstring:quote type.id
+  nameS := cstring:quote name.id
+  mret ${print #nameS " = " this.#name ", " }
+end
+
+template makeStructPrinter typeName fields:
+  func void print2(#typeName this):
+    print "Point3 { "
+    #fields printField
+    print "}"
+  end
+end
+
+makeStructPrinter Point3 point_fields
+
+func int main():
+  pt := structlit Point3 x 10 y 20
+  print2 pt
+  
+  ret 0
+end
+
+// macro makeStructDecl name fields:
+//   // c := applyFields2 fields.id "printField"
+//   // eval c
+//   // ast:print c 0
+// 
+//   // point_fields printField
+//   fieldDecls := ${}
+//   // point_fields defineStructField
+//   c := applyFields2 fields.id "defineStructField"
+//   ast:print c 0
+//   eval c
+//   // eval ${#fields defineStructField}
+//   // eval ${println #fields "xxx"}
+//   // applyFields fields defineStructField
+//   printHLine '-' 10
+//   ast:print ${struct #name #fieldDecls} 0
+//   ret ${}
+// end
+// 
+// makeStructDecl Point point_fields
+
+func void foo():
+end
+// unittest:testCase checkStructDeclaration:
+//   unittest:assertAll:
+//     daslds das ds
+//     daksldask
+//   end
+// end
+// 
+// unittest:main
+
