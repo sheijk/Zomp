@@ -1,0 +1,35 @@
+///
+/// Testing pointer functionality
+///
+
+func int get3():
+  ret 3
+end
+
+func int get5():
+  ret 5
+end
+
+unittest:testCase functionPointer:
+  var fptr(int) pGet3 &get3
+  var fptr(int) pGet5 &get5
+
+  unittest:assertAll:
+    pGet3() == 3
+    pGet5() == 5
+  end
+end
+
+unittest:testCase functionPointerArray:
+  var fptr(int)[2] funcs
+  funcs[0] = &get3
+  funcs[1] = &get5
+
+  unittest:assertAll:
+    funcs[0]() == 3
+    funcs[1]() == 5
+  end
+end
+
+unittest:main
+
