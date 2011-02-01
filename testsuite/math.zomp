@@ -2,8 +2,8 @@
  * Testing the math lib
  */
 
-require "libs/unittest.zomp"
-require "libs/math.zomp"
+requireLibs libcee
+requireLibs unittest
 
 func v3f v(float x, float y, float z):
   ret (structlit v3f x x y y z z)

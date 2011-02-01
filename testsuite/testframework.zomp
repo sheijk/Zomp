@@ -2,7 +2,8 @@
  * Self-test of the unit test framework
  */
 
-require "libs/unittest.zomp"
+requireLibs libcee
+requireLibs unittest
 
 unittest:testCase success:
   unittest:assert true

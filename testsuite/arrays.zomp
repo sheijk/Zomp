@@ -2,7 +2,7 @@
  * Testing the array lib
  */
 
-require "libs/array.zomp"
+requireLibs array
 
 defineArrayType int
 

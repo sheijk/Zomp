@@ -3,8 +3,8 @@
 !syntax indent
  */
 
-require "libs/libcee.zomp"
-require "libs/unittest.zomp"
+requireLibs libcee
+requireLibs unittest
 
 var int counter 0
 
