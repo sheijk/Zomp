@@ -4,7 +4,12 @@
 !syntax indent
  */
 
-require "libs/unittest.zomp"
+requireLibs unittest
+
+/// check if structs with only one field work
+type SimpleStruct:
+  int value
+end
 
 type Point:
   int x

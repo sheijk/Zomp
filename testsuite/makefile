@@ -11,10 +11,10 @@ endif
 # Targets
 ################################################################################
 
-TESTSUITE_SOURCES = sexpr.zomp overloaded_ops.zomp structs.zomp minimal.zomp	\
-simple-func.zomp variables.zomp astmatch.zomp cee.zomp						\
-bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp		\
-float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp	\
+TESTSUITE_SOURCES = overloaded_ops.zomp structs.zomp minimal.zomp           \
+simple-func.zomp variables.zomp astmatch.zomp cee.zomp                      \
+bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp      \
+float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp  \
 testframework.zomp math.zomp stackoverflow.zomp
 
 TESTSUITE_CASES = $(foreach FILE, $(TESTSUITE_SOURCES), testsuite/$(FILE:.zomp=.test))
