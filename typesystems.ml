@@ -185,12 +185,7 @@ struct
     | `Array (baseType, size) ->
         sprintf "%s[%d]" (typeName baseType) size
     | `Record record ->
-        let fieldNames =
-          List.map
-            (fun (name, typ) -> name ^ " : " ^ typeName typ)
-            record.fields
-        in
-        record.rname ^ " { " ^ Common.combine ", " fieldNames ^ " }"
+        record.rname
     | `Function ft ->
         let retName = typeName ft.returnType in
         let argNames = List.map typeName ft.argTypes in

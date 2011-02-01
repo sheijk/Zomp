@@ -230,7 +230,7 @@ let writeSymbols args (bindings : Bindings.bindings) =
                            | LabelSymbol label ->
                                fprintf stream "label %s" label.lname;
                            | TypedefSymbol typ ->
-                               fprintf stream "type %s" (typeName typ)
+                               fprintf stream "type %s" (typeDescr typ)
                            | UndefinedSymbol ->
                                fprintf stream "undefined"
                          end;
