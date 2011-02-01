@@ -3,7 +3,7 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
-** slim prelude, move stuff to libraries
+** [#A] slim prelude, move stuff to libraries
    for faster startup
 *** TODO warum dauert makros kompilieren soviel laenger?
 *** TODO remove deprecated AST functions/names
@@ -26,6 +26,10 @@
 ** TODO xpath genauer ankucken. evtl inspiration für pattern matching / tree rewriting
 ** TODO possible template syntax
     func void genericprogr()
+
+      list<!int,string>
+
+      more alternatives:
       list(<int>) ints
       list<(int)> ints
       map<(int,string)> ints
@@ -41,7 +45,6 @@
       list[/int,string/]
       list!(int,string)
       list!<int,string>
-      list<!int,string>
       list<!int,string!>
       list<<int,string>>
       list<_int,string_>
@@ -70,10 +73,11 @@
      ...
    end
 ** haskell view patterns ankucken
+** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
 ** TODO llvm: always inliner pass, createFunctionInliningPass
 ** TODO stack canaries
 ** TODO macros + generic programming
-** TODO eval current defun fails on last func in file
+** TODO eval current defun fails on last func in file                      :bug:
 ** TODO snobol string matching ankucken
 ** TODO type degree := int in :=_type degree int umwandeln
    defkind name := definition+
@@ -93,7 +97,6 @@
 ** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
 ** TODO [#A] GHCs newtype genauer ankucken
-** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
 ** TODO [#A] scala "extractors", F# "active patterns"
 ** TODO [#A] indenting fuegt spaces in leere zeilen ein :emacs:bug:
 ** TODO [#A] can't get address of record
@@ -997,6 +1000,16 @@ also needs to work for circular inclusion
 
    or s-expressions?
    (error "file/name.ext" 100 "error message")
+** TODO [#A] simple testing framework
+   http://www.drdobbs.com/blog/archives/2009/12/a_brutally_simp.html
+   - //// regexp marks line which is expected to cause diagnostics
+   - otherwise just print out multiple identical lines:
+
+     println "--- 3 ---"
+     println "---" (9/3) "---"
+
+     etc.
+
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
@@ -1279,7 +1292,7 @@ also needs to work for circular inclusion
    - [ ] overloaded methods
 
 ** zomp-miniml
-   A minimalistic ml-like language featuring variant types and tuples
+   A minimalistic ml-like language featuring GC, variant types and tuples
 
    - [ ] tuples
    - [ ] variant data types
