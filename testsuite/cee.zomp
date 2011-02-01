@@ -238,6 +238,16 @@ unittest:testCase ArrayPtrDot:
   dealloc points
 end
 
+unittest:testCase SimplePointer:
+  local := 10
+
+  unittest:assertAll:
+    &local ==_ptr local&
+    local&* == 10
+    *&local == 10
+  end
+end
+
 unittest:testCase Semicolon:
   sum := 0
   sum = sum + 999; sum = 0; sum = sum + 1; sum = sum + 2

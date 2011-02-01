@@ -812,6 +812,10 @@ macro preop& obj:
   ret code
 end
 
+template postop& obj:
+  &#obj
+end
+
 template preop* ptr:
   (load #ptr)
 end

@@ -519,8 +519,8 @@ end = struct
        re binnumberRE, idFunc;
       ])
     @ (
-      let postfixOps = ["++"; "--"; "..."; "*"] in
-      let prefixOps = ["*"; "&"; "++"; "--"; "!"; "-"] in
+      let postfixOps = ["++"; "--"; "..."; "*"; "&"; "?"; "!"; "+"] in
+      let prefixOps = ["*"; "&"; "++"; "--"; "!"; "?"; "-"; "+"] in
       let buildRE oplist =
         "\\(" ^ Common.combine "\\|" (List.map Str.quote oplist) ^ "\\)+"
       in

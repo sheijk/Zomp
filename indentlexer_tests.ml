@@ -41,6 +41,8 @@ end = struct
        isValidId ("op" ^ op)]
     in
     let areValidBinOps ops tokenF = List.flatten (List.map (isValidBinOp tokenF) ops) in
+    let isValidPrefixOp op = (op ^ "id"), `Return [PREFIX_OP op; id "id"; END] in
+    let isValidPostfixOp op = ("id" ^ op), `Return [id "id"; POSTFIX_OP op; END] in
     ignore( ids [] );
     [
       isValidId "single";
@@ -181,7 +183,27 @@ end = struct
       "x.10", `Return [id "x"; DOT; id "10"; END];
       "3.toInt", `Return [id "3"; DOT; id "toInt"; END];
 
+      (** prefix and postfix operators *)
+      isValidPrefixOp "*";
+      isValidPrefixOp "&";
+      isValidPrefixOp "++";
+      isValidPrefixOp "--";
+      isValidPrefixOp "!";
+      isValidPrefixOp "?";
+      isValidPrefixOp "-";
+      isValidPrefixOp "+";
+
+      isValidPostfixOp "++";
+      isValidPostfixOp "--";
+      isValidPostfixOp "...";
+      isValidPostfixOp "*";
+      isValidPostfixOp "&";
+      isValidPostfixOp "?";
+      isValidPostfixOp "!";
+      isValidPostfixOp "+";
+
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
+      "blubber&", `Return [id "blubber"; POSTFIX_OP "&"; END];
       "--b", `Return [PREFIX_OP "--"; id "b"; END];
       "a: ++b", `Return [KEYWORD_ARG "a"; PREFIX_OP "++"; id "b"; END];
       "*&blah", `Return [PREFIX_OP "*"; PREFIX_OP "&"; id "blah"; END];
@@ -203,6 +225,7 @@ end = struct
       "foo *ptr", `Return [id "foo"; PREFIX_OP "*"; id "ptr"; END];
       "float*", `Return [id "float"; POSTFIX_OP "*"; END];
       "float* var", `Return [id "float"; POSTFIX_OP "*"; id "var"; END];
+      "&#blah", `Return [PREFIX_OP "&"; QUOTE "#"; id "blah"; END];
 
       "char**", `Return [id "char"; POSTFIX_OP "*"; POSTFIX_OP "*"; END];
       "(float*)*", `Return [OPEN_PAREN; id "float"; POSTFIX_OP "*";

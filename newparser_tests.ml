@@ -256,7 +256,7 @@ struct
 
       "sin x + cos y", `Return [expr "op+" [jux ["sin"; "x"]; jux ["cos"; "y"]]];
 
-      "a +5", `Exception "Unbalanced whitespace";
+      "a %5", `Exception "Unbalanced whitespace";
       "a- b", `Exception "Unbalanced whitespace";
 
       "a > b + 2", `Return [expr "op>" [id "a"; se2 "op+" "b" "2"]];
