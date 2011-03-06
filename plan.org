@@ -1018,6 +1018,20 @@ also needs to work for circular inclusion
    end
 ** TODO [#A] raymarching sample erweitern
    http://pouet.net/topic.php?which=7909
+** TODO [#A] bug in auto indenter inside comments                    :bug:emacs:
+
+/**
+ * A simple experiment to create a shader based 4k
+ *
+     * 
+
+   last line is erroneously detected to be ending with an operator
+** TODO [#A] change func to fn?
+** TODO [#A] type notation
+   - Ptr!List!Ast
+   - *List!Ast
+   - *[Ast]
+   - Ast.List.Ptr
 
 * Use Cases                                                            :usecase:
 

@@ -49,6 +49,56 @@ language might be used. Should guide the syntax related decisions.
      onLeaf: print leaf
      onBranch: print branch
 
+   newline, same indent => insert ;
+   newline, more indent => insert (
+   newline, less indent => insert ) (appropriately often)
+   newline, end         => insert );
+
+   if: a > b * c then: do some operation; call(a, b, c); else: more(stuff); happening(here)
+
+   if: a > b then:
+     do some operation
+     call(a, b, c)
+   else:
+     more(stuff)
+     happening here()
+   end
+
+   if: a > b then:
+     if: x == 0 then:
+       print "nooo"
+       abort()
+   end
+
+   if: a > b then: (if: x == 0 then: print "nooo"; abort())
+
+   type: Foo = int
+   type: Keyframe = (float x, y, z; Time time)
+   type: Keyframe
+     float x, y, z
+     Time time
+   end
+
+   class: Foo
+     int bar
+     int baz
+
+     fn void blah()
+       print "blaah"
+     end
+   end Foo
+
+   switch: e (case: 1 (print "one") case: 2 (print "two") default: (print "many"))
+
+   switch: expression
+     case: 1
+       print "one"
+     case 2:
+       print "two"
+     default:
+       print "many"
+   end
+
 * DONE Misc
 
 ** DONE (foobar) is not parsed different from foobar
