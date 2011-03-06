@@ -1,0 +1,33 @@
+/**
+ * ideas for integration of parser expression grammars
+ */
+
+concept Clonable!T:
+  T clone(T&)
+end
+
+concept ForwardRange!RangeT:
+  type ElemT
+  bool isEmpty(RangeT)
+  ElemT popFront(RangeT)
+end
+
+concept BidirRange!RangeT extends ForwardRange!RangeT:
+  ElemT popBack(RangeT)
+end
+
+concept Sequence!SeqT:
+  type ElemT
+  type RangeT models Range
+  ElemT = Range(RangeT).ElemT
+
+  bool isEmpty(SeqT)
+  ElemT front(SeqT)
+  SeqT back(SeqT)
+end
+
+func int main():
+  ret 0
+end
+
+

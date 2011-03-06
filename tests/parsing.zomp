@@ -1,0 +1,16 @@
+/**
+ * experiments with a macro for convenient parsing
+ * might draw some inspiration from REXX's parse instruction
+ */
+
+func int main():
+  num := stream.parse!int()
+  text := stream.readln()
+
+  parse (string name) " ;" (int x) re" *, *" float
+  // inspiriert von parser expression grammars?
+
+  ret 0
+end
+
+
