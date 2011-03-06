@@ -1,0 +1,149 @@
+///
+/// Design for compiler API
+///
+
+///--- interned strings aka symbols
+
+type InternString:
+  invariant!ptr!char value
+end
+
+InternString internalize(cstring)
+
+type TypeInfo:
+  ro cstring name
+end
+
+fn TypeInfo& typeInfo!T()
+
+///--- ast ---
+
+type Ast is invariant abstract
+fn cstring name(Ast*)
+fn int childCount(Ast*)
+fn Ast* child(Ast*, int index)
+fn uint32 id(Ast*)
+
+fn Ast* makeAst!AstIter(
+    cstring name,
+    AstIter childs,
+    implicit Iterator!AstIter iter)
+fn Ast* insertFirstChild(Ast*, Ast*)
+
+///--- access and modify symbol table ---
+
+type SymbolTable
+type Scope
+type SymbolTableEntry
+
+type Type
+type Function
+type Variable
+type Macro
+type Unknown
+
+variant SymbolTableEntry:
+  Type(Type*)
+  Function(Function*)
+  Variable(Variable*)
+  Macro(Macro*)
+  Unknown
+end
+
+fn SymbolTableEntry* resolve(SymbolTable*, cstring name)
+/// different from SymbolTable resolve, only checks current scope
+fn SymbolTableEntry* lookup(Scope*, cstring name)
+
+fn Scope* newScope()
+fn void insert(Scope*, cstring name, SymbolTableEntry*)
+fn void pushScope(SymbolTable*, Scope*)
+fn void popScope(SymbolTable*, Scope*)
+
+///--- invoke parser ---
+
+type Ast:
+  ro InternString id
+  ro uint childCount
+  ro RandomAccSeq!Ast childs
+end
+
+fn Range!Ast parse(Range!char source)
+fn Range!char toString(Ast*)
+
+///--- invoke compiler/backend ---
+
+module llvm:
+  fn Function* codegenFunction(Ast*)
+  fn GlobalVar* codegenGlobalVar(Ast*)
+  fn Module* codegen(Range!Ast asts)
+end module
+
+/// cause macro expansion
+/// [T] = Range!T
+/// TODO: error handling
+
+/// expand until only primitive forms are left
+fn [Ast] macroFullyExpand(Ast*)
+/// expand one step iff lookup(ast.id) is a macro
+fn [Ast] macroExpandStep(Ast* ast)
+
+///--- core language constructs ---
+
+fn Pair!(T*, DynCastable!T*) core::translate(Ast*, SymbolTable*)
+
+variant Type:
+  SignedInt(int bits)
+  UnsignedInt(int bits)
+  Float(int mantissaBits, int exponentBits)
+  Bool
+  Struct(Array!Pair!(cstring,Type*) fields)
+  Pointer(Type*)
+  Mutable(Type*)
+  FunctionType(cstring name, Array!Type* parameters)
+  NewType(cstring, Type*)
+  TypeAlias(cstring, Type*)
+end
+
+fn cstring name(Type*)
+
+/// sint(8) => Type.SignedInt(8)
+/// struct (int x; int y) => Type.Struct(...)
+/// etc.
+fn Type* core::parseType(Ast*)
+
+struct Variable:
+  cstring name
+  Type* type
+end
+
+variant Value:
+  UnsignedInt(uint128)
+  SignedInt(uint128)
+  etc
+end
+
+variant Expression:
+  Constant(Value*)
+end
+
+struct Label:
+  BasicBlock* target
+end
+
+/// maybe replace with pattern matching?
+struct Branch:
+  Variable* condition
+  Label* onTrue
+  Label* onFalse
+end
+
+struct FunctionDeclaration:
+  cstring name
+  FunctionType* type
+end
+
+struct Function:
+  FunctionDeclaration* declaration
+  BasicBlock* entry
+end
+
