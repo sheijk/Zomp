@@ -1,0 +1,95 @@
+///
+/// Simple experiments with ML style option types
+///
+
+requireLibs libcee unittest
+
+type Option(T):
+  T* ptr
+end
+
+template some type value:
+  structlit Option(#type) ptr #value
+end
+
+template none type:
+  structlit Option(#type) ptr nullptr(#type)
+end
+
+macro ifValid option value onValid more...:
+  invalidElse := false
+  onInvalid := ${}
+
+  if (more.childCount == 0):
+    invalidElse = false
+  elseif (more.childCount == 2):
+    elseAst := ast:child more 0
+    if (elseAst.id ==_str "else"):
+      onInvalid = ast:child more 1
+    else:
+      invalidElse = true
+    end
+  else:
+    invalidElse = true
+  end
+
+  if invalidElse:
+    ret ${error "Invalid else clause" #more}
+  end
+
+  ret ${seq:
+    if !isNull(#option.ptr):
+      #value := *#option.ptr
+      #onValid
+    else:
+      #onInvalid
+    end
+  end}
+end
+
+unittest:testCase MatchSimple:
+  v := 10
+  valid := some int &v
+  checkMatchValid := 1
+  ifValid valid val1:
+    checkMatchValid += val1
+  end
+
+  invalid := none int
+  checkMatchInvalid := 1
+  ifValid invalid val2:
+    checkMatchInvalid = 0
+  end
+
+  unittest:assertAll:
+    checkMatchValid == 11
+    checkMatchInvalid == 1
+  end
+end
+
+unittest:testCase MatchWithElse:
+  v := 10
+  valid := some int &v
+  checkMatchValid := 1
+  ifValid valid val1:
+    checkMatchValid += val1
+  else:
+    checkMatchValid = 0
+  end
+
+  invalid := none int
+  checkMatchInvalid := 1
+  ifValid invalid val2:
+    checkMatchInvalid = 0
+  else:
+    checkMatchInvalid = 3
+  end
+
+  unittest:assertAll:
+    checkMatchValid == 11
+    checkMatchInvalid == 3
+  end
+end
+
+// unittest:main
+
