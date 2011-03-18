@@ -18,11 +18,18 @@ fn TypeInfo& typeInfo!T()
 
 ///--- ast ---
 
-type Ast is invariant abstract
+type MutableAst
+type Ast invariant(MutableAst)
 fn cstring name(Ast*)
 fn int childCount(Ast*)
 fn Ast* child(Ast*, int index)
 fn uint32 id(Ast*)
+
+line,file,etc.
+__LINE__, __FILE__
+in macro: get ast the macro has been invoked on, get current symbol table
+(as this parameter?)
+this.ast, this.symbolTable, this.environment
 
 fn Ast* makeAst!AstIter(
     cstring name,
@@ -58,6 +65,29 @@ fn Scope* newScope()
 fn void insert(Scope*, cstring name, SymbolTableEntry*)
 fn void pushScope(SymbolTable*, Scope*)
 fn void popScope(SymbolTable*, Scope*)
+
+/// turn this into user data?
+fn Range!Variable localVariables()
+fn Range!Variable functionParameters()
+
+/// can be used to store symbol table like data of macros
+
+type STUserData:
+  is DynamicCastable
+  void onNewScope()
+  void onPushScope()
+end
+
+type STUserId
+fn STUserId addUserData(STUserData*)
+fn STUserData* getUserData(STUserId)
+
+
+
+fn Option!T getData(SymbolTable*)
+fn void setData(SymbolTable*, T& data)
+
+
 
 ///--- invoke parser ---
 
