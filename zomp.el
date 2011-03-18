@@ -428,6 +428,8 @@ editor to trigger recompilations etc. and possibly resume main()"
           ;; line, double-indent them (to keep visually seperate from indent
           ;; block)
           (when (and (looking-back zomp-continued-line-regexp)
+                     ;; not in line comments
+                     (not (looking-back "//.*"))
                      ;; don't double-indent after comments
                      (not (looking-back "\\*/ *")))
             (setq left (+ left 4)))
