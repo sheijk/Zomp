@@ -834,7 +834,7 @@ end
 
 macro struct name members:
   unless (name.childCount == 0):
-    ret ${error "Expected id" #name}
+    ret ${error "Expected id (polymorphic types not supported, yet)" #name}
   end
 
   decl := ast:fromString "type"

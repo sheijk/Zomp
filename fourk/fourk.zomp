@@ -1,5 +1,8 @@
 /**
  * A simple experiment to create a shader based 4k
+ *
+ * Todo list:
+ * - change step size proportionally to d for constant screen space error
  */
 
 linkclib "libglfw.dylib" "libGLEW.dylib"

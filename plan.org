@@ -1032,6 +1032,71 @@ also needs to work for circular inclusion
    - *List!Ast
    - *[Ast]
    - Ast.List.Ptr
+** TODO approaches to lambdas
+*** juxtaposition to pass block as parameter-less function argument
+
+    fn times_do(int count, void() action)
+
+    10.times_do { print xxx }
+
+*** syntax for lambdas
+
+    (int x, y) => { print x; print y }
+
+    10.times_do (int i)=>{ ... }
+    10.times_do (int i){ ... }
+    10.times_do {(int i); ... }
+    10.times_do ^(int i){ ... }
+    10.times_do ^{(int i); ... }
+    10.times_do { int i => ... }
+
+    10.times_do:
+      ...
+    end
+
+    10.times_do:
+      (int i)
+      ...
+    end
+
+    10.times_do:
+      ^(int i)
+    end
+
+    10.times_do: { |int i| ... }
+    10.times_do:
+      |int i|
+      ...
+    end
+
+    (int x, int y) =>:
+      print stuff
+    end
+** TODO [#A] opjux could delegate to juxtaposition(T1,T2) for expressions
+
+   XXXSymbol(...) => name bound to XXX in symbol table
+
+   opjux:
+   - opjux MacroSymbol(name) args... => expand macro
+   - opjux first args... => evaluate first argument
+     firstArg = macroExpand(first)
+     - firstArg = FunctionExpression(f) => call f args...
+     - opjux Expression(T1) FunctionExpression(f) args... => call f T1 args...
+       does not allow first param to be a function type
+
+       or
+     - opjux Expression(T1) prefixopr(".", FunctionExpression(f)) args...
+       => call f T1 args...
+     - opjux NumberExpr(T1) NumberExpr(T2)... => mult T1 T2...
+
+       // alternatively make it programmable
+     - opjux Expression(T1) args... => juxtaposition(t1, ...)
+       evtl.
+       fn RetT juxtaposition(RetT(T1) f, T1)
+       fn RetT juxtaposition(RetT(T1,...) f, T1, ...)
+       [fn RetT juxtaposition(T1, RetT(T1) f, T2)]
+       how to make it generic for any number of arguments?
+
 
 * Use Cases                                                            :usecase:
 
