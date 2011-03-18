@@ -36,7 +36,7 @@ include config.mk
 FLYMAKE_LOG=flymake.log
 include flymake.mk
 
-include depends.mk
+-include depends.mk
 include testsuite/makefile
 include examples/makefile
 include examples/smallpt/makefile
@@ -324,6 +324,8 @@ machine.cmo: machine.skel dllzompvm.so
 machine.cmx: machine.skel dllzompvm.so
 zompvm.cmo: machine.cmo
 zompvm.cmx: machine.cmx
+parseutils.cmo: sexprlexer.cmo
+parseutils.cmx: sexprlexer.cmx
 
 lang.cmi: common.cmo
 bindings.cmi: common.cmo lang.cmo
@@ -331,12 +333,13 @@ bindings.cmi: common.cmo lang.cmo
 ################################################################################
 # Additional utility targets
 ################################################################################
+
 TAGS:
 	@$(ECHO) Generating tags ...
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
 # generate a file for graphviz which visualizes the dependencies between modules
-deps.dot deps.png: depends.mk $(CAMLDEP_INPUT)
+deps.dot deps.png: depends.mk $(CAMLDEP_INPUT) $(LANG_CMOS)
 	@$(ECHO) Generating dependency graph for graphviz ...
 	$(OCAMLDOC) -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) newparser.ml sexprlexer.ml sexprparser.ml
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"

@@ -97,3 +97,6 @@ tools
 /examples/.DS_Store
 /runtime.bc
 /runtime.ll
+/TAGS
+/assimp_quicklook
+/devel/Instruments.trace
