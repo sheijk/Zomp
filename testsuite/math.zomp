@@ -2,8 +2,7 @@
  * Testing the math lib
  */
 
-requireLibs libcee
-requireLibs unittest
+requireLibs libcee unittest math
 
 func v3f v(float x, float y, float z):
   ret (structlit v3f x x y y z z)

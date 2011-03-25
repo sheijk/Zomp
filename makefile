@@ -54,7 +54,7 @@ CXXFLAGS += -pg -g
 CCFLAGS += -pg -g
 else
 $(info Release build, LLVM variant = $(LLVM_VARIANT))
-CXXFLAGS += -O5
+CXXFLAGS += -O3
 endif
 
 ################################################################################
