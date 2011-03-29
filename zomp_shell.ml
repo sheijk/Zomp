@@ -490,7 +490,7 @@ let () =
            let newBindings, time = recordTiming
              (fun () ->
                 let newBindings, simpleforms, llvmCode =
-                  Compileutils.compileExpr Expander.translateTL bindings expr
+                  Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
                 in
                 onSuccess newBindings simpleforms llvmCode;
                 newBindings)
@@ -514,7 +514,7 @@ let () =
            in
            try
              let newBindings, simpleforms, llvmCode =
-               Compileutils.compileExpr Expander.translateTL bindings exprInFunc
+               Compileutils.compileExpr Compileutils.translateTLNoError bindings exprInFunc
              in
              onSuccess newBindings simpleforms llvmCode;
              runFunction newBindings immediateFuncName;
@@ -566,10 +566,12 @@ let () =
 
   let includePath = ref ["."] in
   let handleLLVMCode code = () in
-  let translateInclude = Expander.translateInclude includePath handleLLVMCode in
-  let addToplevelInstr = Hashtbl.add Expander.toplevelBaseInstructions in
+  let translateInclude =
+    Expander.makeTranslateIncludeFunction includePath handleLLVMCode
+  in
+  let addToplevelInstr = Expander.addToplevelInstruction in
   addToplevelInstr "include" translateInclude;
-  addToplevelInstr "seq" (Expander.translateSeqTL handleLLVMCode);
+  addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
   addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
 
   message "Loading prelude...";

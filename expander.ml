@@ -752,7 +752,6 @@ end
 
 (** "new" compiler types *)
 
-
 type 'a mayfail =
   | Result of 'a
   | Error of string list
@@ -1658,13 +1657,13 @@ let translateFromDict
   with Not_found ->
     None
 
-let rec translate errorF translators bindings expr =
+let rec translate errorF translators bindings (expr :Ast2.t) =
   let rec t = function
     | [] -> errorF expr "No translator matched expression"
     | f :: remf -> begin
         Zompvm.currentBindings := bindings;
         match f (translate errorF translators) bindings expr with
-          | Some (newBindings, result) -> (newBindings, result)
+          | Some ((newBindings : Bindings.t), result) -> (newBindings, result)
           | None -> t remf
       end
   in
@@ -1984,7 +1983,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     | `NotAFunc _ ->
         None
 
-and translateTL bindings expr = translate raiseIllegalExpression
+and translateTLNoErr bindings expr = translate raiseIllegalExpression
   [
     sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions);
     sampleFunc3 "translateGlobalVar" Translators_deprecated_style.translateGlobalVar;
@@ -1996,8 +1995,13 @@ and translateTL bindings expr = translate raiseIllegalExpression
   ]
   bindings expr
 
-let translateTL = Common.sampleFunc2 "translateTL" translateTL
+let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
+let translateTL bindings expr = Result (translateTLNoErr bindings expr)
+
+type toplevelTranslationFunction =
+    toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
+  
 let translateInclude includePath handleLLVMCodeF (env : toplevelExprTranslateF env) expr =
   let importFile fileName =
     let fileContent =
@@ -2041,5 +2045,13 @@ let translateInclude includePath handleLLVMCodeF (env : toplevelExprTranslateF e
              end
          | _ ->
              Error ["Expecting 'include \"fileName.zomp\"'"])
+
+let addToplevelInstruction name f =
+  Hashtbl.add toplevelBaseInstructions name f
+
+let makeTranslateSeqFunction handleLLVMCodeF =
+  translateSeqTL handleLLVMCodeF
+let makeTranslateIncludeFunction includePath handleLLVMCodeF =
+  translateInclude includePath handleLLVMCodeF
 
 

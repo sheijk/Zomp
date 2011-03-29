@@ -215,10 +215,12 @@ let () =
                   let compilerDir = Filename.dirname options.execNameAndPath in
                   addIncludePath compilerDir `Front;
                   let handleLLVMCode code = output_string outStream code in
-                  let translateInclude = Expander.translateInclude includePath handleLLVMCode in
-                  let addToplevelInstr = Hashtbl.add Expander.toplevelBaseInstructions in
+                  let translateInclude =
+                    Expander.makeTranslateIncludeFunction includePath handleLLVMCode
+                  in
+                  let addToplevelInstr = Expander.addToplevelInstruction in
                   addToplevelInstr "include" translateInclude;
-                  addToplevelInstr "seq" (Expander.translateSeqTL handleLLVMCode);
+                  addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
                   addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
                   try
                     let exitCode = compile inputFileName inStream outStream in

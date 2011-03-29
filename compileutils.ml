@@ -9,6 +9,11 @@ open Parseutils
 exception CatchedError of string
 let signalError msg = raise (CatchedError msg)
 
+let translateTLNoError bindings expr =
+  match Expander.translateTL bindings expr with
+    | Expander.Result r -> r
+    | Expander.Error errors -> failwith "unexpected failure in Expander.translateTL"
+
 let compileExpr translateF bindings sexpr =
   let newBindings, simpleforms =
     collectTimingInfo "generating ast"
@@ -24,7 +29,7 @@ let compileExpr translateF bindings sexpr =
 let rec parse parseF lexbuf bindings codeAccum =
   try
     let expr = parseF lexbuf in
-    let newBindings, simpleforms = Expander.translateTL bindings expr in
+    let newBindings, simpleforms = translateTLNoError bindings expr in
     parse parseF lexbuf newBindings (codeAccum @ simpleforms)
   with
     | Sexprlexer.Eof | Indentlexer.Eof -> bindings, codeAccum
@@ -66,7 +71,7 @@ let rec compile
        match readExpr bindings with
          | Some expr ->
              let () = beforeCompilingExpr expr in
-             let newBindings, simpleforms, llvmCode = compileExpr Expander.translateTL bindings expr in
+             let newBindings, simpleforms, llvmCode = compileExpr translateTLNoError bindings expr in
              let () = onSuccess expr bindings newBindings simpleforms llvmCode in
              compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onError newBindings
          | None ->
