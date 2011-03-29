@@ -1117,6 +1117,15 @@ also needs to work for circular inclusion
    in exceptions? how to identify sub graph, is it enough if there is just no return?
 
 ** TODO [#A] does ++= exists? are all operators symmetric, yet?
+** TODO [#A] syntax for type definitions
+   print(struct{ int a, b, c } pt)
+   print(struct( int a, b, c) pt)
+   print(struct.{ int a, b c; } pt)
+   print({int a, b, c} pt)
+
+   type foo := { int a, b, c }
+   type foo is int
+   type foo is { int a, b, c }
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
