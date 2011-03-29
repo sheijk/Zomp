@@ -148,23 +148,27 @@ struct
                  let matches re string = Str.string_match (Str.regexp re) string 0 in
                  let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
                  if not (matches dllPattern fileName) then
-                   Error [sprintf "%s has invalid extension for a dll. Supported: %s"
-                            fileName (Common.combine ", " dllExtensions)]
+                   Expander.errorFromString
+                     (sprintf "%s has invalid extension for a dll. Supported: %s"
+                            fileName (Common.combine ", " dllExtensions))
                  else
                    match Common.findFileIn fileName !clibPath with
                      | None ->
-                         Error [sprintf "Could not find library '%s' in paths %s"
-                                  fileName
-                                  (Common.combine ", " !clibPath)]
+                         Expander.errorFromString
+                           (sprintf "Could not find library '%s' in paths %s"
+                              fileName
+                              (Common.combine ", " !clibPath))
                      | Some absoluteFileName ->
                          let handle = Zompvm.zompLoadLib absoluteFileName in
                          if handle = 0 then
-                           Error [sprintf "Could not load C library '%s'\n" fileName]
+                           Expander.errorFromString
+                             (sprintf "Could not load C library '%s'\n" fileName)
                          else
-                           Result (env.Expander.bindings, [])
+                           Expander.tlReturnNoExprs env
                end
            | invalidExpr ->
-               Error [sprintf "Expecting '%s fileName" invalidExpr.Ast2.id])
+               Expander.errorFromString
+                 (sprintf "Expecting '%s fileName" invalidExpr.Ast2.id))
 end
 
 type options = {

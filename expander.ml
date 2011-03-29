@@ -752,19 +752,26 @@ end
 
 (** "new" compiler types *)
 
+
+type 'a mayfail =
+  | Result of 'a
+  | Error of string list
+
+let errorFromString msg = Error [msg]
+let result r = Result r
+
+let combineErrors msg = function
+  | [] -> msg ^ ": no error message given"
+  | errors -> msg ^ ": " ^ Common.combine "\n  " errors
+
 type 'translateF env = {
   bindings :Bindings.t;
   translateF :'translateF;
   parseF :string -> Ast2.t list option;
 }
 
-type 'a mayfail =
-  | Result of 'a
-  | Error of string list
-
-let combineErrors msg = function
-    | [] -> msg ^ ": no error message given"
-    | errors -> msg ^ ": " ^ Common.combine "\n  " errors
+type toplevelEnv = Translation_utils.toplevelExprTranslateF env
+let tlReturnNoExprs env = Result (env.bindings, [])
 
 type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 type toplevelTranslationResult = (bindings * (toplevelExpr list)) mayfail
@@ -1991,7 +1998,7 @@ and translateTL bindings expr = translate raiseIllegalExpression
 
 let translateTL = Common.sampleFunc2 "translateTL" translateTL
 
-let translateInclude includePath handleLLVMCodeF env expr =
+let translateInclude includePath handleLLVMCodeF (env : toplevelExprTranslateF env) expr =
   let importFile fileName =
     let fileContent =
       collectTimingInfo "readFileContent"
