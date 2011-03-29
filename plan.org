@@ -1096,8 +1096,27 @@ also needs to work for circular inclusion
        fn RetT juxtaposition(RetT(T1,...) f, T1, ...)
        [fn RetT juxtaposition(T1, RetT(T1) f, T2)]
        how to make it generic for any number of arguments?
+** TODO [#A] identification of expressions in the presence of goto statements
+   assign each expression a sequence number seq
+     first parent, then children
 
+   then assign a max jump target number max_target_seq
+     foreach BranchExpr b:
+       b.max_target_seq = max(b.target_a.seq, b.target_b.seq)
+       b.min_target_seq = min(b.target_a.seq, b.target_b.seq)
+     Expr e.max_target_seq = max(max_target_seq of children(e))
+     Expr e.min_target_seq = min(min_target_seq of children(e))
 
+   bool is_expression(Form f):
+     f.max_target_seq < f.successor.seq && f.min_target_seq >= f.seq
+
+   => check that no branch leaves the expression
+
+   TODO: maybe define something like a "exception" sub graph which will never
+   return to the regular control flow and allow jumps into this sub graph even
+   in exceptions? how to identify sub graph, is it enough if there is just no return?
+
+** TODO [#A] does ++= exists? are all operators symmetric, yet?
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
