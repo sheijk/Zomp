@@ -1,0 +1,88 @@
+/// 
+/// Testing what happens on expressions containing jumps
+/// 
+
+requireLibs libcee unittest
+
+// macro hasType var type:
+//   uniqueId tmp "hasType"
+//   ret ${seq:
+//     #tmp := nullptr #type
+//     #tmp = &#var
+//   end}
+// end
+
+unittest:testCase defVarFromSequence:
+  x := (println "abc"; 10)
+
+  // TODO gets type void
+  y := seq:
+    10
+  end
+
+  unittest:assertAll:
+    x == 10
+    // y == 20
+  end
+end
+
+unittest:testCase JumpInsideExpr:
+  x := seq:
+    tmp := 10
+    branch afterInit
+    ++tmp
+    label afterInit
+    tmp
+  end
+
+  unittest:assertAll:
+    x == 10
+  end
+end
+
+/// should this really be allowed/work?
+unittest:testCase JumpOutOfExpr:
+  x := 10
+
+  x = seq:
+    tmp := 666
+    branch skipAssignment
+    tmp
+  end
+
+  label skipAssignment
+
+  unittest:assertAll:
+    x == 10
+  end
+end
+
+/// should this really be allowed/work?
+unittest:testCase JumpIntoExpr:
+  tmp := 10
+  branch withinInit
+  x := seq:
+    tmp = 10
+    label withinInit
+    tmp
+  end
+
+  unittest:assertAll:
+  end
+end
+
+/// maybe introduce some "closed" form which does not allow jumps from/to
+/// outside locations like this
+// func void demo():
+//   x := closedCFG:
+//     tmp := 10
+//     branch afterInit // error
+//     tmp
+//   end
+// end
+
+func int main():
+  ret 0
+end
+
+
