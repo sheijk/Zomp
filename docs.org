@@ -1,20 +1,35 @@
 
 * What is it
 
-Zomp is a programming language which I designed and wrote a compiler for as a spare time project. It is currently a one man project. Most of the basic compiler is implemented and I have written a few small OpenGL test programs with it. Releasing it under an Open Source licence is intended for some time in the future. A version running on OS X is available on request, compiling and using it on Linux should be possible.
+Zomp is a programming language which I designed and wrote a compiler for as a
+spare time project. It is currently a one man project. Most of the basic
+compiler is implemented and I have written a few small OpenGL test programs with
+it. Releasing it under an Open Source licence is intended for some time in the
+future. A version running on OS X is available on request, compiling and using
+it on Linux should be possible.
 
 * Features
 
 - Lisp-like macro system to extend the language in libraries
 - Full hardware access through vector instructions, pointers etc.
 - Interactive shell for rapid prototyping (similar to irb, python)
-- Powerful and friendly syntax which allows to express new language constructs without changing the grammar
+- Powerful and friendly syntax which allows to express new language constructs
+  without changing the grammar
 
 * Motivation
 
-Zomp's fundamental concept is to create a language which gives much more power to library developers than most existing languages do. It is intended to provide much of the expressiveness and extensibility of higher level languages for those application domains where C and C++ still dominate like graphics programming and embedded/real-time systems. 
+Zomp's fundamental concept is to create a language which gives much more power
+to library developers than most existing languages do. It is intended to provide
+much of the expressiveness and extensibility of higher level languages for those
+application domains where C and C++ still dominate like graphics programming and
+embedded/real-time systems.
 
-Languages like C, Pascal and C++ provide a fixed set of constructs like loops, classes etc. from which programs can be composed. Even though these constructs are sufficient to write large programs many applications can benefit from the possibility to extend the language with custom constructs. There have been languages which allow this for a long time, like Lisp, Smalltalk, Ruby, Python etc.
+Languages like C, Pascal and C++ provide a fixed set of constructs like loops,
+classes etc. from which programs can be composed. Even though these constructs
+are sufficient to write large programs many applications can benefit from the
+possibility to extend the language with custom constructs. There have been
+languages which allow this for a long time, like Lisp, Smalltalk, Ruby, Python
+etc.
 
 The goal of Zomp is to create a programming language in which libraries cannot only provide new data types and functions but also new programming language constructs and which on the same time allows the user full access to the underlying hardware.
 
@@ -122,8 +137,23 @@ end
 
 ** Message passing, Reflection
 
-Language like Python, Ruby or Smalltalk use a concept called Message Passing to implement member methods. A message is an object which describes a function call. When an expression like "obj.printTo(stderr)" is executed a message with the name printTo and parameter stderr is sent to the object obj. When an object receives a message it looks up whether it has a member method with a matching name and arguments and if found calls it. If no method can be found a special method (called method_missing in Ruby) is called with an object describing the message. Then the message can be processed in any way. An error can be triggered, the message can be serialized, sent over the network etc. By repyling to the message the object will pretend to have a matching method.
-Example use cases for this would be serialization (simply send messages for each found property so the serializer does not need to know anything about the loaded object) or faking the existence of method or properties so that the data structure of a system can be loaded from a configuration file (like it is done in Apples Core Data API). Implementing this in C++ can be done but is inconvenient and inefficient because methods have to be identified using strings instead of hashes and message dispatching has to be done manually.
+Language like Python, Ruby or Smalltalk use a concept called Message Passing to
+implement member methods. A message is an object which describes a function
+call. When an expression like "obj.printTo(stderr)" is executed a message with
+the name printTo and parameter stderr is sent to the object obj. When an object
+receives a message it looks up whether it has a member method with a matching
+name and arguments and if found calls it. If no method can be found a special
+method (called method_missing in Ruby) is called with an object describing the
+message. Then the message can be processed in any way. An error can be
+triggered, the message can be serialized, sent over the network etc. By repyling
+to the message the object will pretend to have a matching method.  Example use
+cases for this would be serialization (simply send messages for each found
+property so the serializer does not need to know anything about the loaded
+object) or faking the existence of method or properties so that the data
+structure of a system can be loaded from a configuration file (like it is done
+in Apples Core Data API). Implementing this in C++ can be done but is
+inconvenient and inefficient because methods have to be identified using strings
+instead of hashes and message dispatching has to be done manually.
 
 msgclass Foo
   method printTo(Stream stream)
@@ -158,11 +188,34 @@ end
 
 ** More
 
-There are lots of other things which I will only mention here briefly. Think of everything other languages provide - lazy evaluation, pattern matching, enums with additional parameters per case (variant data types), SQL like queries on arbitrary data types like in Microsoft's LINQ, directly expressing scene graphs, all kinds of Domain Specific Languages, conditional compilation, type classes, making masses, units of length, etc. distinct types to get rid of conversion errors and much more. Thanks to the macro system most of it should be possible to be implemented as a library in Zomp.
+There are lots of other things which I will only mention here briefly. Think of
+everything other languages provide - lazy evaluation, pattern matching, enums
+with additional parameters per case (variant data types), SQL like queries on
+arbitrary data types like in Microsoft's LINQ, directly expressing scene graphs,
+all kinds of Domain Specific Languages, conditional compilation, type classes,
+making masses, units of length, etc. distinct types to get rid of conversion
+errors and much more. Thanks to the macro system most of it should be possible
+to be implemented as a library in Zomp.
 
 ** Drawbacks and possible problems
 
-Even though the macro system can be very powerful it won't magically bring the perfect language to life. Adding lots of language features will not automatically create a great programming language: the features will have to supplement each other in order to avoid complications when combining them. Even though it is to early to know where problems will occur there are already some possible problems visible. Especially overlapping functionality might cause problems because parts of the library might be needed twice - once in each overlapping part of the library (think of different object systems etc.). Runtimes for various features might conflict. Also the low level access to pointers might cause troubles if one intends to create a language which is safe from crashes. Many advances in language technology have been adding restrictions like getting rid of multiple entry points per function, access rights, replacing frequent gotos with structured programming or prohibiting side effects and mutable variables in Haskell. Adding such restrictions in a language featuring a Lisp like macro system might require significant research. I will only be able to implement a small fraction of those ideas myself. The bright side of this is that the project promises to keep challenging for a while :)
+Even though the macro system can be very powerful it won't magically bring the
+perfect language to life. Adding lots of language features will not
+automatically create a great programming language: the features will have to
+supplement each other in order to avoid complications when combining them. Even
+though it is to early to know where problems will occur there are already some
+possible problems visible. Especially overlapping functionality might cause
+problems because parts of the library might be needed twice - once in each
+overlapping part of the library (think of different object systems
+etc.). Runtimes for various features might conflict. Also the low level access
+to pointers might cause troubles if one intends to create a language which is
+safe from crashes. Many advances in language technology have been adding
+restrictions like getting rid of multiple entry points per function, access
+rights, replacing frequent gotos with structured programming or prohibiting side
+effects and mutable variables in Haskell. Adding such restrictions in a language
+featuring a Lisp like macro system might require significant research. I will
+only be able to implement a small fraction of those ideas myself. The bright
+side of this is that the project promises to keep challenging for a while :)
 
 
 * A simple OpenGL example
