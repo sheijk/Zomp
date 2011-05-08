@@ -64,12 +64,12 @@ testsuite/preludevalid: $(ZOMPC) prelude.zomp source/runtime.c
 ifeq "$(TESTSUITE_NO_PRELUDE)" ""
 	@$(ECHO) Checking whether prelude compiles ...
 	@rm -f testsuite/$@.zomp testsuite/$@.ll testsuite/$@.o.bc testsuite/$@.bc testsuite/$@
-	@echo "std:base:func int main():\n  ret 0\nend\n" > testsuite/preludevalid.zomp
-	@$(ZOMPC) -c testsuite/preludevalid.zomp
-	@$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
-	@$(LLVM_LINK) -f source/runtime.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
-	@$(LLVM_LLI) testsuite/preludevalid.bc
-	@touch $@
+	@echo "std:base:func int main():\n  std:base:ret 0\nend\n" > testsuite/preludevalid.zomp
+	$(ZOMPC) -c testsuite/preludevalid.zomp
+	$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
+	$(LLVM_LINK) -f source/runtime.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
+	$(LLVM_LLI) testsuite/preludevalid.bc
+	touch $@
 else
 	@$(ECHO) Ignoring whether prelude compiles ...
 	@$(ECHO) "Checking of prelude validity disabled by TESTSUITE_NO_PRELUDE" > $@
@@ -77,7 +77,7 @@ endif
 
 testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevalid $(ZOMPC)
 	@$(ECHO) Compiling $(<) to .ll ...
-	@$(ZOMPC) -c $<
+	$(ZOMPC) -c $<
 
 testsuite/%.bc: testsuite/%.ll prelude.zomp source/runtime.c
 	@echo Compiling $< to $@
@@ -88,6 +88,21 @@ testsuite/%.test: testsuite/%.bc
 	@$(ECHO) Running test $(<:.bc=) ...
 	@$(LLVM_LLI) $<
 	@touch $@
+
+# see also examples/makefile
+testsuite/%.s: testsuite/%.bc
+	@$(ECHO) Assembling $@ ...
+	$(LLVM_LLC) -o $@ -march=x86 $<
+# testsuite/%.o: testsuite/%.s
+# 	@$(ECHO) Making $@ ...
+# 	$(AS) -o $@ $< -arch i386
+# testsuite/runtime.s: runtime.zomp
+# 	@$(ECHO) Making $@ ...
+# 	$(LLVM_LLC) -o $@ runtime.bc -f -march=x86
+# testsuite/%.exe: testsuite/%.o runtime.o
+# 	@$(ECHO) Making $@ ...
+# 	$(CC) $(CFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
+
 
 ################################################################################
 # Validating error location reporting

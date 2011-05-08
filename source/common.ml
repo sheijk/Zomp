@@ -15,6 +15,7 @@ let rec fromTo min max =
   if min > max then []
   else min :: fromTo (min+1) max
 
+(** TODO: check if String.concat is as fast, replace it *)
 let rec combine seperator strings =
   match strings with
     | [] -> ""

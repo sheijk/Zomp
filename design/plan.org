@@ -679,6 +679,8 @@ von http://lambda-the-ultimate.org/node/2884
    also allow a unit-power in constructors
    1000m = 1km
    10kg .uncomparableTo 10min
+
+   better: make type system expressible enough to write as library
 ** TODO [#A] ++i or +i
    Pre- and postfix operators consist of only one symbol. This conflicts with
    using ++ and -- for in/decrement.
@@ -1135,6 +1137,13 @@ also needs to work for circular inclusion
    let unit tests create a .test_report file which contains some information
    about the last test run (like command output, return value, errors, time
    taken for test run, time and date of test run etc.)
+** TODO [#A] impulse function
+   float impulse( float b, float x )
+   {
+       const float h = b*x;
+       return h*expf(1.0f-h);
+   }
+http://www.iquilezles.org/blog/?p=1451
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
