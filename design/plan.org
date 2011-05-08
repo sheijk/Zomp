@@ -1131,6 +1131,10 @@ also needs to work for circular inclusion
    type foo := { int a, b, c }
    type foo is int
    type foo is { int a, b, c }
+** TODO [#A] unit test reporting
+   let unit tests create a .test_report file which contains some information
+   about the last test run (like command output, return value, errors, time
+   taken for test run, time and date of test run etc.)
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
