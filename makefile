@@ -127,8 +127,8 @@ NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo i
 
 TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 
-.PHONY: runtestsuite perftest2 perftest runtestsuite runtests \
-   profile_comp exampletests runmltests mltest alltests
+.PHONY: runtestsuite perftest2 perftest runtestsuite runtests
+.PHONY: profile_comp exampletests runmltests mltest alltests
 
 alltests: runmltests runtestsuite exampletests
 
@@ -150,7 +150,7 @@ profile_comp: zompc zompc.native source/runtime.bc libs/opengl20.zomp libs/glfw.
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
-runtests: $(LANG_CMOS) #expander_tests.cmo
+runtests: $(LANG_CMOS)
 	@$(ECHO) Running tests ...
 	cd tests && time make clean_tests check
 
@@ -279,9 +279,6 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	touch $@ # tar sets date from archive. avoid downloading the archive twice
 	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
-
-tools/llvm: tools/llvm-$(LLVM_VERSION)
-	@$(ECHO) Building LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
 	@$(ECHO) Linking $@ to tools/llvm-$(LLVM_VERSION)
 	ln -s llvm-$(LLVM_VERSION) $@
@@ -289,8 +286,6 @@ tools/llvm: tools/llvm-$(LLVM_VERSION)
 tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
-
-tools/llvm/TAGS: tools/llvm-$(LLVM_VERSION)/TAGS
 
 LLVM_LIBS=`$(LLVM_CONFIG) --libs all | $(SED) 's![^ ]*/Release/lib/LLVMCBase.o!!'`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
@@ -371,10 +366,11 @@ loc_stats_no_summary:
 loc_stats: loc_stats_no_summary
 	make -ks loc_stats_no_summary | grep total | awk '{ sum = sum + $$1; } END { print sum " total lines of code "; }'
 
+GITSTATS = $(ZOMP_TOOL_PATH)/gitstats/gitstats
 .PHONY: git_repo_stats
 git_repo_stats:
 	@$(ECHO) "Creating git repository statistincs ..."
-	$(ZOMP_TOOL_PATH)/gitstats/gitstats . build/stats
+	$(GITSTATS) . build/stats
 	@$(ECHO) "Open build/stats/index.html to see git repository statistics"
 
 ################################################################################
