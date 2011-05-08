@@ -371,6 +371,12 @@ loc_stats_no_summary:
 loc_stats: loc_stats_no_summary
 	make -ks loc_stats_no_summary | grep total | awk '{ sum = sum + $$1; } END { print sum " total lines of code "; }'
 
+.PHONY: git_repo_stats
+git_repo_stats:
+	@$(ECHO) "Creating git repository statistincs ..."
+	$(ZOMP_TOOL_PATH)/gitstats/gitstats . build/stats
+	@$(ECHO) "Open build/stats/index.html to see git repository statistics"
+
 ################################################################################
 # Cleaning
 ################################################################################
@@ -378,7 +384,7 @@ loc_stats: loc_stats_no_summary
 .PHONY: clean clean_tags clean_all
 
 clean: testsuite/clean examples/clean
-	@$(ECHO) Cleaning...
+	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) source/zompc.o source/zomp_shell.o

@@ -111,3 +111,4 @@ tools
 /source/runtime.o
 /source/zompvm.o
 /source/zompvm_dummy.o
+/build
