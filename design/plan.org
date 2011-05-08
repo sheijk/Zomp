@@ -3,6 +3,7 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO [#A] llvm: hotpatch, sspreq attributes
 ** [#A] slim prelude, move stuff to libraries
    for faster startup
 *** TODO warum dauert makros kompilieren soviel laenger?
@@ -74,8 +75,8 @@
    end
 ** haskell view patterns ankucken
 ** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
+** TODO [#A] scala "extractors", F# "active patterns"
 ** TODO llvm: always inliner pass, createFunctionInliningPass
-** TODO stack canaries
 ** TODO macros + generic programming
 ** TODO eval current defun fails on last func in file                      :bug:
 ** TODO snobol string matching ankucken
@@ -97,7 +98,6 @@
 ** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
 ** TODO [#A] GHCs newtype genauer ankucken
-** TODO [#A] scala "extractors", F# "active patterns"
 ** TODO [#A] indenting fuegt spaces in leere zeilen ein :emacs:bug:
 ** TODO [#A] can't get address of record
 ** TODO [#A] #foo.bar does not work :bug:parser:
@@ -1061,6 +1061,11 @@ also needs to work for circular inclusion
 
     10.times_do:
       ^(int i)
+      ...
+    end
+
+    10.times_do ^(int i):
+      ...
     end
 
     10.times_do: { |int i| ... }
