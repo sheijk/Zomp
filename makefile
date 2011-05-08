@@ -67,7 +67,7 @@ all: byte native runtime.bc runtime.ll libbindings TAGS deps.png mltest \
     zompvm_dummy.o
 libbindings: gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
     libs/glfw.zomp libs/glut.zomp libs/libglut.dylib libs/quicktext.zomp \
-    libs/libquicktext.dylib libutils.dylib
+    libs/libquicktext.dylib libs/libutils.dylib
 byte: dllzompvm.so zompc zomp_shell
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
@@ -228,7 +228,7 @@ libs/libquicktext.dylib: libs/glQuickText.o
 	@$(ECHO) Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ libs/glQuickText.o $(LINK_GL)
 
-libutils.dylib: libutils.cpp
+libs/libutils.dylib: libs/libutils.cpp
 	@$(ECHO) Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) $< -o $@
 
@@ -363,7 +363,7 @@ ML_SRC_FILES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
 loc_stats_no_summary:
 	$(LS) $(wildcard *.ml *.mli *.mly *.mll) | grep -v sexprparser.ml | grep -v newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
-	$(LINE_COUNT) libutils.cpp prelude.zomp runtime.c zomp.el zomputils.h zompvm.cpp zompvm.h zompvm_dummy.cpp | $(SORT) -n
+	$(LINE_COUNT) libs/libutils.cpp prelude.zomp runtime.c zomp.el zomputils.h zompvm.cpp zompvm.h zompvm_dummy.cpp | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.skel) | $(SORT) -n
 	$(LS) $(wildcard libs/*.zomp) | grep -v libs/opengl20.\*\.zomp | grep -v libs/glfw\.zomp | grep -v libs/quicktext\.zomp | grep -v libs/glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard examples/*.zomp) | $(SORT) -n
@@ -407,7 +407,7 @@ clean: testsuite/clean examples/clean
 	$(RM) -f expandertests.cm? alltests.cm? alltests
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
-	$(RM) -f libutils.dylib
+	$(RM) -f libs/libutils.dylib
 
 clean_tags:
 	$(RM) -f *.annot
