@@ -61,10 +61,13 @@ endif
 # Combined/main targets
 ################################################################################
 
+.PHONY: all libbindings byte native
+
 all: byte native runtime.bc runtime.ll libbindings TAGS deps.png mltest \
     zompvm_dummy.o
-libbindings: gen_c_bindings opengl20.zomp opengl20print.zomp glfw.zomp glut.zomp \
-    libglut.dylib quicktext.zomp libquicktext.dylib libutils.dylib
+libbindings: gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
+    libs/glfw.zomp libs/glut.zomp libs/libglut.dylib libs/quicktext.zomp \
+    libs/libquicktext.dylib libutils.dylib
 byte: dllzompvm.so zompc zomp_shell
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
@@ -147,7 +150,7 @@ exampletests:
 
 PROF_COMP_TARGET=metaballs
 
-profile_comp: zompc zompc.native runtime.bc opengl20.zomp glfw.zomp
+profile_comp: zompc zompc.native runtime.bc libs/opengl20.zomp libs/glfw.zomp
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
@@ -210,17 +213,20 @@ runtime.bc runtime.ll: runtime.c
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
 
+libs/%.o: libs/%.c
+	$(CC) $(CCFLAGS) -c -o $@ $<
+
 ################################################################################
 # External libraries
 ################################################################################
 
-libglut.dylib:
+libs/libglut.dylib:
 	@$(ECHO) Building $@ ...
 	$(CC) $(DLL_FLAG) $(LDFLAGS) $(LINK_GLUT) -o $@
 
-libquicktext.dylib: glQuickText.o
+libs/libquicktext.dylib: libs/glQuickText.o
 	@$(ECHO) Building $@ ...
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ glQuickText.o $(LINK_GL)
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ libs/glQuickText.o $(LINK_GL)
 
 libutils.dylib: libutils.cpp
 	@$(ECHO) Building $@ ...
@@ -250,11 +256,15 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
 	./gen_c_bindings -lang zomp $(<:.skel=)
 
-opengl20print.zomp: opengl20.skel gen_c_bindings
+libs/%.zomp: libs/%.skel gen_c_bindings
+	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
+	./gen_c_bindings -lang zomp $(<:.skel=)
+
+libs/opengl20print.zomp: libs/opengl20.skel gen_c_bindings
 	@$(ECHO) Generating OpenGL enum printer ...
-	$(CP) opengl20.skel opengl20print.skel
-	./gen_c_bindings -lang zomp-glprinter opengl20print
-	$(RM) -f opengl20print.skel
+	$(CP) libs/opengl20.skel libs/opengl20print.skel
+	./gen_c_bindings -lang zomp-glprinter $(@:.zomp=)
+	$(RM) -f libs/opengl20print.skel
 
 ################################################################################
 # LLVM download and compilation
@@ -309,9 +319,6 @@ CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gen_c_bindings.ml genll
     newparser_tests.ml parseutils.ml compileutils.ml semantic.ml               \
     zomp_shell.ml testing.ml typesystems.ml zompc.ml zompvm.ml
 
-glfw.zomp: gen_c_bindings
-opengl20.zomp: gen_c_bindings
-
 newparser.ml: newparser.mly ast2.cmo
 newparser_tests.cmo: newparser.cmo
 newparser_tests.cmx: newparser.cmx
@@ -358,7 +365,7 @@ loc_stats_no_summary:
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
 	$(LINE_COUNT) libutils.cpp prelude.zomp runtime.c zomp.el zomputils.h zompvm.cpp zompvm.h zompvm_dummy.cpp | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.skel) | $(SORT) -n
-	$(LS) $(wildcard libs/*.zomp) | grep -v opengl20.\*\.zomp | grep -v glfw\.zomp | grep -v quicktext\.zomp | grep -v glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
+	$(LS) $(wildcard libs/*.zomp) | grep -v libs/opengl20.\*\.zomp | grep -v libs/glfw\.zomp | grep -v libs/quicktext\.zomp | grep -v libs/glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard examples/*.zomp) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard testsuite/*.zomp) | $(SORT) -n
 	$(LS) $(wildcard tests/*.zomp) | grep -v sharkperf.zomp | xargs $(LINE_COUNT) | $(SORT) -n
@@ -392,12 +399,12 @@ clean: testsuite/clean examples/clean
 	$(RM) -f *.cmx *.native
 	$(RM) -f deps.png deps.dot
 	$(RM) -f depends.mk
-	$(RM) -f opengl20.zomp glfw.zomp opengl20print.zomp
+	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp
+	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
 	$(RM) -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
 	$(RM) -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
 	$(RM) -f indentlexer_tests.cmo indentlexer_tests.cmi
 	$(RM) -f expandertests.cm? alltests.cm? alltests
-	$(RM) -f glQuickText.o libquicktext.dylib libglut.dylib
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
 	$(RM) -f libutils.dylib

@@ -50,8 +50,9 @@ tools
 /dllzompvm.so
 /flymake.log
 /gen_c_bindings
-/glfw.zomp
-/glut.zomp
+/libs/glfw.zomp
+/libs/glut.zomp
+/libs/libglut.dylib
 /gmon.out
 /last_build_flymake.log
 /libGLEW.a
@@ -68,7 +69,7 @@ tools
 /newparser.conflicts
 /newparser.ml
 /newparser.mli
-/opengl20.zomp
+/libs/opengl20.zomp
 /sexprlexer.ml
 /sexprparser.ml
 /sexprparser.mli
@@ -81,8 +82,10 @@ tools
 /zompc.native
 /testsuite/preludevalid
 /testsuite/preludevalid.zomp
-/opengl20print.zomp
-/quicktext.zomp
+/libs/opengl20print.zomp
+/libs/quicktext.zomp
+/libs/*.o
+/libs/libquicktext.dylib
 /extlibs
 /tests/sharkperf.zomp
 /tests/*.ll
