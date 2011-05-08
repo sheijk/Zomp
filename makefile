@@ -400,6 +400,7 @@ clean: testsuite/clean examples/clean
 	$(RM) -f glQuickText.o libquicktext.dylib libglut.dylib
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
+	$(RM) -f libutils.dylib
 
 clean_tags:
 	$(RM) -f *.annot
