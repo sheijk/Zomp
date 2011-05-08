@@ -97,7 +97,7 @@ endif
 # Build flags
 ################################################################################
 
-CAML_INCLUDE =
+CAML_INCLUDE = -I source/
 CAML_PP =
 
 CAML_FLAGS = $(CAML_INCLUDE) $(CAML_PP)

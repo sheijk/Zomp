@@ -60,14 +60,14 @@ testsuite/astmatch.ll: libs/libcee.zomp
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
 # tests to avoid having all tests run and fail because the prelude/compiler is
 # completely broken
-testsuite/preludevalid: $(ZOMPC) prelude.zomp runtime.c
+testsuite/preludevalid: $(ZOMPC) prelude.zomp source/runtime.c
 ifeq "$(TESTSUITE_NO_PRELUDE)" ""
 	@$(ECHO) Checking whether prelude compiles ...
 	@rm -f testsuite/$@.zomp testsuite/$@.ll testsuite/$@.o.bc testsuite/$@.bc testsuite/$@
 	@echo "std:base:func int main():\n  ret 0\nend\n" > testsuite/preludevalid.zomp
 	@$(ZOMPC) -c testsuite/preludevalid.zomp
 	@$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
-	@$(LLVM_LINK) -f runtime.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
+	@$(LLVM_LINK) -f source/runtime.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
 	@$(LLVM_LLI) testsuite/preludevalid.bc
 	@touch $@
 else
@@ -79,10 +79,10 @@ testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevali
 	@$(ECHO) Compiling $(<) to .ll ...
 	@$(ZOMPC) -c $<
 
-testsuite/%.bc: testsuite/%.ll prelude.zomp runtime.c
+testsuite/%.bc: testsuite/%.ll prelude.zomp source/runtime.c
 	@echo Compiling $< to $@
 	@$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	@$(LLVM_LINK) -f runtime.bc $(<:.ll=.o.bc) -o $@
+	@$(LLVM_LINK) -f source/runtime.bc $(<:.ll=.o.bc) -o $@
 
 testsuite/%.test: testsuite/%.bc
 	@$(ECHO) Running test $(<:.bc=) ...

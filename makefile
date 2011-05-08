@@ -63,80 +63,76 @@ endif
 
 .PHONY: all libbindings byte native
 
-all: byte native runtime.bc runtime.ll libbindings TAGS deps.png mltest \
-    zompvm_dummy.o
-libbindings: gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
+all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
+    mltest source/zompvm_dummy.o
+libbindings: source/gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
     libs/glfw.zomp libs/glut.zomp libs/libglut.dylib libs/quicktext.zomp \
     libs/libquicktext.dylib libs/libutils.dylib
 byte: dllzompvm.so zompc zomp_shell
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
 CAML_LIBS = str.cma bigarray.cma
-LANG_CMOS = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
+LANG_CMO_NAMES = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
     lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo machine.cmo zompvm.cmo \
     genllvm.cmo dllzompvm.so indentlexer.cmo newparser.cmo parseutils.cmo \
     expander.cmo testing.cmo compileutils.cmo
+LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
 
-SEXPR_TL_INPUT = $(LANG_CMOS) zomp_shell.cmo
-
-# SEXPR_TL_INPUT = common.cmo ast2.cmo sexprparser.cmo sexprlexer.cmo \
-#     bindings.cmo typesystems.cmo lang.cmo semantic.cmo genllvm.cmo  \
-#     common.cmo machine.cmo dllzompvm.so zompvm.cmo newparser.cmo    \
-#     indentlexer.cmo parseutils.cmo expander.cmo testing.cmo         \
-#     compileutils.cmo testing.cmo zomp_shell.cmo
+SEXPR_TL_INPUT = $(LANG_CMOS) source/zomp_shell.cmo
 
 ################################################################################
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: zompvm.h zompvm.cpp machine.c runtime.o runtime.ll
+dllzompvm.so: source/zompvm.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll
 	@$(ECHO) Building $@ ...
-	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c zompvm.cpp -o zompvm.o
-	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c machine.c -o machine.o
+	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm.cpp -o source/zompvm.o
+	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o zompvm -DPIC -fPIC zompvm.o runtime.o machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o zompvm zompvm.o runtime.o machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o source/zompvm source/zompvm.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ln -s source/dllzompvm.so dllzompvm.so
 endif
 
 zomp_shell: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
 
-zomp_shell.native: $(SEXPR_TL_INPUT:.cmo=.cmx) dllzompvm.so
+zomp_shell.native: $(SEXPR_TL_INPUT:.cmo=.cmx) source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) zomp_shell.cmx
+	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zomp_shell.cmx
 
-zompc.native: $(LANG_CMOS:.cmo=.cmx) zompc.cmx dllzompvm.so
+zompc.native: $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) zompc.cmx
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx
 
-zompc: $(LANG_CMOS) zompc.cmo dllzompvm.so
+zompc: $(LANG_CMOS) source/zompc.cmo source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(LANG_CMOS) dllzompvm.so machine.cmo zompvm.cmo zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(LANG_CMOS) source/dllzompvm.so source/machine.cmo source/zompvm.cmo source/zompc.cmo
 
-gen_c_bindings: gen_c_bindings.cmo gen_c_bindings.ml
+source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) gen_c_bindings.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) source/gen_c_bindings.cmo
 
-machine.c machine.ml: gen_c_bindings machine.skel
+source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
-	./gen_c_bindings machine
+	./source/gen_c_bindings source/machine
 
-NEWPARSER_CMOS = common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo
+NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo, source/$(file))
 
 ################################################################################
 # Tests
 ################################################################################
 
-TEST_CMOS = indentlexer_tests.cmo newparser_tests.cmo
+TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests \
    profile_comp exampletests runmltests mltest alltests
 
 alltests: runmltests runtestsuite exampletests
 
-mltest: testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
+mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 
@@ -150,7 +146,7 @@ exampletests:
 
 PROF_COMP_TARGET=metaballs
 
-profile_comp: zompc zompc.native runtime.bc libs/opengl20.zomp libs/glfw.zomp
+profile_comp: zompc zompc.native source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
@@ -177,40 +173,40 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-runtime.bc runtime.ll: runtime.c
+source/runtime.bc source/runtime.ll: source/runtime.c
 	@$(ECHO) Building bytecode standard library $@ ...
-	$(LLVM_CC) --emit-llvm -c $< -o runtime.bc
-	$(LLVM_DIS) < runtime.bc > runtime.orig.ll
-	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < runtime.orig.ll > runtime.ll
-	$(RM) -f runtime.bc runtime.orig.ll
-	$(LLVM_AS) < runtime.ll > runtime.bc
+	$(LLVM_CC) --emit-llvm -c $< -o source/runtime.bc
+	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
+	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < source/runtime.orig.ll > source/runtime.ll
+	$(RM) -f source/runtime.bc source/runtime.orig.ll
+	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
 ################################################################################
 # Rules
 ################################################################################
 
-%.ml: %.mly
+source/%.ml: source/%.mly
 	@$(ECHO) Generating parser $< ...
-	$(MENHIR) --explain --infer $<
+	$(MENHIR) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
-%.ml: %.mll
+source/%.ml: source/%.mll
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-%.cmi: %.mli
+source/%.cmi: source/%.mli
 	@$(ECHO) "Compiling $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-%.cmo %.cmi: %.ml
+source/%.cmo source/%.cmi: source/%.ml
 	@$(ECHO) "Compiling (bytecode) $< ..."
-	$(OCAMLC) $(CAML_FLAGS)  -c $<
+	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-%.cmx: %.ml
+source/%.cmx: source/%.ml
 	@$(ECHO) "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
-%.o: %.c
+source/%.o: source/%.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
 
 libs/%.o: libs/%.c
@@ -252,18 +248,18 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 	@echo Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
-%.zomp: %.skel gen_c_bindings
+source/%.zomp: source/%.skel source/gen_c_bindings
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
-	./gen_c_bindings -lang zomp $(<:.skel=)
+	./source/gen_c_bindings -lang zomp $(<:.skel=)
 
-libs/%.zomp: libs/%.skel gen_c_bindings
+libs/%.zomp: libs/%.skel source/gen_c_bindings
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
-	./gen_c_bindings -lang zomp $(<:.skel=)
+	./source/gen_c_bindings -lang zomp $(<:.skel=)
 
-libs/opengl20print.zomp: libs/opengl20.skel gen_c_bindings
+libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 	@$(ECHO) Generating OpenGL enum printer ...
 	$(CP) libs/opengl20.skel libs/opengl20print.skel
-	./gen_c_bindings -lang zomp-glprinter $(@:.zomp=)
+	./source/gen_c_bindings -lang zomp-glprinter $(@:.zomp=)
 	$(RM) -f libs/opengl20print.skel
 
 ################################################################################
@@ -300,7 +296,7 @@ LLVM_LIBS=`$(LLVM_CONFIG) --libs all | $(SED) 's![^ ]*/Release/lib/LLVMCBase.o!!
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx \
     typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
-    -cclib -lstdc++ $(LLVM_LIBS_CAML) libzompvm.a indentlexer.cmx newparser.cmx \
+    -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx newparser.cmx \
     parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
 ################################################################################
@@ -312,30 +308,31 @@ LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx \
 
 depends.mk: $(CAMLDEP_INPUT)
 	@$(ECHO) Calculating dependencies ...
-	$(OCAMLDEP) $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
+	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
 
-CAMLDEP_INPUT= ast2.ml bindings.ml common.ml expander.ml gen_c_bindings.ml genllvm.ml \
-    indentlexer.ml indentlexer.mli indentlexer_tests.ml lang.ml machine.ml     \
-    newparser_tests.ml parseutils.ml compileutils.ml semantic.ml               \
-    zomp_shell.ml testing.ml typesystems.ml zompc.ml zompvm.ml
+CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
+    gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
+    indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
+    compileutils.ml semantic.ml zomp_shell.ml testing.ml typesystems.ml \
+    zompc.ml zompvm.ml, source/$(file))
 
-newparser.ml: newparser.mly ast2.cmo
-newparser_tests.cmo: newparser.cmo
-newparser_tests.cmx: newparser.cmx
-indentlexer.cmo: newparser.ml
-indentlexer.cmi: newparser.ml
+source/newparser.ml: source/newparser.mly source/ast2.cmo
+source/newparser_tests.cmo: source/newparser.cmo
+source/newparser_tests.cmx: source/newparser.cmx
+source/indentlexer.cmo: source/newparser.ml
+source/indentlexer.cmi: source/newparser.ml
 
-sexprparser.ml: ast2.cmo common.cmo
-sexprlexer.ml: ast2.ml common.ml sexprparser.cmo
-machine.cmo: machine.skel dllzompvm.so
-machine.cmx: machine.skel dllzompvm.so
-zompvm.cmo: machine.cmo
-zompvm.cmx: machine.cmx
-parseutils.cmo: sexprlexer.cmo
-parseutils.cmx: sexprlexer.cmx
+source/sexprparser.ml: source/ast2.cmo source/common.cmo
+source/sexprlexer.ml: source/ast2.ml source/common.ml source/sexprparser.cmo
+source/machine.cmo: source/machine.skel source/dllzompvm.so
+source/machine.cmx: source/machine.skel source/dllzompvm.so
+source/zompvm.cmo: source/machine.cmo
+source/zompvm.cmx: source/machine.cmx
+source/parseutils.cmo: source/sexprlexer.cmo
+source/parseutils.cmx: source/sexprlexer.cmx
 
-lang.cmi: common.cmo
-bindings.cmi: common.cmo lang.cmo
+source/lang.cmi: source/common.cmo
+source/bindings.cmi: source/common.cmo source/lang.cmo
 
 ################################################################################
 # Additional utility targets
@@ -348,22 +345,23 @@ TAGS:
 # generate a file for graphviz which visualizes the dependencies between modules
 deps.dot deps.png: depends.mk $(CAMLDEP_INPUT) $(LANG_CMOS)
 	@$(ECHO) Generating dependency graph for graphviz ...
-	$(OCAMLDOC) -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) newparser.ml sexprlexer.ml sexprparser.ml
+	$(OCAMLDOC) -I source/ -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/sexprlexer.ml source/sexprparser.ml
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
 
 # Warning, ugly. But at least not essential so who cares :)
 .PHONY: loc_stats loc_stats_no_summary
 
-ML_SRC_FILES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
+ML_SRC_FILE_NAMES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
     expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli         \
     indentlexer_tests.ml lang.ml machine.ml newparser.mly newparser_tests.ml \
     parseutils.ml semantic.ml sexprlexer.mll sexprparser.mly zomp_shell.ml\
     testing.ml typesystems.ml zompc.ml zompvm.ml
+ML_SRC_FILES = $(foreach file, $(ML_SRC_FILE_NAMES), source/$(file))
 
 loc_stats_no_summary:
-	$(LS) $(wildcard *.ml *.mli *.mly *.mll) | grep -v sexprparser.ml | grep -v newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
+	$(LS) $(wildcard source/*.ml source/*.mli source/*.mly source/*.mll) | grep -v source/sexprparser.ml | grep -v source/newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
-	$(LINE_COUNT) libs/libutils.cpp prelude.zomp runtime.c zomp.el zomputils.h zompvm.cpp zompvm.h zompvm_dummy.cpp | $(SORT) -n
+	$(LINE_COUNT) libs/libutils.cpp prelude.zomp source/runtime.c zomp.el source/zomputils.h source/zompvm.cpp source/zompvm.h source/zompvm_dummy.cpp | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.skel) | $(SORT) -n
 	$(LS) $(wildcard libs/*.zomp) | grep -v libs/opengl20.\*\.zomp | grep -v libs/glfw\.zomp | grep -v libs/quicktext\.zomp | grep -v libs/glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard examples/*.zomp) | $(SORT) -n
@@ -383,35 +381,35 @@ clean: testsuite/clean examples/clean
 	@$(ECHO) Cleaning...
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
-	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) zompc.o zomp_shell.o
+	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) source/zompc.o source/zomp_shell.o
 	$(RM) -f expander_tests.cm?
-	$(RM) -f zompc.cm? zompc
-	$(RM) -f runtime.bc runtime.ll runtime.o
-	$(RM) -f sexprlexer.cmi sexprlexer.cmo sexprlexer.ml
-	$(RM) -f sexprparser.cmi sexprparser.cmo sexprparser.ml sexprparser.mli
-	$(RM) -f zomp_shell zomp_shell.cmi zomp_shell.cmo
-	$(RM) -f gen_c_bindings.cmi gen_c_bindings.cmo gen_c_bindings
-	$(RM) -f machine.c machine.ml machine.cmi machine.cmo machine.o
+	$(RM) -f source/zompc.cm? zompc
+	$(RM) -f source/runtime.bc source/runtime.ll source/runtime.o
+	$(RM) -f source/sexprlexer.cmi source/sexprlexer.cmo source/sexprlexer.ml
+	$(RM) -f source/sexprparser.cmi source/sexprparser.cmo source/sexprparser.ml source/sexprparser.mli
+	$(RM) -f zomp_shell source/zomp_shell.cmi source/zomp_shell.cmo
+	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
+	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
-	$(RM) -f dllzompvm.so libzompvm.a zompvm.o
+	$(RM) -f source/dllzompvm.so dllzompvm.so source/libzompvm.a source/zompvm.o
 	$(RM) -f testdll.o dlltest.dylib
 	$(RM) -f *_flymake.*
-	$(RM) -f *.cmx *.native
+	$(RM) -f source/*.cmx *.native
 	$(RM) -f deps.png deps.dot
 	$(RM) -f depends.mk
 	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp
 	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
-	$(RM) -f indentlexer.cm? newparser.cm? newparser.o indentlexer.o newparser.ml newparser.mli newparser.conflicts
-	$(RM) -f newparser_tests.cmi newparser_tests.cmo newparser_tests newparser_tests.o
-	$(RM) -f indentlexer_tests.cmo indentlexer_tests.cmi
-	$(RM) -f expandertests.cm? alltests.cm? alltests
+	$(RM) -f source/indentlexer.cm? source/newparser.cm? source/newparser.o source/indentlexer.o source/newparser.ml source/newparser.mli source/newparser.conflicts
+	$(RM) -f source/newparser_tests.cmi source/newparser_tests.cmo source/newparser_tests source/newparser_tests.o
+	$(RM) -f source/indentlexer_tests.cmo source/indentlexer_tests.cmi
+	$(RM) -f source/expandertests.cm? source/alltests.cm? source/alltests
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
 	$(RM) -f libs/libutils.dylib
 
 clean_tags:
-	$(RM) -f *.annot
-	$(RM) -f *.conflicts
+	$(RM) -f source/*.annot
+	$(RM) -f source/*.conflicts
 	$(RM) -f TAGS
 	$(RM) -f $(FLYMAKE_LOG)
 

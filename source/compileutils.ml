@@ -144,7 +144,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
   in
 
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
-  let runtimeBaseName = "runtime" in
+  let runtimeBaseName = "source/runtime" in
   let llvmRuntimeFile = dir ^ runtimeBaseName ^ ".ll" in
   (collectTimingInfo "loading .ll file"
      (fun () -> Zompvm.loadLLVMFile llvmRuntimeFile));
