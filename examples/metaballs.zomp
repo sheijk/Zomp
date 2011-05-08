@@ -118,7 +118,7 @@ end
 // from libstdc
 func int rand()
 
-func int random (int max):
+func int random(int max):
   ret int:srem(rand(), max)
 end
 
@@ -1121,7 +1121,7 @@ func int main():
     mballs := new Metaballs 50
 
     glowFilter := makeGlowFilter(5)
-    glowSteps := 4
+    glowSteps := 8
     renderTargetsA := nullptr Framebuffer*
     renderTargetsB := nullptr Framebuffer*
 
