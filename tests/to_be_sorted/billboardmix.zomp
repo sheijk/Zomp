@@ -1,0 +1,61 @@
+/**
+ * Some experiments with billboards
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+requireLibs opengl20 glfw glutils libcee
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init():
+  if bool:not(initCalled):
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else:
+    printString "Already initialized"
+    println()
+  end
+end
+
+func int main():
+  init()
+
+  angle := 0.0
+
+  mainloop:
+    autoSetupViewport()
+    angle = angle + 128.0 * frameDuration
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. -4. -20.0
+    glRotatef angle 0. 1. 0.
+
+    drawOrientationGrid()
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  ret 0
+end
+

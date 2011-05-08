@@ -1,0 +1,133 @@
+// !$*UTF8*$!
+{
+	089C1669FE841209C02AAC07 /* Project object */ = {
+		activeBuildConfigurationName = Debug;
+		activeExecutable = 628863E3110E65C0002E7058 /* qlmanage */;
+		activeTarget = 8D57630D048677EA00EA77CD /* assimp_quicklook */;
+		codeSenseManager = 628863D6110E638B002E7058 /* Code sense */;
+		executables = (
+			628863E3110E65C0002E7058 /* qlmanage */,
+		);
+		perUserDictionary = {
+			PBXPerProjectTemplateStateSaveDate = 286155627;
+			PBXWorkspaceStateSaveDate = 286155627;
+		};
+		perUserProjectItems = {
+			628863D9110E63B8002E7058 /* XCBuildMessageTextBookmark */ = 628863D9110E63B8002E7058 /* XCBuildMessageTextBookmark */;
+			628863E9110E65C7002E7058 /* PBXTextBookmark */ = 628863E9110E65C7002E7058 /* PBXTextBookmark */;
+			62886409110E6CCF002E7058 /* PBXTextBookmark */ = 62886409110E6CCF002E7058 /* PBXTextBookmark */;
+		};
+		sourceControlManager = 628863D5110E638B002E7058 /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	08FB77B6FE84183AC02AAC07 /* main.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1069, 3150}}";
+			sepNavSelRange = "{731, 0}";
+			sepNavVisRange = "{0, 3297}";
+		};
+	};
+	2C05A19B06CAA52B00D84F6F /* GeneratePreviewForURL.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1069, 1078}}";
+			sepNavSelRange = "{785, 1}";
+			sepNavVisRange = "{0, 786}";
+			sepNavWindowFrame = "{{488, 11}, {1128, 1167}}";
+		};
+	};
+	61E3BCFA0870B4F2002186A0 /* GenerateThumbnailForURL.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {657, 322}}";
+			sepNavSelRange = "{575, 0}";
+			sepNavVisRange = "{232, 574}";
+			sepNavWindowFrame = "{{15, 6}, {1128, 1167}}";
+		};
+	};
+	628863D5110E638B002E7058 /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 0;
+		scmConfiguration = {
+			repositoryNamesForRoots = {
+				"" = "";
+			};
+		};
+	};
+	628863D6110E638B002E7058 /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	628863D9110E63B8002E7058 /* XCBuildMessageTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "#warning To complete your generator please implement the function GeneratePreviewForURL in GeneratePreviewForURL.c";
+		fRef = 2C05A19B06CAA52B00D84F6F /* GeneratePreviewForURL.c */;
+		fallbackIsa = XCBuildMessageTextBookmark;
+		rLen = 1;
+		rLoc = 12;
+		rType = 1;
+	};
+	628863E3110E65C0002E7058 /* qlmanage */ = {
+		isa = PBXExecutable;
+		activeArgIndices = (
+			YES,
+		);
+		argumentStrings = (
+			"-d 4 -p ~/Desktop/test.obj",
+		);
+		autoAttachOnCrash = 1;
+		breakpointsEnabled = 0;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		dataTipCustomDataFormattersEnabled = 1;
+		dataTipShowTypeColumn = 1;
+		dataTipSortType = 0;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		launchableReference = 628863E4110E65C0002E7058 /* qlmanage */;
+		libgmallocEnabled = 0;
+		name = qlmanage;
+		savedGlobals = {
+		};
+		showTypeColumn = 0;
+		sourceDirectories = (
+		);
+	};
+	628863E4110E65C0002E7058 /* qlmanage */ = {
+		isa = PBXFileReference;
+		lastKnownFileType = "compiled.mach-o.executable";
+		name = qlmanage;
+		path = /usr/bin/qlmanage;
+		sourceTree = "<absolute>";
+	};
+	628863E9110E65C7002E7058 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 08FB77B6FE84183AC02AAC07 /* main.c */;
+		name = "main.c: 23";
+		rLen = 0;
+		rLoc = 731;
+		rType = 0;
+		vrLen = 3297;
+		vrLoc = 0;
+	};
+	62886409110E6CCF002E7058 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 2C05A19B06CAA52B00D84F6F /* GeneratePreviewForURL.c */;
+		name = "GeneratePreviewForURL.c: 20";
+		rLen = 1;
+		rLoc = 785;
+		rType = 0;
+		vrLen = 786;
+		vrLoc = 0;
+	};
+	8D57630D048677EA00EA77CD /* assimp_quicklook */ = {
+		activeExec = 0;
+	};
+}
