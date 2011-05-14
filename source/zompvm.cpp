@@ -5,9 +5,10 @@
 
 #include "llvm/Module.h"
 #include "llvm/Constants.h"
+#include "llvm/Type.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/Instructions.h"
-#include "llvm/ModuleProvider.h"
+// #include "llvm/ModuleProvider.h"
 #include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
@@ -20,7 +21,9 @@
 #include "llvm/Target/TargetData.h"
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Support/MathExtras.h"
-#include "llvm/System/TimeValue.h"
+#include "llvm/Support/TimeValue.h"
+#include "llvm/Support/SourceMgr.h"
+#include "Llvm/LLVMContext.h"
 
 #include "zomputils.h"
 
@@ -32,6 +35,7 @@ extern "C" {
 #include <caml/memory.h>
 #include <caml/callback.h>
 }
+#undef flush
 
 #include <signal.h>
 #include <execinfo.h>
@@ -156,12 +160,12 @@ static PointerType *getPointerType(const Type *ElementType) {
 }
 
 namespace {
+  static LLVMContext* context = 0;
   /// will run the code
   static ExecutionEngine* executionEngine = 0;
 
   static Module* llvmModule = 0;
   static Module* macroModule = 0;
-  static ExistingModuleProvider* moduleProvider = 0;
   static FunctionPassManager* functionPassManager = 0;
   static PassManager* modulePassManager = 0;
 
@@ -178,7 +182,7 @@ namespace {
 
   static void loadLLVMFunctions()
   {
-    PointerType* cstringPtr = getPointerType(IntegerType::get(8));
+    const PointerType* cstringPtr = Type::getInt8PtrTy(*context);
     llvmModule->addTypeName("cstring", cstringPtr);
 
     // see definition in prelude.zomp
@@ -186,15 +190,15 @@ namespace {
     // id
     astStructFields.push_back(cstringPtr);
     // child count
-    astStructFields.push_back(IntegerType::get(32));
-    PATypeHolder astFwd = OpaqueType::get();
+    astStructFields.push_back(Type::getInt32Ty(*context));
+    PATypeHolder astFwd = OpaqueType::get(*context);
     PointerType* astPtr = getPointerType(astFwd);
     llvmModule->addTypeName("astp", astPtr);
 
     PointerType* astPtrPtr = getPointerType(astPtr);
     // childs
     astStructFields.push_back(astPtrPtr);
-    StructType* ast = StructType::get(astStructFields, /*isPacked=*/false);
+    StructType* ast = StructType::get(*context, astStructFields, /*isPacked=*/false);
     llvmModule->addTypeName("ast", ast);
     cast<OpaqueType>(astFwd.get())->refineAbstractTypeTo(ast);
     ast = cast<StructType>(astFwd.get());
@@ -204,7 +208,7 @@ namespace {
     FuncTy_80_args.push_back(astPtr);
     // ParamAttrsList *FuncTy_80_PAL = 0;
     FunctionType* FuncTy_80 = FunctionType::get(
-      Type::VoidTy,
+      Type::getVoidTy(*context),
       FuncTy_80_args,
       false);
       // FuncTy_80_PAL);
@@ -253,7 +257,7 @@ namespace {
       // ParamAttrsList *FuncTy_59_PAL = 0;
       FunctionType* FuncTy_59 = FunctionType::get(
         // /*Result=*/IntegerType::get(32),
-        /*Result=*/IntegerType::get(32),
+        /*Result=*/Type::getInt32Ty(*context),
         /*Params=*/macroAstChildCountArgs,
         /*isVarArg=*/false);
         // /*ParamAttrs=*/FuncTy_59_PAL);
@@ -269,7 +273,7 @@ namespace {
       std::vector<const Type*>FuncTy_105_args;
       // FuncTy_105_args.push_back(IntegerType::get(32));
       FuncTy_105_args.push_back(astPtr);
-      FuncTy_105_args.push_back(IntegerType::get(32));
+      FuncTy_105_args.push_back(Type::getInt32Ty(*context));
       // ParamAttrsList *FuncTy_105_PAL = 0;
       FunctionType* FuncTy_105 = FunctionType::get(
         // /*Result=*/IntegerType::get(32),
@@ -288,11 +292,11 @@ namespace {
 
   static void assureModuleExists() {
     if (llvmModule == 0) {
-      llvmModule = new Module("llvm_module.bc");
+      llvmModule = new Module("llvm_module.bc", *context);
     }
 
     if( macroModule == 0 ) {
-      macroModule = new Module("llvm_macro_module.bc");
+      macroModule = new Module("llvm_macro_module.bc", *context);
     }
 
     if( simpleAst == 0 ) {
@@ -355,7 +359,10 @@ llvm::GenericValue runFunctionWithArgs(
   const std::vector<const Type*>& argTypes,
   const std::vector<GenericValue>& args)
 {
-  FunctionType* voidType = FunctionType::get( Type::VoidTy, argTypes, false);
+  FunctionType* voidType = FunctionType::get(
+    Type::getVoidTy(*context),
+    argTypes,
+    false);
 
   Function* func = llvmModule->getFunction( name );
 
@@ -436,7 +443,7 @@ static void addStandardCompilePasses(PassManager &PM) {
 
   // if (DisableOptimizations) return;
 
-  addPass(PM, createRaiseAllocationsPass());     // call %malloc -> malloc inst
+  // addPass(PM, createRaiseAllocationsPass());     // call %malloc -> malloc inst
   addPass(PM, createCFGSimplificationPass());    // Clean up disgusting code
   addPass(PM, createPromoteMemoryToRegisterPass());// Kill useless allocas
   addPass(PM, createGlobalOptimizerPass());      // Optimize out global vars
@@ -459,7 +466,7 @@ static void addStandardCompilePasses(PassManager &PM) {
   addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
   addPass(PM, createScalarReplAggregatesPass()); // Break up aggregate allocas
   addPass(PM, createInstructionCombiningPass()); // Combine silly seq's
-  addPass(PM, createCondPropagationPass());      // Propagate conditionals
+  // addPass(PM, createCondPropagationPass());      // Propagate conditionals
 
   addPass(PM, createTailCallEliminationPass());  // Eliminate tail calls
   addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
@@ -467,7 +474,7 @@ static void addStandardCompilePasses(PassManager &PM) {
   addPass(PM, createLoopRotatePass());
   addPass(PM, createLICMPass());                 // Hoist loop invariants
   addPass(PM, createLoopUnswitchPass());         // Unswitch loops.
-  addPass(PM, createLoopIndexSplitPass());       // Index split loops.
+  // addPass(PM, createLoopIndexSplitPass());       // Index split loops.
   // FIXME : Removing instcombine causes nestedloop regression.
   addPass(PM, createInstructionCombiningPass());
   addPass(PM, createIndVarSimplifyPass());       // Canonicalize indvars
@@ -481,7 +488,7 @@ static void addStandardCompilePasses(PassManager &PM) {
   // Run instcombine after redundancy elimination to exploit opportunities
   // opened up by them.
   addPass(PM, createInstructionCombiningPass());
-  addPass(PM, createCondPropagationPass());      // Propagate conditionals
+  // addPass(PM, createCondPropagationPass());      // Propagate conditionals
 
   addPass(PM, createDeadStoreEliminationPass()); // Delete dead stores
   addPass(PM, createAggressiveDCEPass());        // Delete dead instructions
@@ -625,12 +632,16 @@ extern "C" {
   }
 
   bool zompInit() {
+    context = &llvm::getGlobalContext();
+
     assureModuleExists();
-    moduleProvider = new ExistingModuleProvider( llvmModule );
-    executionEngine = ExecutionEngine::create( moduleProvider, false );
-    functionPassManager = new FunctionPassManager( moduleProvider );
+    // moduleProvider = new ExistingModuleProvider( llvmModule );
+    // executionEngine = ExecutionEngine::create( moduleProvider, false );
+    std::string errorMessage;
+    executionEngine = EngineBuilder( llvmModule ).setErrorStr(&errorMessage).create();
+    functionPassManager = new FunctionPassManager( llvmModule );
     modulePassManager = new PassManager();
-    setupOptimizerPasses();
+    // setupOptimizerPasses();
 
     ZompCallbacks::init();
     ZMP_ASSERT( ZompCallbacks::areValid(), );
@@ -651,19 +662,18 @@ extern "C" {
   bool zompSendCode(const char* code, const char* module) {
     bool errorsOccurred = false;
 
-    ParseError errorInfo;
+    // ParseError errorInfo;
+    SMDiagnostic errorInfo;
 
     Module* targetModule = llvmModule;
     if( std::string(module) == "compiletime" ) {
       targetModule = macroModule;
     }
 
-    using llvm::sys::TimeValue;
-
     Module* parsedModule = NULL;
     {
       Scope_time_adder profile(stats.parsingTimeMS);
-      parsedModule = ParseAssemblyString( code, targetModule, errorInfo );
+      parsedModule = ParseAssemblyString( code, targetModule, errorInfo, *context );
     }
 
     std::string errorMessage;
@@ -689,13 +699,13 @@ extern "C" {
       }
     }
 
-    if( errorInfo.getRawMessage() != "none" ) {
-      int line, column;
-      errorInfo.getErrorLocation(line, column);
+    if( !errorInfo.getMessage().empty() ) {
+      int line = errorInfo.getLineNo();
+      // int column = errorInfo.getColumnNo();
       fprintf( stderr, "%s:%d: error [LLVM]  %s\n",
                errorInfo.getFilename().c_str(),
                line,
-               errorInfo.getRawMessage().c_str() );
+               errorInfo.getMessage().c_str() );
       fflush( stderr );
 
       errorsOccurred = true;
@@ -808,14 +818,14 @@ extern "C" {
   }
 
   void zompAddIntArg(int arg) {
-    argTypes.push_back( Type::Int32Ty );
+    argTypes.push_back( Type::getInt32Ty(*context) );
     GenericValue intval;
     intval.IntVal = APInt( 32, arg );
     argValues.push_back( intval );
   }
 
   void zompAddPointerArg(void* ptr) {
-    argTypes.push_back( getPointerType(OpaqueType::get()) );
+    argTypes.push_back( getPointerType(OpaqueType::get(*context)) );
     argValues.push_back( ptrValue(ptr) );
   }
 
@@ -863,12 +873,12 @@ extern "C" {
     return result.IntVal != 0;
   }
 
-
   void zompPrintModuleCode() {
-    std::cout
-      << "--- We just constructed this LLVM module ---\n\n"
-      << *llvmModule << "\n"
-      << "--------------------------------------------\n\n";
+    std::cout << "--- We just constructed this LLVM module ---\n\n" << std::flush;
+    llvmModule->print(outs(), NULL);
+    outs().flush();
+      // << *llvmModule << "\n"
+    std::cout << "--------------------------------------------\n\n" << std::flush;
 
     /*
     std::string llvmCode = llvmModule->getModuleInlineAsm();
@@ -899,8 +909,10 @@ extern "C" {
   }
 
   void zompWriteLLVMCodeToFile(const char* fileName) {
-    std::ofstream file(fileName);
-    file << *llvmModule;
+    std::string errorInfo;
+    raw_fd_ostream file(fileName, errorInfo);
+    llvmModule->print(file, NULL);
+    ZMP_ASSERT(errorInfo.empty(),);
   }
 
 //   struct Ast
@@ -1014,7 +1026,7 @@ extern "C" {
   }
 
   void* zompAddressOfMacroFunction(const char* name) {
-    PATypeHolder astFwd = OpaqueType::get();
+    PATypeHolder astFwd = OpaqueType::get(*context);
     PointerType* ast_ptr = getPointerType(astFwd);
     std::vector<const Type*> args;
     args.push_back(ast_ptr);

@@ -266,7 +266,7 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 # LLVM download and compilation
 ################################################################################
 
-LLVM_VERSION=2.5
+LLVM_VERSION=2.9
 
 tools/llvm-$(LLVM_VERSION).tar.gz:
 	@$(ECHO) Downloading $@ ...
