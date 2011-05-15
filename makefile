@@ -128,7 +128,7 @@ NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo i
 TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests
-.PHONY: profile_comp exampletests runmltests mltest alltests
+.PHONY: profile_comp exampletests runmltests alltests
 
 alltests: runmltests runtestsuite exampletests
 
