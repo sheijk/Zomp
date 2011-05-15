@@ -19,6 +19,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/PassManager.h"
 #include "llvm/Target/TargetData.h"
+#include "llvm/Target/TargetSelect.h"
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/TimeValue.h"
@@ -635,10 +636,20 @@ extern "C" {
     context = &llvm::getGlobalContext();
 
     assureModuleExists();
-    // moduleProvider = new ExistingModuleProvider( llvmModule );
-    // executionEngine = ExecutionEngine::create( moduleProvider, false );
+
+    // returning true means failure here
+    if( InitializeNativeTarget() ) {
+        fprintf(stderr,"Failed to initialize LLVM native target\n");
+        return false;
+    }
+
     std::string errorMessage;
-    executionEngine = EngineBuilder( llvmModule ).setErrorStr(&errorMessage).create();
+    executionEngine = ExecutionEngine::createJIT( llvmModule, &errorMessage );
+    if( !executionEngine ) {
+        fprintf(stderr, "Failed to init LLVM execution engine\n");
+        return false;
+    }
+
     functionPassManager = new FunctionPassManager( llvmModule );
     modulePassManager = new PassManager();
     // setupOptimizerPasses();

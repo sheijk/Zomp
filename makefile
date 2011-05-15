@@ -92,6 +92,7 @@ ifeq "$(BUILD_PLATFORM)" "Linux"
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
 	ocamlmklib -o source/zompvm source/zompvm.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	rm -f dllzompvm.so
 	ln -s source/dllzompvm.so dllzompvm.so
 endif
 
@@ -287,7 +288,7 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
 
-LLVM_LIBS=`$(LLVM_CONFIG) --libs all | $(SED) 's![^ ]*/Release/lib/LLVMCBase.o!!'`
+LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx \
     typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \

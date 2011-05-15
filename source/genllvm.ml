@@ -301,6 +301,10 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let simpleTwoArgIntrinsincs typ namespace names =
     List.map (fun name -> twoArgIntrinsic (sprintf "%s:%s" namespace name) name typ) names
   in
+  let mappedTwoArgIntrinsincs typ namespace namePairs =
+    List.map (fun (name, llvmName) ->
+                twoArgIntrinsic (sprintf "%s:%s" namespace name) llvmName typ) namePairs
+  in
 
   let compareIntrinsics typ typeName =
     let functionMapping =
@@ -336,7 +340,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       compareIntrinsic typ (typeName ^ ":" ^ prefix ^ zompName) (prefix ^ llvmName)
     in
     List.map (makeIntrinsic "o") functionMappings
-    @ simpleTwoArgIntrinsincs typ typeName ["add"; "sub"; "mul"; "fdiv"; "frem"];
+    @ mappedTwoArgIntrinsincs typ typeName
+      ["add", "fadd"; "sub", "fsub"; "mul", "fmul"; "fdiv", "fdiv"; "frem", "frem"];
+    (* TODO: rename fdiv, fmul, frem *)
   in
   let oneArgFunc name f = function
     | [arg] -> f arg

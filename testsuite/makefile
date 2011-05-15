@@ -54,7 +54,7 @@ testsuite/astmatch.ll: libs/libcee.zomp
 # Rules
 ################################################################################
 
-.PRECIOUS: .ll
+.PRECIOUS: testsuite/%.ll
 .PHONY: testsuite/all
 
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
@@ -81,13 +81,13 @@ testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevali
 
 testsuite/%.bc: testsuite/%.ll prelude.zomp source/runtime.c
 	@echo Compiling $< to $@
-	@$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	@$(LLVM_LINK) -f source/runtime.bc $(<:.ll=.o.bc) -o $@
+	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
+	$(LLVM_LINK) -f source/runtime.bc $(<:.ll=.o.bc) -o $@
 
 testsuite/%.test: testsuite/%.bc
 	@$(ECHO) Running test $(<:.bc=) ...
-	@$(LLVM_LLI) $<
-	@touch $@
+	$(LLVM_LLI) $<
+	touch $@
 
 # see also examples/makefile
 testsuite/%.s: testsuite/%.bc
