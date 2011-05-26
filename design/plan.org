@@ -4,28 +4,79 @@
 
 * To be sorted
 ** TODO [#A] llvm: hotpatch, sspreq attributes
+   :PROPERTIES:
+   :ID:       78929EB6-0B87-4B56-BB10-AD54281A8CC1
+   :END:
 ** [#A] slim prelude, move stuff to libraries
    for faster startup
 *** TODO warum dauert makros kompilieren soviel laenger?
+    :PROPERTIES:
+    :ID:       77532ECF-D9E6-4D49-B621-2DA856D248DB
+    :END:
 *** TODO remove deprecated AST functions/names
+    :PROPERTIES:
+    :ID:       D5B6DE3F-4C36-4374-8758-C5991A0D8027
+    :END:
 *** TODO remove array accessors (?)
+    :PROPERTIES:
+    :ID:       7C7DC8A8-9240-4E7F-9191-72C420829F91
+    :END:
 *** TODO remove util functions
+    :PROPERTIES:
+    :ID:       2CC7CA82-54D5-4613-91C2-2C3740EA9E1E
+    :END:
 *** TODO remove float ops and compare funcs
+    :PROPERTIES:
+    :ID:       A127B369-95BC-45B3-91EE-C34E3B8BEB1C
+    :END:
 *** TODO remove ast:addChilds (with s)
+    :PROPERTIES:
+    :ID:       74E58E5E-81F9-4959-BD54-3758C2F4C8B2
+    :END:
 *** TODO remove ast:addMappedChilds
+    :PROPERTIES:
+    :ID:       98B7CC6B-EBBC-4A03-8780-8A1CD4F2ED18
+    :END:
 *** TODO remove setFieldsTo
+    :PROPERTIES:
+    :ID:       538F03E2-8702-4409-AC68-B5356F123E0B
+    :END:
 *** TODO remove ast:replace and ast:replaceId
+    :PROPERTIES:
+    :ID:       30F2AA7E-CA4D-4A4F-BB16-4F90AE132099
+    :END:
 *** DONE remove unittest code
 *** TODO remove cstring:concat
+    :PROPERTIES:
+    :ID:       B48427FE-822A-47EE-B4C2-06E699BA9D78
+    :END:
 *** DONE remove times
 *** DONE remove ifExprInt
 *** TODO remove testMacro2, macroExec, macroTest (?)
+    :PROPERTIES:
+    :ID:       F079FDFC-1FD9-42DB-89F5-7DCAC32E4117
+    :END:
 *** TODO implement ast:addChild, ast:fromFloat etc. in C (?)
+    :PROPERTIES:
+    :ID:       2A2832C4-8F28-4D21-A072-F200226AB122
+    :END:
 *** TODO remove cstring:quote, cstring:equal, printIndent
+    :PROPERTIES:
+    :ID:       8EFBF4B0-AD9D-4873-9D54-46B8DECCC034
+    :END:
 *** DONE move string + utils to external function
 *** TODO replace if, when, unless by simple single form (?)
+    :PROPERTIES:
+    :ID:       7620FF7F-F406-46A6-9FD9-131CE2278C2D
+    :END:
 ** TODO xpath genauer ankucken. evtl inspiration für pattern matching / tree rewriting
+   :PROPERTIES:
+   :ID:       E4EB9ED0-1B24-4B1C-98B5-4A20E0E9E45A
+   :END:
 ** TODO possible template syntax
+   :PROPERTIES:
+   :ID:       786D599C-88BF-45D2-AF26-938FD063757F
+   :END:
     func void genericprogr()
 
       list<!int,string>
@@ -59,10 +110,19 @@
     end
 
 ** TODO should public methods only have keyword arguments?
+   :PROPERTIES:
+   :ID:       658C6D33-1415-4D89-8DA9-41389BC1796B
+   :END:
    avoiding conascence of position
 ** TODO implement this for text rendering
+   :PROPERTIES:
+   :ID:       634CFF05-F084-4938-AF1C-C6BF26739B40
+   :END:
    http://ati.amd.com/developer/gdc/2007/Green-Improved_Alpha-Tested_Magnification_for_Vector_Textures_and_Special_Effects(Siggraph07).pdf
 ** TODO Give macros access to current expression
+   :PROPERTIES:
+   :ID:       8EB255EF-6B37-46D6-8392-0600C8E4F443
+   :END:
    .. through implicit env parameter
 
    struct MacroEnvironment
@@ -74,13 +134,37 @@
      ...
    end
 ** haskell view patterns ankucken
+   :PROPERTIES:
+   :ID:       70F79130-E6F6-4FDE-BD1A-C9ABA67BF629
+   :END:
 ** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
+   :PROPERTIES:
+   :ID:       70D7C688-B38A-4793-88C8-993734FF9672
+   :END:
 ** TODO [#A] scala "extractors", F# "active patterns"
+   :PROPERTIES:
+   :ID:       587416B4-6DA3-4DF0-9300-1A6B39AF07FE
+   :END:
 ** TODO llvm: always inliner pass, createFunctionInliningPass
+   :PROPERTIES:
+   :ID:       3C839D41-7160-4500-B3DF-9DFB55839324
+   :END:
 ** TODO macros + generic programming
+   :PROPERTIES:
+   :ID:       2469C4D1-46CC-42C5-9733-78CF0A679CDF
+   :END:
 ** TODO eval current defun fails on last func in file                      :bug:
+   :PROPERTIES:
+   :ID:       2C8B3871-C151-454E-B0B5-8A7A6B92E0DE
+   :END:
 ** TODO snobol string matching ankucken
+   :PROPERTIES:
+   :ID:       FB00666A-4AEA-4A69-81B7-2676B969106A
+   :END:
 ** TODO type degree := int in :=_type degree int umwandeln
+   :PROPERTIES:
+   :ID:       3A613503-D2FA-4589-B9A5-706B2A5FB4D6
+   :END:
    defkind name := definition+
    => :=_defkind name definition
 
@@ -89,38 +173,122 @@
 
    Will provide overloadable definitions / simulate keywords
 ** TODO optional + named parameters: c# modell taugt
+   :PROPERTIES:
+   :ID:       0B308DF5-79C3-4E15-B69C-62C4AA0AA897
+   :END:
 ** TODO [#A] Causes invalid llvm code when omitting "ret"
+   :PROPERTIES:
+   :ID:       5B506528-CC67-48C6-B64E-09780FD879A9
+   :END:
 
    (macro opseq args ... (
      (ret args)
      ))
 
 ** TODO [#A] add toggle to make control display of tempvar_* :toplevel:
+   :PROPERTIES:
+   :ID:       9FD41692-4437-4F89-84CB-6E05E9B1D58B
+   :END:
 ** TODO [#A] zeroinitializer -> llvm variable mit nullen initialisieren
+   :PROPERTIES:
+   :ID:       6F52EE3C-6DFA-47B5-BEC6-8E572EEEAEFC
+   :END:
 ** TODO [#A] GHCs newtype genauer ankucken
+   :PROPERTIES:
+   :ID:       0D1F4D37-89EA-4C3D-9025-1F023B38B2BD
+   :END:
 ** TODO [#A] indenting fuegt spaces in leere zeilen ein :emacs:bug:
+   :PROPERTIES:
+   :ID:       743C7E86-A986-4360-8967-E3D080B87EBB
+   :END:
 ** TODO [#A] can't get address of record
+   :PROPERTIES:
+   :ID:       BFCE4236-7A57-4E87-99C6-3BBB98726141
+   :END:
 ** TODO [#A] #foo.bar does not work :bug:parser:
+   :PROPERTIES:
+   :ID:       32B1616B-6EE3-427F-817C-F88D33EB293D
+   :END:
 ** TODO [#A] #func(a,b,c) does not work (antiquotation should be allowed for funcalls) :bug:
+   :PROPERTIES:
+   :ID:       1A81DA02-C77C-4E86-9226-28B7D55CA15F
+   :END:
 ** TODO [#A] http://citeseer.ist.psu.edu/cache/papers/cs/25243/http:zSzzSzseclab.cs.ucdavis.eduzSz~devanbuzSzteachingzSz260zSzmacros.pdf/weise93programmable.pdf macro system for C
+   :PROPERTIES:
+   :ID:       2FA16827-1D77-4A5F-9A7E-AB4526FD56B3
+   :END:
 ** TODO [#A] macro checking / typing http://www.ccs.neu.edu/scheme/pubs/gpce2004-cf.pdf
+   :PROPERTIES:
+   :ID:       490DB544-126A-4D85-A1D9-091CF3709BA7
+   :END:
 ** TODO [#A] for i 0 (ret int:pow(2,3)) => llvm parser-fehler
+   :PROPERTIES:
+   :ID:       5347B0B8-10A6-43BE-AF7F-2AA357CA178C
+   :END:
 ** TODO [#A] schreibzugriff auf args/register vars verbieten
+   :PROPERTIES:
+   :ID:       1BDFD5B0-CE89-4AAC-A7FA-4A30E62E1E92
+   :END:
 ** TODO [#A] zomp.el: double als typ highlighten
+   :PROPERTIES:
+   :ID:       36A3A1A7-7E15-42B2-9EBF-749289A05DE8
+   :END:
 ** TODO [#A] `printBool true && (false || true)' geht nicht
+   :PROPERTIES:
+   :ID:       8E9E56D4-0FED-4D11-94CA-BD00DF7254F6
+   :END:
 ** TODO [#A] a-10 will be parsed as `(jux a -10)` :bug:
+   :PROPERTIES:
+   :ID:       E405065A-0AEF-4095-8AEE-B138BD3EA4F8
+   :END:
 ** TODO [#A] support fuer var int* addr = &i
+   :PROPERTIES:
+   :ID:       BE7A7D27-6D14-4286-A05B-EFC4B4B2DFAA
+   :END:
 ** TODO [#A] pointer alignment ins typsystem aufnehmen
+   :PROPERTIES:
+   :ID:       8FBF8217-5798-451F-BA0A-87554D12B15A
+   :END:
 ** TODO [#A] chooseRandomly(Sequence T s) -> T
+   :PROPERTIES:
+   :ID:       FE9F059A-B873-4BF6-9C6F-ECF615A0166D
+   :END:
 ** TODO [#A] support fuer clutter gui (OpenGL basiert, mit C api, LGPL)
+   :PROPERTIES:
+   :ID:       180E1BAB-81A8-4D68-A29D-9BC6A2201F0B
+   :END:
 ** TODO [#A] which-func mode zeigt fuer operatoren nur "op" an
+   :PROPERTIES:
+   :ID:       CEC7C0A4-034F-45C1-8C22-5120FB75A4F3
+   :END:
 ** TODO [#A] indent syntax: redefine _foo operators like ==_str not supported, yet
+   :PROPERTIES:
+   :ID:       5196E5FE-7688-4733-B4C3-40AB4240D294
+   :END:
 ** TODO [#A] fehlende returns am ende von makros werden nicht immer uebersetzt
+   :PROPERTIES:
+   :ID:       5E130BF7-C540-462F-A55D-1CE34A9AB87A
+   :END:
 ** TODO [#A] op. geht nicht innerhalb von argumentliste
+   :PROPERTIES:
+   :ID:       2750EBAF-B619-49B7-BABF-B50B2C05AD6C
+   :END:
 ** TODO [#A] reorganize zompvm.cpp
+   :PROPERTIES:
+   :ID:       CADF0064-7D11-4A56-AE65-0C7315FD91B0
+   :END:
 ** TODO [#A] mehr auf einfachheit / schnelle umsetzbarkeit optimieren
+   :PROPERTIES:
+   :ID:       9B876927-BBC0-459F-ACAD-4169E44DB6F2
+   :END:
 ** TODO [#A] more friendly name for sexpr? (itree? codetree?)
+   :PROPERTIES:
+   :ID:       FD6A4EF1-C24F-457D-8FAE-524B6ED837B6
+   :END:
 ** TODO [#A] doch benutzerdefinierbare syntax?
+   :PROPERTIES:
+   :ID:       C6C18821-4C95-486D-966C-ECEE1FB59DA6
+   :END:
 
    anfang + ende definiert durch ein token
    ende definiert durch indent level?
@@ -132,7 +300,13 @@
    zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >>
 
 ** TODO [#A] alle tests auf neue syntax umstellen, tests organisieren, moeglichkeit zum fehler pruefen einbauen
+   :PROPERTIES:
+   :ID:       EAC056EA-1ACA-4239-A748-0A13CAA24197
+   :END:
 ** TODO referenzen fuer hot-swapping
+   :PROPERTIES:
+   :ID:       27115078-D293-404F-B7A9-5833A2462DC5
+   :END:
 
    A. Baumann, J. Kerr, J. Appavoo, D. Da Silva, O. Krieger, and R. W. Wisniewski.
    Module hot-swapping for dynamic update and reconfiguration in K42.
@@ -150,10 +324,25 @@
    PhD thesis, Department of Computer and Information Science, University of Pennsylvania, August 2001.
 
 ** TODO [#A] object system with composition as a primitive? (mixins / entity part scene graph like?)
+   :PROPERTIES:
+   :ID:       A481FA2A-E91F-4337-80EE-480616E96F0D
+   :END:
 ** TODO [#A] ownership types
+   :PROPERTIES:
+   :ID:       F1181370-6205-4FD8-B33E-A09D0A255D53
+   :END:
 ** TODO [#A] automatically derive data parallel code?
+   :PROPERTIES:
+   :ID:       EA875BB5-94C6-47C3-885E-1F2D25F2A5AB
+   :END:
 ** TODO [#A] cee: 'a, b = 1, 2' should be possible
+   :PROPERTIES:
+   :ID:       99A6BB47-829A-419F-AF59-EEB497102D78
+   :END:
 ** TODO [#A] deref operator precedence
+   :PROPERTIES:
+   :ID:       5B8BDE89-F343-4A21-8232-4E4555228B72
+   :END:
 
    c - c precedence rules, *foo, lowest precedence
    postfix - foo^, highest precedence
@@ -183,7 +372,13 @@
    [Anderson 80]. Sethi [Sethi 81] http://www.cs.bell-labs.com/who/dmr/chist.html
 
 ** TODO [#A] get "inspiration" from tango: http://www.dsource.org/projects/tango/wiki/Manual
+   :PROPERTIES:
+   :ID:       19408B77-0DD5-4BB1-A972-457F0FC1F382
+   :END:
 ** TODO [#A] how to integrate OOP and concepts nicely?
+   :PROPERTIES:
+   :ID:       2A59CD77-F619-4CC4-9BD2-DDCB93F22CA9
+   :END:
 
    interface ICollection<T>
      void append(T)
@@ -199,35 +394,98 @@
    interface ICollection<T> = Collection<T>
 
 *** TODO some things cannot be expressed properly using OOP
+    :PROPERTIES:
+    :ID:       7FE33264-CCF9-44C6-A42D-3383A683518A
+    :END:
 
     concept Clonable<T>
       T clone(T)
 
 *** TODO concepts allow adding implementations to closed classed
+    :PROPERTIES:
+    :ID:       4CC0418F-B9A6-451B-B69B-4F2032B8EA15
+    :END:
     will not help for non-polymorphic methods
 
 ** TODO [#A] foreach mit support fuer index                           :unsorted:
+   :PROPERTIES:
+   :ID:       59F5254F-7F23-462A-9D33-CBA1D38DEE62
+   :END:
 ** TODO generics: share inlined implementation
+   :PROPERTIES:
+   :ID:       E5781405-D01A-426E-A275-D8614A1EC463
+   :END:
    possible if binary data layout is the same
    => dummy parameters should not matter
 ** TODO [#A] op; needs lower priority than juxtapositions
+   :PROPERTIES:
+   :ID:       6CFC65FD-15BE-4996-8EC3-4B34AAAB2F4B
+   :END:
 ** TODO [#A] name z*mp?
+   :PROPERTIES:
+   :ID:       14512B02-54B7-4607-A238-5E045730B412
+   :END:
 ** TODO [#A] indent parser als default fuer toplevel
+   :PROPERTIES:
+   :ID:       5522CD40-9B6B-427E-84FD-E04375948969
+   :END:
 ** TODO [#A] fieldptr hat keine doku im toplevel
+   :PROPERTIES:
+   :ID:       A7AA5732-C6DE-4A8A-93A4-6B290E6E2617
+   :END:
 ** TODO [#A] eldoc geht nicht in quotations: ${setField <cursor>}
+   :PROPERTIES:
+   :ID:       7C062177-86DE-4374-8368-B33BDA418BD0
+   :END:
 ** TODO [#A] zomp-newline does not delete selection
+   :PROPERTIES:
+   :ID:       C4D5E7DF-CD17-4095-B011-F2C2E1653842
+   :END:
 ** TODO [#A] references (int& lvalue) ueber makros oder aehnliches machen
+   :PROPERTIES:
+   :ID:       E38CB493-D313-4177-AE9E-5EC88D76B183
+   :END:
 ** TODO [#A] nur identifier in namespaces erlauben, keine im TOPLEVEL?
+   :PROPERTIES:
+   :ID:       066F850A-CDD0-45E8-8859-D6A3CF6494EF
+   :END:
 ** TODO [#A] ueberall nounwind an die methoden haengen (evt. performance-relevant, benchmarken)
+   :PROPERTIES:
+   :ID:       C6EE61ED-6CF5-4885-93E0-5AEE602D7275
+   :END:
 ** TODO [#A] swap quote and antiquote characters to get more "natural" syntax?
+   :PROPERTIES:
+   :ID:       DE511B86-A42E-4207-A407-3F189EEFFD14
+   :END:
    would be more consistent with C and perl (?)
 ** TODO [#A] alias macro
+   :PROPERTIES:
+   :ID:       ECBAA187-AA5F-4DA0-AD19-94CD98A9E239
+   :END:
 ** TODO [#A] base language verkleinern + vereinheitlichen: nur eine form pro konstrukt mit nur einer variation. declareFunc und defineFunc usw.
+   :PROPERTIES:
+   :ID:       03368DF7-482B-4064-A895-3A648DF6638B
+   :END:
 ** TODO [#A] overload sets? http://www.digitalmars.com/d/2.0/hijack.html
+   :PROPERTIES:
+   :ID:       488A3EF0-BF47-48DE-B151-42D7AD14562F
+   :END:
 ** TODO [#A] system fuer fehlercodes + ausfuehrlicher doku
+   :PROPERTIES:
+   :ID:       D46B127D-A40D-46BE-BEA2-3FC9CB7B46CE
+   :END:
 ** TODO [#A] teilprojekte / ziele definieren um das projekt ueberschaubar zu machen?
+   :PROPERTIES:
+   :ID:       6520C6C8-C1B9-4858-907B-D074605061D6
+   :END:
 ** TODO [#A] referenzen unterstuetzen? (fuer "foo[10] = 0" usw.)
+   :PROPERTIES:
+   :ID:       3446142D-6C82-43A6-9403-9CE790A22F01
+   :END:
 ** TODO [#A] overloading functions + macros immer auf AST-struktur basierend?
+   :PROPERTIES:
+   :ID:       70999A5A-0460-4687-8C05-3A31A55184D2
+   :END:
 
    mit praedikaten oder pattern matching?
 
@@ -262,7 +520,13 @@
    macro print x: exprWithType(int)
    macro print y: exprWithType(float)
 ** TODO [#A] llvm-gcc -> virtuelle methoden, (mehrfach)vererbung ansehen
+   :PROPERTIES:
+   :ID:       1C13C3C5-FC16-4310-8859-AB05E4B83C3F
+   :END:
 ** TODO [#A] collection initialization
+   :PROPERTIES:
+   :ID:       8FB328E6-36AF-4B03-832D-E1BA7136EDF3
+   :END:
 
    l = new List<int>() { 1, 2, 3, 4, 5 }
    =>
@@ -277,6 +541,9 @@
    - require implementation of Collector / Collection interface?
    - realization of type class?
 ** TODO [#A] arbitrary attributes used by the type system?
+   :PROPERTIES:
+   :ID:       96C8D7BC-A7B1-4ACF-90D0-4E281FB06BC2
+   :END:
    allow user defined attributes to be sticked to vars, funcs and types which will then be used during type checking
    support const using this system
 
@@ -301,16 +568,25 @@
     - pure functions
     - functions which perform io?
 ** TODO [#A] implicit (dummy) parameters?
+   :PROPERTIES:
+   :ID:       575B5AFD-D086-4BC5-A563-9F851A29089C
+   :END:
    parameters which will be added implicitly
    use for: type classes, capabilities
    maybe restricted/defined by calling function?
 ** TODO [#A] optimierungs-settings pro funktion
+   :PROPERTIES:
+   :ID:       A616F362-F148-45D7-80C5-C47F03F8FC76
+   :END:
    zusaetzlich auf project file ebene ueberschreibbar (~ "optimizations sheijk.raytracer.math.* speed 3")
 
    @optimize(speed 3)
    func void foo()
      ...
 ** TODO [#A] reconsider the syntax
+   :PROPERTIES:
+   :ID:       EF1B4852-51F9-4619-AB4D-C5EC63F20A1A
+   :END:
    explicitly state goals! :)
 
    idee:
@@ -344,9 +620,15 @@
    make even layout optional?
 
 ** TODO add parse and expand
+   :PROPERTIES:
+   :ID:       CF2FF8E2-36E4-495D-B171-A412C323A8C8
+   :END:
    parse :: string -> Ast
    expand :: Ast, Bindings -> Ast
 ** TODO [#A] im parser ausprobieren
+   :PROPERTIES:
+   :ID:       45532C03-8378-4625-A7B9-DF60B4E92262
+   :END:
 
    printInt (ifExpr a > b
      1
@@ -354,22 +636,40 @@
      2
    end)
 ** TODO [#A] delegating methods
+   :PROPERTIES:
+   :ID:       7510AC54-DDF0-4F88-A529-D5F8AC1F09A9
+   :END:
 
    class Adapter
      Thing* target
      method print => target.print
 ** TODO [#A] zömp / zomp als name?
+   :PROPERTIES:
+   :ID:       5CC7B545-63D8-452B-813F-22CC85B393A7
+   :END:
 ** TODO data flow programming
+   :PROPERTIES:
+   :ID:       B5F0A104-BB07-4FF1-807A-496CDCAEB89B
+   :END:
    get inspiration from SISAL
    http://www2.cmp.uea.ac.uk/~jrwg/Sisal/08.Loops.par.html
 ** TODO combinators for parallel code
+   :PROPERTIES:
+   :ID:       5967A44D-0B1E-4A6E-A26A-8E21538D67C1
+   :END:
    similar to this
    http://www.cilk.com/multicore-blog/bid/5672/Global-Variable-Reconsidered
 ** TODO [#A] exception handling
+   :PROPERTIES:
+   :ID:       4C4ECBB9-688D-41C0-BD9B-34B41BD81005
+   :END:
    structured exception handling (win32) ankucken
    http://www.ddj.com/cpp/184403758
    lisp style condition system (exception handler vor stack-unwind aufrufen)
 ** TODO [#A] typ von member methoden
+   :PROPERTIES:
+   :ID:       C9921E6A-132B-4B1F-B601-897B9B707B5C
+   :END:
    nicht abhaengig von typ in dem sie deklariert wird
    sondern jeweils vom leaf-typ
 
@@ -387,6 +687,9 @@
    method signature will be evaluated in the context of the class overriding the method
    result type in derived class must be subtype of result type in base class
 ** TODO [#A] indent syntax
+   :PROPERTIES:
+   :ID:       DCE899EA-2390-4157-9345-FCCD2CA75094
+   :END:
 
    Other rules for multi line expressions:
    - only use indented block as parameter by default
@@ -417,6 +720,9 @@
      int y
    end class Blah
 ** TODO [#A] type classes / overloaded functions
+   :PROPERTIES:
+   :ID:       D3B5A5DC-F2AD-4A39-BDE0-8B6326285393
+   :END:
 
    -- not legal
    class Foo x where
@@ -435,6 +741,9 @@
      [TypeClassFunction*] functions
 
 ** TODO linked text modus
+   :PROPERTIES:
+   :ID:       3C067C9E-808E-44DE-ABB2-A80A9261BCAF
+   :END:
    [*CURSOR*foobar]
    '|' eingeben
    => [|*CURSOR*foobar|]
@@ -453,6 +762,9 @@
      random(code)
    end loop
 ** TODO [#A] schnelle interpreter bauen
+   :PROPERTIES:
+   :ID:       9F2D92B8-F8C6-473E-8E3D-B9C5BB10E647
+   :END:
    Don't have time to dig up links, but here's my list that google will help you with:
 
 Context Threading: A flexible and efficient dispatch technique for virtual machine interpreters
@@ -474,6 +786,9 @@ A No-Frills Introduction to Lua 5.1 VM Instructions
 von http://lambda-the-ultimate.org/node/2884
 
 ** TODO next steps
+   :PROPERTIES:
+   :ID:       3FEE18C5-362D-429A-8BDC-FA8F8C1CAFDE
+   :END:
    - [X] provide support for function pointers
 
    - [ ] rename all build-ins to std:base:...
@@ -481,11 +796,17 @@ von http://lambda-the-ultimate.org/node/2884
    - [ ] provide var,.. wrappers which redirect to the std:base forms
          and add zomp-side meta information
 ** TODO [#A] &, == operator precedence                                    :next:
+   :PROPERTIES:
+   :ID:       A1C2D690-3F9F-40D8-97CA-60DD08BA4AA7
+   :END:
    & sollte hoehere prioritaet haben, damit "a & 0x00001001 == 0x00001001" geht
 ** DONE [#A] consider latex style operators
    CLOSED: [2009-04-05 Sun 16:11]
    \x, \o, ...
 ** TODO [#A] it/the foo um auf vorherige ergebnisse zuzugreifen           :next:
+   :PROPERTIES:
+   :ID:       E9911317-67BE-4977-B79A-8444CAB6FD34
+   :END:
    http://code.google.com/p/muvee-symbolic-expressions/wiki/TheAndIt
 
    sum [1, 2, 3, 4, 5]
@@ -499,10 +820,16 @@ von http://lambda-the-ultimate.org/node/2884
    print (the sum)
    print (the average)
 ** TODO [#A] sml-like integer types
+   :PROPERTIES:
+   :ID:       5E39D94C-53BF-4179-9FAE-E07A73B9A40A
+   :END:
    InfInt - integer with arbitrary size
    FixedInt - signed int which raises exceptions on overflow
    Word - unsigned int with modulo arithmetic
 ** TODO [#A] generate uniqueIds automatically in macros
+   :PROPERTIES:
+   :ID:       FEEB312F-B7A6-43DE-8A28-B281FF091E59
+   :END:
 
    template foo
      var int `x 10
@@ -519,10 +846,16 @@ von http://lambda-the-ultimate.org/node/2884
      end}
    end
 ** TODO [#A] makro-system inspiration
+   :PROPERTIES:
+   :ID:       AA859209-E2C5-4872-9AAB-EF300BFCF2FE
+   :END:
    Common Lisp reader macros, the proposed QuasiQuoting extensions to Template
    Haskell, Forth parsing words, and/or Camlp4 are things to look at in this
    regard.
 ** TODO [#A] do not allow function and variable names and constants as id of expression
+   :PROPERTIES:
+   :ID:       FCB6E188-B84D-473E-9DB8-2C1482436047
+   :END:
    Require them to be wrapped into apply/var/constant
 
    print(10 + x)
@@ -537,19 +870,34 @@ von http://lambda-the-ultimate.org/node/2884
 
    How to convert into constant and var forms? Calling an error function which may return a transformed sexpr?
 ** TODO [#A] smooth integration of other languages
+   :PROPERTIES:
+   :ID:       1B1B7C95-FC82-40FA-BC8D-92D1DE5F5560
+   :END:
    extractDefs(LLVM::Module*)
    Will parse the module and add Zomp definitions for all found types and functions
 
    parseC(string) -> LLVM::Module*
    Invoke Clang to JIT C-code from a string or file
 ** TODO [#A] source code annotation language
+   :PROPERTIES:
+   :ID:       15C5412A-C5E9-4F8B-BC5F-4B1D94F57C8C
+   :END:
    http://msdn.microsoft.com/en-us/library/ms235402(VS.80).aspx
 ** TODO [#A] SAL http://www.cs.uoregon.edu/research/summerschool/summer07/lectures/Lightweight_Specifications_for_Win32_APIs.pdf
+   :PROPERTIES:
+   :ID:       4F33AAE2-A3F5-4F99-B2C2-9CF826FEF9FB
+   :END:
 ** TODO [#A] vector operations
+   :PROPERTIES:
+   :ID:       981EFD32-19A8-4254-9BB8-C6BB23846381
+   :END:
    http://dobbscodetalk.com/index.php?option=com_myblog&show=Vector-Operations.html&Itemid=29
    http://gcc.gnu.org/onlinedocs/gcc/Vector-Extensions.html
    http://developer.apple.com/performance/accelerateframework.html
 ** TODO [#A] order independent toplevel statements
+   :PROPERTIES:
+   :ID:       C69E5CBF-E977-4900-91EE-C6A2879B865B
+   :END:
    Try to do macro expansion in the order they appear in the file
    If the expansion of one toplevel expressions fails because a method/function
    was not found, re-evaluate it once the symbol is defined
@@ -560,6 +908,9 @@ von http://lambda-the-ultimate.org/node/2884
    whether any symbols in this map have been defined in the mean time. If true evaluate the
    corresponding toplevel expression
 ** TODO [#A] yield iterator/loops: sofort zum ersten ergebnis
+   :PROPERTIES:
+   :ID:       EC76F466-BFDA-4EA3-B5B8-B967BCBEB95F
+   :END:
    public static class StreamReaderExtensions
    {
        public static IEnumerable<string> Lines(this StreamReader reader)
@@ -587,6 +938,9 @@ von http://lambda-the-ultimate.org/node/2884
    Instead of initially pausing the computation at line 0 let it run until the
    first occurence of yield
 ** TODO [#A] Codegen tries to get address of parameter                     :bug:
+   :PROPERTIES:
+   :ID:       D264A161-48C4-42BE-A561-8A5A25790923
+   :END:
    Without the printFLocal this fails:
 
    struct concept_Printable
@@ -598,13 +952,22 @@ von http://lambda-the-ultimate.org/node/2884
      this.printF = printFLocal
    end
 ** TODO [#A] !prompt is applied too late                                   :bug:
+   :PROPERTIES:
+   :ID:       3DFF0FE3-F6DB-42EA-B7CF-A7A9501C92D4
+   :END:
 
      # !prompt foo<enter>
    Set prompt to '  foo ' and cont. prompt to '..foo '
      # |<enter>
    ..foo |
 ** TODO [#A] dynamic calls with support for protocols
+   :PROPERTIES:
+   :ID:       34873347-A43B-4498-9BEE-C22FD50C1007
+   :END:
 ** TODO syntax for generic/polymorphic functions
+   :PROPERTIES:
+   :ID:       2D2FBB83-7651-4DA3-A188-0376BE260D19
+   :END:
 
    func void print<Printable P>(P p) vs. print(Printable[P] p)
 
@@ -617,11 +980,23 @@ von http://lambda-the-ultimate.org/node/2884
 
    func<Number N> N add(N l, N r) // schick
 ** TODO assimp anbindung
+   :PROPERTIES:
+   :ID:       6085E76F-C34D-41D0-9713-7B4B70C69303
+   :END:
 ** TODO pcre anbindung
+   :PROPERTIES:
+   :ID:       46EFA907-E7FD-4CC7-A64A-6CC3D4D98E0A
+   :END:
 ** TODO [#A] casting syntax
+   :PROPERTIES:
+   :ID:       67A5E1ED-F5BB-4BB8-926F-D248B751E1A1
+   :END:
 
    obj.to(Printer).println("10".to int)
 ** TODO [#A] c# style coalesce operator a ?? b
+   :PROPERTIES:
+   :ID:       4CE0BEA4-E2E7-4986-A1F9-F5BBAD8EEF48
+   :END:
    x = a ?? b
    =>
    x = if a != 0 then a else b
@@ -635,6 +1010,9 @@ von http://lambda-the-ultimate.org/node/2884
    x = firstNonNull a b c
 
 ** TODO object initializers
+   :PROPERTIES:
+   :ID:       B0D26EA6-48CE-4AF8-9C1C-18349DEB28EB
+   :END:
 
    (from wikipedia)
    Customer c = new Customer(); c.Name = "James";
@@ -649,7 +1027,13 @@ von http://lambda-the-ultimate.org/node/2884
 
    MyList list = new MyList { 1, 2 };
 ** TODO [#A] change character class for '&' in zomp.el (and possibly other characters)
+   :PROPERTIES:
+   :ID:       A4FCD4CD-1CB7-4D2F-BA83-959F394FBE6F
+   :END:
 ** TODO [#A] varargs per concept param
+   :PROPERTIES:
+   :ID:       BC67C36C-15B0-4C11-BE57-EFBED105AD74
+   :END:
 
    int sum(vararg list<int> args)
    int sum(vararg vector<int> args)
@@ -670,18 +1054,30 @@ von http://lambda-the-ultimate.org/node/2884
      T get()
      void next()
 ** TODO [#A] parsing of foo(a)(b), foo<int>(3) etc.
+   :PROPERTIES:
+   :ID:       D7241F85-CD87-4F2D-A204-0D158CD00984
+   :END:
 ** TODO [#A] a, *b, c = range(5)
+   :PROPERTIES:
+   :ID:       35D12987-6344-47E1-9256-206A753BBFDA
+   :END:
    Extended Iterable Unpacking. You can now write things like a, b, *rest =
    some_sequence. And even *rest, a = stuff. The rest object is always a
    (possibly empty) list; the right-hand side may be any iterable
    (from python3 changelist)
 ** TODO [#A] quantities: number + unit
+   :PROPERTIES:
+   :ID:       EECA71CE-CA6A-4E47-98C6-EA4541D33AB1
+   :END:
    also allow a unit-power in constructors
    1000m = 1km
    10kg .uncomparableTo 10min
 
    better: make type system expressible enough to write as library
 ** TODO [#A] ++i or +i
+   :PROPERTIES:
+   :ID:       9D5E4851-0338-41FA-B51E-6E26189F9106
+   :END:
    Pre- and postfix operators consist of only one symbol. This conflicts with
    using ++ and -- for in/decrement.
 
@@ -702,6 +1098,9 @@ von http://lambda-the-ultimate.org/node/2884
        do size times
          ++dest = ++source
 ** TODO [#A] regexp syntax #/foo/bar/
+   :PROPERTIES:
+   :ID:       4FEB9911-68A8-442E-9B6A-E30CDBFA5EE1
+   :END:
    #c, means use c as seperator
    for c != char, num, paren
 
@@ -711,8 +1110,17 @@ von http://lambda-the-ultimate.org/node/2884
    re"[a-z]+"
    textVar.replace re"func ([:type:]) ([a-z]+)" "\1 \2"
 ** TODO modulsysteme für lisp dialekte ankucken
+   :PROPERTIES:
+   :ID:       B50D6FDD-EB31-4D4F-9710-02046214C291
+   :END:
 ** TODO [#A] allow 500_000 as numeric constants
+   :PROPERTIES:
+   :ID:       E10B505F-381B-43F1-A1D6-C3F14E56931C
+   :END:
 ** TODO [#A] type expression syntax
+   :PROPERTIES:
+   :ID:       6201FE0B-A81E-4FD6-82DA-95513AE47948
+   :END:
 
    int[]*                   - pointer to int array
    int*[]                   - array to int pointers
@@ -725,14 +1133,38 @@ von http://lambda-the-ultimate.org/node/2884
    [int] - list of ints
    {int} - set of ints
 ** TODO [#A] llvm.globalctors for initialization
+   :PROPERTIES:
+   :ID:       DD6B5C82-3111-4932-92F8-D2D765FBDCB5
+   :END:
 ** TODO [#A] wadler-blott for ad-hoc polymorphism
+   :PROPERTIES:
+   :ID:       B2D6BCE9-402F-4E49-85BE-4891C5773DB5
+   :END:
 ** TODO [#A] if2: elseif should support 'then'
+   :PROPERTIES:
+   :ID:       DD993E54-0668-4B8D-9169-5B0433E44F8E
+   :END:
 ** TODO func void foo(float a, float a)                                    :bug:
+   :PROPERTIES:
+   :ID:       68D8A663-3607-4C34-A858-52F16903E513
+   :END:
    should be checked
 ** TODO [#A] unit test: writing function argument
+   :PROPERTIES:
+   :ID:       9BA34297-A06B-4F1D-B3E2-558BB1AB486B
+   :END:
 ** TODO [#A] performance tests, ergebnisse loggen
+   :PROPERTIES:
+   :ID:       25D19D68-A66F-4141-BE89-72DF51668095
+   :END:
 ** TODO [#A] letzte zeile vom toplevel aus in buffer/kill-ring befördern
+   :PROPERTIES:
+   :ID:       BB34D694-DF90-4821-B9E2-BDA89BF0BFCA
+   :END:
 ** TODO design a library system for zomp                                   :pop:
+   :PROPERTIES:
+   :ID:       75C2918B-1CD8-4606-B0BE-E8F6D2AD13BA
+   :END:
    Needed features
    - simple packaging
    - dependencies
@@ -744,41 +1176,95 @@ von http://lambda-the-ultimate.org/node/2884
 
    Inspiration: maven, CPAN
 ** TODO [#A] add call to flush() after macro calls
+   :PROPERTIES:
+   :ID:       419152F2-4559-410B-9AC1-ABE45C9C8291
+   :END:
 ** TODO [#A] ast:matchesShape should support vararg match
+   :PROPERTIES:
+   :ID:       704EDD11-96E7-4A16-BF02-5BB32560D407
+   :END:
    _(_...) => matches (opcall _ args*)
 ** TODO [#A] var doesn't check whether types match
+   :PROPERTIES:
+   :ID:       ED5F006B-E401-4D2D-83BC-DF559404E569
+   :END:
   var cstring foo 10
 ** TODO [#A] ${foo _...} is not parsed correctly                    :bug:parser:
+   :PROPERTIES:
+   :ID:       368934D7-0217-4303-BEC3-79309B7F1F27
+   :END:
 ** TODO [#A] (a == 2 && 3 == 4) is not parsed properly
+   :PROPERTIES:
+   :ID:       1ABC0D57-BB70-4C67-A947-79BFA50CA839
+   :END:
 ** TODO [#A] zomp-newline
+   :PROPERTIES:
+   :ID:       EFFE7C2C-769F-4917-8DB4-5FC25BDFD96C
+   :END:
    indent current line first, then decide about auto insertions
 ** TODO [#A] zomp-newline
+   :PROPERTIES:
+   :ID:       2B12967C-C899-4D87-AF03-D68068562315
+   :END:
    also check for words in zomp-unindent-keywords (like for end)
 ** TODO [#A] branchless min/max operation
+   :PROPERTIES:
+   :ID:       CE3D7283-0AB7-4150-BCA6-734631C78A92
+   :END:
    int foo(int p0, int p1) {
      return p1 + ((p0 - p1) & ((p0 - p1) >> 31));
    }
 ** TODO [#A] zomp-newline fails when at last line of buffer          :bug:emacs:
+   :PROPERTIES:
+   :ID:       1B993388-197E-4C14-B11B-15DE512DCDCB
+   :END:
 ** TODO [#A] update imenu on changes                                     :emacs:
+   :PROPERTIES:
+   :ID:       2E0C1491-B644-4002-A4C7-1F428613BE8E
+   :END:
 ** TODO decide between struct and record name and stick to one
+   :PROPERTIES:
+   :ID:       2251FC7E-956D-40EB-B172-C03021CDCADD
+   :END:
 ** TODO [#A] wrap-lighting
+   :PROPERTIES:
+   :ID:       9763EC63-0BEE-44F1-A15F-B7774F116545
+   :END:
    adjVal := pickAny [0.0..1.0]
    ldn := l.dot n
    ldn' := (ldn+adjVal)/(1.0+adjVal)
    diffuse := max(0, ldn')
 ** TODO [#A] fbo + multisampling
+   :PROPERTIES:
+   :ID:       BBC81F8B-1FB6-4822-AE35-C1B473E16DD4
+   :END:
    GL_EXT_framebuffer_blit
    GL_EXT_framebuffer_multisample
 ** TODO [#A] support matrix literals
+   :PROPERTIES:
+   :ID:       A9A55B5C-6EE2-43AE-A973-3D512EA7FC7D
+   :END:
    { 1, 0, 0, 0;
      0, 1, 0, 0;
      0, 0, 1, 0;
      0, 0, 0, 1 }
 ** TODO [#A] support % operator
+   :PROPERTIES:
+   :ID:       8FCAA44A-D8D8-49FD-BF4D-6815EA71BA19
+   :END:
 ** TODO [#A] make prefix operators have lowest precedence
+   :PROPERTIES:
+   :ID:       B7DAF099-B996-4020-9FA3-A7489463CB14
+   :END:
    &foo[7].bar[3].x should get address of x
 ** TODO [#A] imenu: auf face testen, funktionen in comments/strings ignorieren
+   :PROPERTIES:
+   :ID:       71CEE8C8-402B-4303-8B1E-C336CAF18821
+   :END:
 ** TODO [#A] lexer                                               :lexer:parsing:
+   :PROPERTIES:
+   :ID:       517C1981-F74C-436B-AC6F-7BEF62D8099F
+   :END:
    char class lookup table
    struct CharClass
      isLetter : 1
@@ -790,11 +1276,23 @@ von http://lambda-the-ultimate.org/node/2884
    map char -> CharClass
    Lexing nur basierend auf Charclass
 ** TODO [#A] ||=, &&=, %, %= operators
+   :PROPERTIES:
+   :ID:       EB9EB74B-D7A9-44D4-8C0F-A331AC352982
+   :END:
 ** TODO [#A] compiler error with unknown var type not fatal                :bug:
+   :PROPERTIES:
+   :ID:       F3AE1007-2507-4ADA-8320-02DD21AA73AA
+   :END:
    'var int (array int 10) numbers' yields an error message but but does not
    result in a failed compilation
 ** TODO [#A] support numeric limits (min/max float/int, nan, +/-infinity)
+   :PROPERTIES:
+   :ID:       D4CFEC54-ABB9-4A91-A538-11AD25BA7701
+   :END:
 ** TODO [#A] begin/end for special indenting behaviour?
+   :PROPERTIES:
+   :ID:       1A6F4822-E57C-4EA6-9ADD-E06A24A8B0EF
+   :END:
 
    switch i begin
    case 1
@@ -829,13 +1327,25 @@ von http://lambda-the-ultimate.org/node/2884
      onTrue()
    next(expression, here)
 ** TODO [#A] release LLVM objects                                          :bug:
+   :PROPERTIES:
+   :ID:       6BBB8CFA-CA54-4960-B313-BB2AC5F6F6FF
+   :END:
 ** TODO [#A] resolve parsing ambiguity of foo<T> vs. a < b > c by lexer, like pre/postfix ops
+   :PROPERTIES:
+   :ID:       22BAB3E2-420C-4E68-B57B-0C357DA7FF77
+   :END:
    `Whitespace '<' => open_angle_bracket
    !`Whitespace '<' => smaller_than
    !`Whitespace '>(\n| \)' => close_angle_bracket
    `Whitespace '>' => greater_than
 ** TODO % operator: 30% = 0.3
+   :PROPERTIES:
+   :ID:       A7082286-AAE2-4FA7-AFC7-E88C95BF0F51
+   :END:
 ** TODO [#A] parenthesis syntax
+   :PROPERTIES:
+   :ID:       D1F9699B-62DB-4667-A99B-D38E8B8F0B22
+   :END:
    allow any combination of \[([{\]\[.|/-=+*!?\] and inverse as parens?
    <, > only for operators, never brackets
 
@@ -894,19 +1404,49 @@ von http://lambda-the-ultimate.org/node/2884
    :(: foo bar :):
 
 ** TODO [#A] make prompt red/green depending on result of last eval
+   :PROPERTIES:
+   :ID:       6252D8BC-5FE4-418B-A617-8E8EB58CD446
+   :END:
 ** TODO [#A] list bindings C-c,C-f with multiple arguments should return things matching all not matching any
+   :PROPERTIES:
+   :ID:       ACB72FFD-34BF-48D4-8359-7F784DC4590D
+   :END:
 ** TODO [#A] directly run individual test under debugger
+   :PROPERTIES:
+   :ID:       C7860906-F60C-4920-97E7-C72501366D2A
+   :END:
 ** TODO +=, *= etc operators                                      :quick:parser:
+   :PROPERTIES:
+   :ID:       612CB380-22DB-49D0-9E05-7AC827B11C63
+   :END:
 ** TODO bitwise operators (<<, >>, |, &, ^, !) :quick:parser:
+   :PROPERTIES:
+   :ID:       839CB93A-6DB7-4942-AD74-EFCF883EC481
+   :END:
 ** TODO [#A] "refaketor"-ings und menü
+   :PROPERTIES:
+   :ID:       AAD7C716-1545-45EF-B42D-3E35D5BDD0B7
+   :END:
    einfache dinge wie selection in neue funktion befördern
 ** TODO [#A] underscores in literals
+   :PROPERTIES:
+   :ID:       ED503115-4143-4C88-9280-97070B5CD25A
+   :END:
 ** TODO [#A] binary and hexadecimal constants
+   :PROPERTIES:
+   :ID:       E9E4FBCE-FAC6-4711-8B93-7FB9130FC3BF
+   :END:
 ** TODO [#A] C#-like initializer expressions
+   :PROPERTIES:
+   :ID:       10FF6EBB-F4A2-4872-8ECA-8FC935FAFF82
+   :END:
    new T(a,b) { width = 20, height = 30 }
    analog bei malloc und local
 
 ** TODO [#A] || für beliebige typen erlauben
+   :PROPERTIES:
+   :ID:       8FDE3848-9F01-4324-9075-2F6566BFC7D5
+   :END:
 
    template opr|| l r
      t := l
@@ -916,12 +1456,18 @@ von http://lambda-the-ultimate.org/node/2884
 
    maybe use C# style "a ?? b" syntax
 ** TODO [#A] open/import auch für instanzen erlauben
+   :PROPERTIES:
+   :ID:       53A75040-536B-4472-B9B7-C1128E5C3D71
+   :END:
    c := new MyClass()
    import c._
    foo() // calls c.foo() if it has a valid member
 
    kann u.a. für this / member methoden verwendet werden
 ** TODO [#A] new + mixins erlauben
+   :PROPERTIES:
+   :ID:       02941864-E4CD-413A-95C5-4B4BB6918DF3
+   :END:
    class String ...
    mixin Reflection ...
 
@@ -934,6 +1480,9 @@ von http://lambda-the-ultimate.org/node/2884
      include String.constructors etc
    end
 ** TODO [#A] branchless max
+   :PROPERTIES:
+   :ID:       73EB7AF6-DFFA-4198-82F4-CE1760FEA040
+   :END:
    typedef long long int64;
    typedef unsigned long long uint64;
    typedef unsigned int uint;
@@ -943,30 +1492,81 @@ von http://lambda-the-ultimate.org/node/2884
    uint branchless_sel( uint r1, uint r2, uint val ) { return r1*(1-val) + r2*val; }
    uint max_branchless( uint r1, uint r2 ) { return branchless_sel(r1, r2, sign(diff(r1, r2)) ); }
 ** TODO [#A] 1e5 notation for floats                                   :smallpt:
+   :PROPERTIES:
+   :ID:       D96F2180-AD54-4996-BEC7-3408B3B205AF
+   :END:
 ** TODO init global variables                                          :smallpt:
+   :PROPERTIES:
+   :ID:       66828637-9380-4F75-B65B-761C5AD45B8A
+   :END:
 ** TODO global variables of sized array types                     :smallpt:
+   :PROPERTIES:
+   :ID:       FF6486C3-1186-4989-B3BD-8CB900BD57C8
+   :END:
 ** TODO initializer expressions for arrays (int x[] = { 1, 2, 3 }) :smallpt:
+   :PROPERTIES:
+   :ID:       77884959-4D00-4FCF-BEB6-AAFF5D3248D9
+   :END:
 ** TODO [#A] create default factory for structs                        :smallpt:
+   :PROPERTIES:
+   :ID:       18B5D0ED-E906-4632-BFF5-DA1D68100294
+   :END:
 ** TODO [#A] type for literal values (to allow double d; d + 1)        :smallpt:
+   :PROPERTIES:
+   :ID:       F51F3727-4D93-4F21-87AE-8ED64A34E2DF
+   :END:
 ** TODO [#A] short type                                                :smallpt:
+   :PROPERTIES:
+   :ID:       39E1B633-DCE2-4572-BC6C-E4A9EFE5AE4D
+   :END:
 ** TODO unsigned ints                                                  :smallpt:
+   :PROPERTIES:
+   :ID:       F58F3861-01DC-4B51-8140-0C4C6579A7D5
+   :END:
 ** TODO [#A] detect writing of function parameters                     :smallpt:
+   :PROPERTIES:
+   :ID:       F713380B-76AD-49F7-998D-EDDB3343E407
+   :END:
 ** TODO [#A] more structured type system?                                  :bug:
+   :PROPERTIES:
+   :ID:       13A6010C-888D-4ECA-9BAE-67C9D25AF574
+   :END:
    just introduce parametric types, but only support builtin-ones in the base
    type system?
 ** TODO [#A] global var of double type fails                         :bug:quick:
+   :PROPERTIES:
+   :ID:       16D2C7E3-3197-45AF-B344-C3C11633848C
+   :END:
 ** TODO [#A] Cmd-e fails if end is spelled eend                            :bug:
+   :PROPERTIES:
+   :ID:       70DDE426-0480-4149-A9D5-C4FC45BCD4EA
+   :END:
 ** TODO [#A] onReturn does not catch all ret instructions                  :bug:
+   :PROPERTIES:
+   :ID:       98DDBB22-7335-408A-BE5F-F6F07E93BCD0
+   :END:
 ** TODO typing : in first line fails                                     :emacs:
+   :PROPERTIES:
+   :ID:       D3C62DD6-5AA9-4714-BCE4-1B43E1AFE0F2
+   :END:
 
    main:<- error here
 ** TODO [#A] rebind operator
+   :PROPERTIES:
+   :ID:       38D4251A-3879-4BA2-8A9B-2FF0AED719EB
+   :END:
    http://github.com/andyfischer/circa/blob/master/docs/syntax.md
    @
    is this useful?
 ** TODO [#A] 'var int foo' does not work                                   :bug:
+   :PROPERTIES:
+   :ID:       9B11F6A7-F9FA-4A8C-894E-C78266EA5AD7
+   :END:
    contrast with "var Complex foo"
 ** TODO [#A] catch nesting structs inside themselves                       :bug:
+   :PROPERTIES:
+   :ID:       789AB66E-47F7-4596-ABCC-703558B23BEF
+   :END:
 
 struct NestedStruct:
   Point valuePoint
@@ -976,6 +1576,9 @@ end
 
 also needs to work for circular inclusion
 ** TODO [#A] splicing quasi-quotations
+   :PROPERTIES:
+   :ID:       88117B85-74B7-4C60-AEA4-9B73A15224F8
+   :END:
    like in lisp but depending on syntactical context:
 
    v := list($a, $b, $c)
@@ -998,11 +1601,17 @@ also needs to work for circular inclusion
 
    etc.
 ** TODO [#A] make error messages parsable as zomp syntax?
+   :PROPERTIES:
+   :ID:       117224E7-DB59-4B91-A5EA-021EF4AE5E57
+   :END:
    error: "the message" file: "file/name.ext" line: 100 column: 20
 
    or s-expressions?
    (error "file/name.ext" 100 "error message")
 ** TODO [#A] simple testing framework
+   :PROPERTIES:
+   :ID:       CF8F5E2F-7FAA-4646-B7C4-C226057758E8
+   :END:
    http://www.drdobbs.com/blog/archives/2009/12/a_brutally_simp.html
    - //// regexp marks line which is expected to cause diagnostics
    - otherwise just print out multiple identical lines:
@@ -1012,6 +1621,9 @@ also needs to work for circular inclusion
 
      etc.
 ** TODO [#A] loop breaks by indentation?
+   :PROPERTIES:
+   :ID:       A7E75147-A46F-47BB-ABB8-49D4F0E187DA
+   :END:
 
    loop:
      stuff(&x)
@@ -1019,8 +1631,14 @@ also needs to work for circular inclusion
      more(&x)
    end
 ** TODO [#A] raymarching sample erweitern
+   :PROPERTIES:
+   :ID:       8912DCA0-68E7-4273-86BD-837C21074C04
+   :END:
    http://pouet.net/topic.php?which=7909
 ** TODO [#A] bug in auto indenter inside comments                    :bug:emacs:
+   :PROPERTIES:
+   :ID:       CBB1E227-1FD2-475F-A550-EFF02F4DD5C1
+   :END:
 
 /**
  * A simple experiment to create a shader based 4k
@@ -1029,12 +1647,21 @@ also needs to work for circular inclusion
 
    last line is erroneously detected to be ending with an operator
 ** TODO [#A] change func to fn?
+   :PROPERTIES:
+   :ID:       DB1E649C-F7B2-495D-B052-79806C290964
+   :END:
 ** TODO [#A] type notation
+   :PROPERTIES:
+   :ID:       B63ED6E3-0510-48EB-A665-1CBEF01B895E
+   :END:
    - Ptr!List!Ast
    - *List!Ast
    - *[Ast]
    - Ast.List.Ptr
 ** TODO approaches to lambdas
+   :PROPERTIES:
+   :ID:       CA23B71A-D9D8-495F-B844-71C5864F41E4
+   :END:
 *** juxtaposition to pass block as parameter-less function argument
 
     fn times_do(int count, void() action)
@@ -1080,6 +1707,9 @@ also needs to work for circular inclusion
       print stuff
     end
 ** TODO [#A] opjux could delegate to juxtaposition(T1,T2) for expressions
+   :PROPERTIES:
+   :ID:       F3C6BBEC-2C8B-476A-B0F8-F49C53615ED1
+   :END:
 
    XXXSymbol(...) => name bound to XXX in symbol table
 
@@ -1104,6 +1734,9 @@ also needs to work for circular inclusion
        [fn RetT juxtaposition(T1, RetT(T1) f, T2)]
        how to make it generic for any number of arguments?
 ** TODO [#A] identification of expressions in the presence of goto statements
+   :PROPERTIES:
+   :ID:       3D1D8229-6FA9-4A91-A305-509521FBFE0D
+   :END:
    assign each expression a sequence number seq
      first parent, then children
 
@@ -1124,7 +1757,13 @@ also needs to work for circular inclusion
    in exceptions? how to identify sub graph, is it enough if there is just no return?
 
 ** TODO [#A] does ++= exists? are all operators symmetric, yet?
+   :PROPERTIES:
+   :ID:       DF2D07A6-70CF-4305-89EC-44B949D28ABD
+   :END:
 ** TODO [#A] syntax for type definitions
+   :PROPERTIES:
+   :ID:       99D4EE2B-740A-47EA-AD27-EA20E42BA701
+   :END:
    print(struct{ int a, b, c } pt)
    print(struct( int a, b, c) pt)
    print(struct.{ int a, b c; } pt)
@@ -1134,10 +1773,16 @@ also needs to work for circular inclusion
    type foo is int
    type foo is { int a, b, c }
 ** TODO [#A] unit test reporting
+   :PROPERTIES:
+   :ID:       5CC88202-4DF1-4903-AC54-2757AB1550EB
+   :END:
    let unit tests create a .test_report file which contains some information
    about the last test run (like command output, return value, errors, time
    taken for test run, time and date of test run etc.)
 ** TODO [#A] impulse function
+   :PROPERTIES:
+   :ID:       E75F3C95-F183-487E-A6F6-D256F3199457
+   :END:
    float impulse( float b, float x )
    {
        const float h = b*x;
@@ -1147,11 +1792,17 @@ http://www.iquilezles.org/blog/?p=1451
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
+   :PROPERTIES:
+   :ID:       A80446DC-2A31-4AA7-AB42-60F8848D2C15
+   :END:
 
    - [ ] parsing strings (regexp?)
    - [ ] reading from a file
 
 ** shader system [2/4]
+   :PROPERTIES:
+   :ID:       3566D96E-194E-42BD-8006-98FFE0CEEAE2
+   :END:
 
    Turn a shader description into a class:
 
@@ -1195,6 +1846,9 @@ http://www.iquilezles.org/blog/?p=1451
       - [ ] mapping shaders to classes
 
 ** persistent camera in toplevel [1/2]
+   :PROPERTIES:
+   :ID:       0137090C-1BE3-4C13-893F-B64DD0C7027B
+   :END:
 
    It should be possible to store the camera pos after main() returned
 
@@ -1202,6 +1856,9 @@ http://www.iquilezles.org/blog/?p=1451
    - [ ] module level init code (run on load)
 
 ** overloaded functions
+   :PROPERTIES:
+   :ID:       134A963E-5B97-464B-A921-7006A58D7505
+   :END:
    It should be possible to supply support for overloaded functions as macros
 
    - [ ] get the type of variables
@@ -1209,6 +1866,9 @@ http://www.iquilezles.org/blog/?p=1451
    - [ ] compile time global variables
 
 ** miniml als testprojekt
+   :PROPERTIES:
+   :ID:       D6F16872-F388-4043-BCCC-75811667721D
+   :END:
    Um zu kucken wie sich Restriktionen umsetzen lassen
 
 ** Archive                                                             :ARCHIVE:
@@ -1228,6 +1888,9 @@ http://www.iquilezles.org/blog/?p=1451
    Set of macros and functions providing a simple C like feeling
 
 *** TODO variables [3/4]
+    :PROPERTIES:
+    :ID:       672B8F37-735B-453D-B0D7-7DD5425B8622
+    :END:
     Define a variable
 
     - [X] var int x
@@ -1257,8 +1920,17 @@ http://www.iquilezles.org/blog/?p=1451
     - Returns value of last var
 
 *** TODO types [5/7]
+    :PROPERTIES:
+    :ID:       06B4E63A-1265-413B-9679-1C85A51BCA31
+    :END:
 **** TODO fixed size int (int8, int16, ..., int128)
+     :PROPERTIES:
+     :ID:       9CDD23DD-37D5-4072-B0C3-A0AC6AD117C1
+     :END:
 **** TODO signed/unsigned
+     :PROPERTIES:
+     :ID:       CA98D6F9-0454-417F-9F5B-B4742B77BEC8
+     :END:
 **** DONE int
 **** DONE float
 **** DONE double
@@ -1266,6 +1938,9 @@ http://www.iquilezles.org/blog/?p=1451
 **** DONE bool
 
 *** TODO strings [2/3]
+    :PROPERTIES:
+    :ID:       C4014A22-2F73-4022-BE54-A76026D762A2
+    :END:
 
 **** DONE concatentate
      CLOSED: [2008-07-01 Tue 02:12]
@@ -1273,7 +1948,13 @@ http://www.iquilezles.org/blog/?p=1451
      CLOSED: [2009-03-12 Thu 22:43]
 **** TODO string type != char*
 
+     :PROPERTIES:
+     :ID:       D610C090-88F8-4A48-937B-AABBC2F976BB
+     :END:
 *** TODO structs [2/2]
+    :PROPERTIES:
+    :ID:       635D54C8-C204-460A-9476-4D309DF84323
+    :END:
 
 **** DONE Simple case
      type IntArray
@@ -1288,7 +1969,13 @@ http://www.iquilezles.org/blog/?p=1451
      end
 
 *** TODO enums [0/4]
+    :PROPERTIES:
+    :ID:       6FD58544-40CC-454F-A7DC-80754317C438
+    :END:
 **** TODO define them
+     :PROPERTIES:
+     :ID:       010A69DF-2CCE-4EE7-A35E-20988748F195
+     :END:
      enum Primitive
        Triangles
        Quads
@@ -1296,16 +1983,28 @@ http://www.iquilezles.org/blog/?p=1451
        Lines
 
 **** TODO assign default values
+     :PROPERTIES:
+     :ID:       0F5ABDA7-8C07-45D3-8B37-2955643AAC7B
+     :END:
      enum Primitive
        Triangles = GL_LINES
        Quads = GL_QUADS
 
 **** TODO auto generated attribs
+     :PROPERTIES:
+     :ID:       F732CEF0-5BD8-4F51-BE62-340638B93545
+     :END:
      Primitive.count :: int
      Primitive.cases :: list<string*int>
 
 *** TODO unions
+    :PROPERTIES:
+    :ID:       FD9B9BBF-F56D-46C2-849E-D8B77DE6F9FC
+    :END:
 *** TODO operators for all basic types [3/5]
+    :PROPERTIES:
+    :ID:       12A27A0A-9230-4618-AA58-507EAB026AFE
+    :END:
 **** DONE map 'a § b' to 'a §_t b' for operator § and type(a) == type(b) == t
      CLOSED: [2009-03-22 Sun 23:56]
 **** DONE infix +, -, *, /, **
@@ -1313,15 +2012,39 @@ http://www.iquilezles.org/blog/?p=1451
 **** DONE prefix/postfix ++, --
      CLOSED: [2009-03-23 Mon 00:01]
 **** TODO ** for floats
+     :PROPERTIES:
+     :ID:       2E582E83-A47E-4331-BBCF-3C5D5597BFD0
+     :END:
 **** TODO ++, -- for floats
+     :PROPERTIES:
+     :ID:       4BA4492D-6970-4D1A-A52F-3706CE603228
+     :END:
 *** TODO control structures [2/8]
+    :PROPERTIES:
+    :ID:       5C38B191-5411-4ADC-B072-823C58B66A82
+    :END:
 **** TODO c-style for
+     :PROPERTIES:
+     :ID:       9EBF88AF-E272-4290-97AC-8A4120221CB9
+     :END:
 **** TODO do/while
+     :PROPERTIES:
+     :ID:       E302F487-8414-43F8-82A4-91A009A72418
+     :END:
 **** TODO do/until
+     :PROPERTIES:
+     :ID:       00D07E5D-A0F2-4079-8A47-DE9FD46815BE
+     :END:
 **** TODO switch / case [1/2]
+     :PROPERTIES:
+     :ID:       E6DCAD36-A8C6-4C0D-A5C0-A736737B55F8
+     :END:
 ***** DONE basic switch/case
       CLOSED: [2009-03-12 Thu 23:36]
 ***** TODO support explicit fall-through
+      :PROPERTIES:
+      :ID:       E9B90177-60E7-4B53-9044-AF851BF1F37E
+      :END:
 
       switch someVar:
       @fallthrough case 1
@@ -1349,9 +2072,15 @@ http://www.iquilezles.org/blog/?p=1451
       end
 
 **** TODO break, continue
+     :PROPERTIES:
+     :ID:       7F960566-5C49-419A-9D65-21B708477DC3
+     :END:
 **** DONE if then/else if/else
 **** DONE while
 *** TODO pointers [2/4]
+    :PROPERTIES:
+    :ID:       9EC4E676-1523-4116-A8D8-B1A6BB9B6368
+    :END:
     using postfix notation
 
 **** DONE &var
@@ -1359,7 +2088,11 @@ http://www.iquilezles.org/blog/?p=1451
 **** DONE var*
      CLOSED: [2009-03-12 Thu 23:38]
 **** TODO (var+10)*
-**** TODO global pointers
+
+     :PROPERTIES:
+     :ID:       C2DF17D6-A53C-49E0-B61A-20A35BA15EA2
+     :END:
+:END:      **** TODO global pointers
 *** DONE functions [4/4]
 **** DONE define them
      func RetType name(args)
@@ -1378,6 +2111,9 @@ http://www.iquilezles.org/blog/?p=1451
 **** DONE function pointers
      CLOSED: [2008-07-31 Thu 20:10]
 *** TODO Types [2/3]
+    :PROPERTIES:
+    :ID:       2F9D8F7D-F772-486E-8B6B-0F67803ADABF
+    :END:
     How types can be specified
 
 **** DONE simple type name (int, float, MyStruct, ...)
@@ -1385,15 +2121,27 @@ http://www.iquilezles.org/blog/?p=1451
 **** DONE pointer by appending a star (int*, float*, MyStruct**, ...)
      CLOSED: [2009-03-12 Thu 23:37]
 **** TODO signed(int), sint, uint, slong, ulong, ...
+     :PROPERTIES:
+     :ID:       C5A95A5E-5B8B-456A-B3A2-6C869A6F1635
+     :END:
 
 *** TODO literals
+    :PROPERTIES:
+    :ID:       B26FB281-3E66-4AD7-A558-FF33247B38BE
+    :END:
     - [X] int, bool, string
     - [ ] arrays
     - [ ] structs
 *** TODO automation
+    :PROPERTIES:
+    :ID:       A9FE766E-452F-4B18-ABC6-F3D50A3839DF
+    :END:
     - [ ] generate printers
     - [ ] generate parsers
 *** TODO misc
+    :PROPERTIES:
+    :ID:       E946A0C7-4C37-4531-8044-284D12ED093B
+    :END:
     - [ ] references (?)
     - [ ] dot notation for function calls
           var.func(a) => VarType::func(var, a)
@@ -1414,6 +2162,9 @@ http://www.iquilezles.org/blog/?p=1451
           int foo(int a, int b)
 
 ** zomp-ceepp
+   :PROPERTIES:
+   :ID:       3117B71C-5CFC-4022-934C-543320209B20
+   :END:
    Extension of cee, featuring an object system, type classes etc.
 
    - [ ] object system
@@ -1426,6 +2177,9 @@ http://www.iquilezles.org/blog/?p=1451
    - [ ] overloaded methods
 
 ** zomp-miniml
+   :PROPERTIES:
+   :ID:       60D72F71-5585-4D17-9F0E-FB4D4BB9B4B7
+   :END:
    A minimalistic ml-like language featuring GC, variant types and tuples
 
    - [ ] tuples
@@ -1441,6 +2195,9 @@ http://www.iquilezles.org/blog/?p=1451
 
 * Tasks                                                                   :zomp:
 ** Performance
+   :PROPERTIES:
+   :ID:       CEBA9B77-1CF0-4B37-A336-D90E551AC8CF
+   :END:
 
    | What                | 1000 lines |   Speedup | 2000 lines |   Speedup |
    |---------------------+------------+-----------+------------+-----------|
@@ -1452,18 +2209,51 @@ http://www.iquilezles.org/blog/?p=1451
 ** BUGS
 
 *** TODO [#C] keine fehler ausgabe im prelude?                             :bug:
+    :PROPERTIES:
+    :ID:       215ACAC5-BB0F-4870-870C-65C8335EFBCF
+    :END:
 *** TODO [#B] bugs wenn innerhalb eines makros andere makros getriggert werden? :bug:
+    :PROPERTIES:
+    :ID:       959DF09B-C59C-44FA-ABDA-C57F0E1BD228
+    :END:
 *** TODO [#B] sometimes macros can't be parsed at the toplevel (might be related to the macro expansion string fuckup) :bug:
+    :PROPERTIES:
+    :ID:       4B7DAE59-2A17-444E-A91F-2B67AB99AF14
+    :END:
 *** TODO [#B] macro expansion failures in compiler but not toplevel (comments.zomp), getting weird characters :bug:
+    :PROPERTIES:
+    :ID:       4F2040DD-C018-40B7-BA87-8728F369131D
+    :END:
     scheint in der stdlib zu sein
     koennte daran liegen dass redefinitionen im compiler anders behandelt werden
 *** TODO [#A] evaluating multipe expressions will ignore all but the last (iexpr) (sometimes) :bug:
+    :PROPERTIES:
+    :ID:       82E8A02A-F020-452F-8BBC-F11586C88FD4
+    :END:
 *** TODO [#B]     store ptradd(buffer, 99) '\0' => llvm failure            :bug:
+    :PROPERTIES:
+    :ID:       F9717C71-90E3-45D9-884C-6E1F65762E9B
+    :END:
 *** TODO [#B] ast:print( ${foo bar}, 0 ) => fails                          :bug:
+    :PROPERTIES:
+    :ID:       FDD0EDDD-7CB9-4D10-862E-1CB412A5CD3B
+    :END:
 *** TODO [#B]     store ptradd(indices, 4 * #num + 0) #a => fails to parse :bug:
+    :PROPERTIES:
+    :ID:       406F1CC6-546C-45FA-9173-569CB6F99D1A
+    :END:
 *** TODO [#B]   store ptradd(vertArray, 3*num + 0) x => error (see below)  :bug:
+    :PROPERTIES:
+    :ID:       46F86CBB-CD90-4831-8995-217B4A1D5D1B
+    :END:
 *** TODO [#A] printString "foo\n" ignored newline on both sexpr and indent syntax :bug:
+    :PROPERTIES:
+    :ID:       7F9D94E2-A199-415C-AF93-436A7ABC1967
+    :END:
 *** TODO [#A] char handling in macro expansion fucked up?                  :bug:
+    :PROPERTIES:
+    :ID:       D88AA85B-7188-439E-B39F-C79F890AE500
+    :END:
 macro Cstring:forEachChar string char onChar
   uniqueId ptr "forEachChar"
 
@@ -1479,8 +2269,14 @@ end macro
 
 In macro expansion the \0 will be replaced by an !
 *** TODO [#A] speichermanagement fixen!!! (ast.id wird manchmal geloescht.. im ocaml ffi?) :bug:
+    :PROPERTIES:
+    :ID:       384246A8-74E0-4B46-8AE7-11DE68A0C9AA
+    :END:
 
 *** TODO [#B] check where `DefineVariable for void vars comes from
+    :PROPERTIES:
+    :ID:       9843A60B-BF26-4A1A-8384-D11BE879B4D1
+    :END:
 *** DONE [#A] "" is not parsed as a string
     CLOSED: [2008-01-11 Fri 01:28]
 
@@ -1501,8 +2297,14 @@ In macro expansion the \0 will be replaced by an !
     CLOSED: [2007-12-31 Mon 03:26]
 
 *** TODO [#B] locate cause of excessivly slow LLVM IR verification
+    :PROPERTIES:
+    :ID:       2FEDA0DC-4055-42DF-9617-DFB0E743782F
+    :END:
 
 *** TODO [#C] default value of global double vars is parsed incorrecly (1.0 is accepted but 1.0d not) :bug:
+    :PROPERTIES:
+    :ID:       7D4AF9F7-9776-4E15-928A-1610EF2A06CC
+    :END:
 
 *** DONE [#A] emit warning on missing ret		:bug:
     CLOSED: [2007-12-04 Tue 02:35]
@@ -1512,6 +2314,9 @@ In macro expansion the \0 will be replaced by an !
    CLOSED: [2007-12-05 Wed 20:35]
 
 *** TODO [#C] BUG: sometimes llvm source is printed on compiler errors unnecessarily :bug:
+    :PROPERTIES:
+    :ID:       5E82D536-943B-4BD1-BBA6-3D041E805111
+    :END:
 
 *** DONE fix toplevel "!" / abort expr			:bug:
     CLOSED: [2007-11-04 Sun 19:51]
@@ -1523,21 +2328,36 @@ In macro expansion the \0 will be replaced by an !
     Will be part of new parser
 
 *** TODO [#B] support for const, const T* etc.?
+    :PROPERTIES:
+    :ID:       BC4AF063-AF78-48F1-861E-A993015BE867
+    :END:
 
 *** TODO [#B] Turn more things into expressions
+    :PROPERTIES:
+    :ID:       89BE5F14-2263-4D16-8B34-50979AC577F7
+    :END:
 **** TODO if is not an expression
+     :PROPERTIES:
+     :ID:       B6E9FA1A-9AD1-41BD-A524-D44FC0EC0AE4
+     :END:
 **** DONE Allow labels to be local to a scope? Turn if/for/.. into expressions this way?
      CLOSED: [2008-02-23 Sat 03:48]
 
      Local labels are not needed to turn if/for/.. into expressions
 
 *** TODO [#C] place all external c functions in 'c' namespace?
+    :PROPERTIES:
+    :ID:       FEB45536-283A-4236-8F3E-A3B8AB8F3CA9
+    :END:
    Export only functions defined in c namespace?
    Rename all other functions(?) like zomp_${name}
 
 ** Fix language quirks
 
 *** TODO [#B] ast von cstring auf string umstellen
+    :PROPERTIES:
+    :ID:       011B3CD7-86D9-4ECA-B0D8-4033703371F9
+    :END:
 
 *** DONE [#A] linking multiple generated .ll files does not work :bug:
     CLOSED: [2007-12-20 Thu 02:53]
@@ -1552,12 +2372,21 @@ In macro expansion the \0 will be replaced by an !
     Repeat (compiler:error ...)?
 
 *** TODO [#B] can't send antiquote to macro
+    :PROPERTIES:
+    :ID:       8936F4AB-C47F-4156-8E0B-B8E960C1F2DC
+    :END:
     (xmacro twice arg (ret `((var int i 0) #arg (assign i 1) #arg)))
     (twice (printInt #i))
 
 *** TODO [#B] int representations: 0xff 0b1001 etc.	:features:
+    :PROPERTIES:
+    :ID:       18EBD345-9AF0-4C0C-B2A1-B7256C3A1EBC
+    :END:
 
 *** TODO [#B] nested quotes and antiquotes don't work :bug:
+    :PROPERTIES:
+    :ID:       FD713B5C-7FFE-4A20-8AF0-64EF3883AD16
+    :END:
 
 *** DONE Allow getting pointer to variables
 
@@ -1581,21 +2410,42 @@ In macro expansion the \0 will be replaced by an !
     CLOSED: [2007-10-16 Tue 19:04]
 
 *** TODO [#B] Support more data types
+    :PROPERTIES:
+    :ID:       126EBDED-DBCC-4F06-B1E2-5503CF864BC0
+    :END:
 
 **** DONE double
      CLOSED: [2007-11-26 Mon 01:26]
 
 **** TODO unsigned ints
+     :PROPERTIES:
+     :ID:       5BF575C8-2266-43E2-8C47-ABD92A3F7444
+     :END:
 
 **** TODO int8/16/32
+     :PROPERTIES:
+     :ID:       26C434F0-672B-4219-8535-8CE6ACB30593
+     :END:
 
 **** TODO c.int, c.short etc.
+     :PROPERTIES:
+     :ID:       66480DAB-66B9-4A37-9396-4788CBF12CC5
+     :END:
 
 *** TODO [#B] Add instruction to free memory
+    :PROPERTIES:
+    :ID:       F38D70BC-1DE7-4B4E-AEF1-1E96E50C4575
+    :END:
 
 *** TODO [#B] Support global pointers
+    :PROPERTIES:
+    :ID:       1CC3F632-CC0E-48C2-BA4D-46C08954DECE
+    :END:
 
 *** TODO [#C] Methods are added to bindings twice
+    :PROPERTIES:
+    :ID:       B5685022-F0BC-41C1-8032-5B2F59B5F992
+    :END:
     func returns bindings where the functions is added twice
 
 *** DONE [#A] Variadic macros
@@ -1612,31 +2462,67 @@ In macro expansion the \0 will be replaced by an !
 ** Refactorings                                                   :refactorings:
 
 *** TODO [#A] unit tests still use identifiers with dots (line 'int.add') - change this to colon (int:add) :refactorings:quick:
+    :PROPERTIES:
+    :ID:       446E1D0A-34B9-4D07-98A6-D8974A66DB59
+    :END:
 *** TODO [#B] reduce to llvm bindings and macros (mixed ocaml/zomp macro system for now) :refactorings:
+    :PROPERTIES:
+    :ID:       EA8A0513-3415-4A03-8E6A-9AE1CBDFA2B6
+    :END:
 *** TODO [#A] simplify all base language forms so only one syntax is allowed and support variants using macros :refactorings:
+    :PROPERTIES:
+    :ID:       8327A631-5566-4E64-A01F-204EF997CEE3
+    :END:
 *** TODO [#B] move all builtin forms into zomp namespace (e.g. zmp:base:var etc.) :refactorings:
+    :PROPERTIES:
+    :ID:       A928ED07-E470-4F31-8BA7-8753B57198AD
+    :END:
 *** DONE [#B] rename modules of indent based parser and seperate them from the unit tests
     CLOSED: [2008-06-08 Sun 23:40]
 *** TODO [#A] change all types to Capitalized case in stdlib
+    :PROPERTIES:
+    :ID:       730A0E24-30A9-43B2-9536-B0719DF6E7AF
+    :END:
 *** TODO [#B] Allow nested expressions in branch instruction
+    :PROPERTIES:
+    :ID:       667856F8-6166-456F-9A36-8717D046FDE0
+    :END:
 
 *** TODO [#C] Turn value type into polymorphic variant type
+    :PROPERTIES:
+    :ID:       AB99CFF3-6A30-43EE-AB6D-A9988730B55D
+    :END:
 
 *** TODO [#B] zompc and sexprtoplevel should share evaluation code
+    :PROPERTIES:
+    :ID:       81357F90-8A43-4B92-81CE-9EA5C14795CB
+    :END:
 
 *** TODO [#A] Change expander.ml: dispatching only done by the expression's id
+    :PROPERTIES:
+    :ID:       05F02185-EFCE-4092-9D31-E7F18E2B6A15
+    :END:
     Then make all operations available as fake-macros (zmp:compiler:macroExpand etc.)
 
 ** Testing
 
 *** TODO [#C] generate more realistic compiler performance tests
+    :PROPERTIES:
+    :ID:       1B6A1D6E-5E9D-4584-AB63-7E181C95CC4D
+    :END:
     (use macros and functions which are not defined just two lines ago)
 
 *** TODO [#B] check return values of tests/*.zomp
+    :PROPERTIES:
+    :ID:       BEDC909E-7FAC-4904-93F4-BA14EAF7684E
+    :END:
     Rename files to foo.ret100.zomp, then check whether running foo returns 100
 
 ** Parser / Syntax                                               :parser:syntax:
 *** TODO smalltalk-style grouping mit keyword: arguments
+    :PROPERTIES:
+    :ID:       A269646E-9E91-42DD-8C38-28E96BCC6695
+    :END:
 
     Keyword identifer a la 'foo:' brechen expression in teile
 
@@ -1649,6 +2535,9 @@ In macro expansion the \0 will be replaced by an !
     (opkeyword do (jux some stuff) until endCondition)
 
 *** TODO [#A] if (*addF)(3, 4) > 10
+    :PROPERTIES:
+    :ID:       0F1E44CB-36BB-4FB2-BB2E-DBA3BEF4F7D0
+    :END:
     => jux (preop* addF) (op> (op, 3 4) 10)
     Sollte aber jux if (op> (opcall (preop* addF) 3 4) 10) sein
 
@@ -1680,11 +2569,20 @@ In macro expansion the \0 will be replaced by an !
     foo bar(a b) => jux (id foo) (call bar (jux a b))
 
 *** TODO [#A] list<int> => template, xml <node> -> xml like trees
+    :PROPERTIES:
+    :ID:       FAC95FF1-9445-4CCA-8F1D-330C248AA8DE
+    :END:
 
 *** TODO [#B] infix/postfix/prefix operatoren: bezeichnen als _+_ _+ +_? :operators:
+    :PROPERTIES:
+    :ID:       D3EFA008-35A4-4C59-A699-0F8AF27CD32E
+    :END:
     oder auch \+\ \+ +\
 
 *** TODO [#B] operatorsymbol am zeilenanfang/ende = pre/postfix operator fuer ganze zeile? :operators:
+    :PROPERTIES:
+    :ID:       3072D364-E413-4469-B37E-F0FF8305A084
+    :END:
 
    > equals(int a, int b) =
    <=>
@@ -1702,12 +2600,30 @@ In macro expansion the \0 will be replaced by an !
    >   | _ => handleOther()
 
 *** TODO [#B] indent parser: support escaped linebreaks (\ at beginning/end of line) :quick:
+    :PROPERTIES:
+    :ID:       080A8828-3E10-410F-B608-73B4D45FCE75
+    :END:
 
 *** TODO [#B] only allow one dot in ids (and none at a later point)      :quick:
+    :PROPERTIES:
+    :ID:       EFB54299-3483-45A6-9AA9-231F1EDA4348
+    :END:
 *** TODO [#B] support "\"" in strings
+    :PROPERTIES:
+    :ID:       5CB3DEF7-4305-4140-9890-42F7EA118671
+    :END:
 *** TODO [#A] add += -= *= /= etc. operators                         :operators:
+    :PROPERTIES:
+    :ID:       6CA75F77-025A-422C-A918-3EBFBB6FC2C5
+    :END:
 *** TODO [#A] / should be left associative: a / b / c => (a / b) / c       :bug:
+    :PROPERTIES:
+    :ID:       2F76D2E8-2322-4B46-8651-6F8CF8825B33
+    :END:
 *** TODO [#B] parser: keep track of line and char number and add this to error messages
+    :PROPERTIES:
+    :ID:       41D910AA-4C11-415C-820E-B53CDE6080A1
+    :END:
 
 *** Archive                                                            :ARCHIVE:
 **** DONE [#A] indent parser: skip comments
@@ -1740,71 +2656,188 @@ In macro expansion the \0 will be replaced by an !
 ** Compiler
 
 *** TODO [#B] proper support for compile time variables               :compiler:
+    :PROPERTIES:
+    :ID:       FFE88A4A-51B5-461E-98F1-1AD094F2C44A
+    :END:
     Use normal variables for now
 
 *** TODO [#B] disallow identifiers which only differ in capitalization (unless for type/function, e.g. if they denote different kinds of elements?) :compiler:quick:
+    :PROPERTIES:
+    :ID:       92BEC520-1C04-4AF9-8C2B-52E695E5C50F
+    :END:
 *** TODO [#A] give additional info if a name resolves to something of the wrong type (expected type but found function etc.) :compiler:quick:
+    :PROPERTIES:
+    :ID:       B45BAAAD-8A74-4F77-9BFE-8239757AC379
+    :END:
 *** TODO [#A] better error message on invalid typedef           :compiler:quick:
+    :PROPERTIES:
+    :ID:       9773CD81-1EFB-4E9B-A5E0-09490B10B119
+    :END:
 
 *** TODO [#B] stack basiertes system fuer settings/bindings im macro expander
+    :PROPERTIES:
+    :ID:       D12763F8-7F39-401E-8DDC-6C0247D92C47
+    :END:
 
 *** TODO [#B] gencode in zomp umstellen
+    :PROPERTIES:
+    :ID:       7A8CA7E6-C4F6-429E-981E-E2AFA30148ED
+    :END:
    (zeiger durch abstrakten typ darstellen)
    http://www.linux-nantes.org/~fmonnier/OCaml/ocaml-wrapping-c.php#ref_ptr
 *** TODO [#A] error on redefining vars
+    :PROPERTIES:
+    :ID:       AB9B6183-6151-414F-A220-E7E5520D5FB4
+    :END:
 *** TODO [#A] error when redefining symbol with different number of arguments
+    :PROPERTIES:
+    :ID:       C79C9F71-89F6-4718-A22D-5812B8A5D341
+    :END:
 *** TODO [#A] error when local var is redefined
+    :PROPERTIES:
+    :ID:       CBABE952-9438-49B0-83C7-DE0726592D34
+    :END:
 *** TODO [#A] no segfaults when redefining local variables
+    :PROPERTIES:
+    :ID:       1796A620-9273-4634-BADD-1F0EA2AB8CD4
+    :END:
 *** TODO [#A] allow uninitialized vars
+    :PROPERTIES:
+    :ID:       864F97D7-9EC0-4E68-96F3-788BFFACE8E0
+    :END:
 *** TODO [#A] allow (var foo x) where the type of var is propagated
+    :PROPERTIES:
+    :ID:       83873A3C-D26E-4E9D-B879-99544BCCFC0F
+    :END:
 *** TODO [#B] warnings on unused variables
+    :PROPERTIES:
+    :ID:       B9FCD49E-4CBC-441C-BCAF-9BB769788205
+    :END:
 *** TODO [#B] compileperf.zomp  mit 16k funktionen profilen
+    :PROPERTIES:
+    :ID:       A2110C4F-06F6-497F-84F3-665D355E76B7
+    :END:
 *** TODO [#A] support abstract types (which may be only used through pointers)
+    :PROPERTIES:
+    :ID:       4CFEB575-FE40-44E1-82BC-84AF9B6E900D
+    :END:
 *** TODO [#A] rename local macros
+    :PROPERTIES:
+    :ID:       90903C0C-9494-44FC-9DDF-83E4CBE2A529
+    :END:
 *** TODO [#A] constants for float nan, pos & neg infinity
+    :PROPERTIES:
+    :ID:       2FBCB16F-ADF2-46FE-A103-CBF48101014D
+    :END:
 *** TODO [#A] stringlit / op""
+    :PROPERTIES:
+    :ID:       9AC1D0AA-F17B-4D79-ACA1-1B3BFF71D474
+    :END:
 
     macro stringlit string
       static var (ptr char) stringStorage string
       stringStorage
 
 *** TODO [#B] llvm assertion error on record argument
+    :PROPERTIES:
+    :ID:       F0E0F44C-E6D3-4B37-A4D2-C356D8CC414D
+    :END:
 *** TODO [#A] support toplevel/static expressions which will be moved from inside a function to the top level
+    :PROPERTIES:
+    :ID:       EA0ED6B5-6F81-4074-9542-4DE8019312E5
+    :END:
 *** TODO [#B] allow record with only 1 field
+    :PROPERTIES:
+    :ID:       FDDC5504-0BFD-4153-830A-A83F736959AD
+    :END:
 *** TODO [#A] convert char to int / float
+    :PROPERTIES:
+    :ID:       2FDC703C-2149-4057-AB21-4A25976623CD
+    :END:
 *** TODO [#A] (var (ptr float) foo) => better error message instead of expr: /0/ :bug:
+    :PROPERTIES:
+    :ID:       B5F05E72-FB39-43A9-A56B-2D710D58F534
+    :END:
 *** TODO [#A] support records as first class var types
+    :PROPERTIES:
+    :ID:       190F3CAB-DBD2-498F-A205-8393FBD25835
+    :END:
     (allow them to be params, retvals, local vars, global vars)
 *** TODO [#A] fix initialization of global vars
+    :PROPERTIES:
+    :ID:       ACBDF258-0C3B-4955-A24A-E339B47EA36F
+    :END:
 *** TODO [#A] support global pointers                                      :bug:
+    :PROPERTIES:
+    :ID:       6C885418-E629-496B-90BE-860ECA6E716F
+    :END:
 *** TODO [#A] typechecking fails on (func nonvoid ... (if cond (ret a) (ret b)) ) :bug:
+    :PROPERTIES:
+    :ID:       68734302-DC85-4B9E-9F29-DF2CA0BC4880
+    :END:
 *** TODO [#A] support paths for include / import / etc.
+    :PROPERTIES:
+    :ID:       E9E5EEED-2B0B-4452-91D3-9171D5A03F2B
+    :END:
 *** TODO [#B] refactor: make all compiler functionality available from zomp expressions
+    :PROPERTIES:
+    :ID:       1B241DF0-E77F-4499-8F78-0C28F7078AE5
+    :END:
 *** TODO Indent-sensitive syntax
+    :PROPERTIES:
+    :ID:       EB71314C-82D8-44C6-85A5-CAB137E010FF
+    :END:
 
 **** DONE [#B] iexpr does not ignore empty lines preceeding unindents
      CLOSED: [2008-01-14 Mon 17:24]
 
 **** TODO [#B] iexpr does not fail correctly on "class Foo ... end blah" etc.
+     :PROPERTIES:
+     :ID:       5FE4AFEE-2BDE-4B37-9810-5A5BEFA07626
+     :END:
 
 **** TODO [#B] iexpr ignores last line of not followed by a newline char
+     :PROPERTIES:
+     :ID:       F2C92550-6A62-4285-AA99-B1A89E637C1F
+     :END:
 
 **** TODO [#B] Comments need to be handled / skipped
+     :PROPERTIES:
+     :ID:       77D453D2-AA70-463C-96BD-A7F1805C4BC6
+     :END:
 
 *** DONE [#A] arguments in function don't match: tell which argument(s) failed
     CLOSED: [2007-12-27 Thu 01:45]
 
 *** TODO Codegen in zomp
+    :PROPERTIES:
+    :ID:       DDCD3634-41AB-49CF-BEAF-81D1ED6319B0
+    :END:
 
 **** TODO Bindings for LLVM IR
+     :PROPERTIES:
+     :ID:       9CEF2DCC-136C-4DD2-AF32-6833BC649228
+     :END:
 **** TODO Define base language (from current definition)
+     :PROPERTIES:
+     :ID:       17318504-1D8F-4A1D-A211-34E149704AE1
+     :END:
 **** TODO Base lang -> LLVM IR translation
+     :PROPERTIES:
+     :ID:       D0B945D9-83E1-4369-A61A-DBABFA583DF7
+     :END:
 **** TODO ast type system?
+     :PROPERTIES:
+     :ID:       40657992-28E1-4791-8AFD-8EBF8975031F
+     :END:
 
 *** DONE [#A] type errors: show expected and found type
     CLOSED: [2008-01-11 Fri 19:18]
 
 *** TODO [#B] use llvm ocaml bindings for code generation
+    :PROPERTIES:
+    :ID:       EF898750-5068-4E9E-BAF7-ED32E757C671
+    :END:
     check whether this makes IR-verification faster / prevent bugs / ...
 
 *** DONE compilation needs O(n^2) time
@@ -1814,44 +2847,98 @@ In macro expansion the \0 will be replaced by an !
    CLOSED: [2007-12-20 Thu 02:54]
 
 *** TODO [#B] compiling is extremely slow
+    :PROPERTIES:
+    :ID:       7C95B72C-36BD-486B-8FD9-3D0DE36160EF
+    :END:
 
 *** TODO [#C] Generate nice and readable LLVM code
+    :PROPERTIES:
+    :ID:       2835C0FD-1691-4512-B170-D35DDEDBAEEB
+    :END:
 
 **** TODO [#C] Let functions in genllvm.ml return a string list instead of strings with newlines
+     :PROPERTIES:
+     :ID:       E7DF4E33-FAB4-48F1-B494-BBD32931A18C
+     :END:
 
 **** TODO [#C] Add empty line(s) between functions
+     :PROPERTIES:
+     :ID:       521D25D3-E895-4571-B20E-261D0E27BBF0
+     :END:
 
 **** TODO [#C] Fix useless newlines which appear on some operations
+     :PROPERTIES:
+     :ID:       9D35B74A-8CC4-495C-A519-32F6F9CF33F5
+     :END:
 
 **** DONE Fix missing line breaks
     CLOSED: [2007-09-28 Fri 23:17]
 
 *** TODO [#C] Add a c backend which generates nice and readable code
+    :PROPERTIES:
+    :ID:       DD249247-E1A1-4CCB-9914-5BE06D0BF16A
+    :END:
 
 *** TODO [#C] Bug: (func int main () 20) does not compile :bug:
+    :PROPERTIES:
+    :ID:       36F1F1A8-0C7F-4ECD-8BD1-C9644EEA1594
+    :END:
     But (func int main () ((ret 20))) does as well as (func int main () ((printInt 10) 20))
 
 *** TODO [#C] Bug: some generic intrinsics might return invalid bindings :bug:
+    :PROPERTIES:
+    :ID:       F098B734-7DCF-4227-AD06-49CEFDEC0117
+    :END:
 *** DONE [#A] parse 1.0f as float
     CLOSED: [2008-01-16 Wed 01:20]
 
 ** Interactive toplevel
 
 *** TODO [#B] support functions returning non-void on toplevel
+    :PROPERTIES:
+    :ID:       AAB5392D-77DB-4730-AC28-2D2C95297A9B
+    :END:
 *** TODO [#A] better error reporting on immediate code execution in toplevel
+    :PROPERTIES:
+    :ID:       135E4008-8B70-4C19-9D7B-22EDC2DEEB7E
+    :END:
 *** TODO [#B] macro/function to check whether running in toplevel        :quick:
+    :PROPERTIES:
+    :ID:       3C60C3F1-E03A-40D5-B8B1-DCDC58B92034
+    :END:
 *** TODO [#A] add (ret void) to end of immediate functions in toplevel   :quick:
+    :PROPERTIES:
+    :ID:       8F5106BB-DC78-417F-BF8D-F209E89A7215
+    :END:
 *** TODO [#B] print nice struct names on !bindings (same as on !writeSymbols) in toplevel
+    :PROPERTIES:
+    :ID:       93BAEC6D-294F-4C2B-99E4-1E036B86DB6D
+    :END:
 *** TODO [#A] using invalid floating point constant will screw up LLVM for whole session :bug:
+    :PROPERTIES:
+    :ID:       57C020B0-380E-403C-94EF-450FADB06F2C
+    :END:
 *** DONE [#A] allow immediate execution of code
     CLOSED: [2008-02-12 Tue 02:52]
 
 *** TODO [#B] proper error reporting when function/macro is redefined with different parameter count/types
+    :PROPERTIES:
+    :ID:       87D59FC7-FAE6-4056-A850-89710F57F6B9
+    :END:
 *** TODO [#B] let toplevel send feedback to emacs + handle errors (abort eval etc.)
+    :PROPERTIES:
+    :ID:       8FB0C66A-934A-448A-8B15-2A152AC549E7
+    :END:
 
 *** TODO [#B] fast navigation
+    :PROPERTIES:
+    :ID:       F71EF229-9B4E-4AEF-96F9-9A2E142E9178
+    :END:
 
 *** TODO [#B] zomp toplevel in emacs: don't switch to buffer on C-c,C-s
+    :PROPERTIES:
+    :ID:       CA651F82-068E-43AC-B657-0CF4FA9428AC
+    :END:
 
 *** DONE print var/func/macro declaration in toplevel
     CLOSED: [2007-12-03 Mon 01:25]
@@ -1882,51 +2969,129 @@ In macro expansion the \0 will be replaced by an !
      CLOSED: [2007-11-04 Sun 03:35]
 
 **** TODO [#C] Add search paths
+     :PROPERTIES:
+     :ID:       B69390B1-8617-4016-9AB0-53E0DEF1CA5D
+     :END:
 
 *** TODO [#B] Fork to avoid crashes
+    :PROPERTIES:
+    :ID:       D064FAD7-8C8D-4691-BBF1-E842FC8076D1
+    :END:
 
 **** TODO [#B] Find a way to keep connection to stdin on crash in other process
+     :PROPERTIES:
+     :ID:       F8938AD6-3A7B-477E-AFBE-04815242D96B
+     :END:
 
 *** DONE Change/reevaluate functions
     CLOSED: [2007-10-09 Tue 16:20]
 
 *** TODO [#C] Redefine/change variables
+    :PROPERTIES:
+    :ID:       2DACCE57-B870-4C48-8751-C750A8877499
+    :END:
 
 ** Emacs support
 
 *** TODO [#A] folding -> hs-special-modes-alist
+    :PROPERTIES:
+    :ID:       5B9CB4CB-7B49-438B-A3ED-AE948752A757
+    :END:
 *** TODO [#B] indent: ignore parens in strings
+    :PROPERTIES:
+    :ID:       5567013B-4433-4D95-B5FB-F4497E6C8E22
+    :END:
 *** TODO [#B] zomp-newline: problem with indent (resetting pos)
+    :PROPERTIES:
+    :ID:       81FE33D3-DF38-4ABD-A0BA-C0158AA1265F
+    :END:
 *** TODO [#B] emacs/toplevel: C-c C-s abfangen wenn toplevel schon laeuft
+    :PROPERTIES:
+    :ID:       488C165C-ADB8-4656-8429-81DA88C3B6AE
+    :END:
 *** TODO [#C] examples which can be browsed directly in emacs
+    :PROPERTIES:
+    :ID:       77C18B3F-E79C-45ED-95FF-EB9BA9840B09
+    :END:
 *** TODO [#B] correctly indent }
+    :PROPERTIES:
+    :ID:       4E6B4B8A-D7C6-4332-8E93-B5F5511E22C2
+    :END:
 *** TODO [#C] zomp: fast doc lookup
+    :PROPERTIES:
+    :ID:       30474DC6-1D1D-40E4-9DE5-5FD6342A85B6
+    :END:
 *** TODO [#B] emacs: backspace should delete autoinserted text in one step
+    :PROPERTIES:
+    :ID:       82BE8455-74D5-409E-A38A-02BD475E3BDB
+    :END:
 *** TODO [#B] highlight '"' correctly in emacs (don't interpret this as the beginning of a string)
+    :PROPERTIES:
+    :ID:       F4AA357B-376D-40E0-872B-7EB1678CFADF
+    :END:
 *** TODO [#B] also auto-insert // on newline
+    :PROPERTIES:
+    :ID:       352F9FDD-4CF0-417B-A274-B170CB6CF8F7
+    :END:
 *** TODO [#B] /// <enter> <backspace> -> remove inserted ///
+    :PROPERTIES:
+    :ID:       3B052844-DE7C-4DBD-9960-012DA0EDC2A4
+    :END:
 *** DONE [#A] don't move cursor on indent. then integrate zomp-tab into zomp mode
     CLOSED: [2008-02-21 Thu 14:24]
 *** TODO [#C] alt-k => mark current word first, then sexpr
+    :PROPERTIES:
+    :ID:       87082BD5-3B5F-4A3F-BC39-34B7C16A8CF7
+    :END:
 *** TODO [#C] emacs: navigate to error caused by evaluating code in toplevel
+    :PROPERTIES:
+    :ID:       3D1A6151-AA78-4ED1-9A84-5221CF6A4099
+    :END:
 *** TODO [#C] fix wrong promts in emacs inferior zomp mode
+    :PROPERTIES:
+    :ID:       96AF441D-FF59-4FDE-A979-B29AA30F93A0
+    :END:
 *** TODO [#C] emacs indenting: ignore parens in comments
+    :PROPERTIES:
+    :ID:       40871F47-3067-42C5-BDCF-6F7EB641A5D1
+    :END:
 *** TODO [#B] (op+_d | => zomp eldoc does not work
+    :PROPERTIES:
+    :ID:       0887CE25-C801-4F00-A982-9B9E544352C0
+    :END:
 
 *** DONE [#A] eldoc: struct* als name* und nicht als ((type1 field1) (type2 field2)..)* anzeigen
     CLOSED: [2008-01-11 Fri 17:17]
 *** TODO [#B] a line cannot be uncommented using ctrl-\ if the // does not start at pos 0
+    :PROPERTIES:
+    :ID:       B78F9ADF-BC8F-407D-8949-E0A74DA80369
+    :END:
     temporary fix: zomp-mode will now use /* ... */ instead of //
 
 *** TODO [#C] fix indent of }
+    :PROPERTIES:
+    :ID:       7D6DF9A7-47A5-451C-ABF2-C41B00F655FA
+    :END:
 
 *** TODO [#C] fix cursor positioning on indent
+    :PROPERTIES:
+    :ID:       1DE535D6-F5D4-4789-B026-488C8AC03623
+    :END:
 
 *** TODO [#B] indent: special treatment for lines containing only closing parentheses?
+    :PROPERTIES:
+    :ID:       E944BAC5-7958-437F-B60B-A37F8219A842
+    :END:
 
 *** TODO [#B] add hook to zomp-mode
+    :PROPERTIES:
+    :ID:       57B71913-5493-41DA-BB7A-FE3C09CA29C8
+    :END:
 
 *** TODO [#B] Flymake support
+    :PROPERTIES:
+    :ID:       8BDBCA79-38D1-481B-846E-131636FD1190
+    :END:
 
 *** DONE Start zomp toplevel in emacs
      CLOSED: [2007-10-16 Tue 22:11]
@@ -1943,6 +3108,9 @@ In macro expansion the \0 will be replaced by an !
 ** Macros
 
 *** TODO [#B] konfigurierbare base language
+    :PROPERTIES:
+    :ID:       2A3D944A-FD52-40BB-A025-8571F36B81D5
+    :END:
     macroExpand :: [Ast] * Bindings -> [Instruction]
     translate :: [Ast] * Bindings -> Bindings
 
@@ -1959,19 +3127,43 @@ In macro expansion the \0 will be replaced by an !
     Kann dann auch zum kompilieren von Shadern benutzt werden
 
 *** TODO [#B] implicit arguments for macros (source location from where it was invoked etc.)
+    :PROPERTIES:
+    :ID:       7CC19D6D-179C-497C-AEF0-AC99DDCA2C07
+    :END:
 *** TODO [#C] hygienic macros: ast* qualify(ast*, bindings) will fully qualify all identifiers in the given ast
+    :PROPERTIES:
+    :ID:       1A701D48-708D-423A-9FF6-3752B321D19C
+    :END:
 *** TODO [#A] better error message on `(ret `(...)) in macro
+    :PROPERTIES:
+    :ID:       D2702787-AC4C-4E34-B2A2-AF73123751A7
+    :END:
 *** TODO [#A] protect against recursive macro invocations
+    :PROPERTIES:
+    :ID:       44C910C4-4029-458A-9C75-686B29BE4360
+    :END:
 *** TODO [#A] `(#foo a b c) should turn into (fooValue a b c) instead of (seq fooValue a b c)
+    :PROPERTIES:
+    :ID:       043F87D4-CCD4-45CA-803C-12432E151F2E
+    :END:
     Reevaluate!
     (at least if foo does not have any arguments)
 
 *** TODO [#B] macro/template: warnung wenn `(a b c) a/b/c gleichzeitig parameter/lokale vars sind und ohne antiquote verwendet werden
+    :PROPERTIES:
+    :ID:       965150FE-B34A-48FE-986F-0F0A111A4B72
+    :END:
 
 *** TODO [#A] name collisions of macros and functions (?) causes problems
+    :PROPERTIES:
+    :ID:       B0111BEE-9477-48E6-9BBF-A75BDA7C59C3
+    :END:
 Put macro functions into seperate module
 
 *** TODO [#B] Hygienic macro support?
+    :PROPERTIES:
+    :ID:       1C5EE988-ED3C-4434-A3B5-A3353C9D40B6
+    :END:
 *** Archive                                                         :ARCHIVE:
 **** DONE Allow definition of simple "template" macros
      :PROPERTIES:
@@ -2017,17 +3209,44 @@ Put macro functions into seperate module
 ** Language / APIs
 
 *** TODO Misc
+    :PROPERTIES:
+    :ID:       79F5DE0B-5034-41DB-8677-11E606216F83
+    :END:
 
 **** TODO [#C] subseq "foo" -2 => "oo", subseq "foo" 2 => "fo" etc.       :libs:
+     :PROPERTIES:
+     :ID:       AC0114D6-3CF5-4661-A0B4-A8D21ED18D4C
+     :END:
 **** TODO [#A] int to char conversion                               :libs:quick:
+     :PROPERTIES:
+     :ID:       175720E0-3532-45AA-A39A-8E3C52176710
+     :END:
 **** TODO [#A] (include ..) should support iexpr syntax             :libs:quick:
+     :PROPERTIES:
+     :ID:       FD46D660-A9A6-4D6E-8061-61D1B6DC6DD8
+     :END:
 **** TODO [#B] runtime checks generieren
+     :PROPERTIES:
+     :ID:       02EC8784-D029-4876-B092-D10F4D708D8D
+     :END:
 **** TODO [#C] `undefineAll()' => alle namen in den bindings werden undefined. nuetzlich um config dateien als zomp source zu parsen und mit makros zu interpretieren
+     :PROPERTIES:
+     :ID:       CCB86089-C8A9-41CE-8BD2-1151390E39CB
+     :END:
 **** TODO [#C] `undefine name' => name kann nicht mehr verwendet werden
+     :PROPERTIES:
+     :ID:       73174351-CEA0-4D01-B2F8-58D2B0BD7B73
+     :END:
 
 **** TODO [#B] tuples: var (int, float) x => x.0 : int, x.1 : float
+     :PROPERTIES:
+     :ID:       9A93CA59-79E5-4E4D-B100-C306825D7C52
+     :END:
 
 **** TODO [#B] motivation: automatische printer
+     :PROPERTIES:
+     :ID:       0A503FA5-6F55-4FAB-BC59-FE1738D80A2A
+     :END:
 
      type Point:
        float x, y
@@ -2039,21 +3258,36 @@ Put macro functions into seperate module
      codeDeriver = Type -> [toplevelExpr]
 
 **** TODO [#B] extended var                                              :quick:
+     :PROPERTIES:
+     :ID:       282AEE5D-DC35-4FF7-BBBD-F072A1941C11
+     :END:
      - should be able to create multiple variables like 'var int x, y = 10, z'
      - should return the variable's value so it can be better used inside control structures
        while (var int x = foo())
          println(x)
 
 **** TODO [#B] motivation: powerful asserts
+     :PROPERTIES:
+     :ID:       84DB6B7B-99FF-476D-9723-EE1A9FB68888
+     :END:
    assert x < 10
    => Fehlermeldung mit Wert von x
    "Assertion 'x < 10' failed, x = 11 @file.zomp:101"
 
 **** TODO [#C] array/list comprehensions
+     :PROPERTIES:
+     :ID:       72FAF009-6593-40C2-8A86-9297AB7153D8
+     :END:
 
 **** TODO [#A] yield
+     :PROPERTIES:
+     :ID:       CA4E151A-7CE9-42F5-AC32-273804E86E95
+     :END:
 
 **** TODO [#B] GC using macros
+     :PROPERTIES:
+     :ID:       880812EC-3EA2-4882-BF25-6986B1A2933A
+     :END:
     Support classes to be GC-collected
 
     gcclass Foo
@@ -2093,6 +3327,9 @@ Put macro functions into seperate module
       :ARCHIVE_TIME: 2008-07-09 Wed 14:50
       :END:
 *** TODO [#A] API for code analysis
+    :PROPERTIES:
+    :ID:       A15D0324-5A45-458E-8E40-486B00F12C6A
+    :END:
     Get information about an expression: types etc.
     (can be used for type propagation)
 
@@ -2151,7 +3388,13 @@ Put macro functions into seperate module
      lookupType(string) -> Option<Type>
      lookup(string) -> Variant<Var(Var), Func(Func), Type(Type), Macro(Macro), Undefined>
 *** TODO [#A] rename "template" to "rewrite"
+    :PROPERTIES:
+    :ID:       D7127092-20A4-4042-9BEE-9A5BC8F4ED4F
+    :END:
 *** TODO [#A] Pattern matching
+    :PROPERTIES:
+    :ID:       FD0B831E-B877-4A73-9F69-36007C486196
+    :END:
 
 **** On sexpr/ast
 
@@ -2171,8 +3414,17 @@ Put macro functions into seperate module
      match foo matchExprs+
      => typeOf(foo):match foo matchExprs+
 *** TODO [#A] support for GL_RGBA32F_ARB etc.
+    :PROPERTIES:
+    :ID:       17DECBED-AD9A-43A3-A601-681C57D745A0
+    :END:
 *** TODO [#A] remove new macro in glutils, replace by new macro from shprog (move it to stdlib)
+    :PROPERTIES:
+    :ID:       B1BC1D98-FC74-49C9-BD74-D2CDF94C15C5
+    :END:
 *** TODO [#A] Explicit polymorphism
+    :PROPERTIES:
+    :ID:       CCAC53C9-8E24-4ADE-BA0C-85C28C6CB859
+    :END:
 
     Overloading functions should be possible
 
@@ -2203,6 +3455,9 @@ Put macro functions into seperate module
     overload plus(type int, type int) plus_int_int
 
 *** TODO [#A] Some simple generic/C++-style-template support
+    :PROPERTIES:
+    :ID:       8A082583-E721-4C53-83CD-B9FBF5A220D3
+    :END:
 
 **** std:generic
 
@@ -2223,6 +3478,9 @@ Put macro functions into seperate module
   with substituted types (and functions?)
 
 *** TODO [#A] type classes
+    :PROPERTIES:
+    :ID:       B2708520-1126-4692-B448-E2A446EEDC1B
+    :END:
 
 **** alternative instanz als keyword argument?
 
@@ -2242,16 +3500,34 @@ Put macro functions into seperate module
    sort(intList)
    sort(intList, Comparator: greater)
 *** TODO [#B] framebuffer cleanup/releasing code
+    :PROPERTIES:
+    :ID:       1D45AF6B-F23A-4CAC-B18F-8FCA35E2D9AC
+    :END:
 *** TODO [#B] macros to get current file/line/column
+    :PROPERTIES:
+    :ID:       4FFD9476-3C0D-4E2F-9144-3288ACDE55B6
+    :END:
 *** TODO [#B] imperative control structures
+    :PROPERTIES:
+    :ID:       6A47537A-8E60-45F7-AD04-75556FF2C943
+    :END:
     See also zomp-ce
 
 **** DONE [#A] if/then/else
      CLOSED: [2008-06-04 Wed 02:43]
 
 **** TODO [#B] for min to/downto/upto max
+     :PROPERTIES:
+     :ID:       F9015F30-852A-46B1-B2A0-AB885974004A
+     :END:
 **** TODO [#B] loops mit break + continue
+     :PROPERTIES:
+     :ID:       710401DA-259A-4888-BB47-EF6463262089
+     :END:
 **** TODO [#C] loops mit broken/exhausted
+     :PROPERTIES:
+     :ID:       255571E3-A0EB-45CC-B6EB-08BA9835C2EF
+     :END:
 
    (von converged)
    for <expression>:
@@ -2266,6 +3542,9 @@ Put macro functions into seperate module
    continued ~
 
 **** TODO [#C] finally
+     :PROPERTIES:
+     :ID:       15B9331D-B8B5-424C-B87B-7E562592C428
+     :END:
    begin
      code
    finally
@@ -2273,23 +3552,56 @@ Put macro functions into seperate module
    end
 
 **** TODO [#C] allow variable definitions within expressions?
+     :PROPERTIES:
+     :ID:       0AE0C5C9-F53A-47B3-BAF8-EAE74DF63AE7
+     :END:
    while (var int x = foo()) > 10
      print(x)
 *** TODO [#C] check for off-by-one error in shbase function calculation
+    :PROPERTIES:
+    :ID:       5CC44A32-6F3B-4120-8914-429E7993CD01
+    :END:
 *** TODO [#C] glfw bindings auf 2.6 updaten
+    :PROPERTIES:
+    :ID:       B815D875-B6EB-40EB-9548-7F9078683526
+    :END:
 
 *** TODO [#B] Regular expressions
+    :PROPERTIES:
+    :ID:       800E099D-A186-4405-AE9F-51A9FDE17578
+    :END:
 **** TODO [#A] Bindings for PCRE
+     :PROPERTIES:
+     :ID:       E70374A5-00E6-442C-98AB-D94345F22A8B
+     :END:
 **** TODO [#B] Special match syntax
+     :PROPERTIES:
+     :ID:       995292F5-05FE-4815-ABCD-589CAACDD3D7
+     :END:
 
 *** TODO [#B] File I/O
+    :PROPERTIES:
+    :ID:       CAEE29C8-91E5-4D76-9B48-0E509E22FCC9
+    :END:
 **** TODO [#A] Bindings for C stdlib
+     :PROPERTIES:
+     :ID:       56C2D4F1-1E66-4B30-A8B1-27E7F92C9F24
+     :END:
 **** TODO [#C] Systems of streams similar to Java/.Net/...
+     :PROPERTIES:
+     :ID:       1CD5468C-02CE-48D0-B7F7-E70D7BEA3547
+     :END:
 
 *** TODO [#B] Allow testing macros
+    :PROPERTIES:
+    :ID:       7A8ECE88-75D8-4F3B-9C16-FD76DB905CD8
+    :END:
     (running them on code and printing the resulting AST)
 
 *** TODO [#B] Object system
+    :PROPERTIES:
+    :ID:       D6B84723-2B6C-47BB-9A1E-7CCB004F632D
+    :END:
 
 **** vtable calls
 
@@ -2338,6 +3650,9 @@ Put macro functions into seperate module
 **** mixins
 
 *** TODO [#C] Compile multi file projects
+    :PROPERTIES:
+    :ID:       5AF57BA5-CD55-4F45-8BC1-02B93A228635
+    :END:
 
 **** Realize definition of project files
      A central project file which will list all linked in modules,
@@ -2348,6 +3663,9 @@ Put macro functions into seperate module
 **** Define .zobj format
 
 *** TODO [#A] named params: copy(from: file1, to: file2)
+    :PROPERTIES:
+    :ID:       CA4F8980-CE65-4FD3-8C55-6E4B00673FA6
+    :END:
 
     foo: bar baz
     <=>
@@ -2369,22 +3687,49 @@ Put macro functions into seperate module
 
 
 *** TODO [#A] Tests
+    :PROPERTIES:
+    :ID:       980CDA5A-22B2-4653-B467-E039E2AA208D
+    :END:
     einheitliches system fuer tests
 
 *** TODO [#C] Exceptions
+    :PROPERTIES:
+    :ID:       EFF91564-3F5B-4B30-84F1-BC3BA4D5E5BA
+    :END:
 
 **** TODO [#C] exceptions: restartable conditions
+     :PROPERTIES:
+     :ID:       3514F074-EB71-4DE4-8805-4487F5254286
+     :END:
 
 **** TODO [#C] Specify exceptions using attributes?
+     :PROPERTIES:
+     :ID:       F039C429-E185-478E-8745-00ADE5D29CB7
+     :END:
 
     file = @(cfa:disable fileIsOpen) openFile "foo"
 
 *** TODO [#A] Namespaces/Package/Module/Project System
+    :PROPERTIES:
+    :ID:       262BCD6D-8736-4FD1-84E6-9E0582864898
+    :END:
 
 **** TODO [#A] import push => stackPush, pop => stackPop from eve.da
+     :PROPERTIES:
+     :ID:       1DEA59A5-8221-48E1-986C-336B0BA3C9D4
+     :END:
 **** TODO [#A] allow replacing parts of libraries
+     :PROPERTIES:
+     :ID:       3A0919E1-C154-4343-8F75-09EB59BE0E88
+     :END:
 **** TODO [#A] versioned packages
+     :PROPERTIES:
+     :ID:       1487ACAF-05B1-43C5-BA2C-7804D485345D
+     :END:
 **** TODO [#A] zugriffsrechte per ACLs: auch fuer class member / einzelne parameter?
+     :PROPERTIES:
+     :ID:       CBAEDCFB-81D1-415C-ADD5-8BD91A5DA2AD
+     :END:
 
 *** DONE [#A] template
     CLOSED: [2007-11-24 Sat 20:12]
@@ -2395,19 +3740,34 @@ Put macro functions into seperate module
 
 ** Public
 *** TODO [#C] provide a (semi) public git repo
+    :PROPERTIES:
+    :ID:       62FD48C9-5DC0-443D-8677-4BF27DDB3A26
+    :END:
 *** TODO Find collaborators?
+    :PROPERTIES:
+    :ID:       D5A23743-8145-4DA8-B2D4-B8865E032AF6
+    :END:
 
 ** Syntax
 
 *** Issues
 **** TODO [#A] how to parse "var x = 10"? (op= (var x) 10), (var (op= x 10))? parse (var: x = 10) as (var (op= x 10)) but (var x = 10) as (op= (var x) 10)?
+     :PROPERTIES:
+     :ID:       1E39EE7D-91FA-4C14-8843-789C8BC26748
+     :END:
 
 
 **** TODO [#A] (count-1) is being parsed incorrectly
+     :PROPERTIES:
+     :ID:       169B9BDD-E6C1-403B-96C9-5C4B582A702A
+     :END:
 
 * Notes                                                                   :zomp:
 
 ** Alternative names
+   :PROPERTIES:
+   :ID:       123A74E1-1A30-4E51-B2C1-4A3AABF856B5
+   :END:
 
    There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
 
@@ -2434,6 +3794,9 @@ Put macro functions into seperate module
    nanolang, microlang, zeptolang
 
 ** Type annotations
+   :PROPERTIES:
+   :ID:       9469A0BB-0830-4C80-AE40-9F046FCD6A8F
+   :END:
 Annotate types using meta data?
 
 let @type(int) x = 10
@@ -2449,6 +3812,9 @@ then:
 let x :int = 10
 
 ** ; / expression separation
+   :PROPERTIES:
+   :ID:       4B244893-3D8A-4A8D-95D5-E460FB3EC8D7
+   :END:
    Let ; be an operator/macro?
 
    print "1+1="; print 2;
@@ -2463,17 +3829,26 @@ let x :int = 10
    Then monads are probably possible without expanding the syntax (and possibly even without any/too much runtime overhead because no closures need to be passed around)
 
 ** Annotations
+   :PROPERTIES:
+   :ID:       864A2073-FF64-46D5-9B0E-94BFB7899D4D
+   :END:
 
    See the declare statement in lisp
 
    Use @attrib( valueExpr ) syntax?
 
 ** python's doctest clone
+   :PROPERTIES:
+   :ID:       0394A7A1-678D-4A8A-B8DE-899FAB145505
+   :END:
    automatically check embedded examples in documentation for correctness
 
 ** Type System
 
 *** TODO [#C] unique/linear types
+    :PROPERTIES:
+    :ID:       4F983B49-006F-4530-A185-93831F466E16
+    :END:
    - nach erzeugung linear, bis das erste mal eine zuweisung passiert
    - mit pattern matching bzw. on-the-fly typanpassung?
    - funktionen beeinflussen linear eigenschaft?
@@ -2532,6 +3907,9 @@ let x :int = 10
       cfa:invariant fileIsOpen set to true on line (1), expected to be false on ret
 
 ** Packages / Projects
+   :PROPERTIES:
+   :ID:       0719BB4F-F485-42A1-9AA5-6351BAABAFC9
+   :END:
 *** compilation model
 **** Use an VM-only approach?
      Only operation mode is having a VM which can load and execute code
@@ -2561,12 +3939,18 @@ let x :int = 10
 
 
 ** Readings
+   :PROPERTIES:
+   :ID:       046F1518-16CC-4D2A-B776-581DB7BCEB62
+   :END:
 *** ruby syntax, fortress syntax fuer nested function calls             :syntax:
 *** haskell's Data.Map.lookup function: nice way to adapt the failure-handling behaviour to the calling code's policy
 
 * Footer
 
 ** Keep flyspell happy
+   :PROPERTIES:
+   :ID:       092375EC-DEBA-418A-BFC7-215B16675005
+   :END:
  LocalWords:  AST IR VM Zomp zomp simpleform expr var boundsCheck alloca SSA
  LocalWords:  bytecode  Ast ast
 
