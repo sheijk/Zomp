@@ -531,11 +531,11 @@ func void relativePos(float* x, float* y, Rect* r):
   y* = (y* - r.bottom) / (r.top - r.bottom)
 end
 
-macro hasType var type:
+macro hasType vr typ:
   uniqueId tmp "hasType"
   ret ${seq:
-    #tmp := nullptr #type
-    #tmp = &#var
+    #tmp := nullptr #typ
+    #tmp = &#vr
   end}
 end
 
@@ -997,8 +997,8 @@ macro twgroup bar optionString settings:
     if ast:matchesShape(s, ${rw _ _ __}):
       typeId := ast:child s 1
       name := ast:child s 2
-      var := ast:child s 3
-      ast:addChild code ${TwAddVarRW #bar #name #typeId (cast void* &#var) #optionString}
+      vr := ast:child s 3
+      ast:addChild code ${TwAddVarRW #bar #name #typeId (cast void* &#vr) #optionString}
     elseif ast:matchesShape(s, ${separator}):
       ast:addChild code ${TwAddSeparator #bar nullptr(char) #optionString}
     elseif ast:matchesShape(s, ${button _ __ __}):
@@ -3135,6 +3135,94 @@ func void onTimelineButton(KeyEvent* keyEvent):
   end
 end
 
+func int ast:printLimited(ast* tree, int maxLength):
+  remaining := maxLength
+
+  if (remaining < 2):
+    if (maxLength > 0):
+      print ".."
+    end
+    ret 0
+  end
+
+  count := strlen tree.id
+  if (tree.childCount > 0):
+    print "("
+    remaining--
+  end
+  print tree.id
+  remaining = maxLength - count
+
+  forEachAstChild child tree:
+    if (tree.childCount > 0):
+      print " "
+      remaining--
+    end
+
+    remaining = ast:printLimited(child, remaining)
+    if (remaining <= 2):
+      print ".."
+      ret 0
+    end
+  end
+
+  if (tree.childCount > 0):
+    print ")"
+    remaining -= 1
+  end
+
+  ret remaining
+end
+
+macro log args...:
+  if (args.childCount == 0):
+    ret ${}
+  end
+
+  body := ast:child args (args.childCount - 1)
+  // println "body = " body
+  // println "args = " args
+
+  newArgs := nullptr ast
+  if (args.childCount == 1):
+    // println "single arg"
+    newArgs = ${seq DUMMY}
+  else:
+    // println "multi args"
+    newArgs = ast:shiftLeft args
+  end
+  // println "newArgs = " newArgs
+
+  if (body.id ==_str "seq" || body.id ==_str "opseq"):
+    // println "Instrumenting body"
+
+    instrumentedBody := ${seq}
+    forEachAstChild statement body:
+      descr := cstring:quote statement.id
+      ast:addChild instrumentedBody ${seq:
+        print "Running "
+        ast:printLimited(${#statement}, 80)
+        println()
+      end}
+      ast:addChild instrumentedBody statement
+    end
+
+    ast:setChild newArgs (newArgs.childCount-1) instrumentedBody
+  end
+
+  // println "returning " newArgs
+  ret newArgs
+end
+
+macro lfunc retType nameAndArgs body:
+  name := ast:child nameAndArgs 0
+  quotedName := cstring:quote name.id
+  ret ${func #retType #nameAndArgs:
+    println "Called function " #quotedName
+    log #body
+  end}
+end
+
 func int main():
   init()
 
@@ -3155,9 +3243,9 @@ func int main():
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100208_camrot_03.dae"
       // "data/pixeljourney/mayatest.dae"
       // "data/pixeljourney/pipetest/car_w_mat.dae"
-      // "data/pixeljourney/pipetest/ringed.dae"
-      // "data/pixeljourney/pipetest/cow25.dae"
-      "data/blender_scripting_learn.dae"
+      "data/pixeljourney/pipetest/ringed.dae"
+      // "data/pixeljourney/pipetest/platform.dae"
+      // "data/blender_scripting_learn.dae"
       // "data/pixeljourney/first_scene_mats.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/100207_Pixeljums_cambaked_singlecube.dae"
       // "data/pixeljourney/shared/pipeline_tests/from_xsi/091129_Colldada_Test6.dae"
@@ -3215,6 +3303,7 @@ func int main():
   objmat := createObjectMaterial()
   // objmat := debugMaterial()
   onReturn Shader:delete(objmat)
+  assert isNotNull(objmat)
 
   objmat_pj_CameraMatrix := glGetUniformLocation objmat.glname "pj_CameraMatrix"
   objmat_pj_ModelMatrix := glGetUniformLocation objmat.glname "pj_ModelMatrix"
@@ -3378,23 +3467,23 @@ func int main():
   mainloop:
     FrameStat2:write(fpsStat, frameDuration)
     // FrameStat2:write(fpsStat, 0.2 * cosf(toFloat frameNum * 0.1))
-
+    
     /// update logic
     angle = fmodf(angle + rotationSpeed * frameDuration, 360.)
-
+    
     animTime -= timeline.startTime
     animTime = animTime + playbackSpeed * frameDuration
     animTime = fmodf(animTime, timeline.endTime - timeline.startTime)
     animTime += timeline.startTime
-
+    
     Array:foreach animations animNum:
       Animation:apply (animations.elements+animNum) animTime
     end
     SceneGraph:updateTransforms &sg
-
+    
     /// input events
     keyEvent := default KeyEvent
-    while fetchNextKeyEvent(&keyEvent):
+    log while fetchNextKeyEvent(&keyEvent):
       if (keyEvent.key == GLFW_MOUSE_BUTTON_LEFT):
         onTimelineButton &keyEvent
       elseif (keyEvent.action == GLFW_PRESS):
@@ -3408,9 +3497,9 @@ func int main():
           end
         elseif (keyEvent.key == GLFW_KEY_C):
           if (keyDown GLFW_KEY_LSHIFT):
-            --camNum
+            camNum = camNum - 1
           else:
-            ++camNum
+            camNum = camNum + 1
           end
         elseif (keyEvent.key == GLFW_KEY_X):
           camInfo2 := aptr(sg.cameras, camNum - specialCamCount)
@@ -3425,23 +3514,23 @@ func int main():
       visNodeAnim %= anim.channels.length
     end
     Camera:move(cam, frameDuration * keyboardCamSpeedFactor)
-
+    
     // var int[2] mainBarSize
     // TwGetParam mainBar nullptr(char) "size" TW_TYPE_INT32 2 (cast void* &mainBarSize)
     // zmp:array:set mainBarSize 1 (windowHeight * 17 / 20 - 20)
     // TwSetParam mainBar nullptr(char) "size" TW_TYPE_INT32 2 (cast void* &mainBarSize)
-
+    
     /// rendering
     autoSetupViewport()
-
+    
     renderToTarget fbo:
       // glClearColor 0. 0. 0.3 0.
       glClearColor backgroundColor[0] backgroundColor[1] backgroundColor[2] 1.0
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
+    
       glEnable GL_DEPTH_TEST
       glEnable GL_BLEND
-
+    
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
       aspect := toDouble(windowWidth) / toDouble(windowHeight)
@@ -3452,7 +3541,7 @@ func int main():
       farPlaneDist *= farPlaneFactor
       nearPlaneDist *= nearPlaneFactor
       gluPerspective toDouble(cam.horizontalFOV) aspect toDouble(nearPlaneDist) toDouble(farPlaneDist)
-
+    
       glMatrixMode GL_MODELVIEW
       glLoadIdentity()
       camNum = camNum % (specialCamCount + sg.cameras.length)
@@ -3466,13 +3555,13 @@ func int main():
         camInfo := aptr(sg.cameras, camNum - specialCamCount)
         Camera:applyGL &camInfo.camera
       end
-
+    
       var float[16] pj_CameraMatrix
       readGLMatrix GL_MODELVIEW_MATRIX (cast float* &pj_CameraMatrix)
       // println "pj_CameraMatrix:"
       // printlnMatrix44 (cast float* &pj_CameraMatrix) 4
       // running = false
-
+    
       AABB:render &meshBB
       // withShader objmat.glname:
       //   glUniformMatrix4fv objmat_pj_CameraMatrix 1 false (cast float* &pj_CameraMatrix)
@@ -3527,10 +3616,14 @@ func int main():
         glPushMatrix()
         meshmat := pMeshInfo.material
         meshshader := objmat
-        if isNotNull(meshmat):
+        if (isNotNull meshmat && isNotNull meshmat.shader):
           meshshader = meshmat.shader
         end
-        withShader meshshader.glname:
+        glname := 0
+        if isNotNull(meshshader):
+          glname = meshshader.glname
+        end
+        withShader glname:
           unless isNull(meshmat):
             List:foreach meshmat.params paramIndex2 param2:
               GLSLParameter:apply &param2
@@ -3547,10 +3640,10 @@ func int main():
             Mesh:render &pMeshInfo.mesh GL_TRIANGLES 0
           end
           drawCoordSys 1.0
-          glPopMatrix()
         end
+        glPopMatrix()
       end
-
+    
       if showMeshPointers:
         Array:foreach meshes meshNum3:
           pMeshInfo2 := meshes.elements + meshNum3
@@ -3568,15 +3661,15 @@ func int main():
           end
         end
       end
-
+    
       // drawOrientationGrid2 0.2 1.0
-
+    
       renderRotationTest()
-
+    
       if showCameraPositions:
         SceneGraph:visualizeCameras &sg
       end
-
+    
       if (visAnim >= 0):
         anim2 := aptr sg.animations visAnim
         NodeAnimation:visualize (aptr anim2.channels visNodeAnim)
@@ -3586,7 +3679,7 @@ func int main():
         end
       end
     end
-
+    
     // renderToTarget fbo:
     //   glClearColor 0. 0. 0. 0.
     //   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -3603,10 +3696,10 @@ func int main():
     //   glutSolidSphere 3.0d 30 30
     //   drawOrientationGrid2 1.0 1.0
     // end renderToTarget
-
+    
     Framebuffer:makeDepthTexture fbo
     Framebuffer:makeColorTexture fbo
-
+    
     /// render final frame
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -3619,7 +3712,7 @@ func int main():
       end
       showTextureAt fbo.colorTexture -1. -1. 2. 2.
     end
-
+    
     // glScalef (1. / toFloat aspect) 1. 1.
     // glTranslatef 1.0 -0.5 0.
     // glTranslatef -0.5 -0.5 0.
@@ -3631,7 +3724,7 @@ func int main():
     //     fbo.depthTexture
     //   end
     // end
-
+    
     // saveTransforms:
     //   makeGLIdentityTransforms()
     //   glColor3f 1. 1. 1.
@@ -3647,9 +3740,9 @@ func int main():
     // glColor3f 1. 1. 1.
     // glqtPrintfAt -1. -0.6 0. 0.002 int2cstring(visNodeAnim)
     // glqtPrintfAt -1. -0.7 0. 0.002 int2cstring(visAnim)
-
+    
     printGLError()
-
+    
     TwDraw()
     flushStdout()
   end

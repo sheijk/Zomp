@@ -281,7 +281,7 @@ end
 
 func int rand()
 
-func int random (int max):
+func int random(int max):
   ret int:srem(rand(), max)
 end
 
