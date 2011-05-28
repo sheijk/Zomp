@@ -1068,11 +1068,6 @@ extern "C" {
     return resultAst;
   }
 
-// improves compiliation time of realistic programs by two
-#define ZOMP_CACHED_FUNCS
-
-#ifdef ZOMP_CACHED_FUNCS
-
   void* zompSimpleAst(const char* name) {
     checkId(name, "zompSimpleAst");
 
@@ -1118,31 +1113,6 @@ extern "C" {
   bool zompAstIsNull(void* ast) {
     return ast == NULL;
   }
-
-#else
-
-  int zompSimpleAst(char* name) {
-    checkId(name, "zompSimpleAst");
-
-    std::vector<GenericValue> args;
-
-    args.push_back( ptrValue(name) );
-
-    GenericValue retval = executionEngine->runFunction( simpleAst, args );
-
-    return ptrToCamlInt( retval.PointerVal );
-  }
-
-  void zompAddChild(int parent, int child) {
-    std::vector<GenericValue> args;
-
-    args.push_back( ptrValue(parent) );
-    args.push_back( ptrValue(child) );
-
-    executionEngine->runFunction( addChild, args );
-  }
-
-#endif
 
   static std::set<void*> registeredvoids;
 
