@@ -403,8 +403,8 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let quoteMacro =
       macro "quote"
         "ast..."
-        (fun bindings args ->
-           match args with
+        (fun bindings expr ->
+           match expr.args with
              | [quotedExpr] -> sexpr2code ~antiquoteF:(insertAstConstructors bindings) quotedExpr
              | [] -> simpleExpr "ast:fromString" ["seq"]
              | args -> Ast2.expr "quote" args
@@ -412,8 +412,8 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     let quoteasisMacro =
       macro "quoteasis" "ast..."
-        (fun bindings args ->
-           match args with
+        (fun bindings expr ->
+           match expr.args with
              | [quotedExpr] -> sexpr2codeasis quotedExpr
              | [] -> simpleExpr "ast:fromString" ["seq"]
              | args -> Ast2.expr "quote" args
@@ -421,8 +421,8 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     let bindingsIsNameUsed =
       macro "std:bindings:isNameUsed" "name"
-        (fun bindings args ->
-           match args with
+        (fun bindings expr ->
+           match expr.args with
              | [{ id = name; args = []}] ->
                  begin match Bindings.lookup bindings name with
                    | Bindings.UndefinedSymbol -> idExpr "false"
@@ -435,8 +435,8 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     let bindingsLookupVar =
       let syntax = "name ('hasType' typeVar code ...) ('notFound' code ...)" in
       macro "std:bindings:matchVar" syntax
-        (fun bindings args ->
-           match args with
+        (fun bindings expr ->
+           match expr.args with
              | [ {id = name; args = []};
                  {id = "hasType"; args = {id = typeVar; args = []} :: onFound};
                  {id = "notFound"; args = onNotFound}] ->
@@ -480,20 +480,20 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
 
     let opjuxMacro =
       macro "opjux" "opjux id args..."
-        (fun bindings args -> Ast2.shiftLeft args)
+        (fun bindings expr -> Ast2.shiftLeft expr.args)
     in
     let opcallMacro =
       macro "opcall" "opcall id args..."
-        (fun bindings args -> Ast2.shiftLeft args)
+        (fun bindings expr -> Ast2.shiftLeft expr.args)
     in
     let opseqMacro =
       macro "opseq" "opseq args..."
-        (fun bindings args -> Ast2.seqExpr args)
+        (fun bindings expr -> Ast2.seqExpr expr.args)
     in
 
     let isInteractiveMacro =
       macro "std:vm:isInteractive" "bool()"
-        (fun bindings args ->
+        (fun bindings expr ->
            Ast2.idExpr (if Zompvm.isInteractive() then "true" else "false"))
     in
 

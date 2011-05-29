@@ -5,6 +5,8 @@ type location = {
   line :int
 }
 
+let locationToString loc = sprintf "%s:%d" loc.fileName loc.line
+
 type sexpr = {
   id :string;
   args :sexpr list;

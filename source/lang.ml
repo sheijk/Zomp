@@ -401,7 +401,7 @@ let funcDef name rettype args impl = {
 
 type 'bindings macro = {
   mname :string;
-  mtransformFunc : 'bindings -> Ast2.sexpr list -> Ast2.sexpr;
+  mtransformFunc : 'bindings -> Ast2.sexpr -> Ast2.sexpr;
   mdocstring :string;
 }
 
