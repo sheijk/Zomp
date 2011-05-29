@@ -1,6 +1,5 @@
-invalidCharBetweenHere ` andHere
 
-func int main():
-  ret 0
-end
+some valid(expression)
+
+invalidCharBetweenHere ` andHere //// error Token `
 

@@ -129,3 +129,11 @@ testsuite/error_reporting/%.test: testsuite/error_reporting/%.zomp $(ZOMPC)
 			rm -f $@; \
 			exit 1)
 
+temp_check_test: testsuite/error_reporting/test_check_test_error_report.test2 testsuite/error_reporting/invalid_token_bof.test2
+
+CHECK_TEST = testsuite/check_test.ml
+
+testsuite/error_reporting/%.test2: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST)
+	@$(ECHO) "Running unit test ${@:.test2=} ..."
+	$(OCAML) str.cma $(CHECK_TEST) $@
+

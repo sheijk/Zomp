@@ -112,3 +112,4 @@ tools
 /source/zompvm.o
 /source/zompvm_dummy.o
 /build
+/testsuite/error_reporting/*.test2
