@@ -7,6 +7,7 @@ open Printf
 open Common
 
 exception Eof
+
 type location = {
   line :int;
   fileName :string;
