@@ -1789,6 +1789,17 @@ also needs to work for circular inclusion
        return h*expf(1.0f-h);
    }
 http://www.iquilezles.org/blog/?p=1451
+
+float cubicPulse( float c, float w, float x )
+{
+    x = fabsf(x - c);
+    if( x>w ) return 0.0f;
+    x /= w;
+    return 1.0f - x*x*(3.0f-2.0f*x);
+}
+http://www.iquilezles.org/blog/?p=1468
+
+** TODO [#A] check if all zmp:base forms preserve error locations
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
