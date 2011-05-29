@@ -17,7 +17,7 @@ let failWith error =
   flush stderr;
   exit errorCode
 
-let readingFile fileName f =
+let withOpenFileIn fileName f =
   let stream = open_in fileName in
   try
     f stream;
@@ -26,7 +26,7 @@ let readingFile fileName f =
     close_in stream;
     raise exn
 
-let writingFile fileName f =
+let withOpenFileOut fileName f =
   let stream = open_out fileName in
   try
     f stream;
@@ -43,11 +43,11 @@ let printFile filename =
     printStream s
   in
   try
-    readingFile filename printStream
+    withOpenFileIn filename printStream
   with End_of_file ->
     ()
 
-let readingLines fileName f =
+let forEachLineInFile fileName f =
   let rec read lineNum stream =
     try
       let line = input_line stream in
@@ -55,7 +55,7 @@ let readingLines fileName f =
       read (lineNum+1) stream
     with End_of_file -> ()
   in
-  readingFile fileName (read 1)
+  withOpenFileIn fileName (read 1)
 
 let replaceExtension fileName ext =
   let noExt =
@@ -129,62 +129,66 @@ let () =
       addExpectation kind args lineNum
     end
   in
-  readingLines zompFileName collectExpectations;
-  
-  writingFile outputFileName
-    (fun outFile ->
-       List.iter (fun (kind, args, lineNum, found) ->
-                    fprintf outFile "Expecting %s at line %d containing words %s\n"
-                      (expectationToString kind)
-                      lineNum
-                      (String.concat ", " args);)
-         !expectedErrorMessages;
-       
-       let errorRe = Str.regexp
-         (sprintf "%s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
-       in
-       let checkExpectations _ line =
-         fprintf outFile "%s\n" line;
-         
-         if Str.string_match errorRe line 0 then begin
-           let diagnosticLineNum = safeParseInt (Str.matched_group 1 line) in
-           let message = Str.matched_group 2 line in
-           
-           let checkExpectation (kind, args, expectedLineNum, found) =
-             if diagnosticLineNum = expectedLineNum then begin
-               let containsWord word =
-                 let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
-                 (if not f then
-                    printf "Word '%s' missing in message '%s'\n" word message);
-                 f
-               in
-               if List.for_all containsWord args then
-                 found := true
-             end
-           in
-           List.iter checkExpectation !expectedErrorMessages
-         end
-       in
-       fprintf outFile "Compiler output:\n";
-       readingLines compilerMessagesOutputFile checkExpectations;
-       List.iter
-         (fun (kind, args, lineNum, found) ->
-            match kind with
-              | ErrorMessage ->
-                  if !found = false then
-                    printf "%s:%d: failed to report error containing words %s\n"
-                      zompFileName lineNum
-                      (String.concat ", " args)
-              | WarningMessage ->
-                  printf "%s:%d: warning: checking for warnings not supported, yet\n"
-                    zompFileName lineNum
-              | PrintMessage ->
-                  printf "%s:%d: warning: checking for print not supported, yet\n"
-                    zompFileName lineNum)
-         !expectedErrorMessages;
-    )
+  forEachLineInFile zompFileName collectExpectations;
+
+  let writeReport outFile =
+    List.iter (fun (kind, args, lineNum, found) ->
+                 fprintf outFile "Expecting %s at line %d containing words %s\n"
+                   (expectationToString kind)
+                   lineNum
+                   (String.concat ", " args);)
+      !expectedErrorMessages;
+    
+    let errorRe = Str.regexp
+      (sprintf "%s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
+    in
+    let checkExpectations _ line =
+      fprintf outFile "%s\n" line;
+
+      let isErrorMessage = Str.string_match errorRe line 0 in
+      if isErrorMessage then begin
+        let diagnosticLineNum = safeParseInt (Str.matched_group 1 line) in
+        let message = Str.matched_group 2 line in
+        
+        let checkExpectation (kind, args, expectedLineNum, found) =
+          if diagnosticLineNum = expectedLineNum then begin
+            let containsWord word =
+              let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
+              (if not f then
+                 printf "Word '%s' missing in message '%s'\n" word message);
+              f
+            in
+            if List.for_all containsWord args then
+              found := true
+          end
+        in
+        List.iter checkExpectation !expectedErrorMessages
+      end
+    in
+
+    fprintf outFile "Compiler output:\n";
+    forEachLineInFile compilerMessagesOutputFile checkExpectations;
+
+    let reportMissingDiagnostic (kind, args, lineNum, found) =
+      match kind with
+        | ErrorMessage ->
+            if !found = false then
+              printf "%s:%d: failed to report error containing words %s\n"
+                zompFileName lineNum
+                (String.concat ", " args)
+        | WarningMessage ->
+            printf "%s:%d: warning: checking for warnings not supported, yet\n"
+              zompFileName lineNum
+        | PrintMessage ->
+            printf "%s:%d: warning: checking for print not supported, yet\n"
+              zompFileName lineNum
+    in
+    List.iter reportMissingDiagnostic !expectedErrorMessages;
+  in
+  withOpenFileOut outputFileName writeReport
+
   (* printf "----- Compiler output -----\n"; *)
-  (* readingLines compilerMessagesOutputFile *)
+  (* forEachLineInFile compilerMessagesOutputFile *)
   (*   (fun _ line -> print_string "  "; print_string line; print_newline()); *)
   (* printf "----- end -----\n" *)
 
