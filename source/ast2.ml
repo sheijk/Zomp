@@ -66,18 +66,21 @@ let rec expression2string sexpr =
   let simple2string idString paramStrings =
     Common.combine " " (idString :: paramStrings)
   in
-  match classify sexpr.args with
-    | `NoSeq params ->
-        begin match params with
-          | [] -> idString
-          | _ -> inParens (simple2string idString params)
-        end
-    | `SeqAtEnd (params, seqArgs) ->
-        inParens (
-          simple2string idString params ^ " (\n"
-          ^ Common.combine "\n" (List.map (Common.indent ++ expression2string) seqArgs) ^ " )")
-    | `LongExpr childs ->
-        "(" ^ Common.combine "\n" (idString :: List.map Common.indent childs) ^ " )"
+  let str =
+    match classify sexpr.args with
+      | `NoSeq params ->
+          begin match params with
+            | [] -> idString
+            | _ -> inParens (simple2string idString params)
+          end
+      | `SeqAtEnd (params, seqArgs) ->
+          inParens (
+            simple2string idString params ^ " (\n"
+            ^ Common.combine "\n" (List.map (Common.indent ++ expression2string) seqArgs) ^ " )")
+      | `LongExpr childs ->
+          "(" ^ Common.combine "\n" (idString :: List.map Common.indent childs) ^ " )"
+  in
+  str ^ (match sexpr.location with Some _ -> "" | _ -> "!")
 
 let toString = expression2string
 
