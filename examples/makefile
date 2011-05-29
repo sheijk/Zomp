@@ -35,7 +35,7 @@ endif
 # Additional libraries
 ################################################################################
 
-ZOMP_STDLIBS = zompvm_dummy.o runtime.o
+ZOMP_STDLIBS = source/zompvm_dummy.o source/runtime.o
 LIBS = $(ZOMP_STDLIBS)
 GL_LIBS = $(LINK_GLFW) $(LINK_GLEW) $(LINK_GL) $(LINK_GLUT)
 
@@ -68,7 +68,7 @@ examples/%.ll: examples/%.zomp zompc.native
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
 
-examples/%.bc: examples/%.ll prelude.zomp runtime.c
+examples/%.bc: examples/%.ll prelude.zomp source/runtime.c
 	echo Compiling $< to $@
 	$(LLVM_AS) -f $< -o $@
 
@@ -92,7 +92,7 @@ examples/runtime.s: runtime.zomp
 	@$(ECHO) Making $@ ...
 	$(LLVM_LLC) -o $@ runtime.bc -f -march=x86
 
-examples/%.exe: examples/%.o runtime.o
+examples/%.exe: examples/%.o source/runtime.o
 	@$(ECHO) Making $@ ...
 	$(CC) $(CFLAGS) -o $@ -L. -L./examples $(LIBS) $< -arch i386
 

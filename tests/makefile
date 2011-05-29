@@ -1,4 +1,5 @@
 
+LLVM_VERSION=2.9
 ZOMP_TOOL_PATH=$(PWD)/../tools
 include ../config.mk
 
@@ -85,10 +86,10 @@ clean_tests:
 	@$(ECHO) Compiling $< to LLVM IR
 	../zomp-check-syntax.sh $<
 
-%.bc: %.ll ../runtime.c
+%.bc: %.ll ../source/runtime.c
 	@$(ECHO) Compiling $< to $@
 	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	$(LLVM_LINK) -f ../runtime.bc $(<:.ll=.o.bc) -o $@
+	$(LLVM_LINK) -f ../source/runtime.bc $(<:.ll=.o.bc) -o $@
 
 %.exe: %.bc
 	@$(ECHO) Building $@ ...
