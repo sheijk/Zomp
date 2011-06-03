@@ -1,0 +1,63 @@
+///
+/// Prototype/design for command line interface handling
+///
+
+/// Single letter flags
+/// foo -abcd
+///
+/// Long forms
+/// foo --a-option --b-options
+///
+/// With single (typed) parameter
+/// foo -I /usr/local/include
+/// foo --include-dir /usr/local/include
+///
+/// Multi parameter options
+/// foo --defines DEFINE_A DEFINE_B DEFINE_C
+///
+/// Regular arguments
+/// foo file1 file2
+/// 
+/// Terminate named arguments
+/// foo --defines DEFINE_A DEFINE_B -- file1 file2
+///
+/// Anti-option
+/// foo --no-a-option
+///
+/// Automatically adopt to Windows conventions (?)
+/// What happens to single letter arguments?
+
+cliArguments DefaultArguments:
+  /// a-option enables an A
+  @name(optionA)
+  flag "a-option" 'a'
+
+  /// directory to be added to include path
+  @name(includePaths)
+  List!string 'multiOccur "include-dir" 'I' "include":
+    isValidDir(value)
+  handle:
+    println "Added directory $(value)"
+  end
+
+  /// maximum number of functions to be inlined
+  int maxInlineLevel "max-inline-level"
+
+  /// O0 enables no optimizations, O3 enables all
+  int optimizationLevel ("-O0" = 0, "-O1" = 1, "-O2" = 2, "O3" = 3)
+
+  MyEnum myChoice ("foo" = Foo, "bar", "legacy-bar-name" = Bar)
+
+  /// the alpha value to be used for the background
+  float alphaValue "alpha-value":
+    0 <= alphaValue <= 1
+  end
+end
+
+func int main():
+  args := handleArgs DefaultArguments
+  createOptimizer(args.optimizationLevel, args.maxInlineLevel)
+
+  ret 0
+end
+
