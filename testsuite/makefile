@@ -117,6 +117,8 @@ testsuite/error_reporting/all: $(TESTSUITE_ERROR_CASES)
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma $(CHECK_TEST_FILE)
 
+PRINT_TESTREPORT = 0
+
 testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/makefile
 	$(CHECK_TEST) ${<:.zomp=.testreport} 2>&1 > $@.tmp
 	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
@@ -125,4 +127,9 @@ testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/t
 testsuite/error_reporting/%.testreport: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile
 	@$(ECHO) "Running unit test ${@:.testreport=} ..."
 	$(CHECK_TEST) $@
+ifeq "$(PRINT_TESTREPORT)" "1"
+	echo "--- Content of $@"
+	cat $@
+	echo "--- end of $@"
+endif
 

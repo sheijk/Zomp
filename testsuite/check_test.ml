@@ -187,8 +187,3 @@ let () =
   in
   withOpenFileOut outputFileName writeReport
 
-  (* printf "----- Compiler output -----\n"; *)
-  (* forEachLineInFile compilerMessagesOutputFile *)
-  (*   (fun _ line -> print_string "  "; print_string line; print_newline()); *)
-  (* printf "----- end -----\n" *)
-
