@@ -35,13 +35,8 @@ testsuite/fail: fail.test crash.test
 
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/all
 
-testsuite/clean:
+testsuite/clean: testsuite/error_reporting/clean
 	cd testsuite && rm -f *.bc *.o.bc *.ll *.test gmon.out
-
-testsuite/clear-results:
-	cd testsuite && rm -f *.test
-
-testsuite/redo: clear-results all
 
 ################################################################################
 # Additional dependencies
@@ -113,6 +108,12 @@ TESTSUITE_ERROR_CASES = $(TESTSUITE_ERROR_SOURCES:.zomp=.testreport)
 
 testsuite/error_reporting/all: $(TESTSUITE_ERROR_CASES)
 .PHONY: testsuite/error_reporting/all
+
+testsuite/error_reporting/clean:
+	cd testsuite/error_reporting && rm -f *.ll *.bc *.testreport *.exe
+.PHONY: testsuite/error_reporting/clean
+
+.PRECIOUS: testsuite/error_reporting/%.zompc-log
 
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma $(CHECK_TEST_FILE)

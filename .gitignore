@@ -115,3 +115,5 @@ tools
 /testsuite/error_reporting/*.test2
 /testsuite/check_test_verify/*.testreport
 /testsuite/error_reporting/*.testreport
+/testsuite/error_reporting/*.output
+/testsuite/error_reporting/*.zompc-log
