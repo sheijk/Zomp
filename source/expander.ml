@@ -1450,6 +1450,22 @@ struct
     addF macroVar2 translateDefineVar;
 end
 
+module Compiler_environment : Zomp_transformer =
+struct
+  let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
+    let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
+    let var = { var with vdefault = StringLiteral "TODO.zomp" } in
+    Result (newBindings, [`ToplevelForm (`GlobalVar var); `Variable var])
+
+  let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
+    Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
+      
+  let register addF =
+    addF "std:env:file" translateFileName;
+    addF "std:env:line" translateLineNumber;
+    
+end
+
 module Array : Zomp_transformer =
 struct
   let arraySize (env: exprTranslateF env) expr =
@@ -1648,6 +1664,7 @@ let baseInstructions =
   Base.register add;
   Array.register add;
   Overloaded_ops.register add;
+  Compiler_environment.register add;
   table
 
 let translateFromDict
