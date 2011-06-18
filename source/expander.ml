@@ -776,7 +776,16 @@ type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 type toplevelTranslationResult = (bindings * (toplevelExpr list)) mayfail
 
 let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
-  Error ["Not supported at all"]
+  let f = {
+    fcname = "printInt";
+    fcrettype = `Void;
+    fcparams = [`Int32];
+    fcargs = [`Constant (Int32Val 666l)];
+    fcptr = `NoFuncPtr;
+    fcvarargs = false
+  } in
+  Result (env.bindings, [`FuncCall f])
+  (* Error ["Not supported at all"] *)
 
 let errorFromExpr expr msg =
   Error [sprintf "%s in %s" msg (Ast2.toString expr)]
@@ -1692,6 +1701,16 @@ let translateFromDict
     None
 
 let rec translate errorF translators bindings (expr :Ast2.t) =
+  (* let s = Ast2.toString expr in *)
+  (* let s = expr.id in *)
+  (* begin match expr.location with *)
+  (*   | Some loc -> *)
+  (*       printf "Translate @%s %s\n" (Ast2.locationToString loc) s; *)
+  (*       flush stdout; *)
+  (*   | None -> *)
+  (*       printf "Translate! %s\n" s; *)
+  (*       flush stdout; *)
+  (* end; *)
   let rec t = function
     | [] -> errorF expr "No translator matched expression"
     | f :: remf -> begin
