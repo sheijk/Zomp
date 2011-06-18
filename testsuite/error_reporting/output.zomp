@@ -1,0 +1,11 @@
+/// 
+/// Simple application
+/// 
+
+requireLibs libcee
+
+func int main():
+  println "hello, there" //// print hello there
+  ret 0
+end
+
