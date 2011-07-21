@@ -681,9 +681,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   ;; auto indenting
   (setq indent-line-function 'zomp-indent-line)
 
-  ;; highlight s-expression under cursor
-  (hl-sexp-mode t)
-
   ;; quick navigation and marking expressions
   (local-set-key [(meta n)] 'zomp-next-tl-expr)
   (local-set-key [(meta p)] 'zomp-prev-tl-expr)
