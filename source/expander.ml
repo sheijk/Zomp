@@ -558,7 +558,7 @@ struct
           match lookup bindings macroName with
             | MacroSymbol macro ->
                 begin try
-                  let transformedExpr = macro.mtransformFunc bindings args in
+                  let transformedExpr = macro.mtransformFunc bindings expr in
                   Some (translateF bindings transformedExpr)
                 with
                   | Failure msg ->
@@ -737,7 +737,7 @@ struct
                       (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
                   in
                   Some( Bindings.addMacro bindings name docstring
-                          (fun bindings args -> macroF bindings argNames args impl), [] )
+                          (fun bindings expr -> macroF bindings argNames expr.args impl), [] )
                 end
           end
         in
@@ -776,7 +776,16 @@ type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 type toplevelTranslationResult = (bindings * (toplevelExpr list)) mayfail
 
 let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
-  Error ["Not supported at all"]
+  let f = {
+    fcname = "printInt";
+    fcrettype = `Void;
+    fcparams = [`Int32];
+    fcargs = [`Constant (Int32Val 666l)];
+    fcptr = `NoFuncPtr;
+    fcvarargs = false
+  } in
+  Result (env.bindings, [`FuncCall f])
+  (* Error ["Not supported at all"] *)
 
 let errorFromExpr expr msg =
   Error [sprintf "%s in %s" msg (Ast2.toString expr)]
@@ -822,42 +831,52 @@ struct
 
   let translateMacroCall name paramCount isVariadic =
     let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name in
-    (fun bindings args ->
-       begin
-         let invokeMacro args =
-           let nativeArgs = List.map Zompvm.NativeAst.buildNativeAst args in
-           Machine.zompResetMacroArgs();
-           List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
-           let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
-           let resultAst = Zompvm.NativeAst.extractSExprFromNativeAst nativeResultAst in
-           resultAst
-         in
-         let argCount = List.length args in
-         match isVariadic with
-           | `IsNotVariadic -> begin
-               if argCount <> paramCount then begin
-                 raiseIllegalExpression
-                   (Ast2.expr name args)
-                   (sprintf "Expected %d args but found %d" paramCount argCount);
-               end else begin
-                 invokeMacro args
+    (fun bindings expr ->
+       let result =
+         let args = expr.args in
+         begin
+           let invokeMacro args =
+             let nativeArgs = List.map Zompvm.NativeAst.buildNativeAst args in
+             Machine.zompResetMacroArgs();
+             List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
+             let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
+             let resultAst = Zompvm.NativeAst.extractSExprFromNativeAst nativeResultAst in
+             resultAst
+           in
+           let argCount = List.length args in
+           match isVariadic with
+             | `IsNotVariadic -> begin
+                 if argCount <> paramCount then begin
+                   raiseIllegalExpression
+                     (Ast2.expr name args)
+                     (sprintf "Expected %d args but found %d" paramCount argCount);
+                 end else begin
+                   invokeMacro args
+                 end
                end
-             end
-           | `IsVariadic -> begin
-               if argCount < paramCount-1 then begin
-                 raiseIllegalExpression
-                   (Ast2.expr name args)
-                   (sprintf "Expected at least %d args but found only %d"
-                      (paramCount-1) argCount)
-               end;
-               let declaredArgs, variadicArgs = Common.splitAfter (paramCount-1) args in
-               let inflatedArgs = declaredArgs @ [Ast2.seqExpr variadicArgs] in
-               invokeMacro inflatedArgs
-             end
-               (* raiseIllegalExpression *)
-               (*   {Ast2.id = name; args = args} *)
-               (*   "Variadic arg macros cannot be called, yet" *)
-       end : bindings -> Ast2.sexpr list -> Ast2.sexpr)
+             | `IsVariadic -> begin
+                 if argCount < paramCount-1 then begin
+                   raiseIllegalExpression
+                     (Ast2.expr name args)
+                     (sprintf "Expected at least %d args but found only %d"
+                        (paramCount-1) argCount)
+                 end;
+                 let declaredArgs, variadicArgs = Common.splitAfter (paramCount-1) args in
+                 let inflatedArgs = declaredArgs @ [Ast2.seqExpr variadicArgs] in
+                 invokeMacro inflatedArgs
+               end
+                 (* raiseIllegalExpression *)
+                 (*   {Ast2.id = name; args = args} *)
+                 (*   "Variadic arg macros cannot be called, yet" *)
+         end
+       in
+       match expr.location, result.location with
+         | Some loc, None ->
+             { result with Ast2.location = Some loc }
+         | Some _, Some _
+         | None, _ ->
+             result
+               : bindings -> Ast2.sexpr -> Ast2.sexpr)
 
   let translateDefineMacro translateNestedF env expr =
     let decomposeMacroDefinition expr =
@@ -1352,6 +1371,12 @@ struct
     in
     let transform id name typeExpr valueExpr :translationResult =
       try
+        begin
+          if name = "funcInt" then
+            match expr.location with
+              | Some loc -> printf "var %s @ %s\n" name (Ast2.locationToString loc)
+              | None -> printf "var %s no loc\n" name
+        end;
         match lookup env.bindings name with
           | VarSymbol { vglobal = false } ->
               (* todo: move somewhere else *)
@@ -1368,6 +1393,7 @@ struct
                           sprintf "error %d: %s: %d: %s" errorCode loc.fileName loc.line msg
                       | None ->
                           sprintf "error %d: %s in\n  %s" errorCode msg (Ast2.toString expr)
+
                   let localVarDefinedTwice loc varName =
                     Error [makeErrorString 1 expr
                              (sprintf "Local variable name '%s' defined twice" name)]
@@ -1431,6 +1457,22 @@ struct
     addF macroNullptr translateNullptr;
     addF macroVar translateDefineVar;
     addF macroVar2 translateDefineVar;
+end
+
+module Compiler_environment : Zomp_transformer =
+struct
+  let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
+    let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
+    let var = { var with vdefault = StringLiteral "TODO.zomp" } in
+    Result (newBindings, [`ToplevelForm (`GlobalVar var); `Variable var])
+
+  let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
+    Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
+      
+  let register addF =
+    addF "std:env:file" translateFileName;
+    addF "std:env:line" translateLineNumber;
+    
 end
 
 module Array : Zomp_transformer =
@@ -1631,6 +1673,7 @@ let baseInstructions =
   Base.register add;
   Array.register add;
   Overloaded_ops.register add;
+  Compiler_environment.register add;
   table
 
 let translateFromDict
@@ -1658,6 +1701,16 @@ let translateFromDict
     None
 
 let rec translate errorF translators bindings (expr :Ast2.t) =
+  (* let s = Ast2.toString expr in *)
+  (* let s = expr.id in *)
+  (* begin match expr.location with *)
+  (*   | Some loc -> *)
+  (*       printf "Translate @%s %s\n" (Ast2.locationToString loc) s; *)
+  (*       flush stdout; *)
+  (*   | None -> *)
+  (*       printf "Translate! %s\n" s; *)
+  (*       flush stdout; *)
+  (* end; *)
   let rec t = function
     | [] -> errorF expr "No translator matched expression"
     | f :: remf -> begin

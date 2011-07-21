@@ -1,0 +1,17 @@
+///
+/// Verifying that correct source locations are maintained
+///
+
+template __FILE__ std:env:file
+template __LINE__ std:env:line
+
+std:base:func int main():
+  printString __FILE__
+  printString ":"
+  printInt __LINE__
+  printNewline()
+  dummy
+  printNewline()
+  std:base:ret 0
+end
+

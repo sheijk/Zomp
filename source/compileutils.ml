@@ -154,7 +154,13 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
   let source = Common.readFile zompPreludeFile in
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
-  let lexFunc _ = Indentlexer.token lexstate in
+  let lexFunc lexbuf =
+    let r = Indentlexer.token lexstate in
+    let loc = Indentlexer.locationOfLexstate lexstate in
+    let start = lexbuf.Lexing.lex_start_p in
+    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.Indentlexer.line };
+    r
+  in
   let parseF = Newparser.main lexFunc in
   let exprs =
     collectTimingInfo "parsing"

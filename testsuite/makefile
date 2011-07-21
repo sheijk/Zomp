@@ -35,13 +35,8 @@ testsuite/fail: fail.test crash.test
 
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/all
 
-testsuite/clean:
+testsuite/clean: testsuite/error_reporting/clean
 	cd testsuite && rm -f *.bc *.o.bc *.ll *.test gmon.out
-
-testsuite/clear-results:
-	cd testsuite && rm -f *.test
-
-testsuite/redo: clear-results all
 
 ################################################################################
 # Additional dependencies
@@ -109,31 +104,40 @@ testsuite/%.s: testsuite/%.bc
 ################################################################################
 
 TESTSUITE_ERROR_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
-TESTSUITE_ERROR_CASES = $(TESTSUITE_ERROR_SOURCES:.zomp=.test)
+TESTSUITE_ERROR_CASES = $(TESTSUITE_ERROR_SOURCES:.zomp=.testreport)
 
 testsuite/error_reporting/all: $(TESTSUITE_ERROR_CASES)
 .PHONY: testsuite/error_reporting/all
 
-testsuite/error_reporting/invalid_token_bof.test: EXPECTED_LINE = 1
-testsuite/error_reporting/invalid_token_not_first_line.test: EXPECTED_LINE = 3
-testsuite/error_reporting/invalid_token_single_line_comment.test: EXPECTED_LINE = 5
-testsuite/error_reporting/invalid_token_multi_line_comment.test: EXPECTED_LINE = 6
-testsuite/error_reporting/duplicate_local_name.test: EXPECTED_LINE = 11
+testsuite/error_reporting/clean:
+	cd testsuite/error_reporting && rm -f *.ll *.bc *.testreport *.exe
+.PHONY: testsuite/error_reporting/clean
 
-testsuite/error_reporting/%.test: testsuite/error_reporting/%.zomp $(ZOMPC)
-	@$(ECHO) "Checking if compiler reports error in $<:$(EXPECTED_LINE)"
-	-($(ZOMPC) -c $< 2>&1) > $@
-	($(CAT) $@ | grep "$<:$(EXPECTED_LINE)" --quiet) || \
-		($(ECHO) "$<:$(EXPECTED_LINE): error: location not reported properly"; \
-			$(CAT) $@; \
-			rm -f $@; \
-			exit 1)
+.PRECIOUS: testsuite/error_reporting/%.zompc-log
 
-temp_check_test: testsuite/error_reporting/test_check_test_error_report.test2 testsuite/error_reporting/invalid_token_bof.test2
+CHECK_TEST_FILE = testsuite/check_test.ml
+CHECK_TEST = $(OCAML) str.cma $(CHECK_TEST_FILE)
 
-CHECK_TEST = testsuite/check_test.ml
+PRINT_TESTREPORT = 0
 
-testsuite/error_reporting/%.test2: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST)
-	@$(ECHO) "Running unit test ${@:.test2=} ..."
-	$(OCAML) str.cma $(CHECK_TEST) $@
+testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/makefile
+	$(CHECK_TEST) ${<:.zomp=.testreport} 2>&1 > $@.tmp
+	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
+	mv $@.tmp $@
+
+testsuite/error_reporting/%.testreport testsuite/error_reporting/%.output testsuite/error_reporting/%.ll testsuite/error_reporting/%-tmp.bc: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
+	@$(ECHO) "Running unit test ${@:.testreport=} ..."
+	$(CHECK_TEST) $@
+ifeq "$(PRINT_TESTREPORT)" "1"
+	echo "--- Content of $@"
+	cat $@
+	echo "--- end of $@"
+endif
+	$(LLVM_LINK) -o $(@:.testreport=-tmp.bc) source/runtime.ll $(<:.zomp=.ll)
+	$(LLVM_LLI) $(@:.testreport=-tmp.bc) > $(@:.testreport=.output)
+ifeq "$(PRINT_OUTPUT)" "1"
+	echo "--- Output of $@"
+	cat $(@:.testreport=.output)
+	echo "--- end of $@"
+endif
 

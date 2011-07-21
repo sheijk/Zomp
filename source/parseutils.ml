@@ -6,7 +6,9 @@ open Printf
 let parseSExpr input =
   try
     let lexbuf = Lexing.from_string input in
-    Some( Sexprparser.main Sexprlexer.token lexbuf )
+    let e = Sexprparser.main Sexprlexer.token lexbuf in
+    Some e
+      
   with Sexprlexer.Eof ->
     None
 
@@ -37,7 +39,11 @@ let parseSExprs source =
   in
   try
     let lexbuf = Lexing.from_string source in
-    let parseF = Sexprparser.main Sexprlexer.token in
+    let parseF lexbuf =
+      let e = Sexprparser.main Sexprlexer.token lexbuf in
+      (* reportParsedExpression e; *)
+      e
+    in
     let exprs = parse parseF lexbuf [] in
     Exprs exprs
   with exc ->
@@ -47,7 +53,13 @@ let parseSExprs source =
     }
 
 let parseIExprsFromLexbuf lexbuf lexstate =
-  let lexFunc _ = Indentlexer.token lexstate in
+  let lexFunc lexbuf =
+    let r = Indentlexer.token lexstate in
+    let loc = Indentlexer.locationOfLexstate lexstate in
+    let start = lexbuf.Lexing.lex_start_p in
+    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.Indentlexer.line };
+    r
+  in
   let lexFunc = sampleFunc1 "lexing" lexFunc in
   let rec read acc =
     try

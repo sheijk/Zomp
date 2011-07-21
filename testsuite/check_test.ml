@@ -98,13 +98,13 @@ let () =
   let outputFileName = Sys.argv.(1) in
   let zompFileName = replaceExtension outputFileName "zomp" in
   let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
-  let error =
+  let compilerError =
     Sys.command (sprintf "./zompc.native -c %s > %s 2> %s"
                    zompFileName
                    compilerMessagesOutputFile
                    compilerMessagesOutputFile)
   in
-  ignore error;
+  ignore compilerError;
   (* let error = 0 in *)
   (* if error != 0 then begin *)
   (*   printf "Compiler output:\n"; *)
@@ -186,9 +186,4 @@ let () =
     List.iter reportMissingDiagnostic !expectedErrorMessages;
   in
   withOpenFileOut outputFileName writeReport
-
-  (* printf "----- Compiler output -----\n"; *)
-  (* forEachLineInFile compilerMessagesOutputFile *)
-  (*   (fun _ line -> print_string "  "; print_string line; print_newline()); *)
-  (* printf "----- end -----\n" *)
 

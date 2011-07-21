@@ -1,13 +1,52 @@
 
 %{
   exception ParseError of string
+  open Printf
   let raiseParseError str = raise (ParseError str)
 
-  let juxExpr = Ast2.juxExpr
-  let callExpr = Ast2.callExpr
+  let reportParsedExpression e =
+    let locationToString l =
+      sprintf "%s:%d" l.Ast2.fileName l.Ast2.line
+    in
+    let str = Ast2.toString e in
+    begin match e.Ast2.location with
+       | Some l -> printf "Parsed '%s..'@%s\n" (locationToString l) str
+       | None -> printf "Parsed '%s..' w/o location\n" str
+    end;
+    flush stdout
+
+  let combineLocations exprs =
+    match exprs with
+    | [] -> None
+    | first :: _ -> first.Ast2.location
+
+  let getLocation loc =
+    { Ast2.fileName = loc.Lexing.pos_fname;
+      line = loc.Lexing.pos_lnum }
+
+  let withLoc expr lbloc = { expr with Ast2.location = Some (getLocation lbloc) }
+
+
+  let juxExpr exprs =
+    let jux = Ast2.juxExpr exprs in
+    { jux with Ast2.location = combineLocations exprs }
+      
+  let callExpr exprs =
+    let e = Ast2.callExpr exprs in
+    { e with Ast2.location = combineLocations exprs }
   let idExpr = Ast2.idExpr
-  let seqExpr = Ast2.opseqExpr
-  let expr = Ast2.expr
+  let seqExpr exprs =
+    let e = Ast2.opseqExpr exprs in
+    { e with Ast2.location = combineLocations exprs }
+
+  let expr name exprs =
+    let e = Ast2.expr name exprs in
+    { e with Ast2.location = combineLocations exprs }
+
+  let idExprLoc id loc =
+    let l = getLocation loc in
+    let e = idExpr id in
+    { e with Ast2.location = Some l }
 
   let quoteId = function
     | "`" -> "quote"
@@ -26,11 +65,11 @@
   let mergeJux l r =
     match l, r with
       | {Ast2.id = "opjux"; args = largs }, _ ->
-          Ast2.expr "opjux" (largs @ [r])
+          expr "opjux" (largs @ [r])
       | _, {Ast2.id = "opjux"; args = rargs } ->
-          Ast2.expr "opjux" (l :: rargs)
+          expr "opjux" (l :: rargs)
       | _ ->
-          Ast2.expr "opjux" [l;r]
+          expr "opjux" [l;r]
 
   let checkTerminators expr terminators =
     let rec checkAll = function
@@ -44,7 +83,7 @@
                              (Common.combine " " terminators)
                              (Ast2.toString expr) )
     in
-    checkAll (Ast2.idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
+    checkAll (idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
 
   let expectNoTerminators = function
     | [] -> ()
@@ -135,6 +174,13 @@
 %%
 
 main:
+| e = main2;
+  {
+    (* reportParsedExpression e; *)
+    e
+  }
+
+%inline main2:
 | e = kwexpr; END;
   { e }
 
@@ -147,7 +193,7 @@ kwexpr:
 
 | e = expr; components = pair(KEYWORD_ARG, kwarg)+;
   { let keywordsAndExprs = extractKeywordsAndExprsAndCheckTerminators components in
-    expr "opkeyword" (idExpr "default" :: e :: Common.multiMap keywordAndExprToList keywordsAndExprs) }
+    expr "opkeyword" (idExprLoc "default" $startpos :: e :: Common.multiMap keywordAndExprToList keywordsAndExprs) }
 
 | e = expr;
   { e }
@@ -206,25 +252,26 @@ alternateExprArgsAndBlock:
 
 exprArgInner:
 | id = IDENTIFIER;
-  { idExpr id }
+  { idExprLoc id $startpos }
 
 | OPEN_PAREN; e = kwexpr; CLOSE_PAREN;
   { e }
 
 | OPEN_CURLY; CLOSE_CURLY;
-  { expr "op{}" [] }
+  { withLoc (expr "op{}" []) $startpos }
 | OPEN_CURLY; e = kwexpr; CLOSE_CURLY;
   { expr "op{}" [e] }
 
 | OPEN_BRACKET; CLOSE_BRACKET;
-  { expr "op[]" [] }
+  { withLoc (expr "op[]" []) $startpos }
 | OPEN_BRACKET; e = kwexpr; CLOSE_BRACKET;
   { expr "op[]" [e] }
 
 | q = QUOTE; id = IDENTIFIER;
-  { expr (quoteId q) [idExpr id] }
+  { expr (quoteId q) [idExprLoc id $startpos] }
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
-  { expr (quoteId q) [seqExpr []] }
+  { let e = expr (quoteId q) [withLoc (seqExpr []) $startpos] in
+    { e with Ast2.location = Some (getLocation $startpos) } }
 | q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
   { expr (quoteId q) [e] }
 | q = QUOTE; OPEN_CURLY; blockAndT = block; CLOSE_CURLY;
@@ -251,7 +298,7 @@ exprArg:
   { e }
 
 %inline block:
-| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
+| BEGIN_BLOCK; exprs = main2*; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
 
 

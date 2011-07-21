@@ -20,7 +20,7 @@ val addTypedef :
 val addLabel : bindings -> string -> bindings
 val addMacro :
   bindings -> string -> string ->
-  (bindings -> Ast2.sexpr list -> Ast2.sexpr) -> bindings
+  (bindings -> Ast2.sexpr -> Ast2.sexpr) -> bindings
 val lookup : bindings -> string -> symbol
 val lookupInfo : bindings -> string -> symbolInfo
 val isFunction : bindings -> string -> bool

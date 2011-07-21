@@ -5,6 +5,8 @@ type location = {
   line :int
 }
 
+let locationToString loc = sprintf "%s:%d" loc.fileName loc.line
+
 type sexpr = {
   id :string;
   args :sexpr list;
@@ -12,6 +14,8 @@ type sexpr = {
 }
 
 type t = sexpr
+
+(** construction functions **)
 
 let idExpr name = { id = name; args = []; location = None }
 let simpleExpr name args = { id = name; args = List.map idExpr args; location = None }
@@ -21,6 +25,20 @@ let opseqExpr args = { id = "opseq"; args = args; location = None }
 let expr name args = { id = name; args = args; location = None }
 let juxExpr args = { id = "opjux"; args = args; location = None }
 let callExpr args = { id = "opcall"; args = args; location = None }
+
+(** query functions **)
+
+let fileName ast =
+  match ast.location with
+    | Some { fileName = fileName } -> fileName
+    | None -> "?.zomp"
+
+let lineNumber ast =
+  match ast.location with
+    | Some { line = line } -> line
+    | None -> 0
+  
+(** transformations **)
 
 let toSingleExpr = function
   | [single] -> single

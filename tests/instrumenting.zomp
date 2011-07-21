@@ -1,0 +1,125 @@
+/// 
+/// Developing a simple macro for instrumentation
+/// 
+
+requireLibs libcee
+
+func int ast:printLimited(ast* tree, int maxLength):
+  remaining := maxLength
+
+  if (remaining < 2):
+    if (maxLength > 0):
+      print ".."
+    end
+    ret 0
+  end
+
+  count := strlen tree.id
+  if (tree.childCount > 0):
+    print "("
+    remaining--
+  end
+  print tree.id
+  remaining = maxLength - count
+
+  forEachAstChild child tree:
+    if (tree.childCount > 0):
+      print " "
+      remaining--
+    end
+
+    remaining = ast:printLimited(child, remaining)
+    if (remaining <= 2):
+      print ".."
+      ret 0
+    end
+  end
+
+  if (tree.childCount > 0):
+    print ")"
+    remaining -= 1
+  end
+
+  ret remaining
+end
+
+macro log args...:
+  if (args.childCount == 0):
+    ret ${}
+  end
+
+  body := ast:child args (args.childCount - 1)
+  // println "body = " body
+  // println "args = " args
+
+  newArgs := nullptr ast
+  if (args.childCount == 1):
+    // println "single arg"
+    newArgs = ${seq DUMMY}
+  else:
+    // println "multi args"
+    newArgs = ast:shiftLeft args
+  end
+  // println "newArgs = " newArgs
+
+  if (body.id ==_str "seq" || body.id ==_str "opseq"):
+    // println "Instrumenting body"
+
+    instrumentedBody := ${seq}
+    forEachAstChild statement body:
+      descr := cstring:quote statement.id
+      ast:addChild instrumentedBody ${seq:
+        print "Running "
+        ast:printLimited(${#statement}, 30)
+        println()
+      end}
+      ast:addChild instrumentedBody statement
+    end
+
+    ast:setChild newArgs (newArgs.childCount-1) instrumentedBody
+  end
+
+  // println "returning " newArgs
+  ret newArgs
+end
+
+macro lfunc retType nameAndArgs body:
+  name := ast:child nameAndArgs 0
+  quotedName := cstring:quote name.id
+  ret ${func #retType #nameAndArgs:
+    println "Called function " #quotedName
+    log #body
+  end}
+end
+
+lfunc int instruTest():
+  println "operation 1"
+  println "operation 2"
+  println "operation 3"
+  log:
+    txt := "foo bar baz"
+    print txt
+    println()
+  end
+  ret 123
+end
+
+func int main():
+  // println "running main()"
+  // log println "abc"
+  log do:
+    println 111
+    println 222
+    // x := 10
+    // y := 20
+    // println (x+y)
+  end
+  
+  println "calling\n" instruTest()
+  // // ast:printLimited ${foo bar baz} 100
+  // ast:printLimited ${foo bar baz} 8
+
+  ret 0
+end
+
+
