@@ -117,3 +117,4 @@ tools
 /testsuite/error_reporting/*.testreport
 /testsuite/error_reporting/*.output
 /testsuite/error_reporting/*.zompc-log
+/libs/opengl20print.skel
