@@ -915,6 +915,9 @@ func void onWindowResize(int newWidth, int newHeight):
   windowHeight = newHeight
   glfwSetWindowSize windowWidth windowHeight
   TwWindowSize windowWidth windowHeight
+
+  println "new window size is " windowWidth "x" windowHeight
+  
   ret void
 end
 
@@ -2202,7 +2205,8 @@ func void ShaderManager:addMaterial(ShaderManager* this, Material* material):
       println "warning: could not find shader " shaderName " for material " material.name
     end
   else:
-    println "warning: could not detect shader/instance name for material " material.name
+    println "warning: Could not detect shader/instance name for material "
+      material.name ". Name should follow pattern shader__instance"
   end
 end
 
@@ -3480,10 +3484,10 @@ func int main():
       Animation:apply (animations.elements+animNum) animTime
     end
     SceneGraph:updateTransforms &sg
-    
+
     /// input events
     keyEvent := default KeyEvent
-    log while fetchNextKeyEvent(&keyEvent):
+    while fetchNextKeyEvent(&keyEvent):
       if (keyEvent.key == GLFW_MOUSE_BUTTON_LEFT):
         onTimelineButton &keyEvent
       elseif (keyEvent.action == GLFW_PRESS):
