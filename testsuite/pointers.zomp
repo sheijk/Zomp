@@ -2,6 +2,31 @@
 /// Testing pointer functionality
 ///
 
+requireLibs unittest
+
+func int add1(int i):
+  ret (i+1)
+end
+
+func int sub1(int i):
+  ret (i-1)
+end
+
+func int add(int l, int r):
+  ret (l+r)
+end
+
+unittest:testCase FunctionPointer2:
+  var (fptr int int) pNext &add1
+  var (fptr int int) pPrev &sub1
+  
+  unittest:assertAll:
+    pNext 3 == 4
+    pPrev 3 == 2
+    pNext(5) == pPrev(7)
+  end
+end
+
 func int get3():
   ret 3
 end
@@ -11,25 +36,62 @@ func int get5():
 end
 
 unittest:testCase functionPointer:
-  var fptr(int) pGet3 &get3
-  var fptr(int) pGet5 &get5
+  var (fptr int) pGet3 &get3
+  var (fptr int) pGet5 &get5
 
   unittest:assertAll:
-    pGet3() == 3
-    pGet5() == 5
+    // should not compile
+    get3 == 3
+    // pGet3() == 3
+    // pGet5() == 5
   end
 end
 
-unittest:testCase functionPointerArray:
-  var fptr(int)[2] funcs
-  funcs[0] = &get3
-  funcs[1] = &get5
+// type IntFunc (fptr int)
 
-  unittest:assertAll:
-    funcs[0]() == 3
-    funcs[1]() == 5
-  end
-end
+// unittest:testCase functionPointerArray:
+//   var IntFunc[2] funcs
+//   funcs[0] = &get3
+//   funcs[1] = &get5
+// 
+//   unittest:assertAll:
+//     (funcs[0])() == 3
+//     (funcs[1])() == 5
+//   end
+// end
+
+// struct MyVTable:
+//   (fptr void int) setId
+//   (fptr int) getId
+// end
+// 
+// var int vtableId 0
+// 
+// func void vtable_setId(int i):
+//   vtableId = i
+// end
+// 
+// func int vtable_getId():
+//   ret vtableId
+// end
+// 
+// unittest:testCase VTable:
+//   vtable := malloc MyVTable
+//   vtable.setId = &vtable_setId
+//   vtable.getId = &vtable_getId
+// 
+//   vtable.setId 10
+//   f := vtable.getId
+//   f2 := f()
+//   printString vtable_getId
+//   // unittest:assert( f2() == 10 )
+//   // unittest:assert( vtable.getId() == 10 )
+//   
+//   // vtable.setId(20)
+//   // unittest:assert( vtable.getId() == 20 )
+// 
+//   dealloc vtable
+// end
 
 unittest:main
 
