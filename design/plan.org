@@ -1706,6 +1706,42 @@ also needs to work for circular inclusion
     (int x, int y) =>:
       print stuff
     end
+
+*** more syntax
+
+(:= negVals (map vals (fn (int (int a)) (print 1) (- a))))
+(:= negVals (map vals (fn (int (int a)):
+  print 1
+  -a
+end)))
+
+negVals := map vals (fn int(int a) (print 1; -a))
+negVals := map vals (fn int(int a):
+  print 1
+  -a
+end)
+
+negVals := map vals { int(int a) => print 1; -a }
+negVals := map vals { int(int a) =>:
+  print 1
+  -a
+end}
+
+int(int a).(print 1; -a)
+
+negVals := vals.map int(int x) { -x }
+negVals := vals.map ^(int x) { -x }
+negVals := vals.map ^{ x => -x }
+negVals := vals.map (fn int(int a) { -x })
+negVals := vals.map { int(int a); -x }
+negVals := vals.map { int a |: -a }
+negVals := vals.map -_1
+
+int(int a, int b):
+  print x
+end
+
+    
 ** TODO [#A] opjux could delegate to juxtaposition(T1,T2) for expressions
    :PROPERTIES:
    :ID:       F3C6BBEC-2C8B-476A-B0F8-F49C53615ED1
@@ -1803,6 +1839,22 @@ http://www.iquilezles.org/blog/?p=1468
    :PROPERTIES:
    :ID:       B0910ECE-B6D4-497A-88AF-636FD3E6DC0D
    :END:
+** TODO [#A] safeDeref macro
+
+   safeAddressOf(ptrA*.memberPtrB*.myVector[20])
+   =>
+   do:
+     result := nullptr typeOfExpr
+     if isNull(ptrA) goto(theEnd)
+     tmp1 := ptrA*.memberPtrB
+     if isNull(tmp1) goto(theEnd)
+     tmp2 := &ptrA*.memberPtrB*.myVector
+     if (20 >= tmp2*.size || 20 < 0) goto(theEnd)
+     result = &(tmp2*)[20]
+
+   label theEnd:
+     result
+   end
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
