@@ -181,7 +181,10 @@ struct
     | `Bool -> "bool"
     | `Char -> "char"
     | `TypeRef name -> name
+    | `Pointer (`Function _ as f) -> "(" ^ (typeName f) ^ ")*"
     | `Pointer t -> (typeName t) ^ "*"
+    | `Array (`Function _ as baseType, size) ->
+        sprintf "(%s)[%d]" (typeName baseType) size
     | `Array (baseType, size) ->
         sprintf "%s[%d]" (typeName baseType) size
     | `Record record ->
