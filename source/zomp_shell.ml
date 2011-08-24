@@ -31,7 +31,7 @@ let exitCommand _ _  =
   printf "Exiting.\n";
   exit 0
 
-let promptCommand args _ =
+let changePromptCommand args _ =
   print_newline();
   let removeQuotes quoteChar str =
     match dequoteString quoteChar str with | `NotQuoted str | `Quoted str -> str
@@ -48,7 +48,6 @@ let promptCommand args _ =
         continuedPrompt := newContinued;
     | args ->
         printf "Expected 0-2 arguments instead of %d\n" (List.length args)
-
 
 let boolString = function
   | true -> "yes"
@@ -263,7 +262,7 @@ let writeSymbols args (bindings : Bindings.bindings) =
         end
     | _ ->
         begin
-          eprintf "Expecting one argument\n";
+          eprintf "Expected one argument\n";
           flush stderr
         end
 
@@ -287,27 +286,39 @@ let writeLLVMCodeToFileCommand args (_:bindings) =
     | _ ->
         errorMessage "Expected one argument: file name"
 
+let version = "0.?"
+
+let printVersionInfo args (_:bindings) =
+  match args with
+      [] ->
+        printf "Version %s, build %s\n" version (Zompvm.zompBuildInfo());
+        flush stdout
+    | _ ->
+        printf "Expected no arguments";
+        flush stdout
+          
 let commands =
   let rec internalCommands = [
-    "exit", ["x"; "q"], exitCommand, "Exit";
-    "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
-    "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
-    "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
-    "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
-    "printBaseLang", [], togglePrintForms, "Toggle printing translated base lang forms";
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
-    "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
-    "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
-    "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
-    "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
-    "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
-    "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
-    "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
-    "syntax", [], toggleParseFunc, "Choose a syntax";
+    "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
+    "exit", ["x"; "q"], exitCommand, "Exit";
     "help", ["h"], printHelp, "List all toplevel commands";
-    "prompt", [], promptCommand, "Set prompt";
-    "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
+    "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
+    "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
     "optimize", [], optimizeCommand, "Optimize all functions";
+    "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
+    "printBaseLang", [], togglePrintForms, "Toggle printing translated base lang forms";
+    "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
+    "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
+    "prompt", [], changePromptCommand, "Set prompt";
+    "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
+    "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
+    "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
+    "syntax", [], toggleParseFunc, "Choose a syntax";
+    "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
+    "version", [], printVersionInfo, "Print version/build info";
+    "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
+    "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
   ]
   and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
   in
@@ -560,6 +571,9 @@ let () =
   let message msg = printf "%s\n" msg; flush stdout; in
 
   message "Welcome to the interactive ZompVM";
+  message (sprintf "Version %s%s"
+             version
+             (if Zompvm.zompIsDebugBuild() then ", Debug build" else ""));
 
   message "Initializing...";
   init();

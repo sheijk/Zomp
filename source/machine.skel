@@ -11,8 +11,8 @@ http://sheijk.dword.org/zomp
     bool zompRequestedPause ()
     void zompSetRequestPause (bool request)
 
-    void zompVerifyCode (bool doit)
     bool zompDoesVerifyCode ()
+    void zompVerifyCode (bool doit)
 
     bool zompOptimizeFunction ()
     void zompSetOptimizeFunction (bool optimize)
@@ -57,4 +57,7 @@ http://sheijk.dword.org/zomp
     void zompPrintStats ()
 
     bool zompAstIsNull (void* ptr)
+
+    bool zompIsDebugBuild ()
+    const char* zompBuildInfo ()
 

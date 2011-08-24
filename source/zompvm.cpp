@@ -1114,6 +1114,36 @@ extern "C" {
     return ast == NULL;
   }
 
+  bool zompIsDebugBuild() {
+#ifdef ZOMP_DEBUG
+    return true;
+#else
+    return false;
+#endif
+  }
+
+  const char* zompBuildInfo() {
+    const char* build_info = ""
+#ifdef ZOMP_DEBUG
+      "Debug"
+#else
+      "Release"
+#endif
+      ", "
+      "GCC version = " __VERSION__ ", "
+#ifdef __OPTIMIZE__
+      "optimization on"
+#  ifdef __OPTIMIZE_SIZE__
+      " for size"
+#  endif
+#else
+      "optimization off"
+#endif
+      "";
+
+    return build_info;
+  }
+
   static std::set<void*> registeredvoids;
 
   void registervoid(void* ast) {

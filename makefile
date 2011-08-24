@@ -50,11 +50,15 @@ LDFLAGS = $(ARCHFLAG)
 ifeq ($(DEBUG), 1)
 $(info Debug build, LLVM variant = $(LLVM_VARIANT))
 OCAMLC += -g
-CXXFLAGS += -pg -g
-CCFLAGS += -pg -g
+CXXFLAGS += -pg -g -DDEBUG
+CCFLAGS += -pg -g -DDEBUG
 else
+ifeq ($(DEBUG),0)
 $(info Release build, LLVM variant = $(LLVM_VARIANT))
 CXXFLAGS += -O3
+else
+$(error DEBUG flag has to either 0 or 1)
+endif
 endif
 
 ################################################################################
@@ -84,7 +88,7 @@ SEXPR_TL_INPUT = $(LANG_CMOS) source/zomp_shell.cmo
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: source/zompvm.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll
+dllzompvm.so: source/zompvm.h source/zomputils.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll
 	@$(ECHO) Building $@ ...
 	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm.cpp -o source/zompvm.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
