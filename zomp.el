@@ -27,6 +27,8 @@
 ;; (load "/path/to/zomp.el")
 ;;
 
+(require 'thingatpt)
+
 (defgroup zomp nil
   "Major mode for Zomp programming language"
   :link '(emacs-library-link :tag "Source Lisp File" "zomp.el")
@@ -973,4 +975,5 @@ editor to trigger recompilations etc. and possibly resume main()"
           (next-line)
           )))))
 
+(provide 'zomp)
 
