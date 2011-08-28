@@ -4,6 +4,54 @@
 
 requireLibs unittest
 
+///-----------------------------------------------------------------------------
+/// Section: Basic pointer usage
+///-----------------------------------------------------------------------------
+
+unittest:testCase PointersReadWrite:
+  varInt := 20
+  pVarInt := &varInt
+  beforeStore := pVarInt*
+  *pVarInt = 10
+  afterStore := pVarInt*
+
+  unittest:assertAll:
+    beforeStore == 20
+    afterStore == 10
+  end
+end
+
+unittest:testCase SimpleArithmetic:
+  var int[4] array
+  pArray := zmp:array:addr &array
+  (pArray + 0)* = 1
+  (pArray + 1)* = 2
+  (pArray + 2)* = 3
+  (pArray + 3)* = 4
+  
+  unittest:assertAll:
+    (pArray+0)* == 1
+    *(pArray+1) == 2
+    *(pArray+2) == 3
+    (pArray+3)* == 4
+    pArray+3 > pArray+0
+  end
+end
+
+unittest:testCase PointerToPointer:
+  iVal := 10
+  pVal := &iVal
+  ppVal := &pVal
+
+  unittest:assertAll:
+    iVal == 10
+    // eek, can't use print with pointers, yet
+    true == (pVal == &iVal)
+  end
+end
+
+//------------------------------------------------------------------------------
+
 func int add1(int i):
   ret (i+1)
 end
@@ -16,7 +64,7 @@ func int add(int l, int r):
   ret (l+r)
 end
 
-unittest:testCase FunctionPointer2:
+unittest:testCase SimpleFunctionPointer:
   var (fptr int int) pNext &add1
   var (fptr int int) pPrev &sub1
   
@@ -35,17 +83,38 @@ func int get5():
   ret 5
 end
 
-unittest:testCase functionPointer:
-  var (fptr int) pGet3 &get3
-  var (fptr int) pGet5 &get5
-
-  unittest:assertAll:
-    // should not compile
-    get3 == 3
-    // pGet3() == 3
-    // pGet5() == 5
-  end
+macro hasType vr typ:
+  uniqueId tmp "hasType"
+  ret ${seq:
+    #tmp := nullptr #typ
+    #tmp = &#vr
+  end}
 end
+
+// func void foo(int i):
+// end
+
+// unittest:testCase FunctionPointer2:
+//   var (fptr int) pGet3 &get3
+//   var (fptr int) pGet5 &get5
+// 
+//   // hasType pGet3 (fptr int)
+//   // hasType &get3 (fptr int)
+// 
+//   // foo get3
+//   // println get3()
+//   getThree := &get3
+//   foo (getThree*)()
+//   // foo getThree
+//   // println getThree()
+// 
+//   unittest:assertAll:
+//     get3 == 3
+//     // getThree == 3
+//     // pGet3() == 3
+//     // pGet5() == 5
+//   end
+// end
 
 // type IntFunc (fptr int)
 

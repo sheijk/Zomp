@@ -1,6 +1,8 @@
 /**
- * Demonstrates basic usage of functions
+ * Tests basic functionality of functions
  */
+
+requireLibs unittest
 
 func int get5()
 func int incr(int i)
@@ -18,10 +20,20 @@ func int sum(int a, int b, int c):
   ret (a + b + c)
 end
 
-func int main():
-  assert (5 == get5())
-  assert (11 == incr 10)
-
-  ret 0
+unittest:testCase CallingSimpleFunctions:
+  unittest:assertAll:
+    5 == get5
+    11 == incr 10
+  end
 end
+
+/// Usually a method will return it's last expression if it is not a
+/// return. This means the last expression in a method must have the type the
+/// method returns. Methods returning void do not need this restriction, though
+// func void lastExprOfVoidMethodCanBeAnything():
+//   10
+// end
+
+
+unittest:main
 
