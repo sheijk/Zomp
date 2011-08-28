@@ -134,7 +134,7 @@ let compileCode bindings input outstream fileName =
                     List.iter printError exceptions;
                     None)
 
-let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
+let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :Bindings.t =
   let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
     try
       let expr = parseF lexbuf in
@@ -151,7 +151,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ~dir :Bindings.t =
 
   let preludeBaseName = "prelude" in
   let zompPreludeFile = dir ^ preludeBaseName ^ ".zomp" in
-  let source = Common.readFile zompPreludeFile in
+  let source = Common.readFile zompPreludeFile ^ appendSource in
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   let lexFunc lexbuf =

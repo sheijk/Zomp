@@ -552,9 +552,15 @@ let () =
   in
 
   let loadPrelude() =
+    let defaultMainSrc =
+      "std:base:func int main():\n  printString\"error: no main method defined\\n\"\n  std:base:ret 1\nend\n"
+    in
     Compileutils.catchingErrorsDo
       (fun () -> begin
-         let preludeBindings = Compileutils.loadPrelude "./" in
+         let preludeBindings = Compileutils.loadPrelude
+           ~appendSource:defaultMainSrc
+           "./"
+         in
          let initialBindings = addToplevelBindings preludeBindings in
          initialBindings
        end)

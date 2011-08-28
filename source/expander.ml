@@ -1524,7 +1524,7 @@ struct
                 Error [typeErrorMessage env.bindings (fe,m,f,e)]
         end
     | _ ->
-        Error ["Expected 'zmp:array:addrOf arrayExpr indexExpr'"]
+        Error ["Expected 'zmp:array:addr arrayExpr'"]
 
   let register addF =
     addF "zmp:array:size" arraySize;

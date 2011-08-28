@@ -108,9 +108,9 @@ let compile fileName instream outstream =
         (fun () -> begin
            let bindings :Bindings.t =
              Compileutils.loadPrelude
-               ~dir:preludeDir
                ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
                                output_string outstream llvmCode)
+               preludeDir
            in
            match Compileutils.compileCode bindings input outstream fileName with
              | Some _ -> Compilation_succeeded
