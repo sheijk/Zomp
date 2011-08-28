@@ -1855,6 +1855,14 @@ http://www.iquilezles.org/blog/?p=1468
    label theEnd:
      result
    end
+** TODO [#A] parser bug :bug:
+   foo:
+     blah
+   bar
+     baz
+   end
+
+   should not parse
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
