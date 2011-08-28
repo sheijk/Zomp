@@ -332,6 +332,7 @@ source/parseutils.cmo: source/sexprlexer.cmo
 source/parseutils.cmx: source/sexprlexer.cmx
 
 source/lang.cmi: source/common.cmo
+source/expander.cmi: source/lang.cmi
 source/bindings.cmi: source/common.cmo source/lang.cmo
 
 ################################################################################

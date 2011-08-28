@@ -2,7 +2,7 @@
  * Tools for writing and running unit tests
  */
 
-require "libs/libcee.zomp"
+requireLibs libcee
 
 ///
 /// An assertion macro which detects certain kinds of expressions and inserts

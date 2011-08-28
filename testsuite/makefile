@@ -70,7 +70,7 @@ else
 	@$(ECHO) "Checking of prelude validity disabled by TESTSUITE_NO_PRELUDE" > $@
 endif
 
-testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevalid $(ZOMPC)
+testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevalid $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
