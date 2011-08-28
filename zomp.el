@@ -71,7 +71,6 @@ indent the next line when they occur at the beginning of a line"
                 (while (not (looking-at "\\s("))
                   (backward-char 1)
                   (cond ((looking-at "\\s\)")
-                         (message "->> )")
                          (forward-char 1)
                          (backward-list 1)
                          (backward-char 1)))
@@ -238,11 +237,13 @@ windows displaying it"
   "Send some text to the zomp toplevel. If
   `create-if-not-existing' is 'create then the toplevel will be
   started if it is not running, yet"
-  (process-send-string (zomp-get-toplevel-buffer) "!prompt")
-  (process-send-string
-   (zomp-get-toplevel-buffer create-if-not-existing)
-   (concat code (or append "")))
-  (process-send-string (zomp-get-toplevel-buffer) "!prompt #"))
+  (if (not (or create-if-not-existing (zomp-get-toplevel-buffer)))
+      (message "Zomp shell is not running")
+    (process-send-string (zomp-get-toplevel-buffer create-if-not-existing) "!prompt")
+    (process-send-string
+     (zomp-get-toplevel-buffer create-if-not-existing)
+     (concat code (or append "")))
+    (process-send-string (zomp-get-toplevel-buffer) "!prompt #")))
 
 (defun zomp-tl-run (funcname)
   (interactive "MName of function: ")
@@ -257,13 +258,15 @@ windows displaying it"
 
 (defun zomp-tl-eval-region ()
   (interactive)
-  (message "Evaluating region")
+  (when (called-interactively-p)
+    (message "Evaluating region"))
   (zomp-request-execution-abort)
-  (zomp-tl-do (buffer-substring (region-beginning) (region-end)) 'create ""))
+  (zomp-tl-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
 (defun zomp-tl-eval-current ()
   (interactive)
-  (message "Evaluating function at point")
+  (when (called-interactively-p)
+    (message "Evaluating function at point"))
   (save-excursion
     (zomp-mark-current)
     (zomp-tl-eval-region))
@@ -294,7 +297,8 @@ windows displaying it"
 
 (defun zomp-tl-eval-buffer ()
   (interactive)
-  (message "Evaluating buffer")
+  (when (called-interactively-p)
+    (message "Evaluating buffer"))
   (zomp-tl-do (buffer-substring (buffer-end -1) (buffer-end 1)) 'create "")
   (zomp-tl-move-point-to-end))
 
@@ -304,7 +308,8 @@ windows displaying it"
 
 (defun zomp-tl-run-test ()
   (interactive)
-  (message "Running function test")
+  (when (called-interactively-p)
+    (message "Running function test"))
   (zomp-tl-move-point-to-end)
   (zomp-tl-do "!run test"))
 
@@ -334,8 +339,9 @@ Will cause the zompRequestedPause() function to return true. Any
 application honoring this will then return from main to allow the
 editor to trigger recompilations etc. and possibly resume main()"
   (interactive)
-  (with-current-buffer zomp-toplevel-buffer-name
-    (comint-interrupt-subjob)))
+  (when (zomp-get-toplevel-buffer)
+    (with-current-buffer zomp-toplevel-buffer-name
+      (comint-interrupt-subjob))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -887,7 +893,6 @@ editor to trigger recompilations etc. and possibly resume main()"
               (error nil))))
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
-    ;; (message "exprsym = %s, funcsym = %s, linesym = %s" exprsym funcsym linesym)
     (or exprsym funcsym linesym "nothing found")))
 
 (defun zomp-get-eldoc-string ()
