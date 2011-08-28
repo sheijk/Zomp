@@ -22,14 +22,15 @@ end
 
 unittest:testCase CallingSimpleFunctions:
   unittest:assertAll:
-    5 == get5
+    5 == get5()
     11 == incr 10
   end
 end
 
-/// Usually a method will return it's last expression if it is not a
-/// return. This means the last expression in a method must have the type the
-/// method returns. Methods returning void do not need this restriction, though
+// TODO
+// /// Usually a method will return it's last expression if it is not a
+// /// return. This means the last expression in a method must have the type the
+// /// method returns. Methods returning void do not need this restriction, though
 // func void lastExprOfVoidMethodCanBeAnything():
 //   10
 // end

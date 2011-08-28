@@ -67,11 +67,13 @@ end
 unittest:testCase SimpleFunctionPointer:
   var (fptr int int) pNext &add1
   var (fptr int int) pPrev &sub1
-  
+  var (fptr int int int) pAdd &add
+
   unittest:assertAll:
     pNext 3 == 4
     pPrev 3 == 2
     pNext(5) == pPrev(7)
+    pAdd 10 20 == 30
   end
 end
 
@@ -83,38 +85,19 @@ func int get5():
   ret 5
 end
 
-macro hasType vr typ:
-  uniqueId tmp "hasType"
-  ret ${seq:
-    #tmp := nullptr #typ
-    #tmp = &#vr
-  end}
+unittest:testCase RegressionFunctionPointerNoArgs:
+  var (fptr int) pGet3 &get3
+  var (fptr int) pGet5 &get5
+
+  unittest:assertAll:
+    get3() == 3
+    get5() == 5
+
+    pGet3() == 3
+    pGet5() == 5
+  end
 end
 
-// func void foo(int i):
-// end
-
-// unittest:testCase FunctionPointer2:
-//   var (fptr int) pGet3 &get3
-//   var (fptr int) pGet5 &get5
-// 
-//   // hasType pGet3 (fptr int)
-//   // hasType &get3 (fptr int)
-// 
-//   // foo get3
-//   // println get3()
-//   getThree := &get3
-//   foo (getThree*)()
-//   // foo getThree
-//   // println getThree()
-// 
-//   unittest:assertAll:
-//     get3 == 3
-//     // getThree == 3
-//     // pGet3() == 3
-//     // pGet5() == 5
-//   end
-// end
 
 // type IntFunc (fptr int)
 

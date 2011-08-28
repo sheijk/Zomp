@@ -174,7 +174,8 @@ struct
     | #Lang.form as form -> Lang.formToString form
     | `ToplevelForm tlform -> Lang.toplevelFormToString tlform
 
-  type exprTranslateF = bindings -> sexpr -> bindings * formWithTLsEmbedded list
+  type 'a someTranslateF = bindings -> sexpr -> bindings * 'a list
+  type exprTranslateF = formWithTLsEmbedded someTranslateF
 
   let rec extractToplevelForms = function
     | [] -> [], []
@@ -210,11 +211,27 @@ struct
         end
       | _ -> raiseIllegalExpression expr "unsupported value expression"
 
-  let expr2VarOrConst (bindings :bindings) = function
+  let expr2VarOrConst (bindings :bindings) =
+    let tryGetFunctionAddress name =
+      match lookup bindings name with
+        | FuncSymbol f ->
+            let name = f.fname in
+            let typ = `Function {
+              returnType = f.rettype;
+              argTypes = List.map snd f.Lang.fargs;
+            } in
+            let var = variable name (`Pointer typ) (defaultValue typ) RegisterStorage true in
+            Some (`Variable var)
+        | _ ->
+            None
+    in
+    function
     | { id = name; args = [] } -> begin
         match lookup bindings name with
           | VarSymbol v ->
               Some (`Variable v)
+          | FuncSymbol f ->
+              tryGetFunctionAddress name
           | _ ->
               match string2integralValue name with
                 | Some c -> Some (`Constant c)
@@ -222,17 +239,7 @@ struct
       end
     | { id = "preop&"; args = [{id = name; args = []}] } ->
         begin
-          match lookup bindings name with
-            | FuncSymbol f ->
-                let name = f.fname in
-                let typ = `Function {
-                  returnType = f.rettype;
-                  argTypes = List.map snd f.Lang.fargs;
-                } in
-                let var = variable name (`Pointer typ) (defaultValue typ) RegisterStorage true in
-                Some (`Variable var)
-            | _ ->
-                None
+          tryGetFunctionAddress name
         end
     | _ -> None
 
@@ -280,8 +287,7 @@ struct
 
   let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
 
-  type toplevelExprTranslateF = bindings -> sexpr -> bindings * toplevelExpr list
-
+  type toplevelExprTranslateF = toplevelExpr someTranslateF
 end
 
 open Translation_utils
@@ -303,75 +309,6 @@ struct
           end
       | None -> None
 
-
-  let translateFuncCall (translateF :exprTranslateF) (bindings :bindings) expr =
-    let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
-      let evalArg (argExpr :Ast2.sexpr) paramType =
-        let _, xforms = translateF bindings argExpr in
-        let toplevelForms, forms = extractToplevelForms xforms in
-        let argForm =
-          match paramType with
-            | Some t when isTypeParametric t ->
-            (* | Some ((`ParametricType _) as t) -> *)
-                printf "Parametric type param %s\n" (typeDescr (t :> typ));
-                `CastIntrinsic (t, toSingleForm forms)
-            | _ ->
-                toSingleForm forms
-        in
-        (** TODO add cast if the parameter is a parametric type *)
-        toplevelForms, argForm
-      in
-      let rec evalArgs argExprs paramTypes =
-        (match argExprs, paramTypes with
-          | argExpr :: remArgs, paramType :: remParams ->
-              evalArg argExpr (Some paramType) :: evalArgs remArgs remParams
-          | argExpr :: remArgs, [] ->
-              evalArg argExpr None :: evalArgs remArgs []
-          | [], []->
-              []
-          | [], _ ->
-              failwith "too many argument types in translateFuncCall")
-      in
-      let x = evalArgs args argTypes in
-      (* let x = List.map2 evalArg args argTypes in *)
-      let toplevelForms, argForms = flattenLeft x in
-      let funccall = `FuncCall {
-        fcname = name;
-        fcrettype = rettype;
-        fcparams = argTypes;
-        fcargs = argForms;
-        fcptr = isPointer;
-        fcvarargs = hasVarArgs
-      }
-      in
-      match typeCheck bindings funccall with
-        | TypeOf _ ->
-            Some( bindings, toplevelForms @ [funccall] )
-        | TypeError (fe,msg,f,e) ->
-            raiseIllegalExpression expr (typeErrorMessage bindings (fe,msg,f,e))
-    in
-    match expr with
-      | { id = name; args = args; } ->
-          match lookup bindings name with
-            | FuncSymbol func ->
-                begin
-                  buildCall name func.rettype (List.map snd func.fargs) `NoFuncPtr func.cvarargs bindings args
-                end
-            | VarSymbol var ->
-                begin
-                  match var.typ with
-                    | `Pointer `Function ft ->
-                        begin
-                          buildCall name ft.returnType ft.argTypes `FuncPtr false bindings args
-                        end
-                    | _ ->
-                        raiseIllegalExpression
-                          expr
-                          (sprintf "Trying to call variable '%s' as a function but has type %s"
-                             var.vname
-                             (typeName var.typ))
-                end
-            | _ -> None
 
   let translateTypedef translateF (bindings :bindings) =
     let translateRecordTypedef bindings typeName componentExprs expr =
@@ -537,6 +474,15 @@ struct
     | _ ->
         None
 
+  (** Support legacy macros which generate ASTs calling functions without using
+   * opcall/opjux *)
+  let translateRestrictedFunCall (translateF :exprTranslateF) (bindings :bindings) expr =
+    match lookup bindings expr.id with
+      | FuncSymbol _ when List.length expr.args >= 1 ->
+          Some( translateF bindings
+                  { expr with id = macroFunCall; args = idExpr expr.id :: expr.args } )
+      | _ ->
+          None
 end
 
 let astType = `Record {
@@ -772,8 +718,9 @@ type 'translateF env = {
 type toplevelEnv = Translation_utils.toplevelExprTranslateF env
 let tlReturnNoExprs env = Result (env.bindings, [])
 
-type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
-type toplevelTranslationResult = (bindings * (toplevelExpr list)) mayfail
+type 'a translationResultV = (bindings * ('a list)) mayfail
+type translationResult = formWithTLsEmbedded translationResultV
+type toplevelTranslationResult = toplevelExpr translationResultV
 
 let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
   let f = {
@@ -985,6 +932,7 @@ end
 module type Zomp_transformer =
 sig
   val register : (string -> (exprTranslateF env -> Ast2.t -> translationResult) -> unit) -> unit
+  val registerTL : (string -> (toplevelExprTranslateF env -> Ast2.t -> toplevelTranslationResult) -> unit) -> unit
 end
 
 module Base : Zomp_transformer =
@@ -1436,8 +1384,102 @@ struct
             errorFromExpr expr "Expected var2 nameId valueExpr"
           else
             errorFromExpr expr
-              (sprintf "Internal compiler error, invoked handler for '%s' but can only handle %s and %s"
+              (sprintf "%s, invoked handler for '%s' but can only handle %s and %s"
+                 "Internal compiler error"
                  expr.id macroVar macroVar2)
+
+  let translateFuncCall (env : 'a env)  expr :translationResult =
+    let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
+      let evalArg (argExpr :Ast2.sexpr) paramType =
+        let _, xforms = env.translateF bindings argExpr in
+        let toplevelForms, forms = extractToplevelForms xforms in
+        let argForm =
+          match paramType with
+            | Some t when isTypeParametric t ->
+                (* | Some ((`ParametricType _) as t) -> *)
+                printf "Parametric type param %s\n" (typeDescr (t :> typ));
+                `CastIntrinsic (t, toSingleForm forms)
+            | _ ->
+                toSingleForm forms
+        in
+        (** TODO add cast if the parameter is a parametric type *)
+        toplevelForms, argForm
+      in
+      let rec evalArgs argExprs paramTypes =
+        (match argExprs, paramTypes with
+           | argExpr :: remArgs, paramType :: remParams ->
+               evalArg argExpr (Some paramType) :: evalArgs remArgs remParams
+           | argExpr :: remArgs, [] ->
+               evalArg argExpr None :: evalArgs remArgs []
+           | [], []->
+               []
+           | [], _ ->
+               failwith "too many argument types in translateFuncCall")
+      in
+      let x = evalArgs args argTypes in
+      let toplevelForms, argForms = flattenLeft x in
+      let funccall = `FuncCall {
+        fcname = name;
+        fcrettype = rettype;
+        fcparams = argTypes;
+        fcargs = argForms;
+        fcptr = isPointer;
+        fcvarargs = hasVarArgs
+      }
+      in
+      match typeCheck bindings funccall with
+        | TypeOf _ ->
+            Result( bindings, toplevelForms @ [funccall] )
+        | TypeError (fe,msg,f,e) ->
+            errorFromExpr expr (typeErrorMessage bindings (fe,msg,f,e))
+    in
+    match expr with
+      | { id = funcall; args = { id = name; args = [] } :: args } when funcall = macroFunCall ->
+          begin
+            match lookup env.bindings name with
+              | FuncSymbol func ->
+                  begin
+                    buildCall name func.rettype
+                        (List.map snd func.fargs)
+                        `NoFuncPtr
+                        func.cvarargs
+                        env.bindings
+                        args
+                  end
+              | VarSymbol var ->
+                  begin
+                    match var.typ with
+                      | `Pointer `Function ft ->
+                          begin
+                            buildCall name ft.returnType ft.argTypes
+                              `FuncPtr false env.bindings args
+                          end
+                      | _ ->
+                          errorFromExpr
+                            expr
+                            (sprintf "Trying to call variable '%s' as a function but has type %s"
+                               var.vname
+                               (typeName var.typ))
+                  end
+              | _ ->
+                  errorFromExpr expr (sprintf "%s is neither a function nor a macro" name)
+          end
+      | _ ->
+          errorFromExpr expr "Unrecognized AST shape"
+              
+  let translateApply (env :('a someTranslateF) env) expr :'a translationResultV =
+    match expr with
+      | { args = firstArg :: remArgs } -> begin
+          match lookup env.bindings firstArg.id with
+            | FuncSymbol _
+            | VarSymbol { typ = `Pointer `Function _ } ->
+                Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+            | _ ->
+                let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
+                Result r
+        end
+      | { args = [] } ->
+          errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
 
   let register addF =
     addF "std:base:localVar" translateDefineLocalVar;
@@ -1457,6 +1499,11 @@ struct
     addF macroNullptr translateNullptr;
     addF macroVar translateDefineVar;
     addF macroVar2 translateDefineVar;
+    addF macroFunCall translateFuncCall;
+    addF macroApply translateApply
+
+  let registerTL addF =
+    addF macroApply translateApply
 end
 
 module Compiler_environment : Zomp_transformer =
@@ -1471,8 +1518,9 @@ struct
       
   let register addF =
     addF "std:env:file" translateFileName;
-    addF "std:env:line" translateLineNumber;
+    addF "std:env:line" translateLineNumber
     
+  let registerTL addF = ()
 end
 
 module Array : Zomp_transformer =
@@ -1530,6 +1578,7 @@ struct
     addF "zmp:array:size" arraySize;
     addF "zmp:array:addr" arrayAddr
 
+  let registerTL addF = ()
 end
 
 module Overloaded_ops : Zomp_transformer =
@@ -1663,7 +1712,9 @@ struct
     List.iter addFun
       ["print"; "write";
        "toInt"; "toFloat"; "toDouble"; "toBool"; "toChar"; "toCString";
-       "neg"; "not"];
+       "neg"; "not"]
+
+  let registerTL addF = ()
 end
 
 let baseInstructions =
@@ -1725,8 +1776,8 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
     translateFromDict baseInstructions;
+    Translators_deprecated_style.translateRestrictedFunCall;
     Translators_deprecated_style.translateSimpleExpr;
-    Translators_deprecated_style.translateFuncCall;
     Old_macro_support.translateMacro;
     Old_macro_support.translateDefineMacro translateNested;
     Translators_deprecated_style.translateRecord;
@@ -1826,6 +1877,7 @@ let toplevelBaseInstructions =
   (* Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested); *)
   Hashtbl.add table "macro" (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested));
   (* Hashtbl.add table "seq" translateSeqTL; *)
+  Base.registerTL (Hashtbl.add table);
   table
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function

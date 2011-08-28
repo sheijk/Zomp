@@ -480,11 +480,11 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
 
     let opjuxMacro =
       macro "opjux" "opjux id args..."
-        (fun bindings expr -> Ast2.shiftLeft expr.args)
+        (fun bindings expr -> { expr with id = Lang.macroApply })
     in
     let opcallMacro =
       macro "opcall" "opcall id args..."
-        (fun bindings expr -> Ast2.shiftLeft expr.args)
+        (fun bindings expr -> { expr with id = Lang.macroApply })
     in
     let opseqMacro =
       macro "opseq" "opseq args..."
