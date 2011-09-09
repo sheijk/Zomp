@@ -501,41 +501,17 @@ let () =
            flush stdout;
          in
 
-         try
-           let newBindings, time = recordTiming
-             (fun () ->
-                let newBindings, simpleforms, llvmCode =
-                  Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
-                in
-                onSuccess newBindings simpleforms llvmCode;
-                newBindings)
-           in
-           if (time > !notifyTimeThreshold) then
-             printf "Compiling expression took %fs\n" time;
-           step newBindings ()
-
-         with originalException ->
-           printf "Running immediately\n";
-
-           let immediateFuncName = "toplevel:immediate" in
-
-           let exprInFunc =
-             Ast2.expr "func" [
-               idExpr "void";
-               idExpr immediateFuncName;
-               seqExpr [];
-               seqExpr [expr]
-             ]
-           in
-           try
-             let newBindings, simpleforms, llvmCode =
-               Compileutils.compileExpr Compileutils.translateTLNoError bindings exprInFunc
-             in
-             onSuccess newBindings simpleforms llvmCode;
-             runFunction newBindings immediateFuncName;
-             step newBindings ()
-           with _ ->
-             raise originalException
+         let newBindings, time = recordTiming
+           (fun () ->
+              let newBindings, simpleforms, llvmCode =
+                Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
+              in
+              onSuccess newBindings simpleforms llvmCode;
+              newBindings)
+         in
+         if (time > !notifyTimeThreshold) then
+           printf "Compiling expression took %fs\n" time;
+         step newBindings ()
        end)
       ~onError: (fun msg ->
                    printf "%s" msg;
