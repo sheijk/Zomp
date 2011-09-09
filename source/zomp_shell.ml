@@ -16,6 +16,7 @@ and printAst = ref false
 and printDeclarations = ref true
 and llvmEvaluationOn = ref true
 and printForms = ref false
+and showStatsAtExit = ref true
 
 module StringMap = Map.Make(String)
 
@@ -62,6 +63,7 @@ let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 let togglePrintForms = makeToggleCommand printForms "Print translated forms"
+let toggleShowStatsAtExit = makeToggleCommand showStatsAtExit "Show stats at exit"
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -314,6 +316,7 @@ let commands =
     "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
     "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
     "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
+    "showStatsAtExit", [], toggleShowStatsAtExit, "Show stats at exit";
     "syntax", [], toggleParseFunc, "Choose a syntax";
     "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
     "version", [], printVersionInfo, "Print version/build info";
@@ -460,10 +463,11 @@ let parse str =
 
 let () =
   at_exit (fun () ->
-             Profiling.printTimings();
-             Indentlexer.printStats();
-             flush stdout;
-             Zompvm.zompPrintStats());
+             if !showStatsAtExit then (
+               Profiling.printTimings();
+               Indentlexer.printStats();
+               flush stdout;
+               Zompvm.zompPrintStats()));
   Zompvm.zompVerifyCode false;
   let rec step bindings () =
     Compileutils.catchingErrorsDo
