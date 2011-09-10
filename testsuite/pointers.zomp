@@ -99,51 +99,65 @@ unittest:testCase RegressionFunctionPointerNoArgs:
 end
 
 
-// type IntFunc (fptr int)
+type IntFunc (fptr int)
 
 // unittest:testCase functionPointerArray:
-//   var IntFunc[2] funcs
-//   funcs[0] = &get3
-//   funcs[1] = &get5
+//   // var IntFunc[2] funcs
+//   // funcs[0] = &get3
+//   // funcs[1] = &get5
 // 
 //   unittest:assertAll:
-//     (funcs[0])() == 3
-//     (funcs[1])() == 5
+//     // (funcs[0])() == 3
+//     // (funcs[1])() == 5
 //   end
 // end
 
-// struct MyVTable:
-//   (fptr void int) setId
-//   (fptr int) getId
-// end
-// 
-// var int vtableId 0
-// 
-// func void vtable_setId(int i):
-//   vtableId = i
-// end
-// 
-// func int vtable_getId():
-//   ret vtableId
-// end
-// 
-// unittest:testCase VTable:
-//   vtable := malloc MyVTable
-//   vtable.setId = &vtable_setId
-//   vtable.getId = &vtable_getId
-// 
-//   vtable.setId 10
-//   f := vtable.getId
-//   f2 := f()
-//   printString vtable_getId
-//   // unittest:assert( f2() == 10 )
-//   // unittest:assert( vtable.getId() == 10 )
-//   
-//   // vtable.setId(20)
-//   // unittest:assert( vtable.getId() == 20 )
-// 
-//   dealloc vtable
-// end
+struct MyVTable:
+  (fptr void int) setId
+  (fptr int) getId
+end
+
+var int vtableId 0
+
+func void vtable_setId(int i):
+  println "vtable_setId(" i "), was " vtableId
+  vtableId = i
+end
+
+func int vtable_getId():
+  ret vtableId
+end
+
+func void changeId(MyVTable* vt, int i):
+  println "changeId(_, " i ")"
+  f := vt.setId
+  f(i)
+end
+
+func void printId():
+  println "vtableId = " vtableId
+end
+
+unittest:testCase VTable:
+  vtable := malloc MyVTable
+  vtable.setId = &vtable_setId
+  vtable.getId = &vtable_getId
+
+  set := vtable.setId
+  get := vtable.getId
+
+  set( 10 )
+  uassert( get() == 10 )
+
+  // vtable.setId 11
+  // uassert( get() == 11 )
+  // uassert( vtable.getId() == 11 )
+  
+  // vtable.setId( 12 )
+  // uassert( vtable.getId() == 12 )
+  
+  dealloc vtable
+end
 
 unittest:main
 

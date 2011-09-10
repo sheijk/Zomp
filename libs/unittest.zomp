@@ -71,6 +71,8 @@ macro unittest:assert testCode:
   ret ${}
 end
 
+alias uassert unittest:assert testCode
+
 func int unittest:printReport():
   if (unittest:failedCount > 0):
     println unittest:failedCount " tests failed"

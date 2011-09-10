@@ -997,17 +997,17 @@ let gencodeGlobalVar var =
         in
         stringStorageSrc ^ stringPointerSrc
     | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | CharVal _ ->
-        sprintf "@%s = constant %s %s\n"
+        sprintf "@%s = global %s %s\n"
           varname
           (llvmTypeName var.typ)
           (Lang.valueString var.vdefault)
     | FloatVal f | DoubleVal f ->
-        sprintf "@%s = constant %s %s\n"
+        sprintf "@%s = global %s %s\n"
           varname
           (llvmTypeName var.typ)
           (Machine.float2string f)
     | NullpointerVal _ ->
-        sprintf "@%s = constant %s null\n"
+        sprintf "@%s = global %s null\n"
           varname
           (llvmTypeName var.typ)
     | VoidVal ->
