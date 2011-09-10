@@ -7,8 +7,10 @@ exception IllegalExpression of Ast2.sexpr * string
 
 type 'a mayfail = private Result of 'a | Error of string list
 val errorFromString : string -> 'a mayfail
+val result : 'a -> 'a mayfail
 
 type toplevelEnv
+val envBindings : toplevelEnv -> Bindings.t
 
 type toplevelTranslationResult =
     (Bindings.t * Lang.toplevelExpr list) mayfail

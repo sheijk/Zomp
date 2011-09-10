@@ -715,6 +715,8 @@ type 'translateF env = {
   parseF :string -> Ast2.t list option;
 }
 
+let envBindings env = env.bindings
+
 type toplevelEnv = Translation_utils.toplevelExprTranslateF env
 let tlReturnNoExprs env = Result (env.bindings, [])
 

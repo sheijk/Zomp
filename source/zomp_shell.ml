@@ -154,7 +154,6 @@ let runFunction bindings funcname =
           match func.rettype with
             | `Void ->
                 Machine.zompRunFunction funcname;
-                printf " => void\n";
             | `Int32 ->
                 let retval = Machine.zompRunFunctionInt funcname in
                 printf " => %d\n" retval
@@ -461,6 +460,60 @@ let parse str =
   in
   Zompvm.NativeAst.buildNativeAst expr
 
+let onSuccess bindings newBindings simpleforms llvmCode =
+  if !printLLVMCode then begin
+    printf "LLVM code:\n%s\n" llvmCode;
+    flush stdout;
+  end;
+
+  if !llvmEvaluationOn then
+    Zompvm.evalLLVMCode bindings simpleforms llvmCode;
+
+  if !printDeclarations then begin
+    List.iter (fun form ->
+                 let text = Lang.toplevelFormDeclToString form in
+                 printf "%s\n" text)
+      simpleforms;
+  end;
+
+  if !printForms then begin
+    List.iter (fun form -> printf "%s\n" (toplevelFormToString form)) simpleforms;
+  end;
+  flush stdout
+
+let translateRun env expr =
+  let immediateFuncName = "toplevel:immediate" in
+
+  match expr with
+    | { args = [code] } -> begin
+        let exprInFunc =
+          Ast2.expr "func" [
+            idExpr "void";
+            callExpr [
+              idExpr immediateFuncName;
+            ];
+            opseqExpr [
+              code;
+              Ast2.expr macroReturn [callExpr [idExpr "void"]]]
+          ]
+        in
+        try
+          let newBindings, simpleforms, llvmCode =
+            Compileutils.compileExpr
+              Compileutils.translateTLNoError
+              (Expander.envBindings env)
+              exprInFunc
+          in
+          onSuccess (Expander.envBindings env) newBindings simpleforms llvmCode;
+          runFunction newBindings immediateFuncName;
+          Expander.result (newBindings, [])
+        with
+          | exn ->
+              Expander.errorFromString (Printexc.to_string exn)
+      end
+    | _ ->
+        Expander.errorFromString (sprintf "Expected %s expr" expr.id)
+
 let () =
   at_exit (fun () ->
              if !showStatsAtExit then (
@@ -479,34 +532,12 @@ let () =
            printf " => %s\n" asString;
          end;
 
-         let onSuccess newBindings simpleforms llvmCode =
-           if !printLLVMCode then begin
-             printf "LLVM code:\n%s\n" llvmCode;
-             flush stdout;
-           end;
-
-           if !llvmEvaluationOn then
-             Zompvm.evalLLVMCode bindings simpleforms llvmCode;
-
-           if !printDeclarations then begin
-             List.iter (fun form ->
-                          let text = Lang.toplevelFormDeclToString form in
-                          printf "%s\n" text)
-               simpleforms;
-           end;
-
-           if !printForms then begin
-             List.iter (fun form -> printf "%s\n" (toplevelFormToString form)) simpleforms;
-           end;
-           flush stdout;
-         in
-
          let newBindings, time = recordTiming
            (fun () ->
               let newBindings, simpleforms, llvmCode =
                 Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
               in
-              onSuccess newBindings simpleforms llvmCode;
+              onSuccess bindings newBindings simpleforms llvmCode;
               newBindings)
          in
          if (time > !notifyTimeThreshold) then
@@ -571,6 +602,7 @@ let () =
   in
   let addToplevelInstr = Expander.addToplevelInstruction in
   addToplevelInstr "include" translateInclude;
+  addToplevelInstr "std:base:run" translateRun;
   addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
   addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
 
