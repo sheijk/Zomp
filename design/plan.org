@@ -1863,6 +1863,8 @@ http://www.iquilezles.org/blog/?p=1468
    end
 
    should not parse
+** TODO [#A] postfixes for numbers
+   then allow 10m, 512K etc.
 * Use Cases                                                            :usecase:
 
 ** .obj Loader [0/2]
