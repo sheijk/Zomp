@@ -36,7 +36,7 @@ testsuite/fail: fail.test crash.test
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/all
 
 testsuite/clean: testsuite/error_reporting/clean
-	cd testsuite && rm -f *.bc *.o.bc *.ll *.test gmon.out
+	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.exe *.test gmon.out
 
 ################################################################################
 # Additional dependencies
@@ -49,7 +49,7 @@ testsuite/astmatch.ll: libs/libcee.zomp
 # Rules
 ################################################################################
 
-.PRECIOUS: testsuite/%.ll
+.PRECIOUS: testsuite/%.ll testsuite/%.s
 .PHONY: testsuite/all
 
 # Tests whether the prelude alone can be compiled. Is a dependency for all other
@@ -74,14 +74,25 @@ testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevali
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
-testsuite/%.bc: testsuite/%.ll prelude.zomp source/runtime.c
+testsuite/%.bc: testsuite/%.ll prelude.zomp source/runtime.c testsuite/makefile
 	@echo Compiling $< to $@
-	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	$(LLVM_LINK) -f source/runtime.bc $(<:.ll=.o.bc) -o $@
+	$(LLVM_AS) -f $< -o $@
 
-testsuite/%.test: testsuite/%.bc
+testsuite/%.s: testsuite/%.bc
+	@$(ECHO) Generating $(@) ...
+	$(LLVM_LLC) -o $@ $< -march=x86
+
+testsuite/%.o: testsuite/%.s
+	@$(ECHO) Assembling $@ ...
+	$(AS) -o $@ $< -arch i386
+
+testsuite/%.exe: testsuite/%.o
+	@$(ECHO) Making $@ ...
+	$(CC) $(CFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
+
+testsuite/%.test: testsuite/%.exe
 	@$(ECHO) Running test $(<:.bc=) ...
-	$(LLVM_LLI) $<
+	./$(@:.test=.exe)
 	touch $@
 
 # see also examples/makefile
