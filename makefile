@@ -38,6 +38,7 @@ include flymake.mk
 
 -include depends.mk
 include testsuite/makefile
+include libs/makefile
 include examples/makefile
 include examples/smallpt/makefile
 
@@ -136,14 +137,6 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 .PHONY: profile_comp exampletests runmltests alltests
 
 test: runmltests libs/test examples/test testsuite/test
-
-ZOMP_LIBS_SRC = $(wildcard libs/*.zomp)
-
-libs/test: all $(ZOMP_LIBS_SRC:.zomp=.ll)
-
-libs/%.ll: libs/%.zomp
-	$(ECHO) Compiling $(<) to .ll...
-	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
 
 mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	@$(ECHO) Building $@ ...
@@ -387,7 +380,7 @@ git_repo_stats:
 
 .PHONY: clean clean_tags clean_all
 
-clean: testsuite/clean examples/clean
+clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
