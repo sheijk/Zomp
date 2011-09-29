@@ -1,9 +1,8 @@
+/**
+ * Library of utilities for OpenGL to safely clean up, draw simple shapes etc.
+ */
 
-require "libs/libcee.zomp"
-require "libs/opengl20.zomp"
-require "libs/opengl20print.zomp"
-require "libs/glfw.zomp"
-require "libs/glut.zomp"
+requireLibs libcee opengl20 opengl20print glfw glut
 
 func void glfwSetWindowTitle(cstring title)
 func cstring gluErrorString(GLenum error)
@@ -75,7 +74,7 @@ func GLuint createShader(cstring varyingParams, cstring vertexSource, cstring fr
     end
   end
 
-  var GLuint program (glCreateProgram)
+  var GLuint program glCreateProgram()
 
   var cstring vertexSource_ (cstring:concat varyingParams "\n" vertexSource)
   var cstring fragmentSource_ (cstring:concat varyingParams "\n" fragmentSource)
@@ -141,7 +140,7 @@ end
 template rendergl primitiveType code...:
   glBegin #primitiveType
   #code
-  glEnd
+  glEnd()
 end
 
 template saveTransforms code...:
@@ -163,13 +162,13 @@ end
 template saveAttribs code...:
   glPushAttrib GL_ALL_ATTRIB_BITS
   #code
-  glPopAttrib
+  glPopAttrib()
 end
 
 template withShader shader code:
-  glUseProgram #shader
+  glUseProgram(#shader)
   #code
-  glUseProgram 0
+  glUseProgram(0)
 end
 
 func void renderStripes(float count, float size, float alpha):
@@ -219,64 +218,56 @@ func void drawPausedOverlay():
 end
 
 func void renderQuad(float size):
-  var float nsize (float:sub 0. size)
-
   rendergl GL_QUADS:
     glTexCoord2f 0. 0.
-    glVertex3f nsize nsize 0.
+    glVertex3f -size -size 0.
     glTexCoord2f 0. 1.
-    glVertex3f nsize size 0.
+    glVertex3f -size size 0.
     glTexCoord2f 1. 1.
     glVertex3f size size 0.
     glTexCoord2f 1. 0.
-    glVertex3f size nsize 0.
+    glVertex3f size -size 0.
   end
 end
 
 /// render a quad (lines only) from (-size,-size) to (size, size)
 func void renderQuadOutline(float size):
-  var float nsize (float:sub 0. size)
-
   rendergl GL_LINE_LOOP:
     glTexCoord2f 0. 0.
-    glVertex3f nsize nsize 0.
+    glVertex3f -size -size 0.
     glTexCoord2f 0. 1.
-    glVertex3f nsize size 0.
+    glVertex3f -size size 0.
     glTexCoord2f 1. 1.
     glVertex3f size size 0.
     glTexCoord2f 1. 0.
-    glVertex3f size nsize 0.
+    glVertex3f size -size 0.
   end
 end
 
 /// render a quad (lines only) from (0,0) to (size, size)
 func void renderQuadOutline01(float size):
-  var float nsize 0.0
-
   rendergl GL_LINE_LOOP:
     glTexCoord2f 0. 0.
-    glVertex3f nsize nsize 0.
+    glVertex3f -size -size 0.
     glTexCoord2f 0. 1.
-    glVertex3f nsize size 0.
+    glVertex3f -size size 0.
     glTexCoord2f 1. 1.
     glVertex3f size size 0.
     glTexCoord2f 1. 0.
-    glVertex3f size nsize 0.
+    glVertex3f size -size 0.
   end
 end
 
 func void renderXZQuad(float size):
-  var float nsize (float:sub 0. size)
-
   rendergl GL_QUADS:
     glTexCoord2f 0. 0.
-    glVertex3f nsize 0. nsize
+    glVertex3f -size 0. -size
     glTexCoord2f 0. 1.
-    glVertex3f nsize 0. size
+    glVertex3f -size 0. size
     glTexCoord2f 1. 1.
     glVertex3f size 0. size
     glTexCoord2f 1. 0.
-    glVertex3f size 0. nsize
+    glVertex3f size 0. -size
   end
 end
 
@@ -403,17 +394,15 @@ macro ffor index min max step code:
 end
 
 func void drawOrientationGridXZ(float size):
-  nsize := float:neg size
-
   rendergl GL_LINES:
     glColor3f 0. 1. 0.
-    ffor x nsize size 1.0:
-      glVertex3f x 0. nsize
+    ffor x -size size 1.0:
+      glVertex3f x 0. -size
       glVertex3f x 0. size
     end
 
-    ffor z nsize size 1.0:
-      glVertex3f nsize 0. z
+    ffor z -size size 1.0:
+      glVertex3f -size 0. z
       glVertex3f size 0. z
     end
   end
@@ -551,7 +540,7 @@ func void Framebuffer:delete(Framebuffer* this):
 end
 
 func void Framebuffer:attachColorTexture(Framebuffer* fbo):
-  var GLuint texture (makeTexture)
+  var GLuint texture makeTexture()
   glBindTexture2D texture
   template texParam param value:
     glTexParameteri GL_TEXTURE_2D #param #value
