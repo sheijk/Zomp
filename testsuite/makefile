@@ -20,7 +20,7 @@ testframework.zomp math.zomp stackoverflow.zomp
 TESTSUITE_CASES = $(foreach FILE, $(TESTSUITE_SOURCES), testsuite/$(FILE:.zomp=.test))
 
 testsuite/success: $(TESTSUITE_CASES)
-testsuite/all: testsuite/success testsuite/error_reporting/all
+testsuite/test: testsuite/success testsuite/error_reporting/all
 testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_reporting/all
 
 # # experimental, results are incorrect because failed executions and compilations

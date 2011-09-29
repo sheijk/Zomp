@@ -47,7 +47,6 @@ LLVM_CC = $(LLVM_GCC_BIN_DIR)/llvm-gcc
 LLVM_CXX = $(LLVM_GCC_BIN_DIR)/llvm-g++
 LLVM_DIS = $(LLVM_BIN_DIR)/llvm-dis
 LLVM_AS = $(LLVM_BIN_DIR)/llvm-as
-LLVM_LINK = $(LLVM_BIN_DIR)/llvm-link
 LLVM_LLI = $(LLVM_BIN_DIR)/lli
 LLVM_LD = $(LLVM_BIN_DIR)/llvm-ld
 LLVM_LLVMC = $(LLVM_BIN_DIR)/llvmc

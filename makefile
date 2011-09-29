@@ -135,7 +135,15 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests
 .PHONY: profile_comp exampletests runmltests alltests
 
-alltests: runmltests runtestsuite exampletests
+test: runmltests libs/test examples/test testsuite/test
+
+ZOMP_LIBS_SRC = $(wildcard libs/*.zomp)
+
+libs/test: all $(ZOMP_LIBS_SRC:.zomp=.ll)
+
+libs/%.ll: libs/%.zomp
+	$(ECHO) Compiling $(<) to .ll...
+	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
 
 mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	@$(ECHO) Building $@ ...
@@ -144,10 +152,6 @@ mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 runmltests: mltest
 	@$(ECHO) Running all tests ...
 	$(OCAMLRUN) -b ./mltest
-
-exampletests:
-	@$(ECHO) Compiling examples ...
-	cd examples && make clean && make test
 
 PROF_COMP_TARGET=metaballs
 
@@ -158,8 +162,6 @@ profile_comp: zompc zompc.native source/runtime.bc libs/opengl20.zomp libs/glfw.
 runtests: $(LANG_CMOS)
 	@$(ECHO) Running tests ...
 	cd tests && time make clean_tests check
-
-runtestsuite: all testsuite/all
 
 # FUNCTION_COUNTS=10 1000
 PERFTEST_GEN=
