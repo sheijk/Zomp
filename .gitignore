@@ -120,3 +120,4 @@ alltests
 data
 tools
 /testsuite/*.s
+/buildlog.txt
