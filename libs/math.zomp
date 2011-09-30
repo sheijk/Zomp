@@ -4,7 +4,7 @@
 !verify off
  */
 
-require "libs/libcee.zomp"
+requireLibs libcee
 
 ///-----------------------------------------------------------------------------
 /// Section: Constants
