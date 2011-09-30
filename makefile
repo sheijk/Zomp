@@ -394,7 +394,8 @@ clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
-	$(RM) -f source/dllzompvm.so dllzompvm.so source/libzompvm.a source/zompvm.o
+	$(RM) -f source/dllzompvm.so dllzompvm.so source/libzompvm.a
+	$(RM) -f source/zompvm.o source/zompvm_dummy.o
 	$(RM) -f testdll.o dlltest.dylib
 	$(RM) -f *_flymake.*
 	$(RM) -f source/*.cmx *.native

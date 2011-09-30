@@ -7,6 +7,7 @@
 /assimp_quicklook
 /bk/*
 /build
+/buildlog.txt
 /depends.mk
 /deps.dot
 /deps.png
@@ -104,6 +105,8 @@
 /tests/timing.txt
 /tests/timing_iexpr.txt
 /tests/timing_sexpr.txt
+/testsuite/*.exe
+/testsuite/*.s
 /testsuite/check_test_verify/*.testreport
 /testsuite/error_reporting/*.output
 /testsuite/error_reporting/*.test2
@@ -111,7 +114,6 @@
 /testsuite/error_reporting/*.tmp
 /testsuite/error_reporting/*.zompc-log
 /testsuite/preludevalid
-/testsuite/preludevalid.zomp
 /zomp_shell
 /zomp_shell.native
 /zompc
@@ -119,5 +121,3 @@
 alltests
 data
 tools
-/testsuite/*.s
-/buildlog.txt

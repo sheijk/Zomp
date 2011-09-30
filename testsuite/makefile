@@ -33,7 +33,7 @@ testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_r
 
 testsuite/fail: fail.test crash.test
 
-.PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/all
+.PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/test
 
 testsuite/clean: testsuite/error_reporting/clean
 	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.exe *.test gmon.out
@@ -50,27 +50,8 @@ testsuite/astmatch.ll: libs/libcee.zomp
 ################################################################################
 
 .PRECIOUS: testsuite/%.ll testsuite/%.s
-.PHONY: testsuite/all
 
-# Tests whether the prelude alone can be compiled. Is a dependency for all other
-# tests to avoid having all tests run and fail because the prelude/compiler is
-# completely broken
-testsuite/preludevalid: $(ZOMPC) prelude.zomp source/runtime.c
-ifeq "$(TESTSUITE_NO_PRELUDE)" ""
-	@$(ECHO) Checking whether prelude compiles ...
-	@rm -f testsuite/$@.zomp testsuite/$@.ll testsuite/$@.o.bc testsuite/$@.bc testsuite/$@
-	@echo "std:base:func int main():\n  std:base:ret 0\nend\n" > testsuite/preludevalid.zomp
-	$(ZOMPC) -c testsuite/preludevalid.zomp
-	$(LLVM_AS) -f testsuite/preludevalid.ll -o testsuite/preludevalid.o.bc
-	$(LLVM_LINK) -f source/runtime.bc testsuite/preludevalid.o.bc -o testsuite/preludevalid.bc
-	$(LLVM_LLI) testsuite/preludevalid.bc
-	touch $@
-else
-	@$(ECHO) Ignoring whether prelude compiles ...
-	@$(ECHO) "Checking of prelude validity disabled by TESTSUITE_NO_PRELUDE" > $@
-endif
-
-testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp testsuite/preludevalid $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
+testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
@@ -90,7 +71,13 @@ testsuite/%.exe: testsuite/%.o
 	@$(ECHO) Making $@ ...
 	$(CC) $(CFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
 
-testsuite/%.test: testsuite/%.exe
+testsuite/%.test: testsuite/%.exe testsuite/preludevalid.test
+	@$(ECHO) Running test $(<:.bc=) ...
+	./$(@:.test=.exe)
+	touch $@
+
+# the same w/o dependency on itself
+testsuite/preludevalid.test: testsuite/preludevalid.exe
 	@$(ECHO) Running test $(<:.bc=) ...
 	./$(@:.test=.exe)
 	touch $@

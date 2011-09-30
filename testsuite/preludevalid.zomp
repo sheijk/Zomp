@@ -1,0 +1,8 @@
+/**
+ * Trivial program to test whether the prelude compiles
+ */
+
+std:base:func int main():
+  std:base:ret 0
+end
+
