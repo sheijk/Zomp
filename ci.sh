@@ -33,6 +33,11 @@ function run_action {
     fi
 }
 
+# find_all_files(output_file_name)
+function find_all_files {
+    find . \( -iname .git -prune -or -true \) > $1
+}
+
 echo "Starting build and test run"
 
 TARGET_DIR_REL=ci_run_`date '+%Y-%m-%d_%H_%M_%S'`
@@ -52,6 +57,14 @@ mkdir -p tools
 ln -s ${EXTERNAL_TOOLS_DIR}/llvm-2.9 tools/llvm-2.9
 ln -s ${EXTERNAL_TOOLS_DIR}/llvm-gcc tools/llvm-gcc
 
+run_action "find_initial_files" find_all_files ../files_after_clone.txt
+
 run_action "make_all" make ${FLAGS} all
-run_action "make_test" make ${FLAGS} test
+# run_action "make_test" make ${FLAGS} test
+
+run_action "make_clean" make ${FLAGS} clean_all
+run_action "find_files_after_clean" find_all_files ../files_after_clean.txt
+
+echo "" > .gitignore
+run_action "check_make_clean" diff ../files_after_clone.txt ../files_after_clean.txt > ../file_diff.txt
 
