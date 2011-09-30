@@ -411,7 +411,7 @@ clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	$(RM) -f source/*.cmx *.native
 	$(RM) -f deps.png deps.dot
 	$(RM) -f depends.mk
-	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp
+	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp libs/glut.zomp
 	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
 	$(RM) -f source/indentlexer.cm? source/newparser.cm? source/newparser.o source/indentlexer.o source/newparser.ml source/newparser.mli source/newparser.conflicts
 	$(RM) -f source/newparser_tests.cmi source/newparser_tests.cmo source/newparser_tests source/newparser_tests.o
@@ -420,6 +420,8 @@ clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
 	$(RM) -f libs/libutils.dylib
+	$(RM) -f has_llvm has_llvm_gcc
+	$(RM) -f gmon.out
 
 clean_tags:
 	$(RM) -f source/*.annot
