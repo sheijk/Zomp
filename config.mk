@@ -71,6 +71,7 @@ LINE_COUNT = wc -l
 SORT = sort
 LS = ls
 WHICH = which
+TOUCH = touch
 
 # image magick
 CONVERT_IMAGE = convert

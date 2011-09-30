@@ -182,13 +182,14 @@ source/runtime.bc source/runtime.ll: source/runtime.c has_llvm_gcc has_llvm
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
 # Check for required tools being installed
-.PHONY: has_llvm_gcc has_llvm
 has_llvm_gcc:
 	@$(ECHO) Checking if llvm gcc exists ...
 	$(WHICH) $(LLVM_CXX) > /dev/null || (echo "Please install tools/llvm-gcc"; exit 1)
+	$(TOUCH) $@
 has_llvm:
 	@$(ECHO) Checking if LLVM exists ...
 	$(WHICH) $(LLVM_AS) > /dev/null || (echo "Please install llvm/llvm-$(LLVM_VERSION)"; exit 1)
+	$(TOUCH) $@
 
 ################################################################################
 # Rules
@@ -285,7 +286,7 @@ tools/llvm-$(LLVM_VERSION).tar.gz:
 tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
 	@$(ECHO) Unpacking $@ ...
 	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
-	touch $@ # tar sets date from archive. avoid downloading the archive twice
+	$(TOUCH) $@ # tar sets date from archive. avoid downloading the archive twice
 	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
 	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
