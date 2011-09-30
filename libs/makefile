@@ -15,7 +15,7 @@ libs/test: all $(ZOMP_LIBS_SRC:.zomp=.ll)
 libs/clean:
 	$(RM) -f $(wildcard libs/*.ll)
 
-libs/%.ll: libs/%.zomp
+libs/%.ll: libs/%.zomp has_llvm
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
 

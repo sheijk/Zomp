@@ -70,6 +70,7 @@ TR = tr
 LINE_COUNT = wc -l
 SORT = sort
 LS = ls
+WHICH = which
 
 # image magick
 CONVERT_IMAGE = convert

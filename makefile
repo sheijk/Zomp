@@ -69,7 +69,7 @@ endif
 .PHONY: all libbindings byte native
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
-    mltest source/zompvm_dummy.o
+    mltest source/zompvm_dummy.o has_llvm_gcc has_llvm
 libbindings: source/gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
     libs/glfw.zomp libs/glut.zomp libs/libglut.dylib libs/quicktext.zomp \
     libs/libquicktext.dylib libs/libutils.dylib
@@ -89,7 +89,7 @@ SEXPR_TL_INPUT = $(LANG_CMOS) source/zomp_shell.cmo
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: source/zompvm.h source/zomputils.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll
+dllzompvm.so: source/zompvm.h source/zomputils.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll has_llvm_gcc
 	@$(ECHO) Building $@ ...
 	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm.cpp -o source/zompvm.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
@@ -173,13 +173,22 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-source/runtime.bc source/runtime.ll: source/runtime.c
+source/runtime.bc source/runtime.ll: source/runtime.c has_llvm_gcc has_llvm
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(LLVM_CC) --emit-llvm -c $< -o source/runtime.bc
 	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
 	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < source/runtime.orig.ll > source/runtime.ll
 	$(RM) -f source/runtime.bc source/runtime.orig.ll
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
+
+# Check for required tools being installed
+.PHONY: has_llvm_gcc has_llvm
+has_llvm_gcc:
+	@$(ECHO) Checking if llvm gcc exists ...
+	$(WHICH) $(LLVM_CXX) > /dev/null || (echo "Please install tools/llvm-gcc"; exit 1)
+has_llvm:
+	@$(ECHO) Checking if LLVM exists ...
+	$(WHICH) $(LLVM_AS) > /dev/null || (echo "Please install llvm/llvm-$(LLVM_VERSION)"; exit 1)
 
 ################################################################################
 # Rules

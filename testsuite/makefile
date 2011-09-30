@@ -51,7 +51,7 @@ testsuite/astmatch.ll: libs/libcee.zomp
 
 .PRECIOUS: testsuite/%.ll testsuite/%.s
 
-testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
+testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
