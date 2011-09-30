@@ -1,0 +1,126 @@
+///
+/// Minimal compiler API
+///
+
+type MacroHandler AstPtr(SymbolTable*, AstPtr arg)
+
+type Environment:
+  fn DynObj lookup(cstring name)
+  fn void attach(cstring name, DynObj value)
+  fn void push(cstring name, DynObj value)
+  fn void pop(cstring name)
+
+  fn void addHandler(cstring name, MacroHandler handler)
+  /// called if there is no handler for a given expr
+  fn void setDefaultHandler(MacroHandler handler)
+  /// opens up a new scope, hides all previous handlers
+  fn void pushHandlerScope()
+  fn void popHandlerScope()
+
+  fn Ast* translate(Ast* expr)
+end
+
+/// in macros, a variable 'Environment* env' is implicitly available
+
+astshape Id:
+  cstring name
+  if(Ast* ast):
+    ast.childCount == 0
+  end
+
+  convert(Ast* ast):
+    name = ast.name
+  end
+end
+
+astshape Expr:
+  Id resultVarName
+  Ast* expandedCode
+  Type* type
+
+  init(Ast* ast):
+    expanded := env.macroExpand(ast)
+    Identifier* resultVarId = ast.lastChild.to!Identifier
+    fail if isNull(resultVarId)
+    resultVarName = resultVarId.name
+  end
+end
+
+astshape While:
+  BoolExpr* condition
+  Statement* body
+
+  init {Ast: id=_, BoolExpr cond, Statement s}:
+    condition = cond
+    s = body
+  end
+end
+
+astshape While {Ast: _, BoolExpr condition, Statement body}
+// no body -> implicit members condition and body and trivial extraction code
+
+astshape AlgolDo:
+  List!(Identifier*) loopVars
+  ExprWithType(Int)* startExpr, endExpr
+  
+  init (Ast* ast):
+    ast.foreach idAst argAst:
+      id := parse!Identifier(idAst)
+      failIf isNull(id)
+
+      switch id.name:
+      case "var":
+        varName := parse!Identifier(argAst)
+        loopVars.pushBack(varName)
+      case "from":
+        startExpr := parse!IntExpr(argAst)
+        failWith "can only have one 'from' in loop" if: isNotNull startExpr
+      ...
+      end
+    end foreach
+
+    if isNull(startExpr):
+      startExpr = parse!(ExprWithType(Int))(${0})
+    end
+    ...
+  end init
+end
+
+macro op&&(ExprWithType(Bool) left, ExprWithType(Bool) right):
+  uniqueIds result
+
+  return $:
+    #result := #left
+    if !#result:
+      #result = #right
+    end
+    #result
+  end
+end
+
+//------------------------------------------------------------------------------
+// compiler invocation
+
+zompc a.zomp b.zomp --lang cee 'backend = "cuda"; opt=5'
+// will use cee.zomp as prelude and will set compiler:options to
+// $(backend = "cuda"; opt = 5)
+
+//------------------------------------------------------------------------------
+// more
+
+/// Mapping of old Ast2 to AstM
+/// (foo arg1 arg2) =>
+/// { head: "foo", "0": {head="arg1"}, "1": {head="arg2"} }
+///
+/// (foo @opt bar @align(4) baz) =>
+/// { head: "foo", "0": {head:"bar", @opt: ""}, "1": { head:"baz", @align: {0: "4"} } }
+struct AstM:
+  Map!(Id, Ast*) args
+end
+
+/// myAst.
+read int size(Ast* this)
+read int opr[](Ast* this, int
+
+
+
