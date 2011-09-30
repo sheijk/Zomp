@@ -131,11 +131,15 @@ ifeq "$(PRINT_TESTREPORT)" "1"
 	cat $@
 	echo "--- end of $@"
 endif
-	$(LLVM_LINK) -o $(@:.testreport=-tmp.bc) source/runtime.ll $(<:.zomp=.ll)
-	$(LLVM_LLI) $(@:.testreport=-tmp.bc) > $(@:.testreport=.output)
-ifeq "$(PRINT_OUTPUT)" "1"
-	echo "--- Output of $@"
-	cat $(@:.testreport=.output)
-	echo "--- end of $@"
-endif
+
+# Running test disabled for now. TODO: unify .test and .testreport and always
+# store the output of zompc builds into a file
+
+# 	$(LLVM_LINK) -o $(@:.testreport=-tmp.bc) source/runtime.ll $(<:.zomp=.ll)
+# 	$(LLVM_LLI) $(@:.testreport=-tmp.bc) > $(@:.testreport=.output)
+# ifeq "$(PRINT_OUTPUT)" "1"
+# 	echo "--- Output of $@"
+# 	cat $(@:.testreport=.output)
+# 	echo "--- end of $@"
+# endif
 
