@@ -12,10 +12,13 @@ function run_action {
     ACTION=$1
     shift
     echo "running ${ACTION}: $@"
-    $@ | tee ${TARGET_DIR}/log_${ACTION}.txt
+    LOGFILE=${TARGET_DIR}/log_${ACTION}.txt
+    $@ > ${LOGFILE}
+    EXITSTATUS=$?
+    cat ${LOGFILE}
 
-    if [ "$?" -ne "0" ]; then
-        echo "${ACTION} failed with $?"
+    if [ "$EXITSTATUS" -ne "0" ]; then
+        echo "${ACTION} failed with $EXITSTATUS"
         exit 1
     fi
 }
