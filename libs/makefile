@@ -9,13 +9,13 @@ endif
 
 ZOMP_LIBS_SRC = $(wildcard libs/*.zomp)
 
-libs/test: all $(ZOMP_LIBS_SRC:.zomp=.ll)
+libs/test: $(ZOMPC) $(ZOMP_LIBS_SRC:.zomp=.ll)
 
 # not using ZOMP_LIBS_SRC w/ repl. to avoid accidental deletion of source files if it fails
 libs/clean:
 	$(RM) -f $(wildcard libs/*.ll)
 
-libs/%.ll: libs/%.zomp has_llvm
+libs/%.ll: libs/%.zomp $(ZOMPC) has_llvm
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
 

@@ -64,7 +64,7 @@ examples/using_assimp.zomp: libs/libcee.zomp opengl20.zomp glfw.zomp libs/glutil
 .PRECIOUS: examples/%.ll
 .PHONY: examples/%.run
 
-examples/%.ll: examples/%.zomp zompc.native has_llvm
+examples/%.ll: examples/%.zomp $(ZOMPC) has_llvm
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
 
