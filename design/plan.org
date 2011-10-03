@@ -1866,7 +1866,6 @@ http://www.iquilezles.org/blog/?p=1468
 ** TODO [#A] postfixes for numbers
    then allow 10m, 512K etc.
 * Use Cases                                                            :usecase:
-
 ** .obj Loader [0/2]
    :PROPERTIES:
    :ID:       A80446DC-2A31-4AA7-AB42-60F8848D2C15
@@ -2205,7 +2204,12 @@ http://www.iquilezles.org/blog/?p=1468
     :PROPERTIES:
     :ID:       B26FB281-3E66-4AD7-A558-FF33247B38BE
     :END:
-    - [X] int, bool, string
+    - [X] int, bool
+    - [-] string, char
+      - [X] basic
+      - [ ] \12, by ascii number
+      - [ ] \033, octal numbers
+      - [ ] fully C compatible
     - [ ] arrays
     - [ ] structs
 *** TODO automation
