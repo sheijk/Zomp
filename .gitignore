@@ -123,3 +123,4 @@ data
 tools
 /has_llvm
 /has_llvm_gcc
+/tests/*.exe

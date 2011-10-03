@@ -1,0 +1,96 @@
+///
+/// Printing ascii escape sequences for colors
+/// See http://en.wikipedia.org/wiki/ANSI_escape_code
+///
+
+requireLibs libcee
+
+func bool isStringLiteral(char* str):
+  str2 := str
+  len := strlen(str)
+  if (len < 2) ret(false)
+  if (str2* != '"') ret(false)
+  if ((str2+len-1)* != '"') ret(false)
+  ret true
+end
+
+macro defFormat name formatString:
+  if !isStringLiteral(formatString.id):
+    ret ${error "Expected a string literal" #formatString}
+  end
+
+  fixedFormatString := strdup formatString.id
+  fixedFormatString[1] = u32:toChar 27
+
+  ret ${seq:
+    var char* #name #fixedFormatString
+  end}
+end
+
+defFormat fmtDefault "X[0m"
+
+// might not be supported
+defFormat fmtBold "X[1m"
+defFormat fmtLight "X[2m"
+defFormat fmtNormalWeight "X[21m"
+defFormat fmtItalic "X[3m"
+defFormat fmtItalicOff "X[23m"
+
+defFormat fmtUnderline "X[4m"
+defFormat fmtUnderlineOff "X[24m"
+defFormat fmtBlink "X[5m"
+defFormat fmtBlinkOff "X[25m"
+/// swap foreground/background
+defFormat fmtNegative "X[7m"
+defFormat fmtPositive "X[27m"
+
+defFormat fmtBlack "X[30m"
+defFormat fmtRed "X[31m"
+defFormat fmtGreen "X[32m"
+defFormat fmtYellow "X[33m"
+defFormat fmtBlue "X[34m"
+defFormat fmtMagenta "X[35m"
+defFormat fmtCyan "X[36m"
+defFormat fmtGray "X[37m"
+
+defFormat fmtBlackBG "X[40m"
+defFormat fmtRedBG "X[41m"
+defFormat fmtGreenBG "X[42m"
+defFormat fmtYellowBG "X[43m"
+defFormat fmtBlueBG "X[44m"
+defFormat fmtMagentaBG "X[45m"
+defFormat fmtCyanBG "X[46m"
+defFormat fmtGrayBG "X[47m"
+
+func int main():
+  println fmtBold "fmtBold"
+  println fmtLight "fmtLight" fmtDefault
+
+  println fmtBlack "fmtBlack" fmtDefault
+  println fmtRed "fmtRed" fmtDefault
+  println fmtGreen "fmtGreen" fmtDefault
+  println fmtYellow "fmtYellow" fmtDefault
+  println fmtBlue "fmtBlue" fmtDefault
+  println fmtMagenta "fmtMagenta" fmtDefault
+  println fmtCyan "fmtCyan" fmtDefault
+  println fmtGray "fmtGray" fmtDefault
+
+  println fmtBlackBG "fmtBlackBG" fmtDefault
+  println fmtRedBG "fmtRedBG" fmtDefault
+  println fmtGreenBG "fmtGreenBG" fmtDefault
+  println fmtYellowBG "fmtYellowBG" fmtDefault
+  println fmtBlueBG "fmtBlueBG" fmtDefault
+  println fmtMagentaBG "fmtMagentaBG" fmtDefault
+  println fmtCyanBG "fmtCyanBG" fmtDefault
+  println fmtGrayBG "fmtGrayBG" fmtDefault
+
+  println fmtBold "bold " fmtLight "light " fmtNormalWeight "normal"
+  println fmtDefault "blink " fmtBlink "on " fmtBlinkOff "off"
+  println fmtDefault "inverse fg/bg " fmtNegative "on " fmtPositive "off"
+  println fmtDefault "underline " fmtUnderline "on " fmtUnderlineOff "off"
+  println fmtDefault "italic " fmtItalic "on " fmtItalicOff "off"
+  
+  ret 0
+end
+
+
