@@ -82,31 +82,61 @@ clean_tests:
 # 	$(LLI) $(<:.zomp=.bc)
 # 	@$(ECHO) Done
 
-%.ll: %.zomp ../zompc.native ../prelude.zomp
-	@$(ECHO) Compiling $< to LLVM IR
-	../zomp-check-syntax.sh $<
+%.ll: %.zomp
+	@$(ECHO) Compiling $(<) to .ll ...
+	../zompc.native -c $<
 
-%.bc: %.ll ../source/runtime.c
-	@$(ECHO) Compiling $< to $@
-	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
-	$(LLVM_LINK) -f ../source/runtime.bc $(<:.ll=.o.bc) -o $@
-
-%.exe: %.bc
-	@$(ECHO) Building $@ ...
-	$(LLVM_LD) $< -native -o $@
-
-%.run: %.bc
-	@$(ECHO) Running $@ ...
-	$(LLVM_LLI) $<
+%.bc: %.ll
+	@echo Compiling $< to $@
+	$(LLVM_AS) -f $< -o $@
 
 %.s: %.bc
-	$(LLC) $< -f -o $@
+	@$(ECHO) Generating $(@) ...
+	$(LLVM_LLC) -o $@ $< -march=x86
 
 %.o: %.s
-	$(AS) $< -o $@
+	@$(ECHO) Assembling $@ ...
+	$(AS) -o $@ $< -arch i386
 
-%.glexe: %.o
-	$(CXX) -o $@ -lstdc++ $(GLAPP_LIBS) $<
+.PRECIOUS: %.exe
+%.exe: %.o ../source/runtime.o
+	@$(ECHO) Making $@ ...
+	$(CC) $(CFLAGS) -o $@ -L. $(LIBS) $< ../source/runtime.o -arch i386
+
+.PHONY: %.run
+%.run: %.exe
+	@$(ECHO) Running test $(<:.run=) ...
+	./$<
+# touch $@
+
+clean:
+	rm -f *.o *.s *.exe *.bc *.ll *.run
+
+# %.ll: %.zomp ../zompc.native ../prelude.zomp
+# 	@$(ECHO) Compiling $< to LLVM IR
+# 	../zomp-check-syntax.sh $<
+# 
+# %.bc: %.ll ../source/runtime.c
+# 	@$(ECHO) Compiling $< to $@
+# 	$(LLVM_AS) -f $< -o $(<:.ll=.o.bc)
+# 	$(LLVM_LINK) -f ../source/runtime.bc $(<:.ll=.o.bc) -o $@
+# 
+# %.exe: %.bc
+# 	@$(ECHO) Building $@ ...
+# 	$(LLVM_LD) $< -native -o $@
+# 
+# %.run: %.bc
+# 	@$(ECHO) Running $@ ...
+# 	$(LLVM_LLI) $<
+# 
+# %.s: %.bc
+# 	$(LLC) $< -f -o $@
+# 
+# %.o: %.s
+# 	$(AS) $< -o $@
+# 
+# %.glexe: %.o
+# 	$(CXX) -o $@ -lstdc++ $(GLAPP_LIBS) $<
 
 # glanim.glexe: glanim.o
 # 	@g++ -o $@ -lstdc++ $(GLAPP_LIBS) glanim.o
