@@ -2,7 +2,7 @@
  * Defining simple heap-allocated arrays
  */
 
-require "libs/libcee.zomp"
+requireLibs libcee
 
 func cstring Array:nameForType(cstring typeName):
   typeName ++ "_Array"

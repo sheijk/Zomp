@@ -6,8 +6,7 @@
 
 linkclib "assimp.dylib"
 
-require "libs/libcee.zomp"
-require "libs/mesh.zomp"
+requireLibs libcee mesh
 
 // var int aiComponent_NORMALS 0x2u
 // var int aiComponent_TANGENTS_AND_BITANGENTS 0x4u

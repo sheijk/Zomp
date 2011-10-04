@@ -4,10 +4,7 @@
 !verify off
  */
 
-require "libs/libcee.zomp"
-require "libs/opengl20.zomp"
-require "libs/math.zomp"
-require "libs/glutils.zomp"
+requireLibs libcee opengl20 math glutils
 
 ///-----------------------------------------------------------------------------
 /// Section: Meshes

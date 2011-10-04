@@ -4,9 +4,7 @@
 !verify off
  */
 
-require "libs/libcee.zomp"
-require "libs/math.zomp"
-require "libs/opengl20.zomp"
+require libcee math opengl20
 
 type degree float
 
