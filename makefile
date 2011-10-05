@@ -400,6 +400,7 @@ clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	$(RM) -f source/zompvm.o source/zompvm_dummy.o
 	$(RM) -f testdll.o dlltest.dylib
 	$(RM) -f *_flymake.*
+	$(RM) -f source/*_flymake.*
 	$(RM) -f source/*.cmx *.native
 	$(RM) -f deps.png deps.dot
 	$(RM) -f depends.mk
