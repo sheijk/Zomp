@@ -127,8 +127,7 @@ let compileCode bindings input outstream fileName =
            bindings)
   in
   tryAllCollectingErrors
-    [lazy (parseAndCompile Parseutils.parseIExprs);
-     lazy (parseAndCompile Parseutils.parseSExprs)]
+    [lazy (parseAndCompile Parseutils.parseIExprs)]
     ~onSuccess:(fun _ -> Some ())
     ~ifAllFailed:(fun exceptions ->
                     List.iter printError exceptions;

@@ -29,29 +29,6 @@ type parsingResult =
   | Exprs of Ast2.sexpr list
   | Error of parseError
 
-let parseSExprs source =
-  let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
-    try
-      let expr = parseF lexbuf in
-      parse parseF lexbuf (codeAccum @ [expr])
-    with
-        Sexprlexer.Eof | Indentlexer.Eof -> codeAccum
-  in
-  try
-    let lexbuf = Lexing.from_string source in
-    let parseF lexbuf =
-      let e = Sexprparser.main Sexprlexer.token lexbuf in
-      (* reportParsedExpression e; *)
-      e
-    in
-    let exprs = parse parseF lexbuf [] in
-    Exprs exprs
-  with exc ->
-    Error {
-      location = None;
-      reason = sprintf "Unknow exception: %s" (Printexc.to_string exc)
-    }
-
 let parseIExprsFromLexbuf lexbuf lexstate =
   let lexFunc lexbuf =
     let r = Indentlexer.token lexstate in
