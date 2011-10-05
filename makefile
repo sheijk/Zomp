@@ -78,12 +78,10 @@ native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
 CAML_LIBS = str.cma bigarray.cma
 LANG_CMO_NAMES = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
-    lang.cmo semantic.cmo sexprparser.cmo sexprlexer.cmo machine.cmo zompvm.cmo \
+    lang.cmo semantic.cmo machine.cmo zompvm.cmo \
     genllvm.cmo dllzompvm.so indentlexer.cmo newparser.cmo parseutils.cmo \
     expander.cmo testing.cmo compileutils.cmo
 LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
-
-SEXPR_TL_INPUT = $(LANG_CMOS) source/zomp_shell.cmo
 
 ################################################################################
 # Zomp tools
@@ -101,11 +99,11 @@ else # OS X
 	ln -s source/dllzompvm.so dllzompvm.so
 endif
 
-zomp_shell: $(SEXPR_TL_INPUT) $(LANG_CMOS:.cmo=.cmx)
+zomp_shell: source/zomp_shell.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(SEXPR_TL_INPUT)
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zomp_shell.cmo
 
-zomp_shell.native: $(SEXPR_TL_INPUT:.cmo=.cmx) source/dllzompvm.so
+zomp_shell.native: source/zomp_shell.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zomp_shell.cmx
 
@@ -299,7 +297,7 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 
 LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
-LANG_CMXS=common.cmx ast2.cmx sexprparser.cmx sexprlexer.cmx bindings.cmx \
+LANG_CMXS=common.cmx ast2.cmx bindings.cmx \
     typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
     -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx newparser.cmx \
     parseutils.cmx expander.cmx testing.cmx compileutils.cmx
@@ -327,14 +325,10 @@ source/newparser_tests.cmx: source/newparser.cmx
 source/indentlexer.cmo: source/newparser.ml
 source/indentlexer.cmi: source/newparser.ml
 
-source/sexprparser.ml: source/ast2.cmo source/common.cmo
-source/sexprlexer.ml: source/ast2.ml source/common.ml source/sexprparser.cmo
 source/machine.cmo: source/machine.skel source/dllzompvm.so
 source/machine.cmx: source/machine.skel source/dllzompvm.so
 source/zompvm.cmo: source/machine.cmo
 source/zompvm.cmx: source/machine.cmx
-source/parseutils.cmo: source/sexprlexer.cmo
-source/parseutils.cmx: source/sexprlexer.cmx
 
 source/lang.cmi: source/common.cmo
 source/expander.cmi: source/lang.cmi
@@ -351,7 +345,7 @@ TAGS:
 # generate a file for graphviz which visualizes the dependencies between modules
 deps.dot deps.png: depends.mk $(CAMLDEP_INPUT) $(LANG_CMOS)
 	@$(ECHO) Generating dependency graph for graphviz ...
-	$(OCAMLDOC) -I source/ -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/sexprlexer.ml source/sexprparser.ml
+	$(OCAMLDOC) -I source/ -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
 
 # Warning, ugly. But at least not essential so who cares :)
@@ -360,12 +354,12 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT) $(LANG_CMOS)
 ML_SRC_FILE_NAMES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
     expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli         \
     indentlexer_tests.ml lang.ml machine.ml newparser.mly newparser_tests.ml \
-    parseutils.ml semantic.ml sexprlexer.mll sexprparser.mly zomp_shell.ml\
+    parseutils.ml semantic.ml zomp_shell.ml\
     testing.ml typesystems.ml zompc.ml zompvm.ml
 ML_SRC_FILES = $(foreach file, $(ML_SRC_FILE_NAMES), source/$(file))
 
 loc_stats_no_summary:
-	$(LS) $(wildcard source/*.ml source/*.mli source/*.mly source/*.mll) | grep -v source/sexprparser.ml | grep -v source/newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
+	$(LS) $(wildcard source/*.ml source/*.mli source/*.mly source/*.mll) | grep -v source/newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
 	$(LINE_COUNT) libs/libutils.cpp prelude.zomp source/runtime.c zomp.el source/zomputils.h source/zompvm.cpp source/zompvm.h source/zompvm_dummy.cpp | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.skel) | $(SORT) -n
@@ -398,8 +392,6 @@ clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	$(RM) -f expander_tests.cm?
 	$(RM) -f source/zompc.cm? zompc
 	$(RM) -f source/runtime.bc source/runtime.ll source/runtime.o
-	$(RM) -f source/sexprlexer.cmi source/sexprlexer.cmo source/sexprlexer.ml
-	$(RM) -f source/sexprparser.cmi source/sexprparser.cmo source/sexprparser.ml source/sexprparser.mli
 	$(RM) -f zomp_shell source/zomp_shell.cmi source/zomp_shell.cmo
 	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o

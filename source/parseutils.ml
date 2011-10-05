@@ -2,16 +2,6 @@
 open Common
 open Printf
 
-(** try to parse a string using s-expr syntax *)
-let parseSExpr input =
-  try
-    let lexbuf = Lexing.from_string input in
-    let e = Sexprparser.main Sexprlexer.token lexbuf in
-    Some e
-      
-  with Sexprlexer.Eof ->
-    None
-
 type parseError = {
   location :Indentlexer.location option;
   reason :string;

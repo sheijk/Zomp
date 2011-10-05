@@ -42,13 +42,6 @@ let parseChannel lexbuf errorLocationF parseF bindings =
     in
     newBindings, toplevelExprs, llvmSource
   with
-    | Sexprparser.Error ->
-        begin
-          let loc = errorLocationF lexbuf in
-          raiseCouldNotParse
-            (sprintf "%s:%d:%d: error: could not parse %d chars from beginning of file\n"
-               loc.fileName loc.line loc.column loc.charsFromBeginning)
-        end
     | Expander.IllegalExpression (expr, msg) ->
         begin
           raiseCouldNotCompile
@@ -239,10 +232,6 @@ let () =
                     end;
                     exit (compilation_result_to_int exitCode)
                   with
-                    | Sexprlexer.Eof ->
-                        close_in inStream;
-                        close_out outStream;
-                        Sys.remove outputFileName
                     | _ as e ->
                         close_in inStream;
                         close_out outStream;

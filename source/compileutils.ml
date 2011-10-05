@@ -32,17 +32,13 @@ let rec parse parseF lexbuf bindings codeAccum =
     let newBindings, simpleforms = translateTLNoError bindings expr in
     parse parseF lexbuf newBindings (codeAccum @ simpleforms)
   with
-    | Sexprlexer.Eof | Indentlexer.Eof -> bindings, codeAccum
+    | Indentlexer.Eof -> bindings, codeAccum
 
 let catchingErrorsDo f ~onError =
   try
     begin try
       f()
     with
-      | Sexprparser.Error ->
-          signalError (sprintf "parsing error (sexpr).\n")
-      | Sexprlexer.UnknowChar c ->
-          signalError (sprintf "Lexer error: encountered unknown character %s.\n" c)
       | Expander.IllegalExpression (expr, msg) ->
           signalError (sprintf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr))
       | Lang.CouldNotParseType descr ->
@@ -139,7 +135,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
       let expr = parseF lexbuf in
       parse parseF lexbuf (codeAccum @ [expr])
     with
-        Sexprlexer.Eof | Indentlexer.Eof -> codeAccum
+        Indentlexer.Eof -> codeAccum
   in
 
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in

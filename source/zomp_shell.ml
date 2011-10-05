@@ -70,7 +70,6 @@ let parseFunc = ref Parseutils.parseIExpr
 let toggleParseFunc args _ =
   let confirm syntax = printf "Changed syntax to %s\n" syntax in
   match args with
-    | ["sexpr"] -> parseFunc := Parseutils.parseSExpr; confirm "sexpr"
     | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
 
