@@ -76,7 +76,9 @@ func char* copyStringRange(char* start, char* end_):
 end
 
 func void Section:loadFromAst(Section* this, ast* tree):
-  return if: isNull this || isNull tree
+  if (isNull this || isNull tree):
+    return
+  end
 
   sectionPattern := ${_:
     __...
@@ -114,7 +116,9 @@ end
 func void Section:loadFrom(Section* this, cstring fileName):
   buffer := nullptr char
   loadResult := zompLoadFileToMemory( fileName, &buffer )
-  return if: loadResult < 0
+  if (loadResult < 0):
+    return
+  end
 
   code := parseZompSource buffer
   dealloc buffer
@@ -172,7 +176,9 @@ end
 
 func void Section:writeTo(Section* this, cstring fileName):
   file := fopen(fileName, "w")
-  return if: isNull(file)
+  if isNull(file):
+    return
+  end
 
   Section:currentFile_ = file
   Section:print(this, &Section:printToCurrentFile_, 0)

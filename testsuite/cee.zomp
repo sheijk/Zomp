@@ -485,18 +485,19 @@ func void return_void():
   return
 end
 
-unittest:testCase test_keyword_if:
-  test_if := 0
-  test_unless := 0
-
-  test_if = 10 if: true == true
-  test_unless = 20 unless: true == false
-
-  unittest:assertAll:
-    test_if == 10
-    test_unless == 20
-  end
-end
+// TODO: reactivate once keyword syntax is back
+// unittest:testCase test_keyword_if:
+//   test_if := 0
+//   test_unless := 0
+// 
+//   test_if = 10 if: true == true
+//   test_unless = 20 unless: true == false
+// 
+//   unittest:assertAll:
+//     test_if == 10
+//     test_unless == 20
+//   end
+// end
 
 /// TODO
 // func void testBitOps():
