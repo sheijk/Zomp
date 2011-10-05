@@ -1959,287 +1959,398 @@ http://www.iquilezles.org/blog/?p=1468
     - [X] support in toplevel and compiler
 * Language design                                                  :design:lang:
 
+** zomp-base
+
+   The primitive lowest level base language into which macros eventually
+   translate all code
+   
+*** concepts (should be in the base language?)
+**** scoping
+**** execution model
+*** declarations
+**** types
+****** primitive types
+******* int8, int16, int32, int64
+******* uint8, uint16, uint32, uint64
+******* float, double
+******* half
+******* int128, uint128
+****** void 
+       instances of this can be created and copied although they carry no
+       information will simplify writing generic code
+****** structs
+****** named types
+       new type based on existing one, but no implicit conversion
+****** pointers/references
+****** function pointers
+**** global variables
+**** global constants
+**** functions
+**** restricted access
+***** make symbols private
+***** abstract types
+      type name is visible from the outside but implementation is hidden
+*** expressions
+**** function call
+**** load, store
+**** conversion
+***** zext, sext
+**** address-of
+***** local variable
+***** global variable
+***** struct member
+**** pointer arithmetic(?)
+     might be a good idea to make pointer arithmetic optional
+     only have reference type
+     have different type for nullable and non-nullable reference type?
+
+     T? for reference which might be null
+     T& for reference which always points to a valid object
+
 ** zomp-cee                                                                :cee:
-   Set of macros and functions providing a simple C like feeling
 
-*** TODO variables [3/4]
-    :PROPERTIES:
-    :ID:       672B8F37-735B-453D-B0D7-7DD5425B8622
-    :END:
-    Define a variable
+   Set of macros and functions providing a simple C like feeling. Incorporating
+   some of the features which make C++ nicer (enhanced security, generic
+   programming, overloading, etc.)
+   
+*** specification
+**** declarations
+***** types
+****** all of zomp-base
+****** structs
+****** enums
+****** variant types
+***** functions
+****** declaration
+****** definition
+***** local variables
+**** expressions
+***** arithmetic operators
+      pre/postfix -- ++ * + - ~ ! ? &
+      bin * / %, + -, << >>, < <= > >=, == !=, &, ^, |, &&, ||, ?:,
+      = *= /= %= += -= <<= >>= &= ^= |=
+      bin ++ -- **
+      comma(?)
+***** assignment
+****** primitive/compound types
+****** projections
+       a.foo = x => setFoo(a, x), iff setFoo is defined
+***** function call
+***** reading/writing variables
+***** block/sequence
+***** selection statements (make them expressions, too)
+****** if
+****** switch
+****** ?:
+***** loops
+****** algol style loop
+****** while
+****** do/while
+****** for
+***** labels, goto
+****** including sane rules to forbid jumping over declarations
+       (maybe just steal from algol60)
+***** conversions
+****** numeric conversions
+****** pointer casts
+****** reinterpret cast(?)
+***** constants
+****** primitive numbers
+****** address-of
+****** strings (with user definable pre/postfixes)
+****** user definable numeric postfixes
+       provide C like postfixes by default
+****** enums
+****** structs
+***** properties of types
+****** T.max, T.min for [u]int*, float, double, ...
+****** float.min_pos
+****** synonyms for C names?
+****** EnumT.values, returning a Range!EnumT  
+**** library
+***** access to C library
 
-    - [X] var int x
-    - [X] var x // not allowed
-    - [ ] var int x, y, z
-    - [X] x := defaultValue
-
-**** abandoned
-    - [ ] var x = 10, y = 20.0
-    - [ ] var int x = 10, float y = 20.0
-    - [ ] var x = 10, float y = 20.0
-    - [ ] var int x = 10
-    - [ ] var x = 10
-
-**** Requirements [1/3]
-     - [ ] optional default value
-     - [ ] multiple vars in one line
-     - [X] optionally propagate type from default value
-
-**** Properties
-    - Legal forms
-      var $type $name:id
-      var $type (op= $name:id $default)
-      var (op= $name:id $default)
-      var (op, ($type $name:id | $type (op= $name:id $default) | (op= $name:id $default))+)
-
-    - Returns value of last var
-
-*** TODO types [5/7]
-    :PROPERTIES:
-    :ID:       06B4E63A-1265-413B-9679-1C85A51BCA31
-    :END:
-**** TODO fixed size int (int8, int16, ..., int128)
+*** old version 
+**** TODO variables [3/4]
      :PROPERTIES:
-     :ID:       9CDD23DD-37D5-4072-B0C3-A0AC6AD117C1
+     :ID:       672B8F37-735B-453D-B0D7-7DD5425B8622
      :END:
-**** TODO signed/unsigned
-     :PROPERTIES:
-     :ID:       CA98D6F9-0454-417F-9F5B-B4742B77BEC8
-     :END:
-**** DONE int
-**** DONE float
-**** DONE double
-**** DONE structs
-**** DONE bool
+     Define a variable
 
-*** TODO strings [2/3]
-    :PROPERTIES:
-    :ID:       C4014A22-2F73-4022-BE54-A76026D762A2
-    :END:
+     - [X] var int x
+     - [X] var x // not allowed
+     - [ ] var int x, y, z
+     - [X] x := defaultValue
 
-**** DONE concatentate
-     CLOSED: [2008-07-01 Tue 02:12]
-**** DONE literals
-     CLOSED: [2009-03-12 Thu 22:43]
-**** TODO string type != char*
+***** abandoned
+     - [ ] var x = 10, y = 20.0
+     - [ ] var int x = 10, float y = 20.0
+     - [ ] var x = 10, float y = 20.0
+     - [ ] var int x = 10
+     - [ ] var x = 10
 
-     :PROPERTIES:
-     :ID:       D610C090-88F8-4A48-937B-AABBC2F976BB
-     :END:
-*** TODO structs [2/2]
-    :PROPERTIES:
-    :ID:       635D54C8-C204-460A-9476-4D309DF84323
-    :END:
+***** Requirements [1/3]
+      - [ ] optional default value
+      - [ ] multiple vars in one line
+      - [X] optionally propagate type from default value
 
-**** DONE Simple case
-     type IntArray
-       int size
-       int* elements
-     end
+***** Properties
+     - Legal forms
+       var $type $name:id
+       var $type (op= $name:id $default)
+       var (op= $name:id $default)
+       var (op, ($type $name:id | $type (op= $name:id $default) | (op= $name:id $default))+)
 
-**** DONE multiple members per line
-     CLOSED: [2009-03-12 Thu 22:43]
-     type Vector
-       float x, y, z
-     end
+     - Returns value of last var
 
-*** TODO enums [0/4]
-    :PROPERTIES:
-    :ID:       6FD58544-40CC-454F-A7DC-80754317C438
-    :END:
-**** TODO define them
+**** TODO types [5/8]
      :PROPERTIES:
-     :ID:       010A69DF-2CCE-4EE7-A35E-20988748F195
+     :ID:       06B4E63A-1265-413B-9679-1C85A51BCA31
      :END:
-     enum Primitive
-       Triangles
-       Quads
-       Points
-       Lines
-
-**** TODO assign default values
-     :PROPERTIES:
-     :ID:       0F5ABDA7-8C07-45D3-8B37-2955643AAC7B
-     :END:
-     enum Primitive
-       Triangles = GL_LINES
-       Quads = GL_QUADS
-
-**** TODO auto generated attribs
-     :PROPERTIES:
-     :ID:       F732CEF0-5BD8-4F51-BE62-340638B93545
-     :END:
-     Primitive.count :: int
-     Primitive.cases :: list<string*int>
-
-*** TODO unions
-    :PROPERTIES:
-    :ID:       FD9B9BBF-F56D-46C2-849E-D8B77DE6F9FC
-    :END:
-*** TODO operators for all basic types [3/5]
-    :PROPERTIES:
-    :ID:       12A27A0A-9230-4618-AA58-507EAB026AFE
-    :END:
-**** DONE map 'a § b' to 'a §_t b' for operator § and type(a) == type(b) == t
-     CLOSED: [2009-03-22 Sun 23:56]
-**** DONE infix +, -, *, /, **
-     CLOSED: [2009-03-23 Mon 00:01]
-**** DONE prefix/postfix ++, --
-     CLOSED: [2009-03-23 Mon 00:01]
-**** TODO ** for floats
-     :PROPERTIES:
-     :ID:       2E582E83-A47E-4331-BBCF-3C5D5597BFD0
-     :END:
-**** TODO ++, -- for floats
-     :PROPERTIES:
-     :ID:       4BA4492D-6970-4D1A-A52F-3706CE603228
-     :END:
-*** TODO control structures [2/8]
-    :PROPERTIES:
-    :ID:       5C38B191-5411-4ADC-B072-823C58B66A82
-    :END:
-**** TODO c-style for
-     :PROPERTIES:
-     :ID:       9EBF88AF-E272-4290-97AC-8A4120221CB9
-     :END:
-**** TODO do/while
-     :PROPERTIES:
-     :ID:       E302F487-8414-43F8-82A4-91A009A72418
-     :END:
-**** TODO do/until
-     :PROPERTIES:
-     :ID:       00D07E5D-A0F2-4079-8A47-DE9FD46815BE
-     :END:
-**** TODO switch / case [1/2]
-     :PROPERTIES:
-     :ID:       E6DCAD36-A8C6-4C0D-A5C0-A736737B55F8
-     :END:
-***** DONE basic switch/case
-      CLOSED: [2009-03-12 Thu 23:36]
-***** TODO support explicit fall-through
+***** TODO fixed size int (int8, int16, ..., int128)
       :PROPERTIES:
-      :ID:       E9B90177-60E7-4B53-9044-AF851BF1F37E
+      :ID:       9CDD23DD-37D5-4072-B0C3-A0AC6AD117C1
+      :END:
+***** TODO signed/unsigned
+      :PROPERTIES:
+      :ID:       CA98D6F9-0454-417F-9F5B-B4742B77BEC8
+      :END:
+***** primitive types [5/5]
+      - [X] int8
+      - [X] float
+      - [X] double
+      - [X] structs
+      - [X] bool
+**** TODO Types [2/3]
+     :PROPERTIES:
+     :ID:       2F9D8F7D-F772-486E-8B6B-0F67803ADABF
+     :END:
+     How types can be specified
+
+***** DONE simple type name (int, float, MyStruct, ...)
+      CLOSED: [2009-03-12 Thu 23:37]
+***** DONE pointer by appending a star (int*, float*, MyStruct**, ...)
+      CLOSED: [2009-03-12 Thu 23:37]
+***** TODO signed(int), sint, uint, slong, ulong, ...
+      :PROPERTIES:
+      :ID:       C5A95A5E-5B8B-456A-B3A2-6C869A6F1635
       :END:
 
-      switch someVar:
-      @fallthrough case 1
-        print "I"
-      @fallthrough case 2
-        print "I"
-      case 3
-        print "I"
-      @fallthrough case 4
-        print "I"
-      case 5
-        print "V"
-      end
-
-      oder
-
-      switch x:
-      case 1
-        print "falling!"
-        fallthrough
-      case 2
-        print "not falling"
-      case 3
-        print "blah"
-      end
-
-**** TODO break, continue
+**** TODO strings [2/3]
      :PROPERTIES:
-     :ID:       7F960566-5C49-419A-9D65-21B708477DC3
+     :ID:       C4014A22-2F73-4022-BE54-A76026D762A2
      :END:
-**** DONE if then/else if/else
-**** DONE while
-*** TODO pointers [2/4]
-    :PROPERTIES:
-    :ID:       9EC4E676-1523-4116-A8D8-B1A6BB9B6368
-    :END:
-    using postfix notation
 
-**** DONE &var
-     CLOSED: [2009-03-12 Thu 23:38]
-**** DONE var*
-     CLOSED: [2009-03-12 Thu 23:38]
-**** TODO (var+10)*
+***** DONE concatentate
+      CLOSED: [2008-07-01 Tue 02:12]
+***** DONE literals
+      CLOSED: [2009-03-12 Thu 22:43]
+***** TODO string type != char*
+
+      :PROPERTIES:
+      :ID:       D610C090-88F8-4A48-937B-AABBC2F976BB
+      :END:
+**** TODO structs [2/2]
+     :PROPERTIES:
+     :ID:       635D54C8-C204-460A-9476-4D309DF84323
+     :END:
+
+***** DONE Simple case
+      type IntArray
+        int size
+        int* elements
+      end
+
+***** DONE multiple members per line
+      CLOSED: [2009-03-12 Thu 22:43]
+      type Vector
+        float x, y, z
+      end
+
+**** TODO enums [0/4]
+     :PROPERTIES:
+     :ID:       6FD58544-40CC-454F-A7DC-80754317C438
+     :END:
+***** TODO define them
+      :PROPERTIES:
+      :ID:       010A69DF-2CCE-4EE7-A35E-20988748F195
+      :END:
+      enum Primitive
+        Triangles
+        Quads
+        Points
+        Lines
+
+***** TODO assign default values
+      :PROPERTIES:
+      :ID:       0F5ABDA7-8C07-45D3-8B37-2955643AAC7B
+      :END:
+      enum Primitive
+        Triangles = GL_LINES
+        Quads = GL_QUADS
+
+***** TODO auto generated attribs
+      :PROPERTIES:
+      :ID:       F732CEF0-5BD8-4F51-BE62-340638B93545
+      :END:
+      Primitive.count :: int
+      Primitive.cases :: list<string*int>
+
+**** TODO unions
+     :PROPERTIES:
+     :ID:       FD9B9BBF-F56D-46C2-849E-D8B77DE6F9FC
+     :END:
+**** TODO operators for all basic types [3/5]
+     :PROPERTIES:
+     :ID:       12A27A0A-9230-4618-AA58-507EAB026AFE
+     :END:
+***** DONE map 'a § b' to 'a §_t b' for operator § and type(a) == type(b) == t
+      CLOSED: [2009-03-22 Sun 23:56]
+***** DONE infix +, -, *, /, **
+      CLOSED: [2009-03-23 Mon 00:01]
+***** DONE prefix/postfix ++, --
+      CLOSED: [2009-03-23 Mon 00:01]
+***** TODO ** for floats
+      :PROPERTIES:
+      :ID:       2E582E83-A47E-4331-BBCF-3C5D5597BFD0
+      :END:
+***** TODO ++, -- for floats
+      :PROPERTIES:
+      :ID:       4BA4492D-6970-4D1A-A52F-3706CE603228
+      :END:
+**** TODO control structures [2/8]
+     :PROPERTIES:
+     :ID:       5C38B191-5411-4ADC-B072-823C58B66A82
+     :END:
+***** TODO c-style for
+      :PROPERTIES:
+      :ID:       9EBF88AF-E272-4290-97AC-8A4120221CB9
+      :END:
+***** TODO do/while
+      :PROPERTIES:
+      :ID:       E302F487-8414-43F8-82A4-91A009A72418
+      :END:
+***** TODO do/until
+      :PROPERTIES:
+      :ID:       00D07E5D-A0F2-4079-8A47-DE9FD46815BE
+      :END:
+***** TODO algol style loop?
+***** TODO switch / case [1/2]
+      :PROPERTIES:
+      :ID:       E6DCAD36-A8C6-4C0D-A5C0-A736737B55F8
+      :END:
+****** DONE basic switch/case
+       CLOSED: [2009-03-12 Thu 23:36]
+****** TODO support explicit fall-through
+       :PROPERTIES:
+       :ID:       E9B90177-60E7-4B53-9044-AF851BF1F37E
+       :END:
+
+       switch someVar:
+       @fallthrough case 1
+         print "I"
+       @fallthrough case 2
+         print "I"
+       case 3
+         print "I"
+       @fallthrough case 4
+         print "I"
+       case 5
+         print "V"
+       end
+
+       oder
+
+       switch x:
+       case 1
+         print "falling!"
+         fallthrough
+       case 2
+         print "not falling"
+       case 3
+         print "blah"
+       end
+
+***** TODO break, continue
+      :PROPERTIES:
+      :ID:       7F960566-5C49-419A-9D65-21B708477DC3
+      :END:
+***** DONE if then/else if/else
+***** DONE while
+**** TODO pointers [2/4]
+     :PROPERTIES:
+     :ID:       9EC4E676-1523-4116-A8D8-B1A6BB9B6368
+     :END:
+     using postfix notation
+
+***** DONE &var
+      CLOSED: [2009-03-12 Thu 23:38]
+***** DONE var*
+      CLOSED: [2009-03-12 Thu 23:38]
+***** TODO (var+10)*
 
      :PROPERTIES:
      :ID:       C2DF17D6-A53C-49E0-B61A-20A35BA15EA2
      :END:
 :END:      **** TODO global pointers
-*** DONE functions [4/4]
-**** DONE define them
-     func RetType name(args)
-       code
-     end
+**** DONE functions [4/4]
+***** DONE define them
+      func RetType name(args)
+        code
+      end
 
-     args ::=
-     args ::= comma-seperated-list(arg)
-     arg ::= Type name
+      args ::=
+      args ::= comma-seperated-list(arg)
+      arg ::= Type name
 
-**** DONE declare them
-     func RetType name(args)
-     // no impl
-**** DONE call them
+***** DONE declare them
+      func RetType name(args)
+      // no impl
+***** DONE call them
 
-**** DONE function pointers
-     CLOSED: [2008-07-31 Thu 20:10]
-*** TODO Types [2/3]
-    :PROPERTIES:
-    :ID:       2F9D8F7D-F772-486E-8B6B-0F67803ADABF
-    :END:
-    How types can be specified
-
-**** DONE simple type name (int, float, MyStruct, ...)
-     CLOSED: [2009-03-12 Thu 23:37]
-**** DONE pointer by appending a star (int*, float*, MyStruct**, ...)
-     CLOSED: [2009-03-12 Thu 23:37]
-**** TODO signed(int), sint, uint, slong, ulong, ...
+***** DONE function pointers
+      CLOSED: [2008-07-31 Thu 20:10]
+**** TODO overloading
+**** TODO literals
      :PROPERTIES:
-     :ID:       C5A95A5E-5B8B-456A-B3A2-6C869A6F1635
+     :ID:       B26FB281-3E66-4AD7-A558-FF33247B38BE
      :END:
+     - [X] int, bool
+     - [-] string, char
+       - [X] basic
+       - [ ] \12, by ascii number
+       - [ ] \033, octal numbers
+       - [ ] fully C compatible
+     - [ ] arrays
+     - [ ] structs
+**** TODO automation
+     :PROPERTIES:
+     :ID:       A9FE766E-452F-4B18-ABC6-F3D50A3839DF
+     :END:
+     - [ ] generate printers
+     - [ ] generate parsers
+**** TODO misc
+     :PROPERTIES:
+     :ID:       E946A0C7-4C37-4531-8044-284D12ED093B
+     :END:
+     - [ ] references (?)
+     - [ ] dot notation for function calls
+           var.func(a) => VarType::func(var, a)
+     - [ ] projections for member read/write
+           foo.bar => FooType:getBar(&foo)
+           foo.bar = 10 => FooType:setBar(&foo, 10)
+     - [ ] macro patterns(?)
+           macro defIntVar(Identifier name, IntExpr value)
+     - [ ] static reflection API (lookup variables type etc.)
+     - [ ] function pointers - new syntax?
+           int(float, float)
+     - [ ] slim syntax for function definitions?
+           print(int a, float b):
+           instead of
+           func void print(int a, float b):
 
-*** TODO literals
-    :PROPERTIES:
-    :ID:       B26FB281-3E66-4AD7-A558-FF33247B38BE
-    :END:
-    - [X] int, bool
-    - [-] string, char
-      - [X] basic
-      - [ ] \12, by ascii number
-      - [ ] \033, octal numbers
-      - [ ] fully C compatible
-    - [ ] arrays
-    - [ ] structs
-*** TODO automation
-    :PROPERTIES:
-    :ID:       A9FE766E-452F-4B18-ABC6-F3D50A3839DF
-    :END:
-    - [ ] generate printers
-    - [ ] generate parsers
-*** TODO misc
-    :PROPERTIES:
-    :ID:       E946A0C7-4C37-4531-8044-284D12ED093B
-    :END:
-    - [ ] references (?)
-    - [ ] dot notation for function calls
-          var.func(a) => VarType::func(var, a)
-    - [ ] projections for member read/write
-          foo.bar => FooType:getBar(&foo)
-          foo.bar = 10 => FooType:setBar(&foo, 10)
-    - [ ] macro patterns(?)
-          macro defIntVar(Identifier name, IntExpr value)
-    - [ ] static reflection API (lookup variables type etc.)
-    - [ ] function pointers - new syntax?
-          int(float, float)
-    - [ ] slim syntax for function definitions?
-          print(int a, float b):
-          instead of
-          func void print(int a, float b):
-
-          how to do return types? first id resolves to type?
-          int foo(int a, int b)
+           how to do return types? first id resolves to type?
+           int foo(int a, int b)
 
 ** zomp-ceepp
    :PROPERTIES:
@@ -2253,7 +2364,8 @@ http://www.iquilezles.org/blog/?p=1468
      - [ ] dynamic messages
      - [ ] mixins
    - [ ] type classes
-     - [ ] explicit inlining/flattening/specialisation
+     - [ ] or implicit arguments
+   - [ ] explicit inlining/flattening/specialisation
    - [ ] overloaded methods
 
 ** zomp-miniml
