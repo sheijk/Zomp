@@ -51,7 +51,12 @@ testsuite/astmatch.ll: libs/libcee.zomp
 
 .PRECIOUS: testsuite/%.ll testsuite/%.s
 
-testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
+testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) testsuite/preludevalid.test libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
+	@$(ECHO) Compiling $(<) to .ll ...
+	$(ZOMPC) -c $<
+
+# the same w/o dependency on itself
+testsuite/preludevalid.ll: testsuite/preludevalid.zomp zompc.native prelude.zomp $(ZOMPC) has_llvm
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
@@ -71,13 +76,7 @@ testsuite/%.exe: testsuite/%.o
 	@$(ECHO) Making $@ ...
 	$(CC) $(CFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
 
-testsuite/%.test: testsuite/%.exe testsuite/preludevalid.test
-	@$(ECHO) Running test $(<:.bc=) ...
-	./$(@:.test=.exe)
-	touch $@
-
-# the same w/o dependency on itself
-testsuite/preludevalid.test: testsuite/preludevalid.exe
+testsuite/%.test: testsuite/%.exe
 	@$(ECHO) Running test $(<:.bc=) ...
 	./$(@:.test=.exe)
 	touch $@
