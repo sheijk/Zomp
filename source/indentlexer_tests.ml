@@ -205,7 +205,6 @@ end = struct
       "&blah", `Return [PREFIX_OP "&"; id "blah"; END];
       "blubber&", `Return [id "blubber"; POSTFIX_OP "&"; END];
       "--b", `Return [PREFIX_OP "--"; id "b"; END];
-      "a: ++b", `Return [KEYWORD_ARG "a"; PREFIX_OP "++"; id "b"; END];
       "*&blah", `Return [PREFIX_OP "*"; PREFIX_OP "&"; id "blah"; END];
       "ppInt**++", `Return [id "ppInt"; POSTFIX_OP "*"; POSTFIX_OP "*";
                             POSTFIX_OP "++"; END];
@@ -418,12 +417,6 @@ end = struct
       isValidId "op{}";
       isValidId "op;";
       (* TODO: alle operatoren testen *)
-
-      "foo: bar", `Return [KEYWORD_ARG "foo"; id "bar"; END];
-      (* "if: foo then:", `Return [KEYWORD_ARG "if"; id "foo"; *)
-      (*                           KEYWORD_ARG "then"; END]; *)
-      (* "this is a line:", `Return [id "this"; id "is"; id "a"; id "line"; *)
-      (*                             EXTENDED_INDENT; END]; *)
 
       (** reproduce various bugs *)
       "(num--)", `Return [OPEN_PAREN; id "num"; POSTFIX_OP "--";

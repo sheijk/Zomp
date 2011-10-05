@@ -157,7 +157,6 @@
 %token <string> PREFIX_OP
 %token <string> POSTFIX_OP
 %token <string> QUOTE
-%token <string> KEYWORD_ARG
 %token <string> SEMICOLON
 
 %left SEMICOLON
@@ -185,24 +184,8 @@ main:
   { e }
 
 kwexpr:
-| components = pair(KEYWORD_ARG, kwarg)+;
-  {
-    let keywordsAndExprs = extractKeywordsAndExprsAndCheckTerminators components in
-    expr "opkeyword" (Common.multiMap keywordAndExprToList keywordsAndExprs)
-  }
-
-| e = expr; components = pair(KEYWORD_ARG, kwarg)+;
-  { let keywordsAndExprs = extractKeywordsAndExprsAndCheckTerminators components in
-    expr "opkeyword" (idExprLoc "default" $startpos :: e :: Common.multiMap keywordAndExprToList keywordsAndExprs) }
-
 | e = expr;
   { e }
-
-kwarg:
-| e = expr;
-  { e, [] }
-| b = block;
-  { b }
 
 expr:
 | first = exprArg; argsAndT = exprArgList;

@@ -272,7 +272,6 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             | CLOSE_CURLY -> "}", noind
             | DOT -> ".", noind
             | QUOTE str -> "$" ^ str, noind
-            | KEYWORD_ARG str -> "`kwd(" ^ str ^ ")", noind
             | OPEN_BRACKET -> "[", noind
             | OPEN_BRACKET_POSTFIX -> "post[", noind
             | CLOSE_BRACKET -> "]", noind
@@ -339,7 +338,6 @@ end = struct
       | OPEN_PAREN | CLOSE_PAREN | OPEN_ARGLIST | OPEN_CURLY | CLOSE_CURLY
       | OPEN_BRACKET | OPEN_BRACKET_POSTFIX | CLOSE_BRACKET
       | DOT
-      | KEYWORD_ARG _
         -> false
     in
     let isOpenParen = function
@@ -442,18 +440,6 @@ end = struct
       re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z0-9_]+\\)? *" opSymbols),
       (fun (str:string) -> `Token (IDENTIFIER (trim str)))
     in
-    let keywordRule =
-      re (identifierRE ^ ":\\( \\| *\n\\)"),
-      (fun id ->
-         let keyword, colon = Common.splitAt id (FromBack 2) in
-         let token = KEYWORD_ARG keyword in
-         if lastChar colon = '\n' then
-           `PutBack( token, "\n" )
-         else if lastChar colon = ' ' then
-           `PutBack( token, " " )
-         else
-           `Token token)
-    in
     (let preArglist = Or (Identifier, ClosingParen) in
      let re = Str.regexp_string "(" in
      [
@@ -552,7 +538,6 @@ end = struct
     @ [
       identifierRule;
       whitespaceRule;
-      keywordRule;
       opfuncRule "op";
       opfuncRule "preop";
       opfuncRule "postop";
