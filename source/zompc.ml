@@ -215,30 +215,40 @@ let () =
                   addToplevelInstr "include" translateInclude;
                   addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
                   addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
-                  try
-                    let exitCode = compile inputFileName inStream outStream in
-                    close_in inStream;
-                    close_out outStream;
-                    begin match exitCode with
-                      | Compilation_succeeded -> ()
-                      | Compilation_failed reason ->
-                          eprintf "Failed to compile: %s\n"
-                            begin match reason with
-                              | Failed_to_init_vm -> "Could to init VM"
-                              | Compiler_did_not_return_result -> "Compiler did not return a result"
-                              | Compilation_failed_with_error msg -> msg
-                            end;
-                          Sys.remove outputFileName;
-                    end;
-                    exit (compilation_result_to_int exitCode)
-                  with
-                    | _ as e ->
-                        close_in inStream;
-                        close_out outStream;
+
+                  let exitCode =
+                    begin try
+                      compile inputFileName inStream outStream
+                    with _ as e ->
+                      Compilation_failed
+                        (Compilation_failed_with_error
+                           (sprintf "Failed to compile due to unknown exception: %s\n%s\n"
+                              (Printexc.to_string e)
+                              (** returns backtrace of last thrown exception *)
+                              (Printexc.get_backtrace())))
+                    end
+                  in
+
+                  close_in inStream;
+                  close_out outStream;
+
+                  begin match exitCode with
+                    | Compilation_succeeded -> ()
+                    | Compilation_failed reason ->
+                        eprintf "Failed to compile: %s\n"
+                          begin match reason with
+                            | Failed_to_init_vm ->
+                                "Could not init VM"
+                            | Compiler_did_not_return_result ->
+                                "Compiler did not return a result"
+                            | Compilation_failed_with_error msg ->
+                                msg
+                          end;
+                        eprintf "Removing file %s" outputFileName;
                         Sys.remove outputFileName;
-                        eprintf "Failed to compile due to unknow exception\n";
-                        Printexc.print_backtrace stdout;
-                        raise e
+                  end;
+
+                  exit (compilation_result_to_int exitCode)
                 end
             | None ->
                 reportCommandLineArgumentError "Invalid file name. Expected *.zomp"
