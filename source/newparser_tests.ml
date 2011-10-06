@@ -605,42 +605,42 @@ struct
       "#funcName(10)", `Return [expr "opcall" [se1 "antiquote" "funcName"; id "10"]];
 
       (** keyword arguments **)
-      "assert: a != b",
-      `Return [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]];
-      (* "${assert: a != b}", *)
-      (* `Return [expr "quote" [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]]]; *)
+      (* "assert: a != b", *)
+      (* `Return [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]]; *)
+      (* (\* "${assert: a != b}", *\) *)
+      (* (\* `Return [expr "quote" [expr "opkeyword" [id "assert"; se2 "op!=" "a" "b"]]]; *\) *)
 
-      "if: a then: b",
-      `Return [expr "opkeyword" [id "if"; id "a";
-                                 id "then"; id "b"]];
+      (* "if: a then: b", *)
+      (* `Return [expr "opkeyword" [id "if"; id "a"; *)
+      (*                            id "then"; id "b"]]; *)
 
-      "if: a > b then: --b",
-      `Return [expr "opkeyword" [id "if"; se2 "op>" "a" "b";
-                                 id "then"; se1 "preop--" "b"]];
+      (* "if: a > b then: --b", *)
+      (* `Return [expr "opkeyword" [id "if"; se2 "op>" "a" "b"; *)
+      (*                            id "then"; se1 "preop--" "b"]]; *)
 
-      "print errormsg unless: allIsFine()",
-      `Return [expr "opkeyword" [id "default"; jux ["print"; "errormsg"];
-                                 id "unless"; call ["allIsFine"]]];
+      (* "print errormsg unless: allIsFine()", *)
+      (* `Return [expr "opkeyword" [id "default"; jux ["print"; "errormsg"]; *)
+      (*                            id "unless"; call ["allIsFine"]]]; *)
 
-      "if: some cond then: (print x unless: moreCond())",
-      `Return [expr "opkeyword" [id "if";
-                                 jux ["some"; "cond"];
-                                 id "then";
-                                 expr "opkeyword"
-                                   [id "default"; jux ["print"; "x"];
-                                    id "unless"; call ["moreCond"]]]];
+      (* "if: some cond then: (print x unless: moreCond())", *)
+      (* `Return [expr "opkeyword" [id "if"; *)
+      (*                            jux ["some"; "cond"]; *)
+      (*                            id "then"; *)
+      (*                            expr "opkeyword" *)
+      (*                              [id "default"; jux ["print"; "x"]; *)
+      (*                               id "unless"; call ["moreCond"]]]]; *)
 
-      "if: foo:\n" ^
-      "  onTrue\n" ^
-      "else:\n" ^
-      "  onFalse\n" ^
-      "end",
-      `Return [expr "opkeyword"
-                 [id "if";
-                  juxExpr [id "foo";
-                           seqExpr [id "onTrue"];
-                           id "else";
-                           seqExpr [id "onFalse"]]]];
+      (* "if: foo:\n" ^ *)
+      (* "  onTrue\n" ^ *)
+      (* "else:\n" ^ *)
+      (* "  onFalse\n" ^ *)
+      (* "end", *)
+      (* `Return [expr "opkeyword" *)
+      (*            [id "if"; *)
+      (*             juxExpr [id "foo"; *)
+      (*                      seqExpr [id "onTrue"]; *)
+      (*                      id "else"; *)
+      (*                      seqExpr [id "onFalse"]]]]; *)
 
       (* "if: a == b\n  onTrue\nelse\n  onFalse\nend", *)
       (* `Return [expr "opkeyword" *)
