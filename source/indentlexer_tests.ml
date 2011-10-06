@@ -484,9 +484,7 @@ let () =
   let module M = Tester(IndentLexerTestCase) in
   match IndentLexerTestCase.validateTestCases() with
     | None ->
-        let testCount, errorCount, errors = M.runTests() in
-        List.iter M.printError errors;
-        at_exit (fun () -> M.printTestSummary "indentlexer" (testCount, errorCount, errors))
+        M.runTestsAndReport "indentlexer"
     | Some errors ->
         printf "Errors in indentlexer test cases:\n%s\n" errors;
         at_exit (fun () -> printf "Invalid indentlexer test cases, no results\n")

@@ -141,7 +141,7 @@ mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 
 runmltests: mltest
-	@$(ECHO) Running all tests ...
+	@$(ECHO) Running OCaml test suite ...
 	$(OCAMLRUN) -b ./mltest
 
 PROF_COMP_TARGET=metaballs

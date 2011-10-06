@@ -758,7 +758,5 @@ end
 
 let () =
   let module M = Testing.Tester(IndentParserTestCase) in
-  let testCount, errorCount, errors = M.runTests() in
-  List.iter M.printError errors;
-  at_exit (fun () -> M.printTestSummary "indentparser" (testCount, errorCount, errors))
+  M.runTestsAndReport "newparser"
 

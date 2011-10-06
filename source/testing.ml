@@ -41,14 +41,14 @@ module Tester(Cases :CASE_STRUCT) = struct
       expected = expected
     }
 
-  let errorToString error =
+  let errorToString suiteName error =
     Common.combine "" [
-      sprintf "\n--- UnitTest Failure ---\n";
+      sprintf "\n--- %s UnitTest Failure ---\n" suiteName;
       sprintf "Input: '\n"; inputToString error.input; sprintf "'\n";
       sprintf "Expected: '\n"; resultToString error.expected; sprintf "'\n";
       sprintf "Found: '\n"; resultToString error.found; sprintf "'\n" ]
 
-  let printError e = print_string (errorToString e)
+  let printError suiteName e = print_string (errorToString suiteName e)
 
   let runTestCase (input, expected) =
     let found =
@@ -84,8 +84,10 @@ module Tester(Cases :CASE_STRUCT) = struct
 
   let runTestsAndReport name =
     let testCount, errorCount, errors = runTests() in
-    List.iter printError errors;
-    printTestSummary name (testCount, errorCount, errors)
+    List.iter (printError name) errors;
+    at_exit (fun () ->
+               printTestSummary name (testCount, errorCount, errors);
+               flush stdout)
 
   exception UnitTestFailure of error list
 end
