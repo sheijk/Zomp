@@ -261,6 +261,10 @@ exprArgInner:
   { let block, terminators = blockAndT in
     expectNoTerminators terminators;
     expr (quoteId q) [block] }
+| q = QUOTE; blockAndT = block;
+  { let block, terminators = blockAndT in
+    expectNoTerminators terminators;
+    expr (quoteId q) [block] }
 | head = exprArgInner; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
   { expr "postop[]" [head; arg] }
 | head = exprArgInner; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;

@@ -588,15 +588,20 @@ struct
       "ret ${foo bar}", `Return [juxExpr [
                                    id "ret";
                                    expr "quote" [jux ["foo"; "bar"]]]];
-      (* TODO how should this be written? *)
-      (* "ast:print ${\n\ *)
-      (* \  foo bar\n\ *)
-      (* end}", *)
-      (* `Return [juxExpr [ *)
-      (*            id "ast:print"; *)
-      (*            expr "quote" [ *)
-      (*              seqExpr [jux ["foo"; "bar"]] *)
-      (*            ]]]; *)
+
+      "ast:print $:\n\
+      \  foo bar\n\
+      end",
+      `Return [juxExpr [
+                 id "ast:print";
+                 expr "quote" [
+                   seqExpr [jux ["foo"; "bar"]]
+                 ]]];
+
+      "10 +:\n\
+      \  20\n\
+      end",
+      `Return [expr "op+" [id "10"; seqExpr [id "20"]]];
 
       (* "callFunc(#insert)", `Return [callExpr [id "callFunc"; se1 "antiquote" "insert"]]; *)
 
