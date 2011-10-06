@@ -106,7 +106,7 @@ let compile fileName instream outstream =
                preludeDir
            in
            match Compileutils.compileCode bindings input outstream fileName with
-             | Some _ -> Compilation_succeeded
+             | Some () -> Compilation_succeeded
              | None -> Compilation_failed Compiler_did_not_return_result
          end)
         ~onError:(fun msg -> Compilation_failed (Compilation_failed_with_error msg))

@@ -179,9 +179,8 @@ source/runtime.bc source/runtime.ll: source/runtime.c has_llvm_gcc has_llvm
 	$(RM) -f source/runtime.bc source/runtime.orig.ll
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
-# Check for required tools being installed
 has_llvm_gcc:
-	@$(ECHO) Checking if llvm gcc exists ...
+	@$(ECHO) Checking if LLVM-GCC exists ...
 	$(WHICH) $(LLVM_CXX) > /dev/null || (echo "Please install tools/llvm-gcc"; exit 1)
 	$(TOUCH) $@
 has_llvm:

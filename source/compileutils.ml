@@ -59,7 +59,7 @@ let rec compile
     ~readExpr
     ?(beforeCompilingExpr = fun (_:Ast2.sexpr) -> ())
     ~onSuccess
-    ?(onError = fun (_:string) -> ())
+    ~onError
     bindings
     =
   catchingErrorsDo
@@ -74,7 +74,6 @@ let rec compile
              bindings
      end)
     ~onError:(fun msg ->
-                printf "%s" msg;
                 let () = onError msg in
                 compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onError bindings)
 
@@ -85,10 +84,14 @@ exception CouldNotCompile of string
 let raiseCouldNotCompile str = raise (CouldNotCompile str)
 
 let compileCode bindings input outstream fileName =
+  (** TODO: return error(s) instead of printing them *)
   let printError = function
-    | CouldNotParse msg -> eprintf "%s" msg
-    | CouldNotCompile msg -> eprintf "%s" msg
-    | unknownError -> eprintf "Unknown error: %s\n" (Printexc.to_string unknownError); raise unknownError
+    | CouldNotParse msg -> eprintf "error: %s" msg
+    | CouldNotCompile msg -> eprintf "error: %s" msg
+    | CatchedError msg -> eprintf "error: %s" msg
+    | unknownError ->
+        eprintf "error: Unknown error: %s\n" (Printexc.to_string unknownError);
+        raise unknownError
   in
   let parseAndCompile parseF =
     let exprs =
@@ -120,6 +123,7 @@ let compileCode bindings input outstream fileName =
            ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                          Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
                          output_string outstream llvmCode)
+           ~onError:signalError
            bindings)
   in
   tryAllCollectingErrors
@@ -148,7 +152,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
   let zompPreludeFile = dir ^ preludeBaseName ^ ".zomp" in
   let source = Common.readFile zompPreludeFile ^ appendSource in
   let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  let lexstate = Indentlexer.lexbufFromString zompPreludeFile source in
   let lexFunc lexbuf =
     let r = Indentlexer.token lexstate in
     let loc = Indentlexer.locationOfLexstate lexstate in
@@ -174,6 +178,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
                     processExpr expr oldBindings newBindings simpleforms llvmCode)
+      ~onError:(fun msg -> signalError msg)
       Genllvm.defaultBindings
   in
   newBindings
