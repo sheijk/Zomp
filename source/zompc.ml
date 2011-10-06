@@ -244,7 +244,6 @@ let () =
                             | Compilation_failed_with_error msg ->
                                 msg
                           end;
-                        eprintf "Removing file %s" outputFileName;
                         Sys.remove outputFileName;
                   end;
 
