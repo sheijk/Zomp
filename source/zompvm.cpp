@@ -848,7 +848,7 @@ extern "C" {
   int ptrToCamlInt(void* ptr) {
     int addr = bitcast<int>( ptr );
 
-    if( addr & 0x8000 != 0 ) {
+    if( ( addr & 0x8000 ) != 0 ) {
       printf( "Warning: address has highest bit set, replaced with 0" );
       fflush( stdout );
       exit( 123 );
