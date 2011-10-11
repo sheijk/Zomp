@@ -42,7 +42,7 @@ include libs/makefile
 include examples/makefile
 include examples/smallpt/makefile
 
-PATH := $(LLVM_BIN_DIR):$(LLVM_GCC_BIN_DIR):$(PATH)
+PATH := $(LLVM_BIN_DIR):$(PATH)
 
 CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS = -I /usr/local/lib/ocaml/ $(ARCHFLAG)
@@ -69,7 +69,7 @@ endif
 .PHONY: all libbindings byte native
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
-    mltest source/zompvm_dummy.o has_llvm_gcc has_llvm
+    mltest source/zompvm_dummy.o has_llvm has_clang
 libbindings: source/gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
     libs/glfw.zomp libs/glut.zomp libs/libglut.dylib libs/quicktext.zomp \
     libs/libquicktext.dylib libs/libutils.dylib
@@ -87,9 +87,9 @@ LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: source/zompvm.h source/zomputils.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll has_llvm_gcc
+dllzompvm.so: source/zompvm.h source/zomputils.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll has_clang
 	@$(ECHO) Building $@ ...
-	$(LLVM_CXX) $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm.cpp -o source/zompvm.o
+	$(CLANG) -std=c++98 $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm.cpp -o source/zompvm.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
@@ -171,21 +171,23 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-source/runtime.bc source/runtime.ll: source/runtime.c has_llvm_gcc has_llvm
+source/runtime.bc source/runtime.ll: source/runtime.c has_llvm has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
-	$(LLVM_CC) --emit-llvm -c $< -o source/runtime.bc
+	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
 	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
-	($(SED) 's/nounwind//' | $(SED) 's/readonly//') < source/runtime.orig.ll > source/runtime.ll
+	($(SED) 's/nounwind//' | $(SED) 's/readonly//' | $(SED) 's/ssp//') < source/runtime.orig.ll > source/runtime.ll
 	$(RM) -f source/runtime.bc source/runtime.orig.ll
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
-has_llvm_gcc:
-	@$(ECHO) Checking if LLVM-GCC exists ...
-	$(WHICH) $(LLVM_CXX) > /dev/null || (echo "Please install tools/llvm-gcc"; exit 1)
-	$(TOUCH) $@
-has_llvm:
+LLVM_INSTALL_HELP = "You do not have LLVM and clang installed. Please run make	\
+tools/llvm-$(LLVM_VERSION) to download and build them (requires an internet		\
+connection of course). Note that at least on Mac OS X you cannot use the		\
+prebuilt libraries as they are 64-bit"
+
+has_llvm: has_clang
+has_clang:
 	@$(ECHO) Checking if LLVM exists ...
-	$(WHICH) $(LLVM_AS) > /dev/null || (echo "Please install llvm/llvm-$(LLVM_VERSION)"; exit 1)
+	($(WHICH) -s $(LLVM_AS) && $(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
 
 ################################################################################
@@ -275,20 +277,26 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 
 LLVM_VERSION=2.9
 
-tools/llvm-$(LLVM_VERSION).tar.gz:
+tools/clang-$(LLVM_VERSION).tgz:
 	@$(ECHO) Downloading $@ ...
 	mkdir -p tools
-	curl http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tar.gz -o $@ -s -S
+	curl "http://llvm.org/releases/$(LLVM_VERSION)/clang-$(LLVM_VERSION).tgz" -o $@ -s -S
 
-tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tar.gz
-	@$(ECHO) Unpacking $@ ...
-	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tar.gz | tar -xvf -
+tools/llvm-$(LLVM_VERSION).tgz:
+	@$(ECHO) Downloading $@ ...
+	mkdir -p tools
+	curl http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tgz -o $@ -s -S
+
+tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tgz tools/clang-$(LLVM_VERSION).tgz
+	@$(ECHO) Unpacking LLVM and clang ...
+	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tgz | tar -xf -
+	cd tools && gunzip --stdout clang-$(LLVM_VERSION).tgz | tar -xf - -C $(LLVM_BASE_DIR)/tools
+	mv $(LLVM_BASE_DIR)/tools/clang-$(LLVM_VERSION) $(LLVM_BASE_DIR)/tools/clang
 	$(TOUCH) $@ # tar sets date from archive. avoid downloading the archive twice
-	@$(ECHO) Configuring LLVM $(LLVM_VERSION)
+	@$(ECHO) Configuring LLVM $(LLVM_VERSION) and clang ...
 	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
+	@$(ECHO) Building LLVM $(LLVM_VERSION) and clang ...
 	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
-	@$(ECHO) Linking $@ to tools/llvm-$(LLVM_VERSION)
-	ln -s llvm-$(LLVM_VERSION) $@
 
 tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
@@ -412,7 +420,7 @@ clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
 	$(RM) -f perflog.txt
 	$(RM) -f mltest
 	$(RM) -f libs/libutils.dylib
-	$(RM) -f has_llvm has_llvm_gcc
+	$(RM) -f has_llvm has_clang
 	$(RM) -f gmon.out
 
 clean_tags:

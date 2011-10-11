@@ -36,15 +36,8 @@ LLVM_BASE_DIR = $(ZOMP_TOOL_PATH)/llvm-$(LLVM_VERSION)
 LLVM_BIN_DIR = $(LLVM_BASE_DIR)/$(LLVM_VARIANT)/bin
 LLVM_INCLUDE_DIR = $(LLVM_BASE_DIR)/include
 LLVM_LIB_DIR = $(LLVM_BASE_DIR)/$(LLVM_VARIANT)/lib
-LLVM_GCC_BIN_DIR = $(ZOMP_TOOL_PATH)/llvm-gcc/bin
-# LLVM_GCC_BIN_DIR = /usr/bin
-
-LLVM_GCC = $(LLVM_GCC_BIN_DIR)/llvm-gcc
-LLVM_GXX = $(LLVM_GCC_BIN_DIR)/llvm-g++
 
 LLVM_CONFIG = $(LLVM_BIN_DIR)/llvm-config
-LLVM_CC = $(LLVM_GCC_BIN_DIR)/llvm-gcc
-LLVM_CXX = $(LLVM_GCC_BIN_DIR)/llvm-g++
 LLVM_DIS = $(LLVM_BIN_DIR)/llvm-dis
 LLVM_AS = $(LLVM_BIN_DIR)/llvm-as
 LLVM_LLI = $(LLVM_BIN_DIR)/lli
@@ -52,6 +45,9 @@ LLVM_LD = $(LLVM_BIN_DIR)/llvm-ld
 LLVM_LLVMC = $(LLVM_BIN_DIR)/llvmc
 LLVM_LLC = $(LLVM_BIN_DIR)/llc
 LLVM_OPT = $(LLVM_BIN_DIR)/opt
+
+CLANG = $(LLVM_BIN_DIR)/clang
+CLANGXX = $(LLVM_BIN_DIR)/clang++
 
 ################################################################################
 # Shell tool binaries
@@ -80,8 +76,8 @@ CONVERT_IMAGE = convert
 # Native tool chain (C/C++/Assembler/Linker/...) binaries
 ################################################################################
 
-CC = gcc
-CXX = g++
+CC = $(CLANG) -std=c89
+CXX = $(CLANGXX)
 AS = as
 LD = ld
 

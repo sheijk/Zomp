@@ -10,15 +10,16 @@
         abort();                                                        \
     }
 
-inline int ptrToInt(void* ptr) {
-    int int32_handle = (int)(intptr_t)ptr;
-    ZMP_ASSERT((intptr_t)int32_handle == (intptr_t)ptr,
-               printf("32-bit: %p, 64-bit: %p\n",
-                      (void*)(intptr_t)int32_handle,
-                      ptr);
-               );
-    return int32_handle;
-}
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Stuff defined in runtime.c
+int ptrToInt(void* ptr);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif
 // end of ZOMPUTILS_H_2009_09_27_INCLUDED

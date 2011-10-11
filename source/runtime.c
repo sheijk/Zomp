@@ -222,3 +222,18 @@ int zompFileModificationTimestamp(const char* filename)
 /*         _webkitAvailable = [webKitBundle load]; */
 /*     } */
 
+//------------------------------------------------------------------------------
+//- from zomputils.h
+
+int ptrToInt(void* ptr)
+{
+    int int32_handle = (int)(intptr_t)ptr;
+    ZMP_ASSERT((intptr_t)int32_handle == (intptr_t)ptr,
+        printf("32-bit: %p, 64-bit: %p\n",
+            (void*)(intptr_t)int32_handle,
+            ptr);
+        );
+    return int32_handle;
+}
+
+
