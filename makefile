@@ -29,6 +29,9 @@ help:
 	@$(ECHO) "BUILD_PLATFORM = $(BUILD_PLATFORM)"
 	@$(ECHO) "LLVM_EXTRA_OPTIONS = $(LLVM_EXTRA_OPTIONS)"
 	@$(ECHO) "ZOMP_MAIN_MAKEFILE = $(ZOMP_MAIN_MAKEFILE)"
+ifneq "$(PRINT_VAR)" ""
+	@$(ECHO) "$(PRINT_VAR) = " $($(PRINT_VAR))
+endif
 
 ZOMP_TOOL_PATH = $(PWD)/tools
 include config.mk
