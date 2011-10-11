@@ -2,10 +2,7 @@
  * A simple OpenGL example
  */
 
-require "libs/libcee.zomp"
-require "libs/opengl20.zomp"
-require "libs/glfw.zomp"
-require "libs/glutils.zomp"
+requireLibs libcee opengl20 glfw glutils
 
 var int windowWidth 400
 var int windowHeight 300
