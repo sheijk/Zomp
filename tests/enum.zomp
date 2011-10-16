@@ -1,5 +1,6 @@
 ///
 /// A simple way to define enums
+/// TODO: syntax to initialize global structs
 ///
 
 requireLibs libcee
@@ -8,7 +9,6 @@ macro enum name fields:
   code := ${seq:
     type #name:
       int value
-      // int dummy_wtf
     end
   end}
 
