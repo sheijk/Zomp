@@ -43,6 +43,10 @@ language might be used. Should guide the syntax related decisions.
 
    select from: list where: pred sortBy: desc
 
+** sql/select
+
+   select x, y from table where x > y
+   
 ** Smalltalk style?
 
    tree
@@ -654,7 +658,7 @@ Possible solution:
 print foo.size() 10 <=> (print (foo.size) 10)
 print foo.size 10 <=> (print foo.size 10)
 
-* TODO s-expressions versus m-expressions
+* DONE s-expressions versus m-expressions
 
 m(expr, es, sion)
 (s expr es sion)
@@ -742,7 +746,7 @@ end
    foo (a) b <=> error
    foo(a, b) c <=> error
 
-** TODO A grammar
+** DONE A grammar
 Needs work: specify completely, build experimental version in menhir
 
 list<element> ::=
@@ -836,3 +840,296 @@ foreach i in subdirs(currentDir)
   // if <. foo bar .foo>
 
 
+
+
+* more extensions
+** TODO possible template syntax
+   :PROPERTIES:
+   :ID:       786D599C-88BF-45D2-AF26-938FD063757F
+   :END:
+    func void genericprogr()
+
+      list<!int,string>
+
+      more alternatives:
+      list(<int>) ints
+      list<(int)> ints
+      map<(int,string)> ints
+      list[int] ints
+      map[int,string] foo
+      list[[int,string] ] ints
+      list</int,string/>
+      list<.int,string.>
+      list.<int,string>.
+      list<:int,string:>
+      list[:int,string:]
+      list(/int,string/)
+      list[/int,string/]
+      list!(int,string)
+      list!<int,string>
+      list<!int,string!>
+      list<<int,string>>
+      list<_int,string_>
+      list(_int,string_)
+      list`(int,string)
+      list§int,string§
+      list!int,string!
+      list@(int,string)
+      list$(int,string)
+      list^(int,string)
+    end
+
+    more:
+   func void print<Printable P>(P p) vs. print(Printable[P] p)
+
+   func P add<Number P>(P l, P r) vs. Number[P] add(P l, P r)
+
+   add :: Number P => (P, P)->P
+   add(l, r) = ..
+
+   func N add(N l, N r) where Number N
+
+   func<Number N> N add(N l, N r) // schick
+** TODO [#A] doch benutzerdefinierbare syntax?
+   :PROPERTIES:
+   :ID:       C6C18821-4C95-486D-966C-ECEE1FB59DA6
+   :END:
+
+   anfang + ende definiert durch ein token
+   ende definiert durch indent level?
+   tokens koennen in namespaces leben
+
+   matches = zomp.db.sql
+     SELECT foo, bar FROM WHERE foo > bar
+
+   zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >>
+
+** TODO [#A] reconsider the syntax
+   :PROPERTIES:
+   :ID:       EF1B4852-51F9-4619-AB4D-C5EC63F20A1A
+   :END:
+   explicitly state goals! :)
+
+   idee:
+   - jux has highest prio
+   - comma operator
+   - jux a b
+     - function call if a is a function name or function ptr name
+     - expand macro if a is a macro name
+     - else expand macro + see if expanded a resolves to a function
+
+   sin x + 3 cos y * 2
+   =>
+   (inf+
+     (jux sin x)
+     (inf*
+       (jux 3 cos y)
+       2))
+
+   if: condition() then: ...
+   if condition() then ...
+   if (condition()) then ...
+
+   for i in min() to max() do ...
+   for i in (min()) to (max()) do ...
+   for: i in: min() to: max() do: ...
+
+   while x + foo() > 10 do ...
+   while (x + foo() > 10) do ...
+   while: x + foo() > 10 do: ...
+
+   make even layout optional?
+
+** TODO [#A] casting syntax
+   :PROPERTIES:
+   :ID:       67A5E1ED-F5BB-4BB8-926F-D248B751E1A1
+   :END:
+
+   obj.to(Printer).println("10".to int)
+
+** TODO [#A] regexp syntax #/foo/bar/
+   :PROPERTIES:
+   :ID:       4FEB9911-68A8-442E-9B6A-E30CDBFA5EE1
+   :END:
+   #c, means use c as seperator
+   for c != char, num, paren
+
+   allow prefix for strings like
+   L"foobar"
+   utf8"some string with umlauts"
+   re"[a-z]+"
+   textVar.replace re"func ([:type:]) ([a-z]+)" "\1 \2"
+
+** TODO [#A] type expression syntax
+   :PROPERTIES:
+   :ID:       6201FE0B-A81E-4FD6-82DA-95513AE47948
+   :END:
+
+   int[]*                   - pointer to int array
+   int*[]                   - array to int pointers
+   int, float               - pair of int and float
+   float -> int             - int f(float)
+   int, float -> char       - char f(int, float)
+   (int,int), float -> char - char f(pair(int,int), float)
+
+   Optional:
+   [int] - list of ints
+   {int} - set of ints
+
+** TODO [#A] syntax for type definitions
+   :PROPERTIES:
+   :ID:       99D4EE2B-740A-47EA-AD27-EA20E42BA701
+   :END:
+   print(struct{ int a, b, c } pt)
+   print(struct( int a, b, c) pt)
+   print(struct.{ int a, b c; } pt)
+   print({int a, b, c} pt)
+
+   type foo := { int a, b, c }
+   type foo is int
+   type foo is { int a, b, c }
+** TODO [#A] parenthesis syntax
+   :PROPERTIES:
+   :ID:       D1F9699B-62DB-4667-A99B-D38E8B8F0B22
+   :END:
+   allow any combination of \[([{\]\[.|/-=+*!?\] and inverse as parens?
+   <, > only for operators, never brackets
+
+   max := (T l -> T r) where Comparable<T>
+     ...
+
+   max :: Comparable T => T -> T -> T
+   max l r
+     ...
+
+   max :: Comparable T => T, T => T
+   max l r
+     ...
+
+   func T fold<Container Seq, BinOp Op>(Seq s, Op o, T init) where (T = Container:T = Op:T)
+
+   func mult(mat4f m, vec4f v)->vec4f
+   func<Comparable T> max(T l, T r)->T
+   func<Comparable T> max(T l, T r)->T where Comparable<T>
+   func max<Comparable T>(T l, T r)->T
+   func<T> max(T l, T r)->T where Comparable<T>
+   func<Seq, BinOp> fold(Seq sequence, BinOp op, T initial)->T where (T = Container:T = BinOp:T)
+
+   func<Seq, BinOp, T> fold(Seq seqünce, BinOp op, T initial) where
+     T = Seq:T, T = BinOp:T
+   do
+     ...
+
+   func mult(mat4f m, vec4f v)->vec4f do
+     ...
+   
+   func max(l, r) : Comparable T => T->T->T
+
+   func<Comparable T> max(T l, T r) => T
+
+   func plus<Addable T1 T2>
+   plus(T1 l, T2 r) where Addable<T1,T2> => Addable<T1,T2>:ResultT
+
+   plus<T1,T2> T1 T2 => Addable<T1,T2>:ResultT where (Addable T1 T2)
+   func plus(l, r)
+
+   some possibly syntaxes
+   [| foo |]
+   [/ foo, bar /]
+   <( foo, bar )>
+   (< foo, bar >)
+   (. foo, bar .)
+   (/ foo, bar /)
+   </ foo, bar />
+   {/ foo, bar /}
+   <foo> </bar>
+   <- ->
+   <* *>
+   <+ foo, bar +>
+
+   :(: foo bar :):
+
+** TODO approaches to lambdas
+   :PROPERTIES:
+   :ID:       CA23B71A-D9D8-495F-B844-71C5864F41E4
+   :END:
+*** juxtaposition to pass block as parameter-less function argument
+
+    fn times_do(int count, void() action)
+
+    10.times_do { print xxx }
+
+*** syntax for lambdas
+
+    (int x, y) => { print x; print y }
+
+    10.times_do (int i)=>{ ... }
+    10.times_do (int i){ ... }
+    10.times_do {(int i); ... }
+    10.times_do ^(int i){ ... }
+    10.times_do ^{(int i); ... }
+    10.times_do { int i => ... }
+
+    10.times_do:
+      ...
+    end
+
+    10.times_do:
+      (int i)
+      ...
+    end
+
+    10.times_do:
+      ^(int i)
+      ...
+    end
+
+    10.times_do ^(int i):
+      ...
+    end
+
+    10.times_do: { |int i| ... }
+    10.times_do:
+      |int i|
+      ...
+    end
+
+    (int x, int y) =>:
+      print stuff
+    end
+
+*** more syntax
+
+(:= negVals (map vals (fn (int (int a)) (print 1) (- a))))
+(:= negVals (map vals (fn (int (int a)):
+  print 1
+  -a
+end)))
+
+negVals := map vals (fn int(int a) (print 1; -a))
+negVals := map vals (fn int(int a):
+  print 1
+  -a
+end)
+
+negVals := map vals { int(int a) => print 1; -a }
+negVals := map vals { int(int a) =>:
+  print 1
+  -a
+end}
+
+int(int a).(print 1; -a)
+
+negVals := vals.map int(int x) { -x }
+negVals := vals.map ^(int x) { -x }
+negVals := vals.map ^{ x => -x }
+negVals := vals.map (fn int(int a) { -x })
+negVals := vals.map { int(int a); -x }
+negVals := vals.map { int a |: -a }
+negVals := vals.map -_1
+
+int(int a, int b):
+  print x
+end
+
+    
