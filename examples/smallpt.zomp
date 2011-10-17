@@ -45,11 +45,11 @@ struct Sphere:
   Refl refl
 end
 
-macro hasType var type:
+macro hasType thevar type:
   uniqueId tmp "hasType"
   ret ${seq:
     #tmp := nullptr #type
-    #tmp = &#var
+    #tmp = &#thevar
   end}
 end
 
@@ -261,7 +261,7 @@ dfunc size_t fwrite(void* ptr, size_t size, size_t count, FILE* file)
 
 func void fwrite_cstring(FILE* file, cstring str):
   fwrite(cast void* str, 1, strlen str, file)
-  ret void
+  return
 end
 
 func void fwrite_int(FILE* file, int num):
@@ -272,7 +272,7 @@ end
 
 func void fwrite_newline(FILE* file):
   fwrite(cast void* "\n", 1, 1, file)
-  ret void
+  return
 end
 
 func void fwrite_v3f(FILE* file, v3f v):

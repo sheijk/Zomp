@@ -71,7 +71,7 @@ func void onWindowResize(int newWidth, int newHeight):
   glfwGetWindowSize &windowWidth &windowHeight
 
   TwWindowSize(newWidth, newHeight)
-  ret void
+  return
 end
 
 macro doTrace sectionName code:

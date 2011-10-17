@@ -314,7 +314,7 @@ func void onWindowResize(int newWidth, int newHeight):
   glfwGetWindowSize &windowWidth &windowHeight
 
   TwWindowSize(newWidth, newHeight)
-  ret void
+  ret
 end
 
 func void onTweakbarError(char* msg):

@@ -433,11 +433,12 @@ macro onFunctionEnd:
 end
 
 macro return expr...:
-  retval := nullptr ast
+  retCode := nullptr ast
   if (getField expr childCount == 1):
-    retval = ast:child(expr, 0)
+    retval := ast:child(expr, 0)
+    retCode = ${std:base:ret #retval}
   elseif (getField expr childCount == 0):
-    retval = ${void}
+    retCode = ast:fromString("std:base:ret")
   else:
     std:base:ret ${error "return expects one or zero arguments" #expr}
   end
@@ -449,17 +450,23 @@ macro return expr...:
     ast:addChild code getField(current,ast)
     current = getField current next
   end
-  ast:addChild code ${std:base:ret #retval}
+  ast:addChild code retCode
   std:base:ret code
 end
 
-macro ret expr:
+macro ret expr...:
   if (cast void* cee:internal:onReturnCleanupCode !=_ptr nullptr void):
     std:base:ret ${error "You can only return from functions using onReturn with return, ret is illegal" #expr}
   end
+
+  retcode := ${std:base:ret}
+  forEachAstChild e expr:
+    ast:addChild retcode e
+  end
+
   std:base:ret ${seq:
     onFunctionEnd
-    std:base:ret #expr
+    #retcode
   end}
 end
 

@@ -742,7 +742,6 @@ func void FilterEffect:bind(FilterEffect* this):
 end
 
 func void FilterEffect:unbind(FilterEffect* this):
-  void
   // glUseProgram 0
 end
 

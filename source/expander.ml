@@ -1057,8 +1057,12 @@ struct
           let _, form, toplevelExprs = translateToForms env.translateF env.bindings expr in
           Result (env.bindings, toplevelExprs @ [`Return form])
         end
+    | { args = [] } ->
+      begin
+        Result (env.bindings, [`Return (`Constant VoidVal)])
+      end
     | expr ->
-        Error [sprintf "Expected only one argument instead of %d" (List.length expr.args)]
+        Error [sprintf "Expected zero or one argument instead of %d" (List.length expr.args)]
 
   let translateLabel (env :exprTranslateF env) expr =
     match expr.args with

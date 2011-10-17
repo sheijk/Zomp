@@ -283,7 +283,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
   in
-  let void argVarNames = "" in
   let compareIntrinsic typ name cond =
     let instruction =
       match typ with
@@ -376,7 +375,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       twoArgIntrinsic "u32:shl" "shl" `Int32;
       twoArgIntrinsic "u32:lshr" "lshr" `Int32;
       twoArgIntrinsic "u32:ashr" "ashr" `Int32;
-      "void", `Intrinsic void, `Void, [];
 
       convertIntr "float:toInt" "fptosi" `Float `Int32;
       convertIntr "int:toFloat" "sitofp" `Int32 `Float;
@@ -909,19 +907,23 @@ let gencodeAssignVar gencode var expr =
   in
   returnCombi (noVar, comment ^ rval.gcrCode ^ "\n\n" ^ assignCode, [rval.gcrFirstBBCode])
 
-let gencodeReturn gencode expr =
-  let expr = gencode expr in
-  let comment = sprintf "; return %s\n\n" expr.gcrVar.rvtypename in
-  let isValueType name = String.length name > 0 && name <> "void" in
-  let retCode =
-    if isValueType expr.gcrVar.rvtypename then
-      sprintf "ret %s %s\n\n" expr.gcrVar.rvtypename expr.gcrVar.rvname
-    else
-      sprintf "ret void\n\n"
-  in
-  returnCombi (noVar,
-               comment ^ expr.gcrCode ^ "\n\n" ^ retCode,
-               [expr.gcrFirstBBCode])
+let gencodeReturn gencode (expr :Lang.form) =
+  match expr with
+    | `Constant VoidVal ->
+      returnCombi (noVar, sprintf "ret void\n\n", [])
+    | _ ->
+      let expr = gencode expr in
+      let comment = sprintf "; return %s\n\n" expr.gcrVar.rvtypename in
+      let isValueType name = String.length name > 0 && name <> "void" in
+      let retCode =
+        if isValueType expr.gcrVar.rvtypename then
+          sprintf "ret %s %s\n\n" expr.gcrVar.rvtypename expr.gcrVar.rvname
+        else
+          sprintf "ret void\n\n"
+      in
+      returnCombi (noVar,
+                   comment ^ expr.gcrCode ^ "\n\n" ^ retCode,
+                   [expr.gcrFirstBBCode])
 
 let gencodeJump label =
   let code = sprintf "br label %%%s\n\n" label.lname in
@@ -1090,12 +1092,7 @@ let gencodeDefineFunc func =
           | `Return form ->
               `Sequence [
                 `StoreIntrinsic (`Variable retvalVar, form);
-                `Return (`FuncCall { fcname = "void";
-                                     fcrettype = `Void;
-                                     fcparams = [];
-                                     fcargs = [];
-                                     fcptr = `NoFuncPtr;
-                                     fcvarargs = false })]
+                `Return (`Constant VoidVal)]
           | other -> other (** TODO: correctly transform everything *)
         in
         let impl =

@@ -350,10 +350,6 @@ macro const type name default:
   std:base:ret ${var #type #name #default}
 end
 
-macro ret expr:
-  std:base:ret ${std:base:ret #expr}
-end
-
 ///-----------------------------------------------------------------------------
 /// Section: control flow
 ///-----------------------------------------------------------------------------
@@ -364,7 +360,7 @@ macro while test body...:
   uniqueId goon "while_body"
   uniqueId testVar "while_testvar"
 
-  ret ${seq:
+  std:base:ret ${seq:
     var bool #testVar true
     label #begin
     assign #testVar (#test)
@@ -377,7 +373,7 @@ macro while test body...:
 end
 
 macro for index min supremum code:
-  ret ${seq:
+  std:base:ret ${seq:
     var int #index #min
 
     while (u32:sless #index #supremum):
@@ -399,11 +395,11 @@ macro when test onTrue:
     #onTrue
     label #endLabel
   end}
-  ret result
+  std:base:ret result
 end
 
 macro unless test onFalse:
-  ret ${when bool:not(#test):
+  std:base:ret ${when bool:not(#test):
     #onFalse
   end}
 end
@@ -457,7 +453,7 @@ macro if cond onTrue remArgs...:
 
   ast:addChild code ${label #endLabel}
 
-  ret code
+  std:base:ret code
 end
 
 /// execute code for each node of ast
@@ -465,13 +461,21 @@ macro forEachAstChild childVar tree code:
   uniqueId count "count"
   uniqueId index "index"
 
-  ret ${seq:
+  std:base:ret ${seq:
     const int #count (getField #tree childCount)
     for #index 0 #count:
       const (ptr ast) #childVar (ast:child #tree #index)
       #code
     end
   end}
+end
+
+macro ret expr...:
+  var2 retcode ${std:base:ret}
+  forEachAstChild e expr:
+    ast:addChild retcode e
+  end
+  std:base:ret retcode
 end
 
 /// A template is like a macro but is defined in another way.

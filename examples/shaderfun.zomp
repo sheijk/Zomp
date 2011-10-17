@@ -118,7 +118,6 @@ func void reopenWindow():
   glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
   glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
   glfwSetWindowPos 100 1400
-  ret void
 end
 
 // avoid writing it over and over, part of utils lib

@@ -346,7 +346,7 @@ end
 
 func void Mesh:showNormals(Mesh* this):
   if (isNull this.normals):
-    ret void
+    ret
   end
 
   vertex := cast float* (this*.positions)*.data
