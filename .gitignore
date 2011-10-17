@@ -125,3 +125,4 @@ tools
 /has_llvm_gcc
 /tests/*.exe
 /has_clang
+/testsuite/prelude_is_valid

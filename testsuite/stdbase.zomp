@@ -1,0 +1,38 @@
+///
+/// Tests for base language constructs
+///
+
+requireLibs unittest
+
+var int globalTestValue 0
+
+std:base:func void setTestValueTo1():
+  globalTestValue = 1
+  std:base:ret
+  globalTestValue = 666
+end
+
+std:base:func int setTestValueTo(int i):
+  var int oldValue globalTestValue
+  globalTestValue = i
+  std:base:ret oldValue
+  globalTestValue = 666
+  std:base:ret 999
+end
+
+unittest:testCase name:
+  setTestValueTo1()
+  unittest:assert (globalTestValue == 1)
+
+  setTestValueTo(10)
+  unittest:assert (globalTestValue == 10)
+
+  var int shouldBeTen setTestValueTo(17)
+  unittest:assertAll:
+    globalTestValue == 17
+    shouldBeTen == 10
+  end
+end
+
+unittest:main
+
