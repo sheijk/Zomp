@@ -3,6 +3,8 @@
  */
 
 requireLibs libcee array
+requireLibs opengl20 glfw glutils glut
+requireLibs assimp math mathvis spaceballcam anttweakbar
 
 func bool isQuoted(cstring text):
   len := strlen text
@@ -28,36 +30,6 @@ func cstring unquote(cstring quoted):
 
   ret quoted
 end
-
-func cstring qualifyLibName(cstring name):
-  ret cstring:quote("libs/" ++ unquote name ++ ".zomp")
-end
-
-macro require firstLibOrType libs...:
-  var ast* code ${}
-
-  if isQuoted(firstLibOrType.id):
-    ast:addChild code ${zmpx:lib:requireLib #firstLibOrType}
-
-    forEachAstChild lib libs:
-      ast:addChild code ${zmpx:lib:requireLib #lib}
-    end
-  else:
-    if (firstLibOrType.id ==_str "lib"):
-      forEachAstChild libName libs:
-        qualifiedName := qualifyLibName libName.id
-        ast:addChild code ${zmpx:lib:requireLib #qualifiedName}
-      end
-    else:
-      ret ${error firstLibOrType "Expected either quoted file name or 'lib'"}
-    end
-  end
-
-  ret code
-end
-
-requireLibs opengl20 glfw glutils glut
-require lib "assimp" "math" "mathvis" "spaceballcam" "anttweakbar"
 
 var int windowWidth 400
 var int windowHeight 300
@@ -205,7 +177,7 @@ end
 // from libstdc
 func int rand()
 
-func int random (int max):
+func int random(int max):
   ret int:srem(rand(), max)
 end
 
@@ -656,7 +628,7 @@ func int main():
     end
   end
 
-  Mesh:print mesh
+  Mesh:print mesh 0
   println "  surface area = " surfaceArea(mesh)
   Mesh:define points ((mesh.positions)*.size * 100):
     gl_Position GL_FLOAT 3

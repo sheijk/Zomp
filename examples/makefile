@@ -10,7 +10,7 @@ examples/clean:
 	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o
 
 EXAMPLES = \
-  billboardmix.zomp cee.zomp fib.zomp instrument.zomp lighting.zomp \
+  cee.zomp fib.zomp instrument.zomp lighting.zomp \
   metaball2d.zomp metaballs.zomp opengl.zomp shaderfun.zomp tweakbar.zomp \
   using_assimp.zomp smallpt.zomp
 
@@ -52,10 +52,10 @@ examples/utilsdemo.exe: override LIBS = $(ZOMP_STDLIBS) $(LINK_CPPSTDLIB) $(LINK
 ################################################################################
 
 examples/cee.ll: libs/libcee.zomp
-examples/metaballs.zomp: libs/libcee.zomp opengl20.zomp glfw.zomp glut.zomp quicktext.zomp libs/glutils.zomp
-examples/opengl.ll: libs/libcee.zomp opengl20.zomp glfw.zomp libs/glutils.zomp
-examples/shaderfun.ll: opengl20.zomp glfw.zomp libs/glutils.zomp glut.zomp quicktext.zomp libs/libcee.zomp
-examples/using_assimp.zomp: libs/libcee.zomp opengl20.zomp glfw.zomp libs/glutils.zomp
+examples/metaballs.zomp: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glut.zomp libs/quicktext.zomp libs/glutils.zomp
+examples/opengl.ll: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
+examples/shaderfun.ll: libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp libs/glut.zomp libs/quicktext.zomp libs/libcee.zomp
+examples/using_assimp.zomp: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
 
 ################################################################################
 # Rules
@@ -66,7 +66,7 @@ examples/using_assimp.zomp: libs/libcee.zomp opengl20.zomp glfw.zomp libs/glutil
 
 examples/%.ll: examples/%.zomp $(ZOMPC) has_llvm
 	$(ECHO) Compiling $(<) to .ll...
-	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
+	$(ZOMPC) -c $< $(ZOMPCFLAGS)
 
 examples/%.bc: examples/%.ll prelude.zomp source/runtime.c
 	echo Compiling $< to $@

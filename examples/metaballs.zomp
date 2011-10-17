@@ -2,15 +2,9 @@
  * Nearly metaballs
  */
 
-require "libs/libcee.zomp"
-
-require "libs/opengl20.zomp"
-require "libs/glfw.zomp"
-require "libs/glut.zomp"
-require "libs/quicktext.zomp"
-require "libs/glutils.zomp"
-require "libs/spaceballcam.zomp"
-require "libs/array.zomp"
+requireLibs libcee
+requireLibs opengl20 glfw glut glutils
+requireLibs quicktext spaceballcam array
 
 //------------------------------------------------------------------------------
 // Improved unit tests

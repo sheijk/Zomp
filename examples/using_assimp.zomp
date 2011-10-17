@@ -2,11 +2,12 @@
  * Example demonstrating the use of the assimp library to load 3d scenes
  */
 
-require "libs/opengl20.zomp" "libs/glfw.zomp" "libs/glutils.zomp"
-require "libs/libcee.zomp"
-require "libs/assimp.zomp"
-require "libs/mesh.zomp"
-require "libs/math.zomp" "libs/mathvis.zomp"
+requireLibs opengl20
+requireLibs glfw glutils libcee
+requireLibs math
+requireLibs mathvis
+requireLibs mesh
+requireLibs assimp
 
 /// no hard aborts on assertion errors, please :) + print better messages
 macro assert testCode:
@@ -186,7 +187,7 @@ func int main():
   if ((mesh.streams)*.size < 40):
     Mesh:printDetailed mesh
   else:
-    Mesh:print mesh
+    Mesh:print mesh 0
   end
 
   maxRunTime := 2.0

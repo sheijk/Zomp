@@ -3,7 +3,6 @@
 
 !verify off
  */
-!syntax indent
 
 macro uniqueIds purpose ids...:
   var ast* code ${seq}
@@ -18,7 +17,7 @@ end
 macro for2 counter in first to last body...:
   uniqueIds "for" start continue exit testVar
 
-  mret ${seq:
+  ret ${seq:
     var int #counter #first
     label #start
     var bool #testVar (#counter <= #last)

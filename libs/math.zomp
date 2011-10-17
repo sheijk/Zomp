@@ -87,7 +87,7 @@ struct v3f:
 end
 
 func v3f mv3f(float x, float y, float z):
-  ret (structlit v3f x x y y z z)
+  return (structlit v3f x x y y z z)
 end
 
 func void v3f:print(v3f this):

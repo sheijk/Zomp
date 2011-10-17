@@ -4,7 +4,7 @@
 !verify off
  */
 
-require libcee math opengl20
+requireLibs libcee math opengl20
 
 type degree float
 
