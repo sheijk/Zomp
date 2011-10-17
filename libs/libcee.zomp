@@ -506,7 +506,7 @@ end
 
 macro func args...:
   if (getField args childCount > 3 || getField args childCount < 2):
-    ret ${error "Expected 'func rettype name(param list..) impl?"}
+    ret ${error "Expected 'func rettype name(param list..) impl?" #args}
   end
 
   rettype := ast:child args 0

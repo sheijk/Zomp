@@ -1422,21 +1422,27 @@ struct
            | [], _ ->
                failwith "too many argument types in translateFuncCall")
       in
-      let x = evalArgs args argTypes in
-      let toplevelForms, argForms = flattenLeft x in
-      let funccall = `FuncCall {
-        fcname = name;
-        fcrettype = rettype;
-        fcparams = argTypes;
-        fcargs = argForms;
-        fcptr = isPointer;
-        fcvarargs = hasVarArgs
-      }
-      in
-      match typeCheck bindings funccall with
-        | TypeOf _ ->
+      let paramCount = List.length argTypes
+      and argCount = List.length args in
+      if (if hasVarArgs then argCount < paramCount else argCount != paramCount) then
+        errorFromExpr expr (sprintf "Expected %d params, but called with %d args"
+                              paramCount argCount)
+      else
+        let x = evalArgs args argTypes in
+        let toplevelForms, argForms = flattenLeft x in
+        let funccall = `FuncCall {
+          fcname = name;
+          fcrettype = rettype;
+          fcparams = argTypes;
+          fcargs = argForms;
+          fcptr = isPointer;
+          fcvarargs = hasVarArgs
+        }
+        in
+        match typeCheck bindings funccall with
+          | TypeOf _ ->
             Result( bindings, toplevelForms @ [funccall] )
-        | TypeError (fe,msg,f,e) ->
+          | TypeError (fe,msg,f,e) ->
             errorFromExpr expr (typeErrorMessage bindings (fe,msg,f,e))
     in
     match expr with
