@@ -174,7 +174,7 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-source/runtime.bc source/runtime.ll: source/runtime.c has_llvm has_clang
+source/runtim%.bc source/runtim%.ll: source/runtim%.c has_llvm has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
 	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
@@ -187,11 +187,15 @@ tools/llvm-$(LLVM_VERSION) to download and build them (requires an internet		\
 connection of course). Note that at least on Mac OS X you cannot use the		\
 prebuilt libraries as they are 64-bit"
 
-has_llvm: has_clang
+has_llvm:
+	@$(ECHO) Checking if LLVM exists ...
+	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
+	$(TOUCH) has_llvm
+
 has_clang:
 	@$(ECHO) Checking if LLVM exists ...
-	($(WHICH) -s $(LLVM_AS) && $(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
-	$(TOUCH) $@
+	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
+	$(TOUCH) has_clang
 
 ################################################################################
 # Rules

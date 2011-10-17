@@ -10,7 +10,7 @@ cd `dirname $0`
 rm -f ${BUILDLOG}
 LOGSHELL=`pwd`/logshell.sh
 echo "LOGSHELL = ${LOGSHELL}"
-date '+Starting build at %Y-%m-%d %H:%M:%S' >> ${BUILDLOG}
+echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@'" >> ${BUILDLOG}
 make $@ SHELL="${LOGSHELL} ${BUILDLOG}"
 date '+Finishing build at %Y-%m-%d %H:%M:%S' >> ${BUILDLOG}
 exit $?

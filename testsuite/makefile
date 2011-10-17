@@ -36,7 +36,7 @@ testsuite/fail: fail.test crash.test
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/test
 
 testsuite/clean: testsuite/error_reporting/clean
-	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.exe *.test gmon.out
+	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.o *.exe *.test gmon.out
 
 ################################################################################
 # Additional dependencies
@@ -44,6 +44,7 @@ testsuite/clean: testsuite/error_reporting/clean
 
 testsuite/cee.ll: libs/libcee.zomp libs/unittest.zomp
 testsuite/astmatch.ll: libs/libcee.zomp
+testsuite/math.ll: libs/math.zomp
 
 ################################################################################
 # Rules
@@ -82,9 +83,9 @@ testsuite/%.test: testsuite/%.exe
 	touch $@
 
 # see also examples/makefile
-testsuite/%.s: testsuite/%.bc
-	@$(ECHO) Assembling $@ ...
-	$(LLVM_LLC) -o $@ -march=x86 $<
+# testsuite/%.s: testsuite/%.bc
+# 	@$(ECHO) Assembling $@ ...
+# 	$(LLVM_LLC) -o $@ -march=x86 $<
 # testsuite/%.o: testsuite/%.s
 # 	@$(ECHO) Making $@ ...
 # 	$(AS) -o $@ $< -arch i386
