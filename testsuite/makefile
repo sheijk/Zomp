@@ -52,16 +52,23 @@ testsuite/math.ll: libs/math.zomp
 
 .PRECIOUS: testsuite/%.ll testsuite/%.s
 
-testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) testsuite/preludevalid.test libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
+# testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) testsuite/preludevalid.test libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
+testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid prelude.zomp source/runtime.c testsuite/makefile
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
 # the same w/o dependency on itself
-testsuite/preludevalid.ll: testsuite/preludevalid.zomp zompc.native prelude.zomp $(ZOMPC) has_llvm
+testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
 	@$(ECHO) Compiling $(<) to .ll ...
 	$(ZOMPC) -c $<
 
-testsuite/%.bc: testsuite/%.ll prelude.zomp source/runtime.c testsuite/makefile
+# Additional rule to avoid make getting stuck for unknown reason. If
+# testsuite/%.ll depends on testsuite/preludevalid.test testsuite/%.bc will
+# fail, if the dependency is done indirectly it does work
+testsuite/prelude_is_valid: testsuite/preludevalid.test
+	$(TOUCH) $@
+
+testsuite/%.bc: testsuite/%.ll
 	@echo Compiling $< to $@
 	$(LLVM_AS) -f $< -o $@
 
