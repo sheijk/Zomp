@@ -1,0 +1,28 @@
+///
+/// Design/experimentation with string (user definable) literals
+///
+
+defStringLit raw(str):
+  match find(str.id, isNonAsciiChar):
+  case []:
+    ret (EncodingAscii, str.toAscii())
+  case posList:
+    foreach pos in posList:
+      error "Found non-ASCII character at #(pos)"
+    end
+    ret 0
+  end
+end
+
+// parsed as
+// (|opjux func void (opcall (stringlit "opr_+_" id) (opjux int a) (opjux int b)))
+// func will need to do macro expansion on the function name expr
+func void "opr_+_"id(int a, int b)
+
+func int main():
+  print "c:\windows\system32"raw
+
+  ret 0
+end
+
+
