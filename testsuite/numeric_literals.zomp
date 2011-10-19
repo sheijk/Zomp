@@ -1,0 +1,68 @@
+///
+/// Testing literals for numbers, strings, structs etc.
+///
+
+requireLibs libcee unittest
+
+unittest:testCase SimpleIntLiterals:
+  unittest:assertAll:
+    0 == 0
+    1 == 1
+    1 != 0
+    10 == 9 + 1
+
+    0 == 0x0
+    255 == 0xff
+
+    0 == 0b0
+    1 == 0b1
+    2 == 0b10
+    8 == 0b1000
+    0xf == 0b1111
+
+    /// zero prefixed is not an octal number
+    /// TODO
+    // 0 == 00
+    // 5 == 05
+    // 8 == 08
+
+    // 0 = 0o0
+    // 1 = 0o1
+    // 7 = 0o7
+  end
+end
+
+unittest:testCase UnderscoreIntLiterals:
+  unittest:assertAll:
+    10 == 10
+    1_000 == 1000
+    1_000_000 == 1000000
+    1_234 == 1234
+    93_453_126 == 93453126
+  end
+
+  /// invalid int literals
+  // checkIntLiteral 1_3236_2
+end
+
+unittest:testCase FloatLiterals:
+  unittest:assertAll:
+    0. == toFloat 0
+    1. == toFloat 1
+    2. == toFloat 2
+    4. == toFloat 4
+
+    /// 1.f etc. are not float literals as it would conflict with (|opr. 1 f)
+    /// which might be useful later on
+
+    0.0f == toFloat 0
+    1.0f == toFloat 1
+    2.0f == toFloat 2
+    4.0f == toFloat 4
+
+    .5f == toFloat 1 / toFloat 2
+  end
+end
+
+unittest:main
+
