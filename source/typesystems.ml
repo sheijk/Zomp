@@ -124,7 +124,7 @@ struct
     | Int32Val of Int32.t
     | Int64Val of Int64.t
     | FloatVal of float
-    | DoubleVal of float
+    | DoubleVal of float (** OCaml float = IEE-754 double *)
     | StringLiteral of string
     | BoolVal of bool
     | CharVal of char

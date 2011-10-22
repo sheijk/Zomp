@@ -650,13 +650,26 @@ let gencodeVariable v =
         in
         returnVarCode (localVar, comment ^ code)
 
+let rec llvmValue c =
+  match c with
+    | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | CharVal _ ->
+      Lang.valueString c
+    | FloatVal f | DoubleVal f ->
+      Machine.float2string f
+    | RecordVal (name, fields) ->
+      let fieldStrings = List.map (fun (_, fieldValue) ->
+        let fieldType = typeOf fieldValue in
+        llvmTypeName fieldType ^ " " ^ llvmValue fieldValue) fields
+      in
+      "{ " ^ Common.combine ", " fieldStrings ^ " }"
+    | VoidVal | StringLiteral _ | NullpointerVal _ | ArrayVal _ ->
+      raiseCodeGenError ~msg:(sprintf "Constants of type %s not supported"
+                                (typeName (typeOf c)))
+
 let gencodeConstant c =
   returnVarCode (
     {
-      rvname =
-        (match c with
-           | FloatVal f -> Machine.float2string f
-           | _ -> Lang.valueString c);
+      rvname = llvmValue c;
       rvtypename = llvmTypeName (Lang.typeOf c);
     },
     "")

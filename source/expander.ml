@@ -243,7 +243,6 @@ struct
         end
     | _ -> None
 
-
   let lastTempVarNum = ref 0
 
   let getUnusedName ?(prefix = "temp") bindings =
@@ -308,7 +307,6 @@ struct
             | _ -> Some (bindings, [varOrConst] )
           end
       | None -> None
-
 
   let translateTypedef translateF (bindings :bindings) =
     let translateRecordTypedef bindings typeName componentExprs expr =
@@ -736,8 +734,9 @@ let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationRes
   Result (env.bindings, [`FuncCall f])
   (* Error ["Not supported at all"] *)
 
+let errorMsgFromExpr expr msg = sprintf "%s in %s" msg (Ast2.toString expr)
 let errorFromExpr expr msg =
-  Error [sprintf "%s in %s" msg (Ast2.toString expr)]
+  Error [errorMsgFromExpr expr msg]
 
 module Macros =
 struct
@@ -1479,13 +1478,93 @@ struct
       | _ ->
           errorFromExpr expr "Unrecognized AST shape"
               
-  let translateApply (env :('a someTranslateF) env) expr :'a translationResultV =
+  let translateStructValue fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
+    let rec handleFieldExprs errors fieldValues undefinedFields =
+      let continueWithErrors messages remArgs =
+        handleFieldExprs (messages@errors) fieldValues undefinedFields remArgs
+      in
+      function
+        | [] ->
+          begin match errors with
+            | [] -> Result fieldValues
+            | _ -> Error errors
+          end
+        | { id = "op=";
+            args = [{id = fieldName; args= []}; rhs] } as fieldValueExpr :: remArgs ->
+          begin
+            let removeField (undefinedFields : (string*'b) list) fieldName =
+              let rec loop prevFields undefinedFields =
+                match undefinedFields with
+                  | (name, typ) :: remFields ->
+                    if name = fieldName then
+                      Some (typ, prevFields @ remFields)
+                    else
+                      loop ((name, typ) :: prevFields) remFields
+                  | [] ->
+                    None
+              in
+              loop [] undefinedFields
+            in
+            match removeField undefinedFields fieldName with
+              | Some (typ, undefinedFields) ->
+                begin match translateExprF rhs with
+                  | Error rhsErrors ->
+                    continueWithErrors rhsErrors remArgs
+                  | Result value ->
+                    handleFieldExprs
+                      errors
+                      ((fieldName, value) :: fieldValues)
+                      undefinedFields
+                      remArgs
+                end
+              | None ->
+                continueWithErrors [errorMsgFromExpr fieldValueExpr
+                                       (sprintf "Field %s does not exist" fieldName)] remArgs
+          end
+        | unexpectedExpr :: remArgs ->
+          continueWithErrors
+            [errorMsgFromExpr unexpectedExpr "Expected expression of the form 'id = expr'"]
+            remArgs
+    in
+    handleFieldExprs [] [] fields fieldExprs
+
+  (** called by translateApply, not registered under any name *)
+  let translateRecordLiteral (env :exprTranslateF env) expr :translationResult =
+    match lookup env.bindings expr.id with
+      | TypedefSymbol `Record { rname = _; fields = fields } ->
+        let translateField expr : 'a mayfail =
+          let bindings, formsWTL = env.translateF env.bindings expr in
+          (* let tlforms, forms = extractToplevelForms formsWTL in *)
+          match formsWTL with
+            | [`Constant value] ->
+              Result value
+            | invalidForms ->
+              errorFromExpr expr
+                (Common.combine "\n"
+                   ("Only constant expressions allowed here" ::
+                       List.map formWithTLsEmbeddedToString invalidForms))
+        in
+        begin match translateStructValue fields expr.args translateField with
+          | Result fieldValues ->
+            let c : formWithTLsEmbedded = `Constant (RecordVal (expr.id, fieldValues)) in
+            Result (env.bindings, [c])
+          | Error msgs ->
+            Error msgs
+        end
+      | _ ->
+        errorFromExpr expr (sprintf "%s is not a struct" expr.id)
+
+  let alwaysFail env expr = errorFromExpr expr "not supported"
+
+  let translateApply translateRecordF (env :('a someTranslateF) env) expr :'a translationResultV =
     match expr with
       | { args = firstArg :: remArgs } -> begin
           match lookup env.bindings firstArg.id with
             | FuncSymbol _
             | VarSymbol { typ = `Pointer `Function _ } ->
                 Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+            | TypedefSymbol _ ->
+              translateRecordF env (Ast2.shiftLeft expr.args)
             | _ ->
                 let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
                 Result r
@@ -1512,10 +1591,10 @@ struct
     addF macroVar translateDefineVar;
     addF macroVar2 translateDefineVar;
     addF macroFunCall translateFuncCall;
-    addF macroApply translateApply
+    addF macroApply (translateApply translateRecordLiteral)
 
   let registerTL addF =
-    addF macroApply translateApply
+    addF macroApply (translateApply alwaysFail)
 end
 
 module Compiler_environment : Zomp_transformer =
@@ -1754,7 +1833,7 @@ let translateFromDict
     } in
     match handler env expr with
       | Error errors ->
-          print_string (combineErrors "Swallowed errors: " errors);
+          print_string (combineErrors "Swallowed errors:\n" errors);
           print_newline();
           flush stdout;
           None
