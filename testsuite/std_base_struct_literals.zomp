@@ -1,0 +1,91 @@
+///
+/// Testing struct literal support in std base lib
+///
+
+requireLibs libcee unittest
+
+struct Point:
+  int x
+  int y
+end
+
+unittest:testCase SimpleStructLiteral:
+  pt_0_0 := Point(x = 0, y = 0)
+  pt_101_50 := Point(x = 101, y = 50)
+
+  unittest:assertAll:
+    pt_0_0.x == 0
+    pt_0_0.y == 0
+
+    pt_101_50.x == 101
+    pt_101_50.y == 50
+  end
+end
+
+struct Rectangle:
+  Point bl
+  Point tr
+end
+
+unittest:testCase NestedStructLiteral:
+  r := Rectangle(bl = Point(x = 10, y = 5), tr = Point(x = 20, y = 15))
+
+  unittest:assertAll:
+    r.bl.x == 10
+    r.bl.y == 5
+    r.tr.x == 20
+    r.tr.y == 15
+  end
+end
+
+// struct VersionInfo:
+//   int major
+//   int minor
+//   cstring variant
+// end
+// 
+// unittest:testCase StructWithStringLiteral:
+//   zomp := VersionInfo(major = 0, minor = 1, variant = "Debug")
+// 
+//   unittest:assertAll:
+//     zomp.major == 0
+//     zomp.minor == 1
+//     zomp.variant == "Debug"
+//   end
+// end
+
+// struct NamedLocation:
+//   cstring name
+//   Point pos
+// end
+// 
+// unittest:testCase NestedStructLiteral:
+//   berlin := NamedLocation(name = "Berlin", pos = Point(x = 53, y = 13))
+// 
+//   unittest:assertAll:
+//     berlin.name ==_str "Berlin"
+//     berlin.pos.x == 53
+//     berlin.pos.y == 13
+//   end
+// end
+
+// instantiated generic struct
+
+unittest:main
+
+// /// Random ideas for var defs etc.
+// 
+// // Note: we cannot allow things like 'var x = 10' because it might conflict
+// // with opjux expressions 'deref pI = 20'. This problem does not exist for :=, though
+// x := 10 // constant
+// var x := 10 // mutable
+// float x := 10
+// 
+// // short method definitions?
+// f x y := x + y
+// // might conflict for single argument expressions
+// var x := x + 1
+// // function syntax works, though
+// f(x, y) := x + y
+// fn f(x, y) := x + y
+
