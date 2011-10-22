@@ -83,7 +83,7 @@ testsuite/%.o: testsuite/%.s
 
 testsuite/%.exe: testsuite/%.o
 	@$(ECHO) Making $@ ...
-	$(CC) $(CFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
+	$(CC) $(LDFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
 
 testsuite/%.test: testsuite/%.exe
 	@$(ECHO) Running test $(<:.bc=) ...

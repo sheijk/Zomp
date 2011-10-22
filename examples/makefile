@@ -94,7 +94,7 @@ examples/runtime.s: runtime.zomp
 
 examples/%.exe: examples/%.o source/runtime.o
 	@$(ECHO) Making $@ ...
-	$(CC) $(CFLAGS) -o $@ -L. -L./examples $(LIBS) $< -arch i386
+	$(CC) $(LDFLAGS) -o $@ -L. -L./examples $(LIBS) $< -arch i386
 
 examples/%.run: examples/%.exe
 	@$(ECHO) Running $@ ...

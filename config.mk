@@ -76,7 +76,7 @@ CONVERT_IMAGE = convert
 # Native tool chain (C/C++/Assembler/Linker/...) binaries
 ################################################################################
 
-CC = $(CLANG) -std=c89
+CC = $(CLANG)
 CXX = $(CLANGXX)
 AS = as
 LD = ld

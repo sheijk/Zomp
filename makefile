@@ -48,7 +48,7 @@ include examples/smallpt/makefile
 PATH := $(LLVM_BIN_DIR):$(PATH)
 
 CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
-CCFLAGS = -I /usr/local/lib/ocaml/ $(ARCHFLAG)
+CCFLAGS = -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS = $(ARCHFLAG)
 
 ifeq ($(DEBUG), 1)
