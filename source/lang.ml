@@ -115,7 +115,6 @@ type varStorage =
 type 'typ variable = {
   vname :string;
   typ :'typ;
-  vdefault :integralValue;
   vstorage :varStorage;
   vmutable :bool;
   vglobal :bool;
@@ -145,10 +144,9 @@ let rec validateValue = function
       in
       RecordVal (rname, List.map validateComponent components)
 
-let variable ~name ~typ ~default ~storage ~global = {
+let variable ~name ~typ ~storage ~global = {
   vname = name;
   typ = typ;
-  vdefault = validateValue default;
   vstorage = storage;
   vmutable = false;
   vglobal = global;
@@ -158,7 +156,7 @@ let varToStringShort var =
   sprintf "%s : %s" var.vname (typeName var.typ)
 
 let varToString var =
-  sprintf "%s : %s = %s" var.vname (typeName var.typ) (valueString var.vdefault)
+  sprintf "%s : %s" var.vname (typeName var.typ)
 
 let globalVar = variable ~storage:MemoryStorage ~global:true
 
@@ -227,7 +225,7 @@ and func = {
   fparametric :bool;
 }
 and toplevelExpr = [
-| `GlobalVar of composedType variable
+| `GlobalVar of composedType variable * value
 | `DefineFunc of func
 | `Typedef of string * typ
 ]
@@ -326,8 +324,8 @@ let funcToString func =
 let toplevelFormToSExpr =
   let id = Ast2.idExpr in
   function
-    | `GlobalVar var ->
-        Ast2.simpleExpr "GlobalVar" [typeName var.typ; var.vname; valueString var.vdefault]
+    | `GlobalVar (var, initialValue) ->
+        Ast2.simpleExpr "GlobalVar" [typeName var.typ; var.vname; valueString initialValue]
     | `DefineFunc func ->
         let implExpr = match func.impl with
           | Some expr -> [formToSExpr expr]
@@ -342,16 +340,16 @@ let toplevelFormToSExpr =
         Ast2.simpleExpr "Typedef" [name; typeName typ]
 
 let toplevelFormDeclToString = function
-  | `GlobalVar var ->
-      sprintf "var %s" (varToString var)
+  | `GlobalVar (var, initialValue) ->
+      sprintf "var %s = %s" (varToString var) (valueString initialValue)
   | `DefineFunc func ->
       sprintf "func %s" (funcDeclToString func)
   | `Typedef (name, typ) ->
       sprintf "type %s = %s" name (typeDescr typ)
 
 let toplevelFormToString = function
-  | `GlobalVar var ->
-      sprintf "var %s" (varToString var)
+  | `GlobalVar (var, initialValue) ->
+      sprintf "var %s = %s" (varToString var) (valueString initialValue)
   | `DefineFunc func ->
       sprintf "func %s" (funcToString func)
   | `Typedef (name, typ) ->

@@ -220,7 +220,7 @@ struct
               returnType = f.rettype;
               argTypes = List.map snd f.Lang.fargs;
             } in
-            let var = variable name (`Pointer typ) (defaultValue typ) RegisterStorage true in
+            let var = variable name (`Pointer typ) RegisterStorage true in
             Some (`Variable var)
         | _ ->
             None
@@ -257,8 +257,7 @@ struct
 
   let getNewGlobalVar bindings typ =
     let newVarName = getUnusedName ~prefix:"tempvar" bindings in
-    let default = defaultValue typ in
-    let var = globalVar ~name:newVarName ~typ ~default in
+    let var = globalVar ~name:newVarName ~typ in
     (addVar bindings var, var)
 
   let getNewLocalVar bindings typ =
@@ -269,7 +268,6 @@ struct
       ~typ
       ~storage:MemoryStorage
       ~global:false
-      ~default:(Typesystems.Zomp.defaultValue typ)
     in
     (addVar bindings var, var)
 
@@ -301,8 +299,8 @@ struct
             | `Constant StringLiteral string ->
                 begin
                   let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
-                  let var = { var with vdefault = StringLiteral string } in
-                  Some( newBindings, [`ToplevelForm (`GlobalVar var); `Variable var] )
+                  let value = StringLiteral string in
+                  Some( newBindings, [`ToplevelForm (`GlobalVar (var, value)); `Variable var] )
                 end
             | _ -> Some (bindings, [varOrConst] )
           end
@@ -436,32 +434,34 @@ struct
                 match ctyp with
                   | (#integralType as typ) | (`Pointer `Char as typ) ->
                       let value = parseValue typ valueString in
-                      let var = globalVar name typ value in
+                      let var = globalVar name typ in
                       let newBindings = addVar bindings var in
-                      Some( newBindings, [ `GlobalVar var ] )
+                      Some( newBindings, [ `GlobalVar (var, value) ] )
                   | `Pointer targetType ->
                       if valueString = "null" then
                         let var =
                           globalVar name
                             (`Pointer targetType)
-                            (NullpointerVal targetType)
                         in
+                        let value = NullpointerVal targetType in
                         let newBindings = addVar bindings var in
-                        Some( newBindings, [`GlobalVar var] )
+                        Some( newBindings, [`GlobalVar (var, value)] )
                       else
                         raiseIllegalExpression expr "only null values supported for global pointers currently"
                   | `Array (targetType, size) ->
                       if valueString = "0" then
-                        let var = globalVar name (`Array (targetType,size)) (ArrayVal (targetType, [])) in
+                        let var = globalVar name (`Array (targetType,size)) in
+                        let value = ArrayVal (targetType, []) in
                         let newBindings = addVar bindings var in
-                        Some( newBindings, [`GlobalVar var] )
+                        Some( newBindings, [`GlobalVar (var, value)] )
                       else
                         raiseIllegalExpression expr "only 0 supported to init global pointers currently"
                   | `Record recordT ->
                       if valueString = "0" then
-                        let var = globalVar name (`Record recordT) (RecordVal (recordT.rname, [])) in
+                        let var = globalVar name (`Record recordT) in
+                        let value = RecordVal (recordT.rname, []) in
                         let newBindings = addVar bindings var in
-                        Some( newBindings, [`GlobalVar var] )
+                        Some( newBindings, [`GlobalVar (var, value)] )
                       else
                         raiseIllegalExpression expr "only 0 supported to init global structs currently"
                   | _ -> raiseIllegalExpression expr
@@ -519,7 +519,6 @@ struct
              (Lang.variable
                 ~name
                 ~typ:astPtrType
-                ~default:(NullpointerVal astPtrType)
                 ~storage:Lang.RegisterStorage
                 ~global:false) )
         bindings argNames
@@ -578,7 +577,6 @@ struct
           ~typ:astPtrType
           ~storage:MemoryStorage
           ~global:false
-          ~default:(Typesystems.Zomp.defaultValue astPtrType)
       in
       log "building function impl";
       let implForms = [
@@ -747,7 +745,6 @@ struct
       (Lang.variable
          ~name:"macro_args"
          ~typ:(`Pointer astPtrType)
-         ~default:(NullpointerVal (`Pointer astPtrType))
          ~storage:Lang.RegisterStorage
          ~global:false)
     in
@@ -982,7 +979,7 @@ struct
       match varType with
         | #integralType | `Pointer _ | `Function _ as typ ->
             begin
-              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let var = variable name typ MemoryStorage false in
               let defvar = `DefineVariable (var, Some (`Sequence implForms))
               in
               match typeCheck env.bindings defvar with
@@ -993,7 +990,7 @@ struct
             begin
               match valueExpr with
                 | None ->
-                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    let var = variable name typ MemoryStorage false in
                     Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
                 | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
             end
@@ -1290,7 +1287,7 @@ struct
       match varType with
         | #integralType | `Pointer _ | `Function _ as typ ->
             begin
-              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let var = variable name typ MemoryStorage false in
               let defvar = `DefineVariable (var, Some (`Sequence implForms))
               in
               match typeCheck env.bindings defvar with
@@ -1299,7 +1296,7 @@ struct
             end
         | `Array(memberType, size) as typ ->
             begin
-              let var = variable name typ (defaultValue typ) MemoryStorage false in
+              let var = variable name typ MemoryStorage false in
               let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
               match typeCheck env.bindings defvar with
                 | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
@@ -1309,10 +1306,10 @@ struct
             begin
               match valueExpr with
                 | None ->
-                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    let var = variable name typ MemoryStorage false in
                     Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
                 | Some valueExpr ->
-                    let var = variable name typ (defaultValue typ) MemoryStorage false in
+                    let var = variable name typ MemoryStorage false in
                     Result( addVar env.bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
             end
         | `TypeRef _ ->
@@ -1601,8 +1598,8 @@ module Compiler_environment : Zomp_transformer =
 struct
   let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
-    let var = { var with vdefault = StringLiteral "TODO.zomp" } in
-    Result (newBindings, [`ToplevelForm (`GlobalVar var); `Variable var])
+    let value = StringLiteral "TODO.zomp" in
+    Result (newBindings, [`ToplevelForm (`GlobalVar (var, value)); `Variable var])
 
   let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
@@ -2108,7 +2105,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
               (** structs are copied into a local var by genllvm *)
               ~storage:(match typ with | `Record _ -> MemoryStorage | _ -> RegisterStorage)
               ~global:false
-              ~default:(Typesystems.Zomp.defaultValue typ)
           in
           localBinding (addVar bindings var) tail
     in

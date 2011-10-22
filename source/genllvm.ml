@@ -110,7 +110,7 @@ let newGlobalTempVar, newLocalTempVar =
   let newVar isGlobal (typ :Lang.typ) =
     let id = nextUID () in
     let name = (sprintf "temp%d" id) in
-    resultVar (variable name typ (defaultValue typ) RegisterStorage isGlobal)
+    resultVar (variable name typ RegisterStorage isGlobal)
   in
   newVar true, newVar false
 
@@ -987,9 +987,9 @@ let llvmStringLength str =
   let length = String.length str in
   length - 2 * countChar str '\\'
 
-let gencodeGlobalVar var =
+let gencodeGlobalVar var initialValue =
   let varname = "\"" ^ var.vname ^ "\"" in
-  match var.vdefault with
+  match initialValue with
     | StringLiteral value ->
         let contentVar = newGlobalTempVar (`Pointer `Char)
         and escapedValue = llvmEscapedString value
@@ -1015,7 +1015,7 @@ let gencodeGlobalVar var =
         sprintf "@%s = global %s %s\n"
           varname
           (llvmTypeName var.typ)
-          (Lang.valueString var.vdefault)
+          (Lang.valueString initialValue)
     | FloatVal f | DoubleVal f ->
         sprintf "@%s = global %s %s\n"
           varname
@@ -1077,7 +1077,6 @@ let gencodeDefineFunc func =
         let retvalVar = {
           vname = "$retval";
           typ = `Pointer func.rettype;
-          vdefault = NullpointerVal (`Pointer func.rettype);
           vstorage = RegisterStorage;
           vmutable = false;
           vglobal = false;
@@ -1143,7 +1142,7 @@ let gencodeTypedef name = function
       sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
 let gencodeTL = function
-  | `GlobalVar var -> gencodeGlobalVar var
+  | `GlobalVar (var, initialValue) -> gencodeGlobalVar var initialValue
   | `DefineFunc func -> gencodeDefineFunc func
   | `Typedef (name, typ) -> gencodeTypedef name typ
 
