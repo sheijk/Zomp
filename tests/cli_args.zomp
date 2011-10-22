@@ -54,6 +54,59 @@ cliArguments DefaultArguments:
   end
 end
 
+cliArguments DefaultArguments:
+  bool optionA "a-option" 'a'
+
+  /// directory to be added to include path
+  List!string includePaths "include-dir" "include" 'i':
+    mergeMultipleOccurance
+    check isValidDir(value)
+  handle:
+    println "Added directory $(value)"
+  end
+
+  /// maximum number of functions to be inlined
+  int maxInlineLevel "max-inline-level"
+
+  /// O0 enables no optimizations, O3 enables all
+  int optimizationLevel ("-O0" = 0, "-O1" = 1, "-O2" = 2, "O3" = 3)
+
+  MyEnum myChoice ("foo" = Foo, "bar", "legacy-bar-name" = Bar)
+
+  /// the alpha value to be used for the background
+  float alphaValue "alpha-value":
+    check (0 <= alphaValue <= 1)
+  end
+end
+
+/// maybe make defOptionType a special case of the future high level macro
+/// matching where all arguments are strings? contra: also needs to handle
+/// multiple "invocations" which are not consecutive like
+/// -I api -Wall -I foolib/include etc.
+cliArguments DefaultArguments:
+  optionParser flag:
+    bool value = false
+  onArg(name, value):
+    match value:
+    "on", "true", "yes":
+      value = true
+    "off", "false", "no":
+      value = false
+    end
+  end
+
+  optionParser mergeMulti!T(cstring defaults...):
+    List!T entries
+  end
+  onArg(name, values...):
+    entries.addAll(values)
+  end
+
+  optionA := flag "option-a" 'a'
+
+  includePath := mergeMulti!Dir(".") "include" 'I' "include-dir"
+end
+
 func int main():
   args := handleArgs DefaultArguments
   createOptimizer(args.optimizationLevel, args.maxInlineLevel)
