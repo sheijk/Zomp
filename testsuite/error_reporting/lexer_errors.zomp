@@ -1,0 +1,11 @@
+///
+/// Checking error reporting of common lexer errors
+///
+
+"xxx //// error terminate string
+//// ----
+/* //// error terminate comment
+//// ----
+§ //// error illegal char
+//// ----
+"\f" //// error escape

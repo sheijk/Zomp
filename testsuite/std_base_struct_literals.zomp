@@ -38,38 +38,74 @@ unittest:testCase NestedStructLiteral:
   end
 end
 
-// struct VersionInfo:
-//   int major
-//   int minor
-//   cstring variant
-// end
-// 
-// unittest:testCase StructWithStringLiteral:
-//   zomp := VersionInfo(major = 0, minor = 1, variant = "Debug")
-// 
-//   unittest:assertAll:
-//     zomp.major == 0
-//     zomp.minor == 1
-//     zomp.variant == "Debug"
-//   end
-// end
+struct VersionInfo:
+  int major
+  int minor
+  cstring variant
+end
 
-// struct NamedLocation:
-//   cstring name
-//   Point pos
-// end
-// 
-// unittest:testCase NestedStructLiteral:
-//   berlin := NamedLocation(name = "Berlin", pos = Point(x = 53, y = 13))
-// 
-//   unittest:assertAll:
-//     berlin.name ==_str "Berlin"
-//     berlin.pos.x == 53
-//     berlin.pos.y == 13
-//   end
-// end
+unittest:testCase StructWithStringLiteral:
+  zomp := VersionInfo(major = 0, minor = 1, variant = "Debug")
+
+  unittest:assertAll:
+    zomp.major == 0
+    zomp.minor == 1
+    zomp.variant == "Debug"
+  end
+end
+
+struct NamedLocation:
+  cstring name
+  Point pos
+end
+
+unittest:testCase NestedStructLiteral:
+  berlin := NamedLocation(name = "Berlin", pos = Point(x = 53, y = 13))
+
+  unittest:assertAll:
+    berlin.name ==_str "Berlin"
+    berlin.pos.x == 53
+    berlin.pos.y == 13
+  end
+end
 
 // instantiated generic struct
+
+// array
+// unittest:testCase SimpleIntArrayLiteral:
+//   nums := [20, 55, 99]
+//
+//   unittest:assertAll:
+//     nums[0] == 20
+//     nums[1] == 55
+//     nums[2] == 99
+//   end
+// end
+
+// // array with strings
+// unittest:testCase StringArrayLiteral:
+//   names = ["foo", "bar", "baz"]
+// 
+//   unittest:assertAll:
+//     names[0] ==_str "foo"
+//     names[1] ==_str "bar"
+//     names[2] ==_str "baz"
+//   end
+// end
+// 
+// // array of structs
+// unittest:testCase StructArrayLiteral:
+//   points = [Point(x=1,y=11), Point(x=2, y=22)]
+// 
+//   unittest:assertAll:
+//     points[0].x == 1
+//     points[0].y == 11
+//     points[1].x == 2
+//     points[1].y == 22
+//   end
+// end
+
+// TODO: check error handling/restrictions for global variables
 
 unittest:main
 
