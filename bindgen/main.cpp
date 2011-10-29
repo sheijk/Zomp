@@ -151,6 +151,8 @@ public:
             handleAs<VarDecl>(D) ||
                 handleAs<FunctionDecl>(D) ||
                 handleAs<TypedefDecl>(D) ||
+                handleAs<RecordDecl>(D) ||
+                handleAs<EnumDecl>(D) ||
                 handleUnknown(D);
         }
     }
@@ -235,6 +237,46 @@ private:
                      << "\n";
 
         return true;
+    }
+
+    bool handle(const RecordDecl* record_decl)
+    {
+        if( record_decl->isAnonymousStructOrUnion() )
+        {
+            llvm::outs() << "// ignoring anonymous struct\n";
+            return true;
+        }
+
+        llvm::outs() << "nativeStruct " << record_decl->getName() << ":\n";
+
+        typedef RecordDecl::field_iterator FieldIter;
+        for( FieldIter fi = record_decl->field_begin(), fi_end = record_decl->field_end();
+             fi != fi_end;
+             ++fi )
+        {
+            const FieldDecl& field = **fi;
+            if( field.isBitField() )
+            {
+                llvm::outs() << "  // ignored bitfield, not supported\n";
+            }
+            else
+            {
+                llvm::outs() << "  "
+                    << zompTypeName( field.getType().getTypePtrOrNull() )
+                    << " "
+                    << field.getName()
+                    << "\n";
+            }
+        }
+
+        llvm::outs() << "end\n";
+
+        return true;
+    }
+
+    bool handle(const EnumDecl* enum_decl)
+    {
+        return false;
     }
 
     bool handleUnknown(const Decl* D)
