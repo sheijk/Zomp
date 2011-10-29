@@ -23,24 +23,91 @@ using namespace clang;
 
 namespace {
 
+std::string errorType(const char* msg)
+{
+    return std::string("error_t(\"") + msg + "\")"; 
+}
+
 std::string zompTypeName(const Type* t)
 {
-    if(t==0)
+    if( t == 0 )
     {
         return "type_was_null";
     }
 
-    if ( const BuiltinType* bt = dyn_cast<BuiltinType>(t) )
+    if( const BuiltinType* bt = dyn_cast<BuiltinType>(t) )
     {
-        LangOptions opt;
-        return bt->getName(opt);
+        switch(bt->getKind())
+        {
+        case BuiltinType::Void: return "void";
+        case BuiltinType::UShort: return "c_ushort";
+        case BuiltinType::UInt: return "c_uint";
+        case BuiltinType::ULong: return "c_ulong";
+        case BuiltinType::ULongLong: return "c_ulong_long";
+        case BuiltinType::UInt128: return "u128";
+        case BuiltinType::Short: return "c_short";
+        case BuiltinType::Int: return "c_int";
+        case BuiltinType::Long: return "c_long";
+        case BuiltinType::LongLong: return "c_long_long";
+        case BuiltinType::Int128: return "s128";
+        case BuiltinType::Float: return "float";
+        case BuiltinType::Double: return "double";
+        case BuiltinType::LongDouble: return "c_long_double";
+
+        case BuiltinType::Char_U:
+        case BuiltinType::UChar:
+        case BuiltinType::WChar_U:
+        case BuiltinType::Char16:
+        case BuiltinType::Char32:
+        case BuiltinType::Char_S:
+        case BuiltinType::SChar:
+        case BuiltinType::WChar_S:
+
+        case BuiltinType::NullPtr:
+        case BuiltinType::Dependent:
+        case BuiltinType::Overload:
+
+        case BuiltinType::ObjCId:
+        case BuiltinType::ObjCClass:
+        case BuiltinType::ObjCSel:
+            
+        default:
+            return "UnsupportedBuiltinType";
+        }
+    }
+    else if( const PointerType* pt = dyn_cast<PointerType>(t) )
+    {
+        QualType base_type = pt->getPointeeType();
+        return zompTypeName(base_type.getTypePtrOrNull()) + "*";
+    }
+    else if( const ArrayType* at = dyn_cast<ArrayType>(t) )
+    {
+        return errorType( "bindgen does not support array types, yet" );
+    }
+    else if( const FunctionType* ft = dyn_cast<FunctionType>(t) )
+    {
+        return errorType("bindgen does not support function types, yet" );
+    }
+    else if( const TypedefType* tt = dyn_cast<TypedefType>(t) )
+    {
+        return tt->getDecl()->getName();
+        // return zompTypeName(
+            // tt->getDecl()->getCanonicalDecl()->getUnderlyingType().getTypePtrOrNull() );
+    }
+    else if( const EnumType* et = dyn_cast<EnumType>(t) )
+    {
+        return et->getDecl()->getNameAsString();
+    }
+    else if( const RecordType* rt = dyn_cast<RecordType>(t) )
+    {
+        return rt->getDecl()->getNameAsString();
     }
     else
     {
-        return "unsupported_type";
+        return errorType("type not understood by bindgen");
     }
 }
-    
+
 class PrintFunctionsConsumer : public ASTConsumer
 {
     ASTContext* m_context;
@@ -158,10 +225,16 @@ private:
 
     bool handle(const TypedefDecl* type_decl)
     {
-        return false;
-        // llvm::outs() << "nativeType "
-        //              << type_decl->getName()
-        //              << "\n";
+        QualType typesrc = type_decl->getUnderlyingType();
+        const Type* type = typesrc.getTypePtrOrNull();
+
+        llvm::outs() << "nativeType "
+                     << type_decl->getName()
+                     << " "
+                     << zompTypeName(type)
+                     << "\n";
+
+        return true;
     }
 
     bool handleUnknown(const Decl* D)
