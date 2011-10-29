@@ -576,6 +576,15 @@ struct
       (*       expr "op." [id "foo"; call ["bar"]]; *)
       (*     ]]]; *)
 
+      "ret $(block a:\n\
+      \  line0\n\
+      \  line1\n\
+      end block)",
+      `Return [juxExpr [id "id"; expr "quote" [juxExpr [
+        id "block";
+        id "a";
+        se1 "line0" "line1" ]]]];
+
       "#foo.bar", `Return [expr "op." [se1 "antiquote" "foo"; id "bar"]];
       "abc.#def", `Return [expr "op." [id "abc"; se1 "antiquote" "def"]];
 
