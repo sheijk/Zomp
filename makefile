@@ -18,6 +18,9 @@ PWD=`pwd`
 endif
 
 help:
+	@$(ECHO) "Please use 'make all' and/or 'make test'"
+
+debug:
 	@$(ECHO) "PATH = "
 	@$(ECHO) "$(PATH)" | $(TR) : \\n
 	@$(ECHO) "CXXFLAGS = '"$(CXXFLAGS)"'"
