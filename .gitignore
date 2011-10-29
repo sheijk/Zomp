@@ -1,3 +1,4 @@
+.DS_Store
 *.glexe
 *.mshark
 /*.dylib
@@ -126,3 +127,7 @@ tools
 /tests/*.exe
 /has_clang
 /testsuite/prelude_is_valid
+/bindgen/bindgen.dylib
+/bindgen/bindgen.xcodeproj
+/bindgen/*.o
+/bindgen/test.bindings

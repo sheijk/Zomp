@@ -44,6 +44,7 @@ include testsuite/makefile
 include libs/makefile
 include examples/makefile
 include examples/smallpt/makefile
+include bindgen/bindgen.mk
 
 PATH := $(LLVM_BIN_DIR):$(PATH)
 

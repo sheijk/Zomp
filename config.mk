@@ -46,6 +46,9 @@ LLVM_LLVMC = $(LLVM_BIN_DIR)/llvmc
 LLVM_LLC = $(LLVM_BIN_DIR)/llc
 LLVM_OPT = $(LLVM_BIN_DIR)/opt
 
+CLANG_BASE_DIR = $(LLVM_BASE_DIR)/tools/clang
+CLANG_INCLUDE_DIR = $(CLANG_BASE_DIR)/include
+
 CLANG = $(LLVM_BIN_DIR)/clang
 CLANGXX = $(LLVM_BIN_DIR)/clang++
 
