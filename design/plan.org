@@ -1574,6 +1574,26 @@ http://www.iquilezles.org/blog/?p=1468
    should not parse
 ** TODO [#A] postfixes for numbers
    then allow 10m, 512K etc.
+** TODO [#A] loop peeling to counter aliasing
+
+   int count, *data;
+
+   for(int i = 0; i < count; ++i)
+     data[i] = 0;
+
+   =>
+
+   if(count>0)
+     data[0] = 0;
+   for(int i = 1; i < count; ++i)
+     data[i] = 0;
+
+   als makro, oder teil des foreach loops
+** TODO [#A] var defs inside if/while/... conditions
+
+   if ( rv := connect(); rv != Ok ):
+     println "Error #rv happened during connecting"
+   end
 * Use Cases                                                            :usecase:
 ** .obj Loader [0/2]
    :PROPERTIES:

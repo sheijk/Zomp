@@ -1,0 +1,93 @@
+
+/// Example: constant folding against abstract AST type
+
+enum AstKind { Constant int, OpPlus Ast Ast }
+enum AstType { Float, Int }
+struct Location:
+  string file_name
+  int line, column
+end
+
+struct Ast:
+  AstKind kind
+  AstType type
+  Location loc
+  InternalStuff secret
+end
+
+enum CheckResult = { Ok, Error string }
+
+fn CheckResult typeCheck(Ast expr):
+  match expr:
+  kind = Constant _, type = Int:
+  kind = OpPlus (type=Int) (type=Int), type = Int:
+    Ok
+  kind = Constant _, type = _:
+    Error "Constant must be int"
+  kind = OpPlus(lhs, rhs), type = _:
+    Error "Type mismatch"
+  end
+end
+
+fn Ast constantFold(Ast e):
+  match e:
+  kind = OpPlus arg (type=Int, kind = Constant 0):
+  kind = OpPlus (type=Int, kind = Constant 0) arg:
+    arg
+  kind = OpPlus (kind = Constant lhs, type = Int) (kind = Constant rhs):
+    Constant (lhs+rhs)
+  kind = OpPlus (type = Float) _:
+  kind = Constant _:
+    e
+  end
+end
+
+fn Ast insertImplicitCasts(Ast expr):
+  match expr:
+  case kind = OpPlus (type=Int as lhs) (type=Float as rhs):
+  case kind = OpPlus (type=Float as lhs) (type=Int as rhs):
+    OpPlus(toFloatExpr lhs, toFloatExpr rhs)
+  case kind = OpPlus (type=Int) (type=Int):
+  case kind = OpPlus (type=Float) (type=Float):
+  case kind = Constant _:
+    expr
+  end
+end
+
+fn AbstractAst insertImplicitCasts(AbstractAst expr):
+  match expr:
+  case OpPlus(lhs, rhs):
+    match (typeOf lhs, typeOf rhs):
+    case kind = Int, kind = Float:
+    case kind = Float, kind = Int:
+      OpPlus(toFloatExpr lhs, toFloatExpr rhs)
+    case kind=Int, kind=Int:
+    case kind=Float, kind=Float:
+      expr
+    end
+  case Constant _:
+    expr
+  end
+end
+
+type AbstractAst
+fn AstKind kindOf(AbstractAst _)
+fn AstType typeOf(AbstractAst _)
+
+fn CheckResult typeCheck(AbstractAst expr):
+  k, t = kindOf expr, typeOf expr
+
+  match (k,t):
+  kind = Constant _, type = Int:
+  kind = OpPlus lhs rhs, type = Int:
+    match (typeOf lhs, rhs):
+    Int, Int
+    end
+  kind = Constant _, type = _:
+    Error "Constant must be int"
+  kind = OpPlus(lhs, rhs), type = _:
+    Error "Type mismatch"
+  end
+end
+
+
