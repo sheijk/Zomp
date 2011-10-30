@@ -16,7 +16,7 @@ void f_void_floatptrptr(float** ppf);
 
 void f_void_int_anom(int);
 
-// void f_int_with_default(int i = 10);
+/* void f_int_with_default(int i = 10); */
 
 struct FooStruct
 {

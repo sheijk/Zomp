@@ -205,7 +205,7 @@ private:
 
             llvm::outs() << zompTypeName(type);
 
-            if( IdentifierInfo* id = param->getIdentifier() )
+            if( param->getIdentifier() )
             {
                 llvm::outs() << " "
                              << param->getNameAsString();

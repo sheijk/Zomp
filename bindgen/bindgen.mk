@@ -7,7 +7,7 @@ $(error "Call make from the main zomp dir, only")
 endif
 
 bindgen/%.o: bindgen/%.cpp
-	$(CXX) -c $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags`  -I$(CLANG_INCLUDE_DIR) $< -o $@
+	$(CXX) -c $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` $< -o $@
 
 CLANG_LIBS = -lclang -lclangLex -lclangAST -lclangParse -lclangAnalysis -lclangRewrite -lclangBasic -lclangSema -lclangCodeGen -lclangSerialization -lclangDriver -lclangStaticAnalyzerCheckers -lclangFrontend -lclangStaticAnalyzerCore -lclangFrontendTool -lclangStaticAnalyzerFrontend -lclangIndex
 
