@@ -6,6 +6,7 @@ ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
 $(error "Call make from the main zomp dir, only (examples)")
 endif
 
+CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
 	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o
 

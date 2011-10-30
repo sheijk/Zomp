@@ -42,6 +42,8 @@ include config.mk
 FLYMAKE_LOG=flymake.log
 include flymake.mk
 
+CLEAN_SUB_TARGETS =
+
 -include depends.mk
 include testsuite/makefile
 include libs/makefile
@@ -402,7 +404,7 @@ git_repo_stats:
 
 .PHONY: clean clean_tags clean_all
 
-clean: libs/clean examples/clean examples/smallpt/clean testsuite/clean
+clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})

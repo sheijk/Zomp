@@ -15,6 +15,7 @@ examples/smallpt/%.png: examples/smallpt/%.ppm
 	@$(ECHO) "Converting $< to $@ ..."
 	$(CONVERT-IMAGE) $< $@
 
+CLEAN_SUB_TARGETS += examples/smallpt/clean
 examples/smallpt/clean:
 	$(RM) -f examples/smallpt/smallpt-cpp
 	$(RM) -f examples/smallpt/image.png examples/smallpt/image.ppm

@@ -14,6 +14,10 @@ CLANG_LIBS = -lclang -lclangLex -lclangAST -lclangParse -lclangAnalysis -lclangR
 bindgen/bindgen.dylib: bindgen/zomp_bindgen_plugin.o
 	$(CXX) $(LDFLAGS) -shared `$(LLVM_CONFIG) --ldflags` -lLLVMSupport -lLLVMBitReader -lLLVMBitWriter -lLLVMmc $(CLANG_LIBS) $< -o $@
 
+CLEAN_SUB_TARGETS += bindgen/clean
+bindgen/clean:
+	rm -f bindgen/zomp_bindgen_plugin.o bindgen/bindgen.dylib
+
 %.bindings: %.c bindgen/bindgen.dylib
 	$(CLANG) -cc1 -load bindgen/bindgen.dylib -plugin gen-zomp-bindings $< > $@
 

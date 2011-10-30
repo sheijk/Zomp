@@ -36,7 +36,8 @@ testsuite/fail: fail.test crash.test
 
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/test
 
-testsuite/clean: testsuite/error_reporting/clean
+CLEAN_SUB_TARGETS += testsuite/clean
+testsuite/clean:
 	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.o *.exe *.test gmon.out
 
 ################################################################################
@@ -115,6 +116,7 @@ TESTSUITE_ERROR_CASES = $(TESTSUITE_ERROR_SOURCES:.zomp=.testreport)
 testsuite/error_reporting/all: $(TESTSUITE_ERROR_CASES)
 .PHONY: testsuite/error_reporting/all
 
+CLEAN_SUB_TARGETS += testsuite/error_reporting/clean
 testsuite/error_reporting/clean:
 	cd testsuite/error_reporting && rm -f *.ll *.bc *.testreport *.exe
 .PHONY: testsuite/error_reporting/clean
