@@ -1,34 +1,26 @@
-//===- PrintFunctionNames.cpp ---------------------------------------------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// Example clang plugin which simply prints the names of all the top-level decls
-// in the input file.
-//
-//===----------------------------------------------------------------------===//
+///
+/// A simple clang plugin which will translate the given C file into Zomp
+/// definitions
+///
 
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/AST.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Basic/FileManager.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
 
 namespace {
 
-std::string errorType(const char* msg)
+static std::string errorType(const char* msg)
 {
     return std::string("error_t(\"") + msg + "\")"; 
 }
 
-std::string zompTypeName(const Type* t)
+static std::string zompTypeName(const Type* t)
 {
     if( t == 0 )
     {
@@ -108,14 +100,20 @@ std::string zompTypeName(const Type* t)
     }
 }
 
-class PrintFunctionsConsumer : public ASTConsumer
+static std::string zompTypeName( const QualType& qual_type )
+{
+    return zompTypeName( qual_type.getTypePtrOrNull() );
+}
+
+/** Visitor which will handle every top level declaration */
+class GenBindingsConsumer : public ASTConsumer
 {
     ASTContext* m_context;
     SourceManager* m_src_manager;
     FileID m_main_file_id;
 
 public:
-    PrintFunctionsConsumer() : m_context(0), m_src_manager(0)
+    GenBindingsConsumer() : m_context(0), m_src_manager(0)
     {
     }
 
@@ -124,8 +122,14 @@ public:
         m_context = &context;
         m_src_manager = &context.getSourceManager();
         m_main_file_id = m_src_manager->getMainFileID();
+
+        const char* main_file_name = m_src_manager->getFileEntryForID( m_main_file_id )->getName();
+        llvm::outs() << "///\n";
+        llvm::outs() << "/// Zomp bindings for " << main_file_name << "\n";
+        llvm::outs() << "///\n";
+        llvm::outs() << "\n";
     }
-        
+
     virtual void HandleTopLevelDecl(DeclGroupRef DG)
     {
         for (DeclGroupRef::iterator i = DG.begin(), e = DG.end(); i != e; ++i)
@@ -141,11 +145,6 @@ public:
             if( m_src_manager->getFileID(loc) != m_main_file_id)
             {
                 continue;
-
-                // PresumedLoc orig_loc = m_src_manager->getPresumedLoc(loc);
-                // llvm::outs() << "// by including "
-                //              << orig_loc.getFilename()
-                //              << ": ";
             }
 
             handleAs<VarDecl>(D) ||
@@ -167,7 +166,9 @@ private:
         const T* typed_decl = dyn_cast<T>(D);
         if(typed_decl)
         {
-            return handle(typed_decl) == Handled;
+            const bool result = handle(typed_decl) == Handled;
+            // llvm::outs() << "\n";
+            return result;
         }
         else
         {
@@ -185,7 +186,7 @@ private:
         }
 
         llvm::outs() << "nativeFn ";
-        llvm::outs() << zompTypeName(func_decl->getResultType().getTypePtrOrNull()) << " ";
+        llvm::outs() << zompTypeName( func_decl->getResultType() ) << " ";
         llvm::outs() << func_decl->getNameAsString() << "(";
         bool first_param = true;
         for( FunctionDecl::param_const_iterator param_i = func_decl->param_begin(),
@@ -223,7 +224,7 @@ private:
     HandlingResult handle(const VarDecl* var_decl)
     {
         llvm::outs() << "nativeVar "
-            << zompTypeName( var_decl->getTypeSourceInfo()->getType().getTypePtrOrNull() )
+            << zompTypeName( var_decl->getTypeSourceInfo()->getType() )
             << " "
             << var_decl->getNameAsString()
             << "\n";
@@ -268,7 +269,7 @@ private:
             else
             {
                 llvm::outs() << "  "
-                    << zompTypeName( field.getType().getTypePtrOrNull() )
+                    << zompTypeName( field.getType() )
                     << " "
                     << field.getName()
                     << "\n";
@@ -284,7 +285,7 @@ private:
     {
         llvm::outs() << "nativeEnum "
             << enum_decl->getName() << " "
-            << zompTypeName( enum_decl->getPromotionType().getTypePtrOrNull() )
+            << zompTypeName( enum_decl->getPromotionType() )
             << ":\n";
 
         typedef EnumDecl::enumerator_iterator EnumIter;
@@ -319,16 +320,20 @@ private:
         return Handled;
     }
 };
-    
-class PrintFunctionNamesAction : public PluginASTAction
+
+/** The plugin class. Will instantiate GenBindingsConsumer and run it */
+class GenBindingsAction : public PluginASTAction
 {
 protected:
-    ASTConsumer *CreateASTConsumer(CompilerInstance &CI, llvm::StringRef) {
-        return new PrintFunctionsConsumer();
+    ASTConsumer *CreateASTConsumer(CompilerInstance &CI, llvm::StringRef)
+    {
+        return new GenBindingsConsumer();
     }
         
-    bool ParseArgs(const CompilerInstance &CI,
-        const std::vector<std::string>& args) {
+    bool ParseArgs(
+        const CompilerInstance &CI,
+        const std::vector<std::string>& args )
+    {
         for (unsigned i = 0, e = args.size(); i != e; ++i) {
             llvm::errs() << "PrintFunctionNames arg = " << args[i] << "\n";
                 
@@ -347,13 +352,14 @@ protected:
         return true;
     }
 
-    void PrintHelp(llvm::raw_ostream& ros) {
-        ros << "Help for PrintFunctionNames plugin goes here\n";
+    void PrintHelp(llvm::raw_ostream& ros)
+    {
+        ros << "Translates declarations of a C file into Zomp declarations.\n"
+            "This makes it easy to use C libaries from Zomp.";
     }
-        
 };
     
 } // anonymous namespace
 
-static FrontendPluginRegistry::Add<PrintFunctionNamesAction>
-X("print-fns", "print function names");
+static FrontendPluginRegistry::Add<GenBindingsAction> X("gen-zomp-bindings", "Generate Zomp bindings");
+

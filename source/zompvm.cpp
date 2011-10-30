@@ -1,3 +1,9 @@
+///
+/// Virtual machine implementation. Contains code interacting with
+/// LLVM. Provides services to evaluate LLVM code, create and redefine
+/// functions, types and globals
+///
+
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -8,7 +14,6 @@
 #include "llvm/Type.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/Instructions.h"
-// #include "llvm/ModuleProvider.h"
 #include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
