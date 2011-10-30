@@ -214,6 +214,7 @@ private:
             }
         }
         llvm::outs() << ")\n";
+
         return true;
     }
 
@@ -279,7 +280,27 @@ private:
 
     bool handle(const EnumDecl* enum_decl)
     {
-        return false;
+        llvm::outs() << "nativeEnum "
+            << enum_decl->getName() << " "
+            << zompTypeName( enum_decl->getPromotionType().getTypePtrOrNull() )
+            << ":\n";
+
+        typedef EnumDecl::enumerator_iterator EnumIter;
+        for( EnumIter variant = enum_decl->enumerator_begin(), vend = enum_decl->enumerator_end();
+             variant != vend;
+             ++variant )
+        {
+            EnumConstantDecl* ecd = *variant;
+
+            llvm::outs() << "  "
+                << ecd->getName() << " "
+                << ecd->getInitVal()
+                << "\n";
+        }
+        
+        llvm::outs() << "end\n";
+
+        return true;
     }
 
     bool handleUnknown(const Decl* D)
