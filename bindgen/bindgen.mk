@@ -11,7 +11,7 @@ bindgen/%.o: bindgen/%.cpp
 
 CLANG_LIBS = -lclang -lclangLex -lclangAST -lclangParse -lclangAnalysis -lclangRewrite -lclangBasic -lclangSema -lclangCodeGen -lclangSerialization -lclangDriver -lclangStaticAnalyzerCheckers -lclangFrontend -lclangStaticAnalyzerCore -lclangFrontendTool -lclangStaticAnalyzerFrontend -lclangIndex
 
-bindgen/bindgen.dylib: bindgen/main.o
+bindgen/bindgen.dylib: bindgen/zomp_bindgen_plugin.o
 	$(CXX) $(LDFLAGS) -shared `$(LLVM_CONFIG) --ldflags` -lLLVMSupport -lLLVMBitReader -lLLVMBitWriter -lLLVMmc $(CLANG_LIBS) $< -o $@
 
 %.bindings: %.c bindgen/bindgen.dylib
