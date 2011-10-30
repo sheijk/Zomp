@@ -18,8 +18,6 @@ void f_void_int_anom(int);
 
 // void f_int_with_default(int i = 10);
 
-int v_int = 10;
-
 struct FooStruct
 {
     int a, baz;
@@ -38,6 +36,10 @@ enum BarEnum { BE_a, BE_b, BE_c = 30, BE_d };
 
 void v_void_barenum(enum BarEnum e);
 void v_void_barenumptr(enum BarEnum* pe);
+
+int v_int = 10;
+struct FooStruct v_foostruct = { 1, 2, 3.0 };
+enum BarEnum v_barenum = BE_d;
 
 int main(void)
 {

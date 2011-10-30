@@ -219,9 +219,12 @@ private:
 
     bool handle(const VarDecl* var_decl)
     {
-        llvm::outs() << "// ignored var decl "
-                     << var_decl->getNameAsString()
-                     << "\n";
+        llvm::outs() << "nativeVar "
+            << zompTypeName( var_decl->getTypeSourceInfo()->getType().getTypePtrOrNull() )
+            << " "
+            << var_decl->getNameAsString()
+            << "\n";
+
         return true;
     }
 
