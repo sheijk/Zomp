@@ -159,13 +159,15 @@ public:
 
 private:
 
+    enum HandlingResult { Handled, CouldNotHandle };
+
     template<typename T>
     bool handleAs(const Decl* D)
     {
         const T* typed_decl = dyn_cast<T>(D);
         if(typed_decl)
         {
-            return handle(typed_decl);
+            return handle(typed_decl) == Handled;
         }
         else
         {
@@ -173,13 +175,13 @@ private:
         }
     }
 
-    bool handle(const FunctionDecl* func_decl)
+    HandlingResult handle(const FunctionDecl* func_decl)
     {
         bool ignore = func_decl->isCXXClassMember()
             || func_decl->isCXXInstanceMember();
 
         if(ignore) {
-            return true;
+            return CouldNotHandle;
         }
 
         llvm::outs() << "nativeFn ";
@@ -215,10 +217,10 @@ private:
         }
         llvm::outs() << ")\n";
 
-        return true;
+        return Handled;
     }
 
-    bool handle(const VarDecl* var_decl)
+    HandlingResult handle(const VarDecl* var_decl)
     {
         llvm::outs() << "nativeVar "
             << zompTypeName( var_decl->getTypeSourceInfo()->getType().getTypePtrOrNull() )
@@ -226,7 +228,7 @@ private:
             << var_decl->getNameAsString()
             << "\n";
 
-        return true;
+        return Handled;
     }
 
     bool handle(const TypedefDecl* type_decl)
@@ -240,7 +242,7 @@ private:
                      << zompTypeName(type)
                      << "\n";
 
-        return true;
+        return Handled;
     }
 
     bool handle(const RecordDecl* record_decl)
@@ -248,7 +250,7 @@ private:
         if( record_decl->isAnonymousStructOrUnion() )
         {
             llvm::outs() << "// ignoring anonymous struct\n";
-            return true;
+            return CouldNotHandle;
         }
 
         llvm::outs() << "nativeStruct " << record_decl->getName() << ":\n";
@@ -275,7 +277,7 @@ private:
 
         llvm::outs() << "end\n";
 
-        return true;
+        return Handled;
     }
 
     bool handle(const EnumDecl* enum_decl)
@@ -300,7 +302,7 @@ private:
         
         llvm::outs() << "end\n";
 
-        return true;
+        return Handled;
     }
 
     bool handleUnknown(const Decl* D)
@@ -314,7 +316,7 @@ private:
             llvm::outs() << "// ignored nameless declaration\n";
         }
 
-        return true;
+        return Handled;
     }
 };
     
@@ -344,6 +346,7 @@ protected:
             
         return true;
     }
+
     void PrintHelp(llvm::raw_ostream& ros) {
         ros << "Help for PrintFunctionNames plugin goes here\n";
     }

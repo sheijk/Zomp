@@ -41,9 +41,3 @@ int v_int = 10;
 struct FooStruct v_foostruct = { 1, 2, 3.0 };
 enum BarEnum v_barenum = BE_d;
 
-int main(void)
-{
-    struct FooStruct f;
-    f.baz = f_int_int(0);
-}
-
