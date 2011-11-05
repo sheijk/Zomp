@@ -254,54 +254,74 @@ private:
             return CouldNotHandle;
         }
 
-        llvm::outs() << "nativeStruct " << record_decl->getName() << ":\n";
-
-        typedef RecordDecl::field_iterator FieldIter;
-        for( FieldIter fi = record_decl->field_begin(), fi_end = record_decl->field_end();
-             fi != fi_end;
-             ++fi )
+        if( record_decl->isDefinition() )
         {
-            const FieldDecl& field = **fi;
-            if( field.isBitField() )
-            {
-                llvm::outs() << "  // ignored bitfield, not supported\n";
-            }
-            else
-            {
-                llvm::outs() << "  "
-                    << zompTypeName( field.getType() )
-                    << " "
-                    << field.getName()
-                    << "\n";
-            }
-        }
+            llvm::outs() << "nativeStruct " << record_decl->getName() << ":\n";
 
-        llvm::outs() << "end\n";
+            typedef RecordDecl::field_iterator FieldIter;
+            for( FieldIter fi = record_decl->field_begin(), fi_end = record_decl->field_end();
+                 fi != fi_end;
+                 ++fi )
+            {
+                const FieldDecl& field = **fi;
+                if( field.isBitField() )
+                {
+                    llvm::outs() << "  // ignored bitfield, not supported\n";
+                }
+                else
+                {
+                    llvm::outs()
+                        << "  "
+                        << zompTypeName( field.getType() )
+                        << " "
+                        << field.getName()
+                        << "\n";
+                }
+            }
+
+            llvm::outs() << "end\n";
+        }
+        else
+        {
+            llvm::outs() << "nativeStruct " << record_decl->getName() << "\n";
+        }
 
         return Handled;
     }
 
     bool handle(const EnumDecl* enum_decl)
     {
-        llvm::outs() << "nativeEnum "
-            << enum_decl->getName() << " "
-            << zompTypeName( enum_decl->getPromotionType() )
-            << ":\n";
-
-        typedef EnumDecl::enumerator_iterator EnumIter;
-        for( EnumIter variant = enum_decl->enumerator_begin(), vend = enum_decl->enumerator_end();
-             variant != vend;
-             ++variant )
+        if( enum_decl->isComplete() )
         {
-            EnumConstantDecl* ecd = *variant;
+            llvm::outs()
+                << "nativeEnum "
+                << enum_decl->getName() << " "
+                << zompTypeName( enum_decl->getPromotionType() )
+                << ":\n";
 
-            llvm::outs() << "  "
-                << ecd->getName() << " "
-                << ecd->getInitVal()
+            typedef EnumDecl::enumerator_iterator EnumIter;
+            for( EnumIter variant = enum_decl->enumerator_begin(), vend = enum_decl->enumerator_end();
+                 variant != vend;
+                 ++variant )
+            {
+                EnumConstantDecl* ecd = *variant;
+
+                llvm::outs()
+                    << "  "
+                    << ecd->getName() << " "
+                    << ecd->getInitVal()
+                    << "\n";
+            }
+        
+            llvm::outs() << "end\n";
+        }
+        else
+        {
+            llvm::outs()
+                << "nativeEnum "
+                << enum_decl->getName()
                 << "\n";
         }
-        
-        llvm::outs() << "end\n";
 
         return Handled;
     }
