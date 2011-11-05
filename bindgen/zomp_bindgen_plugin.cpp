@@ -46,13 +46,14 @@ static std::string zompTypeName(const Type* t)
         case BuiltinType::Double: return "double";
         case BuiltinType::LongDouble: return "c_long_double";
 
-        case BuiltinType::Char_U:
-        case BuiltinType::UChar:
+        case BuiltinType::Char_U: return "c_implicit_uchar";
+        case BuiltinType::Char_S: return "c_implicit_schar";
+        case BuiltinType::UChar: return "c_uchar";
+        case BuiltinType::SChar: return "c_schar";
+
         case BuiltinType::WChar_U:
         case BuiltinType::Char16:
         case BuiltinType::Char32:
-        case BuiltinType::Char_S:
-        case BuiltinType::SChar:
         case BuiltinType::WChar_S:
 
         case BuiltinType::NullPtr:
@@ -74,10 +75,12 @@ static std::string zompTypeName(const Type* t)
     }
     else if( const ArrayType* at = dyn_cast<ArrayType>(t) )
     {
+        assert( at );
         return errorType( "bindgen does not support array types, yet" );
     }
     else if( const FunctionType* ft = dyn_cast<FunctionType>(t) )
     {
+        assert( ft );
         return errorType("bindgen does not support function types, yet" );
     }
     else if( const TypedefType* tt = dyn_cast<TypedefType>(t) )
