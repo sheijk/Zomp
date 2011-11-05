@@ -44,6 +44,13 @@ int v_int = 10;
 struct FooStruct v_foostruct = { 1, 2, 3.0 };
 enum BarEnum v_barenum = BE_d;
 
+void multi_forward_decl();
+void multi_forward_decl();
+
+void f_cstring( const char* msg );
+
+void f_variadic( const char* format, ... );
+
 // A little test for clang-lookup
 int foo(int abc)
 {
