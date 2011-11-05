@@ -16,6 +16,9 @@ void f_void_floatptrptr(float** ppf);
 
 void f_void_int_anom(int);
 
+enum BarEnum;
+struct FooStruct;
+
 /* void f_int_with_default(int i = 10); */
 
 struct FooStruct
@@ -40,4 +43,17 @@ void v_void_barenumptr(enum BarEnum* pe);
 int v_int = 10;
 struct FooStruct v_foostruct = { 1, 2, 3.0 };
 enum BarEnum v_barenum = BE_d;
+
+// A little test for clang-lookup
+int foo(int abc)
+{
+    printf( "foobar baz\n" );
+
+    {
+        int abc = 0;
+        f_void_int( abc );
+    }
+
+    return f_int_int( abc );
+}
 
