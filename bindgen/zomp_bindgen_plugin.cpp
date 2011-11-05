@@ -105,7 +105,25 @@ static std::string zompTypeName(const Type* t)
 
 static std::string zompTypeName( const QualType& qual_type )
 {
-    return zompTypeName( qual_type.getTypePtrOrNull() );
+    std::string base_name = zompTypeName( qual_type.getTypePtrOrNull() );
+    std::string name = base_name;
+
+    if( qual_type.isConstQualified() )
+    {
+        name = "/* const */" + name;
+    }
+
+    if( qual_type.isRestrictQualified() )
+    {
+        name = "/* restrict */" + name;
+    }
+
+    if( qual_type.isVolatileQualified() )
+    {
+        name = "/* volatile */" + name;
+    }
+
+    return name;
 }
 
 /** Visitor which will handle every top level declaration */
