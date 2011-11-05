@@ -182,7 +182,9 @@ private:
     HandlingResult handle(const FunctionDecl* func_decl)
     {
         bool ignore = func_decl->isCXXClassMember()
-            || func_decl->isCXXInstanceMember();
+            || func_decl->isCXXInstanceMember()
+            || func_decl->isVariadic()
+            || func_decl->isMain();
 
         if(ignore) {
             return CouldNotHandle;
