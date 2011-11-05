@@ -131,3 +131,4 @@ tools
 /bindgen/bindgen.xcodeproj
 /bindgen/*.o
 /bindgen/test.bindings
+/tests/clang_api/lookup_symbol.dylib
