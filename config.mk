@@ -49,8 +49,8 @@ LLVM_OPT = $(LLVM_BIN_DIR)/opt
 CLANG_BASE_DIR = $(LLVM_BASE_DIR)/tools/clang
 CLANG_INCLUDE_DIR = $(CLANG_BASE_DIR)/include
 
-CLANG = $(LLVM_BIN_DIR)/clang
-CLANGXX = $(LLVM_BIN_DIR)/clang++
+CLANG = $(LLVM_BASE_DIR)/Release/bin/clang
+CLANGXX = $(LLVM_BASE_DIR)/Release/bin/clang++
 
 ################################################################################
 # Shell tool binaries
