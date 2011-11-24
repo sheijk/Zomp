@@ -255,7 +255,7 @@ private:
         return Handled;
     }
 
-    bool handle(const TypedefDecl* type_decl)
+    HandlingResult handle(const TypedefDecl* type_decl)
     {
         QualType typesrc = type_decl->getUnderlyingType();
         const Type* type = typesrc.getTypePtrOrNull();
@@ -269,11 +269,11 @@ private:
             {
                 if( const RecordType* record_type = dyn_cast<RecordType>(type) )
                 {
-                    handled = handle( record_type->getDecl(), type_decl->getName() );
+                    handled = handle( record_type->getDecl(), type_decl->getName() ) == Handled;
                 }
                 else if( const EnumType* enum_type = dyn_cast<EnumType>(type) )
                 {
-                    handled = handle( enum_type->getDecl(), type_decl->getName() );
+                    handled = handle( enum_type->getDecl(), type_decl->getName() ) == Handled;
                 }
             }
             else
@@ -295,7 +295,7 @@ private:
         return Handled;
     }
 
-    bool handle(const RecordDecl* record_decl, llvm::StringRef name = "" )
+    HandlingResult handle(const RecordDecl* record_decl, llvm::StringRef name = "" )
     {
         if( name == "" )
         {
@@ -306,10 +306,8 @@ private:
             name.empty() )
         {
             llvm::outs() << "// ignoring anonymous struct\n";
-            return Handled;
         }
-
-        if( record_decl->isDefinition() )
+        else if( record_decl->isDefinition() )
         {
             llvm::outs() << "nativeStruct " << name << ":\n";
 
@@ -344,7 +342,7 @@ private:
         return Handled;
     }
 
-    bool handle(const EnumDecl* enum_decl, llvm::StringRef name = "")
+    HandlingResult handle(const EnumDecl* enum_decl, llvm::StringRef name = "")
     {
         if( name == "" )
         {
