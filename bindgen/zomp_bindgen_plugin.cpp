@@ -271,6 +271,10 @@ private:
                 {
                     handled = handle( record_type->getDecl(), type_decl->getName() );
                 }
+                else if( const EnumType* enum_type = dyn_cast<EnumType>(type) )
+                {
+                    handled = handle( enum_type->getDecl(), type_decl->getName() );
+                }
             }
             else
             {
@@ -293,6 +297,11 @@ private:
 
     bool handle(const RecordDecl* record_decl, llvm::StringRef name = "" )
     {
+        if( name == "" )
+        {
+            name = record_decl->getName();
+        }
+
         if( record_decl->isAnonymousStructOrUnion() ||
             name.empty() )
         {
@@ -335,9 +344,14 @@ private:
         return Handled;
     }
 
-    bool handle(const EnumDecl* enum_decl)
+    bool handle(const EnumDecl* enum_decl, llvm::StringRef name = "")
     {
-        if( enum_decl->getName().empty() )
+        if( name == "" )
+        {
+            name = enum_decl->getName();
+        }
+
+        if( name.empty() )
         {
             llvm::outs() << "// ignoring name-less enum\n";
         }
@@ -345,7 +359,7 @@ private:
         {
             llvm::outs()
                 << "nativeEnum "
-                << enum_decl->getName() << " "
+                << name << " "
                 << zompTypeName( enum_decl->getPromotionType() )
                 << ":\n";
 
@@ -369,7 +383,7 @@ private:
         {
             llvm::outs()
                 << "nativeEnum "
-                << enum_decl->getName()
+                << name
                 << "\n";
         }
 
