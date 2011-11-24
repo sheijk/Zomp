@@ -24,3 +24,6 @@ bindgen/clean:
 %.bindings: %.c bindgen/zomp_bindgen.dylib
 	$(CLANG) -cc1 -load bindgen/zomp_bindgen.dylib -plugin gen-zomp-bindings $< > $@
 
+%.bindings: %.h bindgen/zomp_bindgen.dylib
+	$(CLANG) -cc1 -load bindgen/zomp_bindgen.dylib -plugin gen-zomp-bindings $< > $@
+
