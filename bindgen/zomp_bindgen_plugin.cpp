@@ -20,6 +20,8 @@ static std::string errorType(const char* msg)
     return std::string("error_t(\"") + msg + "\")"; 
 }
 
+static std::string zompTypeName( const QualType& qual_type );
+
 static std::string zompTypeName(const Type* t)
 {
     if( t == 0 )
@@ -73,9 +75,21 @@ static std::string zompTypeName(const Type* t)
         QualType base_type = pt->getPointeeType();
         return zompTypeName(base_type.getTypePtrOrNull()) + "*";
     }
+    else if( const ConstantArrayType* at = dyn_cast<ConstantArrayType>(t) )
+    {
+        std::string elementTypeName = zompTypeName( at->getElementType() );
+        std::string size = at->getSize().toString( 10, true );
+        return elementTypeName + "[" + size + "]";
+    }
+    else if( const IncompleteArrayType* at = dyn_cast<IncompleteArrayType>(t) )
+    {
+        std::string elementTypeName = zompTypeName( at->getElementType() );
+        std::string size = "_";
+        return elementTypeName + "[" + size + "]";
+    }
     else if( const ArrayType* at = dyn_cast<ArrayType>(t) )
     {
-        assert( at );
+        assert(at);
         return errorType( "bindgen does not support array types, yet" );
     }
     else if( const FunctionType* ft = dyn_cast<FunctionType>(t) )

@@ -65,6 +65,9 @@ struct TenInts
     int nums[10];
 };
 
+void v_take_array_10( int nums[10] );
+void v_take_array_unsized( int nums[] );
+
 struct VTable
 {
     int_of_float_int_t method_iof;
