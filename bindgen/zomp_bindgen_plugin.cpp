@@ -259,22 +259,31 @@ private:
     {
         QualType typesrc = type_decl->getUnderlyingType();
         const Type* type = typesrc.getTypePtrOrNull();
+        std::string zomp_name = zompTypeName(type);        
 
-        llvm::outs() << "nativeType "
-                     << type_decl->getName()
-                     << " "
-                     << zompTypeName(type)
-                     << "\n";
+        if( type && !zomp_name.empty() )
+        {
+            llvm::outs()
+                << "nativeTypedef "
+                << type_decl->getName()
+                << " " << zomp_name << "\n";
+        }
+        else
+        {
+            llvm::outs()
+                << "// ignoring typedef " << type_decl->getName() << "\n";
+        }
 
         return Handled;
     }
 
     bool handle(const RecordDecl* record_decl)
     {
-        if( record_decl->isAnonymousStructOrUnion() )
+        if( record_decl->isAnonymousStructOrUnion() ||
+            record_decl->getName().empty() )
         {
             llvm::outs() << "// ignoring anonymous struct\n";
-            return CouldNotHandle;
+            return Handled;
         }
 
         if( record_decl->isDefinition() )
@@ -314,7 +323,11 @@ private:
 
     bool handle(const EnumDecl* enum_decl)
     {
-        if( enum_decl->isComplete() )
+        if( enum_decl->getName().empty() )
+        {
+            llvm::outs() << "// ignoring name-less enum\n";
+        }
+        else if( enum_decl->isComplete() )
         {
             llvm::outs()
                 << "nativeEnum "

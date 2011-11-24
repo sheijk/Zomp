@@ -51,7 +51,27 @@ void f_cstring( const char* msg );
 
 void f_variadic( const char* format, ... );
 
-// A little test for clang-lookup
+typedef struct {
+    int mem_a;
+    char* mem_b;
+} UglyStruct;
+
+typedef enum { ANON_A, ANON_B, ANON_C } AnonEnum;
+
+typedef int (*int_of_float_int_t)(float, int);
+
+struct TenInts
+{
+    int nums[10];
+};
+
+struct VTable
+{
+    int_of_float_int_t method_iof;
+    float (*parse_char)(char*);
+};
+
+/* A little test for clang-lookup */
 int foo(int abc)
 {
     printf( "foobar baz\n" );
