@@ -259,16 +259,30 @@ private:
     {
         QualType typesrc = type_decl->getUnderlyingType();
         const Type* type = typesrc.getTypePtrOrNull();
-        std::string zomp_name = zompTypeName(type);        
+        std::string zomp_name = zompTypeName(type);
 
-        if( type && !zomp_name.empty() )
+        bool handled = false;
+
+        if( type )
         {
-            llvm::outs()
-                << "nativeTypedef "
-                << type_decl->getName()
-                << " " << zomp_name << "\n";
+            if( zomp_name.empty() )
+            {
+                if( const RecordType* record_type = dyn_cast<RecordType>(type) )
+                {
+                    handled = handle( record_type->getDecl(), type_decl->getName() );
+                }
+            }
+            else
+            {
+                llvm::outs()
+                    << "nativeTypedef "
+                    << type_decl->getName()
+                    << " " << zomp_name << "\n";
+                handled = true;
+            }
         }
-        else
+
+        if( !handled )
         {
             llvm::outs()
                 << "// ignoring typedef " << type_decl->getName() << "\n";
@@ -277,10 +291,10 @@ private:
         return Handled;
     }
 
-    bool handle(const RecordDecl* record_decl)
+    bool handle(const RecordDecl* record_decl, llvm::StringRef name = "" )
     {
         if( record_decl->isAnonymousStructOrUnion() ||
-            record_decl->getName().empty() )
+            name.empty() )
         {
             llvm::outs() << "// ignoring anonymous struct\n";
             return Handled;
@@ -288,7 +302,7 @@ private:
 
         if( record_decl->isDefinition() )
         {
-            llvm::outs() << "nativeStruct " << record_decl->getName() << ":\n";
+            llvm::outs() << "nativeStruct " << name << ":\n";
 
             typedef RecordDecl::field_iterator FieldIter;
             for( FieldIter fi = record_decl->field_begin(), fi_end = record_decl->field_end();
@@ -315,7 +329,7 @@ private:
         }
         else
         {
-            llvm::outs() << "nativeStruct " << record_decl->getName() << "\n";
+            llvm::outs() << "nativeStruct " << name << "\n";
         }
 
         return Handled;
