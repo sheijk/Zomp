@@ -115,7 +115,7 @@ static std::string zompTypeName(const Type* t)
     else if( const FunctionNoProtoType* ft = dyn_cast<FunctionNoProtoType>(t) )
     {
         assert(ft);
-        return errorType("FunctionNoProtoType");
+        return zompTypeName( ft->getResultType() ) + "(...)";
     }
     else if( const FunctionType* ft = dyn_cast<FunctionType>(t) )
     {

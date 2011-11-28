@@ -60,6 +60,8 @@ typedef enum { ANON_A, ANON_B, ANON_C } AnonEnum;
 
 typedef int (*int_of_float_int_t)(float, int);
 
+typedef void(*c_any_arg_func_t)();
+
 struct TenInts
 {
     int nums[10];
