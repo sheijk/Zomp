@@ -1542,20 +1542,35 @@ struct
       | TypedefSymbol `Record { rname = _; fields = fields } ->
         let translateField expr : 'a mayfail =
           let bindings, formsWTL = env.translateF env.bindings expr in
-          (* let tlforms, forms = extractToplevelForms formsWTL in *)
-          match formsWTL with
-            | [`Constant value] ->
-              Result value
-            | invalidForms ->
-              errorFromExpr expr
-                (Common.combine "\n"
-                   ("Only constant expressions allowed here" ::
-                       List.map formWithTLsEmbeddedToString invalidForms))
+          Result formsWTL
         in
         begin match translateStructValue fields expr.args translateField with
-          | Result fieldValues ->
-            let c : formWithTLsEmbedded = `Constant (RecordVal (expr.id, fieldValues)) in
-            Result (env.bindings, [c])
+          | Result fieldForms ->
+
+            let alltlforms = ref [] in
+            let addTLForms elements = alltlforms := elements @ !alltlforms in
+
+            let errors = ref [] in
+            let addError msg = errors := msg :: !errors in
+
+            let toValue (name, formsWTL) =
+              let tlforms, form = extractToplevelForms formsWTL in
+              addTLForms tlforms;
+              match form with
+                | [`Constant value] ->
+                  name, value
+                | _ ->
+                  addError (sprintf "Error in field %s, only supporting constants" name);
+                  name, ErrorVal ""
+            in
+            let fieldValues = List.map toValue fieldForms in
+            begin match !errors with
+              | [] ->
+                let c : formWithTLsEmbedded = `Constant (RecordVal (expr.id, fieldValues)) in
+                Result (env.bindings, !alltlforms @ [c])
+              | errors ->
+                Error errors
+            end
           | Error msgs ->
             Error msgs
         end
