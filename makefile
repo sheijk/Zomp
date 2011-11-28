@@ -382,7 +382,7 @@ loc_stats_no_summary:
 	$(LS) $(wildcard source/*.ml source/*.mli source/*.mly source/*.mll) | grep -v source/newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
 	$(LINE_COUNT) libs/libutils.cpp prelude.zomp source/runtime.c zomp.el source/zomputils.h source/zompvm.cpp source/zompvm.h source/zompvm_dummy.cpp | $(SORT) -n
-	$(LINE_COUNT) $(wildcard *.skel) | $(SORT) -n
+	$(LINE_COUNT) $(wildcard libs/*.skel) | $(SORT) -n
 	$(LS) $(wildcard libs/*.zomp) | grep -v libs/opengl20.\*\.zomp | grep -v libs/glfw\.zomp | grep -v libs/quicktext\.zomp | grep -v libs/glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard examples/*.zomp) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard testsuite/*.zomp) | $(SORT) -n
