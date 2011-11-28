@@ -123,7 +123,9 @@ type 'typ variable = {
 let rec validateValue = function
   | VoidVal | CharVal _ | BoolVal _
   | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _
-  | NullpointerVal _ | StringLiteral _ as value ->
+  | NullpointerVal _
+  | ErrorVal _
+  | StringLiteral _ as value ->
       value
   | FloatVal _ | DoubleVal _ as value ->
       let valueString = Typesystems.Zomp.valueString value in

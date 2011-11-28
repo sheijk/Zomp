@@ -52,8 +52,12 @@ let rec llvmTypeName : Lang.typ -> string = function
         (* ~msg:"Cannot generate LLVM type representation for parametric type" *)
       llvmTypeName (t :> typ)
   | `TypeParam ->
-      raiseCodeGenError
-        ~msg:"Cannot generate type representation for uninstantiated type parameter"
+    raiseCodeGenError
+      ~msg:"Cannot generate type representation for uninstantiated type parameter"
+  | `ErrorType _ as t ->
+    raiseCodeGenError
+      ~msg:(sprintf "Cannot generate type representation for %s"
+              (typeName t))
 
 let rec llvmTypeNameLong = function
   | `Record record ->
@@ -598,6 +602,7 @@ let gencodeDefineVariable gencode var default =
             | `Pointer _ | `Function _ -> Some "null"
             | `Record _ | `TypeRef _ | `Array _ -> None
             | `TypeParam | `ParametricType _ -> None
+            | `ErrorType _ -> None
             | #integralType as t -> Some (Lang.valueString (defaultValue t))
           in
           let initInstr = function
@@ -662,7 +667,7 @@ let rec llvmValue c =
         llvmTypeName fieldType ^ " " ^ llvmValue fieldValue) fields
       in
       "{ " ^ Common.combine ", " fieldStrings ^ " }"
-    | VoidVal | StringLiteral _ | NullpointerVal _ | ArrayVal _ ->
+    | VoidVal | StringLiteral _ | NullpointerVal _ | ArrayVal _ | ErrorVal _ ->
       raiseCodeGenError ~msg:(sprintf "Constants of type %s not supported"
                                 (typeName (typeOf c)))
 
@@ -1040,6 +1045,9 @@ let gencodeGlobalVar var initialValue =
             "[" ^ Common.combine ", " valueStrings ^ "]"
         in
         sprintf "@%s = global %s %s\n" varname (llvmTypeName var.typ) valueStr
+    | ErrorVal _ as value ->
+      raiseCodeGenError ~msg:(sprintf "Cannot generate global var of type %s"
+                                (typeName (typeOf value)))
 
 let gencodeDefineFunc func =
   let makeSignature retvalName paramString =

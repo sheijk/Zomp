@@ -9,7 +9,7 @@
 #load "bindings.cmo";;
 
 *)
-
+  
 open Lang
 open Semantic
 open Ast2
@@ -89,6 +89,8 @@ struct
             `Record { rt with fields = List.map (map2nd inst) rt.fields }
         | `ParametricType `Pointer t ->
             `Pointer (inst t)
+        | `ErrorType _ as t ->
+            t
       in
       inst parametricType
     in
@@ -992,7 +994,10 @@ struct
                 | None ->
                     let var = variable name typ MemoryStorage false in
                     Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
-                | Some valueExpr -> raiseIllegalExpression valueExpr "Record type var must not have a default value"
+                | Some valueExpr ->
+                  raiseIllegalExpression
+                    valueExpr
+                    "Record type var must not have a default value"
             end
         | `TypeRef _ ->
             raiseIllegalExpression expr "Internal error: received unexpected type ref"
@@ -1002,6 +1007,9 @@ struct
             raiseIllegalExpression expr "Cannot define local variable of type parameter type"
         | `ParametricType _ ->
             raiseIllegalExpression expr "Cannot define local variable of parametric type"
+        | `ErrorType _ as t ->
+          raiseIllegalExpression expr (sprintf "Cannot define local variable of %s"
+                                         (typeName t))
     in
     match expr with
       | { args = [
@@ -1318,6 +1326,9 @@ struct
             raiseIllegalExpression expr "Cannot define local variable of type parameter type"
         | `ParametricType _ ->
             raiseIllegalExpression expr "Cannot define local variable of parametric type"
+        | `ErrorType _ as t ->
+          raiseIllegalExpression expr (sprintf "Cannot define local variable of %s"
+                                         (typeName t))
     in
     let transform id name typeExpr valueExpr :translationResult =
       try

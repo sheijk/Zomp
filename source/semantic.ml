@@ -277,6 +277,7 @@ let rec typeCheck bindings form : typecheckResult =
           | _ -> typeref
         end
     | `TypeParam
+    | `ErrorType _
     | #integralType as t ->
         t
     | `ParametricType t ->

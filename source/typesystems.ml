@@ -91,6 +91,9 @@ struct
 
   | `ParametricType of typ parameterizableType
   | `TypeParam
+
+  (** string is only an indicator for debugging, not a user-visible error message *)
+  | `ErrorType of string
   ]
   and functionType = {
     returnType :typ;
@@ -116,6 +119,8 @@ struct
     | `Function _
     | #integralType ->
         false
+    | `ErrorType _ ->
+      false
 
   type value =
     | VoidVal
@@ -131,6 +136,8 @@ struct
     | NullpointerVal of typ
     | ArrayVal of typ * value list
     | RecordVal of string * (string * value) list
+    (** string is only an indicator for debugging *)
+    | ErrorVal of string
 
   exception CouldNotParseType of string
 
@@ -168,6 +175,7 @@ struct
     | RecordVal (typeName, components) ->
         let convert (name, value) = name, typeOf value in
         `Record { rname = typeName; fields = List.map convert components }
+    | ErrorVal msg -> `ErrorType msg
 
   (* val typeName : typ -> string *)
   let rec typeName : typ -> string = function
@@ -196,6 +204,7 @@ struct
     | `ParametricType t ->
         typeName (t :> typ) ^ "!T"
     | `TypeParam -> "'T"
+    | `ErrorType msg -> "error_t(\"" ^ msg ^ "\")"
 
   let rec typeDescr = function
     | `Record record ->
@@ -207,7 +216,6 @@ struct
     | other ->
         typeName other
 
-  (* val valueString : value -> string *)
   let rec valueString : value -> string =
     function
       | VoidVal -> raise (Failure "no values of void allowed")
@@ -230,6 +238,8 @@ struct
                 (Printf.sprintf "(%s = %s)" name (valueString value)) ^ (convert tail)
           in
           "(" ^ convert components ^ ")"
+      | ErrorVal msg ->
+        "error(\"" ^ msg ^ "\")"
 
   (* val parseType : string -> typ *)
   let rec parseType (str :string) :typ =
@@ -284,7 +294,9 @@ struct
         | `ParametricType _ -> failwith "Cannot parse parametric type"
         | `TypeParam -> failwith "Cannot parse a type parameter"
         | `TypeRef name ->
-            failwith (sprintf "Cannot parse value of type %s referred by name" name)
+          failwith (sprintf "Cannot parse value of type %s referred by name" name)
+        | `ErrorType _ as t ->
+          failwith (sprintf "Cannot parse value of type %s" (typeName t))
       end with
         | Failure s -> failwith (sprintf "%s (when parsing %s)" s str)
 
@@ -311,6 +323,8 @@ struct
                     (typeName (t :> typ)))
     | `TypeParam ->
         failwith "no default value for type parameter"
+
+    | `ErrorType msg -> ErrorVal msg
 end
 
 module Tests =
