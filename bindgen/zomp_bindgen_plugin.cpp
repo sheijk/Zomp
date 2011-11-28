@@ -11,6 +11,8 @@
 #include "clang/Basic/FileManager.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <sstream>
+
 using namespace clang;
 
 namespace {
@@ -90,18 +92,43 @@ static std::string zompTypeName(const Type* t)
     else if( const ArrayType* at = dyn_cast<ArrayType>(t) )
     {
         assert(at);
-        return errorType( "bindgen does not support array types, yet" );
+        return errorType( "internal error, unknown kind of array type" );
+    }
+    else if( const FunctionProtoType* ft = dyn_cast<FunctionProtoType>(t) )
+    {
+        assert(ft);
+        std::ostringstream str;
+        str << zompTypeName( ft->getResultType() );
+        str << "(";
+        for( int argNum = 0, argCount = ft->getNumArgs(); argNum < argCount; ++argNum )
+        {
+            if( argNum > 0 )
+            {
+                str << ", ";
+            }
+            str << zompTypeName( ft->getArgType(argNum) );
+        }
+        str << ")";
+        return str.str();
+    }
+    /// A C function like void f(), which takes any number of arguments
+    else if( const FunctionNoProtoType* ft = dyn_cast<FunctionNoProtoType>(t) )
+    {
+        assert(ft);
+        return errorType("FunctionNoProtoType");
     }
     else if( const FunctionType* ft = dyn_cast<FunctionType>(t) )
     {
         assert( ft );
-        return errorType("bindgen does not support function types, yet" );
+        return errorType("internal error, unknown kind of function type" );
+    }
+    else if( const ParenType* pt = dyn_cast<ParenType>(t) )
+    {
+        return zompTypeName( pt->getInnerType() );
     }
     else if( const TypedefType* tt = dyn_cast<TypedefType>(t) )
     {
         return tt->getDecl()->getName();
-        // return zompTypeName(
-            // tt->getDecl()->getCanonicalDecl()->getUnderlyingType().getTypePtrOrNull() );
     }
     else if( const EnumType* et = dyn_cast<EnumType>(t) )
     {

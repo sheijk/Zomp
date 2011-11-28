@@ -6,6 +6,7 @@ ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
 $(error "Call make from the main zomp dir, only")
 endif
 
+.PRECIOUS: bindgen/%.o
 bindgen/%.o: bindgen/%.cpp
 	@$(ECHO) Compiling $< ...
 	$(CXX) -c $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` $< -o $@
