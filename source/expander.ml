@@ -382,6 +382,7 @@ struct
           returnRecordTypedef bindings typeName componentExprs expr
       | _ -> None
 
+  (** TODO: check if this can be removed *)
   let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
     | { id = id; args =
           { id = name; args = []; }
