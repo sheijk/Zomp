@@ -1,0 +1,24 @@
+///
+/// Testing error cases for struct literals in std:base
+///
+
+requireLibs libcee unittest
+
+struct Point:
+  int x
+  int y
+end
+
+func void FieldDefinedTwice():
+  Point(x = 1, y = 2, x = 2) //// error x
+  Point(x = 1, x = 2, y = 2) //// error x
+  Point(x = 1, y = 2, y = 3) //// error y
+
+  Point(x = 10) //// error y missing
+  Point(y = 10) //// error x missing
+
+  return
+end
+
+unittest:main
+
