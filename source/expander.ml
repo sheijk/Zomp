@@ -1604,15 +1604,17 @@ struct
 
   let alwaysFail env expr = errorFromExpr expr "not supported"
 
-  let translateApply translateRecordF (env :('a someTranslateF) env) expr :'a translationResultV =
+  let translateApply translateRecordF (env :('a someTranslateF) env) expr =
     match expr with
       | { args = firstArg :: remArgs } -> begin
           match lookup env.bindings firstArg.id with
             | FuncSymbol _
             | VarSymbol { typ = `Pointer `Function _ } ->
-                Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+              Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+
             | TypedefSymbol _ ->
               translateRecordF env (Ast2.shiftLeft expr.args)
+
             | _ ->
                 let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
                 Result r
