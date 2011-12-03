@@ -22,6 +22,25 @@ unittest:testCase SimpleStructLiteral:
   end
 end
 
+unittest:testCase StructLiteralWithExpressionArg:
+  pt_50_40 := Point(x = 49 + 1, y = 100 - 60)
+
+  unittest:assertAll:
+    pt_50_40.x == 50
+    pt_50_40.y == 40
+  end
+end
+
+unittest:testCase StructLiteralWithVariableArg:
+  x := 120
+  pt_120_100 := Point(x = x, y = 100)
+
+  unittest:assertAll:
+    pt_120_100.x == 120
+    pt_120_100.y == 100
+  end
+end
+
 struct Rectangle:
   Point bl
   Point tr
@@ -44,30 +63,30 @@ struct VersionInfo:
   cstring variant
 end
 
-unittest:testCase StructWithStringLiteral:
-  zomp := VersionInfo(major = 0, minor = 1, variant = "Debug")
-
-  unittest:assertAll:
-    zomp.major == 0
-    zomp.minor == 1
-    zomp.variant == "Debug"
-  end
-end
+// unittest:testCase StructWithStringLiteral:
+//   zomp := VersionInfo(major = 0, minor = 1, variant = "Debug")
+// 
+//   unittest:assertAll:
+//     zomp.major == 0
+//     zomp.minor == 1
+//     zomp.variant == "Debug"
+//   end
+// end
 
 struct NamedLocation:
   cstring name
   Point pos
 end
 
-unittest:testCase NestedStructLiteral:
-  berlin := NamedLocation(name = "Berlin", pos = Point(x = 53, y = 13))
-
-  unittest:assertAll:
-    berlin.name ==_str "Berlin"
-    berlin.pos.x == 53
-    berlin.pos.y == 13
-  end
-end
+// unittest:testCase NestedStructLiteral:
+//   berlin := NamedLocation(name = "Berlin", pos = Point(x = 53, y = 13))
+// 
+//   unittest:assertAll:
+//     berlin.name ==_str "Berlin"
+//     berlin.pos.x == 53
+//     berlin.pos.y == 13
+//   end
+// end
 
 // instantiated generic struct
 

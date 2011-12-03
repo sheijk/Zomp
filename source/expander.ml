@@ -1501,21 +1501,21 @@ struct
         | { id = "op=";
             args = [{id = fieldName; args= []}; rhs] } as fieldValueExpr :: remArgs ->
           begin
-            let removeField (undefinedFields : (string*'b) list) fieldName =
+            let removeField undefinedFields fieldName =
               let rec loop prevFields undefinedFields =
                 match undefinedFields with
-                  | (name, typ) :: remFields ->
+                  | name :: remFields ->
                     if name = fieldName then
-                      Some (typ, prevFields @ remFields)
+                      Some (prevFields @ remFields)
                     else
-                      loop ((name, typ) :: prevFields) remFields
+                      loop (name :: prevFields) remFields
                   | [] ->
                     None
               in
               loop [] undefinedFields
             in
             match removeField undefinedFields fieldName with
-              | Some (typ, undefinedFields) ->
+              | Some undefinedFields ->
                 begin match translateExprF rhs with
                   | Error rhsErrors ->
                     continueWithErrors rhsErrors remArgs
@@ -1540,37 +1540,61 @@ struct
   (** called by translateApply, not registered under any name *)
   let translateRecordLiteral (env :exprTranslateF env) expr :translationResult =
     match lookup env.bindings expr.id with
-      | TypedefSymbol `Record { rname = _; fields = fields } ->
+      | TypedefSymbol (`Record { rname = _; fields = fields } as recordType) ->
         let translateField expr : 'a mayfail =
           let bindings, formsWTL = env.translateF env.bindings expr in
-          Result formsWTL
+          let tlforms, forms = extractToplevelForms formsWTL in
+          Result (tlforms, forms)
         in
-        begin match translateStructValue fields expr.args translateField with
-          | Result fieldForms ->
-
-            let alltlforms = ref [] in
-            let addTLForms elements = alltlforms := elements @ !alltlforms in
-
-            let errors = ref [] in
-            let addError msg = errors := msg :: !errors in
-
-            let toValue (name, formsWTL) =
-              let tlforms, form = extractToplevelForms formsWTL in
-              addTLForms tlforms;
-              match form with
-                | [`Constant value] ->
-                  name, value
-                | _ ->
-                  addError (sprintf "Error in field %s, only supporting constants" name);
-                  name, ErrorVal ""
+        let fieldNames = List.map fst fields in
+        begin match translateStructValue fieldNames expr.args translateField with
+          | Result fieldFormsTL ->
+            let alltlformsLst, fieldForms = List.split
+              (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)
             in
-            let fieldValues = List.map toValue fieldForms in
-            begin match !errors with
-              | [] ->
-                let c : formWithTLsEmbedded = `Constant (RecordVal (expr.id, fieldValues)) in
-                Result (env.bindings, !alltlforms @ [c])
-              | errors ->
-                Error errors
+            let alltlforms = List.flatten alltlformsLst in
+
+            let translate nameAndFormList =
+              let rec onlyConstantsSoFar nameAndFormList accum =
+                match nameAndFormList with
+                  | [] ->
+                    `AllConstant (List.rev accum)
+                  | (name, [`Constant value]) :: rem ->
+                    onlyConstantsSoFar rem ((name, value) :: accum)
+                  | _ ->
+                    let valueToFormList (name, value) =
+                      name, [(`Constant value :> Lang.form)]
+                    in
+                    hadComplexExprs nameAndFormList (List.map valueToFormList accum)
+              and hadComplexExprs nameAndFormList accum =
+                match nameAndFormList with
+                  | [] ->
+                    `ComplexExprs accum
+                  | nameAndForm :: rem ->
+                    hadComplexExprs rem (nameAndForm :: accum)
+              in
+              onlyConstantsSoFar nameAndFormList []
+            in
+            begin match translate fieldForms with
+              | `AllConstant nameAndValueList ->
+                let c : formWithTLsEmbedded =
+                  `Constant (RecordVal (expr.id, nameAndValueList))
+                in
+                Result (env.bindings, alltlforms @ [c])
+
+              | `ComplexExprs fieldsAndExprs ->
+                let newBindings, recordVar = getNewLocalVar env.bindings recordType in
+                let recordVarAddress = `GetAddrIntrinsic recordVar in
+                let makeFieldAssignment (name, forms) =
+                  let ptr = `GetFieldPointerIntrinsic (recordVarAddress, name) in
+                  `StoreIntrinsic (ptr, toSingleForm forms)
+                in
+                let assignments = List.map makeFieldAssignment fieldsAndExprs in
+                Result (newBindings,
+                        alltlforms
+                        @ [`DefineVariable (recordVar, None)]
+                        @ assignments
+                        @ [`Variable recordVar])
             end
           | Error msgs ->
             Error msgs
