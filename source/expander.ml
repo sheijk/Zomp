@@ -1501,21 +1501,8 @@ struct
         | { id = "op=";
             args = [{id = fieldName; args= []}; rhs] } as fieldValueExpr :: remArgs ->
           begin
-            let removeField undefinedFields fieldName =
-              let rec loop prevFields undefinedFields =
-                match undefinedFields with
-                  | name :: remFields ->
-                    if name = fieldName then
-                      Some (prevFields @ remFields)
-                    else
-                      loop (name :: prevFields) remFields
-                  | [] ->
-                    None
-              in
-              loop [] undefinedFields
-            in
-            match removeField undefinedFields fieldName with
-              | Some undefinedFields ->
+            match List.partition ((=) fieldName) undefinedFields with
+              | [_], undefinedFields ->
                 begin match translateExprF rhs with
                   | Error rhsErrors ->
                     continueWithErrors rhsErrors remArgs
@@ -1526,16 +1513,24 @@ struct
                       undefinedFields
                       remArgs
                 end
-              | None ->
-                continueWithErrors [errorMsgFromExpr fieldValueExpr
-                                       (sprintf "Field %s does not exist" fieldName)] remArgs
+              | _, _ ->
+                continueWithErrors
+                  [errorMsgFromExpr fieldValueExpr
+                      (if listContains fieldName fields then
+                          sprintf "Field %s specified several times" fieldName
+                       else
+                          sprintf "Field %s does not exist" fieldName)]
+                  remArgs
           end
         | unexpectedExpr :: remArgs ->
           continueWithErrors
             [errorMsgFromExpr unexpectedExpr "Expected expression of the form 'id = expr'"]
             remArgs
     in
-    handleFieldExprs [] [] fields fieldExprs
+    if List.length fields <> List.length fieldExprs then
+      Error ["Not all fields have been defined"]
+    else
+      handleFieldExprs [] [] fields fieldExprs
 
   (** called by translateApply, not registered under any name *)
   let translateRecordLiteral (env :exprTranslateF env) expr :translationResult =
@@ -1575,6 +1570,7 @@ struct
               in
               onlyConstantsSoFar nameAndFormList []
             in
+
             begin match translate fieldForms with
               | `AllConstant nameAndValueList ->
                 let c : formWithTLsEmbedded =
