@@ -291,6 +291,33 @@ end
 
 open Translation_utils
 
+type 'a mayfail =
+  | Result of 'a
+  | Error of string list
+
+let errorFromString msg = Error [msg]
+let result r = Result r
+
+let errorMsgFromExpr expr msg = sprintf "%s in %s" msg (Ast2.toString expr)
+let errorFromExpr expr msg =
+  Error [errorMsgFromExpr expr msg]
+
+let combineResults mayfails =
+  let errors = ref [] in
+  let addTo listRef e = listRef := e :: !listRef in
+  let results = mapFilter
+    (function Error msgs -> List.iter (addTo errors) msgs; None | Result r -> Some r)
+    mayfails
+  in
+  match !errors with
+    | [] -> Result results
+    | messages -> Error messages
+
+let mapResult f = function
+  | Result r -> Result (f r)
+  | Error msgs -> Error msgs
+
+
 module Translators_deprecated_style =
 struct
 
@@ -696,32 +723,6 @@ struct
 end
 
 (** "new" compiler types *)
-
-type 'a mayfail =
-  | Result of 'a
-  | Error of string list
-
-let errorFromString msg = Error [msg]
-let result r = Result r
-
-let errorMsgFromExpr expr msg = sprintf "%s in %s" msg (Ast2.toString expr)
-let errorFromExpr expr msg =
-  Error [errorMsgFromExpr expr msg]
-
-let combineResults mayfails =
-  let errors = ref [] in
-  let addTo listRef e = listRef := e :: !listRef in
-  let results = mapFilter
-    (function Error msgs -> List.iter (addTo errors) msgs; None | Result r -> Some r)
-    mayfails
-  in
-  match !errors with
-    | [] -> Result results
-    | messages -> Error messages
-
-let mapResult f = function
-  | Result r -> Result (f r)
-  | Error msgs -> Error msgs
 
 
 
