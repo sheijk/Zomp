@@ -910,6 +910,11 @@ end
 
 module Base : Zomp_transformer =
 struct
+  let reportError msg =
+    eprintf "error: (swallowed) %s\n" msg
+
+  let reportErrorE expr msg = reportError (errorMsgFromExpr expr msg)
+  
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
   let translateStructLiteralArgs fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
     let rec handleFieldExprs errors fieldValues undefinedFields =
@@ -961,10 +966,8 @@ struct
       | Some `Constant value -> Result value
       | _ -> errorFromExpr expr "Must be a constant expression"
 
+  (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
   let translateGlobalVar env expr =
-    let reportError msg =
-      eprintf "error: (swallowed) %s\n" msg
-    in
     match expr with
       | { id = _; args = [
         typeExpr;
@@ -972,81 +975,31 @@ struct
         valueExpr
       ] } ->
         begin
-          let valueStringOpt = match valueExpr with
-            | { id = valueString; args = [] } -> Some valueString
-            | _ -> None
+          let typ =
+            match translateType env.bindings typeExpr with
+              | Some (#integralType as typ)
+              | Some (`Pointer _ as typ)
+              | Some (`Array (_, _) as typ)
+              | Some (`Record _ as typ) ->
+                typ
+              | Some `ErrorType _
+              | Some `Function _
+              | Some `ParametricType _
+              | Some `TypeParam
+              | Some `TypeRef _ ->
+                reportErrorE typeExpr "Type not supported for global variables";
+                `ErrorType "translateGlobalVar"
+              | None ->
+                reportErrorE typeExpr "Expression does not denote a type";
+                `ErrorType "translateGlobalVar"
           in
-          match translateType env.bindings typeExpr with
-            | Some ctyp -> begin
-              match ctyp with
-                | (#integralType as typ) | (`Pointer `Char as typ) ->
-                  begin match valueStringOpt with
-                    | Some valueString ->
-                      let value = parseValue typ valueString in
-                      let var = globalVar name typ in
-                      let newBindings = addVar env.bindings var in
-                      Result( newBindings, [ `GlobalVar (var, value) ] )
-                    | None ->
-                      errorFromExpr valueExpr
-                        "Initialization value must be a literal"
-                  end
-                | `Pointer targetType ->
-                  begin match valueStringOpt with
-                    | Some "null" ->
-                      let var = globalVar name (`Pointer targetType) in
-                      let value = NullpointerVal targetType in
-                      let newBindings = addVar env.bindings var in
-                      Result( newBindings, [`GlobalVar (var, value)] )
-                    | _ ->
-                      errorFromExpr expr
-                        "Only null values supported for global pointers currently"
-                  end
-                | `Array (targetType, size) ->
-                  begin match valueStringOpt with
-                    | Some "0" ->
-                      let var = globalVar name (`Array (targetType,size)) in
-                      let value = ArrayVal (targetType, []) in
-                      let newBindings = addVar env.bindings var in
-                      Result( newBindings, [`GlobalVar (var, value)] )
-                    | _ ->
-                      errorFromExpr expr
-                        "Only 0 supported to init global pointers currently"
-                  end
-                | `Record recordT ->
-                  let initValue =
-                    match valueExpr with
-                      | { id = call; args = {id = name; args = []} :: args }
-                          when call = macroCallOp ->
-                        begin
-                          let fieldNames = List.map fst recordT.fields in
-                          match translateStructLiteralArgs fieldNames args
-                            (translateConstantToValue env)
-                          with
-                            | Result namesAndValues ->
-                              RecordVal (recordT.rname, namesAndValues)
-                            | Error msg ->
-                              List.iter reportError msg;
-                              ErrorVal ""
-                        end
-                      | _ ->
-                        if valueStringOpt = Some "0" then
-                          RecordVal (recordT.rname, [])
-                        else begin
-                          reportError (errorMsgFromExpr valueExpr "Unsupported init value");
-                          ErrorVal ""
-                        end
-                  in
-                  let var = globalVar name (`Record recordT) in
-                  let newBindings = addVar env.bindings var in
-                  Result( newBindings, [`GlobalVar (var, initValue)] )
-                | `ErrorType msg as t ->
-                  let var = globalVar name t in
-                  Result ( addVar env.bindings var, [`GlobalVar (var, ErrorVal msg)] )
-                | `Function _ | `ParametricType _ | `TypeParam | `TypeRef _ ->
-                  errorFromExpr expr "Global variables of this type not supported"
-            end
-            | None ->
-              errorFromExpr typeExpr "Expression does not denote a type"
+          let value = ErrorVal "translateGlobalVar"
+            (* match env.translateExpr env valueExpr with *)
+            (*   | _ -> ErrorVal "translateGlobalVar" *)
+          in
+          let var = globalVar name typ in
+          let newBindings = addVar env.bindings var in
+          Result( newBindings, [ (`GlobalVar (var, value) :> toplevelExpr) ] )
         end
       | _ ->
         errorFromExpr expr "Expected 'var typeExpr name initExpr'"
