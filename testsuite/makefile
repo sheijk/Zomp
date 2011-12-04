@@ -16,12 +16,26 @@ TESTSUITE_SOURCES = overloaded_ops.zomp structs.zomp minimal.zomp           \
  bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp     \
  float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp \
  testframework.zomp math.zomp stackoverflow.zomp std_base.zomp              \
- numeric_literals.zomp std_base_struct_literals.zomp nested_macro.zomp
+ numeric_literals.zomp std_base_struct_literals.zomp nested_macro.zomp      \
+ libcee_enum.zomp std_base_globalVar.zomp paramtypes.zomp pointers.zomp     \
+ varargs.zomp
+
+TESTSUITE_IGNORED_SOURCES = crash.zomp fail.zomp \
+ std_base_struct_literals_errors.zomp builtin_is_interactive.zomp empty.zomp \
+ preludevalid.zomp require_lib.zomp
 
 TESTSUITE_CASES = $(foreach FILE, $(TESTSUITE_SOURCES), testsuite/$(FILE:.zomp=.test))
 
-testsuite/success: $(TESTSUITE_CASES)
-testsuite/test: testsuite/success testsuite/error_reporting/all
+.PHONY: testsuite/selftest
+testsuite/selftest:
+	echo $(foreach TEST_FILE,$(TESTSUITE_SOURCES) $(TESTSUITE_IGNORED_SOURCES), "\ntestsuite/$(TEST_FILE)") | sort > tests.tmp.txt
+	echo > files.tmp.txt
+	ls testsuite/*.zomp | sort >> files.tmp.txt
+	-diff -U 0 -b files.tmp.txt tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
+	diff -b files.tmp.txt tests.tmp.txt
+
+testsuite/success: selftest $(TESTSUITE_CASES)
+testsuite/test: testsuite/selftest testsuite/success testsuite/error_reporting/all
 testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_reporting/all
 
 # # experimental, results are incorrect because failed executions and compilations
