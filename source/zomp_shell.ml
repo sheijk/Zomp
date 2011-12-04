@@ -493,7 +493,7 @@ let translateRun env expr =
             ];
             opseqExpr [
               code;
-              Ast2.expr macroReturn [callExpr [idExpr "void"]]]
+              Ast2.expr macroReturn []]
           ]
         in
         try
@@ -507,6 +507,8 @@ let translateRun env expr =
           runFunction newBindings immediateFuncName;
           Expander.result (newBindings, [])
         with
+          | Expander.IllegalExpression (expr, msg) ->
+            Expander.errorFromExpr expr msg
           | exn ->
               Expander.errorFromString (Printexc.to_string exn)
       end
