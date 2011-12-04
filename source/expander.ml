@@ -350,7 +350,10 @@ struct
           | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
               when seq = macroSequence || seq = macroJuxOp ->
               translate componentName typeExpr
-          | _ -> raiseIllegalExpression expr "(type typeName (typeExpression componentName)* ) expected"
+          | _ ->
+            raiseIllegalExpression
+              expr
+              "(type typeName (typeExpression componentName)* ) expected"
       in
       let components = List.map expr2component componentExprs in
       let recordType = `Record { rname = typeName; fields = components } in
@@ -450,57 +453,6 @@ struct
             | _ -> raiseIllegalExpression expr (sprintf "%s is not a record" name)
         end
     | _ -> None
-
-  let translateGlobalVar (translateF : toplevelExprTranslateF) (bindings :bindings) = function
-    | { id = id; args = [
-          typeExpr;
-          { id = name; args = [] };
-          { id = valueString; args = [] }
-        ] } as expr
-        when id = macroVar ->
-        begin
-          match translateType bindings typeExpr with
-            | Some ctyp -> begin
-                match ctyp with
-                  | (#integralType as typ) | (`Pointer `Char as typ) ->
-                      let value = parseValue typ valueString in
-                      let var = globalVar name typ in
-                      let newBindings = addVar bindings var in
-                      Some( newBindings, [ `GlobalVar (var, value) ] )
-                  | `Pointer targetType ->
-                      if valueString = "null" then
-                        let var =
-                          globalVar name
-                            (`Pointer targetType)
-                        in
-                        let value = NullpointerVal targetType in
-                        let newBindings = addVar bindings var in
-                        Some( newBindings, [`GlobalVar (var, value)] )
-                      else
-                        raiseIllegalExpression expr "only null values supported for global pointers currently"
-                  | `Array (targetType, size) ->
-                      if valueString = "0" then
-                        let var = globalVar name (`Array (targetType,size)) in
-                        let value = ArrayVal (targetType, []) in
-                        let newBindings = addVar bindings var in
-                        Some( newBindings, [`GlobalVar (var, value)] )
-                      else
-                        raiseIllegalExpression expr "only 0 supported to init global pointers currently"
-                  | `Record recordT ->
-                      if valueString = "0" then
-                        let var = globalVar name (`Record recordT) in
-                        let value = RecordVal (recordT.rname, []) in
-                        let newBindings = addVar bindings var in
-                        Some( newBindings, [`GlobalVar (var, value)] )
-                      else
-                        raiseIllegalExpression expr "only 0 supported to init global structs currently"
-                  | _ -> raiseIllegalExpression expr
-                      "only integral types legal for global variables at this time"
-              end
-            | None -> raiseInvalidType typeExpr
-        end
-    | _ ->
-        None
 
   (** Support legacy macros which generate ASTs calling functions without using
    * opcall/opjux *)
@@ -956,6 +908,65 @@ end
 
 module Base : Zomp_transformer =
 struct
+  let translateGlobalVar env expr =
+    match expr with
+    | { id = id; args = [
+          typeExpr;
+          { id = name; args = [] };
+          { id = valueString; args = [] }
+        ] } as expr
+        when id = macroVar ->
+        begin
+          match translateType env.bindings typeExpr with
+            | Some ctyp -> begin
+                match ctyp with
+                  | (#integralType as typ) | (`Pointer `Char as typ) ->
+                      let value = parseValue typ valueString in
+                      let var = globalVar name typ in
+                      let newBindings = addVar env.bindings var in
+                      Result( newBindings, [ `GlobalVar (var, value) ] )
+                  | `Pointer targetType ->
+                      if valueString = "null" then
+                        let var =
+                          globalVar name
+                            (`Pointer targetType)
+                        in
+                        let value = NullpointerVal targetType in
+                        let newBindings = addVar env.bindings var in
+                        Result( newBindings, [`GlobalVar (var, value)] )
+                      else
+                        errorFromExpr expr
+                          "Only null values supported for global pointers currently"
+                  | `Array (targetType, size) ->
+                      if valueString = "0" then
+                        let var = globalVar name (`Array (targetType,size)) in
+                        let value = ArrayVal (targetType, []) in
+                        let newBindings = addVar env.bindings var in
+                        Result( newBindings, [`GlobalVar (var, value)] )
+                      else
+                        errorFromExpr expr
+                          "Only 0 supported to init global pointers currently"
+                  | `Record recordT ->
+                      if valueString = "0" then
+                        let var = globalVar name (`Record recordT) in
+                        let value = RecordVal (recordT.rname, []) in
+                        let newBindings = addVar env.bindings var in
+                        Result( newBindings, [`GlobalVar (var, value)] )
+                      else
+                        errorFromExpr expr
+                          "Only 0 supported to init global structs currently"
+                  | `ErrorType msg as t ->
+                    let var = globalVar name t in
+                    Result ( addVar env.bindings var, [`GlobalVar (var, ErrorVal msg)] )
+                  | `Function _ | `ParametricType _ | `TypeParam | `TypeRef _ ->
+                    errorFromExpr expr "Global variables of this type not supported"
+              end
+            | None ->
+              errorFromExpr typeExpr "Expression does not denote a type"
+        end
+    | _ ->
+        errorFromExpr expr "Expected 'var typeExpr name initExpr'"
+
   let translateDefineLocalVar env expr =
     let transform id name typeExpr valueExpr =
       let declaredType = match typeExpr with
@@ -1659,6 +1670,7 @@ struct
     addF macroApply (translateApply translateRecordLiteral)
 
   let registerTL addF =
+    addF "var" translateGlobalVar;
     addF macroApply (translateApply alwaysFail)
 end
 
@@ -2246,7 +2258,6 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
 and translateTLNoErr bindings expr = translate raiseIllegalExpression
   [
     sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions);
-    sampleFunc3 "translateGlobalVar" Translators_deprecated_style.translateGlobalVar;
     sampleFunc3 "translateFunc" translateFunc;
     sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
     sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
