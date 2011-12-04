@@ -687,6 +687,7 @@ let combineErrors msg = function
 type 'translateF env = {
   bindings :Bindings.t;
   translateF :'translateF;
+  translateExprOld : bindings -> Ast2.t -> bindings * formWithTLsEmbedded list;
   parseF :string -> Ast2.t list option;
 }
 
@@ -1885,6 +1886,7 @@ let baseInstructions =
 
 let translateFromDict
     baseInstructions
+    translateExprOld
     translateF
     (bindings :bindings)
     (expr :Ast2.sexpr)
@@ -1894,6 +1896,7 @@ let translateFromDict
     let env = {
       bindings = bindings;
       translateF = translateF;
+      translateExprOld = translateExprOld;
       parseF = Parseutils.parseIExprsOpt;
     } in
     match handler env expr with
@@ -1931,7 +1934,7 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
 
 let rec translateNested translateF bindings = translate raiseIllegalExpression
   [
-    translateFromDict baseInstructions;
+    translateFromDict baseInstructions translateNested;
     Translators_deprecated_style.translateRestrictedFunCall;
     Translators_deprecated_style.translateSimpleExpr;
     Old_macro_support.translateMacro;
@@ -1984,7 +1987,7 @@ let translateNested = sampleFunc2 "translateNested" translateNested
 (*           None *)
 (*         end *)
 
-let translateAndEval handleLLVMCodeF env exprs =
+let translateAndEval handleLLVMCodeF translateTL env exprs =
   let genLLVMCode form =
     collectTimingInfo "gencode"
       (fun () ->
@@ -2004,7 +2007,7 @@ let translateAndEval handleLLVMCodeF env exprs =
     let newBindings, tlexprsFromFile =
       List.fold_left
         (fun (bindings,prevExprs) sexpr ->
-           let newBindings, newExprs = env.translateF bindings sexpr in
+           let newBindings, newExprs = translateTL bindings sexpr in
            List.iter
              (fun form ->
                 let llvmCode = genLLVMCode form in
@@ -2019,8 +2022,8 @@ let translateAndEval handleLLVMCodeF env exprs =
   in
   collectTimingInfo "translateAndEval" impl
 
-let translateSeqTL handleLLVMCodeF env expr =
-  translateAndEval handleLLVMCodeF env expr.args
+let translateSeqTL handleLLVMCodeF translateTL env expr =
+  translateAndEval handleLLVMCodeF translateTL env expr.args
 
 let () =
   Hashtbl.add baseInstructions "macro" (Macros.translateDefineMacro translateNested);
@@ -2245,7 +2248,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
 
 and translateTLNoErr bindings expr = translate raiseIllegalExpression
   [
-    sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions);
+    sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions translateNested);
     sampleFunc3 "translateFunc" translateFunc;
     sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
     sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
@@ -2261,7 +2264,7 @@ let translateTL bindings expr = Result (translateTLNoErr bindings expr)
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
   
-let translateInclude includePath handleLLVMCodeF (env : toplevelExprTranslateF env) expr =
+let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExprTranslateF env) expr =
   let importFile fileName =
     let fileContent =
       collectTimingInfo "readFileContent"
@@ -2272,7 +2275,7 @@ let translateInclude includePath handleLLVMCodeF (env : toplevelExprTranslateF e
         (fun () -> Parseutils.parseIExprsNoCatch fileContent)
     in
     collectTimingInfo "translateAndEval"
-      (fun () -> translateAndEval handleLLVMCodeF env exprs)
+      (fun () -> translateAndEval handleLLVMCodeF translateTL env exprs)
   in
   collectTimingInfo "translateInclude"
     (fun () ->
@@ -2309,8 +2312,9 @@ let addToplevelInstruction name f =
   Hashtbl.add toplevelBaseInstructions name f
 
 let makeTranslateSeqFunction handleLLVMCodeF =
-  translateSeqTL handleLLVMCodeF
+  translateSeqTL handleLLVMCodeF translateTLNoErr
 let makeTranslateIncludeFunction includePath handleLLVMCodeF =
-  translateInclude includePath handleLLVMCodeF
+  translateInclude includePath handleLLVMCodeF translateTLNoErr
+
 
 
