@@ -1,0 +1,58 @@
+///
+/// Testing global variables
+///
+
+requireLibs libcee unittest
+
+var int int0 0
+var int int5 5
+
+var float float0 0.0
+var float float3 3.0
+
+unittest:testCase GlobalVarIntegralType:
+  unittest:assertAll:
+    int0 == 0
+    int5 == 5
+
+    float0 == 0.0
+    float3 == 3.0
+  end
+end
+
+var int* nullPtr null
+// var int* nullPtr2 nullptr(int)
+
+unittest:testCase GlobalVarPointerType:
+  unittest:assertAll:
+    isNull nullPtr
+    // isNull nullPtr2
+  end
+end
+
+// var int[3] one_two_three 0
+// 
+// unittest:testCase GlobalVarArrayType:
+//   unittest:assertAll:
+//     one_two_three[0] == 1
+//     one_two_three[1] == 2
+//     one_two_three[2] == 3
+//   end
+// end
+
+// struct Point:
+//   int x
+//   int y
+// end
+// 
+// var Point point_2_3 Point(x = 2, y = 3)
+// 
+// unittest:testCase GlobalVarRecordType:
+//   unittest:assertAll:
+//     point_2_3.x == 2
+//     point_2_3.y == 3
+//   end
+// end
+
+unittest:main
+
