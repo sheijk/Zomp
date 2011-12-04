@@ -924,11 +924,15 @@ struct
       function
         | [] ->
           begin match errors with
-            | [] -> Result fieldValues
+            | [] -> Result (List.rev fieldValues)
             | _ -> Error errors
           end
         | { id = "op=";
-            args = [{id = fieldName; args= []}; rhs] } as fieldValueExpr :: remArgs ->
+            args = [
+              {id = fieldName; args= []};
+              rhs]
+          }
+            as fieldValueExpr :: remArgs ->
           begin
             match List.partition ((=) fieldName) undefinedFields with
               | [_], undefinedFields ->
@@ -993,13 +997,55 @@ struct
                 reportErrorE typeExpr "Expression does not denote a type";
                 `ErrorType "translateGlobalVar"
           in
-          let value = ErrorVal "translateGlobalVar"
-            (* match env.translateExpr env valueExpr with *)
-            (*   | _ -> ErrorVal "translateGlobalVar" *)
+          let newBindings, tlforms, value =
+            match typ, valueExpr with
+              (** env.translateExpr always introduces temporary for string literals *)
+              | `Pointer `Char, { id = stringlit; args = [] } ->
+                env.bindings, [], parseValue (`Pointer `Char) stringlit
+              (** legacy special case *)
+              | `Pointer _, { id = "null"; args = [] } ->
+                env.bindings, [], NullpointerVal typ
+              (** legacy special case *)
+              | `Record recordT, { id = "0"; args = [] } ->
+                env.bindings, [], RecordVal (recordT.rname, [])
+              (** legacy special case *)
+              | `Array _, { id = "0"; args = [] } ->
+                env.bindings, [], ArrayVal (typ, [])
+              (** TODO: remove special cases above *)
+              | _ ->
+                match env.translateExpr env valueExpr with
+                  | Result( newBindings, formsWTL ) ->
+                    begin
+                      let tlforms, forms = extractToplevelForms formsWTL in
+                      match forms with
+                        | [`Constant value] ->
+                          newBindings, tlforms, value
+                        | _ ->
+                          reportErrorE expr "Expecting a constant expression";
+                          List.iter (fun f -> reportError (Lang.formToString f)) forms;
+                          newBindings, tlforms, ErrorVal "translateGlobalVar"
+                    end                
+                  | Error messages ->
+                    List.iter reportError messages;
+                    env.bindings, [], ErrorVal "translateGlobalVar"
           in
-          let var = globalVar name typ in
-          let newBindings = addVar env.bindings var in
-          Result( newBindings, [ (`GlobalVar (var, value) :> toplevelExpr) ] )
+          let typeEquivalent lt rt =
+            match lt, rt with
+              | `Record { rname = rname; fields = [] }, `Record { rname = lname; fields = _ }
+              | `Record { rname = rname; fields = _ }, `Record { rname = lname; fields = [] } ->
+                (lname :string) = rname
+              | _, _ ->
+                lt = rt
+          in
+          if typeEquivalent typ (typeOf value) then begin
+            let tlforms = List.map (fun (`ToplevelForm f) -> f) tlforms in
+            let var = globalVar name typ in
+            let newBindings = addVar newBindings var in
+            Result( newBindings, tlforms @ [ (`GlobalVar (var, value) :> toplevelExpr) ] )
+          end else
+            errorFromExpr expr
+              (sprintf "Expected initial value to have type %s but found %s"
+                 (typeDescr typ) (typeDescr (typeOf value)))
         end
       | _ ->
         errorFromExpr expr "Expected 'var typeExpr name initExpr'"

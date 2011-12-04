@@ -1034,8 +1034,16 @@ let gencodeGlobalVar var initialValue =
         raiseCodeGenError ~msg:"global constant of type void not allowed"
     | RecordVal (_,[]) ->
         sprintf "@%s = global %s zeroinitializer\n" varname (llvmTypeName var.typ)
-    | RecordVal _ ->
-        raiseCodeGenError ~msg:"global constant of record type with initializer not supported, yet"
+    | RecordVal (_, fields) ->
+      let valueStrings = List.map
+        (fun (_, value) ->
+          llvmTypeName (Typesystems.Zomp.typeOf value)
+          ^ " "
+          ^ Typesystems.Zomp.valueString value)
+        fields
+      in
+      sprintf "@%s = global %s { %s }\n" varname (llvmTypeName var.typ)
+        (Common.combine "," valueStrings)
     | ArrayVal (memberType, values) ->
         let valueStr =
           if values = [] then

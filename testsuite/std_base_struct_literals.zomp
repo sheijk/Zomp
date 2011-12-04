@@ -126,6 +126,15 @@ end
 
 // TODO: check error handling/restrictions for global variables
 
+var Point globalFromStructLiteral Point(x = 8, y = 4)
+
+unittest:testCase GlobalVariableInitializedFromStructLiteral:
+  unittest:assertAll:
+    globalFromStructLiteral.x == 8
+    globalFromStructLiteral.y == 4
+  end
+end
+
 unittest:main
 
 // /// Random ideas for var defs etc.
