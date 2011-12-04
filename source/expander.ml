@@ -678,8 +678,6 @@ end
 
 (** "new" compiler types *)
 
-
-
 let combineErrors msg = function
   | [] -> msg ^ ": no error message given"
   | errors -> msg ^ ": " ^ Common.combine "\n  " errors
@@ -688,6 +686,7 @@ type 'translateF env = {
   bindings :Bindings.t;
   translateF :'translateF;
   translateExprOld : bindings -> Ast2.t -> bindings * formWithTLsEmbedded list;
+  translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
   parseF :string -> Ast2.t list option;
 }
 
@@ -1897,6 +1896,9 @@ let translateFromDict
       bindings = bindings;
       translateF = translateF;
       translateExprOld = translateExprOld;
+      translateExpr = (fun env expr ->
+        let newBindings, formsWTL = translateExprOld env.bindings expr in
+        Result (newBindings, formsWTL));
       parseF = Parseutils.parseIExprsOpt;
     } in
     match handler env expr with
