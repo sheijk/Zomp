@@ -304,12 +304,17 @@ let printTokens tokens =
   worker (0, `DontIndent) tokens
 
 module Rules : sig
+
   type rule
 
   val rules : (rule * tokenBuilder) list
 
-  val ruleMatchesAt : prevToken:[`Whitespace | `Token of token] -> source:string -> pos:int -> rule * tokenBuilder ->
-    int option
+  val ruleMatchesAt : prevToken:[`Whitespace | `Token of token]
+    -> source:string
+    -> pos:int
+    -> rule * tokenBuilder
+    -> int option
+
 end = struct
 
   type charre =
@@ -326,7 +331,7 @@ end = struct
 
   type rule = (charre * Str.regexp)
 
-  let opSymbols = "-+\\*/&.><=!|:;,%^{}"
+  let opSymbols = "-+\\*/&.><=!|:;,%^{}~"
 
   let rec charreMatch cre token =
     let isOperator = function
@@ -507,7 +512,7 @@ end = struct
       ])
     @ (
       let postfixOps = ["++"; "--"; "..."; "*"; "&"; "?"; "!"; "+"] in
-      let prefixOps = ["*"; "&"; "++"; "--"; "!"; "?"; "-"; "+"] in
+      let prefixOps = ["*"; "&"; "++"; "--"; "!"; "?"; "-"; "+"; "~"] in
       let buildRE oplist =
         "\\(" ^ Common.combine "\\|" (List.map Str.quote oplist) ^ "\\)+"
       in

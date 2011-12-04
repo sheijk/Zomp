@@ -192,6 +192,7 @@ end = struct
       isValidPrefixOp "?";
       isValidPrefixOp "-";
       isValidPrefixOp "+";
+      isValidPrefixOp "~";
 
       isValidPostfixOp "++";
       isValidPostfixOp "--";

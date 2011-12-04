@@ -208,6 +208,9 @@ struct
       "x++", `Return [se1 "postop++" "x"];
       "--foo", `Return [se1 "preop--" "foo"];
       "blah--", `Return [se1 "postop--" "blah"];
+      "-num", `Return [se1 "preop-" "num"];
+      "+num", `Return [se1 "preop+" "num"];
+      "~num", `Return [se1 "preop~" "num"];
 
       "foo ++ bar", `Return [se2 "op++" "foo" "bar"];
       "line1; line2", `Return [se2 "op;" "line1" "line2"];
