@@ -840,7 +840,7 @@ func void twMoveBar(cstring barName, int left, int top, int right, int bottom):
       "' size='" ++ widthStr ++ " " ++ heightStr ++ "'"
   TwDefine options
   // TODO clean up memory
-  ret void
+  ret
 end
 
 ///-----------------------------------------------------------------------------
@@ -892,7 +892,8 @@ end
 
 func void clearKeyEvents():
   ignore := default KeyEvent
-  while fetchNextKeyEvent(&ignore) void
+  while fetchNextKeyEvent(&ignore):
+  end
 end
 
 func void onTweakbarError(char* msg):
@@ -918,7 +919,7 @@ func void onWindowResize(int newWidth, int newHeight):
 
   println "new window size is " windowWidth "x" windowHeight
   
-  ret void
+  ret
 end
 
 var int lastMouseX 0
@@ -1596,7 +1597,7 @@ func void renderTimeline(
     Color* markerColors):
 
   if (startTime >= endTime):
-    return void
+    return
   end
 
   saveAttribs:
@@ -2012,7 +2013,7 @@ end
 
 func void GLSLParameter:saveParamsToFileDescr(FILE* file, GLSLParameter_List* paramList):
   if isNull(paramList):
-    ret void
+    return
   end
 
   param := &paramList.data
@@ -2035,7 +2036,7 @@ func void GLSLParameter:saveParamsToFile(cstring fileName, GLSLParameter_List* p
   file := fopen fileName "w"
   GLSLParameter:saveParamsToFileDescr file paramList
   closeFile file
-  ret void
+  return
 end
 
 func void GLSLParameter:readValueFromFile(GLSLParameter* this, FILE* file):
@@ -2071,7 +2072,7 @@ func void GLSLParameter:readValueFromFile(GLSLParameter* this, FILE* file):
 
   dealloc buffer
 
-  ret void
+  return
 end
 
 func void GLSLParameter:readFromString(GLSLParameter* this, cstring str):
@@ -2095,7 +2096,7 @@ end
 func void GLSLParameter:loadParamsFromFile(cstring fileName, GLSLParameter_List* paramList):
   file := fopen fileName "r"
   if isNull(file):
-    return void
+    return
   end
 
   eof := false
@@ -2115,7 +2116,7 @@ func void GLSLParameter:loadParamsFromFile(cstring fileName, GLSLParameter_List*
   end
 
   closeFile file
-  return void
+  return
 end
 
 func void ShaderManager:init(ShaderManager* this, cstring settingsFile, TwBar* bar):
@@ -2180,7 +2181,7 @@ end
 func void ShaderManager:addMaterial(ShaderManager* this, Material* material):
   if isNotNull(material.shader):
     println "warning: material " material.name " added twice"
-    ret void
+    return
   end
 
   // split into instance and shader name
@@ -3073,7 +3074,7 @@ var float timelineLastButtonClickTime 0.0
 
 func void timelineOnMouseMove(int x, int y):
   if isNull(timeline):
-    ret void
+    return
   end
 
   csMouseX := toFloat x / toFloat windowWidth
