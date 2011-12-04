@@ -16,9 +16,11 @@ Point getPoint()
   return p;
 }
 
+Point globalPoint = { 10, 20, 30 };
+
 int main()
 {
-  Point p;
+  Point p = { 10, 20, 30 };
   
 /*   putPoint( p ); */
 
