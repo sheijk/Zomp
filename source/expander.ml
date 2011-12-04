@@ -704,6 +704,27 @@ type 'a mayfail =
 let errorFromString msg = Error [msg]
 let result r = Result r
 
+let errorMsgFromExpr expr msg = sprintf "%s in %s" msg (Ast2.toString expr)
+let errorFromExpr expr msg =
+  Error [errorMsgFromExpr expr msg]
+
+let combineResults mayfails =
+  let errors = ref [] in
+  let addTo listRef e = listRef := e :: !listRef in
+  let results = mapFilter
+    (function Error msgs -> List.iter (addTo errors) msgs; None | Result r -> Some r)
+    mayfails
+  in
+  match !errors with
+    | [] -> Result results
+    | messages -> Error messages
+
+let mapResult f = function
+  | Result r -> Result (f r)
+  | Error msgs -> Error msgs
+
+
+
 let combineErrors msg = function
   | [] -> msg ^ ": no error message given"
   | errors -> msg ^ ": " ^ Common.combine "\n  " errors
@@ -734,10 +755,6 @@ let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationRes
   } in
   Result (env.bindings, [`FuncCall f])
   (* Error ["Not supported at all"] *)
-
-let errorMsgFromExpr expr msg = sprintf "%s in %s" msg (Ast2.toString expr)
-let errorFromExpr expr msg =
-  Error [errorMsgFromExpr expr msg]
 
 module Macros =
 struct
@@ -1486,8 +1503,9 @@ struct
           end
       | _ ->
           errorFromExpr expr "Unrecognized AST shape"
-              
-  let translateStructValue fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
+
+  (** translates expressions of the form x = xExpr, y = yExpr etc. *)
+  let translateStructLiteralArgs fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
     let rec handleFieldExprs errors fieldValues undefinedFields =
       let continueWithErrors messages remArgs =
         handleFieldExprs (messages@errors) fieldValues undefinedFields remArgs
@@ -1542,7 +1560,7 @@ struct
           Result (tlforms, forms)
         in
         let fieldNames = List.map fst fields in
-        begin match translateStructValue fieldNames expr.args translateField with
+        begin match translateStructLiteralArgs fieldNames expr.args translateField with
           | Result fieldFormsTL ->
             let alltlformsLst, fieldForms = List.split
               (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)
