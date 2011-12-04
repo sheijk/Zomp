@@ -1,0 +1,42 @@
+///
+/// Testing enums in libcee
+///
+
+requireLibs libcee unittest
+
+enum Shape:
+  Circle
+  Point = 4
+  Square
+end
+
+unittest:testCase TestEnumCaseValues:
+  unittest:assertAll:
+    Shape:Circle.value == 0
+    toInt Shape:Point == 4
+    toInt Shape:Square == 5
+  end
+end
+
+unittest:testCase EnumComparisons:
+  unittest:assertAll:
+    Shape:Circle == Shape:Circle
+    Shape:Point != Shape:Square
+  end
+end
+
+// enum ErrorValueConflictExplicit:
+//   CaseA = 1
+//   CaseB = 2
+//   CaseC = 1 //!error: CaseC, CaseA, value
+// end
+// 
+// enum ErrorValueConflictImplicit:
+//   CaseA
+//   CaseB = 2
+//   CaseC = 1
+//   CaseD //!error: CaseD, CaseB, value
+// end
+
+unittest:main
+

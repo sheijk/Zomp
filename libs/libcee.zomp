@@ -1694,4 +1694,65 @@ macro assert testCode:
   ret ${}
 end
 
+///-----------------------------------------------------------------------------
+/// Section: enums
+///-----------------------------------------------------------------------------
+
+macro enum name fields:
+  code := ${seq:
+    type #name:
+      int value
+    end
+  end}
+
+  value := -1
+
+  forEachAstChild field fields:
+    qualifiedName := ""
+    if ast:matchesShape(field, ${_}):
+      qualifiedName = name.id ++ ":" ++ field.id
+      value = value + 1
+    elseif ast:matchesShape(field, ${_ = _}):
+      qualifiedName = name.id ++ ":" ++ getField(ast:child field 0, id)
+      value = parseInt getField(ast:child field 1, id)
+    else:
+      ret ${error "expected 'Identifier' or 'Identifier = IntValue'" #field}
+    end
+
+    ast:addChild code ${const #name #qualifiedName #name(value = #value)}
+  end
+
+  toIntF := "toInt_" ++ name.id
+  ast:addChild code $:
+    func int #toIntF(#name enumValue):
+      return enumValue.value
+    end
+  end
+
+  opEqualF := "op==_" ++ name.id ++ "_" ++ name.id
+  ast:addChild code $:
+    func bool #opEqualF(#name l, #name r):
+      return (l.value == r.value)
+    end
+  end
+
+  opNotEqualF := "op!=_" ++ name.id ++ "_" ++ name.id
+  ast:addChild code $:
+    func bool #opNotEqualF(#name l, #name r):
+      return (l.value != r.value)
+    end
+  end
+
+  // TODO: print symbolic name instead of int
+  quotedName := cstring:quote name.id
+  printF := "print_" ++ name.id
+  ast:addChild code $:
+    func void #printF(#name enumValue):
+      print #quotedName "(value = " enumValue.value ")"
+    end
+  end
+
+  ret code
+end
+
 
