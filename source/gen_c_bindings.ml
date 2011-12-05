@@ -979,7 +979,10 @@ struct
       in
       sprintf "func cstring glenum2cstring(GLenum enum):\n%s\n  ret \"unknown\"\nend\n" impl
     in
-    enumToStringFunc ^ "\n\n"
+
+    "requireLibs opengl20\n\n"
+    ^ enumToStringFunc
+    ^ "\n\n"
 
   let lang_extension = "zomp"
 end
