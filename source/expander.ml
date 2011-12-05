@@ -1273,10 +1273,9 @@ struct
   let translateNullptr (env :exprTranslateF env) expr =
     match expr.args with
       | [typeExpr] ->
-          begin
-            match translateType env.bindings typeExpr with
-              | Some typ -> Result (env.bindings, [`NullptrIntrinsic typ] )
-              | None -> errorFromExpr typeExpr "Could not translate type"
+          begin match translateType env.bindings typeExpr with
+            | Some typ -> Result (env.bindings, [`Constant (NullpointerVal (`Pointer typ))] )
+            | None -> errorFromExpr typeExpr "Could not translate type"
           end
       | _ ->
           errorFromExpr expr "Expected one argument denoting a type: 'nullptr typeExpr'"

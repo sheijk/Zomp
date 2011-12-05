@@ -21,12 +21,12 @@ unittest:testCase GlobalVarIntegralType:
 end
 
 var int* nullPtr null
-// var int* nullPtr2 nullptr(int)
+var int* nullPtr2 nullptr(int)
 
 unittest:testCase GlobalVarPointerType:
   unittest:assertAll:
     isNull nullPtr
-    // isNull nullPtr2
+    isNull nullPtr2
   end
 end
 

@@ -195,7 +195,6 @@ type 'typ flatArgForm = [
 ]
 
 type 'form genericIntrinsic = [
-| `NullptrIntrinsic of composedType
 | `MallocIntrinsic of composedType * 'form
 | `GetAddrIntrinsic of composedType variable
 | `StoreIntrinsic of 'form * 'form
@@ -259,8 +258,6 @@ let rec formToSExpr : form -> Ast2.t = function
                                 labelToString b.falseLabel]
   | `Label l ->
       Ast2.simpleExpr "Label" [labelToString l]
-  | `NullptrIntrinsic (typ) ->
-      Ast2.simpleExpr "Nullptr" [typeName typ]
   | `MallocIntrinsic (typ, form) ->
       Ast2.expr "Malloc" [Ast2.idExpr (typeName typ); formToSExpr form]
   | `GetAddrIntrinsic var ->
@@ -299,7 +296,6 @@ let rec formToString : form -> string = function
       sprintf "Branch( %s )" (branchToString b)
   | `Label l ->
       labelToString l
-  | `NullptrIntrinsic (typ) -> sprintf "null %s" (typeName typ)
   | `MallocIntrinsic (typ, form) -> sprintf "malloc %s x %s" (typeName typ) (formToString form)
   | `GetAddrIntrinsic var -> sprintf "GetAddr (%s)" (varToString var)
   | `StoreIntrinsic (ptr, value) -> sprintf "Store (%s, %s)" (formToString ptr) (formToString value)

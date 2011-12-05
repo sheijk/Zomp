@@ -191,7 +191,6 @@ let rec typeCheck bindings form : typecheckResult =
       | `Label _ -> TypeOf `Void
       | `Jump _ -> TypeOf `Void
       | `Branch _ -> TypeOf `Void
-      | `NullptrIntrinsic typ -> TypeOf (`Pointer typ)
       | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
       | `GetAddrIntrinsic var as getaddrForm ->
           begin
@@ -309,7 +308,6 @@ let rec collectVars (form :Lang.form) =
   match form with
     | `Variable _
     | `Constant _
-    | `NullptrIntrinsic _
     | `GetAddrIntrinsic _
     | `Jump _
     | `Label _

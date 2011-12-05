@@ -667,7 +667,9 @@ let rec llvmValue c =
         llvmTypeName fieldType ^ " " ^ llvmValue fieldValue) fields
       in
       "{ " ^ Common.combine ", " fieldStrings ^ " }"
-    | VoidVal | StringLiteral _ | NullpointerVal _ | ArrayVal _ | ErrorVal _ ->
+    | NullpointerVal _ ->
+      "null"
+    | VoidVal | StringLiteral _ | ArrayVal _ | ErrorVal _ ->
       raiseCodeGenError ~msg:(sprintf "Constants of type %s not supported"
                                 (typeName (typeOf c)))
 
@@ -796,13 +798,6 @@ let checkType resultVar typ =
 let todoBindings = defaultBindings
 
 let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
-  | `NullptrIntrinsic targetTyp ->
-      begin
-        let ptrTypeLLVMName = llvmTypeName (`Pointer targetTyp) in
-        let var = newLocalTempVar (`Pointer targetTyp) in
-        let code = sprintf "%s = bitcast i8* null to %s\n\n" var.rvname ptrTypeLLVMName in
-        returnVarCode (var, code)
-      end
   | `MallocIntrinsic (typ, countForm) ->
       begin
         let count = gencode countForm in
