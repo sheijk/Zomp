@@ -154,11 +154,11 @@ func void printGenericPtr(T)(T* ptr):
   printPtr (cast void* ptr)
 end
 
-func void test():
-  println "test()"
-  p := nullptr int
-  printGenericPtr p
-end
+// func void test():
+//   println "test()"
+//   p := nullptr int
+//   printGenericPtr p
+// end
 
 func void initIntPair(Twice(int)* pair, int* a, int* b):
   pair.a = a
@@ -170,14 +170,14 @@ func bool same(T)(Twice(T)* pair):
   // return (pair.a == pair.b)
 end
 
-func void test():
-  var Twice(int) ints
-  x := malloc int
-  initIntPair( &ints, x, x )
-  // ints.a = x
-  // ints.b = x
-  // println same(&ints)
-end
+// func void test():
+//   var Twice(int) ints
+//   x := malloc int
+//   initIntPair( &ints, x, x )
+//   // ints.a = x
+//   // ints.b = x
+//   // println same(&ints)
+// end
 
 type RefCounted(T):
   T value

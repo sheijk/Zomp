@@ -1,6 +1,6 @@
-/**
- * Some experiments with lighting algorithms
- */
+///
+/// Some experiments with lighting algorithms
+///
 
 requireLibs libcee array
 requireLibs opengl20 glfw glutils glut
@@ -661,8 +661,8 @@ func int main():
       if ast:matchesShape(s, ${rw _ _ __}):
         typeId := ast:child s 1
         name := ast:child s 2
-        var := ast:child s 3
-        ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#var) #optionString}
+        variable := ast:child s 3
+        ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#variable) #optionString}
       else:
         ret ${error "Expected rw TYPE NAME VAR" #s}
       end

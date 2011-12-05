@@ -1,7 +1,6 @@
-/**
- * Developing a simple instrumentation macro
-!syntax indent
- */
+///
+/// Developing a simple instrumentation macro
+///
 
 macro tracing:instrument code:
   var ast* instrumentedCode ast:fromString("seq")

@@ -34,7 +34,7 @@ testsuite/selftest:
 	-diff -U 0 -b files.tmp.txt tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
 	diff -b files.tmp.txt tests.tmp.txt
 
-testsuite/success: selftest $(TESTSUITE_CASES)
+testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
 testsuite/test: testsuite/selftest testsuite/success testsuite/error_reporting/all
 testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_reporting/all
 
