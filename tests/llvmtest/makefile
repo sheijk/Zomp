@@ -1,20 +1,39 @@
 
+LLVM_DIR=../../tools/llvm-$(LLVM_VERSION)
+
 LLVM_VERSION=2.9
 LLVM_GCC=../../tools/llvm-gcc/bin/llvm-gcc
-LLVM_DIS=../../tools/llvm-$(LLVM_VERSION)/Release/bin/llvm-dis
-LLVM_AS=../../tools/llvm-$(LLVM_VERSION)/Release/bin/llvm-as
-LLI=../../tools/llvm-$(LLVM_VERSION)/Release/bin/lli
+LLVM_DIS=$(LLVM_DIR)/Release/bin/llvm-dis
+LLVM_AS=$(LLVM_DIR)/Release/bin/llvm-as
+LLI=$(LLVM_DIR)/Release/bin/lli
+LLC=$(LLVM_DIR)/Release/bin/llc
+CLANG=$(LLVM_DIR)/Release/bin/clang
 
 test: simpletest.bc
 	$(LLI) simpletest.bc
 
 clean:
-	rm *.bc
+	rm -f *.s *.exe *.bc *.ll
 
 # LLVM IR Text zu IR Bytecode
 %.bc: %.ll makefile
 	rm -f $@
 	$(LLVM_AS) $<
+
+.PRECIOUS: %.s %.exe
+
+# %.s: %.bc makefile
+# 	$(LLC) $< -o $@
+
+%.exe: %.bc makefile
+	$(CLANG) -g $< -o $@
+
+q%.clang.exe: %.c makefile
+	$(CLANG) -g $< -o $@
+
+# %.exe: %.s makefile
+# 	$(CLANG) 
+# gcc $< -o $@
 
 # C File nach Bytecode
 %.ll: %.c makefile
