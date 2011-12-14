@@ -133,3 +133,5 @@ tools
 /bindgen/test.bindings
 /tests/clang_api/lookup_symbol.dylib
 /bindgen/zomp_bindgen.dylib
+/tests/llvmtest/*.exe
+/tests/llvmtest/*.dSYM
