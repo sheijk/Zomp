@@ -151,6 +151,18 @@ struct
       "3%4", `Return [se2 "op%" "3" "4"];
       "foo op% bar", `Return [jux ["foo"; "op%"; "bar"]];
 
+      "x!y", `Return [se2 "op!" "x" "y"];
+      "a!b!c", `Return [expr "op!" [id "a"; se2 "op!" "b" "c"]];
+      "x!y(1, 2)", `Return [expr "opcall" [se2 "op!" "x" "y"; id "1"; id "2"]];
+      "vtable.f!T", `Return [expr "op."
+                                [id "vtable";
+                                 se2 "op!" "f" "T"]];
+      "obj.f!int(20)", `Return [expr "op."
+                                   [id "obj";
+                                    expr "opcall"
+                                      [se2 "op!" "f" "int";
+                                       id "20"]]];
+
       (** pre/postfix operators *)
       "foo... ", `Return [se1 "postop..." "foo"];
       "bar...", `Return [se1 "postop..." "bar"];
@@ -179,9 +191,9 @@ struct
                                     se1 "postop*" "bar";];
                                   id "baz"]];
       "foo*.bar++", `Return [expr "op." [se1 "postop*" "foo"; se1 "postop++" "bar"]];
-      "obj.method(1, 2)", `Return [expr "op." [
-                                 id "obj";
-                                 callExpr [id "method"; id "1"; id "2"]]];
+      "obj.method(1, 2)", `Return [callExpr
+                                      [se2 "op." "obj" "method";
+                                       id "1"; id "2"]];
 
       "&a.b", `Return [expr "preop&" [se2 "op." "a" "b"]];
       "n++----",

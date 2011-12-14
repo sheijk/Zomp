@@ -461,6 +461,7 @@ end = struct
     @ areValidInfixOps ["&&"; "||"] (fun n -> LAZY_BOOL_OP n)
     @ areValidInfixOps ["&"; "|"; "^"; "<<"; ">>"] (fun n -> STRICT_BOOL_OP n)
     @ areValidInfixOps ["%"] (fun n -> MOD_OP n)
+    @ areValidInfixOps ["!"] (fun n -> EXCLAMATION_OP n)
 
   let validateTestCases() =
     let errors =

@@ -158,6 +158,7 @@
 %token <string> POSTFIX_OP
 %token <string> QUOTE
 %token <string> SEMICOLON
+%token <string> EXCLAMATION_OP
 
 %left SEMICOLON
 %nonassoc ASSIGN_OP
@@ -167,6 +168,7 @@
 %left MULT_OP MOD_OP
 %left STRICT_BOOL_OP
 %left DOT
+%right EXCLAMATION_OP
 
 %start <Ast2.sexpr> main
 
@@ -272,22 +274,23 @@ exprArgInner:
 | call = exprArgInner; op = POSTFIX_OP;
   { expr ("post" ^ opName op) [call] }
 
-dotExpr:
-| l = dotExpr; DOT; r = dotExpr;
-  { expr "op." [l; r] }
-| e = exprArgInner;
-  { e }
-
 exprArg:
 | s = PREFIX_OP; e = exprArg;
   { expr ("pre" ^ opName s) [e] }
-| e = dotExpr
+| e = dotExpr;
+  { e }
+
+dotExpr:
+| l = dotExpr; DOT; r = dotExpr;
+  { expr "op." [l; r] }
+| l = dotExpr; op = EXCLAMATION_OP; r = dotExpr;
+  { expr (opName op) [l; r] }
+| e = exprArgInner;
   { e }
 
 %inline block:
 | BEGIN_BLOCK; exprs = main2*; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
-
 
 opExpr:
 | l = juxExpr; o = opSymbol; r = juxExpr;
