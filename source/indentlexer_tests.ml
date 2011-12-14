@@ -40,7 +40,7 @@ end = struct
       ["l" ^ op ^ "r", `Return [id "l"; tokenF op; id "r"; END];
        isValidId ("op" ^ op)]
     in
-    let areValidBinOps ops tokenF = List.flatten (List.map (isValidBinOp tokenF) ops) in
+    let areValidInfixOps ops tokenF = List.flatten (List.map (isValidBinOp tokenF) ops) in
     let isValidPrefixOp op = (op ^ "id"), `Return [PREFIX_OP op; id "id"; END] in
     let isValidPostfixOp op = ("id" ^ op), `Return [id "id"; POSTFIX_OP op; END] in
     ignore( ids [] );
@@ -448,19 +448,19 @@ end = struct
 
       "10 == -10", `Return [id "10"; COMPARE_OP "=="; id "-10"; END];
     ]
-    @ areValidBinOps ["*"; "/"; "**"] (fun n -> MULT_OP n)
-    @ areValidBinOps ["+"; "-"; "+."; "++"] (fun n -> ADD_OP n)
-    @ areValidBinOps [
+    @ areValidInfixOps ["*"; "/"; "**"] (fun n -> MULT_OP n)
+    @ areValidInfixOps ["+"; "-"; "+."; "++"] (fun n -> ADD_OP n)
+    @ areValidInfixOps [
       "=";
       "*="; "/="; "**="; "+="; "-="; "+.="; "++=";
       "&&="; "||=";
       "&="; "|="; "^="; "<<="; ">>=";
       "%=";]
       (fun n -> ASSIGN_OP n)
-    @ areValidBinOps [">"; ">="; "<"; "<="; "=="; "!="] (fun n -> COMPARE_OP n)
-    @ areValidBinOps ["&&"; "||"] (fun n -> LAZY_BOOL_OP n)
-    @ areValidBinOps ["&"; "|"; "^"; "<<"; ">>"] (fun n -> STRICT_BOOL_OP n)
-    @ areValidBinOps ["%"] (fun n -> MOD_OP n)
+    @ areValidInfixOps [">"; ">="; "<"; "<="; "=="; "!="] (fun n -> COMPARE_OP n)
+    @ areValidInfixOps ["&&"; "||"] (fun n -> LAZY_BOOL_OP n)
+    @ areValidInfixOps ["&"; "|"; "^"; "<<"; ">>"] (fun n -> STRICT_BOOL_OP n)
+    @ areValidInfixOps ["%"] (fun n -> MOD_OP n)
 
   let validateTestCases() =
     let errors =
