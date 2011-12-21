@@ -44,14 +44,28 @@ struct
   let nthmatch n =
     Str.matched_group n !lastMatchedString
 
-  let whitespaceRE = Str.regexp " +"
-
   let trimLinefeed str =
     let noLineFeeds = mapString (function '\n' -> ' ' | c -> c) str in
     trim noLineFeeds
 
   let isNewline chr = chr = '\n'
+
+  let whitespaceRE = Str.regexp " +"
   let isWhitespace chr = chr = ' '
+
+  let validIdentifierChars = "a-zA-Z0-9:_"
+  let validIdentifierFirstChar = "a-zA-Z_"
+  let validIdentifierLastChar = "a-zA-Z0-9_"
+
+  let isValidIdentifierChar chr =
+    ( chr >= 'a' && chr <= 'z' ) ||
+      ( chr >= 'A' && chr <= 'Z' ) ||
+      ( chr >= '0' && chr <= '9' ) ||
+      ( chr = '_' ) ||
+      ( chr = ':' )
+
+  let isNotValidIdentifierOrWhitespace chr =
+    not (isValidIdentifierChar chr || chr == ' ')
 
   let isBlockEndLine line =
     Str.string_match (Str.regexp "^end.*$") line 0
@@ -400,9 +414,6 @@ end = struct
       (fun matchedStr -> `Token token)
     in
     let opre symbol = (sprintf "%s\\(_[a-zA-Z]+\\)?" (Str.quote symbol)) in
-    let validIdentifierChars = "a-zA-Z0-9:_" in
-    let validIdentifierFirstChar = "a-zA-Z_" in
-    let validIdentifierLastChar = "a-zA-Z0-9_" in
     let identifierRE =
       sprintf "\\([%s][%s]*[%s]" validIdentifierFirstChar validIdentifierChars validIdentifierLastChar
       ^ sprintf "\\|[%s]\\)" validIdentifierFirstChar
@@ -644,20 +655,31 @@ let returnMultipleTokens state first remaining =
   state.pushedTokens <- remaining;
   first
 
+let putback lexbuf string =
+  let len = String.length string in
+  let lastChars = Str.last_chars lexbuf.lastReadChars len in
+  if lastChars <> string then begin
+    printf
+      "Assertion failure: expected \"%s\" but found \"%s\"" lastChars string;
+    assert false;
+  end;
+  backTrack lexbuf len
+    
 let readUntil abortOnChar state =
   let acc = ref "" in
   let rec worker () =
     let nextChar = readChar state in
     if abortOnChar nextChar then begin
-      ()
+      putback state (String.make 1 nextChar)
     end else begin
       acc := appendChar !acc nextChar;
       worker()
     end
   in
   begin try
-    worker()
-  with Eof -> () end;
+          worker()
+    with Eof -> ()
+  end;
   !acc
 
 module Stats =
@@ -701,17 +723,6 @@ open Stats
 let printStats = Stats.printStats
 
 let token (lexbuf : token lexerstate) : token =
-  let putback lexbuf string =
-    let len = String.length string in
-    let lastChars = Str.last_chars lexbuf.lastReadChars len in
-    if lastChars <> string then begin
-      printf
-        "Assertion failure: expected \"%s\" but found \"%s\"" lastChars string;
-      assert false;
-    end;
-    backTrack lexbuf len
-  in
-
   let rec consumeWhitespaceAndReturnIndent indent =
     let eof, nextChar =
       try false, readChar lexbuf
@@ -783,9 +794,8 @@ let token (lexbuf : token lexerstate) : token =
   in
 
   let handleEndLineOrPutTokens firstToken secondToken =
-    let line = readUntil isNewline lexbuf in
+    let line = readUntil isNotValidIdentifierOrWhitespace lexbuf in
     if isBlockEndLine line then begin
-      putback lexbuf "\n";
       if line =~ "^end\\(.*\\)$" then
         match List.rev (Str.split whitespaceRE (nthmatch 1)) with
           | "}" :: args ->
@@ -795,7 +805,7 @@ let token (lexbuf : token lexerstate) : token =
       else
         failwith "splitting block end line failed"
     end else begin
-      putback lexbuf (line ^ "\n");
+      putback lexbuf line;
       None
     end
   in
