@@ -196,12 +196,12 @@ prebuilt libraries as they are 64-bit"
 has_llvm:
 	@$(ECHO) Checking if LLVM exists ...
 	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
-	$(TOUCH) has_llvm
+	$(TOUCH) $@
 
 has_clang:
-	@$(ECHO) Checking if LLVM exists ...
+	@$(ECHO) Checking if clang exists ...
 	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
-	$(TOUCH) has_clang
+	$(TOUCH) $@
 
 ################################################################################
 # Rules
