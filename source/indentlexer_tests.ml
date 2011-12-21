@@ -431,6 +431,12 @@ end = struct
       next\n",
       `Exception "Should fail because indent level is reduced too much";
 
+      "if foo:\n\
+      \  ontrue\n\
+      else:\n\
+      \  onfalse\n",
+      `Exception "Missing terminator in last line";
+
       isValidId "op&&";
       isValidId "op||";
       isValidId "op++";
