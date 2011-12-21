@@ -235,51 +235,57 @@ let tokenToString (lineIndent, indentNext) (token :token) =
     else
       ""
   in
+  let withArg str arg =
+    if String.length arg > 0 then
+      str
+    else
+      str ^ "(" ^ arg ^ ")"
+  in
   match token with
     | END_BLOCK args ->
-        indentString (lineIndent - 1) ^
-          begin
-            match args with
-              | [] -> "END_BLOCK"
-              | _ -> sprintf "END_BLOCK(%s)" (Common.combine ", " args)
-          end,
-        (lineIndent - 1, `Indent)
+      indentString (lineIndent - 1) ^
+        begin
+          match args with
+            | [] -> "END_BLOCK"
+            | _ -> sprintf "END_BLOCK(%s)"
+              (Common.combine ", " (List.map (sprintf "'%s'") args))
+        end,
+          (lineIndent - 1, `Indent)
     | _ as t ->
-        let noind = lineIndent, `DontIndent
-        and ind = lineIndent, `Indent
-        in
-        let str, (indent, doindent) =
-          match t with
-            | BEGIN_BLOCK ->
-                "BEGIN_BLOCK\n", (lineIndent + 1, `Indent)
-            | END_BLOCK _ -> failwith "match failure"
-            | END -> "END\n", ind
-            | IDENTIFIER str -> str, noind
-            | COMMA -> ",", noind
-            | ADD_OP arg -> "ADD_OP " ^ arg, noind
-            | MULT_OP arg -> "MULT_OP " ^ arg, noind
-            | MOD_OP arg -> "MOD_OP " ^ arg, noind
-            | ASSIGN_OP arg -> "ASSIGN_OP " ^ arg, noind
-            | COMPARE_OP arg -> "COMPARE_OP " ^ arg, noind
-            | LAZY_BOOL_OP arg -> "LAZY_BOOL_OP " ^ arg, noind
-            | STRICT_BOOL_OP arg -> "STRICT_BOOL_OP " ^ arg, noind
-            | EXCLAMATION_OP arg -> "EXCLAMATION_OP " ^ arg, noind
-            | POSTFIX_OP arg -> "post" ^ arg, noind
-            | PREFIX_OP arg -> "pre" ^ arg, noind
-            | OPEN_PAREN -> "(", noind
-            | OPEN_ARGLIST -> "post(", noind
-            | CLOSE_PAREN -> ")", noind
-            | OPEN_CURLY -> "{", noind
-            | CLOSE_CURLY -> "}", noind
-            | DOT -> ".", noind
-            | QUOTE str -> "$" ^ str, noind
-            | OPEN_BRACKET -> "[", noind
-            | OPEN_BRACKET_POSTFIX -> "post[", noind
-            | CLOSE_BRACKET -> "]", noind
-            | SEMICOLON str -> "SEMICOLON" ^
-                (if String.length str > 0 then "(" ^ str ^ ")" else ""), noind
-        in
-        indentString lineIndent ^ str, (indent, doindent)
+      let noind = lineIndent, `DontIndent
+      and ind = lineIndent, `Indent
+      in
+      let str, (indent, doindent) =
+        match t with
+          | BEGIN_BLOCK ->
+            "BEGIN_BLOCK\n", (lineIndent + 1, `Indent)
+          | END_BLOCK _ -> failwith "match failure"
+          | END -> "END\n", ind
+          | IDENTIFIER str -> "IDENTIFIER(" ^ str ^ ")", noind
+          | COMMA -> "COMMA", noind
+          | ADD_OP arg -> withArg "ADD_OP" arg, noind
+          | MULT_OP arg -> withArg "MULT_OP" arg, noind
+          | MOD_OP arg -> withArg "MOD_OP" arg, noind
+          | ASSIGN_OP arg -> withArg "ASSIGN_OP" arg, noind
+          | COMPARE_OP arg -> withArg "COMPARE_OP" arg, noind
+          | LAZY_BOOL_OP arg -> withArg "LAZY_BOOL_OP" arg, noind
+          | STRICT_BOOL_OP arg -> withArg "STRICT_BOOL_OP" arg, noind
+          | EXCLAMATION_OP arg -> withArg "EXCLAMATION_OP" arg, noind
+          | POSTFIX_OP arg -> withArg "POSTFIX_OP" arg, noind
+          | PREFIX_OP arg -> withArg "PREFIX_OP" arg, noind
+          | OPEN_PAREN -> "OPEN_PAREN", noind
+          | OPEN_ARGLIST -> "OPEN_ARGLIST", noind
+          | CLOSE_PAREN -> "CLOSE_PAREN", noind
+          | OPEN_CURLY -> "OPEN_CURLY", noind
+          | CLOSE_CURLY -> "CLOSE_CURLY", noind
+          | DOT -> "DOT", noind
+          | QUOTE str -> withArg "QUOTE" str, noind
+          | OPEN_BRACKET -> "OPEN_BRACKET", noind
+          | OPEN_BRACKET_POSTFIX -> "OPEN_BRACKET_POSTFIX", noind
+          | CLOSE_BRACKET -> "CLOSE_BRACKET", noind
+          | SEMICOLON arg -> withArg "SEMICOLON" arg, noind
+      in
+      indentString lineIndent ^ str, (indent, doindent)
 
 let token2str token =
   fst (tokenToString (0, `DontIndent) token)
