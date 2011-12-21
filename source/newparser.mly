@@ -175,18 +175,7 @@
 %%
 
 main:
-| e = main2;
-  {
-    (* reportParsedExpression e; *)
-    e
-  }
-
-%inline main2:
-| e = kwexpr; END;
-  { e }
-
-kwexpr:
-| e = expr;
+| e = expr END;
   { e }
 
 expr:
@@ -239,17 +228,17 @@ exprArgInner:
 | id = IDENTIFIER;
   { idExprLoc id $startpos }
 
-| OPEN_PAREN; e = kwexpr; CLOSE_PAREN;
+| OPEN_PAREN; e = expr; CLOSE_PAREN;
   { e }
 
 | OPEN_CURLY; CLOSE_CURLY;
   { withLoc (expr "op{}" []) $startpos }
-| OPEN_CURLY; e = kwexpr; CLOSE_CURLY;
+| OPEN_CURLY; e = expr; CLOSE_CURLY;
   { expr "op{}" [e] }
 
 | OPEN_BRACKET; CLOSE_BRACKET;
   { withLoc (expr "op[]" []) $startpos }
-| OPEN_BRACKET; e = kwexpr; CLOSE_BRACKET;
+| OPEN_BRACKET; e = expr; CLOSE_BRACKET;
   { expr "op[]" [e] }
 
 | q = QUOTE; id = IDENTIFIER;
@@ -267,6 +256,7 @@ exprArgInner:
   { let block, terminators = blockAndT in
     expectNoTerminators terminators;
     expr (quoteId q) [block] }
+
 | head = exprArgInner; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
   { expr "postop[]" [head; arg] }
 | head = exprArgInner; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
@@ -289,7 +279,7 @@ dotExpr:
   { e }
 
 %inline block:
-| BEGIN_BLOCK; exprs = main2*; terminators = END_BLOCK;
+| BEGIN_BLOCK; exprs = main*; terminators = END_BLOCK;
   { seqExpr exprs, terminators }
 
 opExpr:
