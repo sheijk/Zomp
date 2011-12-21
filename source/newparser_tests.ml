@@ -392,12 +392,13 @@ struct
             jux ["print"; "line"];
           ]]];
 
-      "let x + y:\n\
+      "let (x + y):\n\
       \  plus(x, y)\n\
       end",
       `Return [
         juxExpr [
-          expr "op+" [jux ["let"; "x"]; id "y"];
+          id "let";
+          expr "op+" [id "x"; id "y"];
           seqExpr [call ["plus"; "x"; "y"]]
         ]];
 
@@ -448,30 +449,27 @@ struct
         ]
       ];
 
-      "if foo:\n" ^
-      "  ontrue\n" ^
-      "else:\n" ^
-      "  onfalse\n",
-      `Return [juxExpr [id "if"; id "foo";
-                        seqExpr[id "ontrue";];
-                        id "else";
-                        seqExpr[id "onfalse"]]];
+      (* TODO: move to lexer tests *)
+      (* "main blah:\n" ^ *)
+      (* "  nested:\n" ^ *)
+      (* "    body\n" ^ *)
+      (* "  nested2\n" ^ *)
+      (* "end main\n", *)
+      (* `Exception "Should fail because 'nested' has no 'end' terminator"; *)
 
-      "main blah:\n" ^
-      "  nested:\n" ^
-      "    body\n" ^
-      "  nested2\n" ^
-      "end main\n",
-      `Exception "Should fail because 'nested' has no 'end' terminator";
+      (* TODO: move to lexer tests *)
+      (* "macro foo bar:\n  nested code\nend invalid", *)
+      (* `Exception "Should fail because terminator 'invalid' should be (macro|foo|bar)"; *)
 
-      "macro foo bar:\n  nested code\nend invalid",
-      `Exception "Should fail because 'invalid' should be (macro|foo|bar)";
+      (* TODO: move to lexer tests *)
+      (* "main foo:\n" ^ *)
+      (*   "  nested\n" ^ *)
+      (*   "end wrong", *)
+      (* `Exception "Should fail because terminator 'wrong' would need to be 'main'"; *)
 
-      "main foo:\n" ^
-        "  nested\n" ^
-        "end wrong",
-      `Exception "Should fail because 'wrong' would need to be 'main' or be omitted";
-
+      (* TODO: move to lexer tests *)
+      (* "foo:\n  bar\nend wrong", `Exception "terminator 'wrong' should be 'foo'"; *)
+      
       (*       "for: p in primes\n\ *)
       (*       \  print p\n\ *)
       (*       \  log p", *)
@@ -482,12 +480,13 @@ struct
       (*                    jux ["log"; "p"]; *)
       (*                  ]]]; *)
 
-      "main blah:\n\
-      \  nested:\n\
-      \    body\n\
-      \  nested2\n\
-      end main",
-      `Exception "Should fail because \"nested\" has no end terminator";
+      (* TODO: move to lexer tests *)
+      (* "main blah:\n\ *)
+      (* \  nested:\n\ *)
+      (* \    body\n\ *)
+      (* \  nested2\n\ *)
+      (* end main", *)
+      (* `Exception "Should fail because \"nested\" has no end terminator"; *)
 
       "empty block:\n\
       end",
@@ -595,19 +594,18 @@ struct
       \  line0\n\
       \  line1\n\
       end block)",
-      `Return [juxExpr [id "id"; expr "quote" [juxExpr [
+      `Return [juxExpr [id "ret"; expr "quote" [juxExpr [
         id "block";
         id "a";
-        se1 "line0" "line1" ]]]];
+        seqExpr [id "line0"; id "line1"]]]]];
 
       "#foo.bar", `Return [expr "op." [se1 "antiquote" "foo"; id "bar"]];
       "abc.#def", `Return [expr "op." [id "abc"; se1 "antiquote" "def"]];
 
-      (* "#foo(1,2)", `Return [expr "antiquote" [ *)
-      (*                         expr "opcall" [ *)
-      (*                           id "foo"; *)
-      (*                           id "1"; *)
-      (*                           id "2"]]]; *)
+      "#foo(1,2)", `Return [expr "opcall"
+                               [expr "antiquote" [id "foo"];
+                                id "1";
+                                id "2"]];
 
       "ret ${foo bar}", `Return [juxExpr [
                                    id "ret";
@@ -719,7 +717,6 @@ struct
 
       (** misc *)
       "", `Return [];
-      "foo:\n  bar\nend wrong", `Exception "'end wrong' should be 'end foo' or 'end'";
 
       (** string and char parsing *)
       expectValidId "\"foo\"";
