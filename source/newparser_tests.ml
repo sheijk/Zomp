@@ -154,14 +154,14 @@ struct
       "x!y", `Return [se2 "op!" "x" "y"];
       "a!b!c", `Return [expr "op!" [id "a"; se2 "op!" "b" "c"]];
       "x!y(1, 2)", `Return [expr "opcall" [se2 "op!" "x" "y"; id "1"; id "2"]];
-      "vtable.f!T", `Return [expr "op."
-                                [id "vtable";
-                                 se2 "op!" "f" "T"]];
-      "obj.f!int(20)", `Return [expr "op."
-                                   [id "obj";
-                                    expr "opcall"
-                                      [se2 "op!" "f" "int";
-                                       id "20"]]];
+      "vtable.f!T", `Return [expr "op!"
+                                [se2 "op." "vtable" "f";
+                                 id "T"]];
+      "obj.f!int(20)", `Return [callExpr
+                                   [expr "op!"
+                                       [se2 "op." "obj" "f";
+                                        id "int"];
+                                    id "20"]];
 
       (** pre/postfix operators *)
       "foo... ", `Return [se1 "postop..." "foo"];
@@ -193,7 +193,8 @@ struct
       "foo*.bar++", `Return [expr "op." [se1 "postop*" "foo"; se1 "postop++" "bar"]];
       "obj.method(1, 2)", `Return [callExpr
                                       [se2 "op." "obj" "method";
-                                       id "1"; id "2"]];
+                                       id "1";
+                                       id "2"]];
 
       "&a.b", `Return [expr "preop&" [se2 "op." "a" "b"]];
       "n++----",
@@ -206,15 +207,11 @@ struct
       "addr()++*", `Return [expr "postop*" [
                               expr "postop++" [
                                 callExpr [id "addr"]]]];
-      "foo.bar()++", `Return [expr "op." [
-                                id "foo";
-                                expr "postop++"
-                                  [callExpr [id "bar"]]]];
-      "a.b()++.c", `Return [expr "op." [
-                              expr "op." [
-                                id "a";
-                                expr "postop++" [callExpr [id "b"]]];
-                              id "c"]];
+      "foo.bar()++", `Return [expr "postop++" [callExpr [se2 "op." "foo" "bar"]]];
+      "a.b()++.c", `Return [expr "op."
+                               [expr "postop++"
+                                   [callExpr [se2 "op." "a" "b"]];
+                                id "c"]];
 
       "++i", `Return [se1 "preop++" "i"];
       "x++", `Return [se1 "postop++" "x"];
@@ -540,18 +537,21 @@ struct
       "c.img = 1.0", `Return [expr "op=" [se2 "op." "c" "img"; id "1.0"]];
 
       "foo.print(1, 2)",
-      `Return [expr "op." [id "foo"; call ["print"; "1"; "2"]]];
+      `Return [callExpr [se2 "op." "foo" "print";
+                         id "1";
+                         id "2"]];
 
       "while cond.true do",
       `Return [juxExpr [id "while"; expr "op." [id "cond"; id "true"]; id "do"]];
 
-      "item.print()", `Return [expr "op." [id "item"; call ["print"]]];
-      "blah.add(10)", `Return [expr "op." [id "blah"; call ["add"; "10"]]];
+      "item.print()", `Return [callExpr [se2 "op." "item" "print"]];
+      "blah.add(10)", `Return [callExpr [se2 "op." "blah" "add"; id "10"]];
       "x.add(2 * 3)",
-      `Return [expr "op." [id "x"; callExpr [id "add"; se2 "op*" "2" "3"]]];
+      `Return [callExpr [se2 "op." "x" "add";
+                         se2 "op*" "2" "3"]];
 
       "*foo.print()",
-      `Return [expr "preop*" [expr "op." [id "foo"; call ["print"]]]];
+      `Return [expr "preop*" [callExpr [se2 "op." "foo" "print"]]];
 
       (** juxtaposition has highest priority *)
       "print 10 + 20",

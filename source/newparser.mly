@@ -169,10 +169,10 @@
 %left STRICT_BOOL_OP
 
 %right PREFIX_OP
-%left DOT
 %right OPEN_ARGLIST
 %right OPEN_BRACKET_POSTFIX
 %right EXCLAMATION_OP
+%left DOT
 %left POSTFIX_OP
 %right QUOTE
 
