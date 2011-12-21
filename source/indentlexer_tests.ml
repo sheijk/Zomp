@@ -308,6 +308,27 @@ end = struct
                id "content"; id "of"; id "block"; END;
                END_BLOCK[]; END];
 
+      "foo (bar:\n\
+      \  line0\n\
+      end)",
+      `Return [id "foo"; OPEN_PAREN; id "bar"; BEGIN_BLOCK;
+               id "line0"; END;
+               END_BLOCK []; CLOSE_PAREN; END];
+
+      "foo (:\n\
+      \  line1\n\
+      end) bar",
+      `Return [id "foo"; OPEN_PAREN; BEGIN_BLOCK;
+               id "line1"; END;
+               END_BLOCK []; CLOSE_PAREN; id "bar"; END];
+
+      "foo (blk:\n\
+      \  line1\n\
+      end blk) bar",
+      `Return [id "foo"; OPEN_PAREN; id "blk"; BEGIN_BLOCK;
+               id "line1"; END;
+               END_BLOCK ["blk"]; CLOSE_PAREN; id "bar"; END];
+
       "multi block:\n" ^
         "  first line\n" ^
         "  second line\n" ^
