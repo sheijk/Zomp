@@ -613,6 +613,7 @@ end
 /// Example:
 ///   getMemberAddress(${a.b.c}) => (fieldptr (fieldptr a b) c)
 ///
+/// TODO: rename to getExpressionAddress and extend to arbitrary expressions(?)
 func ast* getMemberAddress(ast* code):
   if (getField code childCount == 0):
     ret ${ptr #code}
@@ -629,9 +630,9 @@ func ast* getMemberAddress(ast* code):
     fieldName2 := getField ast:child(code, 1) id
     ret ${fieldptr #nestedPtr #fieldName2}
   elseif ast:matchesShape(code, ${__._[__]}):
-    structExpr := ast:child code 0
-    memberName := getField ast:child(ast:child(code, 1), 0) id
-    indexExpr := ast:child(ast:child(code, 1), 1)
+    structExpr := ast:child(ast:child(code, 0), 0)
+    memberName := ast:child(ast:child(code, 0), 1)
+    indexExpr := ast:child(code, 1)
     memberPtr := getMemberAddress(${#structExpr.#memberName})
     ret ${ptradd (load #memberPtr) #indexExpr}
   elseif ast:matchesShape(code, ${_[__]}):
@@ -660,11 +661,13 @@ end
 /// ptr[10] = b - for pointers
 /// ptr* = b - for pointers
 /// *ptr = b - for pointers
+/// TODO: just use getMemberAddress
 macro op= l r:
-  if ast:matchesShape(l, ${_[_]}):
+  if ast:matchesShape(l, ${__[_]}):
     var ast* array ast:child(l, 0)
     var ast* index ast:child(l, 1)
-    ret ${store ptradd(#array, #index) #r}
+    var ast* arrayPtr getMemberAddress(array)
+    ret ${store ptradd(*#arrayPtr, #index) #r}
   elseif ast:matchesShape(l, ${__.__}):
     laddr := getMemberAddress(l)
     ret ${store #laddr #r}
@@ -702,8 +705,8 @@ macro defineArray type varname values...:
   ret code
 end
 
-template postop[] array index:
-  zmp:array:get #array #index
+template postop[] ptr index:
+  load(ptradd #ptr #index)
 end
 
 template op+_ptr ptr offset:

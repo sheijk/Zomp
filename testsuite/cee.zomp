@@ -45,16 +45,18 @@ unittest:testCase DotOp:
   p.y = 7.3
 
   p.tenints = malloc int 10
+
+  // TODO: this is not really handled by op.
   for i 0 10:
     p.tenints[i] = i + 1
   end
-
+  
   // p.next = malloc TestStruct
   // p.next.x = 99
-
+  
   p.pt.x = 3
   p.pt.y = 7
-
+  
   unittest:assertAll:
     p.x == 23
     p.y ==_f 7.3
