@@ -31,6 +31,22 @@ ofunc void print(Point pt):
   print "Point(x = " pt.x ", y = " pt.y ")"
 end
 
+// unittest:testCase SimpleArray:
+//   var int[4] numbers
+// 
+//   numbers[0] = 400
+//   numbers[1] = 401
+//   numbers[2] = 402
+//   numbers[3] = 403
+// 
+//   unittest:assertAll:
+//     numbers[0] = 400
+//     numbers[1] = 401
+//     numbers[2] = 402
+//     numbers[3] = 403
+//   end
+// end
+
 struct TestStruct:
   int x
   float y
