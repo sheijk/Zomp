@@ -321,7 +321,9 @@ let commands =
     "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
     "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
   ]
-  and printHelp ignored1 ignored2 = listCommands internalCommands ignored1 ignored2
+  and printHelp ignored1 ignored2 =
+    printf "Enter Zomp code to get it evaluated. Directly run code using std:base:run\n\n";
+    listCommands internalCommands ignored1 ignored2
   in
   let addCommands map (mainName, aliases, func, doc) =
     let newMap = StringMap.add mainName (func, doc) map in
