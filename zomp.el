@@ -168,100 +168,99 @@ use global one"
       )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; toplevel interaction
+;;; shell interaction
 
-(defvar zomp-toplevel-buffer-name "*zomp-shell*"
-  "The name of the buffer in which the zomp toplevel runs")
+(defvar zomp-shell-buffer-name "*zomp-shell*"
+  "The name of the buffer in which the zomp shell runs")
 
-(define-derived-mode zomp-tl-mode shell-mode "ZompTL"
-  "Major mode for a zomp toplevel in which you can interactively
+(define-derived-mode zomp-shell-mode shell-mode "ZompTL"
+  "Major mode for a zomp shell in which you can interactively
   compile and run zomp code"
   (set (make-variable-buffer-local 'comint-use-prompt-regexp) t)
   (set (make-variable-buffer-local 'comint-prompt-regexp) "  # "))
 
-(defun zomp-toplevel ()
+(defun zomp-shell ()
   (interactive)
-  (let ((zomp-new-tl-buffer-name zomp-toplevel-buffer-name) (oldwin (selected-window)))
-    (shell zomp-toplevel-buffer-name)
-    ;; in case zomp-toplevel-buffer-name is buffer local we need to be sure it
-    ;; has the same value in the toplevel buffer as in the zomp buffer invoking
-    ;; the toplevel
-    (zomp-tl-mode)
-    (set (make-local-variable 'zomp-toplevel-buffer-name) zomp-new-tl-buffer-name)
+  (let ((zomp-new-tl-buffer-name zomp-shell-buffer-name) (oldwin (selected-window)))
+    (shell zomp-shell-buffer-name)
+    ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
+    ;; has the same value in the shell buffer as in the zomp buffer invoking
+    ;; the shell
+    (zomp-shell-mode)
+    (set (make-local-variable 'zomp-shell-buffer-name) zomp-new-tl-buffer-name)
     (zomp-tl-do (concat "cd " zomp-basedir))
     (zomp-tl-do "./zomp_shell.native; exit")
-    (message "Started zomp toplevel")
+    (message "Started zomp shell")
     (select-window oldwin)))
 
-(defun zomp-get-toplevel-buffer (&optional create-if-not-existing)
-  "Get the zomp toplevel interaction buffer. If
-  `create-if-not-existing' is equal to 'create the toplevel will
-  be started if it is not not running, yet"
+(defun zomp-get-shell-buffer (&optional create-if-not-existing)
+  "Get the zomp shell interaction buffer. If `create-if-not-existing' is equal
+ to 'create the shell will be started if it is not not running, yet"
   (or
-   (get-buffer-process zomp-toplevel-buffer-name)
+   (get-buffer-process zomp-shell-buffer-name)
    (when (equal create-if-not-existing 'create)
-     (zomp-toplevel)
-     (get-buffer-process zomp-toplevel-buffer-name))))
+     (zomp-shell)
+     (get-buffer-process zomp-shell-buffer-name))))
 
-(defun zomp-tl-move-point-to-end ()
-  "Will move the point to the end of the toplevel buffer for all
+(defun zomp-shell-move-point-to-end ()
+  "Will move the point to the end of the shell buffer for all
 windows displaying it"
   (let ((original-window (selected-window)))
-    (dolist (wnd (get-buffer-window-list (get-buffer zomp-toplevel-buffer-name)))
+    (dolist (wnd (get-buffer-window-list (get-buffer zomp-shell-buffer-name)))
       (select-window wnd)
       (goto-char (point-max)))
     (select-window original-window)))
 
-(defun zomp-make-buffer-local-toplevel ()
-  (make-variable-buffer-local 'zomp-toplevel-buffer-name)
-  (setq zomp-toplevel-buffer-name (format "*zomp-toplevel<%s>*" (buffer-name))))
+(defun zomp-make-buffer-local-shell ()
+  (make-variable-buffer-local 'zomp-shell-buffer-name)
+  (setq zomp-shell-buffer-name (format "*zomp-shell<%s>*" (buffer-name))))
 
-(defun zomp-start-or-show-toplevel (&optional prefix)
-  "Shows the toplevel in a buffer and starts it if it wasn't
+(defun zomp-start-or-show-shell (&optional prefix)
+  "Shows the shell in a buffer and starts it if it wasn't
   running, yet. With a prefix this will start a buffer local zomp
-  toplevel which you can use to run multiple zomp instances at
+  shell which you can use to run multiple zomp instances at
   once"
   (interactive "P")
   (cond ((null prefix)
-         (if (not (zomp-get-toplevel-buffer))
-             (zomp-toplevel)
+         (if (not (zomp-get-shell-buffer))
+             (zomp-shell)
            (let ((oldwin (selected-window)))
-             (switch-to-buffer-other-window (get-buffer zomp-toplevel-buffer-name))
+             (switch-to-buffer-other-window (get-buffer zomp-shell-buffer-name))
              (select-window oldwin))))
         (t
-         (zomp-make-buffer-local-toplevel)
-         (unless (zomp-get-toplevel-buffer)
-           (zomp-toplevel)))))
+         (zomp-make-buffer-local-shell)
+         (unless (zomp-get-shell-buffer)
+           (zomp-shell)))))
 
-(defun zomp-tl-do (code &optional create-if-not-existing append)
+(defun zomp-shell-do (code &optional create-if-not-existing append)
   "Send some text to the zomp toplevel. If
   `create-if-not-existing' is 'create then the toplevel will be
   started if it is not running, yet"
-  (if (not (or create-if-not-existing (zomp-get-toplevel-buffer)))
+  (if (not (or create-if-not-existing (zomp-get-shell-buffer)))
       (message "Zomp shell is not running")
-    (process-send-string (zomp-get-toplevel-buffer create-if-not-existing) "!prompt")
+    (process-send-string (zomp-get-shell-buffer create-if-not-existing) "!prompt")
     (process-send-string
-     (zomp-get-toplevel-buffer create-if-not-existing)
+     (zomp-get-shell-buffer create-if-not-existing)
      (concat code (or append "")))
-    (process-send-string (zomp-get-toplevel-buffer) "!prompt #")))
+    (process-send-string (zomp-get-shell-buffer) "!prompt #")))
 
 (defun zomp-tl-run (funcname)
   (interactive "MName of function: ")
   (when (= 0 (length funcname))
     (setq funcname "main"))
-  (zomp-tl-move-point-to-end)
-  (zomp-tl-do (concat "!run " funcname)))
+  (zomp-shell-move-point-to-end)
+  (zomp-shell-do (concat "!run " funcname)))
 
 (defun zomp-tl-list-bindings (regexps)
   (interactive "MList bindings matching: ")
-  (zomp-tl-do (concat "!bindings " regexps)))
+  (zomp-shell-do (concat "!bindings " regexps)))
 
 (defun zomp-tl-eval-region ()
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating region"))
   (zomp-request-execution-abort)
-  (zomp-tl-do (buffer-substring (region-beginning) (region-end)) nil ""))
+  (zomp-shell-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
 (defun zomp-tl-eval-current ()
   (interactive)
@@ -270,7 +269,7 @@ windows displaying it"
   (save-excursion
     (zomp-mark-current)
     (zomp-tl-eval-region))
-  (zomp-tl-move-point-to-end))
+  (zomp-shell-move-point-to-end))
 
 (defun zomp-tl-eval-current-and-goto-next ()
   (interactive)
@@ -299,48 +298,48 @@ windows displaying it"
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating buffer"))
-  (zomp-tl-do (buffer-substring (buffer-end -1) (buffer-end 1)) 'create "")
-  (zomp-tl-move-point-to-end))
+  (zomp-shell-do (buffer-substring (buffer-end -1) (buffer-end 1)) 'create "")
+  (zomp-shell-move-point-to-end))
 
 (defun zomp-tl-discard-input ()
   (interactive)
-  (zomp-tl-do "!"))
+  (zomp-shell-do "!"))
 
 (defun zomp-tl-run-test ()
   (interactive)
   (when (called-interactively-p)
     (message "Running function test"))
-  (zomp-tl-move-point-to-end)
-  (zomp-tl-do "!run test"))
+  (zomp-shell-move-point-to-end)
+  (zomp-shell-do "!run test"))
 
 (defun zomp-run (&optional prefix)
 "Will run test() after evaluating
-- the current toplevel expression (function) if toplevel is running
-- the current buffer of toplevel is not running
+- the current toplevel expression (function) if shell is running
+- the current buffer if shell is not running
 so you can use this as a quick way to start working on a project.
 
-Run this with a prefix to start a toplevel specific to this buffer"
+Run this with a prefix to start a shell specific to this buffer"
   (interactive "P")
   (when prefix
-    (zomp-make-buffer-local-toplevel))
-  (if (zomp-get-toplevel-buffer)
+    (zomp-make-buffer-local-shell))
+  (if (zomp-get-shell-buffer)
       (progn
         (zomp-request-execution-abort)
         (zomp-tl-eval-current))
-    (zomp-start-or-show-toplevel prefix)
+    (zomp-start-or-show-shell prefix)
     (zomp-tl-eval-buffer))
   (zomp-tl-run-test))
 
 (defun zomp-request-execution-abort ()
-  "Send a signal to the toplevel to request it to abort the
+  "Send a signal to the shell to request it to abort the
 current main() execution.
 
 Will cause the zompRequestedPause() function to return true. Any
 application honoring this will then return from main to allow the
 editor to trigger recompilations etc. and possibly resume main()"
   (interactive)
-  (when (zomp-get-toplevel-buffer)
-    (with-current-buffer zomp-toplevel-buffer-name
+  (when (zomp-get-shell-buffer)
+    (with-current-buffer zomp-shell-buffer-name
       (comint-interrupt-subjob))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -352,10 +351,10 @@ editor to trigger recompilations etc. and possibly resume main()"
   (if confirm-msg
       `(defun ,name () (interactive)
          (when (y-or-n-p ,confirm-msg)
-           (zomp-tl-do ,command)))
-    `(defun ,name () (interactive) (zomp-tl-do ,command))))
+           (zomp-shell-do ,command)))
+    `(defun ,name () (interactive) (zomp-shell-do ,command))))
 
-(zomp-dofun zomp-tl-exit "!exit" "Really quit running toplevel? ")
+(zomp-dofun zomp-tl-exit "!exit" "Really quit running shell? ")
 (zomp-dofun zomp-tl-list-all-bindings "!bindings")
 (zomp-dofun zomp-tl-help "!help")
 (zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
@@ -366,13 +365,13 @@ editor to trigger recompilations etc. and possibly resume main()"
 (defun zomp-tl-sexpr-syntax ()
   "Use indentation based syntax"
   (interactive)
-  (zomp-tl-do "!")
-  (zomp-tl-do "!syntax indent"))
+  (zomp-shell-do "!")
+  (zomp-shell-do "!syntax indent"))
 (defun zomp-tl-indent-syntax ()
   "Use sepxr based syntax (deprecated)"
   (interactive)
-  (zomp-tl-do "!")
-  (zomp-tl-do "!syntax sexpr"))
+  (zomp-shell-do "!")
+  (zomp-shell-do "!syntax sexpr"))
 
 (defmacro zomp-add-action (command key caption &rest path)
   `(list (local-set-key ,key (quote ,command))
@@ -732,7 +731,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-tl-run-test [(control c)(control t)] "Run 'void test()'")
   (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
   (zomp-add-action zomp-tl-list-bindings [(control c)(control f)] "List bindings...")
-  (zomp-add-action zomp-tl-help [(control c)(control h)] "Show toplevel help")
+  (zomp-add-action zomp-tl-help [(control c)(control h)] "Show Zomp shell help")
 
   (zomp-add-seperator zomp-sep4)
   (zomp-add-action zomp-indent-current-or-fill [(meta q)] "Indent current")
@@ -748,10 +747,10 @@ editor to trigger recompilations etc. and possibly resume main()"
                    "Eval function at point and goto next")
 
   (zomp-add-seperator zomp-sep-1)
-  (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit toplevel")
-  (zomp-add-action zomp-start-or-show-toplevel
+  (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit Zomp shell")
+  (zomp-add-action zomp-start-or-show-shell
                    [(control c)(control s)]
-                   "Start toplevel")
+                   "Start Zomp shell")
   (zomp-add-action zomp-request-execution-abort
                    [(control c)(control k)]
                    "Request app to pause")
@@ -846,7 +845,7 @@ editor to trigger recompilations etc. and possibly resume main()"
       (set-buffer (get-buffer-create zomp-symbol-buffer))
       (insert-file-contents zomp-symbol-file nil nil nil t))
     (process-send-string
-     (zomp-get-toplevel-buffer)
+     (zomp-get-shell-buffer)
      (concat "!silent !writeSymbols " zomp-symbol-file ""))))
 
 (defconst zomp-identifier-chars "a-zA-Z0-9:*_")
