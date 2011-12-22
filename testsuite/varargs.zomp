@@ -4,10 +4,11 @@
 
 requireLibs unittest
 
-unittest:testCase callPrintf:
-  var char[10] data
+unittest:testCase CallPrintf:
+  var char[10] dataArray
+  data := zmp:array:addr &dataArray
 
-  sprintf( zmp:array:addr &data, "-%d-", 10 )
+  sprintf( data, "-%d-", 10 )
 
   unittest:assertAll:
     data[0] == '-'
