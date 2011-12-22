@@ -135,3 +135,6 @@ tools
 /bindgen/zomp_bindgen.dylib
 /tests/llvmtest/*.exe
 /tests/llvmtest/*.dSYM
+/tests/buildlog.txt
+/tests.tmp.txt
+/files.tmp.txt
