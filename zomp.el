@@ -181,15 +181,16 @@ use global one"
 
 (defun zomp-shell ()
   (interactive)
-  (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name) (oldwin (selected-window)))
-    (shell zomp-shell-buffer-name)
+  (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name)
+        (oldwin (selected-window)))
+    (let ((default-directory zomp-basedir)
+          (explicit-shell-file-name "./zomp_shell.native"))
+      (shell zomp-shell-buffer-name))
     ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
     ;; has the same value in the shell buffer as in the zomp buffer invoking
     ;; the shell
     (zomp-shell-mode)
     (set (make-local-variable 'zomp-shell-buffer-name) zomp-new-shell-buffer-name)
-    (zomp-shell-do (concat "cd " zomp-basedir))
-    (zomp-shell-do "./zomp_shell.native; exit")
     (message "Started zomp shell")
     (select-window oldwin)))
 
