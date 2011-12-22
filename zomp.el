@@ -76,7 +76,7 @@ indent the next line when they occur at the beginning of a line"
                          (backward-char 1)))
                   ))))))
 
-(setq zomp-tl-expr-regexp "^[a-z(]")
+(setq zomp-toplevel-expr-regexp "^[a-z(]")
 
 (defvar zomp-imenu-generic-expression nil)
 (defun zomp-id (str)
@@ -98,7 +98,7 @@ indent the next line when they occur at the beginning of a line"
         ))
 
 (defun zomp-onkey-do (key code)
-  (local-set-key key `(lambda () (interactive) (zomp-tl-do ,code))))
+  (local-set-key key `(lambda () (interactive) (zomp-shell-do ,code))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; support for find file at point (ffap)
@@ -153,14 +153,14 @@ use global one"
   (interactive)
   (next-line)
   (beginning-of-line)
-  (zomp-prev-tl-expr)
+  (zomp-prev-toplevel-expr)
   (push-mark (point) t t)
   (if (looking-at "(")
       (goto-match-paren 4)
     (progn
       (next-line)
       (let ((next-line-pos (point)))
-        (search-forward-regexp zomp-tl-expr-regexp)
+        (search-forward-regexp zomp-toplevel-expr-regexp)
         (backward-char)
         (if (looking-at "end")
             (forward-word)
@@ -173,7 +173,7 @@ use global one"
 (defvar zomp-shell-buffer-name "*zomp-shell*"
   "The name of the buffer in which the zomp shell runs")
 
-(define-derived-mode zomp-shell-mode shell-mode "ZompTL"
+(define-derived-mode zomp-shell-mode shell-mode "ZompSh"
   "Major mode for a zomp shell in which you can interactively
   compile and run zomp code"
   (set (make-variable-buffer-local 'comint-use-prompt-regexp) t)
@@ -181,15 +181,15 @@ use global one"
 
 (defun zomp-shell ()
   (interactive)
-  (let ((zomp-new-tl-buffer-name zomp-shell-buffer-name) (oldwin (selected-window)))
+  (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name) (oldwin (selected-window)))
     (shell zomp-shell-buffer-name)
     ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
     ;; has the same value in the shell buffer as in the zomp buffer invoking
     ;; the shell
     (zomp-shell-mode)
-    (set (make-local-variable 'zomp-shell-buffer-name) zomp-new-tl-buffer-name)
-    (zomp-tl-do (concat "cd " zomp-basedir))
-    (zomp-tl-do "./zomp_shell.native; exit")
+    (set (make-local-variable 'zomp-shell-buffer-name) zomp-new-shell-buffer-name)
+    (zomp-shell-do (concat "cd " zomp-basedir))
+    (zomp-shell-do "./zomp_shell.native; exit")
     (message "Started zomp shell")
     (select-window oldwin)))
 
@@ -233,8 +233,8 @@ windows displaying it"
            (zomp-shell)))))
 
 (defun zomp-shell-do (code &optional create-if-not-existing append)
-  "Send some text to the zomp toplevel. If
-  `create-if-not-existing' is 'create then the toplevel will be
+  "Send some text to the zomp shell. If
+  `create-if-not-existing' is 'create then the shell will be
   started if it is not running, yet"
   (if (not (or create-if-not-existing (zomp-get-shell-buffer)))
       (message "Zomp shell is not running")
@@ -244,68 +244,68 @@ windows displaying it"
      (concat code (or append "")))
     (process-send-string (zomp-get-shell-buffer) "!prompt #")))
 
-(defun zomp-tl-run (funcname)
+(defun zomp-shell-run (funcname)
   (interactive "MName of function: ")
   (when (= 0 (length funcname))
     (setq funcname "main"))
   (zomp-shell-move-point-to-end)
   (zomp-shell-do (concat "!run " funcname)))
 
-(defun zomp-tl-list-bindings (regexps)
+(defun zomp-shell-list-bindings (regexps)
   (interactive "MList bindings matching: ")
   (zomp-shell-do (concat "!bindings " regexps)))
 
-(defun zomp-tl-eval-region ()
+(defun zomp-shell-eval-region ()
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating region"))
   (zomp-request-execution-abort)
   (zomp-shell-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
-(defun zomp-tl-eval-current ()
+(defun zomp-shell-eval-current ()
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating function at point"))
   (save-excursion
     (zomp-mark-current)
-    (zomp-tl-eval-region))
+    (zomp-shell-eval-region))
   (zomp-shell-move-point-to-end))
 
-(defun zomp-tl-eval-current-and-goto-next ()
+(defun zomp-shell-eval-current-and-goto-next ()
   (interactive)
-  (call-interactively 'zomp-tl-eval-current)
-  (zomp-next-tl-expr))
+  (call-interactively 'zomp-shell-eval-current)
+  (zomp-next-toplevel-expr))
 
-(defun zomp-next-tl-expr ()
+(defun zomp-next-toplevel-expr ()
   (interactive)
   (forward-char)
-  (search-forward-regexp zomp-tl-expr-regexp)
+  (search-forward-regexp zomp-toplevel-expr-regexp)
   (backward-char)
   (when (looking-at "end")
     (next-line)
-    (search-forward-regexp zomp-tl-expr-regexp)
+    (search-forward-regexp zomp-toplevel-expr-regexp)
     (backward-char)))
 
-(defun zomp-prev-tl-expr ()
+(defun zomp-prev-toplevel-expr ()
   (interactive)
   (backward-char)
-  (search-backward-regexp zomp-tl-expr-regexp)
+  (search-backward-regexp zomp-toplevel-expr-regexp)
   (when (looking-at "end")
     (backward-char)
-    (search-backward-regexp zomp-tl-expr-regexp)))
+    (search-backward-regexp zomp-toplevel-expr-regexp)))
 
-(defun zomp-tl-eval-buffer ()
+(defun zomp-shell-eval-buffer ()
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating buffer"))
   (zomp-shell-do (buffer-substring (buffer-end -1) (buffer-end 1)) 'create "")
   (zomp-shell-move-point-to-end))
 
-(defun zomp-tl-discard-input ()
+(defun zomp-shell-discard-input ()
   (interactive)
   (zomp-shell-do "!"))
 
-(defun zomp-tl-run-test ()
+(defun zomp-shell-run-test ()
   (interactive)
   (when (called-interactively-p)
     (message "Running function test"))
@@ -325,10 +325,10 @@ Run this with a prefix to start a shell specific to this buffer"
   (if (zomp-get-shell-buffer)
       (progn
         (zomp-request-execution-abort)
-        (zomp-tl-eval-current))
+        (zomp-shell-eval-current))
     (zomp-start-or-show-shell prefix)
-    (zomp-tl-eval-buffer))
-  (zomp-tl-run-test))
+    (zomp-shell-eval-buffer))
+  (zomp-shell-run-test))
 
 (defun zomp-request-execution-abort ()
   "Send a signal to the shell to request it to abort the
@@ -354,20 +354,20 @@ editor to trigger recompilations etc. and possibly resume main()"
            (zomp-shell-do ,command)))
     `(defun ,name () (interactive) (zomp-shell-do ,command))))
 
-(zomp-dofun zomp-tl-exit "!exit" "Really quit running shell? ")
-(zomp-dofun zomp-tl-list-all-bindings "!bindings")
-(zomp-dofun zomp-tl-help "!help")
-(zomp-dofun zomp-tl-toggle-llvm-printing "!llvm")
-(zomp-dofun zomp-tl-toggle-decl-printing "!printDecl")
-(zomp-dofun zomp-tl-toggle-parsed-ast-printing "!printAst")
-(zomp-dofun zomp-tl-toggle-verify "!verify")
+(zomp-dofun zomp-shell-exit "!exit" "Really quit running shell? ")
+(zomp-dofun zomp-shell-list-all-bindings "!bindings")
+(zomp-dofun zomp-shell-help "!help")
+(zomp-dofun zomp-shell-toggle-llvm-printing "!llvm")
+(zomp-dofun zomp-shell-toggle-decl-printing "!printDecl")
+(zomp-dofun zomp-shell-toggle-parsed-ast-printing "!printAst")
+(zomp-dofun zomp-shell-toggle-verify "!verify")
 
-(defun zomp-tl-sexpr-syntax ()
+(defun zomp-shell-sexpr-syntax ()
   "Use indentation based syntax"
   (interactive)
   (zomp-shell-do "!")
   (zomp-shell-do "!syntax indent"))
-(defun zomp-tl-indent-syntax ()
+(defun zomp-shell-indent-syntax ()
   "Use sepxr based syntax (deprecated)"
   (interactive)
   (zomp-shell-do "!")
@@ -689,8 +689,8 @@ editor to trigger recompilations etc. and possibly resume main()"
   (setq indent-line-function 'zomp-indent-line)
 
   ;; quick navigation and marking expressions
-  (local-set-key [(meta n)] 'zomp-next-tl-expr)
-  (local-set-key [(meta p)] 'zomp-prev-tl-expr)
+  (local-set-key [(meta n)] 'zomp-next-toplevel-expr)
+  (local-set-key [(meta p)] 'zomp-prev-toplevel-expr)
   (local-set-key [(meta k)] 'zomp-mark-sexp)
   (local-set-key [(control c)(control u)] 'zomp-move-up)
   (local-set-key [(control c)(control n)] 'zomp-next-block)
@@ -714,40 +714,40 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [menu-bar zomp toggle]
                  (cons "Toggle" (make-sparse-keymap "Zomp/Toggle")))
 
-  (zomp-add-action zomp-tl-toggle-llvm-printing
+  (zomp-add-action zomp-shell-toggle-llvm-printing
                    [(control c) (?.) (l)] "Printing of LLVM code" toggle)
-  (zomp-add-action zomp-tl-toggle-decl-printing
+  (zomp-add-action zomp-shell-toggle-decl-printing
                    [(control c) (?.) (d)] "Printing of declarations" toggle)
-  (zomp-add-action zomp-tl-toggle-parsed-ast-printing
+  (zomp-add-action zomp-shell-toggle-parsed-ast-printing
                    [(control c) (?.) (p)] "Printing of parsed ASTs" toggle)
-  ;; (zomp-add-action zomp-tl-toggle-verify
+  ;; (zomp-add-action zomp-shell-toggle-verify
   ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
 
-  (local-set-key [(control c) (?.) (?s)] 'zomp-tl-sexpr-syntax)
-  (local-set-key [(control c) (?.) (?i)] 'zomp-tl-indent-syntax)
+  (local-set-key [(control c) (?.) (?s)] 'zomp-shell-sexpr-syntax)
+  (local-set-key [(control c) (?.) (?i)] 'zomp-shell-indent-syntax)
 
   (zomp-add-seperator zomp-sep-3)
-  (zomp-add-action zomp-tl-run [(control c)(control d)] "Run function...")
-  (zomp-add-action zomp-tl-run-test [(control c)(control t)] "Run 'void test()'")
-  (zomp-add-action zomp-tl-list-all-bindings [(control c)(meta f)] "List all bindings")
-  (zomp-add-action zomp-tl-list-bindings [(control c)(control f)] "List bindings...")
-  (zomp-add-action zomp-tl-help [(control c)(control h)] "Show Zomp shell help")
+  (zomp-add-action zomp-shell-run [(control c)(control d)] "Run function...")
+  (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
+  (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
+  (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
+  (zomp-add-action zomp-shell-help [(control c)(control h)] "Show Zomp shell help")
 
   (zomp-add-seperator zomp-sep4)
   (zomp-add-action zomp-indent-current-or-fill [(meta q)] "Indent current")
   (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
 
   (zomp-add-seperator zomp-sep-2)
-  (zomp-add-action zomp-tl-discard-input [(control c)(control l)] "Discard entered text")
-  (zomp-add-action zomp-tl-eval-buffer [(control c)(control b)] "Eval buffer")
-  (zomp-add-action zomp-tl-eval-region [(control c)(control r)] "Eval region")
-  (zomp-add-action zomp-tl-eval-current [(control c)(control e)] "Eval function at point")
-  (zomp-add-action zomp-tl-eval-current-and-goto-next
+  (zomp-add-action zomp-shell-discard-input [(control c)(control l)] "Discard entered text")
+  (zomp-add-action zomp-shell-eval-buffer [(control c)(control b)] "Eval buffer")
+  (zomp-add-action zomp-shell-eval-region [(control c)(control r)] "Eval region")
+  (zomp-add-action zomp-shell-eval-current [(control c)(control e)] "Eval function at point")
+  (zomp-add-action zomp-shell-eval-current-and-goto-next
                    [(control c)(control shift e)]
                    "Eval function at point and goto next")
 
   (zomp-add-seperator zomp-sep-1)
-  (zomp-add-action zomp-tl-exit [(control c)(control q)] "Exit Zomp shell")
+  (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
   (zomp-add-action zomp-start-or-show-shell
                    [(control c)(control s)]
                    "Start Zomp shell")
@@ -757,10 +757,10 @@ editor to trigger recompilations etc. and possibly resume main()"
 
   ;; set additional keys on OS X
   (local-set-key [(alt r)]' zomp-run)
-  (local-set-key [(alt e)] 'zomp-tl-eval-current)
-  (local-set-key [(alt shift e)] 'zomp-tl-eval-current-and-goto-next)
-  (local-set-key [(alt d)] 'zomp-tl-run)
-  (local-set-key [(alt shift d)] 'zomp-tl-run-test)
+  (local-set-key [(alt e)] 'zomp-shell-eval-current)
+  (local-set-key [(alt shift e)] 'zomp-shell-eval-current-and-goto-next)
+  (local-set-key [(alt d)] 'zomp-shell-run)
+  (local-set-key [(alt shift d)] 'zomp-shell-run-test)
 
   ;; (outline-minor-mode t)
   ;; (setq outline-regexp "\\([a-df-z]\\| *\\(if\\|else\\|while\\)\\)")
