@@ -588,12 +588,10 @@ let () =
 
   let message msg = printf "%s\n" msg; flush stdout; in
 
-  message "Welcome to the interactive ZompVM";
-  message (sprintf "Version %s%s"
+  message (sprintf "Welcome to Zomp shell, version %s%s"
              version
              (if Zompvm.zompIsDebugBuild() then ", Debug build" else ""));
 
-  message "Initializing...";
   init();
 
   let includePath = ref ["."] in
@@ -607,7 +605,6 @@ let () =
   addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
   addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
 
-  message "Loading prelude...";
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in
   printf "Loading prelude took %fs\n" preludeLoadTime;
 
