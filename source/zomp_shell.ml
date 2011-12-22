@@ -311,7 +311,7 @@ let commands =
     "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
     "prompt", [], changePromptCommand, "Set prompt";
-    "run", [], runMain, "Run a function of type 'void (*)(void), default main'";
+    "run", [], runMain, "Run a function of type void(void), default main";
     "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
     "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
     "showStatsAtExit", [], toggleShowStatsAtExit, "Show stats at exit";
