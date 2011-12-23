@@ -8,13 +8,13 @@ requireLibs unittest libcee
 /// Section: parametric types
 ///-----------------------------------------------------------------------------
 
-type NotUsingParamType(T):
+type NotUsingParamType!T:
   int a
   float b
 end
 
 unittest:testCase SimpleParamType:
-  var NotUsingParamType(int) v0
+  var NotUsingParamType!int v0
   v0.a = 10
   v0.b = 20.0
 
@@ -24,20 +24,20 @@ unittest:testCase SimpleParamType:
   end
 end
 
-type Pointer(T):
+type Pointer!T:
   T* ptr
 end
 
 unittest:testCase SimpleParamType:
   value := 123
-  var Pointer(int) p
+  var Pointer!int p
   p.ptr = &value
 
   unittest:assertAll:
   end
 end
 
-type OptionalValue(T):
+type OptionalValue!T:
   T value
   bool valid
 end
@@ -53,31 +53,31 @@ end
 ///-----------------------------------------------------------------------------
 
 /// typedef parametric type
-type Array(T):
+type Array!T:
   int size
   T* address
 end
 
-// type Ptr(T) T*
+// type Ptr!T T*
 
-// type List(T):
+// type List!T:
 //   Element data
-//   List(T)* next
+//   List!T* next
 // end
 
-// type Ptr(T) T*
-// type Arr10(T) T[10]
+// type Ptr!T T*
+// type Arr10!T T[10]
 
 /// parametric struct containing instatiation of other parametric type
 
-type PartialArray(T):
+type PartialArray!T:
   Array!T array
   int used
 end
 
 /// typedef instance of parameterized type
-type IntArray Array(int)
-type PartialIntArray PartialArray(int)
+type IntArray Array!int
+type PartialIntArray PartialArray!int
 
 /// use instantiated type through instantiated name and directly
 /// local variable
@@ -126,12 +126,12 @@ var IntArray globalIntArray3 0
 
 /// function parameter
 
-// type TypeArgByValue(T):
+// type TypeArgByValue!T:
 //   T value
 //   bool valid
 // end
 
-type Twice(T):
+type Twice!T:
   T* a
   T* b
 end
@@ -171,7 +171,7 @@ func bool same(T)(Twice!T* pair):
 end
 
 // func void test():
-//   var Twice(int) ints
+//   var Twice!int ints
 //   x := malloc int
 //   initIntPair( &ints, x, x )
 //   // ints.a = x
@@ -179,7 +179,7 @@ end
 //   // println same(&ints)
 // end
 
-type RefCounted(T):
+type RefCounted!T:
   T value
   int refCount
 end
@@ -193,7 +193,7 @@ end
 //   // end
 // end
 
-// type Allocatable(T):
+// type Allocatable!T:
 //   (fptr T* int) new
 //   (fptr void T*) delete
 // end

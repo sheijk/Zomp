@@ -384,20 +384,23 @@ struct
             None
     in
     function
+      (** record with only one member *)
       | { id = id; args = [
             { id = typeName; args = [] };
             { id = opseq; args = componentExprs }
           ] } as expr
-          (** record with only one member *)
           when id = macroTypedef && opseq = macroSeqOp ->
           returnRecordTypedef bindings typeName componentExprs expr
+      (** parametric record *)
       | { id = id; args = [
             { id = opcall; args = [
                 { id = typeName; args = [] };
                 { id = "T"; args = [] } ] };
             { id = opseq; args = componentExprs }
           ] } as expr
-          when id = macroTypedef && opcall = macroCallOp && opseq = macroSeqOp ->
+          when id = macroTypedef
+          && (opcall = macroCallOp || opcall = "op!")
+          && opseq = macroSeqOp ->
           begin
             let paramBindings = addTypedef bindings "T" `TypeParam in
             match translateRecordTypedef paramBindings typeName componentExprs expr with
@@ -409,24 +412,24 @@ struct
               | None ->
                   None
           end
+      (** type foo typeExpr *)
       | { id = id; args = [
             { id = newTypeName; args = [] };
             targetTypeExpr;
           ] }
           when id = macroTypedef ->
-          (** type foo typeExpr *)
           begin
             match translateType bindings targetTypeExpr with
               | Error _ -> raiseInvalidType targetTypeExpr
               | Result t -> Some (addTypedef bindings newTypeName t,
                                   [`Typedef (newTypeName, t)] )
           end
+      (** record typedef *)
       | { id = id; args =
             { id = typeName; args = [] }
             :: componentExprs
         } as expr
           when id = macroTypedef ->
-          (** record typedef *)
           returnRecordTypedef bindings typeName componentExprs expr
       | _ -> None
 
