@@ -224,8 +224,12 @@ let mapResult f = function
   | Result r -> Result (f r)
   | Error msgs -> Error msgs
 
+let errorMessages = function
+  | Result _ -> []
+  | Error msgs -> msgs
 
-let rec translateType bindings typeExpr =
+let rec translateType bindings typeExpr : Lang.typ mayfail =
+  let error msg = errorFromExpr typeExpr msg in
   let instantiateType parametricType argumentType =
     let rec inst = function
       | `TypeParam ->
@@ -256,8 +260,8 @@ let rec translateType bindings typeExpr =
 
   let translatePtr targetTypeExpr =
     match translateType bindings targetTypeExpr with
-      | Some t -> Some (`Pointer t)
-      | None -> None
+      | Result t -> Result (`Pointer t)
+      | error -> error
   in
   let translateArray memberTypeExpr sizeExpr =
     let potentialSize =
@@ -271,25 +275,25 @@ let rec translateType bindings typeExpr =
         | _ -> None
     in
     match translateType bindings memberTypeExpr, potentialSize with
-      | Some t, Some size -> Some (`Array(t, size))
-      | _, _ -> None
+      | Result t, Some size -> Result (`Array(t, size))
+      | errorM, _ -> errorM
   in
   match typeExpr with
     | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
       begin try
               let translate typ =
                 match translateType bindings typ with
-                  | Some t -> t
-                  | None -> failwith ""
+                  | Result t -> t
+                  | Error msgs -> failwith (Common.combine ", " msgs)
               in
               begin
-                Some (`Pointer (`Function {
+                Result (`Pointer (`Function {
                   returnType = translate returnTypeExpr;
                   argTypes = List.map translate argTypeExprs;
                 }))
               end
-        with Failure _ ->
-          None
+        with Failure msg ->
+          error msg
       end
     | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
       translateType bindings (shiftId args)
@@ -298,15 +302,13 @@ let rec translateType bindings typeExpr =
       argumentTypeExpr ] } ->
       begin
         match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
-          | TypedefSymbol ((`ParametricType _) as t), Some `TypeParam ->
-            printf "paramatric type %s\n" (typeDescr t);
-            Some t
-          | TypedefSymbol (`ParametricType t), Some argumentType ->
-            if paramTypeName = "Twice" then
-              printf "translating type %s(%s)\n" paramTypeName (typeName argumentType);
-            Some (instantiateType (t :> typ) argumentType)
-          | _, _ ->
-            None
+          | TypedefSymbol ((`ParametricType _) as t), Result `TypeParam ->
+            Result t
+          | TypedefSymbol (`ParametricType t), Result argumentType ->
+            Result (instantiateType (t :> typ) argumentType)
+          | paramTypeResult, argumentResult ->
+            Error (List.map (errorMsgFromExpr typeExpr)
+                     ("could not translate type" :: errorMessages argumentResult))
       end
     | { id = "postop*"; args = [targetTypeExpr] }
     | { id = "ptr"; args = [targetTypeExpr]; } ->
@@ -316,9 +318,12 @@ let rec translateType bindings typeExpr =
       translateArray memberTypeExpr sizeExpr
     | { id = name; args = [] } ->
       begin
-        lookupType bindings name
+        match lookupType bindings name with
+          | Some t -> Result t
+          | None -> error (sprintf "could not look up type %s" name)
       end
-    | _ -> None
+    | _ ->
+      errorFromExpr typeExpr "Don't know how to interprete as type"
     
 
 module Translators_deprecated_style =
@@ -344,8 +349,8 @@ struct
       let expr2component =
         let translate name typeExpr =
           match translateType tempBindings typeExpr with
-            | Some typ -> name, typ
-            | None -> raise (CouldNotParseType typeName)
+            | Result typ -> name, typ
+            | _ -> raise (CouldNotParseType typeName)
         in
         function
           | { id = typeName; args = [{ id = componentName; args = []}] } ->
@@ -403,8 +408,9 @@ struct
           (** type foo typeExpr *)
           begin
             match translateType bindings targetTypeExpr with
-              | None -> raiseInvalidType targetTypeExpr
-              | Some t -> Some (addTypedef bindings newTypeName t, [`Typedef (newTypeName, t)] )
+              | Error _ -> raiseInvalidType targetTypeExpr
+              | Result t -> Some (addTypedef bindings newTypeName t,
+                                  [`Typedef (newTypeName, t)] )
           end
       | { id = id; args =
             { id = typeName; args = [] }
@@ -915,6 +921,7 @@ struct
     eprintf "error: (swallowed) %s\n" msg
 
   let reportErrorE expr msg = reportError (errorMsgFromExpr expr msg)
+  let reportErrorM msgs = List.iter reportError msgs
   
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
   let translateStructLiteralArgs fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
@@ -982,20 +989,20 @@ struct
         begin
           let typ =
             match translateType env.bindings typeExpr with
-              | Some (#integralType as typ)
-              | Some (`Pointer _ as typ)
-              | Some (`Array (_, _) as typ)
-              | Some (`Record _ as typ) ->
+              | Result (#integralType as typ)
+              | Result (`Pointer _ as typ)
+              | Result (`Array (_, _) as typ)
+              | Result (`Record _ as typ) ->
                 typ
-              | Some `ErrorType _
-              | Some `Function _
-              | Some `ParametricType _
-              | Some `TypeParam
-              | Some `TypeRef _ ->
+              | Result `ErrorType _
+              | Result `Function _
+              | Result `ParametricType _
+              | Result `TypeParam
+              | Result `TypeRef _ ->
                 reportErrorE typeExpr "Type not supported for global variables";
                 `ErrorType "translateGlobalVar"
-              | None ->
-                reportErrorE typeExpr "Expression does not denote a type";
+              | Error msgs ->
+                reportErrorM msgs;
                 `ErrorType "translateGlobalVar"
           in
           let newBindings, tlforms, value =
@@ -1057,8 +1064,8 @@ struct
         | Some e ->
             begin
               match translateType env.bindings e with
-                | Some t -> Some t
-                | None -> raise (CouldNotParseType (Ast2.expression2string e))
+                | Result t -> Some t
+                | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
             end
         | None -> None
       in
@@ -1251,9 +1258,9 @@ struct
   let translateMalloc (env :exprTranslateF env) expr =
     let buildMallocInstruction typeExpr countExpr =
       match translateType env.bindings typeExpr with
-        | None ->
-            errorFromExpr typeExpr "Could not translate type"
-        | Some typ ->
+        | Error _ as err ->
+          err
+        | Result typ ->
             begin
               let _, rightHandForm, toplevelForms = translateToForms env.translateF env.bindings countExpr in
               let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
@@ -1275,8 +1282,8 @@ struct
     match expr.args with
       | [typeExpr] ->
           begin match translateType env.bindings typeExpr with
-            | Some typ -> Result (env.bindings, [`Constant (NullpointerVal (`Pointer typ))] )
-            | None -> errorFromExpr typeExpr "Could not translate type"
+            | Result typ -> Result (env.bindings, [`Constant (NullpointerVal (`Pointer typ))] )
+            | Error msgs -> Error msgs
           end
       | _ ->
           errorFromExpr expr "Expected one argument denoting a type: 'nullptr typeExpr'"
@@ -1357,12 +1364,12 @@ struct
       | [targetTypeExpr; valueExpr] ->
           begin
             match translateType env.bindings targetTypeExpr with
-              | Some typ ->
+              | Result typ ->
                   let _, valueForm, toplevelForms = translateToForms env.translateF env.bindings valueExpr in
                   let castForm = `CastIntrinsic( typ, valueForm ) in
                   Result( env.bindings, toplevelForms @ [castForm] )
-              | None ->
-                  raiseIllegalExpression targetTypeExpr "Expected a valid type"
+              | Error msgs ->
+                Error msgs
           end
       | _ ->
           errorFromExpr expr "Expected 'cast typeExpr valueExpr'"
@@ -1373,10 +1380,10 @@ struct
         | Some e ->
             begin
               match translateType env.bindings e with
-                | Some t -> Some t
-                | None -> raise (CouldNotParseType (Ast2.expression2string e))
+                | Result t -> Result t
+                | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
             end
-        | None -> None
+        | None -> Error ["TODO"]
       in
       let valueType, toplevelForms, implForms =
         match valueExpr with
@@ -1392,14 +1399,15 @@ struct
       in
       let varType =
         match declaredType, valueType with
-          | Some declaredType, Some valueType when equalTypes env.bindings declaredType valueType ->
+          | Result declaredType, Some valueType
+            when equalTypes env.bindings declaredType valueType ->
               declaredType
-          | Some declaredType, Some valueType ->
+          | Result declaredType, Some valueType ->
               raiseIllegalExpressionFromTypeError expr
                 (Semantic.Ast expr, "Types do not match",declaredType,valueType)
-          | None, Some valueType -> valueType
-          | Some declaredType, None -> declaredType
-          | None, None ->
+          | Error _, Some valueType -> valueType
+          | Result declaredType, None -> declaredType
+          | Error _, None ->
               raiseIllegalExpression expr "var needs either a default value or declare a type"
       in
       match varType with
@@ -2200,11 +2208,11 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let expr2param argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
-          | Some typ ->
+          | Result typ ->
               if name = "same" then
                 printf "func arg '%s' : '%s (%s)'\n" varName (typeName typ) (Ast2.toString typeExpr);
               (varName, typ)
-          | None -> raiseInvalidType typeExpr
+          | Error _ -> raiseInvalidType typeExpr
       in
       match argExpr with
         | { id = "seq"; args = [typeExpr; { id = varName; args = []};] } ->
@@ -2264,7 +2272,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
               parametricTypes
           in
           match translateType bindings typeExpr with
-            | Some typ -> begin
+            | Result typ -> begin
                 let tempBindings, _, _ =
                   buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None
                 in
@@ -2278,17 +2286,17 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
                         expr
                         (typeErrorMessage bindings (fe, msg, returnedType, declaredType))
               end
-            | None -> raiseInvalidType typeExpr
+            | Error _ -> raiseInvalidType typeExpr
         end
     | `FuncDecl (name, typeExpr, paramExprs, hasvarargs) ->
         begin
           match translateType bindings typeExpr with
-            | Some typ ->
+            | Result typ ->
                 begin
                   let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs hasvarargs None in
                   Some (newBindings, [funcDecl] )
                 end
-            | None ->
+            | Error _ ->
                 raiseInvalidType typeExpr
         end
     | `NotAFunc _ ->
