@@ -300,9 +300,9 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
     | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
       translateType bindings (shiftId args)
 
-    | { id = "op!"; args = [
-      { id = paramTypeName; args = [] };
-      argumentTypeExpr ] } ->
+    | { id = "op!"; args =
+        [{ id = paramTypeName; args = [] };
+         argumentTypeExpr ] } ->
       begin
         match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
           | TypedefSymbol ((`ParametricType _) as t), Result `TypeParam ->
