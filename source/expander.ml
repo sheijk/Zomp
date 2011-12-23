@@ -302,9 +302,6 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
 
     | { id = "op!"; args = [
       { id = paramTypeName; args = [] };
-      argumentTypeExpr ] }
-    | { id = "opcall"; args = [
-      { id = paramTypeName; args = [] };
       argumentTypeExpr ] } ->
       begin
         match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
@@ -398,9 +395,7 @@ struct
                 { id = "T"; args = [] } ] };
             { id = opseq; args = componentExprs }
           ] } as expr
-          when id = macroTypedef
-          && (opcall = macroCallOp || opcall = "op!")
-          && opseq = macroSeqOp ->
+          when id = macroTypedef && opcall = macroParamType && opseq = macroSeqOp ->
           begin
             let paramBindings = addTypedef bindings "T" `TypeParam in
             match translateRecordTypedef paramBindings typeName componentExprs expr with
@@ -2151,7 +2146,7 @@ let matchFunc =
         ] } as expr
         when id = macroFunc &&
           opcall = macroCallOp &&
-          (paramop = macroCallOp || paramop = "op!") &&
+          paramop = macroParamType &&
           opseq = macroSeqOp ->
         begin try
           let getParametricTypeName = function

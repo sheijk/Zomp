@@ -150,7 +150,7 @@ func int sumIntArray(IntArray* array):
   ret sum
 end
 
-func void printGenericPtr(T)(T* ptr):
+func void printGenericPtr!T(T* ptr):
   printPtr (cast void* ptr)
 end
 

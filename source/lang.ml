@@ -31,6 +31,7 @@ and macroSeqOp = "opseq"
 and macroCallOp = "opcall"
 and macroApply = "std:base:apply"
 and macroFunCall = "std:base:funcall"
+and macroParamType = "op!"
 
 let componentType components componentName =
   try Some( snd (List.find (fun (name, _) -> name = componentName) components) )
