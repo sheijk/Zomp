@@ -66,101 +66,6 @@ struct
             | TypedefSymbol t -> Some t
             | _ -> None
 
-  let rec translateType bindings typeExpr =
-    let instantiateType parametricType argumentType =
-      let rec inst = function
-        | `TypeParam ->
-            argumentType
-        | `TypeRef _
-        | #integralType as t ->
-            t
-        | `Record rt ->
-            `Record { rt with fields = List.map (map2nd inst) rt.fields }
-        | `Pointer t ->
-            `Pointer (inst t)
-        (* | `ParametricType t -> *)
-        (*     `ParametricType (inst t) *)
-        | `Array (memberType, size) ->
-            `Array (inst memberType, size)
-        | `Function ft ->
-            `Function { returnType = inst ft.returnType;
-                        argTypes = List.map inst ft.argTypes }
-        | `ParametricType `Record rt ->
-            `Record { rt with fields = List.map (map2nd inst) rt.fields }
-        | `ParametricType `Pointer t ->
-            `Pointer (inst t)
-        | `ErrorType _ as t ->
-            t
-      in
-      inst parametricType
-    in
-
-    let translatePtr targetTypeExpr =
-      match translateType bindings targetTypeExpr with
-        | Some t -> Some (`Pointer t)
-        | None -> None
-    in
-    let translateArray memberTypeExpr sizeExpr =
-      let potentialSize =
-        match sizeExpr with
-          | { id = number; args = [] } ->
-              begin try
-                Some(int_of_string number)
-              with Failure _ ->
-                None
-              end
-          | _ -> None
-      in
-      match translateType bindings memberTypeExpr, potentialSize with
-        | Some t, Some size -> Some (`Array(t, size))
-        | _, _ -> None
-    in
-    match typeExpr with
-      | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
-          begin try
-            let translate typ =
-              match translateType bindings typ with
-                | Some t -> t
-                | None -> failwith ""
-            in
-            begin
-              Some (`Pointer (`Function {
-                                returnType = translate returnTypeExpr;
-                                argTypes = List.map translate argTypeExprs;
-                              }))
-            end
-          with Failure _ ->
-            None
-          end
-      | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
-          translateType bindings (shiftId args)
-      | { id = "opcall"; args = [
-            { id = paramTypeName; args = [] };
-            argumentTypeExpr ] } ->
-          begin
-            match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
-              | TypedefSymbol ((`ParametricType _) as t), Some `TypeParam ->
-                  printf "paramatric type %s\n" (typeDescr t);
-                  Some t
-              | TypedefSymbol (`ParametricType t), Some argumentType ->
-                  if paramTypeName = "Twice" then
-                    printf "translating type %s(%s)\n" paramTypeName (typeName argumentType);
-                  Some (instantiateType (t :> typ) argumentType)
-              | _, _ ->
-                  None
-          end
-      | { id = "postop*"; args = [targetTypeExpr] }
-      | { id = "ptr"; args = [targetTypeExpr]; } ->
-          translatePtr targetTypeExpr
-      | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
-      | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
-          translateArray memberTypeExpr sizeExpr
-      | { id = name; args = [] } ->
-          begin
-            lookupType bindings name
-          end
-      | _ -> None
-
   let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
 
   let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
@@ -319,6 +224,102 @@ let mapResult f = function
   | Result r -> Result (f r)
   | Error msgs -> Error msgs
 
+
+let rec translateType bindings typeExpr =
+  let instantiateType parametricType argumentType =
+    let rec inst = function
+      | `TypeParam ->
+        argumentType
+      | `TypeRef _
+      | #integralType as t ->
+        t
+      | `Record rt ->
+        `Record { rt with fields = List.map (map2nd inst) rt.fields }
+      | `Pointer t ->
+        `Pointer (inst t)
+        (* | `ParametricType t -> *)
+        (*     `ParametricType (inst t) *)
+      | `Array (memberType, size) ->
+        `Array (inst memberType, size)
+      | `Function ft ->
+        `Function { returnType = inst ft.returnType;
+                    argTypes = List.map inst ft.argTypes }
+      | `ParametricType `Record rt ->
+        `Record { rt with fields = List.map (map2nd inst) rt.fields }
+      | `ParametricType `Pointer t ->
+        `Pointer (inst t)
+      | `ErrorType _ as t ->
+        t
+    in
+    inst parametricType
+  in
+
+  let translatePtr targetTypeExpr =
+    match translateType bindings targetTypeExpr with
+      | Some t -> Some (`Pointer t)
+      | None -> None
+  in
+  let translateArray memberTypeExpr sizeExpr =
+    let potentialSize =
+      match sizeExpr with
+        | { id = number; args = [] } ->
+          begin try
+                  Some(int_of_string number)
+            with Failure _ ->
+              None
+          end
+        | _ -> None
+    in
+    match translateType bindings memberTypeExpr, potentialSize with
+      | Some t, Some size -> Some (`Array(t, size))
+      | _, _ -> None
+  in
+  match typeExpr with
+    | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
+      begin try
+              let translate typ =
+                match translateType bindings typ with
+                  | Some t -> t
+                  | None -> failwith ""
+              in
+              begin
+                Some (`Pointer (`Function {
+                  returnType = translate returnTypeExpr;
+                  argTypes = List.map translate argTypeExprs;
+                }))
+              end
+        with Failure _ ->
+          None
+      end
+    | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
+      translateType bindings (shiftId args)
+    | { id = "opcall"; args = [
+      { id = paramTypeName; args = [] };
+      argumentTypeExpr ] } ->
+      begin
+        match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
+          | TypedefSymbol ((`ParametricType _) as t), Some `TypeParam ->
+            printf "paramatric type %s\n" (typeDescr t);
+            Some t
+          | TypedefSymbol (`ParametricType t), Some argumentType ->
+            if paramTypeName = "Twice" then
+              printf "translating type %s(%s)\n" paramTypeName (typeName argumentType);
+            Some (instantiateType (t :> typ) argumentType)
+          | _, _ ->
+            None
+      end
+    | { id = "postop*"; args = [targetTypeExpr] }
+    | { id = "ptr"; args = [targetTypeExpr]; } ->
+      translatePtr targetTypeExpr
+    | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
+    | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
+      translateArray memberTypeExpr sizeExpr
+    | { id = name; args = [] } ->
+      begin
+        lookupType bindings name
+      end
+    | _ -> None
+    
 
 module Translators_deprecated_style =
 struct
