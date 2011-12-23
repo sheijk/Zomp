@@ -162,6 +162,7 @@ struct
                                        [se2 "op." "obj" "f";
                                         id "int"];
                                     id "20"]];
+      "RefCounted!Point*", `Return [expr "postop*" [se2 "op!" "RefCounted" "Point"]];
 
       (** pre/postfix operators *)
       "foo... ", `Return [se1 "postop..." "foo"];
@@ -185,12 +186,12 @@ struct
       "(foo bar*)", `Return [juxExpr [id "foo"; se "postop*" ["bar"]]];
       "i*++", `Return [expr "postop++" [expr "postop*" [id "i"]]];
       "foo*.bar", `Return [expr "op." [se1 "postop*" "foo"; id "bar"]];
-      "foo*.bar*.baz", `Return [expr "op." [
-                                  expr "op." [
-                                    se1 "postop*" "foo";
-                                    se1 "postop*" "bar";];
-                                  id "baz"]];
-      "foo*.bar++", `Return [expr "op." [se1 "postop*" "foo"; se1 "postop++" "bar"]];
+      "foo*.bar*.baz", `Return [expr "op."
+                                   [expr "postop*"
+                                       [expr "op."
+                                           [se1 "postop*" "foo"; id "bar"]];
+                                    id "baz"]];
+      "foo*.bar++", `Return [expr "postop++" [expr "op." [se1 "postop*" "foo"; id "bar"]]];
       "obj.method(1, 2)", `Return [callExpr
                                       [se2 "op." "obj" "method";
                                        id "1";

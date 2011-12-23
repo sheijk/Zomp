@@ -171,9 +171,9 @@
 %right PREFIX_OP
 %right OPEN_ARGLIST
 %right OPEN_BRACKET_POSTFIX
+%left POSTFIX_OP
 %right EXCLAMATION_OP
 %left DOT
-%left POSTFIX_OP
 %right QUOTE
 
 %start <Ast2.sexpr> main
