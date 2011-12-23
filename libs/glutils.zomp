@@ -715,7 +715,7 @@ func int gl:texLevelParameteri(GLenum target, GLint level, GLenum pname):
   assert(zmp:array:get(value, 2) == -1)
   assert(zmp:array:get(value, 3) == -1)
 
-  ret value[0]
+  ret zmp:array:get(value, 0)
 end
 
 func cstring GLenum:toString(GLenum enum):

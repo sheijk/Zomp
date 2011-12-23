@@ -5,9 +5,12 @@
 requireLibs math opengl20 glutils
 
 func void AABB:render(AABB* this):
-  defineArray float x this.min.x this.max.x
-  defineArray float y this.min.y this.max.y
-  defineArray float z this.min.z this.max.z
+  defineArray float xa this.min.x this.max.x
+  x := zmp:array:addr &xa
+  defineArray float ya this.min.y this.max.y
+  y := zmp:array:addr &ya
+  defineArray float za this.min.z this.max.z
+  z := zmp:array:addr &za
 
   rendergl GL_LINES:
     glColor4f 1. 1. 1. 1.

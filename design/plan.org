@@ -1598,6 +1598,20 @@ http://www.iquilezles.org/blog/?p=1468
    "if" "(" (stmt ";")* expr ")"
 
    etc.
+** TODO [#A] semantic checker fails to detect missing &  
+
+struct IntList:
+  int value
+  IntList* next
+end
+
+unittest:testCase tmp:
+  last := IntList(value = 1, next = nullptr IntList)
+  first := IntList(value = 2, next = /*&*/last)
+  
+  unittest:assertAll:
+  end
+end
 * Use Cases                                                            :usecase:
 ** .obj Loader [0/2]
    :PROPERTIES:

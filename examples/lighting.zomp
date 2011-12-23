@@ -313,7 +313,7 @@ func float surfaceArea(Mesh* m):
   area := 0.0
 
   firstVertexNum := 0
-  while (firstVertexNum <= (m.positions)*.size - 3):
+  while (firstVertexNum <= m*.positions*.size - 3):
     v0 := VertexStream:get3f m.positions firstVertexNum
     v1 := VertexStream:get3f m.positions (firstVertexNum+1)
     v2 := VertexStream:get3f m.positions (firstVertexNum+2)
@@ -349,7 +349,7 @@ func void placeRandomPointsOnSurface2(Mesh* surface, VertexStream* points):
 
   firstVertexNum := 0
   pointsVertexNum := 0
-  while (firstVertexNum <= (surface.positions)*.size - 3):
+  while (firstVertexNum <= surface*.positions*.size - 3):
     v0 := VertexStream:get3f surface.positions firstVertexNum
     v1 := VertexStream:get3f surface.positions (firstVertexNum+1)
     v2 := VertexStream:get3f surface.positions (firstVertexNum+2)
@@ -621,7 +621,7 @@ func int main():
   // Mesh:printDetailed mesh
 
   unless isNull(mesh.normals):
-    VertexStream:foreach (mesh.normals)* float normal:
+    VertexStream:foreach mesh*.normals* float normal:
       store (normal+0) (float:neg *(normal+0))
       store (normal+1) (float:neg *(normal+1))
       store (normal+2) (float:neg *(normal+2))
@@ -630,7 +630,7 @@ func int main():
 
   Mesh:print mesh 0
   println "  surface area = " surfaceArea(mesh)
-  Mesh:define points ((mesh.positions)*.size * 100):
+  Mesh:define points (mesh*.positions*.size * 100):
     gl_Position GL_FLOAT 3
   end
   points.geometry_kind = GL_POINTS

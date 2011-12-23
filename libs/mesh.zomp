@@ -281,7 +281,7 @@ end
 func void Mesh:send(Mesh* this):
   positions := cast float* (ptradd this.streams 0)*.data
   normals := cast float* (ptradd this.streams 1)*.data
-  for i 0 (this.streams)*.size:
+  for i 0 this*.streams*.size:
     glNormal3fv normals
     glVertex3fv positions
     positions = positions +_ptr 3
@@ -314,19 +314,19 @@ end
 func void Mesh:render(Mesh* this, GLint mode, GLint shader):
   if (this.positions !=_ptr nullptr VertexStream):
     glEnableClientState GL_VERTEX_ARRAY
-    glVertexPointer (this.positions)*.components (this.positions)*.type 0 (this.positions)*.data
+    glVertexPointer this*.positions*.components this*.positions*.type 0 this*.positions*.data
   end
 
-  if (this.normals !=_ptr nullptr VertexStream):
+  if (this*.normals !=_ptr nullptr VertexStream):
     glEnableClientState GL_NORMAL_ARRAY
-    glNormalPointer (this.normals)*.type 0 (this.normals)*.data
+    glNormalPointer this*.normals*.type 0 this*.normals*.data
   end
-
+  
   if (this.colors !=_ptr nullptr VertexStream):
     glEnableClientState GL_COLOR_ARRAY
-    glColorPointer (this.colors)*.type (this.colors)*.type 0 (this.colors)*.data
+    glColorPointer this*.colors*.type this*.colors*.type 0 this*.colors*.data
   end
-
+  
   Mesh:foreachStream this stream:
     unless stream.defaultComp:
       // flushGLErrors()
@@ -336,9 +336,9 @@ func void Mesh:render(Mesh* this, GLint mode, GLint shader):
       glVertexAttribPointer loc stream.size stream.type false 0 stream.data
     end
   end
-
-  glDrawArrays mode 0 (this.streams)*.size
-
+  
+  glDrawArrays mode 0 this*.streams*.size
+  
   glDisableClientState GL_VERTEX_ARRAY
   glDisableClientState GL_NORMAL_ARRAY
   glDisableClientState GL_COLOR_ARRAY

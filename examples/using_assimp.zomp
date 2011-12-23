@@ -184,7 +184,7 @@ func int main():
   print "meshSize = " meshSize
   println()
 
-  if ((mesh.streams)*.size < 40):
+  if (mesh*.streams*.size < 40):
     Mesh:printDetailed mesh
   else:
     Mesh:print mesh 0
