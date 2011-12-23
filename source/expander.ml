@@ -2143,13 +2143,16 @@ let matchFunc =
     | { id = id; args = [
           typeExpr;
           { id = opcall; args =
-              { id = opcall2; args =
+              { id = paramop; args =
                   { id = name; args = [] }
                   :: paramTypeExprs }
               :: paramExprs };
           { id = opseq; args = _ } as implExpr
         ] } as expr
-        when id = macroFunc && opcall = macroCallOp && opcall2 = macroCallOp && opseq = macroSeqOp ->
+        when id = macroFunc &&
+          opcall = macroCallOp &&
+          (paramop = macroCallOp || paramop = "op!") &&
+          opseq = macroSeqOp ->
         begin try
           let getParametricTypeName = function
             | { id = name; args = [] } -> name

@@ -165,7 +165,7 @@ func void initIntPair(Twice!int* pair, int* a, int* b):
   pair.b = b
 end
 
-func bool same(T)(Twice!T* pair):
+func bool same!T(Twice!T* pair):
   return false
   // return (pair.a == pair.b)
 end
@@ -184,7 +184,7 @@ type RefCounted!T:
   int refCount
 end
 
-// func void RefCounted:release(T)(RefCounted(T)* rc):
+// func void RefCounted:release!T(RefCounted(T)* rc):
 //   println "TODO"
 //   // rc.refCount--
 //   // 
@@ -212,7 +212,7 @@ end
 //   // x = (tc.new)()
 // end
 //
-// func void Array:init(T)(Allocatable(T)* tc, Array(T)* a, int size):
+// func void Array:init!T(Allocatable!T* tc, Array!T* a, int size):
 //   a.size = size
 //   t := nullptr T
 //   t = a.address
