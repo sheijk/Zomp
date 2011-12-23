@@ -279,6 +279,7 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
       | errorM, _ -> errorM
   in
   match typeExpr with
+        (** function pointers *)
     | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
       begin try
               let translate typ =
@@ -295,8 +296,13 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
         with Failure msg ->
           error msg
       end
+
     | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
       translateType bindings (shiftId args)
+
+    | { id = "op!"; args = [
+      { id = paramTypeName; args = [] };
+      argumentTypeExpr ] }
     | { id = "opcall"; args = [
       { id = paramTypeName; args = [] };
       argumentTypeExpr ] } ->
@@ -310,12 +316,15 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
             Error (List.map (errorMsgFromExpr typeExpr)
                      ("could not translate type" :: errorMessages argumentResult))
       end
+
     | { id = "postop*"; args = [targetTypeExpr] }
     | { id = "ptr"; args = [targetTypeExpr]; } ->
       translatePtr targetTypeExpr
+
     | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
     | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
       translateArray memberTypeExpr sizeExpr
+
     | { id = name; args = [] } ->
       begin
         match lookupType bindings name with

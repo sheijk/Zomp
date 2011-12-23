@@ -71,7 +71,7 @@ end
 /// parametric struct containing instatiation of other parametric type
 
 type PartialArray(T):
-  Array(T) array
+  Array!T array
   int used
 end
 
@@ -97,7 +97,7 @@ unittest:testCase LocalVarThroughTypedef:
 end
 
 unittest:testCase LocalVarWithoutTypedef:
-  var Array(int) ar
+  var Array!int ar
   ar.size = 10
   ar.address = malloc int 10
   ar.address[9] = 123
@@ -109,7 +109,7 @@ unittest:testCase LocalVarWithoutTypedef:
 end
 
 unittest:testCase LocalVarWithoutTypedefNested:
-  var PartialArray(int) ar
+  var PartialArray!int ar
   ar.used = 2
   ar.array.size = 10
   ar.array.address = malloc int 10
@@ -121,7 +121,7 @@ unittest:testCase LocalVarWithoutTypedefNested:
 end
 
 /// global variable
-var Array(int) globalIntArray 0
+var Array!(int) globalIntArray 0
 var IntArray globalIntArray3 0
 
 /// function parameter
@@ -160,12 +160,12 @@ end
 //   printGenericPtr p
 // end
 
-func void initIntPair(Twice(int)* pair, int* a, int* b):
+func void initIntPair(Twice!int* pair, int* a, int* b):
   pair.a = a
   pair.b = b
 end
 
-func bool same(T)(Twice(T)* pair):
+func bool same(T)(Twice!T* pair):
   return false
   // return (pair.a == pair.b)
 end
