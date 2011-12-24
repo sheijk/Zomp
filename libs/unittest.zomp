@@ -4,6 +4,8 @@
 
 requireLibs libcee
 
+var int unittest:failedCount 0
+
 ///
 /// An assertion macro which detects certain kinds of expressions and inserts
 /// code printing the arguments for better error messages
@@ -176,5 +178,63 @@ template unittest:main extraCode...:
     unittest:runAllTestCases
     ret unittest:printReport()
   end
+end
+
+/// Executes the given expression and prints an error
+/// message containing the passed ast if it does not
+/// evaluate to true
+macro unittest:assert testCode:
+  ret ${seq:
+    unless #testCode:
+      assign unittest:failedCount (int:add unittest:failedCount 1)
+      printHLine '-' 40
+      printlnString "error: Assertion failed"
+      ast:print ${#testCode} 0
+    end
+  end}
+end
+
+/// Calls unittest:assert on all childs of the passed
+/// sequence expression
+macro unittest:assertAll checks:
+  var (ptr ast) code ${}
+  forEachAstChild check checks:
+    when (cstring:equal (getField check id) "opseq"):
+      printlnString "Warning: unittest:assertAll found opseq expression. This might indicate using this from indent syntax code which is not supported"
+    end
+    ast:addChild code ${unittest:assert #check}
+  end
+
+  ret code
+end
+
+
+/// Will define a function name_tests_nr which will
+/// call all unittest:assert on all given testCases
+macro unittest:testCasesFor name testCases...:
+  var cstring testName (cstring:concat "test_" (getField name id) "_" (u32:toCString newUniqueId()))
+
+  var astp impl (ast:fromString "unittest:assertAll")
+  forEachAstChild testCase testCases:
+    ast:addChild impl testCase
+  end
+  var ast* decl ast:fromString("opcall")
+  ast:addChild decl ast:fromString(testName)
+  var astp funcDecl ${std:base:func void #decl:
+    #impl
+  end}
+
+  ret funcDecl
+end
+
+std:base:func cstring unittest:newTestFuncNameFor(cstring funcName):
+  cstring:concat "test_" funcName "_" (u32:toCString newUniqueId())
+end
+
+macro unittest:testFunc funcName impl:
+  var cstring testFuncName (unittest:newTestFuncNameFor (getField funcName id))
+  var ast* decl ast:fromString("opcall")
+  ast:addChild decl ast:fromString(testFuncName)
+  ret ${std:base:func void #decl #impl}
 end
 

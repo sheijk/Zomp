@@ -12,6 +12,8 @@ zmpx:lib:requireLib "libs/libcee.zomp"
 zmpx:lib:requireLib "testsuite/require_lib.zomp"
 zmpx:lib:requireLib "testsuite/require_lib.zomp"
 
+zmpx:lib:requireLib "libs/unittest.zomp"
+
 func int main():
   unittest:assertAll:
     require5() == 5

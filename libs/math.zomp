@@ -4,7 +4,7 @@
 !verify off
  */
 
-requireLibs libcee
+requireLibs libcee unittest
 
 ///-----------------------------------------------------------------------------
 /// Section: Constants

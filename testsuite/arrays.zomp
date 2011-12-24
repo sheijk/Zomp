@@ -2,7 +2,7 @@
  * Testing the array lib
  */
 
-requireLibs array
+requireLibs array unittest
 
 defineArrayType int
 
