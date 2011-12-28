@@ -50,7 +50,29 @@ unittest:testCase PointerToPointer:
   end
 end
 
-//------------------------------------------------------------------------------
+///-----------------------------------------------------------------------------
+/// Section: taking addresses
+///-----------------------------------------------------------------------------
+
+var int globalInt20 20
+
+unittest:testCase TakingAddress:
+  ptr globalInt20
+  ret
+end
+
+func bool takeAddressOfParameter(int param):
+  ret (ptr param ==_ptr nullptr int)
+end
+
+func int* takeAddressOfLocal():
+  std:base:var int localVar 0
+  ret (ptr localVar)
+end
+
+///-----------------------------------------------------------------------------
+/// Section: function pointers
+///-----------------------------------------------------------------------------
 
 func int add1(int i):
   ret (i+1)
