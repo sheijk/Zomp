@@ -1077,12 +1077,9 @@ let gencodeDefineFunc func =
         let decl = makeSignature "" paramString in
         "declare " ^ decl
     | Some impl ->
-        let structArgName name = name ^ "$struct_arg" in
+        let argumentName name = name ^ "$arg" in
         let param2string (name, typ) =
-          let argName =
-            llvmName (match typ with | `Record _ -> structArgName name | _ -> name)
-          in
-          (paramTypeName typ) ^ " " ^ argName
+          (paramTypeName typ) ^ " " ^ (llvmName (argumentName name))
         in
         let paramString = combine ", " (List.map param2string func.fargs) in
         let retvalVar = {
@@ -1095,14 +1092,12 @@ let gencodeDefineFunc func =
         let decl = makeSignature retvalVar.vname paramString in
         let initStructCode =
           Common.combine "\n"
-            (List.map (fun (name, typ) ->
-                         match typ with
-                           | `Record components ->
-                               sprintf "  %%%s = alloca %s\n" name (llvmTypeName typ)
-                               ^ sprintf "  store %s \"%s\", %s* \"%s\"\n"
-                                 (llvmTypeName typ) (structArgName name)
-                                 (llvmTypeName typ) name
-                           | _ -> "")
+            (List.map
+               (fun (name, typ) ->
+                 sprintf "  %%%s = alloca %s\n" name (llvmTypeName typ)
+                 ^ sprintf "  store %s \"%s\", %s* \"%s\"\n"
+                   (llvmTypeName typ) (argumentName name)
+                   (llvmTypeName typ) name)
                func.fargs)
         in
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in

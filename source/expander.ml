@@ -734,15 +734,16 @@ struct
       (Lang.variable
          ~name:"macro_args"
          ~typ:(`Pointer astPtrType)
-         ~storage:Lang.RegisterStorage
+         ~storage:MemoryStorage
          ~global:false)
     in
     let argParamName = "macro_args" in
     let buildParamFetchExpr num name =
       Ast2.expr "std:base:localVar" [Ast2.idExpr name;
                                      Ast2.expr "load" [
-                                       Ast2.expr "ptradd" [Ast2.idExpr argParamName;
-                                                           Ast2.idExpr (sprintf "%d" num)]
+                                       Ast2.expr "ptradd" [
+                                         Ast2.idExpr argParamName;
+                                         Ast2.idExpr (sprintf "%d" num)]
                                      ]]
     in
     let fetchParamExprs = Common.listMapi buildParamFetchExpr argNames in
@@ -2244,8 +2245,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           variable
             ~name
             ~typ
-            (** structs are copied into a local var by genllvm *)
-            ~storage:(match typ with | `Record _ -> MemoryStorage | _ -> RegisterStorage)
+            (** all parameters are copied into a local var by genllvm *)
+            ~storage:MemoryStorage
             ~global:false
         in
         addVar bindings var

@@ -66,7 +66,7 @@ func bool takeAddressOfParameter(int param):
 end
 
 func int* takeAddressOfLocal():
-  std:base:var int localVar 0
+  var int localVar 0
   ret (ptr localVar)
 end
 
