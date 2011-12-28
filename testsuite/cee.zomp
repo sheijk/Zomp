@@ -92,39 +92,38 @@ unittest:testCase DotOp:
   end
 end
 
-// TODO: fix . notation
-// struct IntList:
-//   int value
-//   IntList* next
-// end
-// 
-// unittest:testCase tmp:
-//   last := IntList(value = 2, next = nullptr IntList)
-//   first := IntList(value = 1, next = &last)
-// 
-//   unittest:assertAll:
-//     first.value == 1
-//     first*.value == 1
-//     first*.next*.value == 1
-//   end
-// end
+struct IntList:
+  int value
+  IntList* next
+end
 
-// unittest:testCase DotOpDeref
-//   var TestStruct t
-//   t.next = &t
-//   var int* ints malloc(int, 10)
-//   t.tenints = ints
-// 
-//   unittest:assertAll
-//     t.tenints == ints
-//     // t.tenints* == ints*
-//     // t.t*.tenints == ints
-//     // TODO the next two lines don't parse
-//     // t.*t.*tenints = *ints
-//     // t.*t.tenints* == ints*
-//     // *t.tenints == *ints
-//   end
-// end
+unittest:testCase tmp:
+  last := IntList(value = 2, next = nullptr IntList)
+  first := IntList(value = 1, next = &last)
+
+  unittest:assertAll:
+    first.value == 1
+    first*.value == 1
+    // TODO
+    // first*.next*.value == 2
+  end
+end
+
+unittest:testCase DotOpDeref:
+  var TestStruct t
+  t.next = &t
+  var int* ints malloc(int, 10)
+  t.tenints = ints
+
+  unittest:assertAll:
+    t.tenints == ints
+    t.tenints* == ints*
+    // TODO the next two lines don't parse
+    // t.*t.*tenints = *ints
+    // t.*t.tenints* == ints*
+    *t.tenints == *ints
+  end
+end
 
 struct IntArrays:
   int size
