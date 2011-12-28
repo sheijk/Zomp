@@ -97,10 +97,8 @@ testsuite/error_reporting/test: $(TESTSUITE_ERROR_CASES)
 
 CLEAN_SUB_TARGETS += testsuite/error_reporting/clean
 testsuite/error_reporting/clean:
-	cd testsuite/error_reporting && rm -f *.ll *.bc *.testreport *.exe
+	cd testsuite/error_reporting && rm -f *.ll *.bc *.testreport *.exe *.output
 .PHONY: testsuite/error_reporting/clean
-
-.PRECIOUS: testsuite/error_reporting/%.zompc-log
 
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma $(CHECK_TEST_FILE)
