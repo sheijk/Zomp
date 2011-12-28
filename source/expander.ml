@@ -2195,18 +2195,22 @@ let matchFunc =
         `NotAFunc expr
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
-  let sanityChecks returnType name params =
+  let doSanityChecks returnType name params =
     let module StringSet = Set.Make(String) in
-    let _ =
-      List.fold_left
-        (fun prevNames (nextName, _) ->
-           if StringSet.mem nextName prevNames then
-             raiseIllegalExpression expr
-               (sprintf "Each argument needs a distinct name. %s used more than once" nextName);
-           StringSet.add nextName prevNames)
-        StringSet.empty
-        params
+    let checkForDuplicateParameterName() =
+      let _ =
+        List.fold_left
+          (fun prevNames (nextName, _) ->
+            if StringSet.mem nextName prevNames then
+              raiseIllegalExpression expr
+                (sprintf "Each argument needs a distinct name. %s used more than once" nextName);
+            StringSet.add nextName prevNames)
+          StringSet.empty
+          params
+      in ()
     in
+    checkForDuplicateParameterName();
+
     let nameRE = "^[a-zA-Z0-9][^\"]*$" in
     if not (name =~ nameRE) then
       raiseIllegalExpression expr
@@ -2215,7 +2219,8 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
   in
   let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption =
     let name = removeQuotes uncheckedName in
-    let expr2param argExpr =
+
+    let translateParam argExpr =
       let translate varName typeExpr =
         match translateType bindings typeExpr with
           | Result typ ->
@@ -2232,23 +2237,26 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         | _ as expr ->
             raiseIllegalExpression expr "Expected 'typeName varName' for param"
     in
-    let rec localBinding bindings = function
-      | [] -> bindings
-      | (name, typ) :: tail ->
-          let var =
-            variable
-              ~name
-              ~typ
-              (** structs are copied into a local var by genllvm *)
-              ~storage:(match typ with | `Record _ -> MemoryStorage | _ -> RegisterStorage)
-              ~global:false
-          in
-          localBinding (addVar bindings var) tail
+
+    let rec bindingsWithParams bindings params =
+      let addParam bindings (name, typ) =
+        let var =
+          variable
+            ~name
+            ~typ
+            (** structs are copied into a local var by genllvm *)
+            ~storage:(match typ with | `Record _ -> MemoryStorage | _ -> RegisterStorage)
+            ~global:false
+        in
+        addVar bindings var
+      in
+      List.fold_left addParam bindings params
     in
 
-    let params = List.map expr2param paramExprs in
-    sanityChecks typ name params;
-    let innerBindings = localBinding bindings params in
+    let params = List.map translateParam paramExprs in
+    doSanityChecks typ name params;
+
+    let innerBindings = bindingsWithParams bindings params in
     let nestedTLForms, impl = match implExprOption with
       | Some implExpr ->
           let nestedForms = snd (translateNested innerBindings implExpr) in
@@ -2269,7 +2277,9 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           let funcDef = `DefineFunc f in
           newBindings, nestedTLForms, funcDef
       | `Errors messages -> raiseIllegalExpression
-          expr (Common.combine "\n" ((sprintf "Could not translate function %s:" name)::messages))
+          expr (Common.combine "\n"
+                  (let msg = sprintf "Could not translate function %s:" name in
+                   msg :: messages))
   in
   match matchFunc expr with
     | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr, parametricTypes) ->
