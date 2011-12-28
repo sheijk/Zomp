@@ -139,3 +139,4 @@ tools
 /tests.tmp.txt
 /files.tmp.txt
 /testsuite/*.o
+/testsuite/report.html
