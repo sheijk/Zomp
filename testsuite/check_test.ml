@@ -99,9 +99,8 @@ let () =
   let zompFileName = replaceExtension outputFileName "zomp" in
   let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
   let compilerError =
-    Sys.command (sprintf "./zompc.native -c %s > %s 2> %s"
+    Sys.command (sprintf "( ./zompc.native -c %s 2>&1 ) > %s"
                    zompFileName
-                   compilerMessagesOutputFile
                    compilerMessagesOutputFile)
   in
   ignore compilerError;
@@ -140,7 +139,7 @@ let () =
       !expectedErrorMessages;
     
     let errorRe = Str.regexp
-      (sprintf "%s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
+      (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
     in
     let checkExpectations _ line =
       fprintf outFile "%s\n" line;
