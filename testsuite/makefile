@@ -35,8 +35,8 @@ testsuite/selftest:
 	diff -b files.tmp.txt tests.tmp.txt
 
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
-testsuite/test: testsuite/selftest testsuite/success testsuite/error_reporting/all
-testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_reporting/all
+testsuite/test: testsuite/selftest testsuite/success testsuite/error_reporting/test
+testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_reporting/test
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files
@@ -92,8 +92,8 @@ testsuite/%.test: testsuite/%.exe
 TESTSUITE_ERROR_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
 TESTSUITE_ERROR_CASES = $(TESTSUITE_ERROR_SOURCES:.zomp=.testreport)
 
-testsuite/error_reporting/all: $(TESTSUITE_ERROR_CASES)
-.PHONY: testsuite/error_reporting/all
+testsuite/error_reporting/test: $(TESTSUITE_ERROR_CASES)
+.PHONY: testsuite/error_reporting/test
 
 CLEAN_SUB_TARGETS += testsuite/error_reporting/clean
 testsuite/error_reporting/clean:
@@ -112,7 +112,10 @@ testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/t
 	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
 	mv $@.tmp $@
 
-testsuite/error_reporting/%.testreport testsuite/error_reporting/%.output testsuite/error_reporting/%.ll testsuite/error_reporting/%-tmp.bc: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
+testsuite/error_reporting/%.testreport \
+ testsuite/error_reporting/%.output \
+ testsuite/error_reporting/%.ll \
+ testsuite/error_reporting/%-tmp.bc: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
 	@$(ECHO) "Running unit test ${@:.testreport=} ..."
 	$(CHECK_TEST) $@
 ifeq "$(PRINT_TESTREPORT)" "1"
