@@ -17,6 +17,8 @@ EXAMPLES = \
 
 NOT_WORKING_EXAMPLES = static.zomp
 
+ZOMP_EXAMPLES = $(foreach FILE, $(EXAMPLES), examples/$(FILE))
+
 examples/test: $(foreach FILE, $(EXAMPLES), examples/$(FILE:.zomp=.exe))
 #   Printing a short report. What a mess..
 	for f in $(EXAMPLES:.zomp=.exe); do \
