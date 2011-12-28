@@ -16,7 +16,3 @@ CLEAN_SUB_TARGETS += libs/clean
 libs/clean:
 	$(RM) -f $(wildcard libs/*.ll)
 
-libs/%.ll: libs/%.zomp $(ZOMPC) has_llvm
-	$(ECHO) Compiling $(<) to .ll...
-	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
-

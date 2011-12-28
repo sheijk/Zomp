@@ -70,13 +70,9 @@ testsuite/math.ll: libs/math.zomp
 
 # testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) testsuite/preludevalid.test libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
 testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid prelude.zomp source/runtime.c testsuite/makefile
-	@$(ECHO) Compiling $(<) to .ll ...
-	$(ZOMPC) -c $<
 
 # the same w/o dependency on itself
 testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
-	@$(ECHO) Compiling $(<) to .ll ...
-	$(ZOMPC) -c $<
 
 # Additional rule to avoid make getting stuck for unknown reason. If
 # testsuite/%.ll depends on testsuite/preludevalid.test testsuite/%.bc will
@@ -84,41 +80,10 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
 testsuite/prelude_is_valid: testsuite/preludevalid.test
 	$(TOUCH) $@
 
-testsuite/%.bc: testsuite/%.ll
-	@echo Compiling $< to $@
-	$(LLVM_AS) -f $< -o $@
-
-testsuite/%.s: testsuite/%.bc
-	@$(ECHO) Generating $(@) ...
-	$(LLVM_LLC) -o $@ $< -march=x86
-
-testsuite/%.o: testsuite/%.s
-	@$(ECHO) Assembling $@ ...
-	$(AS) -o $@ $< -arch i386
-
-testsuite/%.exe: testsuite/%.o
-	@$(ECHO) Making $@ ...
-	$(CC) $(LDFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
-
 testsuite/%.test: testsuite/%.exe
 	@$(ECHO) Running test $(<:.bc=) ...
 	./$(@:.test=.exe)
 	touch $@
-
-# see also examples/makefile
-# testsuite/%.s: testsuite/%.bc
-# 	@$(ECHO) Assembling $@ ...
-# 	$(LLVM_LLC) -o $@ -march=x86 $<
-# testsuite/%.o: testsuite/%.s
-# 	@$(ECHO) Making $@ ...
-# 	$(AS) -o $@ $< -arch i386
-# testsuite/runtime.s: runtime.zomp
-# 	@$(ECHO) Making $@ ...
-# 	$(LLVM_LLC) -o $@ runtime.bc -f -march=x86
-# testsuite/%.exe: testsuite/%.o runtime.o
-# 	@$(ECHO) Making $@ ...
-# 	$(CC) $(CFLAGS) -o $@ -L. -L./testsuite $(LIBS) $< -arch i386
-
 
 ################################################################################
 # Validating error location reporting

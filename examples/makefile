@@ -67,37 +67,9 @@ examples/using_assimp.zomp: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp l
 .PRECIOUS: examples/%.ll
 .PHONY: examples/%.run
 
-examples/%.ll: examples/%.zomp $(ZOMPC) has_llvm
-	$(ECHO) Compiling $(<) to .ll...
-	$(ZOMPC) -c $< $(ZOMPCFLAGS)
-
-examples/%.bc: examples/%.ll prelude.zomp source/runtime.c
-	echo Compiling $< to $@
-	$(LLVM_AS) -f $< -o $@
-
-examples/%.opt-bc: examples/%.bc
-	@$(ECHO) Optimizing $< to $@ ...
-	$(LLVM_OPT) $< -o $@ -O3
-
-ifeq "$(OPT)" "1"
-examples/%.s: examples/%.opt-bc
-else
-examples/%.s: examples/%.bc
-endif
-	@$(ECHO) Assembling $@ ...
-	$(LLVM_LLC) -o $@ -march=x86 $<
-
-examples/%.o: examples/%.s
-	@$(ECHO) Making $@ ...
-	$(AS) -o $@ $< -arch i386
-
 examples/runtime.s: runtime.zomp
 	@$(ECHO) Making $@ ...
 	$(LLVM_LLC) -o $@ runtime.bc -f -march=x86
-
-examples/%.exe: examples/%.o source/runtime.o
-	@$(ECHO) Making $@ ...
-	$(CC) $(LDFLAGS) -o $@ -L. -L./examples $(LIBS) $< -arch i386
 
 examples/%.run: examples/%.exe
 	@$(ECHO) Running $@ ...

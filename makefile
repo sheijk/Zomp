@@ -215,32 +215,58 @@ has_clang:
 # Rules
 ################################################################################
 
-source/%.ml: source/%.mly
+%.ml: %.mly
 	@$(ECHO) Generating parser $< ...
 	$(MENHIR) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
-source/%.ml: source/%.mll
+%.ml: %.mll
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-source/%.cmi: source/%.mli
+%.cmi: %.mli
 	@$(ECHO) "Compiling $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-source/%.cmo source/%.cmi: source/%.ml
+%.cmo %.cmi: %.ml
 	@$(ECHO) "Compiling (bytecode) $< ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-source/%.cmx: source/%.ml
+%.cmx: %.ml
 	@$(ECHO) "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
-source/%.o: source/%.c
+%.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
 
-libs/%.o: libs/%.c
-	$(CC) $(CCFLAGS) -c -o $@ $<
+%.ll: %.zomp $(ZOMPC) has_llvm
+	$(ECHO) Compiling $(<) to .ll...
+	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
+
+%.bc: %.ll
+	@echo Compiling $< to $@
+	$(LLVM_AS) -f $< -o $@
+
+%.opt-bc: %.bc
+	@$(ECHO) Optimizing $< to $@ ...
+	$(LLVM_OPT) $< -o $@ -O3
+
+ifeq "$(OPT)" "1"
+%.s: %.opt-bc
+else
+%.s: %.bc
+endif
+	@$(ECHO) Assembling $@ ...
+	$(LLVM_LLC) -o $@ -march=x86 $<
+
+%.o: %.s
+	@$(ECHO) Assembling $@ ...
+	$(AS) -o $@ $< -arch i386
+
+%.exe: %.o source/runtime.o
+	@$(ECHO) Making $@ ...
+	$(CC) $(LDFLAGS) -o $@ -L. -L./examples -L./testsuite $(LIBS) $< -arch i386
+
 
 ################################################################################
 # External libraries
@@ -278,7 +304,7 @@ assimp.dylib: libassimp.a makefile forcelinkassimp.c
 	@echo Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
 
-source/%.zomp: source/%.skel source/gen_c_bindings
+%.zomp: %.skel source/gen_c_bindings
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
 	./source/gen_c_bindings -lang zomp $(<:.skel=)
 
