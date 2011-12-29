@@ -110,10 +110,13 @@ testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/t
 	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
 	mv $@.tmp $@
 
-testsuite/error_reporting/%.testreport \
- testsuite/error_reporting/%.output \
- testsuite/error_reporting/%.ll \
- testsuite/error_reporting/%-tmp.bc: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
+.PRECIOUS: %.ll %.bc %.exe
+
+%.test_output: %.exe %.testreport
+	@$(ECHO) Running test $(<:.exe=)
+	$< > $@
+
+testsuite/error_reporting/%.testreport: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
 	@$(ECHO) "Running unit test ${@:.testreport=} ..."
 	$(CHECK_TEST) $@
 ifeq "$(PRINT_TESTREPORT)" "1"

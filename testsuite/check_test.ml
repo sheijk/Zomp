@@ -91,7 +91,6 @@ let expectationToString = function
   | PrintMessage -> "print"
 
 let () =
-
   if false then begin
     printf "Called %s\n" (String.concat " " (Array.to_list Sys.argv));
     printf "From directory %s\n" (Sys.getcwd());
@@ -106,9 +105,13 @@ let () =
 
   let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
   let compilerError =
-    Sys.command (sprintf "( ./zompc.native -c %s 2>&1 ) > %s"
-                   zompFileName
-                   compilerMessagesOutputFile)
+    let cmd =
+      sprintf "( make %s 2>&1 )"
+        (replaceExtension zompFileName "exe")
+        (* compilerMessagesOutputFile *)
+    in
+    printf "Running '%s'\n" cmd;
+    Sys.command cmd;
   in
   ignore compilerError;
   (* let error = 0 in *)
@@ -135,8 +138,6 @@ let () =
     end
   in
 
-  forEachLineInFile zompFileName collectExpectations;
-
   let writeReport outFile =
     let writeExpectation (kind, args, lineNum, found) =
       fprintf outFile "Expecting %s at line %d containing words %s\n"
@@ -144,15 +145,15 @@ let () =
         lineNum
         (String.concat ", " args)
     in
+    let containsWord message word =
+      let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
+      (if not f then
+          printf "Word '%s' missing in message '%s'\n" word message);
+      f
+    in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
       if diagnosticLineNum = expectedLineNum then begin
-        let containsWord word =
-          let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
-          (if not f then
-              printf "Word '%s' missing in message '%s'\n" word message);
-          f
-        in
-        if List.for_all containsWord args then
+        if List.for_all (containsWord message) args then
           found := true
       end
     in
@@ -170,6 +171,19 @@ let () =
         List.iter (checkExpectation message diagnosticLineNum) !expectedErrorMessages
       end
     in
+    let visitOutputLine _ line =
+      let checkPrintExpectation (kind, args, expectedLineNum, found) =
+        match kind with
+          | PrintMessage ->
+            begin
+              if List.for_all (containsWord line) args then
+                found := true
+            end
+          | _ -> ()
+      in
+      List.iter checkPrintExpectation !expectedErrorMessages;
+      ()
+    in
 
     let reportMissingDiagnostic (kind, args, lineNum, found) =
       match kind with
@@ -182,16 +196,30 @@ let () =
           printf "%s:%d: warning: checking for warnings not supported, yet\n"
             zompFileName lineNum
         | PrintMessage ->
-          printf "%s:%d: warning: checking for print not supported, yet\n"
-            zompFileName lineNum
+          if !found = false then
+            printf "%s:%d: error: failed to print line containing words %s\n"
+              zompFileName lineNum
+              (String.concat ", " args)
     in
+
+    forEachLineInFile zompFileName collectExpectations;
 
     List.iter writeExpectation !expectedErrorMessages;
     
     fprintf outFile "Compiler output:\n";
     forEachLineInFile compilerMessagesOutputFile checkExpectations;
 
+    if compilerError == 0 then begin
+      let testrunOutputFile = replaceExtension zompFileName "test_output" in
+      let cmd = sprintf "make %s" testrunOutputFile in
+      let runError =Sys.command cmd in
+      ignore runError;
+      forEachLineInFile testrunOutputFile visitOutputLine;
+    end;
+
     List.iter reportMissingDiagnostic !expectedErrorMessages;
   in
   withOpenFileOut outputFileName writeReport
+
+    
 
