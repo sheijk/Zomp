@@ -18,12 +18,15 @@ func int main():
   unittest:assert (cstring:equal simpleString simpleString)
   unittest:assert bool:not(cstring:equal simpleString simpleString2)
 
-  printlnString "Here should be an empty line"
+  printlnString "Here should be an empty line" //// print line empty
   printChar load(ptradd multiline 5)
-  printlnString "And here another one"
+  printlnString "And here another one" //// print another
   printChar '\n'
   printlnString "And here should be 'one', 'two', 'three' each in a line"
   printString "one\ntwo\nthree\n"
+  //// print one
+  //// print two
+  //// print three
 
   unittest:assert (load(ptradd multiline 5) ==_chr '\n')
 
