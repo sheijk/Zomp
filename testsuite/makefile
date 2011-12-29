@@ -24,7 +24,7 @@ TESTSUITE_IGNORED_SOURCES = crash.zomp fail.zomp \
  std_base_struct_literals_errors.zomp builtin_is_interactive.zomp empty.zomp \
  preludevalid.zomp require_lib.zomp
 
-TESTSUITE_CASES = $(foreach FILE, $(TESTSUITE_SOURCES), testsuite/$(FILE:.zomp=.test))
+TESTSUITE_CASES = $(foreach FILE, $(TESTSUITE_SOURCES), testsuite/$(FILE:.zomp=.testreport))
 
 .PHONY: testsuite/selftest
 testsuite/selftest:
@@ -36,7 +36,7 @@ testsuite/selftest:
 
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
 testsuite/test: testsuite/selftest testsuite/success testsuite/error_reporting/test
-testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_reporting/test
+testsuite/quick: testsuite/simple-func.testreport testsuite/cee.testreport testsuite/error_reporting/test
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files
@@ -46,13 +46,13 @@ testsuite/quick: testsuite/simple-func.test testsuite/cee.test testsuite/error_r
 # %.print_report:
 # 	@./testsuite/print_test_results.sh $(@:.print_report=)
 
-testsuite/fail: fail.test crash.test
+testsuite/fail: fail.testreport crash.testreport
 
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/test
 
 CLEAN_SUB_TARGETS += testsuite/clean
 testsuite/clean:
-	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.o *.exe *.test gmon.out
+	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.o *.exe *.testreport gmon.out
 
 ################################################################################
 # Additional dependencies
@@ -68,22 +68,16 @@ testsuite/math.ll: libs/math.zomp
 
 .PRECIOUS: testsuite/%.ll testsuite/%.s
 
-# testsuite/%.ll: testsuite/%.zomp zompc.native prelude.zomp $(ZOMPC) testsuite/preludevalid.test libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp has_llvm
 testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid prelude.zomp source/runtime.c testsuite/makefile
 
 # the same w/o dependency on itself
 testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
 
 # Additional rule to avoid make getting stuck for unknown reason. If
-# testsuite/%.ll depends on testsuite/preludevalid.test testsuite/%.bc will
+# testsuite/%.ll depends on testsuite/preludevalid.testreport testsuite/%.bc will
 # fail, if the dependency is done indirectly it does work
-testsuite/prelude_is_valid: testsuite/preludevalid.test
+testsuite/prelude_is_valid: testsuite/preludevalid.testreport
 	$(TOUCH) $@
-
-testsuite/%.test: testsuite/%.exe
-	@$(ECHO) Running test $(<:.bc=) ...
-	./$(@:.test=.exe)
-	touch $@
 
 ################################################################################
 # Validating error location reporting
@@ -110,13 +104,13 @@ testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/t
 	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
 	mv $@.tmp $@
 
-.PRECIOUS: %.ll %.bc %.exe
+.PRECIOUS: %.ll %.bc %.exe %.test_output
 
 %.test_output: %.exe %.testreport
 	@$(ECHO) Running test $(<:.exe=)
 	$< > $@
 
-testsuite/error_reporting/%.testreport: testsuite/error_reporting/%.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
+%.testreport: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
 	@$(ECHO) "Running unit test ${@:.testreport=} ..."
 	$(CHECK_TEST) $@
 ifeq "$(PRINT_TESTREPORT)" "1"
@@ -125,14 +119,4 @@ ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- end of $@"
 endif
 
-# Running test disabled for now. TODO: unify .test and .testreport and always
-# store the output of zompc builds into a file
-
-# 	$(LLVM_LINK) -o $(@:.testreport=-tmp.bc) source/runtime.ll $(<:.zomp=.ll)
-# 	$(LLVM_LLI) $(@:.testreport=-tmp.bc) > $(@:.testreport=.output)
-# ifeq "$(PRINT_OUTPUT)" "1"
-# 	echo "--- Output of $@"
-# 	cat $(@:.testreport=.output)
-# 	echo "--- end of $@"
-# endif
 

@@ -106,20 +106,13 @@ let () =
   let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
   let compilerError =
     let cmd =
-      sprintf "( make %s 2>&1 )"
+      sprintf "( make %s 2>&1 ) > %s"
         (replaceExtension zompFileName "exe")
-        (* compilerMessagesOutputFile *)
+        compilerMessagesOutputFile
     in
-    printf "Running '%s'\n" cmd;
     Sys.command cmd;
   in
   ignore compilerError;
-  (* let error = 0 in *)
-  (* if error != 0 then begin *)
-  (*   printf "Compiler output:\n"; *)
-  (*   printFile compilerMessagesOutputFile; *)
-  (*   failWith (CompilerFailed error) *)
-  (* end; *)
 
   let expectedErrorMessages = ref [] in
   let addExpectation kindStr args lineNum =

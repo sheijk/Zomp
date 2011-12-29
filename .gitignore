@@ -140,3 +140,7 @@ tools
 /files.tmp.txt
 /testsuite/*.o
 /testsuite/report.html
+/testsuite/*.test_output
+/testsuite/*.testreport
+/testsuite/error_reporting/*.exe
+/testsuite/error_reporting/*.test_output
