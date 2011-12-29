@@ -141,15 +141,15 @@ let () =
         lineNum
         (String.concat ", " args)
     in
-    let containsWord message word =
-      let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
-      (if not f then
-          printf "Word '%s' missing in message '%s'\n" word message);
-      f
-    in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
+      let containsWord word =
+        let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
+        (if not f then
+            printf "Word '%s' missing in message '%s'\n" word message);
+        f
+      in
       if diagnosticLineNum = expectedLineNum then begin
-        if List.for_all (containsWord message) args then
+        if List.for_all containsWord args then
           found := true
       end
     in
@@ -169,10 +169,13 @@ let () =
     in
     let visitOutputLine _ line =
       let checkPrintExpectation (kind, args, expectedLineNum, found) =
+        let containsWord word =
+          Str.string_match (Str.regexp (".*" ^ Str.quote word)) line 0
+        in
         match kind with
           | PrintMessage ->
             begin
-              if List.for_all (containsWord line) args then
+              if List.for_all containsWord args then
                 found := true
             end
           | _ -> ()
