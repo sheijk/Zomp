@@ -58,17 +58,25 @@ CCFLAGS = -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS = $(ARCHFLAG)
 
 ifeq ($(DEBUG), 1)
-$(info Debug build, LLVM variant = $(LLVM_VARIANT))
-OCAMLC += -g
-CXXFLAGS += -pg -g -DDEBUG
-CCFLAGS += -pg -g -DDEBUG
+  OCAMLC += -g
+  CXXFLAGS += -pg -g -DDEBUG
+  CCFLAGS += -pg -g -DDEBUG
 else
-ifeq ($(DEBUG),0)
-$(info Release build, LLVM variant = $(LLVM_VARIANT))
-CXXFLAGS += -O3
-else
-$(error DEBUG flag has to either 0 or 1)
+  ifeq ($(DEBUG),0)
+    CXXFLAGS += -O3
+  else
+    $(error DEBUG flag has to either 0 or 1)
+  endif
 endif
+
+ifneq ("$(SILENT)", "1")
+  ifeq ($(DEBUG), 1)
+    $(info Debug build, LLVM variant = $(LLVM_VARIANT))
+  else
+    ifeq ($(DEBUG),0)
+      $(info Release build, LLVM variant = $(LLVM_VARIANT))
+    endif
+  endif
 endif
 
 ################################################################################

@@ -107,12 +107,11 @@ testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/t
 .PRECIOUS: %.ll %.bc %.exe %.test_output
 
 %.test_output: %.exe %.testreport
-	@$(ECHO) Running test $(<:.exe=)
+	@$(ECHO) Running test $(<:.exe=) ...
 	$< > $@
 
 %.testreport: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll
-	@$(ECHO) "Running unit test ${@:.testreport=} ..."
-	$(CHECK_TEST) $@
+	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"
 	cat $@

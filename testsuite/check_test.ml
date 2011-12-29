@@ -97,16 +97,19 @@ let () =
     flush stdout;
   end;
   
-  if Array.length Sys.argv != 2 then
+  if Array.length Sys.argv != 3 then
     failWith InvalidArguments;
 
   let outputFileName = Sys.argv.(1) in
   let zompFileName = replaceExtension outputFileName "zomp" in
 
+  let makeCommand = Sys.argv.(2) in
+
   let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
   let compilerError =
     let cmd =
-      sprintf "( make %s 2>&1 ) > %s"
+      sprintf "( %s %s 2>&1 ) > %s"
+        makeCommand
         (replaceExtension zompFileName "exe")
         compilerMessagesOutputFile
     in
@@ -204,8 +207,8 @@ let () =
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName "test_output" in
-      let cmd = sprintf "make %s" testrunOutputFile in
-      let runError =Sys.command cmd in
+      let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
+      let runError = Sys.command cmd in
       ignore runError;
       forEachLineInFile testrunOutputFile visitOutputLine;
     end;
