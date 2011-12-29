@@ -208,8 +208,12 @@ let () =
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName "test_output" in
       let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
-      let runError = Sys.command cmd in
-      ignore runError;
+      let runReturnCode = Sys.command cmd in
+      fprintf outFile "Exited with %d\n" runReturnCode;
+      let expectedReturnCode = ref 0 in
+      if runReturnCode != !expectedReturnCode then
+        printf "error: %s:1: exited with code %d instead of %d\n"
+          zompFileName runReturnCode !expectedReturnCode;
       forEachLineInFile testrunOutputFile visitOutputLine;
     end;
 
