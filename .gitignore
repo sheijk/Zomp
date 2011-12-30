@@ -2,6 +2,7 @@
 *.glexe
 *.mshark
 /*.dylib
+*.opt-bc
 /.DS_Store
 /TAGS
 /assimp.dylib.dSYM
