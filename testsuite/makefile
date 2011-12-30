@@ -79,8 +79,8 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma $(CHECK_TEST_FILE)
 
-.PRECIOUS: %.test_output %.testreport
-%.test_output: %.exe %.testreport
+.PRECIOUS: %.test_output
+%.test_output: %.exe $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile
 	@$(ECHO) Running test $(<:.exe=) ...
 	$< > $@
 
