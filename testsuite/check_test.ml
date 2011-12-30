@@ -106,10 +106,19 @@ let () =
   let makeCommand = Sys.argv.(2) in
 
   let expectedErrorMessages = ref [] in
+  let expectedCompilationSuccess = ref true in
+  let expectedReturnCode = ref 0 in
+  let addToList item refToList = refToList := item :: !refToList in
   let addExpectation kindStr args lineNum =
     try
       let kind = expectationOfString kindStr in
-      expectedErrorMessages := (kind, args, lineNum, ref false) :: !expectedErrorMessages
+      begin match kind with
+        | ErrorMessage ->
+          expectedCompilationSuccess := false
+        | WarningMessage | PrintMessage ->
+          ()
+      end;
+      addToList (kind, args, lineNum, ref false) expectedErrorMessages
     with Failure _ ->
       printf "%s:%d: warning: invalid expectation kind '%s'. Expected error, warning or print\n"
         zompFileName lineNum kindStr
@@ -189,6 +198,9 @@ let () =
               (String.concat ", " args)
     in
 
+    forEachLineInFile zompFileName collectExpectations;
+    List.iter writeExpectation !expectedErrorMessages;
+
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
     let compilerError =
       let cmd =
@@ -199,12 +211,16 @@ let () =
       in
       Sys.command cmd;
     in
-    ignore compilerError;
-    
-    forEachLineInFile zompFileName collectExpectations;
 
-    List.iter writeExpectation !expectedErrorMessages;
-    
+    if !expectedCompilationSuccess && compilerError <> 0 then begin
+      printf "%s:1: error: compilation failed, but no errors expected\n" zompFileName;
+      let printLine _ line = print_string line; print_newline() in
+      forEachLineInFile compilerMessagesOutputFile printLine;
+      print_newline();
+    end else if not !expectedCompilationSuccess && compilerError = 0 then begin
+      printf "%s:1: error: compilation succeeded, but unit test expected errors\n" zompFileName;
+    end;
+
     fprintf outFile "Compiler output:\n";
     forEachLineInFile compilerMessagesOutputFile checkExpectations;
 
@@ -213,7 +229,6 @@ let () =
       let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
       let runReturnCode = Sys.command cmd in
       fprintf outFile "Exited with %d\n" runReturnCode;
-      let expectedReturnCode = ref 0 in
       if runReturnCode != !expectedReturnCode then
         printf "error: %s:1: exited with code %d instead of %d\n"
           zompFileName runReturnCode !expectedReturnCode;
