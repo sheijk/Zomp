@@ -105,18 +105,6 @@ let () =
 
   let makeCommand = Sys.argv.(2) in
 
-  let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
-  let compilerError =
-    let cmd =
-      sprintf "( %s %s 2>&1 ) > %s"
-        makeCommand
-        (replaceExtension zompFileName "exe")
-        compilerMessagesOutputFile
-    in
-    Sys.command cmd;
-  in
-  ignore compilerError;
-
   let expectedErrorMessages = ref [] in
   let addExpectation kindStr args lineNum =
     try
@@ -201,6 +189,18 @@ let () =
               (String.concat ", " args)
     in
 
+    let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
+    let compilerError =
+      let cmd =
+        sprintf "( %s %s 2>&1 ) > %s"
+          makeCommand
+          (replaceExtension zompFileName "exe")
+          compilerMessagesOutputFile
+      in
+      Sys.command cmd;
+    in
+    ignore compilerError;
+    
     forEachLineInFile zompFileName collectExpectations;
 
     List.iter writeExpectation !expectedErrorMessages;
