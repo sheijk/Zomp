@@ -6,11 +6,12 @@ template __FILE__ std:env:file
 template __LINE__ std:env:line
 
 std:base:func int main():
+  var int firstLine __LINE__
+  //// print verify_correct_source_locations.zomp:9
+  //// print verify_correct_source_locations.zomp
   printString __FILE__
   printString ":"
-  printInt __LINE__
-  printNewline()
-  dummy
+  printInt firstLine
   printNewline()
   std:base:ret 0
 end
