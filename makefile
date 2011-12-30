@@ -153,7 +153,7 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 
 test: runmltests libs/test examples/test testsuite/test
 
-testsuite/report.html: makefile testsuite/makefile libs/makefile testsuite/report_head.html $(TESTSUITE_CASES:.testreport=.zomp) $(ZOMP_LIBS_SRC) $(ZOMP_EXAMPLES)
+testsuite/report.html: makefile testsuite/makefile libs/makefile testsuite/report_head.html $(TESTSUITE_CASES:.testreport=.zomp) $(ZOMP_LIBS_SRC) $(ZOMP_EXAMPLES) testsuite/make_report.sh
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
 	./testsuite/make_report.sh "Unit tests" $(TESTSUITE_CASES:.testreport=) >> $@

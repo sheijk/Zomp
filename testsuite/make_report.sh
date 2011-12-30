@@ -9,11 +9,11 @@ TITLE=$1
 shift 1
 
 echo "<h1>${TITLE}</h1>"
-echo "<table>"
+echo "<table class=\"test-results\">"
 
 for test in $@
 do
-    output "<tr> <th>${test}</th>"
+    output "<tr onMouseOver=\"this.className='highlight'\" onMouseOut=\"this.className='normal'\"> <th>${test}</th>"
 
     if [ -e ${test}.ll ];
     then
