@@ -13,7 +13,7 @@ echo "<table class=\"test-results\">"
 
 for test in $@
 do
-    output "<tr onMouseOver=\"this.className='highlight'\" onMouseOut=\"this.className='normal'\"> <th>${test}</th>"
+    output "<tr> <th>${test}</th>"
 
     if [ -e ${test}.ll ];
     then
