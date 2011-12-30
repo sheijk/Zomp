@@ -247,6 +247,7 @@ has_clang:
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
 
+.PRECIOUS: %.ll %.bc %.opt-bc
 %.ll: %.zomp $(ZOMPC) has_llvm
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
@@ -264,7 +265,7 @@ ifeq "$(OPT)" "1"
 else
 %.s: %.bc
 endif
-	@$(ECHO) Assembling $@ ...
+	@$(ECHO) LLVM code generating $@ ...
 	$(LLVM_LLC) -o $@ -march=x86 $<
 
 %.o: %.s
