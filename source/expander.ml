@@ -713,18 +713,6 @@ type 'a translationResultV = (bindings * ('a list)) mayfail
 type translationResult = formWithTLsEmbedded translationResultV
 type toplevelTranslationResult = toplevelExpr translationResultV
 
-let translateDummy (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
-  let f = {
-    fcname = "printInt";
-    fcrettype = `Void;
-    fcparams = [`Int32];
-    fcargs = [`Constant (Int32Val 666l)];
-    fcptr = `NoFuncPtr;
-    fcvarargs = false
-  } in
-  Result (env.bindings, [`FuncCall f])
-  (* Error ["Not supported at all"] *)
-
 module Macros =
 struct
   let buildNativeMacroFunc translateF bindings
@@ -1938,7 +1926,6 @@ end
 let baseInstructions =
   let table = Hashtbl.create 32 in
   let add = Hashtbl.add table in
-  add "dummy" translateDummy;
   Base.register add;
   Array.register add;
   Overloaded_ops.register add;
