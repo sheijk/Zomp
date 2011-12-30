@@ -156,6 +156,7 @@ test: runmltests libs/test examples/test testsuite/test
 testsuite/report.html: makefile testsuite/makefile libs/makefile testsuite/report_head.html $(TESTSUITE_CASES:.testreport=.zomp) $(ZOMP_LIBS_SRC) $(ZOMP_EXAMPLES) testsuite/make_report.sh
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
+	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
 	./testsuite/make_report.sh "Unit tests" $(TESTSUITE_CASES:.testreport=) >> $@
 	./testsuite/make_report.sh "Libraries" $(ZOMP_LIBS_SRC:.zomp=) >> $@
 	./testsuite/make_report.sh "Examples" $(ZOMP_EXAMPLES:.zomp=) >> $@
