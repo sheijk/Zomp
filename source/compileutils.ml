@@ -98,7 +98,18 @@ let compileCode bindings input outstream fileName =
       collectTimingInfo "parsing"
         (fun () ->
            match parseF input with
-             | Parseutils.Exprs exprs -> exprs
+             | Parseutils.Exprs exprs ->
+               let rec fixFileName expr =
+                 let fixedArgs = List.map fixFileName expr.Ast2.args in
+                 match expr.Ast2.location with
+                   | None ->
+                     { expr with Ast2.args = fixedArgs }
+                   | Some loc ->
+                     { expr with
+                       Ast2.location = Some { loc with Ast2.fileName = fileName };
+                       Ast2.args = fixedArgs }
+               in
+               List.map fixFileName exprs
              | Parseutils.Error error ->
                  let errorWithCorrectFile = {
                    error with

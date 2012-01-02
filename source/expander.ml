@@ -1716,7 +1716,7 @@ module Compiler_environment : Zomp_transformer =
 struct
   let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
-    let value = StringLiteral "TODO.zomp" in
+    let value = StringLiteral (Ast2.fileName expr) in
     Result (newBindings, [`ToplevelForm (`GlobalVar (var, value)); `Variable var])
 
   let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =

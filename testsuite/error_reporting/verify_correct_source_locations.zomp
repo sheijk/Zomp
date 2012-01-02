@@ -9,6 +9,7 @@ std:base:func int main():
   var int firstLine __LINE__
   //// print verify_correct_source_locations.zomp:9
   //// print verify_correct_source_locations.zomp
+  printString "hello from "
   printString __FILE__
   printString ":"
   printInt firstLine
