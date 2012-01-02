@@ -788,9 +788,6 @@ struct
                  let inflatedArgs = declaredArgs @ [Ast2.seqExpr variadicArgs] in
                  invokeMacro inflatedArgs
                end
-                 (* raiseIllegalExpression *)
-                 (*   {Ast2.id = name; args = args} *)
-                 (*   "Variadic arg macros cannot be called, yet" *)
          end
        in
        match expr.location, result.location with
@@ -798,8 +795,7 @@ struct
              { result with Ast2.location = Some loc }
          | Some _, Some _
          | None, _ ->
-             result
-               : bindings -> Ast2.sexpr -> Ast2.sexpr)
+             result : bindings -> Ast2.sexpr -> Ast2.sexpr)
 
   let translateDefineMacro translateNestedF env expr =
     let decomposeMacroDefinition expr =
@@ -1973,13 +1969,15 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
   (*       flush stdout; *)
   (* end; *)
   let rec t = function
-    | [] -> errorF expr "No translator matched expression"
-    | f :: remf -> begin
+    | f :: remf ->
+      begin
         Zompvm.currentBindings := bindings;
         match f (translate errorF translators) bindings expr with
           | Some ((newBindings : Bindings.t), result) -> (newBindings, result)
           | None -> t remf
       end
+    | [] ->
+      errorF expr "No translator matched expression"
   in
   t translators
 
