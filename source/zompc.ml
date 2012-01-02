@@ -205,60 +205,63 @@ let () =
     in
     at_exit printTimingStats;
   end;
-  begin
-    let baseName = match getBasename options.fileName with
-      | Some baseName ->
-        baseName
-      | None ->
-        reportCommandLineArgumentError "Invalid file name. Expected *.zomp";
-        exit 1
-    in
-    let inputFileName = baseName ^ ".zomp" in
-    let outputFileName = baseName ^ ".ll" in
-    let inStream = open_in inputFileName
-    and outStream = open_out outputFileName
-    in
-    let compilerDir = Filename.dirname options.execNameAndPath in
-    addIncludePath compilerDir `Front;
-    let handleLLVMCode code = output_string outStream code in
-    let translateInclude =
-      Expander.makeTranslateIncludeFunction includePath handleLLVMCode
-    in
-    let addToplevelInstr = Expander.addToplevelInstruction in
-    addToplevelInstr "include" translateInclude;
-    addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
-    addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
 
-    let exitCode =
-      try
-        compile inputFileName inStream outStream
-      with _ as e ->
-        Compilation_failed
-          (Compilation_failed_with_error
-             (sprintf "Failed to compile due to unknown exception: %s\n%s\n"
-                (Printexc.to_string e)
-                  (** returns backtrace of last thrown exception *)
-                (Printexc.get_backtrace())))
-    in
+  let baseName = match getBasename options.fileName with
+    | Some baseName ->
+      baseName
+    | None ->
+      reportCommandLineArgumentError "Invalid file name. Expected *.zomp";
+      exit 1
+  in
+  let inputFileName = baseName ^ ".zomp" in
+  let outputFileName = baseName ^ ".ll" in
 
-    close_in inStream;
-    close_out outStream;
+  let inStream = open_in inputFileName
+  and outStream = open_out outputFileName
+  in
 
-    begin match exitCode with
-      | Compilation_succeeded -> ()
-      | Compilation_failed reason ->
-        eprintf "Failed to compile: %s\n"
-          begin match reason with
-            | Failed_to_init_vm ->
-              "Could not init VM"
-            | Compiler_did_not_return_result ->
-              "Compiler did not return a result"
-            | Compilation_failed_with_error msg ->
-              msg
-          end;
-        Sys.remove outputFileName;
-    end;
+  let compilerDir = Filename.dirname options.execNameAndPath in
+  addIncludePath compilerDir `Front;
 
-    exit (compilation_result_to_int exitCode)
-  end
+  let handleLLVMCode code = output_string outStream code in
+
+  let addToplevelInstr = Expander.addToplevelInstruction in
+  let translateInclude =
+    Expander.makeTranslateIncludeFunction includePath handleLLVMCode
+  in
+  addToplevelInstr "include" translateInclude;
+  addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
+  addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
+
+  let exitCode =
+    try
+      compile inputFileName inStream outStream
+    with _ as e ->
+      Compilation_failed
+        (Compilation_failed_with_error
+           (sprintf "Failed to compile due to unknown exception: %s\n%s\n"
+              (Printexc.to_string e)
+                (** returns backtrace of last thrown exception *)
+              (Printexc.get_backtrace())))
+  in
+
+  close_in inStream;
+  close_out outStream;
+
+  begin match exitCode with
+    | Compilation_succeeded -> ()
+    | Compilation_failed reason ->
+      eprintf "Failed to compile: %s\n"
+        begin match reason with
+          | Failed_to_init_vm ->
+            "Could not init VM"
+          | Compiler_did_not_return_result ->
+            "Compiler did not return a result"
+          | Compilation_failed_with_error msg ->
+            msg
+        end;
+      Sys.remove outputFileName;
+  end;
+
+  exit (compilation_result_to_int exitCode)
 
