@@ -90,7 +90,10 @@ CHECK_TEST = $(OCAML) str.cma $(CHECK_TEST_FILE)
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"
 	cat $@
-	echo "--- end of $@"
+	echo "--- end"
+	echo "--- Content of ${@:.testreport=.test_output}"
+	cat ${@:.testreport=.test_output}
+	echo "--- end"
 endif
 
 # Additional rule to avoid make getting stuck for unknown reason. If
