@@ -98,7 +98,12 @@ let rec expression2string sexpr =
       | `LongExpr childs ->
           "(" ^ Common.combine "\n" (idString :: List.map Common.indent childs) ^ " )"
   in
-  str ^ (match sexpr.location with Some _ -> "" | _ -> "!")
+  let locationIndicator = function
+    | Some { fileName = "" } -> "~"
+    | None -> "!"
+    | Some _ -> ""
+  in
+  str ^ locationIndicator sexpr.location
 
 let toString = expression2string
 
