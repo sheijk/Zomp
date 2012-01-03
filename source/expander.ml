@@ -1730,51 +1730,49 @@ struct
   let arraySize (env: exprTranslateF env) expr =
     match expr with
       | { id = _; args = [arrayExpr] } ->
-          begin
-            let _, rightHandForm, toplevelForms =
-              translateToForms env.translateF env.bindings arrayExpr
-            in
-            match typeCheck env.bindings rightHandForm with
-              | TypeOf `Array(_, size) ->
-                  Result (env.bindings,
-                          toplevelForms @ [(rightHandForm :> formWithTLsEmbedded);
-                                           `Constant (Int32Val (Int32.of_int size))])
-              | TypeOf invalidType ->
-                  Error [typeErrorMessage
-                           env.bindings
-                           (Semantic.Ast expr,
-                            "Cannot get size of array",
-                            invalidType,
-                            `Any "array")]
-              | TypeError (fe,m,f,e) ->
-                  Error [typeErrorMessage env.bindings (fe,m,f,e)]
-          end
+        let _, rightHandForm, toplevelForms =
+          translateToForms env.translateF env.bindings arrayExpr
+        in
+        begin match typeCheck env.bindings rightHandForm with
+          | TypeOf `Array(_, size) ->
+            Result (env.bindings,
+                    toplevelForms @ [(rightHandForm :> formWithTLsEmbedded);
+                                     `Constant (Int32Val (Int32.of_int size))])
+          | TypeOf invalidType ->
+            Error [typeErrorMessage
+                      env.bindings
+                      (Semantic.Ast expr,
+                       "Cannot get size of array",
+                       invalidType,
+                       `Any "array")]
+          | TypeError (fe,m,f,e) ->
+            Error [typeErrorMessage env.bindings (fe,m,f,e)]
+        end
       | _ ->
-          Error ["Expected 'zmp:array:size arrayExpr'"]
+        Error ["Expected 'zmp:array:size arrayExpr'"]
 
   let arrayAddr (env: exprTranslateF env) = function
     | {args = [arrayPtrExpr]} as expr ->
-        begin
-          let _, arrayPtrForm, tlforms =
-            translateToForms env.translateF env.bindings arrayPtrExpr
-          in
-          match typeCheck env.bindings arrayPtrForm with
-            | TypeOf `Pointer `Array(memberType,_) ->
-                begin
-                  Result(
-                    env.bindings, tlforms @ [
-                      `CastIntrinsic(`Pointer memberType, arrayPtrForm)])
-                end
-            | TypeOf invalidType ->
-                Error [typeErrorMessage env.bindings
-                         (Semantic.Ast expr,
-                          "Cannot get address of first element",
-                          invalidType, `Any "Pointer to array")]
-            | TypeError (fe, m,f,e) ->
-                Error [typeErrorMessage env.bindings (fe,m,f,e)]
-        end
+      let _, arrayPtrForm, tlforms =
+        translateToForms env.translateF env.bindings arrayPtrExpr
+      in
+      begin match typeCheck env.bindings arrayPtrForm with
+        | TypeOf `Pointer `Array(memberType,_) ->
+          begin
+            Result(
+              env.bindings, tlforms @ [
+                `CastIntrinsic(`Pointer memberType, arrayPtrForm)])
+          end
+        | TypeOf invalidType ->
+          Error [typeErrorMessage env.bindings
+                    (Semantic.Ast expr,
+                     "Cannot get address of first element",
+                     invalidType, `Any "Pointer to array")]
+        | TypeError (fe, m,f,e) ->
+          Error [typeErrorMessage env.bindings (fe,m,f,e)]
+      end
     | _ ->
-        Error ["Expected 'zmp:array:addr arrayExpr'"]
+      Error ["Expected 'zmp:array:addr arrayExpr'"]
 
   let register addF =
     addF "zmp:array:size" arraySize;
