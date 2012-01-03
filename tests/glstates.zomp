@@ -1,0 +1,144 @@
+/**
+ * Easier trackings, setting and restoring of OpenGL state
+ */
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init():
+  if bool:not(initCalled):
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else:
+    printString "Already initialized"
+    println()
+  end
+end
+
+/// realize using . projection?
+glstate blendingPremultiplied:
+  enable blend
+  blend_func = src.color + dest.color * 1 - src.alpha
+end
+
+glstate enableBlend:
+  /// automatically will use glEnable/glDisable/glIsEnabled
+  enum GL_BLEND
+end
+
+glstate blendFunc(src, dest):
+end
+
+glenumSet BlendFunc:
+  ZERO
+  ONE
+  SRC_COLOR
+  DST_COLOR
+  // ...
+end
+
+glstate blendFunc(BlendFunc src, BlendFunc dst):
+  set glBlendFunc(src, dst)
+  get glGet(GL_BLEND_SRC), glGet(GL_BLEND_DST)
+end
+
+glstate BlendFunc blendFuncSrc:
+  get glGet(GL_BLEND_SRC)
+  set glBlendFunc(this, blendFuncDst)
+and blendFuncSrc blendFuncDst:
+  get glGet(GL_BLEND_DST)
+  set glBlendFunc(blendFuncSrc, this)
+end
+
+glstate BlendFunc blendFuncSrc blendFuncDst:
+  set glBlendFunc(blendFuncSrc, blendFuncDst)
+  get glGet GL_BLEND_SRC GL_BLEND_DST
+end
+
+glstate:
+  BlendFunc blendFuncSrc
+  BlendFunc blendFuncDst
+  set glBlendFunc(blendFuncSrc, blendFuncDst)
+end
+
+glstate blendFunc:
+  enums ZERO ONE SRC_COLOR ...
+  t src
+  t dst
+  set glBlendFunc(src, dst)
+end
+
+glstate polygonOffset
+  float factor
+  float units
+  set glPolygonOffset(factor, units)
+end
+
+// infer struct, setter and getter functions
+glstate polygonOffset(float factor, float units)
+glstate blendFunc(BlendFunc src, BlendFunc dst)
+
+glstate blendEnabled(bool)
+glstate depthMask(bool)
+glstate colorMask(bool r, g, b, a)
+
+/// produces apply() method, a struct containing the original values, etc.
+gl:stateBlock premultAlphaBlend:
+  blendEnabled = true
+  blendFunc.src = GL_SRC_COLOR
+  blendFunc.dst = ONE_MINUS_SRC_ALPHA
+end
+
+struct GLStateBlock_premultAlphaBlend:
+  bool blendEnabled
+  GLenum blendFuncSrc
+  GLenum blendFuncDst
+
+  void apply()
+  GLStateBlock_premultAlphaBlend get()
+end
+
+func int main():
+  init()
+
+  angle := 0.0
+
+  mainloop:
+    autoSetupViewport()
+    angle = angle + 128.0 * frameDuration
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. -4. -20.0
+    glRotatef angle 0. 1. 0.
+
+    drawOrientationGrid()
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  ret 0
+end
+
