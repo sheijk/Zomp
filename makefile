@@ -85,11 +85,13 @@ endif
 
 .PHONY: all libbindings byte native
 
+GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
+GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
+
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
     mltest source/zompvm_dummy.o has_llvm has_clang
-libbindings: source/gen_c_bindings libs/opengl20.zomp libs/opengl20print.zomp \
-    libs/glfw.zomp libs/glut.zomp libs/libglut.dylib libs/quicktext.zomp \
-    libs/libquicktext.dylib libs/libutils.dylib
+libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
+  libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib
 byte: dllzompvm.so zompc zomp_shell
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
@@ -159,8 +161,8 @@ testsuite/report.html:
 	cat testsuite/report_head.html > $@
 	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
 	./testsuite/make_report.sh "Unit tests" $(TESTSUITE_CASES:.testreport=) >> $@
-	./testsuite/make_report.sh "Libraries" $(ZOMP_LIBS_SRC:.zomp=) >> $@
-	./testsuite/make_report.sh "Examples" $(ZOMP_EXAMPLES:.zomp=) >> $@
+	./testsuite/make_report.sh "Libraries" $(LIBRARIES_SOURCES:.zomp=) >> $@
+	./testsuite/make_report.sh "Examples" $(EXAMPLES_SOURCES:.zomp=) >> $@
 	echo "</body>\n</html>" >> $@
 
 mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)

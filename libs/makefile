@@ -7,7 +7,7 @@ ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
 $(error "Call make from the main zomp dir, only (examples)")
 endif
 
-ZOMP_LIBS_SRC = $(wildcard libs/*.zomp)
+LIBRARIES_SOURCES = $(wildcard libs/*.zomp) $(GENERATED_LIBRARY_SOURCES)
 
 libs/test: $(ZOMPC) $(ZOMP_LIBS_SRC:.zomp=.ll)
 

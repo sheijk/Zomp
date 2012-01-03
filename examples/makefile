@@ -10,16 +10,16 @@ CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
 	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o
 
-EXAMPLES = \
-  cee.zomp fib.zomp instrument.zomp lighting.zomp \
+EXAMPLES_SOURCES_X = \
+  cee.zomp fib.zomp instrument.zomp lighting.zomp hello.zomp \
   metaball2d.zomp metaballs.zomp opengl.zomp shaderfun.zomp tweakbar.zomp \
-  using_assimp.zomp smallpt.zomp
+  using_assimp.zomp smallpt.zomp pipeline_experiment.zomp
+
+EXAMPLES_SOURCES = $(foreach FILE, $(EXAMPLES_SOURCES_X), examples/$(FILE))
 
 NOT_WORKING_EXAMPLES = static.zomp
 
-ZOMP_EXAMPLES = $(foreach FILE, $(EXAMPLES), examples/$(FILE))
-
-examples/test: $(foreach FILE, $(EXAMPLES), examples/$(FILE:.zomp=.exe))
+examples/test: $(EXAMPLES_SOURCES:.zomp=.exe)
 #   Printing a short report. What a mess..
 	for f in $(EXAMPLES:.zomp=.exe); do \
 		if [ -e examples/$$f ]; then \
