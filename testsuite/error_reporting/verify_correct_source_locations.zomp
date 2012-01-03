@@ -1,3 +1,12 @@
+var int line1 std:env:line
+var int line2 std:env:line
+// check if line info survives comment
+var int line4AfterComment std:env:line
+
+seq:
+  var int lineInNestedExpr std:env:line
+end
+
 ///
 /// Verifying that correct source locations are maintained
 ///
@@ -5,15 +14,43 @@
 template __FILE__ std:env:file
 template __LINE__ std:env:line
 
-std:base:func int main():
+func void printlnSI(cstring msg, int num):
+  printString msg
+  printInt num
+  printNewline()  
+end
+
+var int lineAfterNestedExpr __LINE__
+
+std:base:func void printSourceLocationInfos():
   var int firstLine __LINE__
-  //// print verify_correct_source_locations.zomp:9
+  //// print verify_correct_source_locations.zomp:26
   //// print verify_correct_source_locations.zomp
   printString "hello from "
   printString __FILE__
   printString ":"
   printInt firstLine
   printNewline()
+
+  //// print first-1
+  printlnSI "first-" line1
+  
+  //// print second-2
+  printlnSI "second-" line2
+
+  //// print after-comment-4
+  printlnSI "after-comment-" line4AfterComment
+
+  //// print in-nested-expr-7
+  printlnSI "in-nested-expr-" lineInNestedExpr
+
+  //// print after-nested-23
+  printlnSI "after-nested-" lineAfterNestedExpr
+end
+
+func int main():
+  printSourceLocationInfos()
+  
   std:base:ret 0
 end
 
