@@ -1,0 +1,17 @@
+///
+/// Testing whether programs using forward declarations can be compiled
+///
+
+func void printHello()
+
+func int main():
+  //// print hello
+  printHello()
+  ret 0
+end
+
+func void printHello():
+  printString "hello"
+  printNewline()
+end
+
