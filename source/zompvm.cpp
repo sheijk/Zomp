@@ -93,13 +93,13 @@ namespace ZompCallbacks {
     };
 
     int zompLookup(char* name) {
-      ZMP_ASSERT( ZompCallbacks::lookupCB != NULL,);
+      ZMP_ASSERT(ZompCallbacks::lookupCB != NULL,);
       value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
       return Int_val(result);
     }
 
     void* zompParse(char* source) {
-      ZMP_ASSERT( ZompCallbacks::parseCB != NULL,);
+      ZMP_ASSERT(ZompCallbacks::parseCB != NULL,);
       value result = caml_callback(*ZompCallbacks::parseCB, caml_copy_string(source));
       return (void*)(result);
     }
