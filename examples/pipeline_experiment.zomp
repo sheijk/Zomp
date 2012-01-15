@@ -190,7 +190,7 @@ func cstring floatArrayToString(int count, float* data):
   ret str
 end
 
-func bool readUntil2(FILE* file, char stopper, int maxLength, cstring* target):
+func bool readUntil(FILE* file, char stopper, int maxLength, cstring* target):
   eof := false
   pos := 0
 
@@ -575,16 +575,16 @@ func void RBTransform:toTransMatrix44(RBTransform* this, float* mat44):
   mat44[14] = -this.origin.z
 end
 
-func v3f RBTransform:rotate2(RBTransform* this, v3f v):
+func v3f RBTransform:rotate(RBTransform* this, v3f v):
   ret (v.x * this.xaxis + v.y * this.yaxis + v.z * this.zaxis)
 end
 
 func RBTransform RBTransform:concat(RBTransform* first, RBTransform* relative):
   result := undef RBTransform
-  result.xaxis = RBTransform:rotate2 first relative.xaxis
-  result.yaxis = RBTransform:rotate2 first relative.yaxis
-  result.zaxis = RBTransform:rotate2 first relative.zaxis
-  result.origin = first.origin + RBTransform:rotate2 first relative.origin * first.scale
+  result.xaxis = RBTransform:rotate first relative.xaxis
+  result.yaxis = RBTransform:rotate first relative.yaxis
+  result.zaxis = RBTransform:rotate first relative.zaxis
+  result.origin = first.origin + RBTransform:rotate first relative.origin * first.scale
   result.scale = first.scale * relative.scale
   ret result
 end
@@ -1736,7 +1736,7 @@ func void Camera:move(Camera* this, float time):
     rspeed *= 0.25
   end
 
-  delta = RBTransform:rotate2 &this.transform delta
+  delta = RBTransform:rotate &this.transform delta
   delta *= time * speed
 
   rot := mv3f 0. 0. 0.
@@ -2068,7 +2068,7 @@ func void GLSLParameter:readValueFromFile(GLSLParameter* this, FILE* file):
   end
 
   // skip until end of line
-  readUntil2(file, '\n', bufferSize, &buffer)
+  readUntil(file, '\n', bufferSize, &buffer)
 
   dealloc buffer
 
@@ -2106,7 +2106,7 @@ func void GLSLParameter:loadParamsFromFile(cstring fileName, GLSLParameter_List*
   onReturn dealloc(name)
 
   while !eof:
-    eof = !readUntil2(file, '=', maxNameLength, &name)
+    eof = !readUntil(file, '=', maxNameLength, &name)
     unless eof:
       param := GLSLParameter:findByName(name, paramList)
       if isNotNull(param):
@@ -2369,7 +2369,7 @@ end
 
 func void iprintlnFloat4WName(int indent, cstring name, float[4] v):
   printIndent indent
-  v2 := v
+  v2 := zmp:array:addr &v
   println name " = [" v2[0] ", " v2[1] ", " v2[2] ", " v2[3] "]"
 end
 
@@ -2787,7 +2787,7 @@ func void SceneGraph:updateTransforms(SceneGraph* this):
   /// apply transforms to cameras
   Array:foreach2 this.cameras camNum camInfo:
     unless isNull(camInfo.parentNode):
-      t := (camInfo.parentNode)*.globalSpace
+      t := camInfo*.parentNode*.globalSpace
       camInfo.camera.transform = t
     end
   end
@@ -2796,8 +2796,8 @@ end
 func void SceneGraph:visualizeCameras(SceneGraph* this):
   glMatrixMode GL_MODELVIEW
   Array:foreach2 this.cameras camNum camInfo:
-    unless isNull(camInfo.parentNode):
-      t := (camInfo.parentNode)*.globalSpace
+    unless isNull(camInfo*.parentNode):
+      t := camInfo*.parentNode*.globalSpace
       glPushMatrix()
       applyTransformGL &t
       // drawCoordSys 1.0
@@ -2949,7 +2949,7 @@ macro showTextures textureList:
   ret code
 end
 
-func void onPlayPauseButton2(void* ignored):
+func void onPlayPauseButton(void* ignored):
   if (playbackSpeed <= 0.0):
     playbackSpeed = 1.0
   else:
@@ -3010,13 +3010,13 @@ func void Timeline:render(Timeline* this):
   end
 end
 
-struct FrameStat2:
+struct FrameStat:
   int size
   int first
   float* data
 end
 
-func void FrameStat2:init(FrameStat2* this, int size):
+func void FrameStat:init(FrameStat* this, int size):
   this.size = size
   this.data = malloc float size
 
@@ -3026,21 +3026,23 @@ func void FrameStat2:init(FrameStat2* this, int size):
   end
 end
 
-func void FrameStat2:delete(FrameStat2* this):
+func void FrameStat:delete(FrameStat* this):
   dealloc this.data
   this.data = nullptr float
   this.size = 0
   this.first = 0
 end
 
-func void FrameStat2:write(FrameStat2* this, float newValue):
-  this.data[this.first] = newValue
-  this.first = (this.first + 1) % this.size
+func void FrameStat:write(FrameStat* this, float newValue):
+  idx := this*.first
+  this*.data[idx] = newValue
+  // this*.data[this*.first] = newValue
+  // this.first = (this.first + 1) % this.size
 end
 
 var float averageFPS 0.0
 
-func void FrameStat2:render(FrameStat2* this, Rect area):
+func void FrameStat:render(FrameStat* this, Rect area):
   dx := 1.0 / toFloat this.size
 
   maxy := -10000.0
@@ -3366,7 +3368,7 @@ func int main():
   // zmp:array:set backgroundColor 2 0.3
 
   twgroup mainBar "group=options precision=2":
-    button "Play/Pause" &onPlayPauseButton2 nullptr(void)
+    button "Play/Pause" &onPlayPauseButton nullptr(void)
     rw TW_TYPE_FLOAT "playback speed" playbackSpeed
     separator
     rw TW_TYPE_FLOAT "cam dx" cameraOffsetX
@@ -3441,9 +3443,9 @@ func int main():
   else:
     timeline.currentTime = &animTime
   end
-  fpsStat := local FrameStat2 100
+  fpsStat := local FrameStat 100
   onReturn:
-    FrameStat2:delete fpsStat
+    FrameStat:delete fpsStat
   end
 
   shaderMngr := local ShaderManager shaderValueFileName shaderBar
@@ -3470,8 +3472,8 @@ func int main():
   Section:delete(shaderMngrData)
 
   mainloop:
-    FrameStat2:write(fpsStat, frameDuration)
-    // FrameStat2:write(fpsStat, 0.2 * cosf(toFloat frameNum * 0.1))
+    FrameStat:write(fpsStat, frameDuration)
+    // FrameStat:write(fpsStat, 0.2 * cosf(toFloat frameNum * 0.1))
     
     /// update logic
     angle = fmodf(angle + rotationSpeed * frameDuration, 360.)
@@ -3508,7 +3510,7 @@ func int main():
           end
         elseif (keyEvent.key == GLFW_KEY_X):
           camInfo2 := aptr(sg.cameras, camNum - specialCamCount)
-          print "Camera transform = " (camInfo2.parentNode)*.globalSpace
+          print "Camera transform = " camInfo2*.parentNode*.globalSpace
         end
       end
     end
@@ -3529,8 +3531,8 @@ func int main():
     autoSetupViewport()
     
     renderToTarget fbo:
-      // glClearColor 0. 0. 0.3 0.
-      glClearColor backgroundColor[0] backgroundColor[1] backgroundColor[2] 1.0
+      bgcol := zmp:array:addr &backgroundColor
+      glClearColor bgcol[0] bgcol[1] bgcol[2] 1.0
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     
       glEnable GL_DEPTH_TEST
@@ -3739,7 +3741,7 @@ func int main():
     // end
 
     Timeline:render timeline
-    FrameStat2:render fpsStat timeline.screenPos
+    FrameStat:render fpsStat timeline.screenPos
 
     // makeGLIdentityTransforms()
     // glColor3f 1. 1. 1.
