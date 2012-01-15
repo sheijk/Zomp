@@ -166,6 +166,8 @@ unittest:testCase DotArray:
     arr.points[2].y == -1
     arr.points[3].x == 6
     arr.points[3].y == -2
+
+    arr.points[1+2].x == 6
   end
 
   IntArrays:delete arr
