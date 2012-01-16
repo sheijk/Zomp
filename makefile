@@ -36,7 +36,7 @@ ifneq "$(PRINT_VAR)" ""
 	@$(ECHO) "$(PRINT_VAR) = " $($(PRINT_VAR))
 endif
 
-ZOMP_TOOL_PATH = $(PWD)/tools
+ZOMP_DIR = $(PWD)
 include config.mk
 
 FLYMAKE_LOG=flymake.log
@@ -334,8 +334,6 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 ################################################################################
 # LLVM download and compilation
 ################################################################################
-
-LLVM_VERSION=2.9
 
 tools/clang-$(LLVM_VERSION).tgz:
 	@$(ECHO) Downloading $@ ...

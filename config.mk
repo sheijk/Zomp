@@ -1,4 +1,18 @@
+#
+# Setting up paths and options for most tools
+#
 
+ZOMP_TOOL_PATH=$(ZOMP_DIR)/tools
+
+LLVM_VERSION=2.9
+
+ifeq "$(DEBUG)" "1"
+else
+  ifeq "$(DEBUG)" "0"
+  else
+    $(error Please define DEBUG to be either 0 or 1)
+  endif
+endif
 
 ################################################################################
 # OCaml binaries
@@ -89,9 +103,9 @@ LD = ld
 ################################################################################
 
 ifeq "$(PROFILE_ZOMPC)" ""
-ZOMPC = ./zompc.native
+ZOMPC = $(ZOMP_TOOL_PATH)/../zompc.native
 else
-ZOMPC = /usr/bin/time ./zompc.native
+ZOMPC = /usr/bin/time $(ZOMP_TOOL_PATH)/../zompc.native
 endif
 
 ################################################################################
