@@ -1,0 +1,10 @@
+///
+/// Test if including a file relative to the current one works
+///
+
+include "locallib.zomp"
+
+func int main():
+  ret locallib:result()
+end
+

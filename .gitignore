@@ -142,3 +142,4 @@ tools
 /testsuite/*.o
 /testsuite/report.html
 /testsuite/error_reporting/*.exe
+/testsuite/include/*.exe

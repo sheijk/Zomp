@@ -1,0 +1,8 @@
+///
+/// A simple lib
+///
+
+func int locallib:result():
+  ret 0
+end
+
