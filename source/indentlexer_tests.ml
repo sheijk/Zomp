@@ -23,11 +23,7 @@ end = struct
 
   type result = [ `Return of output | `Exception of string ]
 
-  let testedFunc str =
-    if str.[0] = '\n' then
-      lexString str
-    else
-      lexString str
+  let testedFunc = lexString
 
   let testCases : (input * result) list =
     let id x = IDENTIFIER x in
