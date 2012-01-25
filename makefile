@@ -155,8 +155,8 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
 
 test: runmltests libs/test examples/test testsuite/test
 
-.PHONY: testsuite/report.html
-testsuite/report.html:
+.PHONY: report.html
+report.html:
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
 	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
