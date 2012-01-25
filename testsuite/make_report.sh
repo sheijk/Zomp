@@ -5,6 +5,16 @@ function output()
     echo $@ "\\c"
 }
 
+function outputLinkIfExists()
+{
+    if [ -e $1 ]
+    then
+        output "<th><a href=\"$1\">$2</a></th>"
+    else
+        output "<th> <p title=\"File $1 does not exist\">$2</p></th>"
+    fi
+}
+
 TITLE=$1
 shift 1
 
@@ -27,7 +37,10 @@ do
         output "<th class=\"failed\">failed</th>"
     fi
 
-    output "</th> </tr>"
+    outputLinkIfExists "${test}.testreport" "report"
+    outputLinkIfExists "${test}.test_output" "output"
+
+    output "</tr>"
     echo
 done
 
