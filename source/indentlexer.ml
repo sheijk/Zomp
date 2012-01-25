@@ -618,8 +618,8 @@ type 'token lexerstate = {
 
 let locationOfLexstate ls = ls.location
 
-let moveToNextLine ls =
-  ls.location <- { ls.location with line = ls.location.line + 1 }
+let moveByLines ls lines =
+  ls.location <- { ls.location with line = ls.location.line + lines }
 
 let readChars lexbuf n =
   if lexbuf.position + n < lexbuf.contentLength then begin
@@ -628,8 +628,8 @@ let readChars lexbuf n =
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ str;
     String.iter
       (fun chr ->
-         if chr = '\n' then
-           moveToNextLine lexbuf)
+        if chr = '\n' || chr = beginIndentBlockChar then
+          moveByLines lexbuf 1)
       str;
     str
   end else
@@ -640,8 +640,8 @@ let readChar lexbuf =
     let chr = lexbuf.content.[lexbuf.position] in
     lexbuf.position <- lexbuf.position + 1;
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
-    if chr = '\n' then
-      moveToNextLine lexbuf;
+    if chr = '\n' || chr = beginIndentBlockChar then
+      moveByLines lexbuf 1;
     chr
   end else
     raise Eof
@@ -656,6 +656,12 @@ let returnMultipleTokens state first remaining =
   first
 
 let putback lexbuf string =
+  let uncountNewline c =
+    if c = '\n' || c = beginIndentBlockChar then
+      moveByLines lexbuf (-1)
+  in
+  String.iter uncountNewline string;
+
   let len = String.length string in
   let lastChars = Str.last_chars lexbuf.lastReadChars len in
   if lastChars <> string then begin
