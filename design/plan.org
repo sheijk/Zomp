@@ -3,6 +3,36 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** TODO allow func int plus(int a, b)                        :cee:feature:quick:
+   :PROPERTIES:
+   :ID:       2B7CFC83-A377-4106-952B-3775369A8A7C
+   :END:
+** TODO lexer might detect invalid postops when followed by a dot      :smallpt:
+   :PROPERTIES:
+   :ID:       004EE248-4369-416C-BBAD-30C72F7A2382
+   :END:
+   s[7] = makeSphere(16.5, mv3f(27.,16.5,47.), o, mv3f(1.,1.,1.)*.999, Refl:SPEC)
+** TODO double:clamp                                                   :smallpt:
+   :PROPERTIES:
+   :ID:       9B27A97C-DFE7-4195-9F7F-2E87A3278EC4
+   :END:
+** TODO eldoc always uses global toplevel, ignores buffer local ones   :smallpt:
+   :PROPERTIES:
+   :ID:       B0634AB2-5F27-45DD-8909-DDBA08241C14
+   :END:
+** TODO ?: operator, or if as expression                               :smallpt:
+   :PROPERTIES:
+   :ID:       25727183-3D0D-4953-B811-B5135FE3F8E6
+   :END:
+** TODO C-c,C-e does not handle continued lines
+   :PROPERTIES:
+   :ID:       133A4A13-02FA-45FE-9577-A70CDE79A06C
+   :END:
+   $requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array
+       unittest quicktext stdio
+
+   C-c,C-e at $ will only evaluate the first line and skip its continuation on
+   the next line
 ** TODO [#A] llvm: hotpatch, sspreq attributes
    :PROPERTIES:
    :ID:       78929EB6-0B87-4B56-BB10-AD54281A8CC1
@@ -330,6 +360,8 @@
    :ID:       2A59CD77-F619-4CC4-9BD2-DDCB93F22CA9
    :END:
 
+   resolved: use implicit dictionary parameters for bounded parametric polymorphism
+
    interface ICollection<T>
      void append(T)
      int size()
@@ -375,7 +407,7 @@
    :PROPERTIES:
    :ID:       14512B02-54B7-4607-A238-5E045730B412
    :END:
-** TODO [#A] indent parser als default fuer toplevel
+** DONE [#A] indent parser als default fuer toplevel
    :PROPERTIES:
    :ID:       5522CD40-9B6B-427E-84FD-E04375948969
    :END:
@@ -733,6 +765,8 @@ von http://lambda-the-ultimate.org/node/2884
 
    print (the sum)
    print (the average)
+
+   could work using implicit parameters(?)
 ** TODO [#A] sml-like integer types
    :PROPERTIES:
    :ID:       5E39D94C-53BF-4179-9FAE-E07A73B9A40A
