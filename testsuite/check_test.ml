@@ -90,6 +90,13 @@ let expectationToString = function
   | WarningMessage -> "warning"
   | PrintMessage -> "print"
 
+let writeHtmlHeader outFile zompFileName =
+  fprintf outFile "<html>\n";
+  fprintf outFile "  <head>\n";
+  fprintf outFile "    <title>Report for %s</title>\n" zompFileName;
+  fprintf outFile "  </head>\n";
+  fprintf outFile "  <body>\n"
+    
 let () =
   if false then begin
     printf "Called %s\n" (String.concat " " (Array.to_list Sys.argv));
@@ -133,7 +140,7 @@ let () =
 
   let writeReport outFile =
     let writeExpectation (kind, args, lineNum, found) =
-      fprintf outFile "Expecting %s at line %d containing words %s\n"
+      fprintf outFile "Expecting %s at line %d containing words %s<br />\n"
         (expectationToString kind)
         lineNum
         (String.concat ", " args)
@@ -151,11 +158,14 @@ let () =
       end
     in
 
+    writeHtmlHeader outFile zompFileName;
+    fprintf outFile "<h1>Test report for %s</h1>" zompFileName;
+
     let errorRe = Str.regexp
       (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
     in
     let checkExpectations _ line =
-      fprintf outFile "%s\n" line;
+      fprintf outFile "%s<br />\n" line;
 
       let isErrorMessage = Str.string_match errorRe line 0 in
       if isErrorMessage then begin
@@ -178,6 +188,7 @@ let () =
           | _ -> ()
       in
       List.iter checkPrintExpectation !expectedErrorMessages;
+      fprintf outFile "%s<br />\n" line;
       ()
     in
 
@@ -199,6 +210,7 @@ let () =
     in
 
     forEachLineInFile zompFileName collectExpectations;
+    fprintf outFile "<h2>Expectations</h2>\n";
     List.iter writeExpectation !expectedErrorMessages;
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
@@ -221,23 +233,28 @@ let () =
       printf "%s:1: error: compilation succeeded, but unit test expected errors\n" zompFileName;
     end;
 
-    fprintf outFile "Compiler output:\n";
+    let writeHeader n header =
+      fprintf outFile "<h%d>%s</h%d>" n header n
+    in
+
+    writeHeader 2 "Compiler output";
     forEachLineInFile compilerMessagesOutputFile checkExpectations;
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName "test_output" in
       let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
       let runReturnCode = Sys.command cmd in
-      fprintf outFile "Exited with %d\n" runReturnCode;
+      fprintf outFile "Exited with %d</br>\n" runReturnCode;
       if runReturnCode != !expectedReturnCode then
         printf "error: %s:1: exited with code %d instead of %d\n"
           zompFileName runReturnCode !expectedReturnCode;
+      fprintf outFile "<h2>Output</h2>";
       forEachLineInFile testrunOutputFile visitOutputLine;
     end;
 
     List.iter reportMissingDiagnostic !expectedErrorMessages;
+
+    fprintf outFile "</html>"
   in
   withOpenFileOut outputFileName writeReport
-
-    
 
