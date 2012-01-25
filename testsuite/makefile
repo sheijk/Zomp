@@ -22,7 +22,9 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
 
 TESTSUITE_SOURCES = \
  $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
- $(wildcard testsuite/error_reporting/*.zomp)
+ $(TESTSUITE_ERROR_REPORTING_SOURCES)
+
+TESTSUITE_ERROR_REPORTING_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
 
 TESTSUITE_IGNORED_SOURCES = crash.zomp fail.zomp \
  std_base_struct_literals_errors.zomp builtin_is_interactive.zomp empty.zomp \
@@ -41,6 +43,9 @@ testsuite/selftest:
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
 testsuite/test: testsuite/selftest testsuite/success
 testsuite/quick: testsuite/simple-func.testreport testsuite/cee.testreport
+
+.PHONY: testsuite/error_reporting
+testsuite/error_reporting: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files
