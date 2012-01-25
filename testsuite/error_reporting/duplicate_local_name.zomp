@@ -1,15 +1,15 @@
-/**
- * testing whether using the same name multiple times inside the same function
- * will be detected
- */
+/// 
+/// Testing whether using the same name multiple times inside the same function
+/// will be detected
+/// 
 
 var int topInt 10
 
 func int main():
   var int topInt 20
   var int funcInt 10
-  var int funcInt 30
-  
+  var int funcInt 30 //// error funcInt defin
+
   ret 0
 end
 
