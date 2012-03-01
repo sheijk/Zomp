@@ -33,7 +33,7 @@
 
 #include "zomputils.h"
 
-#include "zompvm.h"
+#include "zompvm_impl.h"
 
 extern "C" {
 #include <caml/mlvalues.h>

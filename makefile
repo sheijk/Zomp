@@ -106,14 +106,14 @@ LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: source/zompvm.h source/zomputils.h source/zompvm.cpp source/machine.c source/runtime.o source/runtime.ll has_clang
+dllzompvm.so: source/zompvm_impl.h source/zomputils.h source/zompvm_impl.cpp source/machine.c source/runtime.o source/runtime.ll has_clang
 	@$(ECHO) Building $@ ...
-	$(CLANG) -std=c++98 $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm.cpp -o source/zompvm.o
+	$(CLANG) -std=c++98 $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm_impl.cpp -o source/zompvm_impl.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o source/zompvm source/zompvm.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o source/zompvm source/zompvm_impl.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 	rm -f dllzompvm.so
 	ln -s source/dllzompvm.so dllzompvm.so
 endif
@@ -426,7 +426,7 @@ ML_SRC_FILES = $(foreach file, $(ML_SRC_FILE_NAMES), source/$(file))
 loc_stats_no_summary:
 	$(LS) $(wildcard source/*.ml source/*.mli source/*.mly source/*.mll) | grep -v source/newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
-	$(LINE_COUNT) libs/libutils.cpp prelude.zomp source/runtime.c zomp.el source/zomputils.h source/zompvm.cpp source/zompvm.h source/zompvm_dummy.cpp | $(SORT) -n
+	$(LINE_COUNT) libs/libutils.cpp prelude.zomp source/runtime.c zomp.el source/zomputils.h source/zompvm_impl.cpp source/zompvm_impl.h source/zompvm_dummy.cpp | $(SORT) -n
 	$(LINE_COUNT) $(wildcard libs/*.skel) | $(SORT) -n
 	$(LS) $(wildcard libs/*.zomp) | grep -v libs/opengl20.\*\.zomp | grep -v libs/glfw\.zomp | grep -v libs/quicktext\.zomp | grep -v libs/glut.zomp | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard examples/*.zomp) | $(SORT) -n
@@ -462,7 +462,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
 	$(RM) -f source/dllzompvm.so dllzompvm.so source/libzompvm.a
-	$(RM) -f source/zompvm.o source/zompvm_dummy.o
+	$(RM) -f source/zompvm_impl.o source/zompvm_dummy.o
 	$(RM) -f testdll.o dlltest.dylib
 	$(RM) -f *_flymake.*
 	$(RM) -f source/*_flymake.*

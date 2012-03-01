@@ -82,7 +82,7 @@
 /source/stdlib.bc
 /source/stdlib.ll
 /source/stdlib.orig.ll
-/source/zompvm.o
+/source/zompvm_impl.o
 /source/zompvm_dummy.o
 /tests/*.ll
 /tests/.DS_Store

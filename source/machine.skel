@@ -1,6 +1,6 @@
 Machine
 http://sheijk.dword.org/zomp
-	include "zompvm.h"
+	include "zompvm_impl.h"
 	include <caml/mlvalues.h>
 	include <caml/alloc.h>
 	include <caml/memory.h>

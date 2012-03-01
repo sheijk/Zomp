@@ -126,7 +126,7 @@ end = struct
       | Bindings.UndefinedSymbol -> false
       | _ -> true
 
-  (* also defined in zompvm.cpp *)
+  (* also defined in zompvm_impl.cpp *)
   let symbolUndefined = 0
   and symbolVar = 1
   and symbolFunc = 2
