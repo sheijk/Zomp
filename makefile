@@ -213,16 +213,6 @@ tools/llvm-$(LLVM_VERSION) to download and build them (requires an internet		\
 connection of course). Note that at least on Mac OS X you cannot use the		\
 prebuilt libraries as they are 64-bit"
 
-has_llvm:
-	@$(ECHO) Checking if LLVM exists ...
-	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
-	$(TOUCH) $@
-
-has_clang:
-	@$(ECHO) Checking if clang exists ...
-	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
-	$(TOUCH) $@
-
 ################################################################################
 # Rules
 ################################################################################
@@ -343,7 +333,7 @@ tools/clang-$(LLVM_VERSION).tgz:
 tools/llvm-$(LLVM_VERSION).tgz:
 	@$(ECHO) Downloading $@ ...
 	mkdir -p tools
-	curl http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tgz -o $@ -s -S
+	curl "http://llvm.org/releases/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).tgz" -o $@ -s -S
 
 tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tgz tools/clang-$(LLVM_VERSION).tgz
 	@$(ECHO) Unpacking LLVM and clang ...
@@ -359,6 +349,16 @@ tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tgz tools/clang-$(LLVM_VE
 tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
+
+has_llvm:
+	@$(ECHO) Checking if LLVM exists ...
+	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
+	$(TOUCH) $@
+
+has_clang:
+	@$(ECHO) Checking if clang exists ...
+	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
+	$(TOUCH) $@
 
 LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
