@@ -148,13 +148,17 @@ NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo i
 # ZompVM server
 ################################################################################
 
-vm_server: source/vm_server.o
+vm_server: source/vm_server.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
-	$(CXX) $(LDFLAGS) -o $@ $<
+	$(CXX) $(LDFLAGS) -o $@ $< source/vm_protocol.o
 
-vm_client: source/vm_client.o
+vm_client: source/vm_client.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
-	$(CXX) $(LDFLAGS) -o $@ $<
+	$(CXX) $(LDFLAGS) -o $@ $< source/vm_protocol.o
+
+source/vm_client.o: source/vm_protocol.h
+source/vm_server.o: source/vm_protocol.h
+source/vm_protocol.o: source/vm_protocol.h
 
 ################################################################################
 # Tests

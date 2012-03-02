@@ -6,12 +6,16 @@
 #include <vector>
 #include <algorithm>
 
+#include "vm_protocol.h"
+
 enum
 {
     ERROR_CODE_NONE = 0,
     ERROR_CODE_GENERIC = 1,
     ERROR_CODE_ADDRESS_IN_USE = 2,
 };
+
+enum { logNetwork = 0 };
 
 namespace vmserver
 {
@@ -115,6 +119,16 @@ private:
         }
     }
 
+    void printBytes( int count, char* data )
+    {
+        for( int i = 0; i < count; ++i )
+        {
+            printf("%d ", data[i]);
+        }
+        printf("\n");
+        fflush(stdout);
+    }
+
     bool receiveData()
     {
         normalizeBuffer();
@@ -132,13 +146,13 @@ private:
 
         if (read_bytes > 0)
         {
-            // printf("received ");
-            // for( int i = 0; i < read_bytes; ++i )
-            // {
-            //     printf("%d ", buffer[buffer_first_valid_byte+buffer_valid_size+i]);
-            // }
-            // printf("\n");
-            // fflush(stdout);
+            if( logNetwork )
+            {
+                printf("received ");
+                printBytes(
+                    read_bytes,
+                    buffer + buffer_first_valid_byte + buffer_valid_size );
+            }
 
             buffer_valid_size += read_bytes;
             return true;
@@ -158,7 +172,11 @@ private:
             return false;
         }
 
-        memcpy(target, &buffer[buffer_first_valid_byte], bytes);
+        if ( target )
+        {
+            memcpy(target, &buffer[buffer_first_valid_byte], bytes);
+        }
+
         buffer_first_valid_byte += bytes;
         buffer_valid_size -= bytes;
         return true;
@@ -199,9 +217,66 @@ private:
         return value;
     }
 
+    void handle( MessageConfirm& msg )
+    {
+        printf( "server: Received confirmation from client\n" );
+    }
+
+    void handle( MessageInit& msg )
+    {
+        printf( "server: client registered, version 0x%x\n", msg.version );
+    }
+
+    void handle( MessageShutdown& msg )
+    {
+        printf( "server: Received shutdown request\n" );
+        shutdown_ = true;
+    }
+
+    void handle( MessagePrint& msg )
+    {
+        printf( "server: Received print message\n" );
+    }
+
+    void handleUnknown( uint32 id )
+    {
+        printf( "server: Received unknown message %d\n", id );
+        shutdown_ = true;
+    }
+
+#define VMMSG_DISPATCH_ON_ID(name, value)        \
+    case value:                                  \
+    {                                            \
+        Message##name msg;                       \
+        int bytes_read = read( &msg, buffer + buffer_first_valid_byte ); \
+        readBytes( 0, bytes_read );              \
+        handle( msg );                           \
+        break;                                   \
+    }
+
+#define VMMSG_DISPATCH_MESSAGE(msgId) \
+    switch(msgId)                               \
+    {                                           \
+        VMMSG_FOREACH_MESSAGE(VMMSG_DISPATCH_ON_ID) \
+    default:                                    \
+        handleUnknown( msgId );                 \
+        break;                                  \
+    }
+
     void handleClientRequest()
     {
-        size_t length = readValue<unsigned int>();
+        char msgid;
+        readBytes( &msgid, 1 );
+
+        if( msgid != MessageIdPrint )
+        {
+            VMMSG_DISPATCH_MESSAGE(msgid);
+            return;
+        }
+
+        char header[3];
+        readBytes(header, 3);
+        size_t length = ((size_t)header[0] << 16) | ((size_t)header[1] << 8) | header[2];
         if( length == 0 )
         {
             return;
@@ -212,18 +287,10 @@ private:
         readBytes( &message[0], length );
         message.back() = '\0';
 
-        printf( "server received: '%s'\n", &message[0] );
+        printf( "server: print '%s'\n", &message[0] );
         fflush(stdout);
 
-        if( strncmp(&message[0], "shutdown", BUFFER_LEN) == 0 )
-        {
-            sendToClient("ok, shutting down\n");
-            shutdown_ = true;
-        }
-        else
-        {
-            sendToClient("I got your message\n");
-        }
+        sendToClient("I got your message\n");
     }
 
     void sendToClient(const char* msg)
