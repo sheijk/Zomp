@@ -143,3 +143,5 @@ tools
 /report.html
 /testsuite/error_reporting/*.exe
 /testsuite/include/*.exe
+/vm_client
+/vm_server

@@ -145,6 +145,18 @@ source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
 NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo, source/$(file))
 
 ################################################################################
+# ZompVM server
+################################################################################
+
+vm_server: source/vm_server.o
+	@$(ECHO) Building $@ ...
+	$(CXX) $(LDFLAGS) -o $@ $<
+
+vm_client: source/vm_client.o
+	@$(ECHO) Building $@ ...
+	$(CXX) $(LDFLAGS) -o $@ $<
+
+################################################################################
 # Tests
 ################################################################################
 
