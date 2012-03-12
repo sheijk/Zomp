@@ -35,6 +35,11 @@
 
 #include "zompvm_impl.h"
 
+#if !defined(ZOMP_WINDOWS)
+#define ZOMP_PROVIDE_CAML_CALLBACKS 1
+#endif
+
+#if defined(ZOMP_PROVIDE_CAML_CALLBACKS)
 extern "C" {
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
@@ -42,9 +47,12 @@ extern "C" {
 #include <caml/callback.h>
 }
 #undef flush
+#endif
 
 #include <signal.h>
+#if !defined(ZOMP_WINDOWS)
 #include <execinfo.h>
+#endif
 
 using std::printf;
 using namespace llvm;
@@ -52,6 +60,7 @@ using namespace llvm;
 ///-----------------------------------------------------------------------------
 /// {{{Native Callbacks
 
+#if defined(ZOMP_PROVIDE_CAML_CALLBACKS)
 /**
  * These are callbacks to the parts of the zomp compiler/runtime implemented
  * in OCaml. You can find the OCaml counter parts in ZompVM.Callable
@@ -106,7 +115,7 @@ namespace ZompCallbacks {
 
   } // extern "C"
 }
-
+#endif
 ///}}}
 
 
@@ -309,6 +318,16 @@ namespace {
       loadLLVMFunctions();
     }
   }
+}
+
+LLVMContext* zompLLVMContext()
+{
+    return context;
+}
+
+llvm::Module* zompLLVMModule()
+{
+    return llvmModule;
 }
 
 ///-----------------------------------------------------------------------------
@@ -579,6 +598,7 @@ extern "C" {
     }
   }
 
+#if !defined(ZOMP_WINDOWS)
   static const char* signalName(int signalNumber) {
     switch(signalNumber) {
     case SIGHUP:
@@ -601,7 +621,7 @@ extern "C" {
       return "Unknown signal";
     }
   }
-  
+
   static void onCrash(int signalNumber) {
     static bool first = true;
     if( first ) {
@@ -636,6 +656,7 @@ extern "C" {
     printf("Installed crash handlers\n");
     fflush(stdout);
   }
+#endif
 
   bool zompInit() {
     context = &llvm::getGlobalContext();
@@ -659,14 +680,16 @@ extern "C" {
     modulePassManager = new PassManager();
     // setupOptimizerPasses();
 
+#if defined(ZOMP_PROVIDE_CAML_CALLBACKS)
     ZompCallbacks::init();
     ZMP_ASSERT( ZompCallbacks::areValid(), );
+#endif
 
     initPausingSignalHandler();
     /// causes some sort of problem, don't remember which one exactly..
-    if( false ) {
-      initCrashSignalHandler();
-    }
+    //if( false ) {
+    //  initCrashSignalHandler();
+    //}
 
     return true;
   }
@@ -1127,6 +1150,9 @@ extern "C" {
 #endif
   }
 
+#define ZOMP_TO_STRING2(x) #x
+#define ZOMP_TO_STRING(x) ZOMP_TO_STRING2(x)
+
   const char* zompBuildInfo() {
     const char* build_info = ""
 #ifdef ZOMP_DEBUG
@@ -1135,6 +1161,9 @@ extern "C" {
       "Release"
 #endif
       ", "
+#if defined(ZOMP_WINDOWS)
+      "MSVC version = " ZOMP_TO_STRING(_MSC_VER)
+#else
       "GCC version = " __VERSION__ ", "
 #ifdef __OPTIMIZE__
       "optimization on"
@@ -1143,6 +1172,7 @@ extern "C" {
 #  endif
 #else
       "optimization off"
+#endif
 #endif
       "";
 

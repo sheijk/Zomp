@@ -1,13 +1,19 @@
 
+#include "zomputils.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#if !defined(ZOMP_WINDOWS)
 #include <utime.h>
+#endif
 #include <sys/stat.h>
 
+#if !defined(ZOMP_WINDOWS)
 #include <dlfcn.h>
+#endif
 
 #include "zomputils.h"
 
@@ -168,6 +174,22 @@ void stdlibHello() {
   printf( "hello, stdlib\n" );
 }
 
+#if defined(ZOMP_WINDOWS)
+
+typedef int bool;
+
+int zompLoadLib(const char* name) {
+  // TODO
+  return 0;
+}
+
+bool zompCheckNativeSymbol(const char* name) {
+  // TODO
+  return 0;
+}
+
+#else
+
 int zompLoadLib(const char* name) {
   void* handle = dlopen( name, RTLD_LAZY );
 
@@ -179,11 +201,11 @@ int zompLoadLib(const char* name) {
   return ptrToInt(handle);
 }
 
-/* typedef int bool; */
-
 bool zompCheckNativeSymbol(const char* name) {
   return dlsym( NULL, name ) != NULL;
 }
+
+#endif
 
 // ripped from http://www.anyexample.com/programming/c/how_to_load_file_into_memory_using_plain_ansi_c_language.xml
 int zompLoadFileToMemory(const char *filename, char **result)
