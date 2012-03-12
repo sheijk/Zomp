@@ -1,6 +1,12 @@
 #ifndef ZOMPUTILS_H_2009_09_27_INCLUDED
 #define ZOMPUTILS_H_2009_09_27_INCLUDED
 
+#ifdef _MSC_VER
+#define ZOMP_WINDOWS
+#else
+#define ZOMP_OSX
+#endif
+
 #define ZMP_ASSERT(x,onFail)                                            \
     if( !(x) ) {                                                        \
         printf("[" __FILE__ ":%d]: assertion failed: %s\n", __LINE__, #x); \
