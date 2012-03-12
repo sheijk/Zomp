@@ -4,6 +4,8 @@
     <ClCompile Include="..\vm_protocol.cpp" />
     <ClCompile Include="..\..\..\..\Users\sheijk\Development\zomp2\source\mongoose.c" />
     <ClCompile Include="..\vm_http_server.cpp" />
+    <ClCompile Include="..\zompvm_impl.cpp" />
+    <ClCompile Include="..\runtime.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\vm_protocol.h" />
