@@ -13,66 +13,92 @@ static const char* htmlHeader =
     "HTTP/1.1 200 OK\r\n"
     "Content-Type: text/html\r\n\r\n";
 
-static void pageIndex(mg_connection* conn, const mg_request_info* requestInfo)
+class HttpVMServer
 {
-    mg_printf(conn, htmlHeader);
+public:
 
-    mg_printf(conn,
-        "<html>\n"
-        "  <head><title>ZompVM server</title></head>\n"
-        "  <body>\n"
-        "    <h1>Status</h1>\n"
-        "    <p>running</p>\n"
-        "  </body>\n"
-        "</html>\n");
-}
-
-static void pageUnknown(mg_connection* conn, const mg_request_info* requestInfo)
-{
-    mg_printf(conn, htmlHeader);
-
-    mg_printf(conn,
-        "<html>\n"
-        "  <head>\n"
-        "    <title>ZompVM - error</title>\n"
-        "  </head>\n"
-        "  <body>\n"
-        "    <p>404</p>\n"
-        "  </body>\n"
-        "</html>");
-}
-
-static void *callback(mg_event event, mg_connection *conn, const mg_request_info *requestInfo)
-{
-    if (event == MG_NEW_REQUEST)
+    void run()
     {
-        std::string uri( requestInfo->uri + 1 );
+        struct mg_context *ctx;
+        const char *options[] = {"listening_ports", "8080", NULL};
 
-        if( uri == "index.html" )
+        ctx = mg_start(&callback, this, options);
+        getchar();  // Wait until user hits "enter"
+        mg_stop(ctx);
+    }
+
+private:
+
+    void pageIndex(mg_connection* conn, const mg_request_info* requestInfo)
+    {
+        mg_printf(conn, htmlHeader);
+
+        mg_printf(conn,
+            "<html>\n"
+            "  <head><title>ZompVM server</title></head>\n"
+            "  <body>\n"
+            "    <h1>Status</h1>\n"
+            "    <p>running</p>\n"
+            "  </body>\n"
+            "</html>\n");
+    }
+
+    void pageUnknown(mg_connection* conn, const mg_request_info* requestInfo)
+    {
+        mg_printf(conn, htmlHeader);
+
+        mg_printf(conn,
+            "<html>\n"
+            "  <head>\n"
+            "    <title>ZompVM - error</title>\n"
+            "  </head>\n"
+            "  <body>\n"
+            "    <p>404</p>\n"
+            "  </body>\n"
+            "</html>\n");
+    }
+
+    void* onEvent(mg_event eventType, mg_connection *conn, const mg_request_info *requestInfo)
+    {
+        if(eventType == MG_NEW_REQUEST)
         {
-            pageIndex(conn, requestInfo);
+            std::string uri(requestInfo->uri + 1);
+
+            if(uri == "index.html")
+            {
+                pageIndex(conn, requestInfo);
+            }
+            else
+            {
+                pageUnknown(conn, requestInfo);
+            }
+
+            return "";  // Mark as processed
         }
         else
         {
-            pageUnknown(conn, requestInfo);
+            return NULL;
         }
+    }
 
-        return "";  // Mark as processed
-    }
-    else
+    static void* callback(mg_event eventType, mg_connection *conn, const mg_request_info *requestInfo)
     {
-        return NULL;
+        HttpVMServer* server = (HttpVMServer*)requestInfo->user_data;
+        if( server )
+        {
+            return server->onEvent( eventType, conn, requestInfo );
+        }
+        else
+        {
+            return NULL;
+        }
     }
-}
+};
 
 int main(int argc, char *argv[])
 {
-    struct mg_context *ctx;
-    const char *options[] = {"listening_ports", "8080", NULL};
-
-    ctx = mg_start(&callback, NULL, options);
-    getchar();  // Wait until user hits "enter"
-    mg_stop(ctx);
+    HttpVMServer server;
+    server.run();
 
     return 0;
 }
