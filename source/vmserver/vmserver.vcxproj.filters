@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\vm_protocol.cpp" />
+    <ClCompile Include="..\..\..\..\Users\sheijk\Development\zomp2\source\mongoose.c" />
+    <ClCompile Include="..\vm_http_server.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\vm_protocol.h" />
+    <ClInclude Include="..\..\..\..\Users\sheijk\Development\zomp2\source\mongoose.h" />
+    <ClInclude Include="..\zompvm_impl.h" />
+  </ItemGroup>
+</Project>
