@@ -43,9 +43,17 @@ public:
         }
         state_ = StateRunning;
 
-        const char *options[] = {"listening_ports", "8080", NULL};
+        const char* port = "8080";
+        const char* options[] = { "listening_ports", port, NULL };
         mg_context* ctx = mg_start(&callback, this, options);
-        getchar(); // Wait until user hits "enter"
+
+        printf("Listening on port %s\n", port);
+        do {
+            printf("Press 'q' to exit\n");
+            fflush(stdout);
+        }
+        while( getchar() != 'q' );
+
         mg_stop(ctx);
 
         zompShutdown();
@@ -54,14 +62,32 @@ public:
 
 private:
 
+    void printHead(mg_connection* conn, const char* title)
+    {
+        mg_printf(conn,
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/html\r\n\r\n"
+
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+            "<!DOCTYPE html>\n"
+            "<html>\n"
+            "  <head><title>ZompVM - %s</title></head>\n"
+            "  <body>\n",
+            title);
+    }
+
+    void printFoot(mg_connection* conn)
+    {
+        mg_printf(conn,
+            " </body>\n"
+            "</html>\n");
+    }
+
     void pageIndex(mg_connection* conn, const mg_request_info* requestInfo)
     {
-        mg_printf(conn, htmlHeader);
+        printHead(conn, "main");
 
         mg_printf(conn,
-            "<html>\n"
-            "  <head><title>ZompVM server</title></head>\n"
-            "  <body>\n"
             "    <h1>Status</h1>\n"
             "    <p>running</p>\n"
             "    <h2>LLVM</h2>\n");
@@ -83,24 +109,223 @@ private:
         }
         mg_printf(conn, "  </ul>\n");
 
+        mg_printf(conn, "  <a href=\"test/debug?foo=bar?blah=blubber\">Html debug page</a>");
+
+        mg_printf(conn, "<h1>Enter code</h1>\n");
+        mg_printf(conn, "<p>Enter some code to be sent</p>\n");
         mg_printf(conn,
-            "  </body>\n"
-            "</html>\n");
+            "<form action=\"sendcode\" method=\"get\">\n"
+            "<textarea name=\"code\" cols=\"100\" rows=\"20\"></textarea>\n"
+            "<input type=\"submit\" value=\"Send\">\n"
+            "</form>\n");
+
+        mg_printf(conn,
+            "<form action=\"test/debug\" method=\"post\" enctype=\"multipart/form-data\">\n"
+            "<input name=\"code\" type=\"file\" size=\"50\" accept=\"text/*\"></input>\n"
+            "<input type=\"submit\" value=\"Upload\">\n"
+            "</form>\n");
+
+        mg_printf(conn,
+            "<form action=\"runfunction\" method=\"get\">\n"
+            "<input name=\"function\" size=rows=\"50\"></input>\n"
+            "<input type=\"submit\" value=\"Run\">\n"
+            "</form>\n");
+
+        printFoot(conn);
+    }
+
+    void tr2(mg_connection* conn, const char* a, const char* b)
+    {
+        mg_printf(conn, "<tr> <th>%s</th> <th>%s</th> </tr>\n", a, b);
+    }
+
+    void tr2(mg_connection* conn, const char* a, int b)
+    {
+        mg_printf(conn, "<tr> <th>%s</th> <th>%d</th> </tr>\n", a, b);
+    }
+
+    void pageDebug(mg_connection* conn, const mg_request_info* requestInfo)
+    {
+        printHead(conn, "debug");
+        mg_printf(conn, "  <table>\n");
+        tr2(conn, "query string", requestInfo->query_string);
+        tr2(conn, "uri", requestInfo->uri);
+        tr2(conn, "user", requestInfo->remote_user);
+        tr2(conn, "ssl", requestInfo->is_ssl ? "yes" : "no");
+        tr2(conn, "request method", requestInfo->request_method);
+        tr2(conn, "status code", requestInfo->status_code);
+        mg_printf(conn, "  </table>\n");
+        printFoot(conn);
+    }
+
+    void pageRunfunction(mg_connection* conn, const mg_request_info* requestInfo)
+    {
+        printHead(conn, "run");
+
+        char* ptr = requestInfo->query_string;
+        while(true)
+        {
+            const char* key = ptr;
+
+            while(true) {
+                if(*ptr == '=' || *ptr == '\0')
+                    break;
+                ++ptr;
+            }
+
+            if(*ptr == '\0')
+                break;
+
+            ++ptr;
+            const char* value = ptr;
+
+            while(true) {
+                if(*ptr == '&' || *ptr == '\0')
+                    break;
+                ++ptr;
+            }
+
+            // handle key and value
+            if(strncmp(key, "function=", 9) == 0) {
+                char endChar = *ptr;
+                *ptr = '\0';
+
+                // decode
+                std::vector<char> decodedText;
+                decodedText.resize(ptr - value + 1);
+                
+                char* write = &decodedText[0];
+                for(const char* read = value; read < ptr; ++read, ++write) {
+                    if(*read == '%') {
+                        char c0 = hexDigitValue(read[1]);
+                        char c1 = hexDigitValue(read[2]);
+                        *write = c0 * 16 + c1;
+                        read += 2;
+                    }
+                    else if(*read == '+') {
+                        *write = ' ';
+                    }
+                    else {
+                        *write = *read;
+                    }
+                }
+                *write = '\0';
+
+                // evaluate code
+                printf("=== Running LLVM function: %s\n", &decodedText[0]);
+                fflush(stdout);
+                zompRunFunction(&decodedText[0]);
+                printf("===\n");
+                fflush(stdout);
+                mg_printf(conn, "<p>Ok</p>\n");
+                *ptr = endChar;
+            }
+
+            if(*ptr == '\0')
+                break;
+
+            ++ptr;
+        }
+
+        printFoot(conn);
     }
 
     void pageUnknown(mg_connection* conn, const mg_request_info* requestInfo)
     {
-        mg_printf(conn, htmlHeader);
+        printHead(conn, "error");
+        mg_printf(conn, "    <p>404</p>\n");
+        printFoot(conn);
+    }
 
-        mg_printf(conn,
-            "<html>\n"
-            "  <head>\n"
-            "    <title>ZompVM - error</title>\n"
-            "  </head>\n"
-            "  <body>\n"
-            "    <p>404</p>\n"
-            "  </body>\n"
-            "</html>\n");
+    static int hexDigitValue(char chr) {
+        if(chr >= '0' && chr <= '9') {
+            return chr - '0';
+        }
+        else if(chr >= 'a' && chr <= 'f') {
+            return chr - 'a' + 10;
+        }
+        else if(chr >= 'A' && chr <= 'F') {
+            return chr - 'A' + 10;
+        }
+        else {
+            ZMP_ASSERT(false);
+            return 0;
+        }
+    }
+
+    void pageSendcode(mg_connection* conn, const mg_request_info* requestInfo)
+    {
+        printHead(conn, "send code");
+
+        char* ptr = requestInfo->query_string;
+        while(true)
+        {
+            const char* key = ptr;
+
+            while(true) {
+                if(*ptr == '=' || *ptr == '\0')
+                    break;
+                ++ptr;
+            }
+
+            if(*ptr == '\0')
+                break;
+
+            ++ptr;
+            const char* value = ptr;
+
+            while(true) {
+                if(*ptr == '&' || *ptr == '\0')
+                    break;
+                ++ptr;
+            }
+
+            // handle key and value
+            if(strncmp(key, "code=", 5) == 0) {
+                char endChar = *ptr;
+                *ptr = '\0';
+
+                // decode
+                std::vector<char> decodedText;
+                decodedText.resize(ptr - value + 1);
+                
+                char* write = &decodedText[0];
+                for(const char* read = value; read < ptr; ++read, ++write) {
+                    if(*read == '%') {
+                        char c0 = hexDigitValue(read[1]);
+                        char c1 = hexDigitValue(read[2]);
+                        *write = c0 * 16 + c1;
+                        read += 2;
+                    }
+                    else if(*read == '+') {
+                        *write = ' ';
+                    }
+                    else {
+                        *write = *read;
+                    }
+                }
+                *write = '\0';
+
+                // evaluate code
+                printf("=== Evaluating LLVM code ====\n%s\n\===\n", &decodedText[0]);
+                fflush(stdout);
+                bool success = zompSendCode(&decodedText[0], "runtime");
+                if(success) {
+                    mg_printf(conn, "<p>Ok</p>\n");
+                }
+                else {
+                    mg_printf(conn, "<p>Error</p>\n");
+                }
+                *ptr = endChar;
+            }
+
+            if(*ptr == '\0')
+                break;
+
+            ++ptr;
+        }
+
+        printFoot(conn);
     }
 
     void* onEvent(mg_event eventType, mg_connection *conn, const mg_request_info *requestInfo)
@@ -112,6 +337,18 @@ private:
             if(uri == "index.html")
             {
                 pageIndex(conn, requestInfo);
+            }
+            else if(uri == "sendcode")
+            {
+                pageSendcode(conn, requestInfo);
+            }
+            else if(uri == "runfunction")
+            {
+                pageRunfunction(conn, requestInfo);
+            }
+            else if(uri == "test/debug")
+            {
+                pageDebug(conn, requestInfo);
             }
             else
             {
