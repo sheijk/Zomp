@@ -13,9 +13,6 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-static const char* htmlHeader =
-    "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/html\r\n\r\n";
 
 class HttpVMServer
 {
