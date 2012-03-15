@@ -3,6 +3,18 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** what is a zomp program
+- a program is something you can run. When run it consumes an input and
+  produces an output and side effects
+- a zomp program is a program whose input is it's source code plus any
+  parameters from it's environment it reads and whose output is an executable
+  plus any written metadata (which might be programs running on co-processors,
+  etc.)
+
+  TODO: turn this into something non-philosophical which actually makes sense
+
+** TODO [#A] what's the hardest problem about zomp?
+   make a great implementation of that, base everything else on it?
 ** TODO allow func int plus(int a, b)                        :cee:feature:quick:
    :PROPERTIES:
    :ID:       2B7CFC83-A377-4106-952B-3775369A8A7C
@@ -1632,7 +1644,7 @@ http://www.iquilezles.org/blog/?p=1468
    "if" "(" (stmt ";")* expr ")"
 
    etc.
-** TODO [#A] semantic checker fails to detect missing &  
+** TODO [#A] semantic checker fails to detect missing &                 :bug:
 
 struct IntList:
   int value
