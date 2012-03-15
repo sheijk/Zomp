@@ -6,6 +6,7 @@
     <ClCompile Include="..\vm_http_server.cpp" />
     <ClCompile Include="..\zompvm_impl.cpp" />
     <ClCompile Include="..\runtime.c" />
+    <ClCompile Include="..\zompvm_caml_dummy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\vm_protocol.h" />
