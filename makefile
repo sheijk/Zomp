@@ -23,12 +23,13 @@ help:
 debug:
 	@$(ECHO) "PATH = "
 	@$(ECHO) "$(PATH)" | $(TR) : \\n
-	@$(ECHO) "CXXFLAGS = '"$(CXXFLAGS)"'"
-	@$(ECHO) "CCFLAGS = " $(CCFLAGS)
 	@$(ECHO) "LLVM_BIN_DIR = $(LLVM_BIN_DIR)"
 	@$(ECHO) "LLVM_CONFIG = $(LLVM_CONFIG)"
 	@$(ECHO) "CC = $(CC)"
 	@$(ECHO) "CXX = $(CXX)"
+	@$(ECHO) "CCFLAGS = " $(CCFLAGS)
+	@$(ECHO) "CXXFLAGS = '"$(CXXFLAGS)"'"
+	@$(ECHO) "LDFLAGS = " $(LDFLAGS)
 	@$(ECHO) "BUILD_PLATFORM = $(BUILD_PLATFORM)"
 	@$(ECHO) "LLVM_EXTRA_OPTIONS = $(LLVM_EXTRA_OPTIONS)"
 	@$(ECHO) "ZOMP_MAIN_MAKEFILE = $(ZOMP_MAIN_MAKEFILE)"
@@ -509,6 +510,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f libs/libutils.dylib
 	$(RM) -f has_llvm has_clang
 	$(RM) -f gmon.out
+	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 
 clean_tags:
 	$(RM) -f source/*.annot
