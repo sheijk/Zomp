@@ -33,21 +33,8 @@
 
 #include "zomputils.h"
 
+#include "zompvm_caml.h"
 #include "zompvm_impl.h"
-
-#if !defined(ZOMP_WINDOWS)
-#define ZOMP_PROVIDE_CAML_CALLBACKS 1
-#endif
-
-#if defined(ZOMP_PROVIDE_CAML_CALLBACKS)
-extern "C" {
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/callback.h>
-}
-#undef flush
-#endif
 
 #include <signal.h>
 #if !defined(ZOMP_WINDOWS)
@@ -56,68 +43,6 @@ extern "C" {
 
 using std::printf;
 using namespace llvm;
-
-///-----------------------------------------------------------------------------
-/// {{{Native Callbacks
-
-#if defined(ZOMP_PROVIDE_CAML_CALLBACKS)
-/**
- * These are callbacks to the parts of the zomp compiler/runtime implemented
- * in OCaml. You can find the OCaml counter parts in ZompVM.Callable
- */
-namespace ZompCallbacks {
-  value* isBoundCB = NULL;
-  value* lookupCB = NULL;
-  value* parseCB = NULL;
-
-  void init() {
-    isBoundCB = caml_named_value("isBound");
-    lookupCB = caml_named_value("lookup");
-    parseCB = caml_named_value("parse");
-  }
-
-  bool areValid() {
-    return
-      isBoundCB != NULL &&
-      lookupCB != NULL;
-    // parseCB != NULL;
-  }
-
-  extern "C" {
-
-    bool isBound(char* name) {
-      ZMP_ASSERT(ZompCallbacks::isBoundCB != NULL,);
-
-      value result = caml_callback(*ZompCallbacks::isBoundCB, caml_copy_string(name));
-      return Bool_val(result);
-    }
-
-    enum { // also defined in zompvm.ml
-      ZOMP_SYMBOL_UNDEFINED = 0,
-      ZOMP_SYMBOL_VAR = 1,
-      ZOMP_SYMBOL_FUNC = 2,
-      ZOMP_SYMBOL_MACRO = 3,
-      ZOMP_SYMBOL_TYPEDEF = 4,
-      ZOMP_SYMBOL_LABEL = 5
-    };
-
-    int zompLookup(char* name) {
-      ZMP_ASSERT(ZompCallbacks::lookupCB != NULL,);
-      value result = caml_callback(*ZompCallbacks::lookupCB, caml_copy_string(name));
-      return Int_val(result);
-    }
-
-    void* zompParse(char* source) {
-      ZMP_ASSERT(ZompCallbacks::parseCB != NULL,);
-      value result = caml_callback(*ZompCallbacks::parseCB, caml_copy_string(source));
-      return (void*)(result);
-    }
-
-  } // extern "C"
-}
-#endif
-///}}}
-
 
 namespace {
   struct Stats {
@@ -680,10 +605,8 @@ extern "C" {
     modulePassManager = new PassManager();
     // setupOptimizerPasses();
 
-#if defined(ZOMP_PROVIDE_CAML_CALLBACKS)
-    ZompCallbacks::init();
-    ZMP_ASSERT( ZompCallbacks::areValid(), );
-#endif
+    zompInitCamlCallbacks();
+    ZMP_ASSERT( zompCamlCallbacksValid(), );
 
     initPausingSignalHandler();
     /// causes some sort of problem, don't remember which one exactly..
