@@ -245,7 +245,7 @@ private:
             return chr - 'A' + 10;
         }
         else {
-            ZMP_ASSERT(false);
+            ZMP_ASSERT(false,);
             return 0;
         }
     }
@@ -304,7 +304,7 @@ private:
                 *write = '\0';
 
                 // evaluate code
-                printf("=== Evaluating LLVM code ====\n%s\n\===\n", &decodedText[0]);
+                printf("=== Evaluating LLVM code ====\n%s\n===\n", &decodedText[0]);
                 fflush(stdout);
                 bool success = zompSendCode(&decodedText[0], "runtime");
                 if(success) {
@@ -352,7 +352,7 @@ private:
                 pageUnknown(conn, requestInfo);
             }
 
-            return "";  // Mark as processed
+            return (void*)"";  // Mark as processed
         }
         else
         {

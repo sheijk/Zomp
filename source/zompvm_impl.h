@@ -1,6 +1,7 @@
 #ifndef ZOMPVM_H_20070929_INCLUDED
 #define ZOMPVM_H_20070929_INCLUDED
 
+#ifdef __cplusplus
 namespace llvm {
     class LLVMContext;
     class Module;
@@ -9,7 +10,6 @@ namespace llvm {
 llvm::LLVMContext* zompLLVMContext();
 llvm::Module* zompLLVMModule();
 
-#ifdef __cplusplus
 extern "C" {
 #else
 typedef int bool;

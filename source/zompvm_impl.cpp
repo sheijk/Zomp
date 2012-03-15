@@ -1309,5 +1309,16 @@ extern "C" {
   // void zompRunMacro() {
   // }
 
+#if !defined(ZOMP_WINDOWS)
+  /// ripped from LLVM's compiler-rt project (lib/eprintf.c)
+  __attribute__((visibility("hidden")))
+  void __eprintf(const char* format, const char* assertion_expression,
+    const char* line, const char* file)
+  {
+    fprintf(stderr, format, assertion_expression, line, file);
+    fflush(stderr);
+    abort();
+  }
+#endif
 } // extern "C"
 
