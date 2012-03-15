@@ -55,7 +55,7 @@ PATH := $(LLVM_BIN_DIR):$(PATH)
 
 CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS = -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
-LDFLAGS = $(ARCHFLAG)
+LDFLAGS = $(ARCHFLAG) -L $(LLVM_LIB_DIR)
 
 ifeq ($(DEBUG), 1)
   OCAMLC += -g
@@ -89,7 +89,7 @@ GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
 GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
-    mltest source/zompvm_dummy.o has_llvm has_clang
+    mltest source/zompvm_dummy.o has_llvm has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib
 byte: dllzompvm.so zompc zomp_shell
@@ -106,17 +106,17 @@ LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
 # Zomp tools
 ################################################################################
 
-dllzompvm.so: source/zompvm_impl.h source/zomputils.h source/zompvm_impl.cpp source/machine.c source/runtime.o source/runtime.ll has_clang
+source/dllzompvm.so: source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll has_clang
 	@$(ECHO) Building $@ ...
-	$(CLANG) -std=c++98 $(CXXFLAGS) `$(LLVM_CONFIG) --cxxflags` -c source/zompvm_impl.cpp -o source/zompvm_impl.o
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o source/zompvm source/zompvm_impl.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
-	rm -f dllzompvm.so
-	ln -s source/dllzompvm.so dllzompvm.so
+	ocamlmklib -o source/zompvm source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 endif
+
+dllzompvm.so: source/dllzompvm.so
+	ln -s source/dllzompvm.so dllzompvm.so
 
 zomp_shell: source/zomp_shell.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
@@ -147,6 +147,15 @@ NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo i
 ################################################################################
 # ZompVM server
 ################################################################################
+
+VM_HTTP_SERVER_OBJS = source/mongoose.o source/runtime.o source/zompvm_impl.o source/zompvm_caml_dummy.o source/vm_http_server.o
+
+source/vm_http_server.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
+source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
+
+vm_http_server: $(VM_HTTP_SERVER_OBJS) source/mongoose.h
+	@$(ECHO) Building $@ ...
+	$(CXX) $(LDFLAGS) -o $@ -lstdc++ $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
 
 vm_server: source/vm_server.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
@@ -256,6 +265,10 @@ prebuilt libraries as they are 64-bit"
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
+
+%.o: %.cpp
+	@$(ECHO) "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 .PRECIOUS: %.ll %.bc %.opt-bc
 %.ll: %.zomp $(ZOMPC) has_llvm
