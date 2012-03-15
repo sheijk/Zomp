@@ -6,8 +6,10 @@
 #include <map>
 #include <string>
 
+#pragma warning(push, 0)
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
+#pragma warning(pop)
 
 #include "mongoose.h"
 

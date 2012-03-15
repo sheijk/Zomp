@@ -4,11 +4,14 @@
 /// functions, types and globals
 ///
 
+#include "zomputils.h"
+
 #include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
+#pragma warning(push, 0)
 #include "llvm/Module.h"
 #include "llvm/Constants.h"
 #include "llvm/Type.h"
@@ -30,8 +33,7 @@
 #include "llvm/Support/TimeValue.h"
 #include "llvm/Support/SourceMgr.h"
 #include "Llvm/LLVMContext.h"
-
-#include "zomputils.h"
+#pragma warning(pop)
 
 #include "zompvm_caml.h"
 #include "zompvm_impl.h"
@@ -768,7 +770,7 @@ extern "C" {
 
   int zompRunFunctionInt(const char* functionName) {
     GenericValue result = runFunction( functionName );
-    return result.IntVal.getLimitedValue();
+    return (int)result.IntVal.getLimitedValue();
   }
 
   std::vector<const Type*> argTypes;
@@ -793,7 +795,7 @@ extern "C" {
 
   int zompRunFunctionIntWithArgs(const char* functionName) {
     GenericValue result = runFunctionWithArgs( functionName, argTypes, argValues );
-    return result.IntVal.getLimitedValue();
+    return (int)result.IntVal.getLimitedValue();
   }
 
   int ptrToCamlInt(void* ptr) {

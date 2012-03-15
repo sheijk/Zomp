@@ -235,7 +235,7 @@ int zompFileModificationTimestamp(const char* filename)
 {
     struct stat s;
     stat(filename, &s);
-    return s.st_mtime;
+    return (int)s.st_mtime;
 }
 
 /* NSBundle* webKitBundle; */

@@ -5,6 +5,7 @@
 
 #ifdef _MSC_VER
 #define ZOMP_WINDOWS
+#pragma warning(disable: 4996)
 #else
 #define ZOMP_OSX
 #endif
