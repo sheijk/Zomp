@@ -113,10 +113,11 @@ source/dllzompvm.so: source/zompvm_impl.o source/zompvm_caml.o source/zomputils.
 ifeq "$(BUILD_PLATFORM)" "Linux"
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o source/zompvm source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o source/zompvm -lcurl source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 endif
 
 dllzompvm.so: source/dllzompvm.so
+	rm -f dllzompvm.so
 	ln -s source/dllzompvm.so dllzompvm.so
 
 zomp_shell: source/zomp_shell.cmo $(LANG_CMOS:.cmo=.cmx)
@@ -125,11 +126,11 @@ zomp_shell: source/zomp_shell.cmo $(LANG_CMOS:.cmo=.cmx)
 
 zomp_shell.native: source/zomp_shell.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zomp_shell.cmx
+	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zomp_shell.cmx -cclib -lcurl
 
 zompc.native: $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
 zompc: $(LANG_CMOS) source/zompc.cmo source/dllzompvm.so
 	@$(ECHO) Building $@ ...
@@ -156,7 +157,7 @@ source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 
 vm_http_server: $(VM_HTTP_SERVER_OBJS) source/mongoose.h
 	@$(ECHO) Building $@ ...
-	$(CXX) $(LDFLAGS) -o $@ -lstdc++ $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
+	$(CXX) $(LDFLAGS) -o $@ -lstdc++ -lcurl $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
 
 vm_server: source/vm_server.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...

@@ -88,7 +88,7 @@ private:
             "    <p>running</p>\n"
             "    <h2>LLVM</h2>\n");
 
-        llvm::LLVMContext* context = zompLLVMContext();
+        // llvm::LLVMContext* context = zompLLVMContext();
         llvm::Module* module = zompLLVMModule();
         std::string target = module->getTargetTriple();
 
@@ -133,17 +133,20 @@ private:
     void tr2(mg_connection* conn, const char* a, const char* b)
     {
         mg_printf(conn, "<tr> <th>%s</th> <th>%s</th> </tr>\n", a, b);
+        printf("[debug] %s = %s\n", a, b);
     }
 
     void tr2(mg_connection* conn, const char* a, int b)
     {
         mg_printf(conn, "<tr> <th>%s</th> <th>%d</th> </tr>\n", a, b);
+        printf("[debug] %s = %d\n", a, b);
     }
 
     void pageDebug(mg_connection* conn, const mg_request_info* requestInfo)
     {
         printHead(conn, "debug");
         mg_printf(conn, "  <table>\n");
+        printf("received debug request:\n");
         tr2(conn, "query string", requestInfo->query_string);
         tr2(conn, "uri", requestInfo->uri);
         tr2(conn, "user", requestInfo->remote_user);
@@ -151,6 +154,8 @@ private:
         tr2(conn, "request method", requestInfo->request_method);
         tr2(conn, "status code", requestInfo->status_code);
         mg_printf(conn, "  </table>\n");
+        printf("\n");
+        fflush(stdout);
         printFoot(conn);
     }
 
@@ -328,6 +333,12 @@ private:
     {
         if(eventType == MG_NEW_REQUEST)
         {
+            printf("Request for URI '%s%s%s'\n",
+                requestInfo->uri,
+                requestInfo->query_string ? "?" : "",
+                requestInfo->query_string ? requestInfo->query_string : "");
+            fflush(stdout);
+
             std::string uri(requestInfo->uri + 1);
 
             if(uri == "index.html")

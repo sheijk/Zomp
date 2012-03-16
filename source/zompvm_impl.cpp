@@ -11,6 +11,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <curl/curl.h>
+
 #pragma warning(push, 0)
 #include "llvm/Module.h"
 #include "llvm/Constants.h"
@@ -103,6 +105,64 @@ static PointerType *getPointerType(const Type *ElementType) {
 
 namespace
 {
+  class RemoteVM
+  {
+    CURL* curl_;
+    std::vector<char> uri_;
+
+  public:
+    RemoteVM() {
+    }
+
+    ~RemoteVM() {
+      disconnect();
+    }
+
+    bool connect(const char* address) {
+      curl_ = curl_easy_init();
+
+      const size_t addressLength = strlen(address);
+      uri_.resize(addressLength + 1);
+      memcpy(&uri_[0], address, addressLength + 1);
+
+      return curl_ != NULL;
+    }
+
+    void disconnect() {
+      if(curl_) {
+        curl_easy_cleanup(curl_);
+        curl_ = NULL;
+      }
+    }
+
+    void getUrl(const char* url) {
+      if(curl_) {
+        enum { BUFFER_LEN = 1024 };
+        char buffer[BUFFER_LEN];
+        snprintf(buffer, BUFFER_LEN, "%s%s", &uri_[0], url);
+        buffer[BUFFER_LEN - 1] = '\0';
+        curl_easy_setopt(curl_, CURLOPT_URL, buffer);
+        printf("requesting URI %s\n", buffer);
+        fflush(stdout);
+
+        CURLcode result = curl_easy_perform(curl_);
+
+        if(result != 0) {
+          fprintf(stderr, "error: could not finish transfer %s (error %d)\n", url, result);
+        }
+      }
+    }
+
+    // void sendCode(const char* code) {
+    //   CURLcode result = curl_easy_perform(curl_);
+    //   if(result != 0) {
+    //     fprintf(stderr, "error: could not transfer code\n---\n%s\n---\n", code);
+    //   }
+    // }
+  };
+
+  static RemoteVM remoteVM;
+
   static LLVMContext* context = 0;
   /// will run the code
   static ExecutionEngine* executionEngine = 0;
@@ -610,6 +670,18 @@ extern "C" {
 
   void zompShutdown() {
     fflush( stdout );
+  }
+
+  bool zompConnectToRemoteVM(const char* uri) {
+    return remoteVM.connect(uri);
+  }
+
+  void zompDisconnectRemoteVM() {
+    remoteVM.disconnect();
+  }
+
+  void zompSendToRemoteVM(const char* uri) {
+    remoteVM.getUrl(uri);
   }
 
   bool zompSendCode(const char* code, const char* module) {

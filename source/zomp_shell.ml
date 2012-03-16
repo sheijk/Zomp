@@ -24,9 +24,33 @@ exception AbortExpr
 
 type commandFunc = string list -> Bindings.bindings -> unit
 
+let boolString = function
+  | true -> "yes"
+  | false -> "no"
+
 let errorMessage msg =
   eprintf "%s\n" msg;
   flush stderr
+
+let makeSingleArgCommand f =
+  fun argL bindings ->
+    match argL with
+      | [arg] ->
+        f arg bindings
+      | _ ->
+        eprintf "Expected single argument"
+
+let makeNoArgCommand f =
+  fun argL bindings ->
+    match argL with
+      | [] ->
+        f bindings
+      | (_ :string list) ->
+        eprintf "Expected 0 arguments"
+
+let makeToggleCommand refvar message _ _ =
+  refvar := not !refvar;
+  printf "%s: %s\n" message (boolString !refvar)
 
 let exitCommand _ _  =
   printf "Exiting.\n";
@@ -49,14 +73,6 @@ let changePromptCommand args _ =
         continuedPrompt := newContinued;
     | args ->
         printf "Expected 0-2 arguments instead of %d\n" (List.length args)
-
-let boolString = function
-  | true -> "yes"
-  | false -> "no"
-
-let makeToggleCommand refvar message _ _ =
-  refvar := not !refvar;
-  printf "%s: %s\n" message (boolString !refvar)
 
 let toggleAstCommand = makeToggleCommand printAst "Printing s-expressions"
 let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
@@ -188,6 +204,20 @@ let loadCode args bindings =
          printf "Unsupported file extension\n" )
     args
 
+let connectToRemoteVM = makeSingleArgCommand
+  (fun uri (_:bindings) ->
+    if Machine.zompConnectToRemoteVM uri then
+      printf "Connected to remote VM at %s" uri
+    else
+      eprintf "Failed to connect to remote VM at %s" uri)
+
+let disconnectRemoteVM = makeNoArgCommand
+  (fun (_:bindings) -> Machine.zompDisconnectRemoteVM())
+
+let requestUriFromRemoteVM = makeSingleArgCommand
+  (fun uri (_:bindings) -> Machine.zompSendToRemoteVM uri)
+
+
 let listCommands commands _ _ =
   printf "%c to abort multi-line (continued input)\n" toplevelCommandChar;
   let maxCommandLength =
@@ -296,7 +326,7 @@ let printVersionInfo args (_:bindings) =
     | _ ->
         printf "Expected no arguments";
         flush stdout
-          
+
 let commands =
   let rec internalCommands = [
     "bindings", ["b"], printBindings, "Print a list of defined symbols";
@@ -320,6 +350,10 @@ let commands =
     "version", [], printVersionInfo, "Print version/build info";
     "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
     "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
+
+    "connect", [], connectToRemoteVM, "Connect to remote ZompVM server";
+    "disconnect", [], disconnectRemoteVM, "Disconnect from remote ZompVM server";
+    "requestUri", [], requestUriFromRemoteVM, "Send request to URI to remote ZompVM server";
   ]
   and printHelp ignored1 ignored2 =
     printf "Enter Zomp code to get it evaluated. Directly run code using std:base:run\n\n";
