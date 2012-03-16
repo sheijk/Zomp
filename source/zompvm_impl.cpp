@@ -101,7 +101,8 @@ static PointerType *getPointerType(const Type *ElementType) {
   return PointerType::get(ElementType, 0);
 }
 
-namespace {
+namespace
+{
   static LLVMContext* context = 0;
   /// will run the code
   static ExecutionEngine* executionEngine = 0;
@@ -227,7 +228,7 @@ namespace {
       macroAstChild = Function::Create(
         FuncTy_105,
         GlobalValue::ExternalLinkage,
-        "macroAstChild", llvmModule); 
+        "macroAstChild", llvmModule);
       macroAstChild->setCallingConv(CallingConv::C);
     }
   }
@@ -365,18 +366,6 @@ namespace
     v.PointerVal = p;
     return v;
   }
-
-  // static GenericValue ptrValue(int i) {
-  //   GenericValue v;
-  //   v.PointerVal = bitcast<void*>(i);
-  //   return v;
-  // }
-
-//   static GenericValue intValue(int i) {
-//     GenericValue v;
-//     v.IntVal = i;
-//     return v;
-//   }
 }
 
 static void addPass(PassManager& pm, Pass* p) {
@@ -519,8 +508,8 @@ extern "C" {
   static void initPausingSignalHandler() {
     if( signal(requestPauseSignal, requestPauseSignalHandler) == SIG_ERR ) {
       fprintf(stderr,
-              "Failed to install signal handler. "
-              "Requesting pause functionality will not be available");
+        "Failed to install signal handler. "
+        "Requesting pause functionality will not be available");
       fflush(stderr);
     }
   }
@@ -554,13 +543,13 @@ extern "C" {
     if( first ) {
       first = false;
       fprintf(stderr, "Received signal %s. Callstack:\n", signalName(signalNumber));
-  
+
       const int max_stack_size = 128;
       void* callstack[max_stack_size];
       int frame_count = backtrace(callstack, max_stack_size);
       backtrace_symbols_fd(callstack, frame_count, STDERR_FILENO);
       fflush(stderr);
-  
+
       // do not receive signals like SIGBUS multiple times
       signal(signalNumber, SIG_DFL);
     }
@@ -569,7 +558,7 @@ extern "C" {
       fflush(stderr);
     }
   }
-  
+
   static void initCrashSignalHandler() {
     int signals_to_handle[] = { SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGABRT, SIGBUS, SIGSEGV };
     for( size_t sig_num = 0; sig_num < sizeof(signals_to_handle)/sizeof(int); ++sig_num ) {
@@ -678,18 +667,6 @@ extern "C" {
     return !errorsOccurred;
   }
 
-//   bool zompSendCodeNewVar(const char* code) {
-//     printf( "Creating new var\n" );
-//     fflush( stdout );
-//     return zompSendCode( code );
-//   }
-
-//   bool zompSendCodeNewFunc(const char* code) {
-//     printf( "Create new function\n" );
-//     fflush( stdout );
-//     return zompSendCode( code );
-//   }
-
   bool zompRemoveFunctionBody(const char* functionName) {
     Function* func = llvmModule->getFunction( functionName );
 
@@ -728,36 +705,6 @@ extern "C" {
 
     return false;
   }
-
-
-//   bool zompSendCodeModifyFunc(const char* code) {
-//     printf( "Modifying existing function\n" );
-//     fflush( stdout );
-//     return zompSendCode( code );
-
-//     ParseError errorInfo;
-
-
-//     Module* module = ParseAssemblyString( code, llvmModule, &errorInfo );
-// //     Module* module = ParseAssemblyString( code, NULL, &errorInfo );
-
-//     if( module != NULL ) {
-//       std::cout
-//         << "--- We just constructed this LLVM module ---\n\n"
-//         << *module << "\n"
-//         << "--------------------------------------------\n\n";
-//       std::cout.flush();
-//     }
-
-//     if( errorInfo.getRawMessage() != "none" ) {
-//       fprintf( stderr, "[LLVM] %s\n", errorInfo.getMessage().c_str() );
-//       fflush( stderr );
-
-//       return false;
-//     }
-
-//     return true;
-//   }
 
   bool zompLoadFile(const char* filename) {
     return false;
@@ -841,35 +788,7 @@ extern "C" {
     std::cout << "--- We just constructed this LLVM module ---\n\n" << std::flush;
     llvmModule->print(outs(), NULL);
     outs().flush();
-      // << *llvmModule << "\n"
     std::cout << "--------------------------------------------\n\n" << std::flush;
-
-    /*
-    std::string llvmCode = llvmModule->getModuleInlineAsm();
-
-    const char* header = "--- Inline ASM of module ---";
-    const char* decls =  "------- LLVM Symbols -------";
-    const char* hline =  "----------------------------";
-    printf( "%s\n%s\n%s\n", header, llvmCode.c_str(), decls );
-
-    const Module::global_iterator globalsEnd = llvmModule->global_end();
-    for(Module::global_iterator global = llvmModule->global_begin(); global != globalsEnd; ++global) {
-      global->print( cout );
-    }
-
-    const Module::iterator functionsEnd = llvmModule->end();
-    for(Module::iterator func = llvmModule->begin(); func != functionsEnd; ++func) {
-      std::string name = func->getName();
-      std::string rettypeName = "???";
-      std::string arguments = "???";
-      std::string impl = func->isDeclaration() ? ";" : " { ... }";
-
-      printf( "%s %s(%s)%s\n", rettypeName.c_str(), name.c_str(), arguments.c_str(), impl.c_str() );
-//       func->print( cout );
-    }
-
-    printf( "%s\n", hline );
-    */
   }
 
   void zompWriteLLVMCodeToFile(const char* fileName) {
@@ -878,53 +797,6 @@ extern "C" {
     llvmModule->print(file, NULL);
     ZMP_ASSERT(errorInfo.empty(),);
   }
-
-//   struct Ast
-//   {
-//     char* id;
-//     int childCount;
-//     Ast** childs;
-//   };
-
-//   char* macroAstId(int ast) {
-//     if( ast != 0 ) {
-//       return (reinterpret_cast<Ast*>(ast))->id;
-//     }
-//     else {
-//       return "NULL";
-//     }
-//   }
-
-//   int macroAstChildCount(int ast) {
-//     if( ast != 0 ) {
-//       return (reinterpret_cast<Ast*>(ast))->childCount;
-//     }
-//     else {
-//       return 0;
-//     }
-//   }
-
-//   int macroAstChild(int ast, int num) {
-//     if( ast != 0 && num < macroAstChildCount(ast) ) {
-//       return reinterpret_cast<int>( (reinterpret_cast<Ast*>(ast))->childs + num );
-//     }
-//     else {
-//       return 0;
-//     }
-//   }
-
-// (func cstring macroAstId ((int macroCurrentAst)) (
-//   (getField (cast (ptr ast) macroCurrentAst) id) ))
-
-// (func int macroAstChildCount ((int macroCurrentAst)) (
-//   (getField (cast (ptr ast) macroCurrentAst) childCount) ))
-
-// (func int macroAstChild ((int treeaddr) (int num)) (
-//   (var (ptr ast) tree (cast (ptr ast) treeaddr))
-//   (var (ptr ast) child (load (ptradd (getField tree childs) num)))
-//   (var int i (cast int child))
-//   (ret i)
-//   ))
 
   static bool validIdChar(char c) {
     return (c >= 'a' && c <= 'z')
@@ -1115,124 +987,6 @@ extern "C" {
       printf( "Warning: found unregistered ast in %s\n", func );
     }
   }
-
-//   typedef std::map<int, void*> IdToAstMapping;
-//   IdToAstMapping astIdTable;
-//   typedef std::map<void*, int> AstToIdMapping;
-//   AstToIdMapping idAstTable;
-//   static int lastAstId = 0;
-
-//   int addAstToTable(void* ast) {
-//     ++lastAstId;
-
-//     astIdTable.insert( std::make_pair(lastAstId, ast) );
-//     idAstTable.insert( std::make_pair(ast, lastAstId) );
-//     return lastAstId;
-//   }
-
-//   int findAstId(void* ast) {
-//     AstToIdMapping::iterator iter = idAstTable.find(ast);
-//     if( iter != idAstTable.end() ) {
-//       return iter->second;
-//     }
-//     else {
-//       return 0;
-//     }
-//   }
-
-//   void* findAstById(int id) {
-//     IdToAstMapping::iterator iter = astIdTable.find(id);
-//     if( iter != astIdTable.end() ) {
-//       return iter->second;
-//     }
-//     else {
-//       return NULL;
-//     }
-//   }
-
-//   int zompSimpleAst(char* name) {
-//     std::vector<GenericValue> args;
-
-//     args.push_back( ptrValue(name) );
-
-//     GenericValue retval = executionEngine->runFunction( simpleAst, args );
-
-//     return addAstToTable(retval.PointerVal);
-//   }
-
-//   void zompAddChild(int parent, int child) {
-//     void* parentPtr = findAstById(parent);
-//     void* childPtr = findAstById(child);
-
-//     if( parentPtr != NULL && childPtr != NULL ) {
-//       std::vector<GenericValue> args;
-
-//       args.push_back( ptrValue(parentPtr) );
-//       args.push_back( ptrValue(childPtr) );
-
-//       executionEngine->runFunction( addChild, args );
-//     }
-//     else {
-//       printf( "Warning: zompAddChild invoked with invalid ast ids" );
-//       fflush(stdout);
-//     }
-//   }
-
-//   GenericValue call1(Function* func, void* arg0) {
-//     std::vector<GenericValue> args;
-//     args.push_back( ptrValue(arg0) );
-//     return executionEngine->runFunction(func, args);
-//   }
-
-//   GenericValue call2(Function* func, void* arg0, int arg1) {
-//     std::vector<GenericValue> args;
-//     args.push_back( ptrValue(arg0) );
-//     args.push_back( intValue(arg1) );
-//     return executionEngine->runFunction(func, args);
-//   }
-
-//   const char* zompAstId (int ast) {
-//     void* astPtr = findAstById(ast);
-
-//     if( astPtr != NULL ) {
-//       return (const char*) call1(astId, astPtr).PointerVal;
-//     }
-//     else {
-//       printf( "Warning: zompAstId called with invalid ast id" );
-//       fflush( stdout );
-//       return "compiler:error:invalidAstId(zompAstId)";
-//     }
-//   }
-
-//   const int zompAstChildCount (int ast) {
-//     void* astPtr = findAstById(ast);
-
-//     if( astPtr != NULL ) {
-//       return call1(astChildCount, astPtr).IntVal.getLimitedValue();
-//     }
-//     else {
-//       printf( "Warning: zompAstChildCount called with invalid ast id" );
-//       fflush( stdout );
-//       return 0;
-//     }
-//   }
-
-//   int zompAstChild (int ast, int num) {
-//     void* astPtr = findAstById(ast);
-//     if( astPtr != NULL ) {
-//       void* childId = call2(getChild, astPtr, num).PointerVal;
-//       return findAstId( childId );
-//     }
-//     else {
-//       printf( "Warning: zompAstChild called with invalid ast id" );
-//       fflush( stdout );
-//       return 0;
-//     }
-//   }
-
-
-  // void zompRunMacro() {
-  // }
 
 #if !defined(ZOMP_WINDOWS)
   /// ripped from LLVM's compiler-rt project (lib/eprintf.c)
