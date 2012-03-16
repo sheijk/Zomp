@@ -167,6 +167,9 @@ vm_client: source/vm_client.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
 	$(CXX) $(LDFLAGS) -o $@ $< source/vm_protocol.o
 
+run_remote_zompsh_test: vm_http_server zomp_shell
+	./zomp_shell < tests/vmserver.zomp
+
 source/vm_client.o: source/vm_protocol.h
 source/vm_server.o: source/vm_protocol.h
 source/vm_protocol.o: source/vm_protocol.h

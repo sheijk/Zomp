@@ -1,0 +1,20 @@
+///
+/// testing the zomp vmserver
+///
+
+!connect localhost:8080
+!requestUri /test/debug?foo=zompsh
+
+
+func int main():
+  printString("hello, vmserver\n")
+  ret 0
+end
+
+
+
+
+
+!run main
+!showStatsAtExit false
+!exit
