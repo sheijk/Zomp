@@ -13,9 +13,6 @@
 
 #include "mongoose.h"
 
-#pragma comment(lib, "ws2_32.lib")
-
-
 class HttpVMServer
 {
     enum State {

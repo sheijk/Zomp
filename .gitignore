@@ -152,3 +152,4 @@ tools
 /source/vmserver/vmserver.suo
 /source/vmserver/vmserver.vcxproj.user
 /vm_http_server
+/source/vmserver/Release
