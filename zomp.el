@@ -859,9 +859,8 @@ editor to trigger recompilations etc. and possibly resume main()"
           (save-excursion
             (back-to-indentation)
             (setq linestart (point))
-            (condition-case nil
-                (search-forward-regexp zomp-identifier-regexp)
-              (error nil))
+            (ignore-errors
+              (search-forward-regexp zomp-identifier-regexp))
             (buffer-substring linestart (point))))
     (setq exprsym
           (save-excursion
@@ -869,48 +868,44 @@ editor to trigger recompilations etc. and possibly resume main()"
               (forward-char 1)
               (search-forward-regexp "[ a-aA-Z0-9]")
               (setq exprstart (point))
-              (condition-case nil
-                  (search-forward-regexp zomp-identifier-regexp)
-                (error nil))
+              (ignore-errors
+                (search-forward-regexp zomp-identifier-regexp))
               (buffer-substring exprstart (point)))))
     (setq funcsym
           (save-excursion
-            (condition-case nil
-                (progn
-                  (goto-match-paren 0)
-                  (setq parenopen (point))
-                  (when (> (point) 0)
-                    (if (looking-back "\\( \\|\\$\\)")
-                        (progn
-                          (setq funcend (1+ (point)))
-                          (forward-char)
-                          (search-forward-regexp (format "[^%s]" zomp-identifier-chars))
-                          (backward-char))
-                      (setq funcend (point))
-                      (search-backward-regexp (format "[^%s]" zomp-identifier-chars))
-                      (forward-char))
-                    (buffer-substring (point) funcend)))
-              (error nil))))
+            (ignore-errors
+              (goto-match-paren 0)
+              (setq parenopen (point))
+              (when (> (point) 0)
+                (if (looking-back "\\( \\|\\$\\)")
+                    (progn
+                      (setq funcend (1+ (point)))
+                      (forward-char)
+                      (search-forward-regexp (format "[^%s]" zomp-identifier-chars))
+                      (backward-char))
+                  (setq funcend (point))
+                  (search-backward-regexp (format "[^%s]" zomp-identifier-chars))
+                  (forward-char))
+                (buffer-substring (point) funcend)))))
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
     (or exprsym funcsym linesym "nothing found")))
 
 (defun zomp-get-eldoc-string ()
   (let ((symbol "unknown"))
-    (condition-case nil
+    (ignore-errors
+      (save-excursion
+        (zomp-build-symbol-buffer)
+        (setq symbol (zomp-symbol-at-point))
+        (set-buffer (get-buffer-create zomp-symbol-buffer))
         (save-excursion
-          (zomp-build-symbol-buffer)
-          (setq symbol (zomp-symbol-at-point))
-          (set-buffer (get-buffer-create zomp-symbol-buffer))
-          (save-excursion
-            (goto-char (point-max))
-            (search-backward-regexp (concat "^" symbol " ="))
-            (search-forward " =")
-            (let ((startpos (point)))
-              (end-of-line)
-              (concat symbol ": " (buffer-substring startpos (point))))
-            ))
-      (error nil))))
+          (goto-char (point-max))
+          (search-backward-regexp (concat "^" symbol " ="))
+          (search-forward " =")
+          (let ((startpos (point)))
+            (end-of-line)
+            (concat symbol ": " (buffer-substring startpos (point))))
+          )))))
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
