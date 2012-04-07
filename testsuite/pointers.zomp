@@ -160,24 +160,32 @@ func void printId():
   println "vtableId = " vtableId
 end
 
-unittest:testCase VTable:
+func MyVTable* makeVTable():
   vtable := malloc MyVTable
   vtable.setId = &vtable_setId
   vtable.getId = &vtable_getId
+  return vtable
+end
+
+unittest:testCase VTable:
+  vtable := makeVTable()
 
   set := vtable.setId
   get := vtable.getId
-
+  
   set( 10 )
+  uassert( vtableId == 10 )
   uassert( get() == 10 )
 
-  // vtable.setId 11
-  // uassert( get() == 11 )
-  // uassert( vtable.getId() == 11 )
-  
-  // vtable.setId( 12 )
-  // uassert( vtable.getId() == 12 )
-  
+  vtable.setId(11)
+  uassert(vtableId == 11)
+  uassert(get() == 11)
+  uassert(vtable.getId() == 11)
+
+  vtable.setId(12)
+  uassert(vtableId == 12)
+  uassert(vtable.getId() == 12)
+
   dealloc vtable
 end
 

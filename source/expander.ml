@@ -1667,6 +1667,7 @@ struct
   let translateApply translateRecordF (env :('a someTranslateF) env) expr =
     match expr with
       | { args = firstArg :: remArgs } -> begin
+        if firstArg.args = [] then begin
           match lookup env.bindings firstArg.id with
             | FuncSymbol _
             | VarSymbol { typ = `Pointer `Function _ } ->
@@ -1676,11 +1677,18 @@ struct
               translateRecordF env (Ast2.shiftLeft expr.args)
 
             | _ ->
-                let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
-                Result r
+              let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
+              Result r
+        end else begin
+          let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
+          let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
+          let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
+          let r = env.translateF env.bindings (Ast2.seqExpr [tempVar; callExpr]) in
+          Result r
         end
+      end
       | { args = [] } ->
-          errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
+        errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
 
   let register addF =
     addF "std:base:localVar" translateDefineLocalVar;
