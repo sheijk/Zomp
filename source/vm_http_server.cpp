@@ -194,7 +194,7 @@ private:
                 // decode
                 std::vector<char> decodedText;
                 decodedText.resize(ptr - value + 1);
-                
+
                 char* write = &decodedText[0];
                 for(const char* read = value; read < ptr; ++read, ++write) {
                     if(*read == '%') {
@@ -289,7 +289,7 @@ private:
                 // decode
                 std::vector<char> decodedText;
                 decodedText.resize(ptr - value + 1);
-                
+
                 char* write = &decodedText[0];
                 for(const char* read = value; read < ptr; ++read, ++write) {
                     if(*read == '%') {
