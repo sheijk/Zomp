@@ -17,6 +17,7 @@ and printDeclarations = ref true
 and llvmEvaluationOn = ref true
 and printForms = ref false
 and showStatsAtExit = ref true
+and traceMacroExpansion = ref false
 
 module StringMap = Map.Make(String)
 
@@ -38,7 +39,8 @@ let makeSingleArgCommand f =
       | [arg] ->
         f arg bindings
       | _ ->
-        eprintf "Expected single argument"
+        eprintf "Expected single argument\n";
+        flush stderr
 
 let makeNoArgCommand f =
   fun argL bindings ->
@@ -46,11 +48,18 @@ let makeNoArgCommand f =
       | [] ->
         f bindings
       | (_ :string list) ->
-        eprintf "Expected 0 arguments"
+        eprintf "Expected 0 arguments\n";
+        flush stderr
 
-let makeToggleCommand refvar message _ _ =
-  refvar := not !refvar;
-  printf "%s: %s\n" message (boolString !refvar)
+let makeToggleCommand refvar message =
+  fun args _ ->
+    match args with
+      | [] ->
+        refvar := not !refvar;
+        printf "%s: %s\n" message (boolString !refvar)
+      | _ ->
+        eprintf "Expected 0 arguments\n";
+        flush stderr
 
 let exitCommand _ _  =
   printf "Exiting.\n";
@@ -80,6 +89,7 @@ let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing decl
 let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
 let togglePrintForms = makeToggleCommand printForms "Print translated forms"
 let toggleShowStatsAtExit = makeToggleCommand showStatsAtExit "Show stats at exit"
+let toggleTraceMacroExpansion = makeToggleCommand traceMacroExpansion "Trace macro expansion"
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -334,6 +344,7 @@ let commands =
     "exit", ["x"; "q"], exitCommand, "Exit";
     "help", ["h"], printHelp, "List all toplevel commands";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
+    "traceMacros", [], toggleTraceMacroExpansion, "Toggle tracing of macro expansion";
     "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
     "optimize", [], optimizeCommand, "Optimize all functions";
     "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
@@ -571,6 +582,11 @@ let () =
 
          let newBindings, time = recordTiming
            (fun () ->
+             Expander.setTraceMacroExpansion
+               (if !traceMacroExpansion then
+                 Some (fun s e -> printf "Expansion step %s:\n%s\n" s (Ast2.toString e))
+               else
+                 None);
               let newBindings, simpleforms, llvmCode =
                 Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
               in
