@@ -75,6 +75,28 @@ struct
       -1
 
   let (=~) str re = Str.string_match (Str.regexp re) str 0
+
+  let stringToList str =
+    let strLength = String.length str in
+    let rec loop lst i =
+      if i >= strLength then lst
+      else (String.unsafe_get str i) :: loop lst (i+1)
+    in
+    loop [] 0
+
+  let escapeHtmlText str =
+    let replaceChar chr =
+      let between min max = (chr >= min) && (chr <= max) in
+      let isin chars = try ignore (String.index chars chr); true with Not_found -> false in
+      if chr = ' ' then
+        "&nbsp;"
+      else if between 'a' 'z' || between 'A' 'Z' || between '0' '9' || isin ".,_-$~()" then
+        String.make 1 chr
+      else
+        let ascii = int_of_char chr in
+        sprintf "&#%d;" ascii
+    in
+    String.concat "" (List.map replaceChar (stringToList str))
 end
 
 open Utils
@@ -96,14 +118,14 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "    <title>Report for %s</title>\n" zompFileName;
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
-    
+
 let () =
   if false then begin
     printf "Called %s\n" (String.concat " " (Array.to_list Sys.argv));
     printf "From directory %s\n" (Sys.getcwd());
     flush stdout;
   end;
-  
+
   if Array.length Sys.argv != 3 then
     failWith InvalidArguments;
 
@@ -188,7 +210,7 @@ let () =
           | _ -> ()
       in
       List.iter checkPrintExpectation !expectedErrorMessages;
-      fprintf outFile "%s<br />\n" line;
+      fprintf outFile "%s<br />\n" (escapeHtmlText line);
       ()
     in
 
