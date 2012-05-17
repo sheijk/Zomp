@@ -22,8 +22,6 @@ module StringMap = Map.Make(String)
 
 exception AbortExpr
 
-type commandFunc = string list -> Bindings.bindings -> unit
-
 let boolString = function
   | true -> "yes"
   | false -> "no"
@@ -32,13 +30,14 @@ let errorMessage msg =
   eprintf "%s\n" msg;
   flush stderr
 
-let makeSingleArgCommand f =
-  fun argL bindings ->
-    match argL with
-      | [arg] ->
-        f arg bindings
-      | _ ->
-        eprintf "Expected single argument"
+let matchAnyRegexp patterns =
+  match patterns with
+    | [] -> Str.regexp ".*"
+    | _ ->
+      let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
+      Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
+
+type commandFunc = string list -> Bindings.bindings -> unit
 
 let makeNoArgCommand f =
   fun argL bindings ->
@@ -48,13 +47,26 @@ let makeNoArgCommand f =
       | (_ :string list) ->
         eprintf "Expected 0 arguments"
 
-let makeToggleCommand refvar message _ _ =
-  refvar := not !refvar;
-  printf "%s: %s\n" message (boolString !refvar)
+let makeSingleArgCommand f =
+  fun argL bindings ->
+    match argL with
+      | [arg] ->
+        f arg bindings
+      | _ ->
+        eprintf "Expected single argument"
 
-let exitCommand _ _  =
-  printf "Exiting.\n";
-  exit 0
+let makeToggleCommand refvar message = makeNoArgCommand
+  (fun _ ->
+    refvar := not !refvar;
+    printf "%s: %s\n" message (boolString !refvar))
+
+let makeToggleCppCommand setF =
+  fun args (_:bindings) ->
+    match args with
+      | ["on"] -> setF true
+      | ["off"] -> setF false
+      | _ ->
+        errorMessage "Expected on|off"
 
 let changePromptCommand args _ =
   print_newline();
@@ -74,6 +86,11 @@ let changePromptCommand args _ =
     | args ->
         printf "Expected 0-2 arguments instead of %d\n" (List.length args)
 
+let exitCommand = makeNoArgCommand
+  (fun _ ->
+    printf "Exiting.\n";
+    exit 0)
+
 let toggleAstCommand = makeToggleCommand printAst "Printing s-expressions"
 let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
 let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
@@ -89,41 +106,22 @@ let toggleParseFunc args _ =
     | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
 
-let makeToggleCppCommand setF =
-  fun args (_:bindings) ->
-    match args with
-      | ["on"] -> setF true
-      | ["off"] -> setF false
-      | _ ->
-          errorMessage "Expected on|off"
-
 let toggleVerifyCommand = makeToggleCppCommand (fun b -> Zompvm.zompVerifyCode b)
 let toggleOptimizeFunctionCommand =
   makeToggleCppCommand (fun b -> Zompvm.zompSetOptimizeFunction b)
 
 let notifyTimeThreshold = ref 0.5
 
-let setNotifyTimeThresholdCommand args _ =
-  match args with
-    | [timeStr] ->
-        begin try
-          let newTime = float_of_string timeStr in
-          if newTime >= 0.0 then
-            notifyTimeThreshold := newTime
-          else
-            printf "Given time must not be less than zero\n"
-        with Failure "float_of_string" ->
-          printf "Could not parse '%s' as float\n" timeStr
-        end
-    | _ ->
-        printf "Expected only one argument\n"
-
-let matchAnyRegexp patterns =
-  match patterns with
-    | [] -> Str.regexp ".*"
-    | _ ->
-        let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
-        Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
+let setNotifyTimeThresholdCommand = makeSingleArgCommand
+  (fun timeStr _ ->
+    try
+      let newTime = float_of_string timeStr in
+      if newTime >= 0.0 then
+        notifyTimeThreshold := newTime
+      else
+        printf "Given time must not be less than zero\n"
+    with Failure "float_of_string" ->
+      printf "Could not parse '%s' as float\n" timeStr)
 
 let printBindings args (bindings :bindings) =
   let regexps = List.map
@@ -184,12 +182,9 @@ let runFunction bindings funcname =
     | _ ->
         eprintf "Cannot run %s because no such function was found\n" funcname
 
-let runMain args bindings =
-  match args with
-    | [funcname] ->
-        runFunction bindings funcname
-    | _ ->
-        eprintf "Only one argument allowed\n"; flush stderr
+let runMain = makeSingleArgCommand
+  (fun funcname bindings ->
+    runFunction bindings funcname)
 
 let loadLLVMFile filename _ =
   Zompvm.loadLLVMFile filename
@@ -218,7 +213,8 @@ let requestUriFromRemoteVM = makeSingleArgCommand
   (fun uri (_:bindings) -> Machine.zompSendToRemoteVM uri)
 
 
-let listCommands commands _ _ =
+let listCommands commands = makeNoArgCommand
+  (fun _ ->
   printf "%c to abort multi-line (continued input)\n" toplevelCommandChar;
   let maxCommandLength =
     List.fold_left (fun oldMax (name, _, _, _) -> max oldMax (String.length name)) 5 commands
@@ -227,105 +223,85 @@ let listCommands commands _ _ =
     let aliasString = if List.length aliases > 0 then " (also " ^ combine ", " aliases ^ ")" else "" in
     printf "!%-*s - %s%s\n" (maxCommandLength+1) name doc aliasString
   in
-  List.iter printCommand commands
+  List.iter printCommand commands)
 
-let writeSymbols args (bindings : Bindings.bindings) =
-  match args with
-    | [fileName] ->
-        begin
-          if Sys.file_exists fileName then
-            Sys.remove fileName;
-          let stream = open_out fileName in
-          try
-            let print = fprintf stream in
-            print "Symbol table\n";
-            Bindings.iter (fun (name, symbol) ->
-                         fprintf stream "%s =" name;
-                         begin match symbol with
-                           | VarSymbol var ->
-                               fprintf stream "var of type %s"
-                                 (typeName var.typ);
-                           | FuncSymbol func ->
-                               let argToString (name, typ) =
-                                 sprintf "%s %s" (typeName typ) name
-                               in
-                               let args = List.map argToString func.fargs in
-                               let argString = Common.combine ", " args in
-                               fprintf stream "(%s) -> %s"
-                                 argString
-                                 (typeName func.rettype);
-                           | MacroSymbol macro ->
-                               fprintf stream "%s" macro.mdocstring;
-                           | LabelSymbol label ->
-                               fprintf stream "label %s" label.lname;
-                           | TypedefSymbol typ ->
-                               fprintf stream "type %s" (typeDescr typ)
-                           | UndefinedSymbol ->
-                               fprintf stream "undefined"
-                         end;
-                         fprintf stream "\n" )
-              bindings;
-            let builtinDoc (name, params) = fprintf stream "%s =%s\n" name params in
-            List.iter builtinDoc [
-              "var", "type name default";
-              "func", "returnType name ((typ0 arg0)...) implExp";
-              "assign", "lvar value";
-              "seq", "expr...";
-              "type", "name typeExpr";
-              "ptr", "var";
-              "ret", "expr";
-              "label", "name";
-              "branch", "label | boolExpr trueLabel falseLabel";
-              "macro", "args* implExpr";
-              "fieldptr", "recordExpr fieldName";
-              "load", "pointerExpr";
-              "store", "pointerExpr valueExpr";
-              "nullptr", "type";
-              "ptradd", "pointerExpr intExpr";
-              "malloc", "type count?";
-              "cast", "type value";
-              "include", "filename";
-            ];
-            close_out stream
-          with _ ->
-            close_out stream
-        end
-    | _ ->
-        begin
-          eprintf "Expected one argument\n";
-          flush stderr
-        end
+let writeSymbols = makeSingleArgCommand
+  (fun fileName bindings ->
+    if Sys.file_exists fileName then
+      Sys.remove fileName;
+    let stream = open_out fileName in
+    try
+      let print = fprintf stream in
+      print "Symbol table\n";
+      Bindings.iter (fun (name, symbol) ->
+        fprintf stream "%s =" name;
+        begin match symbol with
+          | VarSymbol var ->
+            fprintf stream "var of type %s"
+              (typeName var.typ);
+          | FuncSymbol func ->
+            let argToString (name, typ) =
+              sprintf "%s %s" (typeName typ) name
+            in
+            let args = List.map argToString func.fargs in
+            let argString = Common.combine ", " args in
+            fprintf stream "(%s) -> %s"
+              argString
+              (typeName func.rettype);
+          | MacroSymbol macro ->
+            fprintf stream "%s" macro.mdocstring;
+          | LabelSymbol label ->
+            fprintf stream "label %s" label.lname;
+          | TypedefSymbol typ ->
+            fprintf stream "type %s" (typeDescr typ)
+          | UndefinedSymbol ->
+            fprintf stream "undefined"
+        end;
+        fprintf stream "\n" )
+        bindings;
+      let builtinDoc (name, params) = fprintf stream "%s =%s\n" name params in
+      List.iter builtinDoc [
+        "var", "type name default";
+        "func", "returnType name ((typ0 arg0)...) implExp";
+        "assign", "lvar value";
+        "seq", "expr...";
+        "type", "name typeExpr";
+        "ptr", "var";
+        "ret", "expr";
+        "label", "name";
+        "branch", "label | boolExpr trueLabel falseLabel";
+        "macro", "args* implExpr";
+        "fieldptr", "recordExpr fieldName";
+        "load", "pointerExpr";
+        "store", "pointerExpr valueExpr";
+        "nullptr", "type";
+        "ptradd", "pointerExpr intExpr";
+        "malloc", "type count?";
+        "cast", "type value";
+        "include", "filename";
+      ];
+      close_out stream
+    with _ ->
+      close_out stream)
 
-let optimizeCommand args (_:bindings) =
-  match args with
-    | [] -> begin
-        Machine.zompOptimizeFunctions();
-        printf "Ran optimizations on all functions\n";
-        flush stdout;
-      end
-    | _ ->
-        errorMessage "Expecting zero arguments\n"
+let optimizeCommand = makeNoArgCommand
+  (fun _ ->
+    Machine.zompOptimizeFunctions();
+    printf "Ran optimizations on all functions\n";
+    flush stdout)
 
-let writeLLVMCodeToFileCommand args (_:bindings) =
-  match args with
-    | [fileName] -> begin
-        Machine.zompWriteLLVMCodeToFile fileName;
-        printf "Wrote LLVM code to file %s\n" fileName;
-        flush stdout;
-      end
-    | _ ->
-        errorMessage "Expected one argument: file name"
+let writeLLVMCodeToFileCommand = makeSingleArgCommand
+  (fun fileName _ ->
+    Machine.zompWriteLLVMCodeToFile fileName;
+    printf "Wrote LLVM code to file %s\n" fileName;
+    flush stdout)
 
 let version = "0.?"
 
-let printVersionInfo args (_:bindings) =
-  match args with
-      [] ->
-        printf "Version %s, build %s\n" version (Zompvm.zompBuildInfo());
-        flush stdout
-    | _ ->
-        printf "Expected no arguments";
-        flush stdout
+let printVersionInfo = makeNoArgCommand
+  (fun _ ->
+    printf "Version %s, build %s\n" version (Zompvm.zompBuildInfo());
+    flush stdout)
 
 let commands =
   let rec internalCommands = [
