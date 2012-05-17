@@ -22,20 +22,56 @@ module StringMap = Map.Make(String)
 
 exception AbortExpr
 
-let boolString = function
-  | true -> "yes"
-  | false -> "no"
+module Utils =
+struct
+  let beginsWith word line =
+    let wordLength = String.length word
+    and lineLength = String.length line
+    in
+    lineLength >= wordLength &&
+      (String.sub line 0 (String.length word)) = word
+
+  let removeBeginning text count =
+    let textLength = String.length text in
+    let count = min textLength count in
+    String.sub text count (textLength - count)
+
+  let nthChar num string =
+    if String.length string > num then
+      Some string.[num]
+    else
+      None
+
+  let isWhitespaceString str =
+    let strLength = String.length str in
+    let rec worker n =
+      if n >= strLength then true
+      else
+        let c = str.[n] in
+        (c == ' ' || c == '\n') && worker (n+1)
+    in
+    worker 0
+
+  let matchAnyRegexp patterns =
+    match patterns with
+      | [] -> Str.regexp ".*"
+      | _ ->
+        let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
+        Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
+
+  let recordTiming f =
+    let startTime = Sys.time() in
+    let result = f() in
+    let endTime = Sys.time() in
+    result, (endTime -. startTime)
+end
+
+open Utils
+
 
 let errorMessage msg =
   eprintf "%s\n" msg;
   flush stderr
-
-let matchAnyRegexp patterns =
-  match patterns with
-    | [] -> Str.regexp ".*"
-    | _ ->
-      let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
-      Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
 
 type commandFunc = string list -> Bindings.bindings -> unit
 
@@ -94,10 +130,14 @@ let exitCommand = makeNoArgCommand
 
 let toggleAstCommand = makeToggleCommandForRef printAst "Printing s-expressions"
 let toggleLLVMCommand = makeToggleCommandForRef printLLVMCode "Printing LLVM code"
-let togglePrintDeclarations = makeToggleCommandForRef printDeclarations "Printing declarations"
-let toggleEvalCommand = makeToggleCommandForRef llvmEvaluationOn "Evaluating LLVM code"
-let togglePrintForms = makeToggleCommandForRef printForms "Print translated forms"
-let toggleShowStatsAtExit = makeToggleCommandForRef showStatsAtExit "Show stats at exit"
+let togglePrintDeclarationsCommand =
+  makeToggleCommandForRef printDeclarations "Printing declarations"
+let toggleEvalCommand =
+  makeToggleCommandForRef llvmEvaluationOn "Evaluating LLVM code"
+let togglePrintFormsCommand =
+  makeToggleCommandForRef printForms "Print translated forms"
+let toggleShowStatsAtExitCommand =
+  makeToggleCommandForRef showStatsAtExit "Show stats at exit"
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -127,7 +167,7 @@ let setNotifyTimeThresholdCommand = makeSingleArgCommand
     with Failure "float_of_string" ->
       printf "Could not parse '%s' as float\n" timeStr)
 
-let printBindings args (bindings :bindings) =
+let printBindingsCommand args (bindings :bindings) =
   let regexps = List.map
     (fun restr -> Str.regexp (sprintf ".*%s.*" (String.lowercase restr)))
     args
@@ -186,34 +226,33 @@ let runFunction bindings funcname =
     | _ ->
         eprintf "Cannot run %s because no such function was found\n" funcname
 
-let runMain = makeSingleArgCommand
+let runMainCommand = makeSingleArgCommand
   (fun funcname bindings ->
     runFunction bindings funcname)
 
-let loadLLVMFile filename _ =
-  Zompvm.loadLLVMFile filename
 
-let loadCode args bindings =
+
+let loadCodeCommand args bindings =
   let matches re string = Str.string_match (Str.regexp re) string 0 in
   List.iter
     (fun name ->
        if matches ".*\\.ll" name then
-         loadLLVMFile name bindings
+         Zompvm.loadLLVMFile name
        else
          printf "Unsupported file extension\n" )
     args
 
-let connectToRemoteVM = makeSingleArgCommand
+let connectToRemoteVMCommand = makeSingleArgCommand
   (fun uri (_:bindings) ->
     if Machine.zompConnectToRemoteVM uri then
       printf "Connected to remote VM at %s" uri
     else
       eprintf "Failed to connect to remote VM at %s" uri)
 
-let disconnectRemoteVM = makeNoArgCommand
+let disconnectRemoteVMCommand = makeNoArgCommand
   (fun (_:bindings) -> Machine.zompDisconnectRemoteVM())
 
-let requestUriFromRemoteVM = makeSingleArgCommand
+let requestUriFromRemoteVMCommand = makeSingleArgCommand
   (fun uri (_:bindings) -> Machine.zompSendToRemoteVM uri)
 
 
@@ -229,7 +268,7 @@ let listCommands commands = makeNoArgCommand
   in
   List.iter printCommand commands)
 
-let writeSymbols = makeSingleArgCommand
+let writeSymbolsCommand = makeSingleArgCommand
   (fun fileName bindings ->
     if Sys.file_exists fileName then
       Sys.remove fileName;
@@ -302,40 +341,40 @@ let writeLLVMCodeToFileCommand = makeSingleArgCommand
 
 let version = "0.?"
 
-let printVersionInfo = makeNoArgCommand
+let printVersionInfoCommand = makeNoArgCommand
   (fun _ ->
     printf "Version %s, build %s\n" version (Zompvm.zompBuildInfo());
     flush stdout)
 
 let commands =
   let rec internalCommands = [
-    "bindings", ["b"], printBindings, "Print a list of defined symbols";
+    "bindings", ["b"], printBindingsCommand, "Print a list of defined symbols";
     "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
     "exit", ["x"; "q"], exitCommand, "Exit";
-    "help", ["h"], printHelp, "List all toplevel commands";
+    "help", ["h"], printHelpCommand, "List all toplevel commands";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
-    "load", [], loadCode, "Load code. Supports .ll/.dll/.so/.dylib files";
+    "load", [], loadCodeCommand, "Load code. Supports .ll files";
     "optimize", [], optimizeCommand, "Optimize all functions";
     "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
-    "printBaseLang", [], togglePrintForms, "Toggle printing translated base lang forms";
-    "printDecl", [], togglePrintDeclarations, "Toggle printing declarations";
+    "printBaseLang", [], togglePrintFormsCommand, "Toggle printing translated base lang forms";
+    "printDecl", [], togglePrintDeclarationsCommand, "Toggle printing declarations";
     "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
     "prompt", [], changePromptCommand, "Set prompt";
-    "run", [], runMain, "Run a function of type void(void), default main";
+    "run", [], runMainCommand, "Run a function of type void(void), default main";
     "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
     "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
-    "showStatsAtExit", [], toggleShowStatsAtExit, "Show stats at exit";
+    "showStatsAtExit", [], toggleShowStatsAtExitCommand, "Show stats at exit";
     "syntax", [], toggleParseFunc, "Choose a syntax";
     "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
-    "version", [], printVersionInfo, "Print version/build info";
-    "writeSymbols", [], writeSymbols, "Write all symbols to given file for emacs eldoc-mode";
+    "version", [], printVersionInfoCommand, "Print version/build info";
+    "writeSymbols", [], writeSymbolsCommand, "Write all symbols to given file for emacs eldoc-mode";
     "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
 
-    "connect", [], connectToRemoteVM, "Connect to remote ZompVM server";
-    "disconnect", [], disconnectRemoteVM, "Disconnect from remote ZompVM server";
-    "requestUri", [], requestUriFromRemoteVM, "Send request to URI to remote ZompVM server";
+    "connect", [], connectToRemoteVMCommand, "Connect to remote ZompVM server";
+    "disconnect", [], disconnectRemoteVMCommand, "Disconnect from remote ZompVM server";
+    "requestUri", [], requestUriFromRemoteVMCommand, "Send request to URI to remote ZompVM server";
   ]
-  and printHelp ignored1 ignored2 =
+  and printHelpCommand ignored1 ignored2 =
     printf "Enter Zomp code to get it evaluated. Directly run code using std:base:run\n\n";
     listCommands internalCommands ignored1 ignored2
   in
@@ -362,37 +401,9 @@ let handleCommand commandLine bindings =
   else
     printf "Not a command string: '%s'\n" commandLine
 
-let silentPrefix = "!silent"
-
-let beginsWith word line =
-  let wordLength = String.length word
-  and lineLength = String.length line
-  in
-  lineLength >= wordLength &&
-    (String.sub line 0 (String.length word)) = word
-
-let removeBeginning text count =
-  let textLength = String.length text in
-  let count = min textLength count in
-  String.sub text count (textLength - count)
-
-let nthChar num string =
-  if String.length string > num then
-    Some string.[num]
-  else
-    None
-
-let isWhitespaceString str =
-  let strLength = String.length str in
-  let rec worker n =
-    if n >= strLength then true
-    else
-      let c = str.[n] in
-      (c == ' ' || c == '\n') && worker (n+1)
-  in
-  worker 0
-
 let rec readExpr continued previousLines bindings =
+  let silentPrefix = "!silent" in
+
   let prompt = match continued with
     | `NotContinued -> !defaultPrompt
     | `Continued -> !continuedPrompt
@@ -428,13 +439,6 @@ let rec readExpr continued previousLines bindings =
     in
     expr
   end
-
-let recordTiming f =
-  let startTime = Sys.time() in
-  let result = f() in
-  let endTime = Sys.time() in
-  result, (endTime -. startTime)
-
 
 module CompilerInstructions =
 struct
