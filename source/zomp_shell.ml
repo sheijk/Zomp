@@ -55,18 +55,19 @@ let makeSingleArgCommand f =
       | _ ->
         eprintf "Expected single argument"
 
-let makeToggleCommand refvar message = makeNoArgCommand
-  (fun _ ->
-    refvar := not !refvar;
-    printf "%s: %s\n" message (boolString !refvar))
-
-let makeToggleCppCommand setF =
+let makeToggleCommandFromGetSet getF setF =
   fun args (_:bindings) ->
     match args with
-      | ["on"] -> setF true
-      | ["off"] -> setF false
+      | ["on"] | ["yes"] | ["true"] -> setF true
+      | ["off"] | ["no"] | ["false"] -> setF false
+      | [] -> setF (not (getF()))
       | _ ->
-        errorMessage "Expected on|off"
+        errorMessage "Expected on/off/yes/no/true/false or no arguments to toggle"
+
+let makeToggleCommandForRef refvar message =
+  makeToggleCommandFromGetSet
+    (fun () -> !refvar)
+    (fun v -> refvar := v)
 
 let changePromptCommand args _ =
   print_newline();
@@ -91,12 +92,12 @@ let exitCommand = makeNoArgCommand
     printf "Exiting.\n";
     exit 0)
 
-let toggleAstCommand = makeToggleCommand printAst "Printing s-expressions"
-let toggleLLVMCommand = makeToggleCommand printLLVMCode "Printing LLVM code"
-let togglePrintDeclarations = makeToggleCommand printDeclarations "Printing declarations"
-let toggleEvalCommand = makeToggleCommand llvmEvaluationOn "Evaluating LLVM code"
-let togglePrintForms = makeToggleCommand printForms "Print translated forms"
-let toggleShowStatsAtExit = makeToggleCommand showStatsAtExit "Show stats at exit"
+let toggleAstCommand = makeToggleCommandForRef printAst "Printing s-expressions"
+let toggleLLVMCommand = makeToggleCommandForRef printLLVMCode "Printing LLVM code"
+let togglePrintDeclarations = makeToggleCommandForRef printDeclarations "Printing declarations"
+let toggleEvalCommand = makeToggleCommandForRef llvmEvaluationOn "Evaluating LLVM code"
+let togglePrintForms = makeToggleCommandForRef printForms "Print translated forms"
+let toggleShowStatsAtExit = makeToggleCommandForRef showStatsAtExit "Show stats at exit"
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -106,9 +107,12 @@ let toggleParseFunc args _ =
     | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
     | _ -> printf "Invalid option. Use sexpr or indent\n"
 
-let toggleVerifyCommand = makeToggleCppCommand (fun b -> Zompvm.zompVerifyCode b)
+let toggleVerifyCommand =
+  makeToggleCommandFromGetSet Zompvm.zompDoesVerifyCode (fun b -> Zompvm.zompVerifyCode b)
 let toggleOptimizeFunctionCommand =
-  makeToggleCppCommand (fun b -> Zompvm.zompSetOptimizeFunction b)
+  makeToggleCommandFromGetSet
+    Zompvm.zompOptimizeFunction
+    (fun b -> Zompvm.zompSetOptimizeFunction b)
 
 let notifyTimeThreshold = ref 0.5
 
