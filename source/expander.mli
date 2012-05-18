@@ -31,8 +31,9 @@ val translateTL :
 
 type toplevelTranslationFunction = toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
 
+(** name, parameter doc, translation func *)
 val addToplevelInstruction :
-  string -> toplevelTranslationFunction -> unit
+  string -> string -> toplevelTranslationFunction -> unit
 
 val makeTranslateSeqFunction :
   (string -> unit) -> toplevelTranslationFunction
@@ -40,4 +41,7 @@ val makeTranslateIncludeFunction :
   string list ref -> (string -> unit) -> toplevelTranslationFunction
 
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
+
+val foreachToplevelBaseInstructionDoc : (string -> string -> unit) -> unit
+val foreachBaseInstructionDoc : (string -> string -> unit) -> unit
 

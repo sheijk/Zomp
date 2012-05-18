@@ -278,9 +278,9 @@ let writeSymbolsCommand = makeSingleArgCommand
       Sys.remove fileName;
     let stream = open_out fileName in
     try
-      let print = fprintf stream in
-      print "Symbol table\n";
-      Bindings.iter (fun (name, symbol) ->
+      fprintf stream "Symbol table\n";
+
+      let printSymbol (name, symbol) =
         fprintf stream "%s =" name;
         begin match symbol with
           | VarSymbol var ->
@@ -292,9 +292,9 @@ let writeSymbolsCommand = makeSingleArgCommand
             in
             let args = List.map argToString func.fargs in
             let argString = Common.combine ", " args in
-            fprintf stream "(%s) -> %s"
-              argString
-              (typeName func.rettype);
+            fprintf stream "%s(%s)"
+              (typeName func.rettype)
+              argString;
           | MacroSymbol macro ->
             fprintf stream "%s" macro.mdocstring;
           | LabelSymbol label ->
@@ -304,29 +304,15 @@ let writeSymbolsCommand = makeSingleArgCommand
           | UndefinedSymbol ->
             fprintf stream "undefined"
         end;
-        fprintf stream "\n" )
-        bindings;
-      let builtinDoc (name, params) = fprintf stream "%s =%s\n" name params in
-      List.iter builtinDoc [
-        "var", "type name default";
-        "func", "returnType name ((typ0 arg0)...) implExp";
-        "assign", "lvar value";
-        "seq", "expr...";
-        "type", "name typeExpr";
-        "ptr", "var";
-        "ret", "expr";
-        "label", "name";
-        "branch", "label | boolExpr trueLabel falseLabel";
-        "macro", "args* implExpr";
-        "fieldptr", "recordExpr fieldName";
-        "load", "pointerExpr";
-        "store", "pointerExpr valueExpr";
-        "nullptr", "type";
-        "ptradd", "pointerExpr intExpr";
-        "malloc", "type count?";
-        "cast", "type value";
-        "include", "filename";
-      ];
+        fprintf stream "\n"
+      in
+      Bindings.iter printSymbol bindings;
+
+      let printBuiltinDoc name params = fprintf stream "%s =%s\n" name params in
+      Expander.foreachBaseInstructionDoc printBuiltinDoc;
+      (** zomp.el does not distinguish between toplevel and regular expressions *)
+      Expander.foreachToplevelBaseInstructionDoc printBuiltinDoc;
+
       close_out stream
     with _ ->
       close_out stream)
@@ -630,10 +616,11 @@ let () =
     Expander.makeTranslateIncludeFunction includePath handleLLVMCode
   in
   let addToplevelInstr = Expander.addToplevelInstruction in
-  addToplevelInstr "include" translateInclude;
-  addToplevelInstr "std:base:run" translateRun;
-  addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
-  addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
+  addToplevelInstr "include" "zompSourceFile" translateInclude;
+  addToplevelInstr "std:base:run" "statement..." translateRun;
+  addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
+  addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
+    CompilerInstructions.translateLinkCLib;
 
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in
   printf "Loading prelude took %fs\n" preludeLoadTime;

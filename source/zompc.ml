@@ -229,9 +229,10 @@ let () =
   let translateInclude =
     Expander.makeTranslateIncludeFunction includePath handleLLVMCode
   in
-  addToplevelInstr "include" translateInclude;
-  addToplevelInstr "seq" (Expander.makeTranslateSeqFunction handleLLVMCode);
-  addToplevelInstr "zmp:compiler:linkclib" CompilerInstructions.translateLinkCLib;
+  addToplevelInstr "include" "zompSourceFile" translateInclude;
+  addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
+  addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
+    CompilerInstructions.translateLinkCLib;
 
   let exitCode =
     try

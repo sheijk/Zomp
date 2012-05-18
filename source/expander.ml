@@ -903,8 +903,9 @@ end
 (** A module defining various zomp transformations *)
 module type Zomp_transformer =
 sig
-  val register : (string -> (exprTranslateF env -> Ast2.t -> translationResult) -> unit) -> unit
-  val registerTL : (string -> (toplevelExprTranslateF env -> Ast2.t -> toplevelTranslationResult) -> unit) -> unit
+  (** name, doc, translateFunc *)
+  val register : (string -> (string * (exprTranslateF env -> Ast2.t -> translationResult)) -> unit) -> unit
+  val registerTL : (string -> (string * (toplevelExprTranslateF env -> Ast2.t -> toplevelTranslationResult)) -> unit) -> unit
 end
 
 module Base : Zomp_transformer =
@@ -914,7 +915,7 @@ struct
 
   let reportErrorE expr msg = reportError (errorMsgFromExpr expr msg)
   let reportErrorM msgs = List.iter reportError msgs
-  
+
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
   let translateStructLiteralArgs fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
     let rec handleFieldExprs errors fieldValues undefinedFields =
@@ -1024,7 +1025,7 @@ struct
                           reportErrorE expr "Expecting a constant expression";
                           List.iter (fun f -> reportError (Lang.formToString f)) forms;
                           newBindings, tlforms, ErrorVal "translateGlobalVar"
-                    end                
+                    end
                   | Error messages ->
                     List.iter reportError messages;
                     env.bindings, [], ErrorVal "translateGlobalVar"
@@ -1049,6 +1050,7 @@ struct
         end
       | _ ->
         errorFromExpr expr "Expected 'var typeExpr name initExpr'"
+  let translateGlobalVarD = "type, name, value", translateGlobalVar
 
   let translateDefineLocalVar env expr =
     let transform id name typeExpr valueExpr =
@@ -1133,6 +1135,7 @@ struct
 
       | _ ->
           Error [sprintf "Expecting '%s name valueExpr'" expr.id]
+  let translateDefineLocalVarD = "name, value", translateDefineLocalVar
 
   (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
   let translateAssignVar (env :exprTranslateF env) expr =
@@ -1164,9 +1167,11 @@ struct
           doTranslation id varName rightHandExpr
       | _ ->
           Error ["Expected 'assign varName valueExpr'"]
+  let translateAssignVarD = "var, value", translateAssignVar
 
   let translateSeq (env :exprTranslateF env) expr =
     Result (translatelst env.translateF env.bindings expr.args)
+  let translateSeqD = "ast...", translateSeq
 
   let translateReturn (env :exprTranslateF env) = function
     | { id = id; args = [expr] } ->
@@ -1180,6 +1185,7 @@ struct
       end
     | expr ->
         Error [sprintf "Expected zero or one argument instead of %d" (List.length expr.args)]
+  let translateReturnD = "[value]", translateReturn
 
   let translateLabel (env :exprTranslateF env) expr =
     match expr.args with
@@ -1187,6 +1193,7 @@ struct
           Result( addLabel env.bindings name, [`Label { lname = name; }] )
       | _ ->
           Error ["Expecting one argument which is an identifier"]
+  let translateLabelD = "name", translateLabel
 
   let translateBranch (env :exprTranslateF env) expr =
     match expr.args with
@@ -1215,6 +1222,7 @@ struct
           end
       | _ ->
           Error ["Expected either 'branch labelName' or 'branch boolVar labelOnTrue labelOnFalse'"]
+  let translateBranchD = "label | boolValue labelOnTrue labelOnFalse", translateBranch
 
   let translateLoad (env :exprTranslateF env) expr =
     match expr.args with
@@ -1230,6 +1238,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expecting only one argument"
+  let translateLoadD = "pointer", translateLoad
 
   let translateStore (env :exprTranslateF env) expr =
     match expr.args with
@@ -1246,6 +1255,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected two arguments: 'store ptrExpr valueExpr'"
+  let translateStoreD = "pointer, value", translateStore
 
   let translateMalloc (env :exprTranslateF env) expr =
     let buildMallocInstruction typeExpr countExpr =
@@ -1269,6 +1279,7 @@ struct
           buildMallocInstruction typeExpr countExpr
       | _ ->
           errorFromExpr expr "Expected 'malloc typeExpr countExpr', countExpr being optional"
+  let translateMallocD = "type count?", translateMalloc
 
   let translateNullptr (env :exprTranslateF env) expr =
     match expr.args with
@@ -1279,6 +1290,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected one argument denoting a type: 'nullptr typeExpr'"
+  let translateNullptrD = "type", translateNullptr
 
   let translateGetaddr (env :exprTranslateF env) expr =
     match expr with
@@ -1296,6 +1308,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected one argument denoting an lvalue: 'ptr lvalueExpr'"
+  let translateGetaddrD = "lvalue", translateGetaddr
 
   let translatePtradd (env :exprTranslateF env) expr =
     match expr.args with
@@ -1311,6 +1324,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected two arguments: 'ptradd ptrExpr intExpr'"
+  let translatePtraddD = "ptr, intExpr", translatePtradd
 
   let translateGetfieldptr (env :exprTranslateF env) expr =
     match expr.args with
@@ -1350,6 +1364,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected two arguments: 'fieldptr structExpr id'"
+  let translateGetfieldptrD = "structExpr, fieldName", translateGetfieldptr
 
   let translateCast (env :exprTranslateF env) expr =
     match expr.args with
@@ -1365,6 +1380,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Expected 'cast typeExpr valueExpr'"
+  let translateCastD = "typeExpr, valueExpr", translateCast
 
   let translateDefineVar (env :exprTranslateF env) expr :translationResult =
     let transformUnsafe id name typeExpr valueExpr :translationResult =
@@ -1510,6 +1526,7 @@ struct
               (sprintf "%s, invoked handler for '%s' but can only handle %s and %s"
                  "Internal compiler error"
                  expr.id macroVar macroVar2)
+  let translateDefineVarD = "type, name, [value] | var2 name, value", translateDefineVar
 
   let translateFuncCall (env : 'a env)  expr :translationResult =
     let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
@@ -1595,6 +1612,7 @@ struct
           end
       | _ ->
           errorFromExpr expr "Unrecognized AST shape"
+  let translateFuncCallD = "name, args...", translateFuncCall
 
   (** called by translateApply, not registered under any name *)
   let translateRecordLiteral (env :exprTranslateF env) expr :translationResult =
@@ -1691,29 +1709,29 @@ struct
         errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
 
   let register addF =
-    addF "std:base:localVar" translateDefineLocalVar;
-    addF macroAssign translateAssignVar;
-    addF macroSequence translateSeq;
-    addF macroSeqOp translateSeq;
-    addF macroReturn translateReturn;
-    addF macroLabel translateLabel;
-    addF macroBranch translateBranch;
-    addF macroLoad translateLoad;
-    addF macroStore translateStore;
-    addF macroMalloc translateMalloc;
-    addF macroCast translateCast;
-    addF macroFieldptr translateGetfieldptr;
-    addF macroPtradd translatePtradd;
-    addF macroGetaddr translateGetaddr;
-    addF macroNullptr translateNullptr;
-    addF macroVar translateDefineVar;
-    addF macroVar2 translateDefineVar;
-    addF macroFunCall translateFuncCall;
-    addF macroApply (translateApply translateRecordLiteral)
+    addF "std:base:localVar" translateDefineLocalVarD;
+    addF macroAssign translateAssignVarD;
+    addF macroSequence translateSeqD;
+    addF macroSeqOp translateSeqD;
+    addF macroReturn translateReturnD;
+    addF macroLabel translateLabelD;
+    addF macroBranch translateBranchD;
+    addF macroLoad translateLoadD;
+    addF macroStore translateStoreD;
+    addF macroMalloc translateMallocD;
+    addF macroCast translateCastD;
+    addF macroFieldptr translateGetfieldptrD;
+    addF macroPtradd translatePtraddD;
+    addF macroGetaddr translateGetaddrD;
+    addF macroNullptr translateNullptrD;
+    addF macroVar translateDefineVarD;
+    addF macroVar2 translateDefineVarD;
+    addF macroFunCall translateFuncCallD;
+    addF macroApply ("ast...", translateApply translateRecordLiteral)
 
   let registerTL addF =
-    addF "var" translateGlobalVar;
-    addF macroApply (translateApply alwaysFail)
+    addF "var" translateGlobalVarD;
+    addF macroApply ("ast...", translateApply alwaysFail)
 end
 
 module Compiler_environment : Zomp_transformer =
@@ -1727,8 +1745,8 @@ struct
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
 
   let register addF =
-    addF "std:env:file" translateFileName;
-    addF "std:env:line" translateLineNumber
+    addF "std:env:file" ("", translateFileName);
+    addF "std:env:line" ("", translateLineNumber)
 
   let registerTL addF = ()
 end
@@ -1758,6 +1776,7 @@ struct
         end
       | _ ->
         Error ["Expected 'zmp:array:size arrayExpr'"]
+  let arraySizeD = "array", arraySize
 
   let arrayAddr (env: exprTranslateF env) = function
     | {args = [arrayPtrExpr]} as expr ->
@@ -1781,10 +1800,11 @@ struct
       end
     | _ ->
       Error ["Expected 'zmp:array:addr arrayExpr'"]
+  let arrayAddrD = "arrayPtr", arrayAddr
 
   let register addF =
-    addF "zmp:array:size" arraySize;
-    addF "zmp:array:addr" arrayAddr
+    addF "zmp:array:size" arraySizeD;
+    addF "zmp:array:addr" arrayAddrD
 
   let registerTL addF = ()
 end
@@ -1896,7 +1916,7 @@ struct
 
   let register addF =
     let addOp (name, op) =
-      addF ("zmp:cee:" ^ name) (overloadedOperator op)
+      addF ("zmp:cee:" ^ name) ("T, T", overloadedOperator op)
     in
     List.iter addOp [
       "add", "op+";
@@ -1916,7 +1936,7 @@ struct
       "shr", "op>>";
       "pow", "op**";
     ];
-    let addFun name = addF ("zmp:cee:" ^ name) (overloadedFunction name) in
+    let addFun name = addF ("zmp:cee:" ^ name) ("T", overloadedFunction name) in
     List.iter addFun
       ["print"; "write";
        "toInt"; "toFloat"; "toDouble"; "toBool"; "toChar"; "toCString";
@@ -1927,15 +1947,6 @@ end
 
 let traceMacroExpansion = ref (Some (fun (_ :string) (_ :sexpr) -> ()))
 let setTraceMacroExpansion f = traceMacroExpansion := f
-
-let baseInstructions =
-  let table = Hashtbl.create 32 in
-  let add = Hashtbl.add table in
-  Base.register add;
-  Array.register add;
-  Overloaded_ops.register add;
-  Compiler_environment.register add;
-  table
 
 let translateFromDict
     baseInstructions
@@ -1970,6 +1981,20 @@ let translateFromDict
   with Not_found ->
     None
 
+let translateBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
+  let table = Hashtbl.create 32 in
+  let documentation = Hashtbl.create 32 in
+  let add name (doc, f) =
+    Hashtbl.add documentation name doc;
+    Hashtbl.add table name f
+  in
+  Base.register add;
+  Array.register add;
+  Overloaded_ops.register add;
+  Compiler_environment.register add;
+  let addBaseInstruction name doc f = add name (doc, f) in
+  translateFromDict table, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
+
 let rec translate errorF translators bindings (expr :Ast2.t) =
   (* let s = Ast2.toString expr in *)
   (* let s = expr.id in *)
@@ -2001,13 +2026,13 @@ let rec translateNested (bindings :bindings) (expr :Ast2.sexpr) =
   end;
   translate raiseIllegalExpression
     [
-      translateFromDict baseInstructions translateNested;
-    Translators_deprecated_style.translateRestrictedFunCall;
-    Translators_deprecated_style.translateSimpleExpr;
-    Old_macro_support.translateMacro;
-    Old_macro_support.translateDefineMacro translateNested;
-    Translators_deprecated_style.translateRecord;
-  ]
+      translateBaseInstruction translateNested;
+      Translators_deprecated_style.translateRestrictedFunCall;
+      Translators_deprecated_style.translateSimpleExpr;
+      Old_macro_support.translateMacro;
+      Old_macro_support.translateDefineMacro translateNested;
+      Translators_deprecated_style.translateRecord;
+    ]
   bindings expr
 
 let translateNested = sampleFunc2 "translateNested" translateNested
@@ -2094,18 +2119,24 @@ let translateSeqTL handleLLVMCodeF translateTL env expr =
   translateAndEval handleLLVMCodeF translateTL env expr.args
 
 let () =
-  Hashtbl.add baseInstructions "macro" (Macros.translateDefineMacro translateNested);
-  ()
+  addBaseInstruction "macro" "name, args..., body"
+    (Macros.translateDefineMacro translateNested)
 
-let toplevelBaseInstructions =
+let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
     Hashtbl.create 32
   in
-  (* Hashtbl.add table "macro" (Macros.translateDefineMacro translateNested); *)
-  Hashtbl.add table "macro" (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested));
-  (* Hashtbl.add table "seq" translateSeqTL; *)
-  Base.registerTL (Hashtbl.add table);
-  table
+  let documentation = Hashtbl.create 32 in
+  let add name doc f =
+    Hashtbl.add documentation name doc;
+    Hashtbl.add table name f
+  in
+
+  add "macro" "name, args..., body"
+    (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested));
+  Base.registerTL (fun name (doc, f) -> add name doc f);
+
+  translateFromDict table, add, (fun f -> Hashtbl.iter f documentation)
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
   | { id = "antiquote"; args = [quotedExpr] } ->
@@ -2334,7 +2365,7 @@ and translateTLNoErr bindings expr =
   end;
   translate raiseIllegalExpression
   [
-    sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions translateNested);
+    sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
     sampleFunc3 "translateFunc" translateFunc;
     sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
     sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
@@ -2393,9 +2424,6 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
              end
          | _ ->
              Error ["Expecting 'include \"fileName.zomp\"'"])
-
-let addToplevelInstruction name f =
-  Hashtbl.add toplevelBaseInstructions name f
 
 let makeTranslateSeqFunction handleLLVMCodeF =
   translateSeqTL handleLLVMCodeF translateTLNoErr
