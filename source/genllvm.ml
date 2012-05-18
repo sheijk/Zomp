@@ -328,6 +328,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                 compareIntrinsic typ (typeName ^ ":" ^ zompName) llvmName)
       functionMapping
   in
+
   let floatIntrinsics typ =
     let typeName = typeName typ in
     let functionMappings = [
@@ -347,10 +348,12 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       ["add", "fadd"; "sub", "fsub"; "mul", "fmul"; "fdiv", "fdiv"; "frem", "frem"];
     (* TODO: rename fdiv, fmul, frem *)
   in
+
   let oneArgFunc name f = function
     | [arg] -> f arg
     | _ -> raiseCodeGenError ~msg:(sprintf "Only one argument expected by %s" name)
   in
+
   let convertIntr funcName intrName fromType toType =
     let convertIntrF intrName = oneArgFunc intrName
       (fun arg ->
@@ -358,12 +361,14 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     funcName, `Intrinsic (convertIntrF intrName), toType, ["v", fromType]
   in
+
   let truncIntIntr fromType toType =
     let name = sprintf "%s:to%s" (typeName fromType) (String.capitalize (typeName toType)) in
     let func = oneArgFunc name
       (fun arg -> sprintf "trunc %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
     name, `Intrinsic func, toType, ["v", fromType]
   in
+
   let zextIntr fromType toType =
     let name = sprintf "%s:zextTo%s"
       (typeName fromType)
@@ -374,6 +379,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     name, `Intrinsic func, toType, ["v", fromType]
   in
+
   let intrinsicFuncs =
     [
       twoArgIntrinsic "u32:shl" "shl" `Int32;
@@ -393,13 +399,15 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
-    @ simpleTwoArgIntrinsincs `Int32 "u32" ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    @ simpleTwoArgIntrinsincs `Int32 "u32"
+      ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
     @ floatIntrinsics `Float
     @ floatIntrinsics `Double
     @ compareIntrinsics `Int32 "u32"
     @ compareIntrinsics `Char (typeName `Char)
   in
+
   let builtinMacros =
     let macro name doc f = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = f; }) in
     let quoteMacro =
