@@ -1,12 +1,12 @@
 Machine
 http://sheijk.dword.org/zomp
-	include "zompvm_impl.h"
-	include <caml/mlvalues.h>
-	include <caml/alloc.h>
-	include <caml/memory.h>
+    include "zompvm_impl.h"
+    include <caml/mlvalues.h>
+    include <caml/alloc.h>
+    include <caml/memory.h>
 
-	bool zompInit ()
-	void zompShutdown ()
+    bool zompInit ()
+    void zompShutdown ()
 
     bool zompRequestedPause ()
     void zompSetRequestPause (bool request)
