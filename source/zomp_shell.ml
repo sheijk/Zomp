@@ -395,44 +395,73 @@ end = struct
       printf "Not a command string: '%s'\n" commandLine
 end
 
-let rec readExpr continued previousLines bindings =
+type 'a mayfail =
+  | Result of 'a
+  | Error of string list
+
+let readExpr bindings =
   let silentPrefix = "!silent" in
 
-  let prompt = match continued with
-    | `NotContinued -> !defaultPrompt
-    | `Continued -> !continuedPrompt
-    | `NoPrompt -> ""
+  (** Reads one line of source code. Will interpret and run shell commands *)
+  let rec readSourceLine previousLines =
+    if String.length previousLines = 0 then
+      printf "%s" !defaultPrompt
+    else
+      printf "%s" !continuedPrompt;
+    flush stdout;
+
+    let line = read_line() in
+
+    if line |> beginsWith silentPrefix then begin
+      let command = removeBeginning line (String.length silentPrefix + 1) in
+      Commands.handleCommand command bindings;
+      readSourceLine previousLines
+
+    end else if line = toplevelCommandString then begin
+      printf "Aborted input, cleared \"%s\"\n" previousLines;
+      readSourceLine ""
+
+    end else if nthChar 0 line = Some toplevelCommandChar then begin
+      Commands.handleCommand line bindings;
+      readSourceLine previousLines
+    end else if isWhitespaceString line then begin
+      readSourceLine previousLines
+    end else begin
+      line, previousLines
+    end
   in
-  printf "%s" prompt; flush stdout;
 
-  let line = read_line() in
+  let parse source =
+    match Parseutils.parseIExprs source with
+      | Parseutils.Exprs [expr] -> Result expr
+      | Parseutils.Exprs [] -> Error ["Parser did not return anything"]
+      | Parseutils.Exprs _ -> Error ["Parser returned multiple expressions"]
+      | Parseutils.Error e -> Error [Parseutils.parseErrorToString e]
+  in
 
-  if line |> beginsWith silentPrefix then begin
-    let command = removeBeginning line (String.length silentPrefix + 1) in
-    Commands.handleCommand command bindings;
-    readExpr `NoPrompt previousLines bindings
+  let isBeginIndentLine line = line =~ ".*: *$" in
+  let isEndIndentLine line =
+    (not (isBeginIndentLine line)) && (line =~ "^end$" || line =~ "^end .*")
+  in
 
-  end else if line = toplevelCommandString then begin
-    printf "Aborted input, cleared \"%s\"\n" previousLines;
-    readExpr `NotContinued "" bindings
+  let rec readExprNoPrevLines bindings =
+    let line, _ = readSourceLine "" in
 
-  end else if nthChar 0 line = Some toplevelCommandChar then begin
-    Commands.handleCommand line bindings;
-    readExpr continued previousLines bindings
+    if isBeginIndentLine line then
+      readMultiLineExpr line bindings
+    else
+      parse (line ^ "\n")
 
-  end else begin
-    let expr =
-      let input = previousLines ^ line ^ "\n" in
-      match !parseFunc input with
-        | Some expr -> expr
-        | None ->
-            if isWhitespaceString input then
-              readExpr continued "" bindings
-            else
-              readExpr `Continued input bindings
-    in
-    expr
-  end
+  and readMultiLineExpr previousLines bindings =
+    let nextLine, previousLines = readSourceLine previousLines in
+    let input = previousLines ^ "\n" ^ nextLine ^ "\n" in
+    if isEndIndentLine nextLine then
+      parse input
+    else
+      readMultiLineExpr input bindings
+
+  in
+  readExprNoPrevLines bindings
 
 module CompilerInstructions =
 struct
@@ -533,43 +562,51 @@ let translateRun env expr =
 
 let () =
   at_exit (fun () ->
-             if !showStatsAtExit then (
-               Profiling.printTimings();
-               Indentlexer.printStats();
-               flush stdout;
-               Zompvm.zompPrintStats()));
+    if !showStatsAtExit then (
+      Profiling.printTimings();
+      Indentlexer.printStats();
+      flush stdout;
+      Zompvm.zompPrintStats()));
   Zompvm.zompVerifyCode false;
-  let rec step bindings () =
+  let rec step bindings =
     Compileutils.catchingErrorsDo
-      (fun () -> begin
-         let expr = readExpr `NotContinued "" bindings in
+      (fun () ->
+        begin match readExpr bindings with
+          | Result expr ->
 
-         if !printAst then begin
-           let asString = Ast2.expression2string expr in
-           printf " => %s\n" asString;
-         end;
+            if !printAst then begin
+              let asString = Ast2.expression2string expr in
+              printf " => %s\n" asString;
+            end;
 
-         let newBindings, time = recordTiming
-           (fun () ->
-             Expander.setTraceMacroExpansion
-               (if !traceMacroExpansion then
-                 Some (fun s e -> printf "Expansion step %s:\n%s\n" s (Ast2.toString e))
-               else
-                 None);
-              let newBindings, simpleforms, llvmCode =
-                Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
-              in
-              onSuccess bindings newBindings simpleforms llvmCode;
-              newBindings)
-         in
-         if (time > !notifyTimeThreshold) then
-           printf "Compiling expression took %fs\n" time;
-         step newBindings ()
-       end)
+            let newBindings, time = recordTiming
+              (fun () ->
+                Expander.setTraceMacroExpansion
+                  (if !traceMacroExpansion then
+                      let trace s e =
+                        printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
+                      in
+                      Some trace
+                   else
+                      None);
+                let newBindings, simpleforms, llvmCode =
+                  Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
+                in
+                onSuccess bindings newBindings simpleforms llvmCode;
+                newBindings)
+            in
+            if (time > !notifyTimeThreshold) then
+              printf "Compiling expression took %fs\n" time;
+
+          | Error errors ->
+            printf "Parser errors:\n";
+            List.iter (printf "%s\n") errors;
+            flush stdout
+        end;
+        step bindings)
       ~onError: (fun msg ->
                    printf "%s" msg;
-                   step bindings ()
-                )
+                   step bindings)
   in
 
   let addToplevelBindings bindings = bindings in
@@ -605,8 +642,6 @@ let () =
        end)
   in
 
-  let run bindings = step bindings () in
-
   let message msg = printf "%s\n" msg; flush stdout; in
 
   message (sprintf "Welcome to Zomp shell, version %s%s"
@@ -631,6 +666,6 @@ let () =
   printf "Loading prelude took %fs\n" preludeLoadTime;
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-  run initialBindings
+  step initialBindings
 
 
