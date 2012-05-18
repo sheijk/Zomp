@@ -93,6 +93,8 @@ end = struct
       isValidId "'\\\\'"; (* that's two backslashes in zomp syntax.. *)
       isValidId "'\\''";
 
+      "10 +- 20", `Exception "Invalid infix operator";
+
       (* comments *)
       "a // b c d", `Return [id "a"; END];
       "a /* xxx */ b", `Return [id "a"; id "b"; END];
