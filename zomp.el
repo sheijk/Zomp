@@ -361,6 +361,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 (zomp-dofun zomp-shell-toggle-llvm-printing "!llvm")
 (zomp-dofun zomp-shell-toggle-decl-printing "!printDecl")
 (zomp-dofun zomp-shell-toggle-parsed-ast-printing "!printAst")
+(zomp-dofun zomp-shell-toggle-trace-macros "!traceMacros")
 (zomp-dofun zomp-shell-toggle-verify "!verify")
 
 (defun zomp-shell-sexpr-syntax ()
@@ -721,6 +722,8 @@ editor to trigger recompilations etc. and possibly resume main()"
                    [(control c) (?.) (d)] "Printing of declarations" toggle)
   (zomp-add-action zomp-shell-toggle-parsed-ast-printing
                    [(control c) (?.) (p)] "Printing of parsed ASTs" toggle)
+  (zomp-add-action zomp-shell-toggle-trace-macros
+                   [(control c) (?.) (m)] "Tracing of macro expansion" toggle)
   ;; (zomp-add-action zomp-shell-toggle-verify
   ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
 

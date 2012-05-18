@@ -4,8 +4,13 @@
 
 requireLibs unittest libcee
 
+struct Point:
+  int x
+  int y
+end
+
 ///-----------------------------------------------------------------------------
-/// Section: parametric types
+/// Section: not using parametric type
 ///-----------------------------------------------------------------------------
 
 type NotUsingParamType!T:
@@ -23,6 +28,10 @@ unittest:testCase SimpleParamType:
     v0.b == 20.0
   end
 end
+
+///-----------------------------------------------------------------------------
+/// Section: simple usages
+///-----------------------------------------------------------------------------
 
 type Pointer!T:
   T* ptr
@@ -43,8 +52,30 @@ type OptionalValue!T:
 end
 
 unittest:testCase ParamTypeWithValue:
+  var OptionalValue!Point optpt
+  optpt.value = Point(x=10, y=20)
+  optpt.valid = true
+
   unittest:assertAll:
-    
+    optpt.valid == true
+    optpt.value.x == 10
+    optpt.value.y == 20
+  end
+end
+
+type Twice!T:
+  T first
+  T second
+end
+
+unittest:testCase ParamTypeSimple:
+  var Twice!int twoNumbers
+  twoNumbers.first = 1
+  twoNumbers.second = 2
+
+  unittest:assertAll:
+    twoNumbers.first == 1
+    twoNumbers.second == 2
   end
 end
 

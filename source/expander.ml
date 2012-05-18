@@ -330,7 +330,7 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
       end
     | _ ->
       errorFromExpr typeExpr "Don't know how to interprete as type"
-    
+
 
 module Translators_deprecated_style =
 struct
@@ -1667,6 +1667,7 @@ struct
   let translateApply translateRecordF (env :('a someTranslateF) env) expr =
     match expr with
       | { args = firstArg :: remArgs } -> begin
+        if firstArg.args = [] then begin
           match lookup env.bindings firstArg.id with
             | FuncSymbol _
             | VarSymbol { typ = `Pointer `Function _ } ->
@@ -1676,11 +1677,18 @@ struct
               translateRecordF env (Ast2.shiftLeft expr.args)
 
             | _ ->
-                let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
-                Result r
+              let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
+              Result r
+        end else begin
+          let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
+          let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
+          let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
+          let r = env.translateF env.bindings (Ast2.seqExpr [tempVar; callExpr]) in
+          Result r
         end
+      end
       | { args = [] } ->
-          errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
+        errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
 
   let register addF =
     addF "std:base:localVar" translateDefineLocalVar;
@@ -1717,11 +1725,11 @@ struct
 
   let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
-      
+
   let register addF =
     addF "std:env:file" translateFileName;
     addF "std:env:line" translateLineNumber
-    
+
   let registerTL addF = ()
 end
 
@@ -1917,6 +1925,9 @@ struct
   let registerTL addF = ()
 end
 
+let traceMacroExpansion = ref (Some (fun (_ :string) (_ :sexpr) -> ()))
+let setTraceMacroExpansion f = traceMacroExpansion := f
+
 let baseInstructions =
   let table = Hashtbl.create 32 in
   let add = Hashtbl.add table in
@@ -1934,24 +1945,28 @@ let translateFromDict
     (expr :Ast2.sexpr)
     =
   try
-    let handler = Hashtbl.find baseInstructions expr.id in
-    let env = {
-      bindings = bindings;
-      translateF = translateF;
-      translateExprOld = translateExprOld;
-      translateExpr = (fun env expr ->
-        let newBindings, formsWTL = translateExprOld env.bindings expr in
-        Result (newBindings, formsWTL));
-      parseF = Parseutils.parseIExprsOpt;
-    } in
-    match handler env expr with
-      | Error errors ->
-          print_string (combineErrors "Swallowed errors:\n" errors);
-          print_newline();
-          flush stdout;
-          None
-      | Result (bindings, tlexprs) ->
-          Some (bindings, tlexprs)
+  begin match !traceMacroExpansion with
+    | Some f -> f (sprintf "dict/%s" expr.id) expr
+    | None -> ()
+  end;
+  let handler = Hashtbl.find baseInstructions expr.id in
+  let env = {
+    bindings = bindings;
+    translateF = translateF;
+    translateExprOld = translateExprOld;
+    translateExpr = (fun env expr ->
+      let newBindings, formsWTL = translateExprOld env.bindings expr in
+      Result (newBindings, formsWTL));
+    parseF = Parseutils.parseIExprsOpt;
+  } in
+  match handler env expr with
+    | Error errors ->
+      print_string (combineErrors "Swallowed errors:\n" errors);
+      print_newline();
+      flush stdout;
+      None
+    | Result (bindings, tlexprs) ->
+      Some (bindings, tlexprs)
   with Not_found ->
     None
 
@@ -1979,16 +1994,22 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
   in
   t translators
 
-let rec translateNested translateF bindings = translate raiseIllegalExpression
-  [
-    translateFromDict baseInstructions translateNested;
+let rec translateNested (bindings :bindings) (expr :Ast2.sexpr) =
+  begin match !traceMacroExpansion with
+    | Some f -> f "nested/???" expr
+    | None -> ()
+  end;
+  translate raiseIllegalExpression
+    [
+      translateFromDict baseInstructions translateNested;
     Translators_deprecated_style.translateRestrictedFunCall;
     Translators_deprecated_style.translateSimpleExpr;
     Old_macro_support.translateMacro;
     Old_macro_support.translateDefineMacro translateNested;
     Translators_deprecated_style.translateRecord;
   ]
-  translateF bindings
+  bindings expr
+
 let translateNested = sampleFunc2 "translateNested" translateNested
 
 (* let translateNew bindings expr = *)
@@ -2306,7 +2327,12 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     | `NotAFunc _ ->
         None
 
-and translateTLNoErr bindings expr = translate raiseIllegalExpression
+and translateTLNoErr bindings expr =
+  begin match !traceMacroExpansion with
+    | Some f -> f "tl/???" expr
+    | None -> ()
+  end;
+  translate raiseIllegalExpression
   [
     sampleFunc3 "translateFromDict" (translateFromDict toplevelBaseInstructions translateNested);
     sampleFunc3 "translateFunc" translateFunc;
@@ -2323,7 +2349,7 @@ let translateTL bindings expr = Result (translateTLNoErr bindings expr)
 
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
-  
+
 let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExprTranslateF env) expr =
   let importFile fileName =
     let fileContent =

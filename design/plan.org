@@ -1756,7 +1756,7 @@ end
 
    The primitive lowest level base language into which macros eventually
    translate all code
-   
+
 *** concepts (should be in the base language?)
 **** scoping
 **** execution model
@@ -1805,7 +1805,7 @@ end
    Set of macros and functions providing a simple C like feeling. Incorporating
    some of the features which make C++ nicer (enhanced security, generic
    programming, overloading, etc.)
-   
+
 *** specification
 **** declarations
 ***** types

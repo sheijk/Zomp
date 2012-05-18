@@ -17,6 +17,7 @@ and printDeclarations = ref true
 and llvmEvaluationOn = ref true
 and printForms = ref false
 and showStatsAtExit = ref true
+and traceMacroExpansion = ref false
 
 module StringMap = Map.Make(String)
 
@@ -81,7 +82,8 @@ let makeNoArgCommand f =
       | [] ->
         f bindings
       | (_ :string list) ->
-        eprintf "Expected 0 arguments"
+        eprintf "Expected 0 arguments\n";
+        flush stderr
 
 let makeSingleArgCommand f =
   fun argL bindings ->
@@ -138,6 +140,8 @@ let togglePrintFormsCommand =
   makeToggleCommandForRef printForms "Print translated forms"
 let toggleShowStatsAtExitCommand =
   makeToggleCommandForRef showStatsAtExit "Show stats at exit"
+let toggleTraceMacroExpansionCommand =
+  makeToggleCommandForRef traceMacroExpansion "Trace macro expansion"
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -354,6 +358,7 @@ let commands =
     "help", ["h"], printHelpCommand, "List all toplevel commands";
     "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";
     "load", [], loadCodeCommand, "Load code. Supports .ll files";
+    "traceMacros", [], toggleTraceMacroExpansionCommand, "Toggle tracing of macro expansion";
     "optimize", [], optimizeCommand, "Optimize all functions";
     "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
     "printBaseLang", [], togglePrintFormsCommand, "Toggle printing translated base lang forms";
@@ -555,6 +560,11 @@ let () =
 
          let newBindings, time = recordTiming
            (fun () ->
+             Expander.setTraceMacroExpansion
+               (if !traceMacroExpansion then
+                 Some (fun s e -> printf "Expansion step %s:\n%s\n" s (Ast2.toString e))
+               else
+                 None);
               let newBindings, simpleforms, llvmCode =
                 Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
               in
