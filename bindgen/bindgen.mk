@@ -22,9 +22,12 @@ CLEAN_SUB_TARGETS += bindgen/clean
 bindgen/clean:
 	rm -f bindgen/zomp_bindgen_plugin.o bindgen/zomp_bindgen.dylib
 
-%.bindings: %.c bindgen/zomp_bindgen.dylib
+%.bindings: %.h bindgen/zomp_bindgen.dylib bindgen/bindgen.mk
+	@$(ECHO) Generating Zomp bindings for $< ...
 	$(CLANG) -cc1 -load bindgen/zomp_bindgen.dylib -plugin gen-zomp-bindings $< > $@
 
-%.bindings: %.h bindgen/zomp_bindgen.dylib
+%.bindings: %.c bindgen/zomp_bindgen.dylib bindgen/bindgen.mk
+	@$(ECHO) Generating Zomp bindings for $< ...
 	$(CLANG) -cc1 -load bindgen/zomp_bindgen.dylib -plugin gen-zomp-bindings $< > $@
+
 

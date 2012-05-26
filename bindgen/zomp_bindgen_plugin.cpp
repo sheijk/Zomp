@@ -19,7 +19,7 @@ namespace {
 
 static std::string errorType(const char* msg)
 {
-    return std::string("error_t(\"") + msg + "\")"; 
+    return std::string("error_t(\"") + msg + "\")";
 }
 
 static std::string zompTypeName( const QualType& qual_type );
@@ -67,7 +67,7 @@ static std::string zompTypeName(const Type* t)
         case BuiltinType::ObjCId:
         case BuiltinType::ObjCClass:
         case BuiltinType::ObjCSel:
-            
+
         default:
             return "UnsupportedBuiltinType";
         }
@@ -167,12 +167,52 @@ static std::string zompTypeName( const QualType& qual_type )
     return name;
 }
 
+
+template<typename DeclT>
+const char* declDescription()
+{
+    error_no_definition_for_type( (DeclT*)0 );
+}
+
+template<>
+const char* declDescription<TypedefDecl>()
+{ return "typedef"; }
+
+template<>
+const char* declDescription<EnumDecl>()
+{ return "enum"; }
+
+template<>
+const char* declDescription<RecordDecl>()
+{ return "struct"; }
+
+
 /** Visitor which will handle every top level declaration */
 class GenBindingsConsumer : public ASTConsumer
 {
     ASTContext* m_context;
     SourceManager* m_src_manager;
     FileID m_main_file_id;
+
+    unsigned int lineNumber( const Decl* decl )
+    {
+        return m_src_manager->getSpellingLineNumber( decl->getLocation() );
+    }
+
+    const char* fileName( const Decl* decl )
+    {
+        FileID fileId = m_src_manager->getFileID( decl->getLocation() );
+        const FileEntry* fileEntry = m_src_manager->getFileEntryForID( fileId );
+        return fileEntry->getName();
+    }
+
+    template<typename DeclT>
+    void reportAnonymousDeclIgnored( const DeclT* decl )
+    {
+        llvm::outs() << "// ignoring anonymous " << declDescription<DeclT>()
+            << " " << decl->getName()
+            << "@" << fileName(decl) << ":" << lineNumber(decl) << "\n";
+    }
 
 public:
     GenBindingsConsumer() : m_context(0), m_src_manager(0)
@@ -329,8 +369,7 @@ private:
 
         if( !handled )
         {
-            llvm::outs()
-                << "// ignoring typedef " << type_decl->getName() << "\n";
+            reportAnonymousDeclIgnored( type_decl );
         }
 
         return Handled;
@@ -346,7 +385,7 @@ private:
         if( record_decl->isAnonymousStructOrUnion() ||
             name.empty() )
         {
-            llvm::outs() << "// ignoring anonymous struct\n";
+            reportAnonymousDeclIgnored( record_decl );
         }
         else if( record_decl->isDefinition() )
         {
@@ -392,7 +431,7 @@ private:
 
         if( name.empty() )
         {
-            llvm::outs() << "// ignoring name-less enum\n";
+            reportAnonymousDeclIgnored( enum_decl );
         }
         else if( enum_decl->isComplete() )
         {
@@ -415,7 +454,7 @@ private:
                     << ecd->getInitVal()
                     << "\n";
             }
-        
+
             llvm::outs() << "end\n";
         }
         else
@@ -452,14 +491,14 @@ protected:
     {
         return new GenBindingsConsumer();
     }
-        
+
     bool ParseArgs(
         const CompilerInstance &CI,
         const std::vector<std::string>& args )
     {
         for (unsigned i = 0, e = args.size(); i != e; ++i) {
             llvm::errs() << "PrintFunctionNames arg = " << args[i] << "\n";
-                
+
             // Example error handling.
             if (args[i] == "-an-error") {
                 Diagnostic &D = CI.getDiagnostics();
@@ -471,7 +510,7 @@ protected:
         }
         if (args.size() && args[0] == "help")
             PrintHelp(llvm::errs());
-            
+
         return true;
     }
 
@@ -481,7 +520,7 @@ protected:
             "This makes it easy to use C libaries from Zomp.";
     }
 };
-    
+
 } // anonymous namespace
 
 static FrontendPluginRegistry::Add<GenBindingsAction> X("gen-zomp-bindings", "Generate Zomp bindings");
