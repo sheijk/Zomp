@@ -75,7 +75,23 @@ static std::string zompTypeName(const Type* t)
     else if( const PointerType* pt = dyn_cast<PointerType>(t) )
     {
         QualType base_type = pt->getPointeeType();
-        return zompTypeName(base_type.getTypePtrOrNull()) + "*";
+
+        const Type* type = base_type.getTypePtrOrNull();
+        if ( const ParenType* pt = dyn_cast<ParenType>(type) )
+        {
+            type = pt->getInnerType().getTypePtrOrNull();
+        }
+
+        if ( dyn_cast<FunctionProtoType>(type) )
+        {
+            // Hack to support (fptr ...) without '*' at the end
+            return zompTypeName(type);
+        }
+        else
+        {
+            // return base_type.getTypePtrOrNull()->getAsString();
+            return zompTypeName(type) + "*";
+        }
     }
     else if( const ConstantArrayType* at = dyn_cast<ConstantArrayType>(t) )
     {
@@ -97,19 +113,40 @@ static std::string zompTypeName(const Type* t)
     else if( const FunctionProtoType* ft = dyn_cast<FunctionProtoType>(t) )
     {
         assert(ft);
-        std::ostringstream str;
-        str << zompTypeName( ft->getResultType() );
-        str << "(";
-        for( int argNum = 0, argCount = ft->getNumArgs(); argNum < argCount; ++argNum )
+        if ( false )
         {
-            if( argNum > 0 )
+            /// New style of function pointers not supported in zompc, yet
+            std::ostringstream str;
+            str << zompTypeName( ft->getResultType() );
+            str << "(";
+            for( int argNum = 0, argCount = ft->getNumArgs(); argNum < argCount; ++argNum )
             {
-                str << ", ";
+                if( argNum > 0 )
+                {
+                    str << ", ";
+                }
+                str << zompTypeName( ft->getArgType(argNum) );
             }
-            str << zompTypeName( ft->getArgType(argNum) );
+            str << ")";
+            return str.str();
         }
-        str << ")";
-        return str.str();
+        else
+        {
+            std::ostringstream str;
+            str << "(fptr ";
+            str << zompTypeName( ft->getResultType() );
+            str << " ";
+            for( int argNum = 0, argCount = ft->getNumArgs(); argNum < argCount; ++argNum )
+            {
+                if( argNum > 0 )
+                {
+                    str << " ";
+                }
+                str << zompTypeName( ft->getArgType(argNum) );
+            }
+            str << ")";
+            return str.str();
+        }
     }
     /// A C function like void f(), which takes any number of arguments
     else if( const FunctionNoProtoType* ft = dyn_cast<FunctionNoProtoType>(t) )
