@@ -424,8 +424,6 @@ let readExpr bindings =
     end else if nthChar 0 line = Some toplevelCommandChar then begin
       Commands.handleCommand line bindings;
       readSourceLine previousLines
-    end else if isWhitespaceString line then begin
-      readSourceLine previousLines
     end else begin
       line, previousLines
     end
@@ -433,35 +431,22 @@ let readExpr bindings =
 
   let parse source =
     match Parseutils.parseIExprs source with
-      | Parseutils.Exprs [expr] -> Result expr
-      | Parseutils.Exprs [] -> Error ["Parser did not return anything"]
-      | Parseutils.Exprs _ -> Error ["Parser returned multiple expressions"]
+      | Parseutils.Exprs exprs -> Result exprs
       | Parseutils.Error e -> Error [Parseutils.parseErrorToString e]
   in
 
-  let isBeginIndentLine line = line =~ ".*: *$" in
-  let isEndIndentLine line =
-    (not (isBeginIndentLine line)) && (line =~ "^end$" || line =~ "^end .*")
+  let rec read wsLines previousLines =
+    if wsLines >= 2 then
+      parse previousLines
+    else begin
+      let line, previousLines = readSourceLine previousLines in
+      if isWhitespaceString line then
+        read (wsLines + 1) previousLines
+      else
+        read 0 (previousLines ^ "\n" ^ line)
+    end
   in
-
-  let rec readExprNoPrevLines bindings =
-    let line, _ = readSourceLine "" in
-
-    if isBeginIndentLine line then
-      readMultiLineExpr line bindings
-    else
-      parse (line ^ "\n")
-
-  and readMultiLineExpr previousLines bindings =
-    let nextLine, previousLines = readSourceLine previousLines in
-    let input = previousLines ^ "\n" ^ nextLine ^ "\n" in
-    if isEndIndentLine nextLine then
-      parse input
-    else
-      readMultiLineExpr input bindings
-
-  in
-  readExprNoPrevLines bindings
+  read 0 ""
 
 module CompilerInstructions =
 struct
@@ -568,12 +553,20 @@ let () =
       flush stdout;
       Zompvm.zompPrintStats()));
   Zompvm.zompVerifyCode false;
-  let rec step bindings =
-    Compileutils.catchingErrorsDo
-      (fun () ->
-        begin match readExpr bindings with
-          | Result expr ->
+  let rec step bindings parseState =
+    match parseState with
+      | Error errors ->
+        printf "Parser errors:\n";
+        List.iter (printf "%s\n") errors;
+        flush stdout;
+        step bindings (readExpr bindings)
 
+      | Result [] ->
+        step bindings (readExpr bindings)
+
+      | Result (expr :: remExprs) ->
+        Compileutils.catchingErrorsDo
+          (fun () ->
             if !printAst then begin
               let asString = Ast2.expression2string expr in
               printf " => %s\n" asString;
@@ -597,16 +590,10 @@ let () =
             in
             if (time > !notifyTimeThreshold) then
               printf "Compiling expression took %fs\n" time;
-
-          | Error errors ->
-            printf "Parser errors:\n";
-            List.iter (printf "%s\n") errors;
-            flush stdout
-        end;
-        step bindings)
-      ~onError: (fun msg ->
-                   printf "%s" msg;
-                   step bindings)
+            step newBindings (Result remExprs))
+          ~onError: (fun msg ->
+            printf "%s" msg;
+            step bindings (Result remExprs))
   in
 
   let addToplevelBindings bindings = bindings in
@@ -627,19 +614,19 @@ let () =
     in
     Compileutils.catchingErrorsDo
       (fun () -> begin
-         let preludeBindings = Compileutils.loadPrelude
-           ~appendSource:defaultMainSrc
-           "./"
-         in
-         let initialBindings = addToplevelBindings preludeBindings in
-         initialBindings
-       end)
+        let preludeBindings = Compileutils.loadPrelude
+          ~appendSource:defaultMainSrc
+          "./"
+        in
+        let initialBindings = addToplevelBindings preludeBindings in
+        initialBindings
+      end)
       ~onError:
       (fun msg -> begin
-         printf "%s" msg;
-         eprintf "Could not load prelude. Aborting\n";
-         exit (-2);
-       end)
+        printf "%s" msg;
+        eprintf "Could not load prelude. Aborting\n";
+        exit (-2);
+      end)
   in
 
   let message msg = printf "%s\n" msg; flush stdout; in
@@ -666,6 +653,7 @@ let () =
   printf "Loading prelude took %fs\n" preludeLoadTime;
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-  step initialBindings
+  let `NoReturn = step initialBindings (Result []) in
+  ()
 
 
