@@ -47,11 +47,17 @@ let parseIExprs source =
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   try
     Exprs (parseIExprsFromLexbuf lexbuf lexstate)
-  with exc ->
-    Error {
-      location = Some (Indentlexer.locationOfLexstate lexstate);
-      reason = sprintf "Unknow exception: %s" (Printexc.to_string exc)
-    }
+  with
+    | Newparser.Error ->
+      Error {
+        location = Some (Indentlexer.locationOfLexstate lexstate);
+        reason = "No rule matched";
+      }
+    | exc ->
+      Error {
+        location = Some (Indentlexer.locationOfLexstate lexstate);
+        reason = sprintf "Unknow exception: %s" (Printexc.to_string exc)
+      }
 
 let parseIExprsOpt source =
   match parseIExprs source with
