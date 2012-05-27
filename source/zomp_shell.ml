@@ -18,7 +18,7 @@ and printAst = ref false
 and printDeclarations = ref true
 and llvmEvaluationOn = ref true
 and printForms = ref false
-and showStatsAtExit = ref true
+and showStatsAtExit = ref false
 and traceMacroExpansion = ref false
 
 module StringMap = Map.Make(String)
