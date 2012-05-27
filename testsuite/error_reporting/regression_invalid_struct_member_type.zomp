@@ -1,0 +1,6 @@
+/// Checks if an invalid type in a struct member actually reports that type name
+
+type Broken:
+  NonExistantType field //// error NonExistantType
+end
+

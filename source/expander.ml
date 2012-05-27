@@ -355,8 +355,10 @@ struct
       let expr2component =
         let translate name typeExpr =
           match translateType tempBindings typeExpr with
-            | Result typ -> name, typ
-            | _ -> raise (CouldNotParseType typeName)
+            | Result typ ->
+              name, typ
+            | Error msg ->
+              raiseIllegalExpression typeExpr (Common.combine ", " msg)
         in
         function
           | { id = typeName; args = [{ id = componentName; args = []}] } ->
