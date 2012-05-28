@@ -904,6 +904,11 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           | `Pointer _, `Int32 -> "ptrtoint"
           | `Int32, `Pointer _ -> "inttoptr"
           | `Pointer _, `Pointer _ -> "bitcast"
+          | (#intType as source), (#intType as target) ->
+            if bitcount target > bitcount source then
+              "zext"
+            else
+              "trunc"
           | _, _ ->
               raiseCodeGenError ~msg:(sprintf "Cannot cast from %s to %s"
                                         (typeName valueType) (typeName targetType))

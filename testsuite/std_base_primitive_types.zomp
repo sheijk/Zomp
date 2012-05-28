@@ -1,0 +1,22 @@
+///
+/// Testing operations on primitive types in std::base
+///
+
+requireLibs libcee unittest
+
+unittest:testCase IntConversion:
+  var u64 val64 (cast u64 10)
+  var u32 val32 10
+  var u16 val16 (cast u16 10)
+  var u8 val8 (cast u8 10)
+
+  unittest:assertAll:
+    10 == cast u32 val64
+    10 == val32
+    10 == cast u32 val16
+    10 == cast u32 val8
+  end
+end
+
+unittest:main
+

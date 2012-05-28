@@ -106,6 +106,12 @@ struct
         (* | FloatParam of float *)
         (* ... *)
 
+  let bitcount : intType -> int = function
+    | `Int8 -> 8
+    | `Int16 -> 16
+    | `Int32 -> 32
+    | `Int64 -> 64
+
   let rec isTypeParametric : typ -> bool = function
     | `TypeParam
     | `ParametricType _ ->
