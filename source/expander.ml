@@ -1485,7 +1485,7 @@ struct
 
                   let localVarDefinedTwice loc varName =
                     Error [makeErrorString 1 expr
-                             (sprintf "Local variable name '%s' defined twice" name)]
+                             (sprintf "redefinition of local variable '%s'" name)]
                 end
               in
               Errors.localVarDefinedTwice expr name
