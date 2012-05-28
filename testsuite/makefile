@@ -90,9 +90,9 @@ CHECK_TEST = $(OCAML) str.cma unix.cma $(CHECK_TEST_FILE)
 	@$(ECHO) Running test $(<:.exe=) ...
 	$< > $@
 
-testsuite/%.ll: libs/unittest.zomp
+testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
-%.testreport: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll libs/unittest.zomp
+%.testreport: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll libs/unittest.zomp libs/libcee.zomp
 	@$(ECHO) Running test suite case $< ...
 	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"
 ifeq "$(PRINT_TESTREPORT)" "1"
