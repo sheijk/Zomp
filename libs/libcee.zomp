@@ -1071,8 +1071,12 @@ func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func)
   end}
 end
 
+alias u8:div u8:sdiv l r
+alias u16:div u16:sdiv l r
 alias u32:div u32:sdiv l r
+alias u64:div u64:sdiv l r
 
+// TODO!
 func char char:add(char l, char r):
   ret '?'
 end
@@ -1128,7 +1132,10 @@ macro overloadedOps type:
   ret code
 end
 
+overloadedOps u8
+overloadedOps u16
 overloadedOps u32
+overloadedOps u64
 overloadedOps float
 overloadedOps double
 overloadedOps char

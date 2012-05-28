@@ -385,6 +385,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic func, toType, ["v", fromType]
   in
 
+  let intBinOps =
+    ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+  in
   let intrinsicFuncs =
     [
       twoArgIntrinsic "u32:shl" "shl" `Int32;
@@ -404,12 +407,17 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
-    @ simpleTwoArgIntrinsincs `Int32 "u32"
-      ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    @ simpleTwoArgIntrinsincs `Int8 "u8" intBinOps
+    @ simpleTwoArgIntrinsincs `Int16 "u16" intBinOps
+    @ simpleTwoArgIntrinsincs `Int32 "u32" intBinOps
+    @ simpleTwoArgIntrinsincs `Int64 "u64" intBinOps
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
     @ floatIntrinsics `Float
     @ floatIntrinsics `Double
+    @ compareIntrinsics `Int8 "u8"
+    @ compareIntrinsics `Int16 "u16"
     @ compareIntrinsics `Int32 "u32"
+    @ compareIntrinsics `Int64 "u64"
     @ compareIntrinsics `Char (typeName `Char)
   in
 
