@@ -1071,16 +1071,7 @@ func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func)
   end}
 end
 
-alias u32:greater u32:sgreater l r
-alias u32:greaterEqual u32:sgreaterEqual l r
-alias u32:less u32:sless l r
-alias u32:lessEqual u32:slessEqual l r
 alias u32:div u32:sdiv l r
-
-alias char:greater char:sgreater l r
-alias char:greaterEqual char:sgreaterEqual l r
-alias char:less char:sless l r
-alias char:lessEqual char:slessEqual l r
 
 func char char:add(char l, char r):
   ret '?'

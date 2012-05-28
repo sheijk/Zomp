@@ -322,6 +322,11 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
         "sgreaterEqual", "sge";
         "sless", "slt";
         "slessEqual", "sle";
+
+        "greater", "ugt";
+        "greaterEqual", "uge";
+        "less", "ult";
+        "lessEqual", "ule";
       ]
     in
     List.map (fun (zompName, llvmName) ->
