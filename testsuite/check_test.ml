@@ -2,6 +2,9 @@ open Printf
 
 let scriptName = "check_test"
 
+let testOutputExt = "test_output"
+let reportOutputExt = "testreport"
+
 type usageError =
   | InvalidArguments
   | CompilerFailed of int
@@ -119,6 +122,11 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
 
+let timeStr time =
+  sprintf "%d-%02d-%d %02d:%02d:%02d"
+    (time.Unix.tm_year + 1900) time.Unix.tm_mon time.Unix.tm_mday
+    time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
+
 let () =
   if false then begin
     printf "Called %s\n" (String.concat " " (Array.to_list Sys.argv));
@@ -133,6 +141,17 @@ let () =
   let zompFileName = replaceExtension outputFileName "zomp" in
 
   let makeCommand = Sys.argv.(2) in
+
+  let cleanupFiles() =
+    let extensions = ["bc"; "ll"; "exe"; "test_output"] in
+    List.iter
+      (fun ext ->
+        let name = replaceExtension outputFileName ext in
+        if Sys.file_exists name then
+          Sys.remove name)
+      extensions
+  in
+  cleanupFiles ();
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
@@ -182,6 +201,8 @@ let () =
 
     writeHtmlHeader outFile zompFileName;
     fprintf outFile "<h1>Test report for %s</h1>" zompFileName;
+    fprintf outFile "Executed at %s</br>\n"
+      (timeStr (Unix.localtime (Unix.gettimeofday())));
 
     let errorRe = Str.regexp
       (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
@@ -263,15 +284,16 @@ let () =
     forEachLineInFile compilerMessagesOutputFile checkExpectations;
 
     if compilerError == 0 then begin
-      let testrunOutputFile = replaceExtension zompFileName "test_output" in
+      let testrunOutputFile = replaceExtension zompFileName testOutputExt in
       let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
       let runReturnCode = Sys.command cmd in
-      fprintf outFile "Exited with %d</br>\n" runReturnCode;
-      if runReturnCode != !expectedReturnCode then
-        printf "error: %s:1: exited with code %d instead of %d\n"
-          zompFileName runReturnCode !expectedReturnCode;
       fprintf outFile "<h2>Output</h2>";
       forEachLineInFile testrunOutputFile visitOutputLine;
+
+      fprintf outFile "<i>Exited with %d</i></br>\n" runReturnCode;
+      if runReturnCode != !expectedReturnCode then
+        printf "<i>error: %s:1: exited with code %d instead of %d</i></br>\n"
+          zompFileName runReturnCode !expectedReturnCode;
     end;
 
     List.iter reportMissingDiagnostic !expectedErrorMessages;
