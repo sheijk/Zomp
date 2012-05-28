@@ -5,6 +5,7 @@
 requireLibs libcee
 
 var int unittest:failedCount 0
+var int unittest:testCount 0
 
 ///
 /// An assertion macro which detects certain kinds of expressions and inserts
@@ -81,7 +82,7 @@ func int unittest:printReport():
     ret 1
   end
 
-  println "All unit tests succeeded"
+  println "All " unittest:testCount " unit tests succeeded"
   ret 0
 end
 
@@ -91,6 +92,8 @@ struct TestCase:
   // (fptr void) function
   TestCase* next
 end
+
+var TestCase* unittest:testCases null
 
 func void TestCase:print(TestCase* this):
   printString "TestCase(name="
@@ -117,8 +120,6 @@ func int TestCase:count(TestCase* this):
   ret count
 end
 
-var TestCase* unittest:testCases null
-
 macro unittest:testCaseCount:
   ret ast:fromInt(TestCase:count unittest:testCases)
 end
@@ -139,6 +140,7 @@ macro unittest:testCase name code:
   funcName := (getField case functionName)
   funcDef := ${seq:
     func void #funcName():
+      ++unittest:testCount
       #code
     end
   end}
