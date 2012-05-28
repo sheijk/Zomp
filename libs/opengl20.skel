@@ -1018,7 +1018,7 @@ GL_VERSION_1_2
 	GL_TEXTURE_WRAP_R 0x8072
 	GL_MAX_3D_TEXTURE_SIZE 0x8073
 	GL_TEXTURE_BINDING_3D 0x806A
-    
+
 	void glDrawRangeElements (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices)
 	void glTexImage3D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid* pixels)
 	void glTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid* pixels)
@@ -1168,7 +1168,7 @@ GL_VERSION_1_3
 	void glMultiTexCoord4s (GLenum target, GLshort s, GLshort t, GLshort r, GLshort q)
 	void glMultiTexCoord4sv (GLenum target, const GLshort* v)
 	void glSampleCoverage (GLclampf value, GLboolean invert)
-    
+
 GL_VERSION_1_4
 	GL_GENERATE_MIPMAP 0x8191
 	GL_GENERATE_MIPMAP_HINT 0x8192
@@ -1348,7 +1348,7 @@ http://www.opengl.org/documentation/specs/version1.5/glspec15.pdf
 	void glGetBufferPointerv (GLenum target, GLenum pname, GLvoid** params)
 # 	typedef ptrdiff_t GLsizeiptr
 # 	typedef ptrdiff_t GLintptr
-	
+
 GL_VERSION_2_0
 http://www.opengl.org/documentation/specs/version2.0/glspec20.pdf
 	GL_BLEND_EQUATION 0x8009
@@ -1618,11 +1618,11 @@ GL_EXT_framebuffer_object
 
 	void glGenerateMipmapEXT (GLenum target)
 
-#end of FBO	
+#end of FBO
 
 GLEW
 	void glewInit ()
-    
+
 #	GLuint glcGenTexture ()
 # 	void glcDeleteTexture (GLuint texture)
 #	void glcTexImage2D (GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum dataType)
@@ -1633,14 +1633,21 @@ GLEW
 # 	void glcLight4f (GLenum light, GLenum pname, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
 # 	void glcLight4i (GLenum light, GLenum pname, GLint v0, GLint v1, GLint v2, GLint v3)
 # 	void glcMaterial4f (GLenum face, GLenum pname, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
-    
+
 # OPENGL_GLU
 # 	GLint glucBuild2DMipmaps (GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum # format, GLenum dataType)
 
 GLU
-	const char* gluErrorString (GLenum error)
-
+	GLint gluBuild1DMipmapLevels (GLenum target, GLint internalFormat, GLsizei width, GLenum format, GLenum type, GLint level, GLint base, GLint max, const void* data)
+	GLint gluBuild1DMipmaps (GLenum target, GLint internalFormat, GLsizei width, GLenum format, GLenum type, const void* data)
+	GLint gluBuild2DMipmapLevels (GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, GLint level, GLint base, GLint max, const void* data)
+	GLint gluBuild2DMipmaps (GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* data)
+	GLint gluBuild3DMipmapLevels (GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLint level, GLint base, GLint max, const void* data)
+	GLint gluBuild3DMipmaps (GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void* data)
+	GLboolean gluCheckExtension (const GLubyte* extName, const GLubyte* extString)
+	const GLubyte* gluErrorString (GLenum error)
+	const GLubyte* gluGetString (GLenum name)
+	void gluOrtho2D (GLdouble left, GLdouble right, GLdouble bottom, GLdouble top)
 	void gluPerspective (GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
-
 	void gluLookAt (GLdouble eyeX, GLdouble eyeY, GLdouble eyeZ, GLdouble centerX, GLdouble centerY, GLdouble centerZ, GLdouble upX, GLdouble upY, GLdouble upZ)
-    
+
