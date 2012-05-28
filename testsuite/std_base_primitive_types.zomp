@@ -5,16 +5,57 @@
 requireLibs libcee unittest
 
 unittest:testCase IntConversion:
-  var u64 val64 (cast u64 10)
-  var u32 val32 10
-  var u16 val16 (cast u16 10)
   var u8 val8 (cast u8 10)
+  var u16 val16 (cast u16 10)
+  var u32 val32 10
+  var u64 val64 (cast u64 10)
 
   unittest:assertAll:
     10 == cast u32 val64
     10 == val32
     10 == cast u32 val16
     10 == cast u32 val8
+  end
+end
+
+unittest:testCase FloatConversion:
+  unittest:assertAll:
+    16.0d == cast double 16.0f
+    32.0f == cast float 32.0d
+  end
+end
+
+unittest:testCase FloatIntConversion:
+  // u8, u16, u32, u64
+  // float, double
+
+  var u64 val64 (cast u64 16)
+  var u32 val32 16
+  var u16 val16 (cast u16 16)
+  var u8 val8 (cast u8 16)
+  var float valf 16.0f
+  var double vald 16.0d
+
+  unittest:assertAll:
+    val8 == cast u8 valf
+    val16 == cast u16 valf
+    val32 == cast u32 valf
+    val64 == cast u64 valf
+
+    val8 == cast u8 vald
+    val16 == cast u16 vald
+    val32 == cast u32 vald
+    val64 == cast u64 vald
+
+    valf == cast float val8
+    valf == cast float val16
+    valf == cast float val32
+    valf == cast float val64
+
+    vald == cast double val8
+    vald == cast double val16
+    vald == cast double val32
+    vald == cast double val64
   end
 end
 

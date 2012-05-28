@@ -394,6 +394,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       twoArgIntrinsic "u32:lshr" "lshr" `Int32;
       twoArgIntrinsic "u32:ashr" "ashr" `Int32;
 
+      (** deprecated *)
       convertIntr "float:toInt" "fptosi" `Float `Int32;
       convertIntr "int:toFloat" "sitofp" `Int32 `Float;
       convertIntr "int:toDouble" "sitofp" `Int32 `Double;
@@ -401,9 +402,11 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       convertIntr "float:toDouble" "fpext" `Float `Double;
       convertIntr "double:toFloat" "fptrunc" `Double `Float;
 
+      (** deprecated *)
       truncIntIntr `Int32 `Char;
       zextIntr `Char `Int32;
 
+      (** deprecated *)
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
@@ -917,11 +920,26 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           | `Pointer _, `Int32 -> "ptrtoint"
           | `Int32, `Pointer _ -> "inttoptr"
           | `Pointer _, `Pointer _ -> "bitcast"
+
           | (#intType as source), (#intType as target) ->
             if bitcount target > bitcount source then
               "zext"
             else
               "trunc"
+
+          | `Float, `Double ->
+            "fpext"
+          | `Double, `Float ->
+            "fptrunc"
+
+          | #intType, `Float
+          | #intType, `Double ->
+            "sitofp"
+
+          | `Float, #intType
+          | `Double, #intType ->
+            "fptosi"
+
           | _, _ ->
               raiseCodeGenError ~msg:(sprintf "Cannot cast from %s to %s"
                                         (typeName valueType) (typeName targetType))
