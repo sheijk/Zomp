@@ -252,8 +252,18 @@ let () =
               (String.concat ", " args)
     in
 
+    let writeHeader n header =
+      fprintf outFile "<h%d>%s</h%d>\n" n header n
+    in
+
+    let inMonospace f =
+      fprintf outFile "<p><span style=\"font-family:monospace\">\n";
+      f();
+      fprintf outFile "</span></p>\n"
+    in
+
     forEachLineInFile zompFileName collectExpectations;
-    fprintf outFile "<h2>Expectations</h2>\n";
+    writeHeader 2 "Expectations";
     List.iter writeExpectation !expectedErrorMessages;
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
@@ -273,26 +283,26 @@ let () =
       forEachLineInFile compilerMessagesOutputFile printLine;
       print_newline();
     end else if not !expectedCompilationSuccess && compilerError = 0 then begin
-      printf "%s:1: error: compilation succeeded, but unit test expected errors\n" zompFileName;
+      printf "%s:1: error: compilation succeeded, but unit test expected errors\n"
+        zompFileName;
     end;
 
-    let writeHeader n header =
-      fprintf outFile "<h%d>%s</h%d>" n header n
-    in
-
     writeHeader 2 "Compiler output";
-    forEachLineInFile compilerMessagesOutputFile checkExpectations;
+    inMonospace (fun () ->
+      forEachLineInFile compilerMessagesOutputFile checkExpectations);
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName testOutputExt in
       let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
       let runReturnCode = Sys.command cmd in
-      fprintf outFile "<h2>Output</h2>";
-      forEachLineInFile testrunOutputFile visitOutputLine;
 
-      fprintf outFile "<i>Exited with %d</i></br>\n" runReturnCode;
+      writeHeader 2 "Output";
+      inMonospace (fun () ->
+        forEachLineInFile testrunOutputFile visitOutputLine);
+
+      fprintf outFile "Exited with %d<br />\n" runReturnCode;
       if runReturnCode != !expectedReturnCode then
-        printf "<i>error: %s:1: exited with code %d instead of %d</i></br>\n"
+        printf "error: %s:1: exited with code %d instead of %d<br />\n"
           zompFileName runReturnCode !expectedReturnCode;
     end;
 
