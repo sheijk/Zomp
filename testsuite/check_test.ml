@@ -208,7 +208,7 @@ let () =
       (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
     in
     let checkExpectations _ line =
-      fprintf outFile "%s<br />\n" line;
+      fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
       let isErrorMessage = Str.string_match errorRe line 0 in
       if isErrorMessage then begin
