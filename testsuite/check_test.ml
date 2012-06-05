@@ -127,6 +127,38 @@ let timeStr time =
     (time.Unix.tm_year + 1900) time.Unix.tm_mon time.Unix.tm_mday
     time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
 
+let deleteOutputFiles outputFileName =
+  let extensions = ["bc"; "ll"; "exe"; "test_output"] in
+  List.iter
+    (fun ext ->
+      let name = replaceExtension outputFileName ext in
+      if Sys.file_exists name then
+        Sys.remove name)
+    extensions
+
+let addToList item refToList = refToList := item :: !refToList
+
+let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages kindStr args lineNum =
+  try
+    let kind = expectationOfString kindStr in
+    begin match kind with
+      | ErrorMessage ->
+        expectedCompilationSuccess := false
+      | WarningMessage | PrintMessage ->
+        ()
+    end;
+    addToList (kind, args, lineNum, ref false) expectedErrorMessages
+  with Failure _ ->
+    printf "%s:%d: warning: invalid expectation kind '%s'. Expected error, warning or print\n"
+      zompFileName lineNum kindStr
+
+let collectExpectations addExpectation lineNum line =
+  if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
+    let kind = Str.matched_group 1 line in
+    let args = Str.split (Str.regexp " +") (Str.matched_group 2 line) in
+    addExpectation kind args lineNum
+  end
+
 let () =
   if false then begin
     printf "Called %s\n" (String.concat " " (Array.to_list Sys.argv));
@@ -142,44 +174,26 @@ let () =
 
   let makeCommand = Sys.argv.(2) in
 
-  let cleanupFiles() =
-    let extensions = ["bc"; "ll"; "exe"; "test_output"] in
-    List.iter
-      (fun ext ->
-        let name = replaceExtension outputFileName ext in
-        if Sys.file_exists name then
-          Sys.remove name)
-      extensions
-  in
-  cleanupFiles ();
+  deleteOutputFiles outputFileName;
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
-  let expectedReturnCode = ref 0 in
-  let addToList item refToList = refToList := item :: !refToList in
-  let addExpectation kindStr args lineNum =
-    try
-      let kind = expectationOfString kindStr in
-      begin match kind with
-        | ErrorMessage ->
-          expectedCompilationSuccess := false
-        | WarningMessage | PrintMessage ->
-          ()
-      end;
-      addToList (kind, args, lineNum, ref false) expectedErrorMessages
-    with Failure _ ->
-      printf "%s:%d: warning: invalid expectation kind '%s'. Expected error, warning or print\n"
-        zompFileName lineNum kindStr
+  let addExpectation =
+    addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
   in
-  let collectExpectations lineNum line =
-    if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
-      let kind = Str.matched_group 1 line in
-      let args = Str.split (Str.regexp " +") (Str.matched_group 2 line) in
-      addExpectation kind args lineNum
-    end
-  in
+  let collectExpectations = collectExpectations addExpectation in
 
-  let writeReport outFile =
+  withOpenFileOut outputFileName (fun outFile ->
+    let writeHeader n header =
+      fprintf outFile "<h%d>%s</h%d>\n" n header n
+    in
+
+    let inMonospace f =
+      fprintf outFile "<p><span style=\"font-family:monospace\">\n";
+      f();
+      fprintf outFile "</span></p>\n"
+    in
+
     let writeExpectation (kind, args, lineNum, found) =
       fprintf outFile "%s:%d: expecting %s containing word%s %s<br />\n"
         zompFileName
@@ -200,11 +214,6 @@ let () =
           found := true
       end
     in
-
-    writeHtmlHeader outFile zompFileName;
-    fprintf outFile "<h1>Test report for %s</h1>" zompFileName;
-    fprintf outFile "Executed at %s</br>\n"
-      (timeStr (Unix.localtime (Unix.gettimeofday())));
 
     let errorRe = Str.regexp
       (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
@@ -254,15 +263,12 @@ let () =
               (String.concat ", " args)
     in
 
-    let writeHeader n header =
-      fprintf outFile "<h%d>%s</h%d>\n" n header n
-    in
+    (** code *)
 
-    let inMonospace f =
-      fprintf outFile "<p><span style=\"font-family:monospace\">\n";
-      f();
-      fprintf outFile "</span></p>\n"
-    in
+    writeHtmlHeader outFile zompFileName;
+    fprintf outFile "<h1>Test report for %s</h1>" zompFileName;
+    fprintf outFile "Executed at %s</br>\n"
+      (timeStr (Unix.localtime (Unix.gettimeofday())));
 
     forEachLineInFile zompFileName collectExpectations;
     writeHeader 2 "Expectations";
@@ -304,14 +310,18 @@ let () =
         forEachLineInFile testrunOutputFile visitOutputLine);
 
       fprintf outFile "Exited with %d<br />\n" runReturnCode;
-      if runReturnCode != !expectedReturnCode then
-        printf "error: %s:1: exited with code %d instead of %d<br />\n"
-          zompFileName runReturnCode !expectedReturnCode;
+      let testF, expectedReturn =
+        if !expectedCompilationSuccess then
+          ((==) 0), "0"
+        else
+          ((!=) 0), "not 0"
+      in
+      if (not (testF runReturnCode)) then
+        printf "error: %s:1: exited with code %d instead of %s<br />\n"
+          zompFileName runReturnCode expectedReturn
     end;
 
     List.iter reportMissingDiagnostic !expectedErrorMessages;
 
-    fprintf outFile "</html>"
-  in
-  withOpenFileOut outputFileName writeReport
+    fprintf outFile "</html>")
 
