@@ -181,9 +181,11 @@ let () =
 
   let writeReport outFile =
     let writeExpectation (kind, args, lineNum, found) =
-      fprintf outFile "Expecting %s at line %d containing words %s<br />\n"
-        (expectationToString kind)
+      fprintf outFile "%s:%d: expecting %s containing word%s %s<br />\n"
+        zompFileName
         lineNum
+        (expectationToString kind)
+        (if List.length args > 1 then "s" else "")
         (String.concat ", " args)
     in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
@@ -264,7 +266,8 @@ let () =
 
     forEachLineInFile zompFileName collectExpectations;
     writeHeader 2 "Expectations";
-    List.iter writeExpectation !expectedErrorMessages;
+    inMonospace (fun () ->
+      List.iter writeExpectation !expectedErrorMessages);
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
     let compilerError =
