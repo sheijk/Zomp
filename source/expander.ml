@@ -1443,10 +1443,10 @@ struct
               match valueExpr with
                 | None ->
                     let var = variable name typ MemoryStorage false in
-                    Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
+                    Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, None)] )
                 | Some valueExpr ->
                     let var = variable name typ MemoryStorage false in
-                    Result( addVar env.bindings var, [ `DefineVariable (var, Some (`Sequence implForms)) ] )
+                    Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, Some (`Sequence implForms))] )
             end
         | `TypeRef _ ->
             raiseIllegalExpression expr "Internal error: received unexpected type ref"

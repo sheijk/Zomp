@@ -11,6 +11,21 @@ end
 
 var char* multiline "line0\nline1\n"
 
+struct String:
+  char* content
+  int length
+end
+
+func String makeString(char* str):
+  return String(content = str, length = strlen str)
+end
+
+/// Tests for a regression where global string data for string literal was not
+/// produced for functions returning a struct
+func void regressionCheck():
+  str := makeString "foobar"
+end
+
 func int main():
   var char* simpleString "this be a simple string"
   var char* simpleString2 "another string"
