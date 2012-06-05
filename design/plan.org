@@ -3,6 +3,75 @@
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
 * To be sorted
+** simpler indentation rules
+   - get rid of current indentation block syntax
+   - instead a block simply starts when adding more indent, ends when back to
+     original indent
+   - continued lines require trailing '\'
+   - for macro expansion fuse together following blocks if their id is marked as a
+     "macro continuation". Those ids cannot be used for functions, macros, etc.
+
+*** Open questions
+    - Would this be too confusing?
+    - What happens on collision between macro continuation and other binding?
+      Warning? Error?
+    - Better name for "macro continuation". "Macro argument"?
+    - might this prevent doing things we'd like to do?
+      do/while loops, etc.?
+
+      while cond
+        do_stuff
+
+      until endcond
+        do_stuff
+
+      do
+        stuff
+      until foo // problem!
+
+      do
+        foobar()
+      while ok() // problem!
+
+      loop while cond
+        do_stuff
+        and more()
+
+      loop until foo
+        stuff
+
+      loop
+        index i from 10 to 20
+        for item in list
+        while
+      do
+        stuff with i and item
+
+      loop to 10
+        print lalal
+
+      switch value
+      case a
+        handle a
+      case b
+        handle b
+      default
+        handle 0
+
+      match ast
+      case (a + 0) or (0 + a) or (a * 1) or (1 * a)
+        return a
+      case (a ** num) if num.isConstant
+        return makeOptimizedPower(a, num)
+
+      labels
+      label a
+        branch (x > 10) b c
+      label b
+        do stuff
+        goto c
+      label c
+
 ** what is a zomp program
 - a program is something you can run. When run it consumes an input and
   produces an output and side effects
