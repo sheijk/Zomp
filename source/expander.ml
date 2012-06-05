@@ -1548,21 +1548,26 @@ struct
         toplevelForms, argForm
       in
       let rec evalArgs argExprs paramTypes =
-        (match argExprs, paramTypes with
-           | argExpr :: remArgs, paramType :: remParams ->
-               evalArg argExpr (Some paramType) :: evalArgs remArgs remParams
-           | argExpr :: remArgs, [] ->
-               evalArg argExpr None :: evalArgs remArgs []
-           | [], []->
-               []
-           | [], _ ->
-               failwith "too many argument types in translateFuncCall")
+        match argExprs, paramTypes with
+          | argExpr :: remArgs, paramType :: remParams ->
+            evalArg argExpr (Some paramType) :: evalArgs remArgs remParams
+          | argExpr :: remArgs, [] ->
+            evalArg argExpr None :: evalArgs remArgs []
+          | [], []->
+            []
+          | [], _ ->
+            failwith "too many argument types in translateFuncCall"
       in
       let paramCount = List.length argTypes
       and argCount = List.length args in
-      if (if hasVarArgs then argCount < paramCount else argCount != paramCount) then
-        errorFromExpr expr (sprintf "Expected %d params, but called with %d args"
-                              paramCount argCount)
+      if (hasVarArgs && argCount < paramCount) then
+        errorFromExpr expr
+          (sprintf "Expected %d parameters or more, but called with %d args"
+             paramCount argCount)
+      else if (not hasVarArgs && argCount != paramCount) then
+        errorFromExpr expr
+          (sprintf "Expected %d parameters, but called with %d args"
+             paramCount argCount)
       else
         let x = evalArgs args argTypes in
         let toplevelForms, argForms = flattenLeft x in
