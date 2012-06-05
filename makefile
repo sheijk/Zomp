@@ -46,10 +46,10 @@ include flymake.mk
 CLEAN_SUB_TARGETS =
 
 -include depends.mk
-include testsuite/makefile
-include libs/makefile
-include examples/makefile
-include examples/smallpt/makefile
+include testsuite/testsuite.mk
+include libs/libs.mk
+include examples/examples.mk
+include examples/smallpt/smallpt.mk
 include bindgen/bindgen.mk
 
 PATH := $(LLVM_BIN_DIR):$(PATH)
