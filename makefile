@@ -35,6 +35,8 @@ debug:
 	@$(ECHO) "ZOMP_MAIN_MAKEFILE = $(ZOMP_MAIN_MAKEFILE)"
 ifneq "$(PRINT_VAR)" ""
 	@$(ECHO) "$(PRINT_VAR) = " $($(PRINT_VAR))
+else
+	@$(ECHO) "Use PRINT_VAR=foo to print foo"
 endif
 
 ZOMP_DIR = $(PWD)
@@ -43,6 +45,7 @@ include config.mk
 FLYMAKE_LOG=flymake.log
 include flymake.mk
 
+# Extended by included makefiles
 CLEAN_SUB_TARGETS =
 
 -include depends.mk
