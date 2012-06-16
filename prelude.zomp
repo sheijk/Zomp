@@ -838,6 +838,21 @@ alias int:min u32:min l r
 alias int:max u32:max l r
 
 ///-----------------------------------------------------------------------------
+/// Section: misc
+///-----------------------------------------------------------------------------
+
+std:base:func bool zmp:prelude:setFromString(bool* target, cstring value):
+  if (cstring:equal value "true"):
+    store target true
+    ret true
+  elseif (cstring:equal value "false"):
+    store target false
+    ret true
+  end
+  ret false
+end
+
+///-----------------------------------------------------------------------------
 /// Section: external libraries
 ///-----------------------------------------------------------------------------
 
@@ -872,11 +887,7 @@ end
 var bool requireLibDebug false
 
 macro static:setRequireLibDebug value:
-  if (cstring:equal getField(value,id) "true"):
-    requireLibDebug = true
-  elseif (cstring:equal getField(value,id) "false"):
-    requireLibDebug = false
-  else:
+  unless zmp:prelude:setFromString(ptr requireLibDebug, getField value id):
     ret ${error #value "Expecting 'true' or 'false'"}
   end
 
