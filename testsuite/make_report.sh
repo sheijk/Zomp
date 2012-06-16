@@ -27,7 +27,9 @@ TOTAL=0
 for test in $@
 do
     TOTAL=$(($TOTAL + 1))
-    output "<tr> <th>${test}</th>"
+    output "<tr>"
+    outputLinkIfExists "${test}.zomp" "${test}"
+    # output "<tr> <th>${test}</th>"
 
     if [ -e ${test}.ll ];
     then
