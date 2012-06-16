@@ -509,6 +509,8 @@ macro func args...:
     ret ${error "Expected 'func rettype name(param list..) impl?" #args}
   end
 
+  zmp:prelude:logFunctionCompilation args
+
   rettype := ast:child args 0
   nameAndArgs := ast:child args 1
   name := cstring:quote(getField(ast:child nameAndArgs 0, id))

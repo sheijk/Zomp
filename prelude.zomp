@@ -967,7 +967,30 @@ template dfunc returnType nameAndOps:
   std:base:func #returnType #nameAndOps
 end
 
+var bool zmp:prelude:printCompiliationProgress false
+
+macro static:logCompilationProgress value:
+  unless zmp:prelude:setFromString(ptr zmp:prelude:printCompiliationProgress,
+      getField value id):
+    ret ${error #value "Expecting 'true' or 'false'"}
+  end
+
+  ret ${}
+end
+
+std:base:func void zmp:prelude:logFunctionCompilation(ast* args):
+  if zmp:prelude:printCompiliationProgress:
+    printString "Compiling method"
+    printNewline()
+    if u32:greater(getField args childCount, 2):
+      ast:print (ast:child args 1) 2
+    end
+  end
+end
+
 macro func args...:
+  zmp:prelude:logFunctionCompilation args
+
   var ast* code ${std:base:func}
   forEachAstChild child args:
     ast:addChild code child
