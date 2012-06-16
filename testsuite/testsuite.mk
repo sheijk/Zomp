@@ -73,7 +73,7 @@ testsuite/cee.ll: libs/libcee.zomp libs/unittest.zomp
 testsuite/astmatch.ll: libs/libcee.zomp
 testsuite/math.ll: libs/math.zomp
 
-testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid prelude.zomp source/runtime.c testsuite/makefile
+testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid prelude.zomp source/runtime.c testsuite/testsuite.mk
 
 # the same w/o dependency on itself
 testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
@@ -86,13 +86,13 @@ CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma unix.cma $(CHECK_TEST_FILE)
 
 .PRECIOUS: %.test_output
-%.test_output: %.exe $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile
+%.test_output: %.exe $(ZOMPC) $(CHECK_TEST_FILE) testsuite/testsuite.mk
 	@$(ECHO) Running test $(<:.exe=) ...
 	$< > $@
 
 testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
-%.testreport: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/makefile source/runtime.ll libs/unittest.zomp libs/libcee.zomp
+%.testreport: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
 	@$(ECHO) Running test suite case $< ...
 	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"
 ifeq "$(PRINT_TESTREPORT)" "1"
@@ -112,7 +112,7 @@ testsuite/prelude_is_valid: testsuite/preludevalid.testreport
 
 PRINT_TESTREPORT = 0
 
-testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/makefile
+testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/testsuite.mk
 	$(CHECK_TEST) ${<:.zomp=.testreport} 2>&1 > $@.tmp
 	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
 	mv $@.tmp $@
