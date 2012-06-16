@@ -274,6 +274,7 @@ std:base:func astp ast:child((ptr ast) parent, int index):
   label onError
   printf "ast:child($(|%s [%d childs]...), %d) out of bounds\n"
     (getField parent id) childCount index
+  ast:print parent 2
   std:base:ret nullptr(ast)
 end
 
