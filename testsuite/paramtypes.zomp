@@ -10,7 +10,7 @@ struct Point:
 end
 
 ///-----------------------------------------------------------------------------
-/// Section: not using parametric type
+/// Section: not using type parameter
 ///-----------------------------------------------------------------------------
 
 type NotUsingParamType!T:
@@ -89,14 +89,11 @@ type Array!T:
   T* address
 end
 
-// type Ptr!T T*
-
 // type List!T:
 //   Element data
 //   List!T* next
 // end
 
-// type Ptr!T T*
 // type Arr10!T T[10]
 
 /// parametric struct containing instatiation of other parametric type

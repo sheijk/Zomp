@@ -1,0 +1,52 @@
+///
+/// Generic functions
+///
+
+requireLibs libcee unittest
+
+func void printGenericPtr!T(T* ptr):
+  printPtr (cast void* ptr)
+end
+
+unittest:testCase GenericFunctionSimple:
+  i0 := nullptr int
+  f0 := nullptr float
+
+  //// print i0 0x0
+  print "i0 = "
+  printGenericPtr i0
+  println()
+
+  //// print f0 0x0
+  print "f0 = "
+  printGenericPtr f0
+  println()
+end
+
+//------------------------------------------------------------------------------
+
+// type RefCounted!T:
+//   T value
+//   int refCount
+// end
+// 
+// func void retain!T(RefCounted!T* rc):
+//   println "lalal"
+//   // ++rc.refCount
+// end
+// 
+// unittest:testCase GenericFunctionNotUsingTypeParams:
+//   // rc := RefCounted!float(value = 3.0, refCount = 0)
+//   // retain(&rc)
+// 
+//   unittest:assertAll:
+//     // rc.refCount == 1
+//     // rc.value == 3.0
+//   end
+//   return
+// end
+
+//------------------------------------------------------------------------------
+
+unittest:main
+
