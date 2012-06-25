@@ -2,6 +2,7 @@
 #+STARTUP: fold
 #+COLUMNS: %TODO %PRIORITY %TAGS
 
+
 * To be sorted
 ** simpler indentation rules
    - get rid of current indentation block syntax
@@ -212,14 +213,8 @@
    :PROPERTIES:
    :ID:       70F79130-E6F6-4FDE-BD1A-C9ABA67BF629
    :END:
-** TODO [#A] also haskell "views" http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
-   :PROPERTIES:
-   :ID:       70D7C688-B38A-4793-88C8-993734FF9672
-   :END:
-** TODO [#A] scala "extractors", F# "active patterns"
-   :PROPERTIES:
-   :ID:       587416B4-6DA3-4DF0-9300-1A6B39AF07FE
-   :END:
+http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
+*** TODO [#A] scala "extractors", F# "active patterns"
 ** TODO llvm: always inliner pass, createFunctionInliningPass
    :PROPERTIES:
    :ID:       3C839D41-7160-4500-B3DF-9DFB55839324
@@ -1727,6 +1722,7 @@ unittest:testCase tmp:
   unittest:assertAll:
   end
 end
+** TODO [#A] allow C-c C-k to abort compilation, as well
 * Use Cases                                                            :usecase:
 ** .obj Loader [0/2]
    :PROPERTIES:
@@ -1820,7 +1816,6 @@ end
           seperate unit tests
     - [X] support in toplevel and compiler
 * Language design                                                  :design:lang:
-
 ** zomp-base
 
    The primitive lowest level base language into which macros eventually
@@ -1832,19 +1827,27 @@ end
 *** declarations
 **** types
 ****** primitive types
-******* int8, int16, int32, int64
-******* uint8, uint16, uint32, uint64
-******* float, double
-******* half
-******* int128, uint128
-****** void 
-       instances of this can be created and copied although they carry no
-       information will simplify writing generic code
-****** structs
+******* void 
+        instances of this can be created and copied although they carry no
+        information will simplify writing generic code
+******* bool
+******* signed int (8/16/32/64/128/*)
+******* unsigned int (8/16/32/64/128/*)
+******* float, double, half
+******* char
+        maybe not?
+****** aggregate types
+******* structs
+******* arrays
+******* pointers
+******* references(?)
+******* function pointers
+****** type aliases / typedef
 ****** named types
        new type based on existing one, but no implicit conversion
-****** pointers/references
-****** function pointers
+****** error type(?)
+       maybe only implementation detail
+       but might be useful if macros can be overloaded based on argument types
 **** global variables
 **** global constants
 **** functions
@@ -1868,6 +1871,23 @@ end
 
      T? for reference which might be null
      T& for reference which always points to a valid object
+
+** zomp-plus
+
+   Everything in zomp-base plus some extensions which might be universally
+   useful.
+
+*** Parametric types
+**** Can have type parameters
+**** Instantiated to produce zomp-base type
+*** Generic functions
+**** Can have type parameter
+**** Unification with arguments to infer parameter types
+**** Specialization for specific type parameters on request
+*** Overloaded functions
+*** Implicit parameters
+
+*** Algorithmic data types + pattern matching
 
 ** zomp-cee                                                                :cee:
 
@@ -2261,7 +2281,6 @@ end
 #+TBLFM: $3=@2$2/$2::$5=@2$4/$4
 
 ** BUGS
-
 *** TODO [#C] keine fehler ausgabe im prelude?                             :bug:
     :PROPERTIES:
     :ID:       215ACAC5-BB0F-4870-870C-65C8335EFBCF
@@ -2407,7 +2426,6 @@ In macro expansion the \0 will be replaced by an !
    Rename all other functions(?) like zomp_${name}
 
 ** Fix language quirks
-
 *** TODO [#B] ast von cstring auf string umstellen
     :PROPERTIES:
     :ID:       011B3CD7-86D9-4ECA-B0D8-4033703371F9
@@ -2514,7 +2532,6 @@ In macro expansion the \0 will be replaced by an !
       (var cstring #name (newUniqueNameFor #purpose)) ))
 
 ** Refactorings                                                   :refactorings:
-
 *** TODO [#A] unit tests still use identifiers with dots (line 'int.add') - change this to colon (int:add) :refactorings:quick:
     :PROPERTIES:
     :ID:       446E1D0A-34B9-4D07-98A6-D8974A66DB59
