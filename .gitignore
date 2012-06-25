@@ -153,3 +153,5 @@ tools
 /source/vmserver/vmserver.vcxproj.user
 /vm_http_server
 /source/vmserver/Release
+/testsuite/*_flymake.*
+/testsuite/check_test.annot
