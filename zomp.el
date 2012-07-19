@@ -91,6 +91,7 @@ indent the next line when they occur at the beginning of a line"
         (nil ,(zomp-id "^(?type +\\(ID\\)") 1)
         (nil ,(zomp-id "^(?struct +\\(ID\\):") 1)
         (nil ,(zomp-id "^(?template +\\(ID\\)") 1)
+        (nil ,(zomp-id "^(?alias +\\(ID\\)") 1)
         (nil ,(zomp-id "^\\(/// *.* *///\\) *$") 1)
         (nil ,(zomp-id "^\\(/// +Section: +.*\\)") 1)
         (nil ,(zomp-id "^(?unittest:testCase +\\(ID\\)") 1)
