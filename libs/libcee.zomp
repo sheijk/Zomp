@@ -1461,7 +1461,7 @@ alias toFloat zmp:cee:toFloat x
 alias toDouble zmp:cee:toDouble x
 alias toChar zmp:cee:toChar x
 alias toCString zmp:cee:toCString x
-
+alias toBool zmp:cee:toBool x
 
 func int toInt_u32(int i):
   ret i
@@ -1550,6 +1550,24 @@ func char* "toCString_char*"(char* c):
   c
 end
 
+func bool toBool_u32(u32 i):
+  return (i != 0)
+end
+
+func bool toBool_float(float f):
+  return (f != 0.0f)
+end
+
+func bool toBool_double(double d):
+  return (d != 0.0d)
+end
+
+func bool toBool_bool(bool b):
+  return b
+end
+
+/// Define an overloaded function. Currently only works for function names which
+/// are listed in Expander.Overloaded_ops in source/expander.ml
 macro ofunc rettype nameAndArgs impl:
   if ast:matchesShape(nameAndArgs, ${_(__...)}):
     name := getField(ast:child nameAndArgs 0, id)

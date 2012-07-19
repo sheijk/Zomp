@@ -1,0 +1,32 @@
+///
+/// Testing generic conversion functions of libcee
+///
+
+requireLibs libcee unittest
+
+unittest:testCase ConvertToInt:
+  unittest:assertAll:
+    1 == toInt 1
+    2 == toInt 2.0f
+    4 == toInt 4.0f
+    0 == toInt false
+    1 == toInt true
+  end
+end
+
+unittest:testCase ConvertToBool:
+  template convertsToTrueAndFalse trueValue falseValue:
+    true == toBool #trueValue
+    false == toBool #falseValue
+  end
+
+  unittest:assertAll:
+    convertsToTrueAndFalse 1 0
+    convertsToTrueAndFalse 1.0f 0.0f
+    convertsToTrueAndFalse 4.0d 0.0d
+    convertsToTrueAndFalse true false
+  end
+end
+
+unittest:main
+
