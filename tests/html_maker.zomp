@@ -1,0 +1,69 @@
+/// 
+/// Experimental code for easy html generation
+/// 
+
+requireLibs libcee
+
+func ast* translateInNS(ast* body):
+  code := ${}
+
+  forEachAstChild elem body:
+    if (elem.id !=_str "opjux"):
+      ret ${error "Expected opjux"}
+    end
+
+    hd := ast:child elem 0
+    hd.id = "html_" ++ hd.id
+    ast:addChild code elem
+  end
+
+  ret code
+end
+
+macro html body:
+  code := $:
+    println "<html>"
+  end
+
+  ast:addChild(code, translateInNS body)
+
+  ast:addChild code ${println "</html>"}
+
+  ret code
+end
+
+template html_title str:
+  println "<title>" #str "</title>"
+end
+
+template html_p str:
+  println "<p>" #str "</p>"
+end
+
+macro html_ul body:
+  code := $:
+    println "<ul>"
+  end
+
+  ast:addChild(code, translateInNS body)
+
+  ast:addChild code ${println "</ul>"}
+
+  ret code
+end
+
+func int main():
+  html:
+    title "Foobar page."
+    p "Yes, this is text"
+    ul:
+      p "item 1"
+      p "item 2"
+      p "item 3"
+    end
+  end
+
+  ret 0
+end
+
+
