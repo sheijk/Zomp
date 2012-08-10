@@ -1,0 +1,33 @@
+/// 
+/// An implementation of if which provides the result of the tested expression
+/// in a variable
+/// 
+
+requireLibs libcee
+
+macro aif condExpr onTrue:
+  ret $:
+    it := #condExpr
+    if toBool(it):
+      #onTrue
+    end
+  end
+end
+
+func void srand(int seed)
+func int rand()
+
+func int main():
+  srand 1234
+
+  times 10:
+    x := rand()
+    println "x = " x
+    aif (x % 4):
+      println "good " it
+    end
+  end
+
+  ret 0
+end
+
