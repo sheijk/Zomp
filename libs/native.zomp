@@ -1,0 +1,22 @@
+///
+/// Simple definitions to be able to load bindings produced with bindgen
+///
+
+// u128, s128, and c_long_double not supported, yet
+type u_short u16
+type c_uint int
+type c_ulong u32
+type c_ulong_long u64
+type c_short u16
+type c_int u32
+type c_long u32
+type c_long_long u64
+type c_implicit_uchar char
+type c_implicit_schar char
+type c_uchar char
+type c_schar char
+
+alias nativeTypedef type newType origType
+alias nativeFn func returnType nameAndArgs
+alias nativeStruct struct name fields
+
