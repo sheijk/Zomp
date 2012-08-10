@@ -155,3 +155,5 @@ tools
 /source/vmserver/Release
 /testsuite/*_flymake.*
 /testsuite/check_test.annot
+/libs/stb_image.dylib
+/libs/stb_image.zomp

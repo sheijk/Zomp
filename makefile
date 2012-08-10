@@ -95,7 +95,7 @@ GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
     mltest source/zompvm_dummy.o has_llvm has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
-  libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib
+  libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 byte: dllzompvm.so zompc zomp_shell
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
@@ -321,6 +321,10 @@ libs/libquicktext.dylib: libs/glQuickText.o
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ libs/glQuickText.o $(LINK_GL)
 
 libs/libutils.dylib: libs/libutils.cpp
+	@$(ECHO) Building $@ ...
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) $< -o $@
+
+libs/stb_image.dylib: libs/stb_image.c libs/stb_image.h
 	@$(ECHO) Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) $< -o $@
 
