@@ -193,9 +193,9 @@ report.html:
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
 	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
-	./testsuite/make_report.sh "Unit tests" $(TESTSUITE_CASES:.testreport=) >> $@
-	./testsuite/make_report.sh "Libraries" $(LIBRARIES_SOURCES:.zomp=) >> $@
-	./testsuite/make_report.sh "Examples" $(EXAMPLES_SOURCES:.zomp=) >> $@
+	./testsuite/make_report.sh "Unit tests" $(sort $(TESTSUITE_CASES:.testreport=)) >> $@
+	./testsuite/make_report.sh "Libraries" $(sort $(LIBRARIES_SOURCES:.zomp=)) >> $@
+	./testsuite/make_report.sh "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
 	echo "</body>\n</html>" >> $@
 
 mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
