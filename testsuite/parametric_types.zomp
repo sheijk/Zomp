@@ -29,13 +29,13 @@ unittest:testCase SimpleParamType:
   end
 end
 
-// unittest:testCase ParamTypeLiteral:
-//   v1 := NotUsingParamType(a = 99, b = 77)
-//   unittest:assertAll:
-//     v1.a == 99
-//     v1.b == 77
-//   end
-// end
+unittest:testCase ParamTypeLiteral:
+  v1 := NotUsingParamType!int(a = 99, b = 77)
+  unittest:assertAll:
+    v1.a == 99
+    v1.b == 77
+  end
+end
 
 ///-----------------------------------------------------------------------------
 /// Section: simple usages

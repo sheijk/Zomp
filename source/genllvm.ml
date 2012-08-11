@@ -48,8 +48,6 @@ let rec llvmTypeName : Lang.typ -> string = function
         (llvmTypeName ft.returnType)
         (Common.combine ", " (List.map llvmTypeName ft.argTypes))
   | `ParametricType t ->
-      (* raiseCodeGenError *)
-        (* ~msg:"Cannot generate LLVM type representation for parametric type" *)
       llvmTypeName (t :> typ)
   | `TypeParam ->
     raiseCodeGenError

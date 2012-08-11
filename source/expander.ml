@@ -1611,16 +1611,15 @@ struct
   let translateFuncCallD = "name, args...", translateFuncCall
 
   (** called by translateApply, not registered under any name *)
-  let translateRecordLiteral (env :exprTranslateF env) expr :translationResult =
-    match lookup env.bindings expr.id with
-      | TypedefSymbol (`Record { rname = _; fields = fields } as recordType) ->
+  let translateRecordLiteral (env :exprTranslateF env) typeExpr argExprs :translationResult =
+    let translate recordType =
         let translateField expr : 'a mayfail =
           let bindings, formsWTL = env.translateF env.bindings expr in
           let tlforms, forms = extractToplevelForms formsWTL in
           Result (tlforms, forms)
         in
-        let fieldNames = List.map fst fields in
-        begin match translateStructLiteralArgs fieldNames expr.args translateField with
+        let fieldNames = List.map fst recordType.fields in
+        begin match translateStructLiteralArgs fieldNames argExprs translateField with
           | Result fieldFormsTL ->
             let alltlformsLst, fieldForms = List.split
               (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)
@@ -1652,12 +1651,14 @@ struct
             begin match translate fieldForms with
               | `AllConstant nameAndValueList ->
                 let c : formWithTLsEmbedded =
-                  `Constant (RecordVal (expr.id, nameAndValueList))
+                  `Constant (RecordVal (typeName (`Record recordType), nameAndValueList))
                 in
                 Result (env.bindings, alltlforms @ [c])
 
               | `ComplexExprs fieldsAndExprs ->
-                let newBindings, recordVar = getNewLocalVar env.bindings recordType in
+                let newBindings, recordVar =
+                  getNewLocalVar env.bindings (`Record recordType)
+                in
                 let recordVarAddress = `GetAddrIntrinsic recordVar in
                 let makeFieldAssignment (name, forms) =
                   let ptr = `GetFieldPointerIntrinsic (recordVarAddress, name) in
@@ -1673,33 +1674,52 @@ struct
           | Error msgs ->
             Error msgs
         end
+    in
+    let fail () =
+      errorFromExpr
+        (Ast2.expr "(record literal)" (typeExpr :: argExprs))
+        (sprintf "%s is not a struct" (Ast2.toString typeExpr))
+    in
+    match lookup env.bindings typeExpr.id with
+      | TypedefSymbol (`Record recordType) ->
+        translate recordType
+      | UndefinedSymbol when typeExpr.id = "op!" ->
+        begin match translateType env.bindings typeExpr with
+          | Result (`Record recordType) ->
+            translate recordType
+          | _ ->
+            fail()
+        end
       | _ ->
-        errorFromExpr expr (sprintf "%s is not a struct" expr.id)
+        fail()
 
-  let alwaysFail env expr = errorFromExpr expr "not supported"
+  let alwaysFail env typeExpr argExprs = errorFromExpr
+    (Ast2.expr "(record literal)" (typeExpr :: argExprs)) "not supported"
 
   let translateApply translateRecordF (env :('a someTranslateF) env) expr =
     match expr with
       | { args = firstArg :: remArgs } -> begin
-        if firstArg.args = [] then begin
-          match lookup env.bindings firstArg.id with
-            | FuncSymbol _
-            | VarSymbol { typ = `Pointer `Function _ } ->
-              Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+        match firstArg.args, lookup env.bindings firstArg.id with
+          | [], FuncSymbol _
+          | [], VarSymbol { typ = `Pointer `Function _ } ->
+            Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
 
-            | TypedefSymbol _ ->
-              translateRecordF env (Ast2.shiftLeft expr.args)
+          (** Can't combine bodies due to pattern guard *)
+          | [], TypedefSymbol _ ->
+            translateRecordF env firstArg remArgs
+          | _, UndefinedSymbol when firstArg.id = "op!" ->
+            translateRecordF env firstArg remArgs
 
-            | _ ->
-              let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
-              Result r
-        end else begin
-          let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
-          let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
-          let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
-          let r = env.translateF env.bindings (Ast2.seqExpr [tempVar; callExpr]) in
-          Result r
-        end
+          | [], _ ->
+            let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
+            Result r
+
+          | (_::_), _ ->
+            let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
+            let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
+            let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
+            let r = env.translateF env.bindings (Ast2.seqExpr [tempVar; callExpr]) in
+            Result r
       end
       | { args = [] } ->
         errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
