@@ -1,0 +1,164 @@
+///
+/// A simple image loader and viewer
+///
+
+linkclib "libglfw.dylib" "libGLEW.dylib" "stb_image.dylib"
+
+requireLibs libcee stdio native stb_image
+requireLibs opengl20 glfw glutils mathvis anttweakbar array quicktext
+
+var int windowWidth 400
+var int windowHeight 300
+var bool initCalled false
+
+func void init():
+  if !initCalled:
+    glfwInit()
+    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
+    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+
+    printString "Initialized"
+    println()
+
+    initCalled = true
+  else:
+    printString "Already initialized"
+    println()
+  end
+end
+
+struct Image:
+  int width
+  int pitch
+  int height
+  int components
+  void* data
+  /// set in case the image could not be created/loaded/etc.
+  char* error
+end
+
+struct Color3b:
+  u8 red
+  u8 green
+  u8 blue
+end
+
+func Image makeImage(int w, int h, int components):
+  img := Image(
+      width = w,
+      height = h,
+      pitch = components * w,
+      components = components,
+      error = nullptr char,
+      data = malloc char (w*h*components))
+  return img
+end
+
+func void imageSetColor(Image* img, Color3b color):
+  if isNull(img.data) return
+
+  bytes := cast u8* img.data
+  for y 0 img.height:
+    line := bytes + y * img.pitch
+    for x 0 img.width:
+      (line + x * img.components + 0)* = color.red
+      (line + x * img.components + 1)* = color.green
+      (line + x * img.components + 2)* = color.blue
+    end
+  end
+end
+
+func Image loadImage(char* filename, int components):
+  img := undef Image
+  img.error = nullptr char
+  img.data = cast void* (stbi_load filename &img.width &img.height &img.components components)
+  if isNull(img.data):
+    img.error = stbi_failure_reason()
+  end
+  return img
+end
+
+func GLint componentsToGLFormat(int components):
+  if (components == 3):
+    ret GL_RGB
+  elseif (components == 4):
+    ret GL_RGBA
+  end
+  ret 0
+end
+
+func GLint loadTexture2D(Image* img, GLenum internalFormat):
+  if isNull(img.data) return
+
+  format := componentsToGLFormat img.components
+  if (format == 0):
+    ret 0
+  end
+
+  tex := 0
+  glGenTextures 1 &tex
+  glBindTexture2D tex
+  gluBuild2DMipmaps GL_TEXTURE_2D internalFormat img.width img.height format
+    GL_UNSIGNED_BYTE img.data
+  glBindTexture2D 0
+  return tex
+end
+
+func Color3b color(int r, int g, int b):
+  return Color3b(red = cast u8 r, green = cast u8 g, blue = cast u8 b)
+end
+
+func int main():
+  init()
+
+  filename := "data/SpiderTex.jpg"
+  img := loadImage filename 0
+  tex := loadTexture2D &img GL_RGB
+  if isNotNull(img.error):
+    println "error loading image: " img.error
+  elseif (tex == 0):
+    print "error creating texture: "
+    printGLError()
+  end
+
+  onReturn:
+    glDeleteTextures 1 &tex
+  end
+
+  printTexture2DInfo tex "lalal"
+
+  angle := 0.0
+
+  glEnable GL_DEPTH_TEST
+  glDepthFunc GL_LEQUAL
+
+  mainloop:
+    autoSetupViewport()
+    // angle = angle + 128.0 * frameDuration
+    angle = 10.0
+
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    gluPerspective( 90.0d, aspect, 1.0d, 200.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. (-0.4 + 0.2 * sinf time) -2.0
+
+    glColor4f 1. 1. 1. 1.
+    showTextureAt tex 0. 0. 2. 2.
+
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  return 0
+end
+
