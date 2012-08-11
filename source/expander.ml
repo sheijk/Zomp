@@ -1528,10 +1528,10 @@ struct
           match paramType with
             | Some t when isTypeParametric t ->
                 (* | Some ((`ParametricType _) as t) -> *)
-                printf "Parametric type param %s\n" (typeDescr (t :> typ));
-                `CastIntrinsic (t, toSingleForm forms)
+              printf "Parametric type param %s\n" (typeDescr (t :> typ));
+              `CastIntrinsic (t, toSingleForm forms)
             | _ ->
-                toSingleForm forms
+              toSingleForm forms
         in
         (** TODO add cast if the parameter is a parametric type *)
         toplevelForms, argForm
@@ -1576,104 +1576,106 @@ struct
             errorFromExpr expr (typeErrorMessage bindings (fe,msg,f,e))
     in
     match expr with
-      | { id = funcall; args = { id = name; args = [] } :: args } when funcall = macroFunCall ->
-          begin
-            match lookup env.bindings name with
-              | FuncSymbol func ->
-                  begin
-                    buildCall name func.rettype
-                        (List.map snd func.fargs)
-                        `NoFuncPtr
-                        func.cvarargs
-                        env.bindings
-                        args
-                  end
-              | VarSymbol var ->
-                  begin
-                    match var.typ with
-                      | `Pointer `Function ft ->
-                          begin
-                            buildCall name ft.returnType ft.argTypes
-                              `FuncPtr false env.bindings args
-                          end
-                      | _ ->
-                          errorFromExpr
-                            expr
-                            (sprintf "Trying to call variable '%s' as a function but has type %s"
-                               var.vname
-                               (typeName var.typ))
-                  end
-              | _ ->
-                  errorFromExpr expr (sprintf "%s is neither a function nor a macro" name)
-          end
+      | { id = funcall;
+          args = { id = name; args = [] } :: args }
+          when funcall = macroFunCall ->
+        begin
+          match lookup env.bindings name with
+            | FuncSymbol func ->
+              begin
+                buildCall name func.rettype
+                  (List.map snd func.fargs)
+                  `NoFuncPtr
+                  func.cvarargs
+                  env.bindings
+                  args
+              end
+            | VarSymbol var ->
+              begin
+                match var.typ with
+                  | `Pointer `Function ft ->
+                    begin
+                      buildCall name ft.returnType ft.argTypes
+                        `FuncPtr false env.bindings args
+                    end
+                  | _ ->
+                    errorFromExpr
+                      expr
+                      (sprintf "Trying to call variable '%s' as a function but has type %s"
+                         var.vname
+                         (typeName var.typ))
+              end
+            | _ ->
+              errorFromExpr expr (sprintf "%s is neither a function nor a macro" name)
+        end
       | _ ->
-          errorFromExpr expr "Unrecognized AST shape"
+        errorFromExpr expr "Unrecognized AST shape"
   let translateFuncCallD = "name, args...", translateFuncCall
 
   (** called by translateApply, not registered under any name *)
   let translateRecordLiteral (env :exprTranslateF env) typeExpr argExprs :translationResult =
     let translate recordType =
-        let translateField expr : 'a mayfail =
-          let bindings, formsWTL = env.translateF env.bindings expr in
-          let tlforms, forms = extractToplevelForms formsWTL in
-          Result (tlforms, forms)
-        in
-        let fieldNames = List.map fst recordType.fields in
-        begin match translateStructLiteralArgs fieldNames argExprs translateField with
-          | Result fieldFormsTL ->
-            let alltlformsLst, fieldForms = List.split
-              (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)
-            in
-            let alltlforms = List.flatten alltlformsLst in
+      let translateField expr : 'a mayfail =
+        let bindings, formsWTL = env.translateF env.bindings expr in
+        let tlforms, forms = extractToplevelForms formsWTL in
+        Result (tlforms, forms)
+      in
+      let fieldNames = List.map fst recordType.fields in
+      begin match translateStructLiteralArgs fieldNames argExprs translateField with
+        | Result fieldFormsTL ->
+          let alltlformsLst, fieldForms = List.split
+            (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)
+          in
+          let alltlforms = List.flatten alltlformsLst in
 
-            let translate nameAndFormList =
-              let rec onlyConstantsSoFar nameAndFormList accum =
-                match nameAndFormList with
-                  | [] ->
-                    `AllConstant (List.rev accum)
-                  | (name, [`Constant value]) :: rem ->
-                    onlyConstantsSoFar rem ((name, value) :: accum)
-                  | _ ->
-                    let valueToFormList (name, value) =
-                      name, [(`Constant value :> Lang.form)]
-                    in
-                    hadComplexExprs nameAndFormList (List.map valueToFormList accum)
-              and hadComplexExprs nameAndFormList accum =
-                match nameAndFormList with
-                  | [] ->
-                    `ComplexExprs accum
-                  | nameAndForm :: rem ->
-                    hadComplexExprs rem (nameAndForm :: accum)
+          let translate nameAndFormList =
+            let rec onlyConstantsSoFar nameAndFormList accum =
+              match nameAndFormList with
+                | [] ->
+                  `AllConstant (List.rev accum)
+                | (name, [`Constant value]) :: rem ->
+                  onlyConstantsSoFar rem ((name, value) :: accum)
+                | _ ->
+                  let valueToFormList (name, value) =
+                    name, [(`Constant value :> Lang.form)]
+                  in
+                  hadComplexExprs nameAndFormList (List.map valueToFormList accum)
+            and hadComplexExprs nameAndFormList accum =
+              match nameAndFormList with
+                | [] ->
+                  `ComplexExprs accum
+                | nameAndForm :: rem ->
+                  hadComplexExprs rem (nameAndForm :: accum)
+            in
+            onlyConstantsSoFar nameAndFormList []
+          in
+
+          begin match translate fieldForms with
+            | `AllConstant nameAndValueList ->
+              let c : formWithTLsEmbedded =
+                `Constant (RecordVal (typeName (`Record recordType), nameAndValueList))
               in
-              onlyConstantsSoFar nameAndFormList []
-            in
+              Result (env.bindings, alltlforms @ [c])
 
-            begin match translate fieldForms with
-              | `AllConstant nameAndValueList ->
-                let c : formWithTLsEmbedded =
-                  `Constant (RecordVal (typeName (`Record recordType), nameAndValueList))
-                in
-                Result (env.bindings, alltlforms @ [c])
-
-              | `ComplexExprs fieldsAndExprs ->
-                let newBindings, recordVar =
-                  getNewLocalVar env.bindings (`Record recordType)
-                in
-                let recordVarAddress = `GetAddrIntrinsic recordVar in
-                let makeFieldAssignment (name, forms) =
-                  let ptr = `GetFieldPointerIntrinsic (recordVarAddress, name) in
-                  `StoreIntrinsic (ptr, toSingleForm forms)
-                in
-                let assignments = List.map makeFieldAssignment fieldsAndExprs in
-                Result (newBindings,
-                        alltlforms
-                        @ [`DefineVariable (recordVar, None)]
-                        @ assignments
-                        @ [`Variable recordVar])
-            end
-          | Error msgs ->
-            Error msgs
-        end
+            | `ComplexExprs fieldsAndExprs ->
+              let newBindings, recordVar =
+                getNewLocalVar env.bindings (`Record recordType)
+              in
+              let recordVarAddress = `GetAddrIntrinsic recordVar in
+              let makeFieldAssignment (name, forms) =
+                let ptr = `GetFieldPointerIntrinsic (recordVarAddress, name) in
+                `StoreIntrinsic (ptr, toSingleForm forms)
+              in
+              let assignments = List.map makeFieldAssignment fieldsAndExprs in
+              Result (newBindings,
+                      alltlforms
+                      @ [`DefineVariable (recordVar, None)]
+                      @ assignments
+                      @ [`Variable recordVar])
+          end
+        | Error msgs ->
+          Error msgs
+      end
     in
     let fail () =
       errorFromExpr
