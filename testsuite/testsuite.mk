@@ -3,10 +3,6 @@
 # targets need to be prefixed with testsuite/
 #
 
-ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
-$(error "Call make from the main zomp dir, only (testsuite)")
-endif
-
 ################################################################################
 # Targets
 ################################################################################

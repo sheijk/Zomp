@@ -3,10 +3,6 @@
 # atm, as the libs will not be compiled seperately
 #
 
-ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
-$(error "Call make from the main zomp dir, only (examples)")
-endif
-
 LIBRARIES_SOURCES = $(wildcard libs/*.zomp) $(GENERATED_LIBRARY_SOURCES)
 
 libs/test: $(ZOMPC) $(ZOMP_LIBS_SRC:.zomp=.ll)

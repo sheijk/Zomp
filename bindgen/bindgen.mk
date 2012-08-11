@@ -2,10 +2,6 @@
 # Makefile to build examples
 #
 
-ifneq "$(ZOMP_MAIN_MAKEFILE)" "1"
-$(error "Call make from the main zomp dir, only")
-endif
-
 .PRECIOUS: bindgen/%.o
 bindgen/%.o: bindgen/%.cpp
 	@$(ECHO) Compiling $< ...
