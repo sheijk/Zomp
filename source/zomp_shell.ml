@@ -650,7 +650,7 @@ let () =
     CompilerInstructions.translateLinkCLib;
 
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in
-  printf "Loading prelude took %fs\n" preludeLoadTime;
+  printf "Loading prelude took %.2fs\n" preludeLoadTime;
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
   let `NoReturn = step initialBindings (Result []) in
