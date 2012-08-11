@@ -168,6 +168,7 @@ type options = {
   execNameAndPath :string;
   fileName :string;
   printTimings :bool;
+  traceMacroExpansion :bool;
 }
 
 let extractOptions = function
@@ -176,13 +177,22 @@ let extractOptions = function
         execNameAndPath = execNameAndPath;
         fileName = fileName;
         printTimings = false;
+        traceMacroExpansion = false;
       }
   | [| execNameAndPath; "-c"; fileName; "--print-timings" |] ->
       Some {
         execNameAndPath = execNameAndPath;
         fileName = fileName;
         printTimings = true;
+        traceMacroExpansion = false;
       }
+  | [| execNameAndPath; "-c"; fileName; "--trace-macros" |] ->
+    Some {
+      execNameAndPath = execNameAndPath;
+      fileName = fileName;
+      printTimings = false;
+      traceMacroExpansion = true;
+    }
   | _ ->
       None
 
@@ -204,6 +214,12 @@ let () =
       Zompvm.zompPrintStats();
     in
     at_exit printTimingStats;
+  end;
+  if options.traceMacroExpansion then begin
+    let trace s e =
+      printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
+    in
+    Expander.setTraceMacroExpansion (Some trace);
   end;
 
   let baseName = match getBasename options.fileName with
