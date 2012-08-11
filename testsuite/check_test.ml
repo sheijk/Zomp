@@ -124,7 +124,7 @@ let writeHtmlHeader outFile zompFileName =
 
 let timeStr time =
   sprintf "%d-%02d-%d %02d:%02d:%02d"
-    (time.Unix.tm_year + 1900) time.Unix.tm_mon time.Unix.tm_mday
+    (time.Unix.tm_year + 1900) (time.Unix.tm_mon + 1) time.Unix.tm_mday
     time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
 
 let deleteOutputFiles outputFileName =
