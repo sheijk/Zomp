@@ -56,10 +56,20 @@ testsuite/fail: fail.testreport crash.testreport
 
 .PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/test
 
+TESTSUITE_CLEAN_PATTERNS = \
+  *.bc *.opt-bc *.ll \
+  *.s *.o *.exe \
+  *.testreport *.test_output \
+  gmon.out
+
 CLEAN_SUB_TARGETS += testsuite/clean
 testsuite/clean:
-	cd testsuite && rm -f *.bc *.o.bc *.ll *.s *.o *.exe *.testreport gmon.out
-	cd testsuite/error_reporting && rm -f *.ll *.bc *.testreport *.exe *.output
+	cd testsuite && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	cd testsuite/error_reporting && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	cd testsuite/check_test_verify && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	cd testsuite/include && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	rm -f testsuite/check_test.annot
+	rm -f testsuite/prelude_is_valid
 
 ################################################################################
 # Additional dependencies
