@@ -124,17 +124,23 @@ end = struct
         | _ ->
           eprintf "Expected single argument"
 
-  let makeToggleCommandFromGetSet getF setF =
+  let makeToggleCommandFromGetSet name getF setF =
+    let change ison =
+      printf "%s %s\n" name (if ison then "enabled" else "disabled");
+      flush stdout;
+      setF ison
+    in
     fun args (_:bindings) ->
       match args with
-        | ["on"] | ["yes"] | ["true"] -> setF true
-        | ["off"] | ["no"] | ["false"] -> setF false
-        | [] -> setF (not (getF()))
+        | ["on"] | ["yes"] | ["true"] -> change true
+        | ["off"] | ["no"] | ["false"] -> change false
+        | [] -> change (not (getF()))
         | _ ->
           errorMessage "Expected on/off/yes/no/true/false or no arguments to toggle"
 
-  let makeToggleCommandForRef refvar message =
+  let makeToggleCommandForRef refvar name =
     makeToggleCommandFromGetSet
+      name
       (fun () -> !refvar)
       (fun v -> refvar := v)
 
@@ -181,9 +187,13 @@ end = struct
       | _ -> printf "Invalid option. Use sexpr or indent\n"
 
   let toggleVerifyCommand =
-    makeToggleCommandFromGetSet Zompvm.zompDoesVerifyCode (fun b -> Zompvm.zompVerifyCode b)
+    makeToggleCommandFromGetSet
+      "Verifying LLVM code"
+      Zompvm.zompDoesVerifyCode
+      (fun b -> Zompvm.zompVerifyCode b)
   let toggleOptimizeFunctionCommand =
     makeToggleCommandFromGetSet
+      "Optimize LLVM code"
       Zompvm.zompOptimizeFunction
       (fun b -> Zompvm.zompSetOptimizeFunction b)
 
