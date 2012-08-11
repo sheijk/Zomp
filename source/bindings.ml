@@ -74,3 +74,11 @@ let iter f bindings =
   let f' key info = f (key, info.symbol) in
   StringMap.iter f' bindings.symbols
 
+let symbolTypeToString = function
+  | VarSymbol _ -> "VarSymbol"
+  | FuncSymbol _ -> "FuncSymbol"
+  | MacroSymbol _ -> "MacroSymbol"
+  | TypedefSymbol _ -> "TypedefSymbol"
+  | LabelSymbol _ -> "LabelSymbol"
+  | UndefinedSymbol -> "UndefinedSymbol"
+
