@@ -1,0 +1,34 @@
+///
+/// Checking for some common type errors
+///
+
+requireLibs unittest
+
+type VoidFunction (fptr void)
+type Int2VoidFunction (fptr void int)
+type Int2IntFunction (fptr int int)
+
+func void action():
+end
+
+func void takeInt(int i):
+end
+
+func int plusOne(int i):
+  ret (i+1)
+end
+
+unittest:testCase ValidAssignments:
+  var VoidFunction voidf &action
+  var Int2VoidFunction i2v &takeInt
+  var Int2IntFunction i2i &plusOne
+end
+
+unittest:testCase InvalidFunctionPtrType:
+  fvoid := nullptr VoidFunction
+  fvoid = &takeInt //// error type
+  fvoid = &plusOne //// error type
+end
+
+unittest:main
+

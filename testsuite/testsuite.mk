@@ -15,7 +15,7 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
  numeric_literals.zomp std_base_struct_literals.zomp nested_macro.zomp      \
  libcee_enum.zomp std_base_globalVar.zomp parametric_types.zomp pointers.zomp\
  varargs.zomp forward_declare_function.zomp include/relative.zomp           \
- std_base_primitive_types.zomp parametric_functions.zomp
+ std_base_primitive_types.zomp parametric_functions.zomp type_errors.zomp
 
 TESTSUITE_SOURCES = \
  $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
