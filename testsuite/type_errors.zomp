@@ -30,5 +30,16 @@ unittest:testCase InvalidFunctionPtrType:
   fvoid = &plusOne //// error type
 end
 
+struct VTable:
+  VoidFunction start
+  VoidFunction stop
+end
+
+unittest:testCase InvalidFunctionPtrInStruct:
+  var VTable vtable
+  vtable.start = &plusOne //// error type
+  vtable.stop = &takeInt //// error type
+end
+
 unittest:main
 
