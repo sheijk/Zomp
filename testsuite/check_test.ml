@@ -271,6 +271,7 @@ let () =
       (timeStr (Unix.localtime (Unix.gettimeofday())));
 
     forEachLineInFile zompFileName collectExpectations;
+    expectedErrorMessages := List.rev !expectedErrorMessages;
     writeHeader 2 "Expectations";
     inMonospace (fun () ->
       List.iter writeExpectation !expectedErrorMessages);
