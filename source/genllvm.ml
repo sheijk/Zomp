@@ -35,23 +35,24 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Float -> "float"
   | `Double -> "double"
   | `TypeRef name -> "%\"" ^ name ^ "\""
+  | `Pointer `ParametricType _ ->
+    "i8*"
+  | `ParametricType t ->
+    raiseCodeGenError ~msg:"Cannot generate type representation for parametric type"
+  | `TypeParam ->
+    raiseCodeGenError
+      ~msg:"Cannot generate type representation for uninstantiated type parameter"
   | `Pointer `Void -> "i8*"
   | `Pointer `TypeParam -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
   | `Array (memberType, size) -> sprintf "[%d x %s]" size (llvmTypeName memberType)
   | `Record record ->
-      (* record.rname *)
-      let componentNames = List.map (fun (_, t) -> llvmTypeName t) record.fields in
-      "{ " ^ combine ", " componentNames ^ "}"
+    let componentNames = List.map (fun (_, t) -> llvmTypeName t) record.fields in
+    "{ " ^ combine ", " componentNames ^ "}"
   | `Function ft ->
       sprintf "%s (%s)"
         (llvmTypeName ft.returnType)
         (Common.combine ", " (List.map llvmTypeName ft.argTypes))
-  | `ParametricType t ->
-      llvmTypeName (t :> typ)
-  | `TypeParam ->
-    raiseCodeGenError
-      ~msg:"Cannot generate type representation for uninstantiated type parameter"
   | `ErrorType _ as t ->
     raiseCodeGenError
       ~msg:(sprintf "Cannot generate type representation for %s"
