@@ -55,6 +55,21 @@ indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type 'string)
 
+(defcustom zomp-highlight-after-eval-seconds 0.2
+  "Number of seconds to highlight an expression after it has been evaluated."
+  :group 'zomp
+  :type 'float)
+
+(defface zomp-highlight-after-eval-face
+  '((t (:inherit highlight)))
+  "A face used to highlight expression for a brief time after they have been
+evaluated.")
+
+(defface todo-face
+  '((t (:foreground "#A00")))
+  "A face for todo items")
+(defvar todo-face 'todo-face)
+
 (defvar zomp-mode-hook nil)
 
 (defun goto-match-paren (arg)
@@ -262,6 +277,11 @@ windows displaying it"
   (when (called-interactively-p)
     (message "Evaluating region"))
   (zomp-request-execution-abort)
+  (when (require 'nav-flash)
+    (nav-flash-show (region-beginning)
+                    (region-end)
+                    'zomp-highlight-after-eval-face
+                    zomp-highlight-after-eval-seconds))
   (zomp-shell-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
 (defun zomp-shell-eval-current ()
@@ -388,11 +408,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   (interactive)
   (backward-sexp) )
 
-
-(defface todo-face
-  '((t (:foreground "#A00")))
- "A face for todo items")
-(defvar todo-face 'todo-face)
 
 (unless (boundp 'current-line)
   (defun current-line ()
