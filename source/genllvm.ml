@@ -160,11 +160,24 @@ let llvmEscapedString str =
     if pos < strLength then
       let chr = str.[pos] in
       let chars =
-        match chr with
-          | 'n' -> ['A'; '0'; '\\']
-          | '0' -> ['0'; '0'; '\\']
-          | '\\' -> ['C'; '5'; '\\']
+        let num = match chr with
+          | '\'' -> 39
+          | '"' -> 34
+          | '\\' -> 92
+          | '0' -> 0
+          | 'n' -> 10
+          | 'r' -> 13
+          | 't' -> 9
+
+          | 'v' -> 11
+          | 'a' -> 7
+          | 'b' -> 8
+          | 'f' -> 12
+          | '?' -> 63
+
           | invalid -> raiseCodeGenError ~msg:(sprintf "Cannot escape \\%c" invalid)
+        in
+        stringToRevCharList (sprintf "\\%02x" num)
       in
       nextChar (pos+1) (chars @ acc)
     else

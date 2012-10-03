@@ -489,6 +489,11 @@ let foldString str f init =
   in
   worker 0 init
 
+let stringToRevCharList str =
+  foldString str (fun lst chr -> chr :: lst) []
+
+let stringToCharList = List.rev ++ stringToRevCharList
+
 let rec listContains element = function
   | [] -> false
   | e :: rem when e = element -> true
