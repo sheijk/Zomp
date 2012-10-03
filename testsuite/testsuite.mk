@@ -8,7 +8,7 @@
 ################################################################################
 
 TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
- simple-func.zomp variables.zomp astmatch.zomp cee.zomp                     \
+ simple-func.zomp variables.zomp astmatch.zomp libcee_misc.zomp             \
  bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp     \
  float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp \
  testframework.zomp math.zomp stackoverflow.zomp std_base.zomp              \
@@ -39,7 +39,7 @@ testsuite/selftest:
 
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
 testsuite/test: testsuite/selftest testsuite/success
-testsuite/quick: testsuite/simple-func.testreport testsuite/cee.testreport
+testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
 
 .PHONY: testsuite/error_reporting
 testsuite/error_reporting: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
@@ -75,7 +75,7 @@ testsuite/clean:
 # Additional dependencies
 ################################################################################
 
-testsuite/cee.ll: libs/libcee.zomp libs/unittest.zomp
+testsuite/libcee_misc.ll: libs/libcee.zomp libs/unittest.zomp
 testsuite/astmatch.ll: libs/libcee.zomp
 testsuite/math.ll: libs/math.zomp
 
