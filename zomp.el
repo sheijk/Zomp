@@ -261,6 +261,13 @@ windows displaying it"
      (concat code (or append "")))
     (process-send-string (zomp-get-shell-buffer) "!prompt #")))
 
+(defun zomp-shell-run-immediate (&optional code)
+  (interactive)
+  (unless code
+    (setq code (read-from-minibuffer "Code: ")))
+  (let ((function-code (format "std:base:run:\n  %s\nend\n\n\n" code)))
+    (zomp-shell-do function-code)))
+
 (defun zomp-shell-run (funcname)
   (interactive "MName of function: ")
   (when (= 0 (length funcname))
@@ -765,6 +772,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-shell-eval-current-and-goto-next
                    [(control c)(control shift e)]
                    "Eval function at point and goto next")
+  (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Enter code to run")
 
   (zomp-add-seperator zomp-sep-1)
   (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
