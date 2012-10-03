@@ -26,6 +26,40 @@ func void regressionCheck():
   str := makeString "foobar"
 end
 
+unittest:testCase CharLiterals_Simple:
+  unittest:assertAll:
+    toInt 'a' == 97
+    toInt 'A' == 65
+    toInt '"' == 34 // "
+  end
+end
+
+unittest:testCase StringEscapeSequences:
+  template hasAsciiNumber charStr asciiNumber:
+    toInt( #charStr[0] ) == #asciiNumber
+  end
+
+  unittest:assertAll:
+    hasAsciiNumber "\'" 39
+    hasAsciiNumber "\"" 34
+    hasAsciiNumber "\\" 92
+    hasAsciiNumber "\0" 0
+    hasAsciiNumber "\n" 10
+    hasAsciiNumber "\r" 13
+    hasAsciiNumber "\t" 9
+    hasAsciiNumber "\v" 11
+    hasAsciiNumber "\a" 7
+    hasAsciiNumber "\b" 8
+    hasAsciiNumber "\f" 12
+    hasAsciiNumber "\?" 63
+
+    // \x0 - \x255
+    // \o...
+    // \u1234
+    // \U12345678
+  end
+end
+
 func int main():
   var char* simpleString "this be a simple string"
   var char* simpleString2 "another string"
