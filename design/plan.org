@@ -1723,6 +1723,7 @@ unittest:testCase tmp:
   end
 end
 ** TODO [#A] allow C-c C-k to abort compilation, as well
+** TODO [#A] eldoc does not show "..." for vararg functions :bug:
 * Use Cases                                                            :usecase:
 ** .obj Loader [0/2]
    :PROPERTIES:
