@@ -1,0 +1,49 @@
+/// 
+/// Testing a simple emit function for macros
+/// 
+
+emacro tracingIf cond onTrue onFalse:
+  uniqueIds c trueLabel falseLabel endLabel
+  emit $:
+    branch #cond #trueLabel #falseLabel
+    label #trueLabel
+    newScope:
+      #(forEachChild s onTrue:
+        emit $(println "Executing " shortLocationDescr(s))
+      end)
+      goto #endLabel
+    end
+    label #falseLabel
+    newScope:
+      #onFalse
+      goto #endLabel
+    end
+    label #endLabel
+  end
+end
+
+emacro staticTimes num code:
+  if !isNumber(num):
+    fail "Expected a number"
+  end
+
+  times num:
+    emit code
+  end
+end
+
+emacro tweakUI name vars...:
+  for var in vars:
+    emit $(twAdd #(var.id) #var)
+  end
+end
+
+func int main():
+  x := 10
+  y := 2.0
+
+  tweakUI "stuff" x y
+
+  ret 0
+end
+
