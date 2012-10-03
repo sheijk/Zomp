@@ -751,7 +751,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
   (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
   (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
-  (zomp-add-action zomp-shell-help [(control c)(control h)] "Show Zomp shell help")
+  (zomp-add-action zomp-shell-help [(control c)(control ??)] "Show Zomp shell help")
 
   (zomp-add-seperator zomp-sep4)
   (zomp-add-action zomp-indent-current-or-fill [(meta q)] "Indent current")
@@ -848,12 +848,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   '("\\.zomp")
   (list 'zomp-setup)
   "A simple mode for the zomp language")
-
-
-;; (defun zomp-add-snippet (name expansion)
-;;   "Adds a snippet for zomp. The snippet will not be saved on exit!"
-;;   (interactive "MName for macro? \nMExpansion? ")
-;;   (setq zomp-snippets (cons `(,name . ,expansion) zomp-snippets)))
 
 (defvar zomp-symbol-file "/tmp/zomp-symbols")
 (defvar zomp-symbol-buffer "*zomp-symbols*")
