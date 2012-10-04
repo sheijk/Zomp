@@ -1937,22 +1937,37 @@ struct
           in
           match typeCheck env.bindings argForm with
             | TypeOf argType ->
-                begin
-                  let funcName = baseName ^ "_" ^ typeName argType in
-                  match Bindings.lookup env.bindings funcName with
-                    | FuncSymbol func ->
+              begin
+                let funcName = baseName ^ "_" ^ typeName argType in
+                match Bindings.lookup env.bindings funcName with
+                  | FuncSymbol func ->
+                    Result(env.bindings,
+                           toplevelForms @
+                             [`FuncCall { fcname = func.fname;
+                                          fcrettype = func.rettype;
+                                          fcparams = List.map snd func.fargs;
+                                          fcargs = [argForm];
+                                          fcptr = `NoFuncPtr;
+                                          fcvarargs = false }])
+                  | _ ->
+                    let genericFuncName = baseName ^ "_ptr" in
+                    match Bindings.lookup env.bindings genericFuncName with
+                      | FuncSymbol func ->
                         Result(env.bindings,
                                toplevelForms @
                                  [`FuncCall { fcname = func.fname;
                                               fcrettype = func.rettype;
                                               fcparams = List.map snd func.fargs;
-                                              fcargs = [argForm];
+                                              fcargs = [`CastIntrinsic
+                                                           (`Pointer `Void, argForm)];
                                               fcptr = `NoFuncPtr;
                                               fcvarargs = false }])
-                    | _ ->
-                        Error [sprintf "No overload for %s(%s) found (expected function %s)"
-                                 baseName (typeName argType) funcName]
-                end
+                      | _ ->
+                        Error
+                          [sprintf
+                              "No overload for %s(%s) found (expected function %s or %s)"
+                                  baseName (typeName argType) funcName genericFuncName]
+              end
             | TypeError (fe,m,f,e) ->
                 Error [typeErrorMessage env.bindings (fe,m,f,e)]
         end
