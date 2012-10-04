@@ -284,23 +284,30 @@ unittest:testCase SimplePointer:
   end
 end
 
-unittest:testCase PointerArithmetic:
-  size := 4
+unittest:testCase PointerArithmetic_int:
+  size := 7
   nums := malloc int size
-  numsEnd := nums + 4
-
-  printf("nums = %p\n", nums)
-  printf("numsEnd = %p\n", numsEnd)
-  printf("numsEnd - size = %p\n", numsEnd - size)
-  printf("numsEnd - nums = %d\n", numsEnd - nums)
+  onReturn dealloc(nums)
+  numsEnd := nums + size
 
   unittest:assertAll:
     numsEnd - size == nums
     numsEnd - nums == size
     numsEnd > nums
   end
+end
 
-  dealloc nums
+unittest:testCase PointerArithmetic_char:
+  size := 10
+  chars := malloc char size
+  onReturn dealloc(chars)
+  charsEnd := chars + size
+
+  unittest:assertAll:
+    charsEnd - size == chars
+    charsEnd - chars == size
+    charsEnd > chars
+  end
 end
 
 unittest:testCase sizeof:

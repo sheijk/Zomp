@@ -110,9 +110,13 @@ let returnCombi (var, code, possibleFirstCodes) =
 let lastTempVarNum = ref 0
 let nextUID () = incr lastTempVarNum; !lastTempVarNum
 let newGlobalTempVar, newLocalTempVar =
-  let newVar isGlobal (typ :Lang.typ) =
+  let newVar isGlobal ?base (typ :Lang.typ) =
     let id = nextUID () in
-    let name = (sprintf "temp%d" id) in
+    let name =
+      match base with
+        | Some str -> sprintf "temp_%s_%d" str id
+        | None -> sprintf "temp%d" id
+    in
     resultVar (variable name typ RegisterStorage isGlobal)
   in
   newVar true, newVar false
@@ -925,22 +929,35 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
   | `PtrDiffIntrinsic (lhsForm, rhsForm) ->
     begin
       let lhsPtrCode = gencode lhsForm in
-      let lhsIntVar = newLocalTempVar `Int32 in
+      let lhsIntVar = newLocalTempVar ~base:"lhs_ptr_int" `Int32 in
       let lhsIntCode = sprintf "%s = ptrtoint %s %s to i32"
         lhsIntVar.rvname lhsPtrCode.gcrVar.rvtypename lhsPtrCode.gcrVar.rvname in
 
       let rhsPtrCode = gencode rhsForm in
-      let rhsIntVar = newLocalTempVar `Int32 in
+      let rhsIntVar = newLocalTempVar ~base:"rhs_ptr_int" `Int32 in
       let rhsIntCode = sprintf "%s = ptrtoint %s %s to i32"
         rhsIntVar.rvname rhsPtrCode.gcrVar.rvtypename rhsPtrCode.gcrVar.rvname in
       
-      let bytesDiffVar = newLocalTempVar `Int32 in
+      let bytesDiffVar = newLocalTempVar ~base:"bytes_diff" `Int32 in
       let byteDiffCode = sprintf "%s = sub i32 %s, %s"
         bytesDiffVar.rvname lhsIntVar.rvname rhsIntVar.rvname in
 
-      let elementDiffVar = newLocalTempVar `Int32 in
-      let elementDiffCode = sprintf "%s = ashr i32 %s, 2"
-        elementDiffVar.rvname bytesDiffVar.rvname in
+      let ptrType = typeOfForm todoBindings lhsForm in
+      let plusElementPtrVar = newLocalTempVar ~base:"plus_one_elm" ptrType in
+      let plusElementPtrCode = sprintf "%s = getelementptr %s %s, i32 1"
+        plusElementPtrVar.rvname plusElementPtrVar.rvtypename lhsPtrCode.gcrVar.rvname in
+
+      let plusElementIntVar = newLocalTempVar ~base:"plus_one_elm_int" `Int32 in
+      let plusElementIntCode = sprintf "%s = ptrtoint %s %s to i32"
+        plusElementIntVar.rvname plusElementPtrVar.rvtypename plusElementPtrVar.rvname in
+
+      let elementSizeVar = newLocalTempVar ~base:"elm_size" `Int32 in
+      let elementSizeCode = sprintf "%s = sub i32 %s, %s"
+        elementSizeVar.rvname plusElementIntVar.rvname lhsIntVar.rvname in
+
+      let elementDiffVar = newLocalTempVar ~base:"elm_diff" `Int32 in
+      let elementDiffCode = sprintf "%s = udiv i32 %s, %s"
+        elementDiffVar.rvname bytesDiffVar.rvname elementSizeVar.rvname in
 
       returnCombi (
         elementDiffVar,
@@ -948,6 +965,9 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           lhsPtrCode.gcrCode; lhsIntCode;
           rhsPtrCode.gcrCode; rhsIntCode;
           byteDiffCode;
+          plusElementPtrCode;
+          plusElementIntCode;
+          elementSizeCode;
           elementDiffCode],
         [lhsPtrCode.gcrFirstBBCode; rhsPtrCode.gcrFirstBBCode] )
     end
