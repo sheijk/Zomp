@@ -27,21 +27,12 @@ var int unittest:testCount 0
 ///   x [0 childs]
 ///
 macro unittest:assert testCode:
-  isCompare := false
-  compareF := ast:fromString "op=="
-
-  if ast:matchesShape(testCode, ${__ == __}):
-    isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_f __}):
-    isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_str __}):
-    isCompare = true
-    compareF = ast:fromString "op==_str"
-  end
+  isCompare := isCompareCode(testCode)
 
   if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
+    compareF := testCode.id
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
     ret ${seq:
@@ -180,20 +171,6 @@ template unittest:main extraCode...:
     unittest:runAllTestCases
     ret unittest:printReport()
   end
-end
-
-/// Executes the given expression and prints an error
-/// message containing the passed ast if it does not
-/// evaluate to true
-macro unittest:assert testCode:
-  ret ${seq:
-    unless #testCode:
-      assign unittest:failedCount (int:add unittest:failedCount 1)
-      printHLine '-' 40
-      printlnString "error: Assertion failed"
-      ast:print ${#testCode} 0
-    end
-  end}
 end
 
 /// Calls unittest:assert on all childs of the passed

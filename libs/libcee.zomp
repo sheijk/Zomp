@@ -1613,28 +1613,38 @@ end
 /// Section: Assertions and testing
 ///-----------------------------------------------------------------------------
 
-macro assert testCode:
+func bool isCompareCode(ast* testCode):
   isCompare := false
-  compareF := ast:fromString "op=="
 
-  if ast:matchesShape(testCode, ${__ == __}):
-    isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_f __}):
-    isCompare = true
-  elseif ast:matchesShape(testCode, ${__ ==_str __}):
-    isCompare = true
-    compareF = ast:fromString "op==_str"
-  elseif ast:matchesShape(testCode, ${__ < __}):
-    isCompare = true
-    compareF = ast:fromString "op<"
+  if (testCode.childCount == 2):
+    compareF := testCode.id
+    if (compareF ==_str "op==" ||
+        compareF ==_str "op!=" ||
+        compareF ==_str "op==_f" ||
+        compareF ==_str "op!=_f" ||
+        compareF ==_str "op==_str" ||
+        compareF ==_str "op!=_str" ||
+        compareF ==_str "op<" ||
+        compareF ==_str "op<=" ||
+        compareF ==_str "op>" ||
+        compareF ==_str "op>="):
+      return true
+    end
   end
+
+  return false
+end
+
+macro assert testCode:
+  isCompare := isCompareCode(testCode)
 
   if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
+    compareF := testCode.id
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${seq:
+    ret $:
       #lvar := #l
       #rvar := #r
       unless (#compareF #lvar #rvar):
@@ -1648,15 +1658,15 @@ macro assert testCode:
         println()
         ast:print ${#testCode} 0
       end
-    end}
+    end
   else:
-    ret ${seq:
+    ret $:
       unless #testCode:
         printHLine '-' 40
         printlnString "Assertion failed"
         ast:print ${#testCode} 0
       end
-    end}
+    end
   end
 
   ret ${}
