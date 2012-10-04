@@ -1374,6 +1374,10 @@ func void print_double(double d):
   printDouble d
 end
 
+func void print_ptr(void* ptr):
+  printPtr ptr
+end
+
 func void "print_char*"(char* string):
   printString string
 end
