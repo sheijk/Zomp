@@ -928,47 +928,49 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
       end
   | `PtrDiffIntrinsic (lhsForm, rhsForm) ->
     begin
+      let llvmCodeRev = ref ([] :string list) in
+      let emitCode str =
+        llvmCodeRev := str :: !llvmCodeRev
+      in
+      let getCode() = List.rev !llvmCodeRev in
+
+      let makePtrToInt base llvmPtrVar =
+        let resultVar = newLocalTempVar ~base `Int32 in
+        emitCode (sprintf "%s = ptrtoint %s %s to i32"
+                    resultVar.rvname llvmPtrVar.rvtypename llvmPtrVar.rvname);
+        resultVar.rvname;
+      in
+
       let lhsPtrCode = gencode lhsForm in
-      let lhsIntVar = newLocalTempVar ~base:"lhs_ptr_int" `Int32 in
-      let lhsIntCode = sprintf "%s = ptrtoint %s %s to i32"
-        lhsIntVar.rvname lhsPtrCode.gcrVar.rvtypename lhsPtrCode.gcrVar.rvname in
+      emitCode lhsPtrCode.gcrCode;
+      let lhsIntVar = makePtrToInt "lhs_ptr_int" lhsPtrCode.gcrVar in
 
       let rhsPtrCode = gencode rhsForm in
-      let rhsIntVar = newLocalTempVar ~base:"rhs_ptr_int" `Int32 in
-      let rhsIntCode = sprintf "%s = ptrtoint %s %s to i32"
-        rhsIntVar.rvname rhsPtrCode.gcrVar.rvtypename rhsPtrCode.gcrVar.rvname in
+      emitCode rhsPtrCode.gcrCode;
+      let rhsIntVar = makePtrToInt "rhs_ptr_int" rhsPtrCode.gcrVar in
       
       let bytesDiffVar = newLocalTempVar ~base:"bytes_diff" `Int32 in
-      let byteDiffCode = sprintf "%s = sub i32 %s, %s"
-        bytesDiffVar.rvname lhsIntVar.rvname rhsIntVar.rvname in
+      emitCode (sprintf "%s = sub i32 %s, %s"
+        bytesDiffVar.rvname lhsIntVar rhsIntVar);
 
       let ptrType = typeOfForm todoBindings lhsForm in
       let plusElementPtrVar = newLocalTempVar ~base:"plus_one_elm" ptrType in
-      let plusElementPtrCode = sprintf "%s = getelementptr %s %s, i32 1"
-        plusElementPtrVar.rvname plusElementPtrVar.rvtypename lhsPtrCode.gcrVar.rvname in
+      emitCode (sprintf "%s = getelementptr %s %s, i32 1"
+        plusElementPtrVar.rvname plusElementPtrVar.rvtypename lhsPtrCode.gcrVar.rvname);
 
-      let plusElementIntVar = newLocalTempVar ~base:"plus_one_elm_int" `Int32 in
-      let plusElementIntCode = sprintf "%s = ptrtoint %s %s to i32"
-        plusElementIntVar.rvname plusElementPtrVar.rvtypename plusElementPtrVar.rvname in
+      let plusElementIntVar = makePtrToInt "plus_one_elm_int" plusElementPtrVar in
 
       let elementSizeVar = newLocalTempVar ~base:"elm_size" `Int32 in
-      let elementSizeCode = sprintf "%s = sub i32 %s, %s"
-        elementSizeVar.rvname plusElementIntVar.rvname lhsIntVar.rvname in
+      emitCode (sprintf "%s = sub i32 %s, %s"
+        elementSizeVar.rvname plusElementIntVar lhsIntVar);
 
       let elementDiffVar = newLocalTempVar ~base:"elm_diff" `Int32 in
-      let elementDiffCode = sprintf "%s = udiv i32 %s, %s"
-        elementDiffVar.rvname bytesDiffVar.rvname elementSizeVar.rvname in
+      emitCode (sprintf "%s = udiv i32 %s, %s"
+        elementDiffVar.rvname bytesDiffVar.rvname elementSizeVar.rvname);
 
       returnCombi (
         elementDiffVar,
-        Common.combine "\n" [
-          lhsPtrCode.gcrCode; lhsIntCode;
-          rhsPtrCode.gcrCode; rhsIntCode;
-          byteDiffCode;
-          plusElementPtrCode;
-          plusElementIntCode;
-          elementSizeCode;
-          elementDiffCode],
+        Common.combine "\n" (getCode()),
         [lhsPtrCode.gcrFirstBBCode; rhsPtrCode.gcrFirstBBCode] )
     end
   | `CastIntrinsic (targetType, valueForm) ->
