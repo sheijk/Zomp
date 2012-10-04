@@ -1317,6 +1317,26 @@ struct
           errorFromExpr expr "Expected two arguments: 'ptradd ptrExpr intExpr'"
   let translatePtraddD = "ptr, intExpr", translatePtradd
 
+  let translatePtrDiff (env :exprTranslateF env) expr =
+    match expr.args with
+      | [lhsExpr; rhsExpr] ->
+        begin
+          let _, lhsForm, lhsTLForms =
+            translateToForms env.translateF env.bindings lhsExpr
+          in
+          let _, rhsForm, rhsTLForms =
+            translateToForms env.translateF env.bindings rhsExpr
+          in
+          let ptrdiff = `PtrDiffIntrinsic (lhsForm, rhsForm) in
+          match typeCheck env.bindings ptrdiff with
+            | TypeOf _ -> Result( env.bindings, lhsTLForms @ rhsTLForms @ [ptrdiff] )
+            | TypeError (fe,m,f,e) ->
+              errorFromTypeError env.bindings expr (fe,m,f,e)
+        end
+      | _ ->
+        errorFromExpr expr "Expected two pointers as arguments"
+  let translatePtrDiffD = "ptrExpr, ptrExpr", translatePtrDiff
+
   let translateGetfieldptr (env :exprTranslateF env) expr =
     match expr.args with
       | [
@@ -1740,6 +1760,7 @@ struct
     addF macroCast translateCastD;
     addF macroFieldptr translateGetfieldptrD;
     addF macroPtradd translatePtraddD;
+    addF macroPtrDiff translatePtrDiffD;
     addF macroGetaddr translateGetaddrD;
     addF macroNullptr translateNullptrD;
     addF macroVar translateDefineVarD;

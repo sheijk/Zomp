@@ -1,0 +1,20 @@
+///
+/// Testing the generic instructions from std:base
+///
+
+requireLibs libcee unittest
+
+unittest:testCase PointerArithmetic:
+  nul := nullptr u32
+  thirdInt := nul + 3
+
+  unittest:assertAll:
+    cast int (ptradd nul 1) == 4
+    cast int thirdInt == 12
+    ptrdiff thirdInt nul == 3
+    ptrdiff thirdInt (ptradd nul 1) == 2
+  end
+end
+
+unittest:main
+

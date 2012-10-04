@@ -922,6 +922,35 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           comment ^ ptr.gcrCode ^ offset.gcrCode ^ code,
           [ptr.gcrFirstBBCode; offset.gcrFirstBBCode])
       end
+  | `PtrDiffIntrinsic (lhsForm, rhsForm) ->
+    begin
+      let lhsPtrCode = gencode lhsForm in
+      let lhsIntVar = newLocalTempVar `Int32 in
+      let lhsIntCode = sprintf "%s = ptrtoint %s %s to i32"
+        lhsIntVar.rvname lhsPtrCode.gcrVar.rvtypename lhsPtrCode.gcrVar.rvname in
+
+      let rhsPtrCode = gencode rhsForm in
+      let rhsIntVar = newLocalTempVar `Int32 in
+      let rhsIntCode = sprintf "%s = ptrtoint %s %s to i32"
+        rhsIntVar.rvname rhsPtrCode.gcrVar.rvtypename rhsPtrCode.gcrVar.rvname in
+      
+      let bytesDiffVar = newLocalTempVar `Int32 in
+      let byteDiffCode = sprintf "%s = sub i32 %s, %s"
+        bytesDiffVar.rvname lhsIntVar.rvname rhsIntVar.rvname in
+
+      let elementDiffVar = newLocalTempVar `Int32 in
+      let elementDiffCode = sprintf "%s = ashr i32 %s, 2"
+        elementDiffVar.rvname bytesDiffVar.rvname in
+
+      returnCombi (
+        elementDiffVar,
+        Common.combine "\n" [
+          lhsPtrCode.gcrCode; lhsIntCode;
+          rhsPtrCode.gcrCode; rhsIntCode;
+          byteDiffCode;
+          elementDiffCode],
+        [lhsPtrCode.gcrFirstBBCode; rhsPtrCode.gcrFirstBBCode] )
+    end
   | `CastIntrinsic (targetType, valueForm) ->
       let value = gencode valueForm in
       let valueType = typeOfForm todoBindings valueForm in

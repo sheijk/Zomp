@@ -256,6 +256,19 @@ let rec typeCheck bindings form : typecheckResult =
             expectType offsetExpr `Int32
             >> expectPointerType ptrExpr
           end
+      | `PtrDiffIntrinsic (lhsExpr, rhsExpr) ->
+        begin
+          let lhsTypeR = typeCheck bindings lhsExpr in
+          let rhsTypeR = typeCheck bindings rhsExpr in
+          match lhsTypeR, rhsTypeR with
+            | (TypeOf (`Pointer _ as lhsType)), (TypeOf (`Pointer _ as rhsType)) ->
+              if (equalTypes bindings lhsType rhsType) then
+                TypeOf `Int32
+              else
+                TypeError (Form form, "Expected pointers to same type", rhsType, lhsType)
+            | _, _ ->
+              TypeError (Form form, "Expected two pointers", `Void, `Void)
+        end
       | `CastIntrinsic (targetType, valueExpr) ->
           TypeOf targetType
       | `EmbeddedComment _ ->
@@ -327,6 +340,9 @@ let rec collectVars (form :Lang.form) =
 
     | `PtrAddIntrinsic (ptrForm, offsetForm) ->
         returnTransformed2 ptrForm offsetForm (fun p o -> `PtrAddIntrinsic(p, o))
+
+    | `PtrDiffIntrinsic (lhsForm, rhsForm) ->
+      returnTransformed2 lhsForm rhsForm (fun l r -> `PtrDiffIntrinsic(l, r) )
 
     | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
         returnTransformed recordForm (fun r -> `GetFieldPointerIntrinsic(r, fieldName))

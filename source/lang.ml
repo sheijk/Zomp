@@ -21,6 +21,7 @@ and macroLoad = "load"
 and macroStore = "store"
 and macroNullptr = "nullptr"
 and macroPtradd = "ptradd"
+and macroPtrDiff = "ptrdiff"
 and macroMalloc = "malloc"
 and macroGetaddr = "ptr"
 and macroCast = "cast"
@@ -201,6 +202,7 @@ type 'form genericIntrinsic = [
 | `StoreIntrinsic of 'form * 'form
 | `LoadIntrinsic of 'form
 | `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
+| `PtrDiffIntrinsic of 'form * 'form (* pointer, pointer *)
 | `GetFieldPointerIntrinsic of 'form * string
 | `CastIntrinsic of composedType * 'form
 ]
@@ -269,6 +271,8 @@ let rec formToSExpr : form -> Ast2.t = function
       Ast2.expr "Load" [formToSExpr ptr]
   | `PtrAddIntrinsic (ptr, offset) ->
       Ast2.expr "PtrAdd" [formToSExpr ptr; formToSExpr offset]
+  | `PtrDiffIntrinsic (lhs, rhs) ->
+      Ast2.expr "PtrDiff" [formToSExpr lhs; formToSExpr rhs]
   | `GetFieldPointerIntrinsic (record, fieldName) ->
       Ast2.expr "GetFieldPtr" [formToSExpr record; Ast2.idExpr fieldName]
   | `CastIntrinsic (typ, expr) ->
@@ -302,6 +306,8 @@ let rec formToString : form -> string = function
   | `StoreIntrinsic (ptr, value) -> sprintf "Store (%s, %s)" (formToString ptr) (formToString value)
   | `LoadIntrinsic (ptr) -> sprintf "Load (%s)" (formToString ptr)
   | `PtrAddIntrinsic (ptr, offset) -> sprintf "PtrAdd (%s, %s)" (formToString ptr) (formToString offset)
+  | `PtrDiffIntrinsic (lhs, rhs) ->
+    sprintf "PtrDiff (%s, %s)" (formToString lhs) (formToString rhs)
   | `GetFieldPointerIntrinsic (record, fieldName) -> sprintf "GetField (%s, %s)" (formToString record) fieldName
   | `CastIntrinsic (typ, expr) -> sprintf "Cast (%s, %s)" (typeName typ) (formToString expr)
   | `EmbeddedComment strings ->
