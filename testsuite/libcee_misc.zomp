@@ -1,7 +1,6 @@
-/**
- * Testing libcee.zomp
-!syntax indent
- */
+///
+/// Testing libcee.zomp
+///
 
 requireLibs libcee
 requireLibs unittest
@@ -31,6 +30,7 @@ ofunc void print(Point pt):
   print "Point(x = " pt.x ", y = " pt.y ")"
 end
 
+// TODO: check what should happen to this.
 // unittest:testCase SimpleArray:
 //   var int[4] numbers
 // 
@@ -281,6 +281,24 @@ unittest:testCase SimplePointer:
     &local ==_ptr local&
     local&* == 10
     *&local == 10
+  end
+end
+
+
+unittest:testCase sizeof:
+  unittest:assertAll:
+    sizeof u8 == 1
+    sizeof u16 == 2
+    sizeof u32 == 4
+    sizeof u64 == 8
+
+    sizeof float == 4
+    sizeof double == 8
+    sizeof bool == 1
+    sizeof char == 1
+
+    sizeof u8[2] == 2
+    sizeof u32[4] == 4 * 4
   end
 end
 

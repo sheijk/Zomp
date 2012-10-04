@@ -320,6 +320,18 @@ dfunc size_t strlen(char* s)
 /// Section: Untested
 ///-----------------------------------------------------------------------------
 
+/// Returns the size of the given type on the current backend platform.
+macro sizeof type:
+  uniqueId null "null"
+  uniqueId next "next"
+
+  ret $:
+    var #type* #null nullptr(#type)
+    var #type* #next ptradd(#null, 1)
+    u32:sub(cast u32 #next, cast u32 #null)
+  end
+end
+
 /// initialize multiple fields
 macro setFieldsTo record value fields...:
   var (ptr ast) code ${}
