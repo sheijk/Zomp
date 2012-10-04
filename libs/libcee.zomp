@@ -724,9 +724,9 @@ template postop[] ptr index:
   load(ptradd #ptr #index)
 end
 
-template op+_ptr ptr offset:
-  ptradd #ptr #offset
-end
+// template op+_ptr ptr offset:
+//   ptradd #ptr #offset
+// end
 
 template zmp:array:get array index:
   load ptradd(zmp:array:addr &(#array), #index)
