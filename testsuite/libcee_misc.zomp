@@ -284,6 +284,24 @@ unittest:testCase SimplePointer:
   end
 end
 
+unittest:testCase PointerArithmetic:
+  size := 4
+  nums := malloc int size
+  numsEnd := nums + 4
+
+  printf("nums = %p\n", nums)
+  printf("numsEnd = %p\n", numsEnd)
+  printf("numsEnd - size = %p\n", numsEnd - size)
+  printf("numsEnd - nums = %d\n", numsEnd - nums)
+
+  unittest:assertAll:
+    numsEnd - size == nums
+    numsEnd - nums == size
+    numsEnd > nums
+  end
+
+  dealloc nums
+end
 
 unittest:testCase sizeof:
   unittest:assertAll:

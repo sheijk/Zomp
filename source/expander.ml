@@ -1882,6 +1882,12 @@ struct
                                                           fcptr = `NoFuncPtr;
                                                           fcvarargs = false })])
                 end
+            | "op-", TypeOf `Pointer _, TypeOf `Pointer _ ->
+              begin
+                Result(env.bindings,
+                       toplevelFormsLeft @ toplevelFormsRight @
+                       [`PtrDiffIntrinsic (leftForm, rightForm)])
+              end
             | _, TypeOf leftType, TypeOf rightType ->
                 begin
                   let postfixAndImplConv form = function
