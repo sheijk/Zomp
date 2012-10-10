@@ -152,18 +152,6 @@ use global one"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; editing
 
-(defun zomp-mark-sexp ()
-  (interactive)
-  (cond (mark-active
-         (goto-match-paren 0)
-         (goto-match-paren 0)
-         (forward-char)))
-
-  (cond ((not (looking-at "("))
-          (goto-match-paren 0)))
-   (set-mark (point))
-   (goto-match-paren 0))
-
 (defun zomp-mark-current ()
   "Marks the current toplevel function/(macro/"
   (interactive)
@@ -716,7 +704,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   ;; quick navigation and marking expressions
   (local-set-key [(meta n)] 'zomp-next-toplevel-expr)
   (local-set-key [(meta p)] 'zomp-prev-toplevel-expr)
-  (local-set-key [(meta k)] 'zomp-mark-sexp)
   (local-set-key [(control c)(control u)] 'zomp-move-up)
   (local-set-key [(control c)(control n)] 'zomp-next-block)
   (local-set-key [(control c)(control p)] 'zomp-prev-block)
