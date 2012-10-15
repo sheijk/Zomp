@@ -94,10 +94,6 @@
    :ID:       004EE248-4369-416C-BBAD-30C72F7A2382
    :END:
    s[7] = makeSphere(16.5, mv3f(27.,16.5,47.), o, mv3f(1.,1.,1.)*.999, Refl:SPEC)
-** TODO double:clamp                                                   :smallpt:
-   :PROPERTIES:
-   :ID:       9B27A97C-DFE7-4195-9F7F-2E87A3278EC4
-   :END:
 ** TODO eldoc always uses global toplevel, ignores buffer local ones   :smallpt:
    :PROPERTIES:
    :ID:       B0634AB2-5F27-45DD-8909-DDBA08241C14

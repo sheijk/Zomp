@@ -73,6 +73,10 @@ std:base:func float float:clamp(float min, float max, float x):
   float:min max (float:max min x)
 end
 
+std:base:func double double:clamp(double min, double max, double x):
+  double:min max (double:max min x)
+end
+
 std:base:func int u32:clamp(int min, int max, int x):
   u32:min max (u32:max min x)
 end
