@@ -272,7 +272,7 @@ windows displaying it"
   (when (called-interactively-p)
     (message "Evaluating region"))
   (zomp-request-execution-abort)
-  (when (require 'nav-flash)
+  (when (fboundp 'nav-flash-show)
     (nav-flash-show (region-beginning)
                     (region-end)
                     'zomp-highlight-after-eval-face
