@@ -19,7 +19,8 @@ that. The requirement was to have a language that at the same time delivers the
 same performance and low level control as C and allows more productive
 development. This goal is approached by providing a minimal base language
 extendable by macros and an interactive shell which supports modifying the code
-of a running application for fast prototyping.
+of a running application for fast prototyping. It does not attempt to protect
+against memory errors and other low level conditions.
 
 TODO: C++ rant, dynamic languages, ocaml/haskell
 
