@@ -272,7 +272,7 @@ let () =
     (** code *)
 
     writeHtmlHeader outFile zompFileName;
-    fprintf outFile "<h1>Test report for %s</h1>" zompFileName;
+    fprintf outFile "<h1>Test report for <a href=\"../%s\">%s</a></h1>" zompFileName zompFileName;
     fprintf outFile "Executed at %s</br>\n"
       (timeStr (Unix.localtime (Unix.gettimeofday())));
 
