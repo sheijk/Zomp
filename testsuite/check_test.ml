@@ -183,6 +183,7 @@ let () =
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
+  let expectedReturnValueForRun = ref 0 in
   let addExpectation =
     addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
   in
@@ -279,6 +280,11 @@ let () =
     expectedErrorMessages := List.rev !expectedErrorMessages;
     writeHeader 2 "Expectations";
     inMonospace (fun () ->
+      fprintf outFile "Expect compilation to %s. <br />\n"
+        (if !expectedCompilationSuccess then "succeed" else "fail");
+      if !expectedCompilationSuccess then
+        fprintf outFile "Expect test to exit with code %d. <br />\n"
+          !expectedReturnValueForRun;
       List.iter writeExpectation !expectedErrorMessages);
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
