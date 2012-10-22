@@ -16,13 +16,19 @@ EXAMPLES_SOURCES = $(foreach FILE, $(EXAMPLES_SOURCES_X), examples/$(FILE))
 NOT_WORKING_EXAMPLES = static.zomp
 
 examples/test: $(EXAMPLES_SOURCES:.zomp=.exe)
-#   Printing a short report. What a mess..
-	for f in $(EXAMPLES:.zomp=.exe); do \
-		if [ -e examples/$$f ]; then \
-			echo "Ok     $$f"; \
+
+examples/report:
+	for src in $(EXAMPLES_SOURCES); do \
+        f=`basename $$src .zomp`; \
+		(if [ \! -e examples/$$f.ll ]; then \
+            echo "compilation failed"; \
+        elif [ \! -e examples/$$f.bc ]; then \
+            echo "llvm-as failed"; \
+        elif [ \! -e examples/$$f.exe ]; then \
+			echo "linking failed"; \
 		else \
-			echo "Failed $$f"; \
-		fi; \
+			echo "succeeded"; \
+		fi > examples/$$f.result) \
 	done
 
 # default to optimizations enabled

@@ -157,3 +157,4 @@ tools
 /testsuite/check_test.annot
 /libs/stb_image.dylib
 /libs/stb_image.zomp
+*.result

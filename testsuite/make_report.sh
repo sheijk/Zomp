@@ -36,7 +36,7 @@ do
         grep failed ${test}.result > /dev/null
         if [ "$?" == "0" ];
         then
-            output "<th class=\"failed\">failed</th>"
+            output "<th class=\"failed\">`cat ${test}.result`</th>"
         else
             SUCCESS=$(($SUCCESS + 1))
             output "<th class=\"ok\">`cat ${test}.result`</th>"
