@@ -322,15 +322,9 @@ let () =
         forEachLineInFile testrunOutputFile visitOutputLine);
 
       fprintf outFile "Exited with %d<br />\n" runReturnCode;
-      let testF, expectedReturn =
-        if !expectedCompilationSuccess then
-          ((==) 0), "0"
-        else
-          ((!=) 0), "not 0"
-      in
-      if (not (testF runReturnCode)) then
-        printf "error: %s:1: exited with code %d instead of %s<br />\n"
-          zompFileName runReturnCode expectedReturn
+      if runReturnCode <> !expectedReturnValueForRun then
+        printf "error: %s:1: exited with code %d instead of %d<br />\n"
+          zompFileName runReturnCode !expectedReturnValueForRun;
     end;
 
     List.iter reportMissingDiagnostic !expectedErrorMessages;
