@@ -345,5 +345,13 @@ let () =
     in
     fprintf outFile "Test case <span class=\"%s\">%s</span>\n<br />\n"
       cssClass result;
+
+    let resultFile = replaceExtension zompFileName "result" in
+    begin match Sys.command (sprintf "echo %s > %s" result resultFile) with
+      | 0 -> ()
+      | error ->
+        printf "error: failed to create file %s\n" resultFile;
+    end;
+
     fprintf outFile "</html>")
 

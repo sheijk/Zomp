@@ -31,12 +31,18 @@ do
     outputLinkIfExists "${test}.zomp" "${test}"
     # output "<tr> <th>${test}</th>"
 
-    if [ -e ${test}.ll ];
+    if [ -e ${test}.result ];
     then
-        SUCCESS=$(($SUCCESS + 1))
-        output "<th class=\"ok\">ok</th>"
+        grep failed ${test}.result > /dev/null
+        if [ "$?" == "0" ];
+        then
+            output "<th class=\"failed\">failed</th>"
+        else
+            SUCCESS=$(($SUCCESS + 1))
+            output "<th class=\"ok\">`cat ${test}.result`</th>"
+        fi
     else
-        output "<th class=\"failed\">failed</th>"
+        output "<th class=\"failed\">not run</th>"
     fi
 
     outputLinkIfExists "${test}.testreport" "report"
@@ -48,6 +54,5 @@ done
 
 echo "</table>"
 
-# TODO: figure out why this appears before the table...
 echo "<p>${SUCCESS}/${TOTAL} succeeded</p>"
 
