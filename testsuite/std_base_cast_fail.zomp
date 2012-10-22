@@ -1,0 +1,14 @@
+///
+/// Things that should trigger compilation errors for std:base:cast instruction.
+///
+
+func void failIntToInt():
+  var int ia 10
+  var int ib (cast int ia) //// error cast
+end
+
+func int main():
+  ret 0
+end
+
+
