@@ -1,0 +1,109 @@
+///
+/// Various string utilities
+///
+
+requireLibs libcee unittest
+
+struct StringBuffer:
+  /// Pointer to 0-terminated string, or nullptr if length == 0
+  char* buffer
+  /// Number of bytes allocated
+  int allocatedBytes
+  /// Length of the string stored in buffer without terminating 0 byte
+  int length
+end
+
+func void StringBuffer:init(StringBuffer* this):
+  this.buffer = nullptr char
+  this.allocatedBytes = 0
+  this.length = 0
+end
+
+func void StringBuffer:delete(StringBuffer* this):
+  free (cast void* this.buffer)
+  this.buffer = nullptr char
+  this.allocatedBytes = 0
+  this.length = 0
+end
+
+func void StringBuffer:print(StringBuffer* this):
+  print "StringBuffer("
+  print "length = " this.length ", "
+  print "buffer = " this.buffer ", "
+  print "allocatedBytes = " this.allocatedBytes ")"
+end
+
+
+/// @param bytes Number of bytes including terminating 0 byte
+func void StringBuffer:reserve(StringBuffer* this, int bytes):
+  if (bytes > this.allocatedBytes):
+    newBuffer := malloc char bytes
+    unless isNull(this.buffer):
+      memcpy(cast void* newBuffer, cast void* this.buffer, this.length + 1)
+    end
+    this.buffer = newBuffer
+    this.allocatedBytes = bytes
+  end
+end
+
+unittest:testCase StringBuffer_Reserve:
+  buf := local StringBuffer
+
+  StringBuffer:reserve buf 100
+
+  unittest:assertAll:
+    buf.allocatedBytes == 100
+    buf.length == 0
+    isNotNull buf.buffer
+  end
+end
+
+unittest:testCase StringBuffer_MultiReserve:
+  buf := local StringBuffer
+
+  StringBuffer:reserve(buf, 100)
+  sprintf(buf.buffer, "foo%s", "bar")
+  buf.length = strlen(buf.buffer)
+  StringBuffer:reserve(buf, 200)
+
+  unittest:assertAll:
+    buf.allocatedBytes == 200
+    buf.length == 6
+    buf.buffer ==_str "foobar"
+  end
+end
+
+func void StringBuffer:append(StringBuffer* this, char* str):
+  strLength := strlen(str)
+  requiredBytes := strLength + this.length + 1
+  StringBuffer:reserve(this, requiredBytes)
+  memcpy(cast void* (this.buffer + this.length), cast void* str, strLength)
+  this.length += strLength
+  (this.buffer + this.length)* = '\0'
+end
+
+unittest:testCase StringBuffer_AppendSingle:
+  buf := local StringBuffer
+
+  StringBuffer:append(buf, "foobar")
+
+  unittest:assertAll:
+    buf.allocatedBytes == 7
+    buf.length == 6
+    buf.buffer ==_str "foobar"
+  end
+end
+
+unittest:testCase StringBuffer_AppendMulti:
+  buf := local StringBuffer
+
+  StringBuffer:append(buf, "foo")
+  StringBuffer:append(buf, "bar")
+
+  unittest:assertAll:
+    buf.length == 6
+    buf.allocatedBytes == 7
+    buf.buffer ==_str "foobar"
+  end
+end
+
