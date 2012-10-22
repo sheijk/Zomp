@@ -124,6 +124,10 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "<html>\n";
   fprintf outFile "  <head>\n";
   fprintf outFile "    <title>Report for %s</title>\n" zompFileName;
+  fprintf outFile "    <style type=\"text/css\">";
+  fprintf outFile "      .ok { color: green; }";
+  fprintf outFile "      .failed { color: red; }";
+  fprintf outFile "    </style>";
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
 
@@ -190,6 +194,12 @@ let () =
   let collectExpectations = collectExpectations addExpectation in
 
   withOpenFileOut outputFileName (fun outFile ->
+    let errorOccured = ref false in
+    let reportError msg =
+      fprintf outFile "%s:1: error: %s" zompFileName msg;
+      errorOccured := true;
+    in
+
     let writeHeader n header =
       fprintf outFile "<h%d>%s</h%d>\n" n header n
     in
@@ -256,17 +266,14 @@ let () =
       match kind with
         | Expectation.ErrorMessage ->
           if !found = false then
-            printf "%s:%d: failed to report error containing words %s\n"
-              zompFileName lineNum
-              (String.concat ", " args)
+            reportError (sprintf "failed to report error containing words %s<br />\n"
+                           (String.concat ", " args))
         | Expectation.WarningMessage ->
-          printf "%s:%d: warning: checking for warnings not supported, yet\n"
-            zompFileName lineNum
+          reportError ("checking for warnings not supported, yet<br />\n")
         | Expectation.PrintMessage ->
           if !found = false then
-            printf "%s:%d: error: failed to print line containing words %s\n"
-              zompFileName lineNum
-              (String.concat ", " args)
+            reportError (sprintf "failed to print line containing words %s<br />\n"
+                           (String.concat ", " args))
     in
 
     (** code *)
@@ -299,13 +306,12 @@ let () =
     in
 
     if !expectedCompilationSuccess && compilerError <> 0 then begin
-      printf "%s:1: error: compilation failed, but no errors expected\n" zompFileName;
+      reportError "compilation failed, but no errors expected\n";
       let printLine _ line = print_string line; print_newline() in
       forEachLineInFile compilerMessagesOutputFile printLine;
       print_newline();
     end else if not !expectedCompilationSuccess && compilerError = 0 then begin
-      printf "%s:1: error: compilation succeeded, but unit test expected errors\n"
-        zompFileName;
+      reportError "compilation succeeded, but unit test expected errors\n";
     end;
 
     writeHeader 2 "Compiler output";
@@ -323,11 +329,21 @@ let () =
 
       fprintf outFile "Exited with %d<br />\n" runReturnCode;
       if runReturnCode <> !expectedReturnValueForRun then
-        printf "error: %s:1: exited with code %d instead of %d<br />\n"
-          zompFileName runReturnCode !expectedReturnValueForRun;
+        reportError (sprintf "exited with code %d instead of %d<br />\n"
+                       runReturnCode !expectedReturnValueForRun);
     end;
+
+    writeHeader 2 "Results";
 
     List.iter reportMissingDiagnostic !expectedErrorMessages;
 
+    let cssClass, result =
+      if !errorOccured then
+        "failed", "failed"
+      else
+        "ok", "succeeded"
+    in
+    fprintf outFile "Test case <span class=\"%s\">%s</span>\n<br />\n"
+      cssClass result;
     fprintf outFile "</html>")
 
