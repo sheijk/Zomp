@@ -1,10 +1,13 @@
 #+SEQ_TODO: TODO DONE
 #+STARTUP: fold
 #+COLUMNS: %TODO %PRIORITY %TAGS
-
+#+INFOJS_OPT: view:content toc:nil
 
 * To be sorted
 ** simpler indentation rules
+   :PROPERTIES:
+   :ID:       AAFF0380-013B-49DE-853E-956EF186B566
+   :END:
    - get rid of current indentation block syntax
    - instead a block simply starts when adding more indent, ends when back to
      original indent
@@ -74,6 +77,9 @@
       label c
 
 ** what is a zomp program
+   :PROPERTIES:
+   :ID:       95138B46-B038-4904-9343-0BE214F1AB2B
+   :END:
 - a program is something you can run. When run it consumes an input and
   produces an output and side effects
 - a zomp program is a program whose input is it's source code plus any
@@ -84,6 +90,9 @@
   TODO: turn this into something non-philosophical which actually makes sense
 
 ** TODO [#A] what's the hardest problem about zomp?
+   :PROPERTIES:
+   :ID:       5FE1D6C6-757E-4266-B264-EFAA2290BEE0
+   :END:
    make a great implementation of that, base everything else on it?
 ** TODO allow func int plus(int a, b)                        :cee:feature:quick:
    :PROPERTIES:
@@ -211,6 +220,9 @@
    :END:
 http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.3532
 *** TODO [#A] scala "extractors", F# "active patterns"
+    :PROPERTIES:
+    :ID:       DDB9802D-0242-4106-9717-AD93819EA520
+    :END:
 ** TODO llvm: always inliner pass, createFunctionInliningPass
    :PROPERTIES:
    :ID:       3C839D41-7160-4500-B3DF-9DFB55839324
@@ -1655,6 +1667,9 @@ http://www.iquilezles.org/blog/?p=1468
    :ID:       B0910ECE-B6D4-497A-88AF-636FD3E6DC0D
    :END:
 ** TODO [#A] safeDeref macro
+   :PROPERTIES:
+   :ID:       12799BAE-FB48-44BA-A1DA-FA48A37DCE69
+   :END:
 
    safeAddressOf(ptrA*.memberPtrB*.myVector[20])
    =>
@@ -1671,6 +1686,9 @@ http://www.iquilezles.org/blog/?p=1468
      result
    end
 ** TODO [#A] parser bug :bug:
+   :PROPERTIES:
+   :ID:       963B27F9-D668-4E76-B4FB-D8099B44BAA8
+   :END:
    foo:
      blah
    bar
@@ -1679,8 +1697,14 @@ http://www.iquilezles.org/blog/?p=1468
 
    should not parse
 ** TODO [#A] postfixes for numbers
+   :PROPERTIES:
+   :ID:       CE2DAF44-20F5-490C-9AAF-B24242BFB6B8
+   :END:
    then allow 10m, 512K etc.
 ** TODO [#A] loop peeling to counter aliasing
+   :PROPERTIES:
+   :ID:       56AE0C24-7051-4E90-99BF-82826DAA7514
+   :END:
 
    int count, *data;
 
@@ -1696,15 +1720,24 @@ http://www.iquilezles.org/blog/?p=1468
 
    als makro, oder teil des foreach loops
 ** TODO [#A] var defs inside if/while/... conditions
+   :PROPERTIES:
+   :ID:       3ED6EF21-A520-44B6-9270-399EF2658452
+   :END:
 
    if ( rv := connect(); rv != Ok ):
      println "Error #rv happened during connecting"
    end
 ** TODO definitions in control structures
+   :PROPERTIES:
+   :ID:       48E9AB0E-0FB8-4861-BFC5-95EA260B15BF
+   :END:
    "if" "(" (stmt ";")* expr ")"
 
    etc.
 ** TODO [#A] semantic checker fails to detect missing &                 :bug:
+   :PROPERTIES:
+   :ID:       E72A441E-D20E-4CF3-A449-A116A8716C64
+   :END:
 
 struct IntList:
   int value
@@ -1719,7 +1752,13 @@ unittest:testCase tmp:
   end
 end
 ** TODO [#A] allow C-c C-k to abort compilation, as well
+   :PROPERTIES:
+   :ID:       1D8A84AF-2A4E-41C4-9847-5C040FC29CE4
+   :END:
 ** TODO [#A] eldoc does not show "..." for vararg functions :bug:
+   :PROPERTIES:
+   :ID:       DDFAD85A-153D-460C-AC5E-323F09F5286F
+   :END:
 * Use Cases                                                            :usecase:
 ** .obj Loader [0/2]
    :PROPERTIES:
@@ -1814,6 +1853,9 @@ end
     - [X] support in toplevel and compiler
 * Language design                                                  :design:lang:
 ** zomp-base
+   :PROPERTIES:
+   :ID:       7C2BF8F9-E428-471B-996D-979204E4978D
+   :END:
 
    The primitive lowest level base language into which macros eventually
    translate all code
@@ -1870,6 +1912,9 @@ end
      T& for reference which always points to a valid object
 
 ** zomp-plus
+   :PROPERTIES:
+   :ID:       4C8A3D33-BB56-4E6F-9292-11EDA07DE540
+   :END:
 
    Everything in zomp-base plus some extensions which might be universally
    useful.
@@ -2114,6 +2159,9 @@ end
       :ID:       00D07E5D-A0F2-4079-8A47-DE9FD46815BE
       :END:
 ***** TODO algol style loop?
+      :PROPERTIES:
+      :ID:       C1360CC8-5716-45CE-8522-306B95D299F3
+      :END:
 ***** TODO switch / case [1/2]
       :PROPERTIES:
       :ID:       E6DCAD36-A8C6-4C0D-A5C0-A736737B55F8
@@ -2190,6 +2238,9 @@ end
 ***** DONE function pointers
       CLOSED: [2008-07-31 Thu 20:10]
 **** TODO overloading
+     :PROPERTIES:
+     :ID:       4A909BCB-85B4-4E74-ACD2-0A16550CFFA9
+     :END:
 **** TODO literals
      :PROPERTIES:
      :ID:       B26FB281-3E66-4AD7-A558-FF33247B38BE
