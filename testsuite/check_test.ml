@@ -245,19 +245,25 @@ let () =
     in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
       let containsWord word =
-        let f = Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0 in
-        (if not f then
-            printf "Word '%s' missing in message '%s'\n" word message);
-        f
+        Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0
       in
-      if diagnosticLineNum = expectedLineNum then begin
-        if List.for_all containsWord args then
-          found := true
-      end
+      match kind with
+        | Expectation.CompilerError
+        | Expectation.CompilerWarning ->
+          if diagnosticLineNum = expectedLineNum then
+            if List.for_all containsWord args then begin
+              found := true
+            end
+        | Expectation.CompilerInfo ->
+          if List.for_all containsWord args then begin
+            found := true
+          end
+        | Expectation.RuntimePrint ->
+          ()
     in
 
     let errorRe = Str.regexp
-      (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
+      (sprintf "^%s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
     in
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
@@ -267,6 +273,8 @@ let () =
         let diagnosticLineNum = safeParseInt (Str.matched_group 1 line) in
         let message = Str.matched_group 2 line in
         List.iter (checkExpectation message diagnosticLineNum) !expectedErrorMessages
+      end else begin
+        List.iter (checkExpectation line 0) !expectedErrorMessages
       end
     in
 
@@ -289,19 +297,11 @@ let () =
     in
 
     let reportMissingDiagnostic (kind, args, lineNum, found) =
-      match kind with
-        | Expectation.CompilerError ->
-          if !found = false then
-            reportError (sprintf "failed to report error containing words %s<br />\n"
-                           (String.concat ", " args))
-        | Expectation.CompilerWarning ->
-          reportError "checking for warnings not supported, yet<br />\n"
-        | Expectation.CompilerInfo ->
-          reportError "checking for compiler info not supported, yet<br />\n"
-        | Expectation.RuntimePrint ->
-          if !found = false then
-            reportError (sprintf "failed to print line containing words %s<br />\n"
-                           (String.concat ", " args))
+      if !found = false then
+        reportError
+          (sprintf "expected %s containing words %s but didn't happen<br />\n"
+             (Expectation.verbalDescription kind)
+             (verbalConcat "and" args))
     in
 
     (** code *)
