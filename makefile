@@ -194,7 +194,8 @@ report.html:
 	cat testsuite/report_head.html > $@
 	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
 	./testsuite/make_report.sh "Unit tests" $(sort $(TESTSUITE_CASES:.testreport=)) >> $@
-	./testsuite/make_report.sh "Libraries" $(sort $(LIBRARIES_SOURCES:.zomp=)) >> $@
+	$(MAKE) libs/report
+	./testsuite/make_report.sh "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
 	$(MAKE) examples/report
 	./testsuite/make_report.sh "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
 	echo "</body>\n</html>" >> $@

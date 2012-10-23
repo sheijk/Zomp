@@ -3,9 +3,19 @@
 # atm, as the libs will not be compiled seperately
 #
 
-LIBRARIES_SOURCES = $(wildcard libs/*.zomp) $(GENERATED_LIBRARY_SOURCES)
+ZOMP_LIBS_SRC = $(wildcard libs/*.zomp) $(GENERATED_LIBRARY_SOURCES)
 
 libs/test: $(ZOMPC) $(ZOMP_LIBS_SRC:.zomp=.ll)
+
+libs/report:
+	for src in $(ZOMP_LIBS_SRC); do \
+		f=`basename $$src .zomp`; \
+		(if [ -e libs/$$f.ll ]; then \
+			echo "succeeded"; \
+		else \
+			echo "compilation failed"; \
+		fi > libs/$$f.result) \
+	done
 
 CLEAN_SUB_TARGETS += libs/clean
 # not using ZOMP_LIBS_SRC w/ repl. to avoid accidental deletion of source files if it fails
