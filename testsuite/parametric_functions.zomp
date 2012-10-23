@@ -25,6 +25,33 @@ end
 
 //------------------------------------------------------------------------------
 
+type Printable!T:
+  (fptr void T*) print
+end
+
+func void print:int(int* i):
+  printInt *i
+end
+
+func void genericPrint!T(T* value, Printable!T* vtable):
+  // vtable.print value
+end
+
+func int main():
+  vtableInt := Printable!int(print = print:int)
+  x := 10
+  // vtableInt.print &x
+  genericPrint &x &vtableInt
+  ret 0
+end
+
+// testf:
+//   x := main()
+//   println "\nmain returned " x
+// end
+
+//------------------------------------------------------------------------------
+
 // type RefCounted!T:
 //   T value
 //   int refCount
@@ -32,9 +59,9 @@ end
 // 
 // func void retain!T(RefCounted!T* rc):
 //   println "lalal"
-//   // ++rc.refCount
+//   ++rc.refCount
 // end
-// 
+
 // unittest:testCase GenericFunctionNotUsingTypeParams:
 //   // rc := RefCounted!float(value = 3.0, refCount = 0)
 //   // retain(&rc)
@@ -48,5 +75,5 @@ end
 
 //------------------------------------------------------------------------------
 
-unittest:main
+// unittest:main
 
