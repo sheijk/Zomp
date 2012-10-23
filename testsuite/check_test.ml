@@ -259,7 +259,7 @@ let () =
     let errorRe = Str.regexp
       (sprintf "error: %s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
     in
-    let checkExpectations _ line =
+    let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
       let isErrorMessage = Str.string_match errorRe line 0 in
@@ -269,7 +269,10 @@ let () =
         List.iter (checkExpectation message diagnosticLineNum) !expectedErrorMessages
       end
     in
-    let visitOutputLine _ line =
+
+    let checkRuntimeExpectationsAndPrintLine _ line =
+      fprintf outFile "%s<br />\n" (escapeHtmlText line);
+
       let checkPrintExpectation (kind, args, expectedLineNum, found) =
         let containsWord word =
           Str.string_match (Str.regexp (".*" ^ Str.quote word)) line 0
@@ -282,9 +285,7 @@ let () =
             end
           | _ -> ()
       in
-      List.iter checkPrintExpectation !expectedErrorMessages;
-      fprintf outFile "%s<br />\n" (escapeHtmlText line);
-      ()
+      List.iter checkPrintExpectation !expectedErrorMessages
     in
 
     let reportMissingDiagnostic (kind, args, lineNum, found) =
@@ -343,7 +344,7 @@ let () =
 
     writeHeader 2 "Compiler output";
     inMonospace (fun () ->
-      forEachLineInFile compilerMessagesOutputFile checkExpectations);
+      forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName testOutputExt in
@@ -352,7 +353,7 @@ let () =
 
       writeHeader 2 "Output";
       inMonospace (fun () ->
-        forEachLineInFile testrunOutputFile visitOutputLine);
+        forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
       fprintf outFile "Exited with %d<br />\n" runReturnCode;
       if runReturnCode <> !expectedReturnValueForRun then
