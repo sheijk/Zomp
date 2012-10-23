@@ -3,47 +3,32 @@
 /// same module
 ///
 
-// func char* char:toCString(char c)
-//   str := "X"
-//   store (cast char* str) c
-//   ret str
-// end
-// 
-// macro hello name
-//   var cstring quoteStr char:toCString('"') // " <- emacs font-lock sucks.
-//   var msg (cstring:concat quoteStr "Hello, " getField(name,id) quoteStr)
-//   ret ${printlnString msg}
-// end
+func char* char:toCString(char c):
+  var cstring str "X"
+  store (cast char* str) c
+  ret str
+end
+
+macro hello2 name:
+  var cstring quoteStr char:toCString('"') // " <- emacs font-lock sucks.
+  var cstring msg (cstring:concat quoteStr "Hello, " getField(name,id) quoteStr)
+  ret ${printlnString #msg}
+end
 
 func int foo():
   ret 123
 end
 
-// func char bar()
-//   ret 'x'
-// end
-// 
-// func char* baz()
-//   ret "bazzup?"
-// end
-// 
-// func char* char:toCString(char c)
-//   ret "fu"
-// end
-
 macro hello name:
-  printInt foo()
+  printInt foo() //// info 123
   printNewline()
-  // printChar bar()
-  // printNewline()
-  // printlnString baz()
-  // printlnString char:toCString('x')
   var int num foo()
-  ret ${printlnInt #num}
+  ret ${printlnInt #num} //// print 123
 end
 
 func int main():
   hello foo
+  hello2 bar
   ret 0
 end
 
