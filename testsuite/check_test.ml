@@ -106,11 +106,12 @@ open Utils
 
 module Expectation =
 struct
-  type t = CompilerError | CompilerWarning | RuntimePrint
+  type t = CompilerError | CompilerWarning | CompilerInfo | RuntimePrint
 
   let parse str =
     if str = "error" then CompilerError
     else if str = "warning" then CompilerWarning
+    else if str = "info" then CompilerInfo
     else if str = "print" then RuntimePrint
     else (failwith "Expectation.parse")
 
@@ -119,6 +120,7 @@ struct
   let verbalDescription = function
     | CompilerError -> "error"
     | CompilerWarning -> "warning"
+    | CompilerInfo -> "info"
     | RuntimePrint -> "to print line"
 end
 
@@ -156,6 +158,7 @@ let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
       | Expectation.CompilerError ->
         expectedCompilationSuccess := false
       | Expectation.CompilerWarning
+      | Expectation.CompilerInfo
       | Expectation.RuntimePrint ->
         ()
     end;
@@ -272,7 +275,9 @@ let () =
             reportError (sprintf "failed to report error containing words %s<br />\n"
                            (String.concat ", " args))
         | Expectation.CompilerWarning ->
-          reportError ("checking for warnings not supported, yet<br />\n")
+          reportError "checking for warnings not supported, yet<br />\n"
+        | Expectation.CompilerInfo ->
+          reportError "checking for compiler info not supported, yet<br />\n"
         | Expectation.RuntimePrint ->
           if !found = false then
             reportError (sprintf "failed to print line containing words %s<br />\n"
