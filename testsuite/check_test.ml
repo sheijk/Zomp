@@ -219,7 +219,9 @@ let () =
   withOpenFileOut outputFileName (fun outFile ->
     let errorOccured = ref false in
     let reportError msg =
-      fprintf outFile "%s:1: error: %s" zompFileName msg;
+      let msg = sprintf "%s:1: error: %s" zompFileName msg in
+      fprintf outFile "%s" msg;
+      fprintf stderr "%s" msg;
       errorOccured := true;
     in
 
