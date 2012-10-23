@@ -100,6 +100,16 @@ struct
         sprintf "&#%d;" ascii
     in
     String.concat "" (List.map replaceChar (stringToList str))
+
+  let verbalConcat verbForLast list =
+    match List.rev list with
+      | [] -> ""
+      | [single] -> single
+      | last :: remaining ->
+        sprintf "%s %s %s"
+          (String.concat ", " (List.rev remaining))
+          verbForLast
+          last
 end
 
 open Utils
@@ -118,16 +128,6 @@ struct
     else if str = compilerInfoCommand then CompilerInfo
     else if str = runtimePrintCommand then RuntimePrint
     else (failwith "Expectation.parse")
-
-  let verbalConcat verbForLast list =
-    match List.rev list with
-      | [] -> ""
-      | [single] -> single
-      | last :: remaining ->
-        sprintf "%s %s %s"
-          (String.concat ", " (List.rev remaining))
-          verbForLast
-          last
 
   let validExpectationsEnumDescr =
     verbalConcat "or"
