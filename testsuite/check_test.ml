@@ -107,15 +107,32 @@ open Utils
 module Expectation =
 struct
   type t = CompilerError | CompilerWarning | CompilerInfo | RuntimePrint
+  let compilerErrorCommand = "error"
+  let compilerWarningCommand = "warning"
+  let compilerInfoCommand = "info"
+  let runtimePrintCommand = "print"
 
   let parse str =
-    if str = "error" then CompilerError
-    else if str = "warning" then CompilerWarning
-    else if str = "info" then CompilerInfo
-    else if str = "print" then RuntimePrint
+    if str = compilerErrorCommand then CompilerError
+    else if str = compilerWarningCommand then CompilerWarning
+    else if str = compilerInfoCommand then CompilerInfo
+    else if str = runtimePrintCommand then RuntimePrint
     else (failwith "Expectation.parse")
 
-  let validExpectationsEnumDescr = "error, warning, info or print"
+  let verbalConcat verbForLast list =
+    match List.rev list with
+      | [] -> ""
+      | [single] -> single
+      | last :: remaining ->
+        sprintf "%s %s %s"
+          (String.concat ", " (List.rev remaining))
+          verbForLast
+          last
+
+  let validExpectationsEnumDescr =
+    verbalConcat "or"
+      [compilerErrorCommand; compilerWarningCommand; compilerInfoCommand;
+       runtimePrintCommand]
 
   let verbalDescription = function
     | CompilerError -> "error"
