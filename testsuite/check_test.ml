@@ -106,18 +106,20 @@ open Utils
 
 module Expectation =
 struct
-  type t = ErrorMessage | WarningMessage | PrintMessage
+  type t = CompilerError | CompilerWarning | RuntimePrint
 
   let parse str =
-    if str = "error" then ErrorMessage
-    else if str = "warning" then WarningMessage
-    else if str = "print" then PrintMessage
+    if str = "error" then CompilerError
+    else if str = "warning" then CompilerWarning
+    else if str = "print" then RuntimePrint
     else (failwith "Expectation.parse")
 
+  let validExpectationsEnumDescr = "error, warning, info or print"
+
   let verbalDescription = function
-    | ErrorMessage -> "error"
-    | WarningMessage -> "warning"
-    | PrintMessage -> "to print line"
+    | CompilerError -> "error"
+    | CompilerWarning -> "warning"
+    | RuntimePrint -> "to print line"
 end
 
 let writeHtmlHeader outFile zompFileName =
@@ -151,15 +153,16 @@ let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
   try
     let kind = Expectation.parse kindStr in
     begin match kind with
-      | Expectation.ErrorMessage ->
+      | Expectation.CompilerError ->
         expectedCompilationSuccess := false
-      | Expectation.WarningMessage | Expectation.PrintMessage ->
+      | Expectation.CompilerWarning
+      | Expectation.RuntimePrint ->
         ()
     end;
     addToList (kind, args, lineNum, ref false) expectedErrorMessages
   with Failure _ ->
-    printf "%s:%d: warning: invalid expectation kind '%s'. Expected error, warning or print\n"
-      zompFileName lineNum kindStr
+    printf "%s:%d: warning: invalid expectation kind '%s'. Expected %s\n"
+      zompFileName lineNum kindStr Expectation.validExpectationsEnumDescr
 
 let collectExpectations addExpectation lineNum line =
   if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
@@ -250,7 +253,7 @@ let () =
           Str.string_match (Str.regexp (".*" ^ Str.quote word)) line 0
         in
         match kind with
-          | Expectation.PrintMessage ->
+          | Expectation.RuntimePrint ->
             begin
               if List.for_all containsWord args then
                 found := true
@@ -264,13 +267,13 @@ let () =
 
     let reportMissingDiagnostic (kind, args, lineNum, found) =
       match kind with
-        | Expectation.ErrorMessage ->
+        | Expectation.CompilerError ->
           if !found = false then
             reportError (sprintf "failed to report error containing words %s<br />\n"
                            (String.concat ", " args))
-        | Expectation.WarningMessage ->
+        | Expectation.CompilerWarning ->
           reportError ("checking for warnings not supported, yet<br />\n")
-        | Expectation.PrintMessage ->
+        | Expectation.RuntimePrint ->
           if !found = false then
             reportError (sprintf "failed to print line containing words %s<br />\n"
                            (String.concat ", " args))
