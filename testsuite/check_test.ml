@@ -135,10 +135,10 @@ struct
        runtimePrintCommand]
 
   let verbalDescription = function
-    | CompilerError -> "error"
-    | CompilerWarning -> "warning"
-    | CompilerInfo -> "info"
-    | RuntimePrint -> "to print line"
+    | CompilerError -> "compiler error"
+    | CompilerWarning -> "compiler warning"
+    | CompilerInfo -> "compiler info"
+    | RuntimePrint -> "test case to print line"
 end
 
 let writeHtmlHeader outFile zompFileName =
