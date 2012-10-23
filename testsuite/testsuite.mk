@@ -102,6 +102,7 @@ testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
 %.testreport %.result: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
 	@$(ECHO) Running test suite case $< ...
+	rm -f $(@:.testreport=.ll) $(@:.testreport=.opt-bc) $(@:.testreport=.bc) $(@:.testreport=.exe)
 	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"
