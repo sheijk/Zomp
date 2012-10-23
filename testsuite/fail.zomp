@@ -1,6 +1,6 @@
-/**
- * Simplest way to fail unit test
- */
+///
+/// Simplest way to fail unit test
+///
 
 func int main():
   ret 1

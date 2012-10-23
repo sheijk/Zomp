@@ -1,8 +1,6 @@
-/**
- * Simple library which prevents libs from being included twice
-
-!verify off
- */
+///
+/// Simple library which prevents libs from being included twice
+///
 
 zmpx:lib:requireLib "libs/libcee.zomp"
 zmpx:lib:requireLib "libs/libcee.zomp"

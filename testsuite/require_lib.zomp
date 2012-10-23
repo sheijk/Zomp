@@ -1,8 +1,6 @@
-/**
- * Libary loaded by test require.zomp
-
-!verify off
- */
+///
+/// Libary loaded by test require.zomp
+///
 
 var int failWhenIncludedTwice 5
 

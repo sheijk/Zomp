@@ -1,6 +1,6 @@
-/**
- * Tests basic functionality of functions
- */
+///
+/// Tests basic functionality of functions
+///
 
 requireLibs unittest
 

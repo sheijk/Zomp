@@ -1,6 +1,6 @@
-/**
- * Testing floating point support
- */
+///
+/// Testing floating point support
+///
 
 func int main():
   var float f 1.1

@@ -1,8 +1,6 @@
-/**
- * Testing the testing framework
-
-!verify off
- */
+///
+/// Testing the testing framework
+///
 
 requireLibs unittest
 

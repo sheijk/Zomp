@@ -1,7 +1,6 @@
-/**
- * Testing string handling
-!syntax indent
- */
+///
+/// Testing string handling
+///
 
 requireLibs unittest
 

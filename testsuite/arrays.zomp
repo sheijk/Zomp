@@ -1,6 +1,6 @@
-/**
- * Testing the array lib
- */
+///
+/// Testing the array lib
+///
 
 requireLibs array unittest
 

@@ -1,8 +1,6 @@
-/**
- * Usage of structs
- *
-!syntax indent
- */
+///
+/// Usage of structs
+///
 
 requireLibs unittest
 

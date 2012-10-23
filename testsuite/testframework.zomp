@@ -1,6 +1,6 @@
-/**
- * Self-test of the unit test framework
- */
+///
+/// Self-test of the unit test framework
+///
 
 requireLibs libcee
 requireLibs unittest

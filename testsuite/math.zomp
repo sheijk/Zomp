@@ -1,6 +1,6 @@
-/**
- * Testing the math lib
- */
+///
+/// Testing the math lib
+///
 
 requireLibs libcee unittest math
 

@@ -1,7 +1,6 @@
-/**
- * Testing functions of the prelude
-!syntax indent
- */
+///
+/// Testing functions of the prelude
+///
 
 requireLibs unittest
 

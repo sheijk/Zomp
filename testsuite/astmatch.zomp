@@ -1,9 +1,6 @@
-/**
- * Testing functions in the ../stdlib.zomp
-
-!verify off
-!syntax indent
- */
+///
+/// Testing functions in the ../stdlib.zomp
+///
 
 requireLibs libcee
 requireLibs unittest

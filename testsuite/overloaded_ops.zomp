@@ -1,6 +1,6 @@
-/**
- * Testing overloaded operators
- */
+///
+/// Testing overloaded operators
+///
 
 // TODO port unittest to a version not using libcee, then uncomment stuff below..
 requireLibs unittest

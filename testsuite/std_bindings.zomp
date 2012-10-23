@@ -1,7 +1,7 @@
-/**
- * Testing the std:bindings API which allows access to the symbol table from
- * Zomp
- */
+///
+/// Testing the std:bindings API which allows access to the symbol table from
+/// Zomp
+///
 
 requireLibs unittest
 

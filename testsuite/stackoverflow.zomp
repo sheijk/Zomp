@@ -1,7 +1,7 @@
-/**
- * Some test cases where a stack overflow might occur if allocas for local
- * variables and temporaries are not done properly
- */
+///
+/// Some test cases where a stack overflow might occur if allocas for local
+/// variables and temporaries are not done properly
+///
 
 type Point:
   int x

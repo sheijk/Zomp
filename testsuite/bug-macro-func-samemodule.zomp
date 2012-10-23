@@ -1,8 +1,7 @@
-/**
- * Check whether a macro can call a function defined right before in in the
- * same module
-!syntax indent
- */
+///
+/// Check whether a macro can call a function defined right before in in the
+/// same module
+///
 
 // func char* char:toCString(char c)
 //   str := "X"

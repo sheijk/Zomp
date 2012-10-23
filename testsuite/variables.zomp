@@ -1,6 +1,6 @@
-/**
- * Demonstrates very basic usage of variables
- */
+///
+/// Demonstrates very basic usage of variables
+///
 
 requireLibs unittest
 
