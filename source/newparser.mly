@@ -27,17 +27,17 @@
 
   let withLoc expr lbloc = { expr with location = Some (getLocation lbloc) }
 
-  let juxExpr exprs =
+  let juxExprInferLoc exprs =
     let jux = juxExpr exprs in
     { jux with location = combineLocations exprs }
-  let callExpr exprs =
+  let callExprInferLoc exprs =
     let e = callExpr exprs in
     { e with location = combineLocations exprs }
-  let seqExpr exprs =
+  let seqExprInferLoc exprs =
     let e = opseqExpr exprs in
     { e with location = combineLocations exprs }
 
-  let expr name exprs =
+  let exprInferLoc name exprs =
     let e = expr name exprs in
     { e with location = combineLocations exprs }
 
@@ -63,11 +63,11 @@
   let mergeJux l r =
     match l, r with
       | {id = "opjux"; args = largs }, _ ->
-          expr "opjux" (largs @ [r])
+          exprInferLoc "opjux" (largs @ [r])
       | _, {id = "opjux"; args = rargs } ->
-          expr "opjux" (l :: rargs)
+          exprInferLoc "opjux" (l :: rargs)
       | _ ->
-          expr "opjux" [l;r]
+          exprInferLoc "opjux" [l;r]
 
   let checkTerminators expr terminators =
     let rec checkAll = function
@@ -174,7 +174,7 @@
 %left DOT
 %right QUOTE
 
-%start <sexpr> main
+%start <Ast2.sexpr> main
 
 %%
 
@@ -192,13 +192,13 @@ expr:
 
 infixExpr:
 | l = infixExpr; op = opSymbol; r = infixExpr;
-  { expr (opName op) [l; r] }
+  { exprInferLoc (opName op) [l; r] }
 | c = juxExpr;
   { c }
 
 juxExpr:
 | hd = prepostExpr; exprs = prepostExpr+;
-  { juxExpr (hd :: exprs) }
+  { juxExprInferLoc (hd :: exprs) }
 | e = prepostExpr;
   { e }
 
@@ -211,44 +211,44 @@ closedExpr:
   { idExprLoc id $startpos }
 
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
-  { let e = expr (quoteId q) [withLoc (seqExpr []) $startpos] in
+  { let e = exprInferLoc (quoteId q) [withLoc (seqExprInferLoc []) $startpos] in
     { e with location = Some (getLocation $startpos) } }
 | q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
-  { expr (quoteId q) [e] }
+  { exprInferLoc (quoteId q) [e] }
 | q = QUOTE; e = closedExpr;
-  { expr (quoteId q) [e] }
+  { exprInferLoc (quoteId q) [e] }
 
 | op = PREFIX_OP; e = closedExpr;
-  { expr ("pre" ^ opName op) [e] }
+  { exprInferLoc ("pre" ^ opName op) [e] }
 | e = closedExpr; op = POSTFIX_OP;
-  { expr ("post" ^ opName op) [e] }
+  { exprInferLoc ("post" ^ opName op) [e] }
 
 | l = closedExpr; DOT; r = closedExpr;
-  { expr "op." [l; r] }
+  { exprInferLoc "op." [l; r] }
 | l = closedExpr; op = EXCLAMATION_OP; r = closedExpr;
-  { expr (opName op) [l; r] }
+  { exprInferLoc (opName op) [l; r] }
 
 | OPEN_PAREN; e = expr; CLOSE_PAREN;
   { e }
 
 | OPEN_CURLY; CLOSE_CURLY;
-  { withLoc (expr "op{}" []) $startpos }
+  { withLoc (exprInferLoc "op{}" []) $startpos }
 | OPEN_CURLY; e = expr; CLOSE_CURLY;
-  { expr "op{}" [e] }
+  { exprInferLoc "op{}" [e] }
 
 | OPEN_BRACKET; CLOSE_BRACKET;
-  { withLoc (expr "op[]" []) $startpos }
+  { withLoc (exprInferLoc "op[]" []) $startpos }
 | OPEN_BRACKET; e = expr; CLOSE_BRACKET;
-  { expr "op[]" [e] }
+  { exprInferLoc "op[]" [e] }
 
 | head = closedExpr; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
-  { expr "postop[]" [head; arg] }
+  { exprInferLoc "postop[]" [head; arg] }
 
 | head = closedExpr; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  { callExpr (head :: args) }
+  { callExprInferLoc (head :: args) }
 
 | BEGIN_BLOCK; exprs = terminatedExpr*; END_BLOCK;
-  { seqExpr exprs }
+  { seqExprInferLoc exprs }
     
 
 %inline opSymbol:
