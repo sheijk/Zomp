@@ -145,10 +145,10 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "<html>\n";
   fprintf outFile "  <head>\n";
   fprintf outFile "    <title>Report for %s</title>\n" zompFileName;
-  fprintf outFile "    <style type=\"text/css\">";
-  fprintf outFile "      .ok { color: green; }";
-  fprintf outFile "      .failed { color: red; }";
-  fprintf outFile "    </style>";
+  fprintf outFile "    <style type=\"text/css\">\n";
+  fprintf outFile "      .ok { color: green; }\n";
+  fprintf outFile "      .failed { color: red; }\n";
+  fprintf outFile "    </style>\n";
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
 
