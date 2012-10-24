@@ -507,7 +507,7 @@ end = struct
       | _ -> Some (Common.combine "\n" errors)
 end
 
-let () =
+let runTests() =
   let module M = Tester(IndentLexerTestCase) in
   match IndentLexerTestCase.validateTestCases() with
     | None ->
@@ -516,7 +516,7 @@ let () =
         printf "Errors in indentlexer test cases:\n%s\n" errors;
         at_exit (fun () -> printf "Invalid indentlexer test cases, no results\n")
 
-let () =
+let runTerminatorTests() =
   let testCases = [
     "iff", "end", true;
     "iff", "end iff", true;
@@ -539,7 +539,5 @@ let () =
     end
   in
   List.iter testF testCases
-
-let () = Indentlexer.runInternalTests()
 
 

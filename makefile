@@ -181,7 +181,7 @@ source/vm_protocol.o: source/vm_protocol.h
 # Tests
 ################################################################################
 
-TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo
+TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
 
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests
 .PHONY: profile_comp exampletests runmltests alltests

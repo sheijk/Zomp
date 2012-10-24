@@ -783,7 +783,7 @@ struct
     ]
 end
 
-let () =
+let runTests() =
   let module M = Testing.Tester(IndentParserTestCase) in
   M.runTestsAndReport "newparser"
 
