@@ -158,7 +158,7 @@ let timeStr time =
     time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
 
 let deleteOutputFiles outputFileName =
-  let extensions = ["bc"; "ll"; "exe"; "test_output"] in
+  let extensions = ["bc"; "op-bc"; "ll"; "exe"; "test_output"] in
   List.iter
     (fun ext ->
       let name = replaceExtension outputFileName ext in
