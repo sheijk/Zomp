@@ -17,20 +17,6 @@ NOT_WORKING_EXAMPLES = static.zomp
 
 examples/test: $(EXAMPLES_SOURCES:.zomp=.exe)
 
-examples/report:
-	for src in $(EXAMPLES_SOURCES); do \
-		f=`basename $$src .zomp`; \
-		(if [ \! -e examples/$$f.ll ]; then \
-			echo "compilation failed"; \
-		elif [ \! -e examples/$$f.bc ]; then \
-			echo "llvm-as failed"; \
-		elif [ \! -e examples/$$f.exe ]; then \
-			echo "linking failed"; \
-		else \
-			echo "succeeded"; \
-		fi > examples/$$f.result) \
-	done
-
 # default to optimizations enabled
 ifeq "$(OPT)" ""
 OPT=1
