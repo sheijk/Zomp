@@ -26,6 +26,27 @@ let expr name args = { id = name; args = args; location = None }
 let juxExpr args = { id = "opjux"; args = args; location = None }
 let callExpr args = { id = "opcall"; args = args; location = None }
 
+(** construction w/ explicit loc handling (for parser) *)
+
+let combineLocations exprs =
+  match exprs with
+    | [] -> None
+    | first :: _ -> first.location
+
+let juxExprInferLoc exprs =
+  let jux = juxExpr exprs in
+  { jux with location = combineLocations exprs }
+let callExprInferLoc exprs =
+  let e = callExpr exprs in
+  { e with location = combineLocations exprs }
+let seqExprInferLoc exprs =
+  let e = opseqExpr exprs in
+  { e with location = combineLocations exprs }
+
+let exprInferLoc name exprs =
+  let e = expr name exprs in
+  { e with location = combineLocations exprs }
+
 (** query functions **)
 
 let fileName ast =

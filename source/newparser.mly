@@ -16,30 +16,11 @@
     end;
     flush stdout
 
-  let combineLocations exprs =
-    match exprs with
-      | [] -> None
-      | first :: _ -> first.location
-
   let getLocation loc =
     { fileName = loc.Lexing.pos_fname;
       line = loc.Lexing.pos_lnum }
 
   let withLoc expr lbloc = { expr with location = Some (getLocation lbloc) }
-
-  let juxExprInferLoc exprs =
-    let jux = juxExpr exprs in
-    { jux with location = combineLocations exprs }
-  let callExprInferLoc exprs =
-    let e = callExpr exprs in
-    { e with location = combineLocations exprs }
-  let seqExprInferLoc exprs =
-    let e = opseqExpr exprs in
-    { e with location = combineLocations exprs }
-
-  let exprInferLoc name exprs =
-    let e = expr name exprs in
-    { e with location = combineLocations exprs }
 
   let idExprLoc id loc =
     let l = getLocation loc in
