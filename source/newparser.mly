@@ -2,14 +2,15 @@
 %{
   exception ParseError of string
   open Printf
+  open Ast2
   let raiseParseError str = raise (ParseError str)
 
   let reportParsedExpression e =
     let locationToString l =
-      sprintf "%s:%d" l.Ast2.fileName l.Ast2.line
+      sprintf "%s:%d" l.fileName l.line
     in
-    let str = Ast2.toString e in
-    begin match e.Ast2.location with
+    let str = toString e in
+    begin match e.location with
        | Some l -> printf "Parsed '%s..'@%s\n" (locationToString l) str
        | None -> printf "Parsed '%s..' w/o location\n" str
     end;
@@ -17,36 +18,33 @@
 
   let combineLocations exprs =
     match exprs with
-    | [] -> None
-    | first :: _ -> first.Ast2.location
+      | [] -> None
+      | first :: _ -> first.location
 
   let getLocation loc =
-    { Ast2.fileName = loc.Lexing.pos_fname;
+    { fileName = loc.Lexing.pos_fname;
       line = loc.Lexing.pos_lnum }
 
-  let withLoc expr lbloc = { expr with Ast2.location = Some (getLocation lbloc) }
-
+  let withLoc expr lbloc = { expr with location = Some (getLocation lbloc) }
 
   let juxExpr exprs =
-    let jux = Ast2.juxExpr exprs in
-    { jux with Ast2.location = combineLocations exprs }
-      
+    let jux = juxExpr exprs in
+    { jux with location = combineLocations exprs }
   let callExpr exprs =
-    let e = Ast2.callExpr exprs in
-    { e with Ast2.location = combineLocations exprs }
-  let idExpr = Ast2.idExpr
+    let e = callExpr exprs in
+    { e with location = combineLocations exprs }
   let seqExpr exprs =
-    let e = Ast2.opseqExpr exprs in
-    { e with Ast2.location = combineLocations exprs }
+    let e = opseqExpr exprs in
+    { e with location = combineLocations exprs }
 
   let expr name exprs =
-    let e = Ast2.expr name exprs in
-    { e with Ast2.location = combineLocations exprs }
+    let e = expr name exprs in
+    { e with location = combineLocations exprs }
 
   let idExprLoc id loc =
     let l = getLocation loc in
     let e = idExpr id in
-    { e with Ast2.location = Some l }
+    { e with location = Some l }
 
   let quoteId = function
     | "`" -> "quote"
@@ -64,9 +62,9 @@
 
   let mergeJux l r =
     match l, r with
-      | {Ast2.id = "opjux"; args = largs }, _ ->
+      | {id = "opjux"; args = largs }, _ ->
           expr "opjux" (largs @ [r])
-      | _, {Ast2.id = "opjux"; args = rargs } ->
+      | _, {id = "opjux"; args = rargs } ->
           expr "opjux" (l :: rargs)
       | _ ->
           expr "opjux" [l;r]
@@ -75,15 +73,15 @@
     let rec checkAll = function
       | _, [] ->
           ()
-      | { Ast2.id = exprId; args = [] } :: remExprs, firstTerm :: remTerms
+      | { id = exprId; args = [] } :: remExprs, firstTerm :: remTerms
           when exprId = firstTerm ->
           checkAll (remExprs, remTerms)
       | _, _ ->
           raiseParseError (Printf.sprintf "Invalid terminators: %s for %s"
                              (Common.combine " " terminators)
-                             (Ast2.toString expr) )
+                             (toString expr) )
     in
-    checkAll (idExpr expr.Ast2.id :: expr.Ast2.args, terminators)
+    checkAll (idExpr expr.id :: expr.args, terminators)
 
   let expectNoTerminators = function
     | [] -> ()
@@ -91,13 +89,13 @@
         raiseParseError (Printf.sprintf "Expected no terminators but found: %s"
                            (Common.combine " " invalidTerminators))
 
-  let exprOfNoTerm ((expr :Ast2.sexpr), (terminators :string list)) =
+  let exprOfNoTerm ((expr :sexpr), (terminators :string list)) =
     match terminators with
       | [] -> expr
       | invalidTerminators -> raiseParseError
           (Printf.sprintf "Expected no terminators but found %s in %s"
              (Common.combine " " invalidTerminators)
-             (Ast2.toString expr))
+             (toString expr))
 
   let rec extractExprsAndCheckTerminators headExpr exprAndTerminators =
     let rec worker acc = function
@@ -110,23 +108,23 @@
       | (expr, invalidTerminators) :: rem ->
           raiseParseError (Printf.sprintf "Expected no terminators but found %s in %s"
                              (Common.combine " " invalidTerminators)
-                             (Ast2.toString expr))
+                             (toString expr))
     in
     worker [] exprAndTerminators
 
   let rec extractKeywordsAndExprsAndCheckTerminators = function
     | [] -> []
     | [(keyword, (expr, terminators))] ->
-        checkTerminators (Ast2.idExpr keyword) terminators;
+        checkTerminators (idExpr keyword) terminators;
         [(keyword, expr)]
     | (keyword, (expr, [])) :: rem ->
         (keyword, expr) :: extractKeywordsAndExprsAndCheckTerminators rem
     | (keyword, (expr, terminators)) :: _ ->
         raiseParseError (Printf.sprintf "Found invalid terminators '%s' after block in expr %s"
                            (Common.combine ", " terminators)
-                           (Ast2.toString expr))
+                           (toString expr))
 
-  let keywordAndExprToList (keyword, expr) = [Ast2.idExpr keyword; expr]
+  let keywordAndExprToList (keyword, expr) = [idExpr keyword; expr]
 %}
 
 %token <string> IDENTIFIER
@@ -176,7 +174,7 @@
 %left DOT
 %right QUOTE
 
-%start <Ast2.sexpr> main
+%start <sexpr> main
 
 %%
 
@@ -214,7 +212,7 @@ closedExpr:
 
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
   { let e = expr (quoteId q) [withLoc (seqExpr []) $startpos] in
-    { e with Ast2.location = Some (getLocation $startpos) } }
+    { e with location = Some (getLocation $startpos) } }
 | q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
   { expr (quoteId q) [e] }
 | q = QUOTE; e = closedExpr;
