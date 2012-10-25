@@ -517,9 +517,10 @@ let runTests() =
       {
         Testing.Summary.name = name;
         succeeded = false;
-        print = fun stream ->
-          printf "Errors in indentlexer test cases:\n%s\n" errors;
-          printf "Invalid indentlexer test cases, no results.\n"
+        summary =
+          sprintf "Errors in indentlexer test cases:\n%s\n%s"
+            errors
+            "Invalid indentlexer test cases, no results.\n"
       }
 
 let runTerminatorTests() =
@@ -556,7 +557,6 @@ let runTerminatorTests() =
   {
     Testing.Summary.name = name;
     succeeded = errorCount = 0;
-    print = fun stream ->
-      Testing.printTestSummary stream name testCaseCount errorCount
+    summary = Testing.testSummary name testCaseCount errorCount
   }
 

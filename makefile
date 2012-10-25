@@ -198,15 +198,23 @@ report.html:
 	./testsuite/make_report.sh "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
 	./examples/make_examples_result_files.sh $(EXAMPLES_SOURCES)
 	./testsuite/make_report.sh "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
+	echo "<h2>OCaml unit tests</h2>" >> $@
+	echo "<a href=\"$(MLTEST_OUTPUT_FILE)\">Output</a>\n" >> $@
+	echo "<p><span style=\"font-family:monospace\">\n" >> $@
+	cat $(MLTEST_SUMMARY_FILE) >> $@
+	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
 mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 
+MLTEST_SUMMARY_FILE = mltest_summary.test_output
+MLTEST_OUTPUT_FILE = mltest.test_output
+
 runmltests: mltest
 	@$(ECHO) Running OCaml test suite ...
-	$(OCAMLRUN) -b ./mltest
+	$(OCAMLRUN) -b ./mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE)
 
 PROF_COMP_TARGET=metaballs
 

@@ -9,15 +9,15 @@ struct
   type t = {
     name :string;
     succeeded :bool;
-    print : out_channel -> unit;
+    summary :string;
   }
 end
 
-let printTestSummary stream name testCount errorCount =
+let testSummary name testCount errorCount =
   if errorCount > 0 then
-    fprintf stream "%d/%d %s tests failed.\n" errorCount testCount name
+    sprintf "%d/%d %s tests failed.\n" errorCount testCount name
   else
-    fprintf stream "All %d %s tests succeeded.\n" testCount name
+    sprintf "All %d %s tests succeeded.\n" testCount name
 
 module type CASE_STRUCT = sig
   type input
@@ -97,10 +97,7 @@ module Tester(Cases :CASE_STRUCT) = struct
     {
       Summary.name = name;
       succeeded = errorCount = 0;
-      Summary.print =
-        fun stream ->
-          printTestSummary stream name testCount errorCount;
-          flush stdout
+      summary = testSummary name testCount errorCount
     }
 
   exception UnitTestFailure of error list
