@@ -509,12 +509,18 @@ end
 
 let runTests() =
   let module M = Tester(IndentLexerTestCase) in
+  let name = "indentlexer" in
   match IndentLexerTestCase.validateTestCases() with
     | None ->
-        M.runTestsAndReport "indentlexer"
+      M.runTestsAndReport name
     | Some errors ->
-        printf "Errors in indentlexer test cases:\n%s\n" errors;
-        at_exit (fun () -> printf "Invalid indentlexer test cases, no results\n")
+      {
+        Testing.Summary.name = name;
+        succeeded = false;
+        print = fun stream ->
+          printf "Errors in indentlexer test cases:\n%s\n" errors;
+          printf "Invalid indentlexer test cases, no results.\n"
+      }
 
 let runTerminatorTests() =
   let testCases = [
@@ -525,19 +531,32 @@ let runTerminatorTests() =
     "iff", "end iff blah", false;
     "iff", "end   iff", true;
   ] in
+  let testCaseCount = List.length testCases in
 
   let blockEndRE name = sprintf "end\\( +%s\\)? *$" name in
 
   printf "\n";
   let boolToString b = if b then "true" else "false" in
-  let errorOccured = ref false in
+  let errors = ref [] in
   let testF (blockName, line, shallEnd) =
     if shallEnd != (line =~ blockEndRE blockName) then begin
-      errorOccured := true;
-      printf "Failure in blockEndRE:\n  Input = %s\n  Expected = %s\n  Found = %s\n"
-        (sprintf "%s, '%s'" blockName line) (boolToString shallEnd) (boolToString (not shallEnd))
+      let errorMsg =
+        sprintf
+          "Failure in blockEndRE:\n  Input = %s\n  Expected = %s\n  Found = %s\n"
+          (sprintf "%s, '%s'" blockName line)
+          (boolToString shallEnd)
+          (boolToString (not shallEnd))
+      in
+      errors := errorMsg :: !errors
     end
   in
-  List.iter testF testCases
-
+  List.iter testF testCases;
+  let errorCount = List.length !errors in
+  let name = "indentlexer terminator tests" in
+  {
+    Testing.Summary.name = name;
+    succeeded = errorCount = 0;
+    print = fun stream ->
+      Testing.printTestSummary stream name testCaseCount errorCount
+  }
 

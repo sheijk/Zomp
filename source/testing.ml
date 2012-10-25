@@ -4,6 +4,21 @@
 
 open Printf
 
+module Summary =
+struct
+  type t = {
+    name :string;
+    succeeded :bool;
+    print : out_channel -> unit;
+  }
+end
+
+let printTestSummary stream name testCount errorCount =
+  if errorCount > 0 then
+    fprintf stream "%d/%d %s tests failed.\n" errorCount testCount name
+  else
+    fprintf stream "All %d %s tests succeeded.\n" testCount name
+
 module type CASE_STRUCT = sig
   type input
   type output
@@ -76,18 +91,17 @@ module Tester(Cases :CASE_STRUCT) = struct
     let testCount = List.length testCases in
     testCount, errorCount, errors
 
-  let printTestSummary name (testCount, errorCount, errors) =
-    if errorCount > 0 then
-      printf "%d/%d %s tests failed\n" errorCount testCount name
-    else
-      printf "All %d %s tests succeeded\n" testCount name
-
   let runTestsAndReport name =
     let testCount, errorCount, errors = runTests() in
     List.iter (printError name) errors;
-    at_exit (fun () ->
-               printTestSummary name (testCount, errorCount, errors);
-               flush stdout)
+    {
+      Summary.name = name;
+      succeeded = errorCount = 0;
+      Summary.print =
+        fun stream ->
+          printTestSummary stream name testCount errorCount;
+          flush stdout
+    }
 
   exception UnitTestFailure of error list
 end

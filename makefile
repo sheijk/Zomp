@@ -442,6 +442,9 @@ source/lang.cmi: source/common.cmo
 source/expander.cmi: source/lang.cmi
 source/bindings.cmi: source/common.cmo source/lang.cmo
 
+source/mltest.cmo: source/newparser_tests.cmo
+source/mltest.cmo: source/indentlexer_tests.cmo
+
 ################################################################################
 # Additional utility targets
 ################################################################################
