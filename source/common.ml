@@ -95,6 +95,22 @@ let readChannel channel =
   copyLines lines totalLength;
   fileContent
 
+let makeGuardedFunction constructor destructor =
+  fun constructorArg f ->
+    let resource = constructor constructorArg in
+    let result =
+      try
+        f resource
+      with exn ->
+        destructor resource;
+        raise exn
+    in
+    destructor resource;
+    result
+
+let withFileForWriting filename f =
+  (makeGuardedFunction open_out close_out) filename f
+
 let absolutePath fileName =
   let fileName =
     if fileName = "." then ""

@@ -1,16 +1,4 @@
 
-let withFileForWriting fileName f =
-  let channel = open_out fileName in
-  let result =
-    try
-      f channel
-    with exn ->
-      close_out channel;
-      raise exn
-  in
-  close_out channel;
-  result
-
 let newlineRE = Str.regexp_string "\n"
 let failedRE = Str.regexp_string "failed"
 let succeededRE = Str.regexp_string "succeeded"
@@ -28,9 +16,9 @@ let runTests summaryFile =
   let summaries = List.map call tests in
   print_newline();
 
-  let module S = Testing.Summary in
-  withFileForWriting summaryFile (fun file ->
+  Common.withFileForWriting summaryFile (fun file ->
     let print sum =
+      let module S = Testing.Summary in
       let summary = sum.S.summary in
       Printf.printf "%s" summary;
       let (>>=) x f = f x in
