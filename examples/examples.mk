@@ -26,7 +26,7 @@ endif
 # Additional libraries
 ################################################################################
 
-ZOMP_STDLIBS = source/zompvm_dummy.o source/runtime.o
+ZOMP_STDLIBS = source/zompvm_dummy.o source/zompvm_caml_dummy.o source/runtime.o
 LIBS = $(ZOMP_STDLIBS)
 GL_LIBS = $(LINK_GLFW) $(LINK_GLEW) $(LINK_GL) $(LINK_GLUT)
 
