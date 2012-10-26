@@ -1,6 +1,6 @@
-/**
- * Defining simple heap-allocated arrays
- */
+///
+/// Defining simple heap-allocated arrays.
+///
 
 requireLibs libcee
 

@@ -1,6 +1,7 @@
-/**
- * Basic arithmetic operators
- */
+///
+/// Basic arithmetic operators. Import this if you only want to get definitions
+/// for some standard functions without pulling in the whole libcee.
+///
 
 macro defineOp op func:
   var (ptr ast) def $template

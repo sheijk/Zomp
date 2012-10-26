@@ -1,8 +1,6 @@
-/**
- * Utility functions for mesh handling
-
-!verify off
- */
+///
+/// Utility functions for mesh handling.
+///
 
 requireLibs libcee opengl20 math glutils
 

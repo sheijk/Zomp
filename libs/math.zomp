@@ -1,8 +1,6 @@
-/**
- * Common math utilities for 3d graphics
-
-!verify off
- */
+///
+/// Common math utilities for 3d graphics.
+///
 
 requireLibs libcee unittest
 

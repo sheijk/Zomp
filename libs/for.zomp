@@ -1,8 +1,7 @@
-/**
- * for loops (for indent syntax)
-
-!verify off
- */
+///
+/// for loops (for indent syntax).
+/// TODO: remove this.
+///
 
 macro uniqueIds purpose ids...:
   var ast* code ${seq}

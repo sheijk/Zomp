@@ -1,6 +1,6 @@
-/**
- * Tools for writing and running unit tests
- */
+///
+/// Tools for writing and running unit tests.
+///
 
 requireLibs libcee
 

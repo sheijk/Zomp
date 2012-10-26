@@ -1,9 +1,6 @@
-/**
- * Libraries providing a C like feel
-
-!verify off
-!syntax indent
- */
+///
+/// Library providing a C like language.
+///
 
 requireLibs basic_ops
 

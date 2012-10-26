@@ -1,7 +1,7 @@
-/**
- * Bindings for AntTweakBar
- * http://www.antisphere.com/Wiki/tools:anttweakbar
- */
+///
+/// Bindings for AntTweakBar.
+/// http://www.antisphere.com/Wiki/tools:anttweakbar
+///
 
 linkclib "libAntTweakBar.dylib"
 

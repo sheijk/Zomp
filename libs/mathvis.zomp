@@ -1,6 +1,6 @@
-/**
- * Utilities to visualize data types from the math library
- */
+///
+/// Utilities to visualize data types from the math library.
+///
 
 requireLibs math opengl20 glutils
 

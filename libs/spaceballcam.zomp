@@ -1,8 +1,7 @@
-/**
- * A spaceball camera which can rotate the camera about a center and zoom in/out
-
-!verify off
- */
+///
+/// A spaceball camera which can rotate the camera about a center and zoom
+/// in/out.
+///
 
 requireLibs libcee math opengl20
 

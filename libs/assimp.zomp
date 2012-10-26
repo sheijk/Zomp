@@ -1,8 +1,6 @@
-/**
- * Bindings for assimp library to import 3d models from various file formats
-
-!verify off
- */
+///
+/// Bindings for assimp library to import 3d models from various file formats.
+///
 
 linkclib "assimp.dylib"
 

@@ -1,6 +1,6 @@
-/**
- * Library of utilities for OpenGL to safely clean up, draw simple shapes etc.
- */
+///
+/// Library of utilities for OpenGL to safely clean up, draw simple shapes etc.
+///
 
 requireLibs libcee opengl20 opengl20print glfw glut
 

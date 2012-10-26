@@ -1,7 +1,6 @@
-/**
- * Using and defining the C standard lib for io
-!verify off
- */
+///
+/// Using and defining the C standard lib for io.
+///
 
 type size_t u32
 type FILE
