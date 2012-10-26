@@ -1549,7 +1549,7 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source):
   this.rotationKeyFrames = *makeArray(quatf, source.mNumRotationKeys)
 
   for transnum 0 source.mNumPositionKeys:
-    aikey := *(source.mPositionKeys +_ptr transnum)
+    aikey := *(source.mPositionKeys + transnum)
     var KeyFrameVector key
     key.time = aikey.mTime
     key.value = aiVector3D:vec3f aikey.mValue
@@ -1558,7 +1558,7 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source):
   end
 
   for scalenum 0 source.mNumScalingKeys:
-    skey := *(source.mScalingKeys +_ptr scalenum)
+    skey := *(source.mScalingKeys + scalenum)
     aset this.scaleTimes scalenum toFloat(skey.mTime)
     scale := aiVector3D:vec3f(skey.mValue)
     aset this.scaleKeyFrames scalenum scale
@@ -1568,7 +1568,7 @@ func void NodeAnimation:init(NodeAnimation* this, aiNodeAnim* source):
   end
 
   for rotnum 0 source.mNumRotationKeys:
-    rkey := *(source.mRotationKeys +_ptr rotnum)
+    rkey := *(source.mRotationKeys + rotnum)
     aset this.rotatationTimes rotnum toFloat(rkey.mTime)
     aset this.rotationKeyFrames rotnum aiQuaternion:quatf(rkey.mValue)
   end
