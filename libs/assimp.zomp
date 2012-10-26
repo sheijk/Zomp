@@ -251,11 +251,11 @@ func void VertexStream:copyFromVector3D(VertexStream* this, aiVector3D* sourceVe
   vertexPtr := cast float* this.data
   sourceVec := sourceVec_in
   for i 0 this.size:
-    store (vertexPtr +_ptr 0) sourceVec*.x
-    store (vertexPtr +_ptr 1) sourceVec*.y
-    store (vertexPtr +_ptr 2) sourceVec*.z
-    vertexPtr = vertexPtr +_ptr 3
-    sourceVec = sourceVec +_ptr 1
+    store (vertexPtr + 0) sourceVec*.x
+    store (vertexPtr + 1) sourceVec*.y
+    store (vertexPtr + 2) sourceVec*.z
+    vertexPtr = vertexPtr + 3
+    sourceVec = sourceVec + 1
   end
 end
 
@@ -779,15 +779,15 @@ func void aiScene:print(aiScene* this):
   aiNode:print this.mRootNode 4
   println "  mMeshes(" this.mNumMeshes "):"
   for meshnum 0 this.mNumMeshes:
-    aiMesh:print load(this.mMeshes +_ptr meshnum) 4
+    aiMesh:print load(this.mMeshes + meshnum) 4
   end
   println "  mAnimations(" this.mNumAnimations "):"
   for animnum 0 this.mNumAnimations:
-    aiAnimation:print *(this.mAnimations +_ptr animnum) 4
+    aiAnimation:print *(this.mAnimations + animnum) 4
   end
   println "  mCameras (" this.mNumCameras "):"
   for camnum 0 this.mNumCameras:
-    aiCamera:print *(this.mCameras +_ptr camnum) 4
+    aiCamera:print *(this.mCameras + camnum) 4
   end
   println "  mMaterials (" this.mNumMaterials "):"
   for matnum 0 this.mNumMaterials:

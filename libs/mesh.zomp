@@ -87,7 +87,7 @@ func void VertexStream:printDetailed(VertexStream* this):
   VertexStream:foreach this float f:
     printString "    "
     for cnum 0 this.components:
-      printFloat load(f +_ptr cnum)
+      printFloat load(f + cnum)
       printChar ' '
     end
     println()
@@ -284,8 +284,8 @@ func void Mesh:send(Mesh* this):
   for i 0 this*.streams*.size:
     glNormal3fv normals
     glVertex3fv positions
-    positions = positions +_ptr 3
-    normals = normals +_ptr 3
+    positions = positions + 3
+    normals = normals + 3
   end
 end
 
