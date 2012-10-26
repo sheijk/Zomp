@@ -220,8 +220,8 @@ let () =
     let errorOccured = ref false in
     let reportError msg =
       let msg = sprintf "%s:1: error: %s" zompFileName msg in
-      fprintf outFile "%s" msg;
-      fprintf stderr "%s" msg;
+      fprintf outFile "%s<br />\n" msg;
+      fprintf stderr "%s\n" msg;
       errorOccured := true;
     in
 
@@ -299,7 +299,7 @@ let () =
     let reportMissingDiagnostic (kind, args, lineNum, found) =
       if !found = false then
         reportError
-          (sprintf "expected %s containing words %s but didn't happen<br />\n"
+          (sprintf "expected %s containing words %s but didn't happen"
              (Expectation.verbalDescription kind)
              (verbalConcat "and" args))
     in
@@ -333,15 +333,6 @@ let () =
       Sys.command cmd;
     in
 
-    if !expectedCompilationSuccess && compilerError <> 0 then begin
-      reportError "compilation failed, but no errors expected\n";
-      let printLine _ line = print_string line; print_newline() in
-      forEachLineInFile compilerMessagesOutputFile printLine;
-      print_newline();
-    end else if not !expectedCompilationSuccess && compilerError = 0 then begin
-      reportError "compilation succeeded, but unit test expected errors\n";
-    end;
-
     writeHeader 2 "Compiler output";
     inMonospace (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
@@ -357,11 +348,20 @@ let () =
 
       fprintf outFile "Exited with %d<br />\n" runReturnCode;
       if runReturnCode <> !expectedReturnValueForRun then
-        reportError (sprintf "exited with code %d instead of %d<br />\n"
+        reportError (sprintf "exited with code %d instead of %d"
                        runReturnCode !expectedReturnValueForRun);
     end;
 
     writeHeader 2 "Results";
+
+    if !expectedCompilationSuccess && compilerError <> 0 then begin
+      reportError "compilation failed, but no errors expected";
+      let printLine _ line = print_string line; print_newline() in
+      forEachLineInFile compilerMessagesOutputFile printLine;
+      print_newline();
+    end else if not !expectedCompilationSuccess && compilerError = 0 then begin
+      reportError "compilation succeeded, but unit test expected errors";
+    end;
 
     List.iter reportMissingDiagnostic !expectedErrorMessages;
 
