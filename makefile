@@ -19,6 +19,7 @@ endif
 
 help:
 	@$(ECHO) "Please use 'make all' and/or 'make test'"
+	exit 1
 
 debug:
 	@$(ECHO) "PATH = "
