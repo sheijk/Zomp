@@ -395,16 +395,27 @@ end
 
 unittest:testCase Assign:
   floatp := malloc float 2
+  onReturn dealloc(floatp)
 
   floatp* = 1.0
   (ptradd floatp 1)* = 10.0
-
   unittest:assertAll:
     floatp* ==_f 1.0
     load (ptradd floatp 1) ==_f 10.0
   end
+end
 
-  free (cast void* floatp)
+unittest:testCase AssignArray:
+  values := malloc int 2
+  onReturn dealloc(values)
+
+  values[0] = 10
+  values[2-1] = 100
+
+  unittest:assertAll:
+    values* == 10
+    (values+1)* == 100
+  end
 end
 
 unittest:testCase OverloadedFuncs:

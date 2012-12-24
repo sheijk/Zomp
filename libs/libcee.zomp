@@ -675,7 +675,7 @@ end
 /// *ptr = b - for pointers
 /// TODO: just use getMemberAddress
 macro op= l r:
-  if ast:matchesShape(l, ${__[_]}):
+  if ast:matchesShape(l, ${__[__]}):
     var ast* array ast:child(l, 0)
     var ast* index ast:child(l, 1)
     var ast* arrayPtr getMemberAddress(array)
