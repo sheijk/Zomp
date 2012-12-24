@@ -1,3 +1,11 @@
+(**
+   This program is used to run the testsuite integration tests. Call it using
+   'check_test foo.testresult make-command' to run the tests in foo.zomp.
+   make-command is a command used to invoke make, it should be "$(MAKE)" if you
+   call this from a makefile. The tool will call '$make-command foo.exe' to
+   build the executable and '$make-command foo.test_output' to run the test.
+ *)
+
 open Printf
 
 let scriptName = "check_test"
@@ -101,6 +109,8 @@ struct
     in
     String.concat "" (List.map replaceChar (stringToList str))
 
+  (** Returns a string enumerating all strings in last separated by strings. The
+      last element is separated by verbForLast. Like "a, b, c and d". *)
   let verbalConcat verbForLast list =
     match List.rev list with
       | [] -> ""
@@ -336,6 +346,7 @@ let () =
     writeHeader 2 "Compiler output";
     inMonospace (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
+    fprintf outFile "Compiler exited with code %d</br>\n" compilerError;
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName testOutputExt in
@@ -346,7 +357,7 @@ let () =
       inMonospace (fun () ->
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
-      fprintf outFile "Exited with %d<br />\n" runReturnCode;
+      fprintf outFile "Exited with code %d<br />\n" runReturnCode;
       if runReturnCode <> !expectedReturnValueForRun then
         reportError (sprintf "exited with code %d instead of %d"
                        runReturnCode !expectedReturnValueForRun);
