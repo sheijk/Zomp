@@ -32,14 +32,24 @@ func void init():
 end
 
 func void onWindowResize(int newWidth, int newHeight):
+  maxValueStringLength := 5
+  valueSupremum := 10 ** maxValueStringLength
+  if (newWidth >= valueSupremum || newHeight >= valueSupremum):
+    println "Window size is to big (" newWidth "x" newHeight ")"
+    return
+  end
+
   windowWidth = newWidth
   windowHeight = newHeight
 
-  /// dammit, needz varargs and sprintf!
-  title := int2cstring newWidth ++ "x" ++ int2cstring newHeight
-  glfwSetWindowTitle title
-  // misses a few allocated values..
-  dealloc title
+  maxLength := 1 + 2 * maxValueStringLength + 1
+  buffer := malloc char maxLength
+  sprintf buffer "%dx%d" newWidth newHeight
+  onReturn dealloc(buffer)
+  // work-around to the fact that buffer[maxLength-1] fails
+  lastCharIndex := maxLength - 1
+  buffer[lastCharIndex] = '\0'
+  glfwSetWindowTitle buffer
 end
 
 ///-----------------------------------------------------------------------------
