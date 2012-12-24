@@ -46,9 +46,7 @@ func void onWindowResize(int newWidth, int newHeight):
   buffer := malloc char maxLength
   sprintf buffer "%dx%d" newWidth newHeight
   onReturn dealloc(buffer)
-  // work-around to the fact that buffer[maxLength-1] fails
-  lastCharIndex := maxLength - 1
-  buffer[lastCharIndex] = '\0'
+  buffer[maxLength-1] = '\0'
   glfwSetWindowTitle buffer
 end
 
