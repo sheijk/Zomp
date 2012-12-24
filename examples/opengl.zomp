@@ -74,6 +74,7 @@ func int main():
 
   drawPausedOverlay()
   glfwSwapBuffers()
+  drawPausedOverlay()
   glfwPollEvents()
 
   printlnString "cu"
