@@ -2,9 +2,9 @@
 /// Things that should trigger compilation errors for std:base:cast instruction.
 ///
 
-func void failIntToInt():
+func void castIntToInt():
   var int ia 10
-  var int ib (cast int ia) //// error cast
+  var int ib (cast int ia)
 end
 
 func int main():

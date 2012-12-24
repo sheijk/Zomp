@@ -1382,10 +1382,19 @@ struct
       | [targetTypeExpr; valueExpr] ->
           begin
             match translateType env.bindings targetTypeExpr with
-              | Result typ ->
+              | Result targetType ->
+                begin
                   let _, valueForm, toplevelForms = translateToForms env.translateF env.bindings valueExpr in
-                  let castForm = `CastIntrinsic( typ, valueForm ) in
-                  Result( env.bindings, toplevelForms @ [castForm] )
+                  match typeCheck env.bindings valueForm with
+                    | TypeOf valueType ->
+                      if Semantic.equalTypes env.bindings targetType valueType then
+                        Result( env.bindings, toplevelForms @ [(valueForm :> formWithTLsEmbedded)] )
+                      else
+                        let castForm = `CastIntrinsic( targetType, valueForm ) in
+                        Result( env.bindings, toplevelForms @ [castForm] )
+                    | TypeError (fe,m,f,e) ->
+                      errorFromTypeError env.bindings valueExpr (fe,m,f,e)
+                end
               | Error msgs ->
                 Error msgs
           end
