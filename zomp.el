@@ -273,10 +273,11 @@ windows displaying it"
     (message "Evaluating region"))
   (zomp-request-execution-abort)
   (when (fboundp 'nav-flash-show)
-    (nav-flash-show (region-beginning)
-                    (region-end)
-                    'zomp-highlight-after-eval-face
-                    zomp-highlight-after-eval-seconds))
+    (save-window-excursion
+      (nav-flash-show (region-beginning)
+                      (region-end)
+                      'zomp-highlight-after-eval-face
+                      zomp-highlight-after-eval-seconds)))
   (zomp-shell-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
 (defun zomp-shell-eval-current ()
