@@ -156,12 +156,15 @@ let rec replaceParams params args expr =
           location = None }
 
 let shiftId = function
-  | {id = firstArgId; args = []} :: remArgs ->
-      { id = firstArgId; args = remArgs; location = None }
+  | {id = firstArgId; args = []} as expr :: remArgs ->
+      { id = firstArgId; args = remArgs; location = expr.location }
   | _ ->
       failwith "shiftId"
 
 let shiftLeft = function
   | { id = id; args = [] } as first :: args -> { first with args = args }
-  | args -> { id = "seq"; args = args; location = None }
+  | args -> {
+    id = "seq";
+    args = args;
+    location = match args with first :: _ -> first.location | [] -> None }
 

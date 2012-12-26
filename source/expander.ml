@@ -1742,14 +1742,14 @@ struct
             translateRecordF env firstArg remArgs
 
           | [], _ ->
-            let r = env.translateF env.bindings (Ast2.shiftLeft expr.args) in
+            let r = env.translateF env.bindings { (Ast2.shiftLeft expr.args) with location = expr.location } in
             Result r
 
           | (_::_), _ ->
             let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
             let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
             let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
-            let r = env.translateF env.bindings (Ast2.seqExpr [tempVar; callExpr]) in
+            let r = env.translateF env.bindings { (Ast2.seqExpr [tempVar; callExpr]) with location = expr.location } in
             Result r
       end
       | { args = [] } ->
@@ -2235,7 +2235,7 @@ let matchFunc =
     | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param } :: remArgs
         when opjux = macroJuxOp ->
         let result, hasvarargs = scanParams remArgs in
-        (Ast2.shiftLeft param :: result, hasvarargs)
+        { (Ast2.shiftLeft param) with location = typeExpr.location } :: result, hasvarargs
     | _ -> failwith ""
   in
   function
