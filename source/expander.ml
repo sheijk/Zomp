@@ -2025,28 +2025,28 @@ let translateFromDict
     (expr :Ast2.sexpr)
     =
   try
-  begin match !traceMacroExpansion with
-    | Some f -> f (sprintf "dict/%s" expr.id) expr
-    | None -> ()
-  end;
-  let handler = Hashtbl.find baseInstructions expr.id in
-  let env = {
-    bindings = bindings;
-    translateF = translateF;
-    translateExprOld = translateExprOld;
-    translateExpr = (fun env expr ->
-      let newBindings, formsWTL = translateExprOld env.bindings expr in
-      Result (newBindings, formsWTL));
-    parseF = Parseutils.parseIExprsOpt;
-  } in
-  match handler env expr with
-    | Error errors ->
-      print_string (combineErrors "Swallowed errors:\n" errors);
-      print_newline();
-      flush stdout;
-      None
-    | Result (bindings, tlexprs) ->
-      Some (bindings, tlexprs)
+    begin match !traceMacroExpansion with
+      | Some f -> f (sprintf "dict/%s" expr.id) expr
+      | None -> ()
+    end;
+    let handler = Hashtbl.find baseInstructions expr.id in
+    let env = {
+      bindings = bindings;
+      translateF = translateF;
+      translateExprOld = translateExprOld;
+      translateExpr = (fun env expr ->
+        let newBindings, formsWTL = translateExprOld env.bindings expr in
+        Result (newBindings, formsWTL));
+      parseF = Parseutils.parseIExprsOpt;
+    } in
+    match handler env expr with
+      | Error errors ->
+        print_string (combineErrors "Swallowed errors:\n" errors);
+        print_newline();
+        flush stdout;
+        None
+      | Result (bindings, tlexprs) ->
+        Some (bindings, tlexprs)
   with Not_found ->
     None
 
