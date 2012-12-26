@@ -4,7 +4,15 @@
 #+INFOJS_OPT: view:content toc:nil
 
 * To be sorted
-** simpler indentation rules
+** TODO [#A] always require parenthesis for quote/antiquotes         :syntax:
+   - would make some cases a lot clearer ('#foo(10)' as '#(foo)(10)' vs. '#(foo(10))')
+   - would allow to overload $ (and #) to distinguish between
+     prefix/postfix/infix parameters
+     
+     $+$ infix, $+ prefix, +$ postfix
+     or
+     #, #+, +#
+** simpler indentation rules                                         :syntax:
    :PROPERTIES:
    :ID:       AAFF0380-013B-49DE-853E-956EF186B566
    :END:
