@@ -217,7 +217,8 @@ let () =
   end;
   if options.traceMacroExpansion then begin
     let trace s e =
-      printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
+      let locString = sprintf "%s:%d" (Ast2.fileName e) (Ast2.lineNumber e) in
+      printf "%s: Expansion step %s:\n%s\n" locString s (Ast2.toString e)
     in
     Expander.setTraceMacroExpansion (Some trace);
   end;
