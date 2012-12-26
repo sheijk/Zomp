@@ -70,6 +70,12 @@ evaluated.")
   "A face for todo items")
 (defvar todo-face 'todo-face)
 
+(defface zomp-testsuite-directive-face
+  '((t (:inherit font-lock-doc-face :weight bold)))
+  "A face to highlight directives for the Zomp testsuite. For example:
+//// error type
+The word \"error\" will be highlighted in this face.")
+
 (defvar zomp-mode-hook nil)
 
 (defun goto-match-paren (arg)
@@ -794,6 +800,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   '(
     ("//.*" 0 font-lock-comment-face t t)
     ("///.*" 0 font-lock-doc-face t t)
+    ("//// \\(print\\|info\\|warning\\|error\\) .*" 1 'zomp-testsuite-directive-face t t)
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
     ("'[^']'" 0 font-lock-string-face)
 
