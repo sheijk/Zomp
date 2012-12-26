@@ -3,10 +3,6 @@
 /// Contains definitions and methods which are available everywhere
 ///
 
-/*
-!verify off
-*/
-
 type int u32
 
 ///-----------------------------------------------------------------------------
