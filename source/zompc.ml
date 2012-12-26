@@ -171,39 +171,44 @@ type options = {
   traceMacroExpansion :bool;
 }
 
-let extractOptions = function
-  | [| execNameAndPath; "-c"; fileName |] ->
-      Some {
-        execNameAndPath = execNameAndPath;
-        fileName = fileName;
-        printTimings = false;
-        traceMacroExpansion = false;
-      }
-  | [| execNameAndPath; "-c"; fileName; "--print-timings" |] ->
-      Some {
-        execNameAndPath = execNameAndPath;
-        fileName = fileName;
-        printTimings = true;
-        traceMacroExpansion = false;
-      }
-  | [| execNameAndPath; "-c"; fileName; "--trace-macros" |] ->
-    Some {
-      execNameAndPath = execNameAndPath;
-      fileName = fileName;
-      printTimings = false;
-      traceMacroExpansion = true;
+type optionResult = Options of options | InvalidArguments of string
+
+let extractOptions args =
+  let fileName = ref "" in
+  let printTimings = ref false in
+  let traceMacroExpansion = ref false in
+  let onAnonArg str =
+    printf "argh %s\n" str;
+    raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
+  in
+  try
+    Arg.current := 0;
+    Arg.parse_argv
+      args
+      ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
+       "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
+       "-c", Arg.Set_string fileName, "The file to compile"]
+      onAnonArg
+      "zompc -c fileName.zomp\n";
+    Options {
+      execNameAndPath = args.(0);
+      fileName = !fileName;
+      printTimings = !printTimings;
+      traceMacroExpansion = !traceMacroExpansion;
     }
-  | _ ->
-      None
+  with
+    | Arg.Bad msg
+    | Arg.Help msg ->
+      InvalidArguments msg
 
 let () =
   Printexc.record_backtrace true;
   let options =
     match extractOptions Sys.argv with
-      | None ->
-        printInstructions();
+      | InvalidArguments msg ->
+        printf "%s\n" msg;
         exit 1
-      | Some options ->
+      | Options options ->
         options
   in
   if options.printTimings then begin
