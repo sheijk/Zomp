@@ -2188,7 +2188,7 @@ let translateSeqTL handleLLVMCodeF translateTL env expr =
   translateAndEval handleLLVMCodeF translateTL env expr.args
 
 let () =
-  addBaseInstruction "macro" "name, args..., body"
+  addBaseInstruction macroMacro "name, args..., body"
     (Macros.translateDefineMacro translateNested)
 
 let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
@@ -2201,7 +2201,7 @@ let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstr
     Hashtbl.add table name f
   in
 
-  add "macro" "name, args..., body"
+  add macroMacro "name, args..., body"
     (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested));
   Base.registerTL (fun name (doc, f) -> add name doc f);
 
