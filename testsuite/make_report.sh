@@ -11,7 +11,7 @@ function outputLinkIfExists()
     then
         output "<th><a href=\"$1\">$2</a></th>"
     else
-        output "<th> <p title=\"File $1 does not exist\">$2</p></th>"
+        output "<th> <p class=\"missing-file\" title=\"File $1 does not exist\">$2</p></th>"
     fi
 }
 
