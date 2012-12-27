@@ -190,7 +190,8 @@ type 'a mayfail =
   | Result of 'a
   | Error of string list
 
-let errorFromString msg = Error [msg]
+let errorFromStringDeprecated msg = Error [msg]
+let errorFromString location msg = Error [Basics.formatError location msg]
 let result r = Result r
 
 let errorMsgFromExpr expr msg = sprintf "%s in %s" msg (Ast2.toString expr)

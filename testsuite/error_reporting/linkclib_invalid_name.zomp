@@ -1,0 +1,3 @@
+
+zmp:compiler:linkclib "foo.invalidExtension" //// error extension dynamic
+

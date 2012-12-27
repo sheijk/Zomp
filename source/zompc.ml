@@ -77,16 +77,16 @@ let compile fileName instream outstream =
     let exitCode =
       Compileutils.catchingErrorsDo
         (fun () -> begin
-           let bindings :Bindings.t =
-             Compileutils.loadPrelude
-               ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                               output_string outstream llvmCode)
-               preludeDir
-           in
-           match Compileutils.compileCode bindings input outstream fileName with
-             | Some () -> Compilation_succeeded
-             | None -> Compilation_failed Compiler_did_not_return_result
-         end)
+          let bindings :Bindings.t =
+            Compileutils.loadPrelude
+              ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                output_string outstream llvmCode)
+              preludeDir
+          in
+          match Compileutils.compileCode bindings input outstream fileName with
+            | Some () -> Compilation_succeeded
+            | None -> Compilation_failed Compiler_did_not_return_result
+        end)
         ~onError:(fun msg -> Compilation_failed (Compilation_failed_with_error msg))
     in
     Zompvm.zompShutdown();
@@ -97,9 +97,9 @@ let includePath = ref ["."]
 
 let addIncludePath path = function
   | `Back ->
-      includePath := !includePath @ [path]
+    includePath := !includePath @ [path]
   | `Front ->
-      includePath := path :: !includePath
+    includePath := path :: !includePath
 
 module CompilerInstructions =
 struct
@@ -111,6 +111,7 @@ struct
   let translateLinkCLib env expr =
     collectTimingInfo "translateLinkCLib"
       (fun () ->
+        let location = someOrDefault expr.location Basics.fakeLocation in
          match expr with
            | { args = [{id = fileName; args = []}] } ->
                begin
@@ -119,26 +120,26 @@ struct
                  let matches re string = Str.string_match (Str.regexp re) string 0 in
                  let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
                  if not (matches dllPattern fileName) then
-                   Expander.errorFromString
-                     (sprintf "%s has invalid extension for a dll. Supported: %s"
+                   Expander.errorFromString location
+                     (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
                             fileName (Common.combine ", " dllExtensions))
                  else
                    match Common.findFileIn fileName !clibPath with
                      | None ->
-                         Expander.errorFromString
+                         Expander.errorFromString location
                            (sprintf "Could not find library '%s' in paths %s"
                               fileName
                               (Common.combine ", " !clibPath))
                      | Some absoluteFileName ->
                          let handle = Zompvm.zompLoadLib absoluteFileName in
                          if handle = 0 then
-                           Expander.errorFromString
+                           Expander.errorFromStringDeprecated
                              (sprintf "Could not load C library '%s'\n" fileName)
                          else
                            Expander.tlReturnNoExprs env
                end
            | invalidExpr ->
-               Expander.errorFromString
+               Expander.errorFromString location
                  (sprintf "Expecting '%s fileName" invalidExpr.Ast2.id))
 end
 

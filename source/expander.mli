@@ -6,7 +6,8 @@
 exception IllegalExpression of Ast2.sexpr * string
 
 type 'a mayfail = private Result of 'a | Error of string list
-val errorFromString : string -> 'a mayfail
+val errorFromStringDeprecated : string -> 'a mayfail
+val errorFromString : Basics.location -> string -> 'a mayfail
 val errorFromExpr : Ast2.sexpr -> string -> 'a mayfail
 val result : 'a -> 'a mayfail
 

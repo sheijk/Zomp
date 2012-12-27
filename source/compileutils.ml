@@ -79,11 +79,6 @@ let rec compile
 
 exception CouldNotParse of parseError
 
-let formatError location message =
-  sprintf "%s: error: %s" (locationToString location) message
-
-let fakeLocation = { fileName = "???.zomp"; line = 1 }
-
 let compileCode bindings input outstream fileName =
   (** TODO: return error(s) instead of printing them *)
   let printError exn =

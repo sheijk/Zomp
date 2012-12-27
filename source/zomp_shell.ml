@@ -471,18 +471,18 @@ struct
           let matches re string = Str.string_match (Str.regexp re) string 0 in
           let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
           if not (matches dllPattern fileName) then
-            Expander.errorFromString
+            Expander.errorFromStringDeprecated
               (sprintf "%s has invalid extension for a dll. Supported: %s"
                  fileName (Common.combine ", " dllExtensions))
           else
             let handle = Zompvm.zompLoadLib fileName in
             if handle = 0 then
-              Expander.errorFromString (sprintf "Could not load C library '%s'\n" fileName)
+              Expander.errorFromStringDeprecated (sprintf "Could not load C library '%s'\n" fileName)
             else
               Expander.tlReturnNoExprs env
         end
     | invalidExpr ->
-        Expander.errorFromString
+        Expander.errorFromStringDeprecated
           (sprintf "Expecting '%s fileName" invalidExpr.Ast2.id)
 end
 
@@ -550,10 +550,10 @@ let translateRun env expr =
           | Expander.IllegalExpression (expr, msg) ->
             Expander.errorFromExpr expr msg
           | exn ->
-              Expander.errorFromString (Printexc.to_string exn)
+              Expander.errorFromStringDeprecated (Printexc.to_string exn)
       end
     | _ ->
-        Expander.errorFromString (sprintf "Expected %s expr" expr.id)
+        Expander.errorFromStringDeprecated (sprintf "Expected %s expr" expr.id)
 
 let () =
   at_exit (fun () ->
