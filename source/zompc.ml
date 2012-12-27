@@ -157,7 +157,6 @@ let extractOptions args =
   let printTimings = ref false in
   let traceMacroExpansion = ref false in
   let onAnonArg str =
-    printf "argh %s\n" str;
     raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
   in
   try
