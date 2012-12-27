@@ -1,0 +1,3 @@
+
+zmp:compiler:linkclib "non_existing_file.so" //// error non_existing_file
+
