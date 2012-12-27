@@ -12,7 +12,7 @@ end
 ///
 
 template __FILE__ std:env:file
-template __LINE__ std:env:line
+macro __LINE__ { ret(${std:env:line}) }
 
 func void printlnSI(cstring msg, int num):
   printString msg
@@ -22,8 +22,18 @@ end
 
 var int lineAfterNestedExpr __LINE__
 
-std:base:func void printSourceLocationInfos():
+std:base:func void printLocalSourceLocationInfos():
   var int firstLine __LINE__
+
+  alias xxblock seq blk
+
+  xxblock:
+    var int ln __LINE__
+    printString "local-regression-"
+    printInt ln //// print local-regression-31
+    printNewline()
+  end
+
   //// print verify_correct_source_locations.zomp:26
   //// print verify_correct_source_locations.zomp
   printString "hello from "
@@ -31,7 +41,9 @@ std:base:func void printSourceLocationInfos():
   printString ":"
   printInt firstLine
   printNewline()
+end
 
+std:base:func void printGlobalSourceLocationInfos():
   //// print first-1
   printlnSI "first-" line1
   
@@ -48,9 +60,10 @@ std:base:func void printSourceLocationInfos():
   printlnSI "after-nested-" lineAfterNestedExpr
 end
 
-func int main():
-  printSourceLocationInfos()
-  
+std:base:func int main():
+  printLocalSourceLocationInfos()
+  printGlobalSourceLocationInfos()
+
   std:base:ret 0
 end
 
