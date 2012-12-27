@@ -32,28 +32,6 @@ let locationFromLexbuf lexbuf =
     charsFromBeginning = totalChars;
   }
 
-let parseChannel lexbuf errorLocationF parseF bindings =
-  try
-    let newBindings, toplevelExprs =
-      collectTimingInfo "building ast" (fun () -> parse parseF lexbuf bindings [] )
-    in
-    let llvmSource :string =
-      collectTimingInfo "code generation" (fun () -> genmodule toplevelExprs)
-    in
-    newBindings, toplevelExprs, llvmSource
-  with
-    | Expander.IllegalExpression (expr, msg) ->
-        begin
-          raiseCouldNotCompile
-            (sprintf "Error expanding to canonical simpleform in expression:\n%s\n\nMessage: %s\n"
-               (Ast2.expression2string expr) msg)
-        end
-    | Common.FailedToEvaluateLLVMCode (code, msg) ->
-        begin
-          raiseCouldNotCompile
-            (sprintf "LLVM error when compiling macro: %s\n%s\n" msg code)
-        end
-
 let readInput = Common.readChannel
   
 let printInstructions() =

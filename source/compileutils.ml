@@ -79,19 +79,26 @@ let rec compile
 
 exception CouldNotParse of parseError
 
-exception CouldNotCompile of string
-let raiseCouldNotCompile str = raise (CouldNotCompile str)
+let formatError location message =
+  sprintf "%s: error: %s" (locationToString location) message
+
+let fakeLocation = { fileName = "???.zomp"; line = 1 }
 
 let compileCode bindings input outstream fileName =
   (** TODO: return error(s) instead of printing them *)
-  let printError = function
-    | CouldNotParse err -> eprintf "%s: error: %s\n"
-      (match err.location with Some loc -> Indentlexer.locationToString loc | None -> "??.zomp:1:") err.reason
-    | CouldNotCompile msg -> eprintf "error: %s" msg
-    | CatchedError msg -> eprintf "error: %s" msg
-    | unknownError ->
-        eprintf "error: Unknown error: %s\n" (Printexc.to_string unknownError);
-        raise unknownError
+  let printError exn =
+    let location, msg =
+      match exn with
+        | CouldNotParse err ->
+          let location = (match err.location with Some loc -> loc | None -> fakeLocation) in
+          location, err.reason
+        | CatchedError msg ->
+          fakeLocation, msg
+        | unknownError ->
+          eprintf "error: Unknown error: %s\n" (Printexc.to_string unknownError);
+          raise unknownError
+    in
+    eprintf "%s\n" (formatError location msg)
   in
   let parseAndCompile parseF =
     let exprs =
