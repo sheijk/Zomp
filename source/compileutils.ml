@@ -52,7 +52,6 @@ let catchingErrorsDo f ~onError =
     end
   with
     | CatchedError msg ->
-(*         printf "%s" msg; *)
         onError msg
 
 let rec compile
@@ -77,8 +76,7 @@ let rec compile
                 let () = onError msg in
                 compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onError bindings)
 
-exception CouldNotParse of string
-let raiseCouldNotParse str = raise (CouldNotParse str)
+exception CouldNotParse of parseError
 
 exception CouldNotCompile of string
 let raiseCouldNotCompile str = raise (CouldNotCompile str)
@@ -86,7 +84,8 @@ let raiseCouldNotCompile str = raise (CouldNotCompile str)
 let compileCode bindings input outstream fileName =
   (** TODO: return error(s) instead of printing them *)
   let printError = function
-    | CouldNotParse msg -> eprintf "error: %s" msg
+    | CouldNotParse err -> eprintf "%s: error: %s\n"
+      (match err.location with Some loc -> Indentlexer.locationToString loc | None -> "??.zomp:1:") err.reason
     | CouldNotCompile msg -> eprintf "error: %s" msg
     | CatchedError msg -> eprintf "error: %s" msg
     | unknownError ->
@@ -117,7 +116,7 @@ let compileCode bindings input outstream fileName =
                        | Some l -> Some { l with Indentlexer.fileName = fileName }
                        | None -> error.location }
                  in
-                 raiseCouldNotParse (parseErrorToString errorWithCorrectFile))
+                 raise (CouldNotParse errorWithCorrectFile))
     in
     let leftExprs = ref exprs in
     let readExpr _ =
