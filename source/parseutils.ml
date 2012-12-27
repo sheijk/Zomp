@@ -1,16 +1,17 @@
 
 open Common
 open Printf
+open Basics
 
 type parseError = {
-  location :Indentlexer.location option;
+  location :location option;
   reason :string;
 }
 
 let parseErrorToString pe =
   let file, line =
     match pe.location with
-      | Some loc -> loc.Indentlexer.fileName, loc.Indentlexer.line
+      | Some loc -> loc.fileName, loc.line
       | None -> "???.zomp", -1
   in
   sprintf "%s:%d: parsing error %s\n" file line pe.reason
@@ -24,7 +25,7 @@ let parseIExprsFromLexbuf lexbuf lexstate =
     let r = Indentlexer.token lexstate in
     let loc = Indentlexer.locationOfLexstate lexstate in
     let start = lexbuf.Lexing.lex_start_p in
-    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.Indentlexer.line };
+    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.line };
     r
   in
   let lexFunc = sampleFunc1 "lexing" lexFunc in

@@ -3,6 +3,7 @@
   exception ParseError of string
   open Printf
   open Ast2
+  open Basics
   let raiseParseError str = raise (ParseError str)
 
   let reportParsedExpression e =

@@ -1,11 +1,5 @@
 open Printf
-
-type location = {
-  fileName :string;
-  line :int
-}
-
-let locationToString loc = sprintf "%s:%d" loc.fileName loc.line
+open Basics
 
 type sexpr = {
   id :string;

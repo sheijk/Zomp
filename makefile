@@ -101,11 +101,18 @@ byte: dllzompvm.so zompc zomp_shell
 native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
 
 CAML_LIBS = str.cma bigarray.cma
-LANG_CMO_NAMES = common.cmo testing.cmo typesystems.cmo bindings.cmo ast2.cmo \
-    lang.cmo semantic.cmo machine.cmo zompvm.cmo \
+# When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
+LANG_CMO_NAMES = common.cmo basics.cmo testing.cmo typesystems.cmo bindings.cmo	\
+    ast2.cmo lang.cmo semantic.cmo machine.cmo zompvm.cmo \
     genllvm.cmo dllzompvm.so indentlexer.cmo newparser.cmo parseutils.cmo \
     expander.cmo testing.cmo compileutils.cmo
 LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
+
+# When this is changed, LANG_CMO_NAMES and CAMLDEP_INPUT will need to be changed, too
+LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx \
+    typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
+    -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx newparser.cmx \
+    parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
 ################################################################################
 # Zomp tools
@@ -414,10 +421,6 @@ has_clang:
 
 LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
-LANG_CMXS=common.cmx ast2.cmx bindings.cmx \
-    typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
-    -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx newparser.cmx \
-    parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
 ################################################################################
 # Dependencies
@@ -426,15 +429,16 @@ LANG_CMXS=common.cmx ast2.cmx bindings.cmx \
 # add additional ones here. Use something like make -j 20 for a quick test
 ################################################################################
 
-depends.mk: $(CAMLDEP_INPUT)
+depends.mk: $(CAMLDEP_INPUT) makefile
 	@$(ECHO) Calculating dependencies ...
 	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
 
+# When this is changed, LANG_CMO_NAMES and LANG_CMXS will need to be changed, too
 CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
     gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zomp_shell.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml, source/$(file))
+    zompc.ml zompvm.ml basics.ml, source/$(file))
 
 source/newparser.ml: source/newparser.mly source/ast2.cmo
 source/newparser_tests.cmo: source/newparser.cmo
@@ -453,7 +457,6 @@ source/bindings.cmi: source/common.cmo source/lang.cmo
 
 source/mltest.cmo: source/newparser_tests.cmo
 source/mltest.cmo: source/indentlexer_tests.cmo
-
 ################################################################################
 # Additional utility targets
 ################################################################################

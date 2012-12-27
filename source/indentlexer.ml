@@ -5,15 +5,9 @@
 (* open Iexpr *)
 open Printf
 open Common
+open Basics
 
 exception Eof
-
-type location = {
-  line :int;
-  fileName :string;
-}
-
-let locationToString loc = sprintf "%s:%d" loc.fileName loc.line
 
 exception UnknowToken of location * string * string
 let raiseUnknownToken loc str reason =

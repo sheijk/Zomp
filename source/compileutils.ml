@@ -2,8 +2,9 @@
  * Utilities which depend on parser and macro expander
  *)
 
-open Common
 open Printf
+open Common
+open Basics
 open Parseutils
 
 exception CatchedError of string
@@ -105,7 +106,7 @@ let compileCode bindings input outstream fileName =
                      { expr with Ast2.args = fixedArgs }
                    | Some loc ->
                      { expr with
-                       Ast2.location = Some { loc with Ast2.fileName = fileName };
+                       Ast2.location = Some { loc with fileName = fileName };
                        Ast2.args = fixedArgs }
                in
                List.map fixFileName exprs
@@ -113,7 +114,7 @@ let compileCode bindings input outstream fileName =
                  let errorWithCorrectFile = {
                    error with
                      location = match error.location with
-                       | Some l -> Some { l with Indentlexer.fileName = fileName }
+                       | Some l -> Some { l with fileName = fileName }
                        | None -> error.location }
                  in
                  raise (CouldNotParse errorWithCorrectFile))
@@ -167,7 +168,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
     let r = Indentlexer.token lexstate in
     let loc = Indentlexer.locationOfLexstate lexstate in
     let start = lexbuf.Lexing.lex_start_p in
-    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.Indentlexer.line };
+    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.line };
     r
   in
   let parseF = Newparser.main lexFunc in

@@ -5,6 +5,7 @@ open Ast2
 open Common
 open Bindings
 open Printf
+open Basics
 
 module Utilities =
 struct
@@ -1481,7 +1482,7 @@ struct
         begin
           if name = "funcInt" then
             match expr.location with
-              | Some loc -> printf "var %s @ %s\n" name (Ast2.locationToString loc)
+              | Some loc -> printf "var %s @ %s\n" name (locationToString loc)
               | None -> printf "var %s no loc\n" name
         end;
         match lookup env.bindings name with
@@ -2478,8 +2479,8 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
                with
                  | Indentlexer.UnknowToken(loc,token,reason) -> begin
                      let msg = sprintf "%s: unknown token '%s' (%s)"
-                       (Indentlexer.locationToString {
-                          loc with Indentlexer.fileName = fileName })
+                       (locationToString
+                          {loc with fileName = fileName })
                        token
                        reason
                      in
