@@ -272,8 +272,9 @@ let () =
           ()
     in
 
-    let errorRe = Str.regexp
-      (sprintf "^%s:\\([0-9]\\)+: .*error \\(.*\\)" (Str.quote zompFileName))
+    let errorRe =
+      let re = (sprintf "^%s:\\([0-9]\\)+: .*error: \\(.*\\)" (Str.quote zompFileName)) in
+      Str.regexp re
     in
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
