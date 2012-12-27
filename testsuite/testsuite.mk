@@ -42,8 +42,8 @@ testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
 testsuite/test: testsuite/selftest testsuite/success
 testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
 
-.PHONY: testsuite/error_reporting
-testsuite/error_reporting: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
+.PHONY: testsuite/error_reporting/all
+testsuite/error_reporting/all: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files
