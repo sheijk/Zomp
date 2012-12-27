@@ -2043,7 +2043,10 @@ let translateFromDict
     } in
     match handler env expr with
       | Error errors ->
-        print_string (combineErrors "Swallowed errors:\n" errors);
+        let printError msg =
+          print_string msg;
+        in
+        List.iter printError errors;
         print_newline();
         flush stdout;
         None
