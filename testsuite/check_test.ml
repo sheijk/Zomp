@@ -144,11 +144,19 @@ struct
       [compilerErrorCommand; compilerWarningCommand; compilerInfoCommand;
        runtimePrintCommand]
 
-  let verbalDescription = function
+  let kindDescription = function
     | CompilerError -> "compiler error"
     | CompilerWarning -> "compiler warning"
     | CompilerInfo -> "compiler info"
     | RuntimePrint -> "test case to print line"
+
+
+  let description kind words =
+    let quote = sprintf "\"%s\"" in
+    (sprintf "%s containing word%s %s"
+       (kindDescription kind)
+       (match words with [_] -> "" | _ -> "s")
+       (verbalConcat "and" (List.map quote words)))
 end
 
 let writeHtmlHeader outFile zompFileName =
@@ -246,12 +254,10 @@ let () =
     in
 
     let writeExpectation (kind, args, lineNum, found) =
-      fprintf outFile "%s:%d: expect %s containing word%s %s<br />\n"
+      fprintf outFile "%s:%d: expect %s<br />\n"
         zompFileName
         lineNum
-        (Expectation.verbalDescription kind)
-        (if List.length args > 1 then "s" else "")
-        (verbalConcat "and" (List.map (sprintf "\"%s\"") args))
+        (Expectation.description kind args)
     in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
       let containsWord word =
@@ -310,9 +316,8 @@ let () =
     let reportMissingDiagnostic (kind, args, lineNum, found) =
       if !found = false then
         reportError
-          (sprintf "expected %s containing words %s but didn't happen"
-             (Expectation.verbalDescription kind)
-             (verbalConcat "and" args))
+          (sprintf "expected %s but didn't happen"
+             (Expectation.description kind args))
     in
 
     (** code *)
