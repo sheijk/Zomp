@@ -129,7 +129,7 @@ struct
                          Expander.errorFromString location
                            (sprintf "Could not find library '%s' in paths %s"
                               fileName
-                              (Common.combine ", " !clibPath))
+                              (Common.combine ", " (List.map (sprintf "\"%s\"") !clibPath)))
                      | Some absoluteFileName ->
                          let handle = Zompvm.zompLoadLib absoluteFileName in
                          if handle = 0 then
