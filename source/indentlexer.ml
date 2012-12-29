@@ -635,8 +635,7 @@ let sourceAndSize lexbuf =
       lexbuf.content <- NoCommentsAndIndent (source, length);
       source, length
 
-let readChars lexbuf n =
-  let source, sourceLength = sourceAndSize lexbuf in
+let readChars lexbuf (source, sourceLength) n =
   if lexbuf.position + n < sourceLength then begin
     let str = String.sub source lexbuf.position n in
     lexbuf.position <- lexbuf.position + n;
@@ -650,8 +649,7 @@ let readChars lexbuf n =
   end else
     raise Eof
 
-let readChar lexbuf =
-  let source, sourceLength = sourceAndSize lexbuf in
+let readOneChar lexbuf (source, sourceLength) =
   if lexbuf.position < sourceLength then begin
     let chr = source.[lexbuf.position] in
     lexbuf.position <- lexbuf.position + 1;
@@ -661,6 +659,10 @@ let readChar lexbuf =
     chr
   end else
     raise Eof
+
+let readChar lexbuf =
+  let source, sourceLength = sourceAndSize lexbuf in
+  readOneChar lexbuf (source, sourceLength)
 
 let backTrack lexbuf n =
   lexbuf.position <- lexbuf.position - n;
@@ -687,10 +689,10 @@ let putback lexbuf string =
   end;
   backTrack lexbuf len
     
-let readUntil abortOnChar state =
+let readUntil abortOnChar state srcAndLength =
   let acc = ref "" in
   let rec worker () =
-    let nextChar = readChar state in
+    let nextChar = readOneChar state srcAndLength in
     if abortOnChar nextChar then begin
       putback state (String.make 1 nextChar)
     end else begin
@@ -749,7 +751,7 @@ let token (lexbuf : token lexerstate) : token =
 
   let rec consumeWhitespaceAndReturnIndent indent =
     let eof, nextChar =
-      try false, readChar lexbuf
+      try false, readOneChar lexbuf (source, sourceLength)
       with Eof -> true, '\n'
     in
     if eof then
@@ -801,7 +803,7 @@ let token (lexbuf : token lexerstate) : token =
                 (sprintf "multiple rules matching (after '%s')" (ptokenToString lexbuf.previousToken))
     in
     ignore rule;
-    let tokenString = readChars lexbuf length in
+    let tokenString = readChars lexbuf (source, sourceLength) length in
 
     let token : [`Ignore | `Token of token] =
       match (makeToken tokenString : tokenOrAction) with
@@ -818,7 +820,7 @@ let token (lexbuf : token lexerstate) : token =
   in
 
   let handleEndLineOrPutTokens firstToken secondToken =
-    let line = readUntil isNotValidIdentifierOrWhitespace lexbuf in
+    let line = readUntil isNotValidIdentifierOrWhitespace lexbuf (source, sourceLength) in
     if isBlockEndLine line then begin
       if line =~ "^end\\(.*\\)$" then
         match List.rev (Str.split whitespaceRE (nthmatch 1)) with
@@ -885,7 +887,7 @@ let token (lexbuf : token lexerstate) : token =
   in
 
   let rec worker () =
-    let currentChar = readChar lexbuf in
+    let currentChar = readOneChar lexbuf (source, sourceLength) in
 
     if currentChar = beginIndentBlockChar or isNewline currentChar then begin
       collectTimingInfo "newline"
@@ -980,7 +982,8 @@ let lexString str =
 
 let runInternalTests() =
   let l = lexbufFromString "d.zomp" "abcde" in
-  let expectChar chr = assert( chr = readChar l ) in
+  let source, sourceLength = sourceAndSize l in
+  let expectChar chr = assert( chr = readOneChar l (source, sourceLength) ) in
   expectChar 'a';
   expectChar 'b';
   backTrack l 2;
