@@ -18,7 +18,15 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
  std_base_primitive_types.zomp parametric_functions.zomp type_errors.zomp   \
  std_base_generic.zomp std_base_cast.zomp                                   \
  zmp_compiler_linkclib_error_invalid_name.zomp                              \
- zmp_compiler_linkclib_error_non_existing_lib.zomp
+ zmp_compiler_linkclib_error_non_existing_lib.zomp                          \
+ $(LEXER_SOURCES_X)
+
+LEXER_SOURCES_X = \
+ lexer/invalid_escape_sequence.zomp lexer/invalid_token.zomp                \
+ lexer/invalid_token_bof.zomp lexer/invalid_token_multi_line_comment.zomp   \
+ lexer/invalid_token_not_first_line.zomp                                    \
+ lexer/invalid_token_single_line_comment.zomp                               \
+ lexer/unterminated_comment.zomp lexer/unterminated_string.zomp
 
 TESTSUITE_SOURCES = \
  $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
@@ -46,6 +54,9 @@ testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testrepo
 
 .PHONY: testsuite/error_reporting/all
 testsuite/error_reporting/all: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
+
+.PHONY: testsuite/lexer/all
+testsuite/lexer/all: $(foreach FILE, $(LEXER_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files

@@ -1,8 +1,0 @@
-
-
-invalidCharBetweenHere ` andHere //// error Token `
-
-func int main():
-  ret 0
-end
-

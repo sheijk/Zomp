@@ -1,0 +1,8 @@
+
+
+invalidCharBetweenHere ` andHere //// error token `
+
+func int main():
+  ret 0
+end
+

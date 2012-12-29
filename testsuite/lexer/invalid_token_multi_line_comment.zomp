@@ -3,7 +3,7 @@
  * a multi line comment
  */
 
-invalidCharBetweenHere ` andHere //// error Token `
+invalidCharBetweenHere ` andHere //// error token `
 
 func int main():
   ret 0

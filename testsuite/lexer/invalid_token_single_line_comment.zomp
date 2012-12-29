@@ -2,7 +2,7 @@
 // a single line comment
 // another one
 
-invalidCharBetweenHere ` andHere //// error Token `
+invalidCharBetweenHere ` andHere //// error token `
 
 func int main():
   ret 0
