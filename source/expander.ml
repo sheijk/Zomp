@@ -2481,15 +2481,9 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
                try
                  importFile fileName
                with
-                 | Indentlexer.UnknowToken(loc,token,reason) -> begin
-                     let msg = sprintf "%s: unknown token '%s' (%s)"
-                       (locationToString
-                          {loc with fileName = fileName })
-                       token
-                       reason
-                     in
-                     Error [msg]
-                   end
+                 | Indentlexer.UnknowToken(loc,token,reason) ->
+                     Error [Indentlexer.unknownTokenToErrorMsg
+                               (Some {loc with fileName = fileName}, token, reason)]
                  | IllegalExpression (expr, msg) ->
                      Error [sprintf "%s\nin expression\n%s\n" msg (Ast2.toString expr)]
                  | error ->

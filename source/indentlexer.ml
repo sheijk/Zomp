@@ -13,6 +13,13 @@ exception UnknowToken of location * string * string
 let raiseUnknownToken loc str reason =
   raise (UnknowToken (loc, str, reason))
 
+let unknownTokenToErrorMsg (loc, token, reason) =
+  let msgNoLocation = sprintf "unknown token '%s' (%s)" token reason in
+  match loc with
+    | Some location ->
+      sprintf "%s: %s" (locationToString location) msgNoLocation
+    | None -> msgNoLocation
+
 exception IndentError of location * string
 let raiseIndentError loc str =
   raise (IndentError (loc, str))
