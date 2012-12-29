@@ -251,7 +251,7 @@ let () =
         lineNum
         (Expectation.verbalDescription kind)
         (if List.length args > 1 then "s" else "")
-        (String.concat ", " args)
+        (verbalConcat "and" (List.map (sprintf "\"%s\"") args))
     in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
       let containsWord word =
