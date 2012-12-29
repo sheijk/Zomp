@@ -112,7 +112,7 @@ let stripComments fileName source =
     incr writePos
   in
   let unexpectedEof src =
-    raiseIndentError { line = getLine(); fileName = fileName } (sprintf "Unexpected Eof while parsing %s" src)
+    raiseIndentError { line = getLine(); fileName = fileName } (sprintf "unexpected end of file while parsing %s" src)
   in
   let copyChar signalError =
     if getReadPos() <= sourceLength - 1 then begin
