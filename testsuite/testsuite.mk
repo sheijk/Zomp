@@ -62,7 +62,7 @@ testsuite/fail: fail.testreport crash.testreport
 TESTSUITE_CLEAN_PATTERNS = \
   *.bc *.opt-bc *.ll \
   *.s *.o *.exe \
-  *.testreport *.test_output \
+  *.testreport *.test_output *.result \
   gmon.out
 
 CLEAN_SUB_TARGETS += testsuite/clean
