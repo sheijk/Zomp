@@ -605,9 +605,12 @@ end = struct
       None
 end
 
+type source =
+  | Unprocessed of string
+  | NoCommentsAndIndent of string * int
+
 type 'token lexerstate = {
-  content : string;
-  contentLength : int;
+  mutable content : source;
   mutable position : int;
   mutable location : location;
   mutable prevIndent : int;
@@ -622,9 +625,20 @@ let locationOfLexstate ls = ls.location
 let moveByLines ls lines =
   ls.location <- { ls.location with line = ls.location.line + lines }
 
+let sourceAndSize lexbuf =
+  match lexbuf.content with
+    | NoCommentsAndIndent (source, length) -> source, length
+    | Unprocessed unprocessed ->
+      let buffer = stripComments lexbuf.location.fileName unprocessed in
+      markIndentBlocks buffer;
+      let source, length = buffer, String.length buffer in
+      lexbuf.content <- NoCommentsAndIndent (source, length);
+      source, length
+
 let readChars lexbuf n =
-  if lexbuf.position + n < lexbuf.contentLength then begin
-    let str = String.sub lexbuf.content lexbuf.position n in
+  let source, sourceLength = sourceAndSize lexbuf in
+  if lexbuf.position + n < sourceLength then begin
+    let str = String.sub source lexbuf.position n in
     lexbuf.position <- lexbuf.position + n;
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ str;
     String.iter
@@ -637,8 +651,9 @@ let readChars lexbuf n =
     raise Eof
 
 let readChar lexbuf =
-  if lexbuf.position < lexbuf.contentLength then begin
-    let chr = lexbuf.content.[lexbuf.position] in
+  let source, sourceLength = sourceAndSize lexbuf in
+  if lexbuf.position < sourceLength then begin
+    let chr = source.[lexbuf.position] in
     lexbuf.position <- lexbuf.position + 1;
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ String.make 1 chr;
     if chr = '\n' || chr = beginIndentBlockChar then
@@ -730,6 +745,8 @@ open Stats
 let printStats = Stats.printStats
 
 let token (lexbuf : token lexerstate) : token =
+  let source, sourceLength = sourceAndSize lexbuf in
+
   let rec consumeWhitespaceAndReturnIndent indent =
     let eof, nextChar =
       try false, readChar lexbuf
@@ -755,7 +772,7 @@ let token (lexbuf : token lexerstate) : token =
              match
                Rules.ruleMatchesAt
                  ~prevToken:lexbuf.previousToken
-                 ~source:lexbuf.content
+                 ~source
                  ~pos:lexbuf.position
                  rule
              with
@@ -765,7 +782,7 @@ let token (lexbuf : token lexerstate) : token =
       in
       List.sort (fun (len1, _) (len2, _) -> 1 - compare len1 len2) unsorted
     in
-    let input = String.sub lexbuf.content lexbuf.position 1 in
+    let input = String.sub source lexbuf.position 1 in
     let ptokenToString = function
       | `Whitespace -> "< >"
       | `Token t -> token2str t
@@ -903,18 +920,16 @@ let token (lexbuf : token lexerstate) : token =
           lexbuf.pushedTokens <- remainingTokens;
           firstToken
   in
+
   lexbuf.readTokenBefore <- true;
   lexbuf.previousToken <- `Token token;
   lexbuf.lastReadChars <- Str.last_chars lexbuf.lastReadChars 1;
   token
 
 let makeLexbuf fileName source =
-  let buffer = stripComments fileName source in
-  markIndentBlocks buffer;
   let rec lexbuf =
     {
-      content = buffer;
-      contentLength = String.length buffer;
+      content = Unprocessed source;
       position = 0;
       location = { line = 1; fileName = fileName };
       prevIndent = 0;
