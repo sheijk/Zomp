@@ -315,8 +315,12 @@ end = struct
           fprintf stream "%s =" name;
           begin match symbol with
             | VarSymbol var ->
-              fprintf stream "var of type %s"
-                (typeName var.typ);
+              fprintf stream "var of type %s %s"
+                (typeName var.typ)
+                (match var.vlocation with
+                  | None -> "@?"
+                  | Some loc ->
+                    "@" ^ Basics.locationToString loc)
             | FuncSymbol func ->
               let argToString (name, typ) =
                 sprintf "%s %s" (typeName typ) name
