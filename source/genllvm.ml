@@ -117,7 +117,7 @@ let newGlobalTempVar, newLocalTempVar =
         | Some str -> sprintf "temp_%s_%d" str id
         | None -> sprintf "temp%d" id
     in
-    resultVar (variable name typ RegisterStorage isGlobal)
+    resultVar (variable name typ RegisterStorage isGlobal None)
   in
   newVar true, newVar false
 
@@ -1198,6 +1198,7 @@ let gencodeDefineFunc func =
           vstorage = RegisterStorage;
           vmutable = false;
           vglobal = false;
+          vlocation = None;
         } in
         let decl = makeSignature retvalVar.vname paramString in
         let initStructCode =

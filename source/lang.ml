@@ -120,6 +120,8 @@ type 'typ variable = {
   vstorage :varStorage;
   vmutable :bool;
   vglobal :bool;
+  (** Location of the variable's definition *)
+  vlocation :Basics.location option;
 }
 
 let rec validateValue = function
@@ -148,12 +150,13 @@ let rec validateValue = function
       in
       RecordVal (rname, List.map validateComponent components)
 
-let variable ~name ~typ ~storage ~global = {
+let variable ~name ~typ ~storage ~global ~location = {
   vname = name;
   typ = typ;
   vstorage = storage;
   vmutable = false;
   vglobal = global;
+  vlocation = location;
 }
 
 let varToStringShort var =

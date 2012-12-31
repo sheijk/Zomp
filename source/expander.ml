@@ -117,7 +117,7 @@ struct
               returnType = f.rettype;
               argTypes = List.map snd f.Lang.fargs;
             } in
-            let var = variable name (`Pointer typ) RegisterStorage true in
+            let var = variable name (`Pointer typ) RegisterStorage true None in
             Some (`Variable var)
         | _ ->
             None
@@ -154,7 +154,7 @@ struct
 
   let getNewGlobalVar bindings typ =
     let newVarName = getUnusedName ~prefix:"tempvar" bindings in
-    let var = globalVar ~name:newVarName ~typ in
+    let var = globalVar ~name:newVarName ~typ ~location:None in
     (addVar bindings var, var)
 
   let getNewLocalVar bindings typ =
@@ -165,6 +165,7 @@ struct
       ~typ
       ~storage:MemoryStorage
       ~global:false
+      ~location:None
     in
     (addVar bindings var, var)
 
@@ -516,7 +517,8 @@ struct
                 ~name
                 ~typ:astPtrType
                 ~storage:Lang.RegisterStorage
-                ~global:false) )
+                ~global:false
+                ~location:None) )
         bindings argNames
     in
     let _, xforms = translateF bindings sexprImpl in
@@ -573,6 +575,7 @@ struct
           ~typ:astPtrType
           ~storage:MemoryStorage
           ~global:false
+          ~location:None
       in
       log "building function impl";
       let implForms = [
@@ -721,7 +724,8 @@ struct
          ~name:"macro_args"
          ~typ:(`Pointer astPtrType)
          ~storage:MemoryStorage
-         ~global:false)
+         ~global:false
+         ~location:None)
     in
     let argParamName = "macro_args" in
     let buildParamFetchExpr num name =
@@ -1038,7 +1042,7 @@ struct
           in
           if typeEquivalent typ (typeOf value) then begin
             let tlforms = List.map (fun (`ToplevelForm f) -> f) tlforms in
-            let var = globalVar name typ in
+            let var = globalVar name typ expr.location in
             let newBindings = addVar newBindings var in
             let gvar = {
               gvVar = var;
@@ -1100,7 +1104,7 @@ struct
       match varType with
         | #integralType | `Pointer _ | `Function _ as typ ->
             begin
-              let var = variable name typ MemoryStorage false in
+              let var = variable name typ MemoryStorage false expr.location in
               let defvar = `DefineVariable (var, Some (`Sequence implForms))
               in
               match typeCheck env.bindings defvar with
@@ -1111,7 +1115,7 @@ struct
             begin
               match valueExpr with
                 | None ->
-                    let var = variable name typ MemoryStorage false in
+                    let var = variable name typ MemoryStorage false expr.location in
                     Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
                 | Some valueExpr ->
                   raiseIllegalExpression
@@ -1454,7 +1458,7 @@ struct
       match varType with
         | #integralType | `Pointer _ | `Function _ as typ ->
             begin
-              let var = variable name typ MemoryStorage false in
+              let var = variable name typ MemoryStorage false expr.location in
               let defvar = `DefineVariable (var, Some (`Sequence implForms))
               in
               match typeCheck env.bindings defvar with
@@ -1463,7 +1467,7 @@ struct
             end
         | `Array(memberType, size) as typ ->
             begin
-              let var = variable name typ MemoryStorage false in
+              let var = variable name typ MemoryStorage false expr.location in
               let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
               match typeCheck env.bindings defvar with
                 | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
@@ -1473,10 +1477,10 @@ struct
             begin
               match valueExpr with
                 | None ->
-                    let var = variable name typ MemoryStorage false in
+                    let var = variable name typ MemoryStorage false expr.location in
                     Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, None)] )
                 | Some valueExpr ->
-                    let var = variable name typ MemoryStorage false in
+                    let var = variable name typ MemoryStorage false expr.location in
                     Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, Some (`Sequence implForms))] )
             end
         | `TypeRef _ ->
@@ -2373,6 +2377,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
             (** all parameters are copied into a local var by genllvm *)
             ~storage:MemoryStorage
             ~global:false
+            ~location:None
         in
         addVar bindings var
       in
