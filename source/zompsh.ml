@@ -244,6 +244,23 @@ end = struct
     Bindings.iter printSymbol bindings;
     print_newline()
 
+  (* let lookupDefinitionLocation = makeSingleArgCommand *)
+  (*   (fun name bindings -> begin *)
+  (*     let reportError msg = *)
+  (*       printf "error: %s\n" msg *)
+  (*     in *)
+  (*  *)
+  (*     match Bindings.lookup bindings with *)
+  (*       | UndefinedSymbol -> *)
+  (*         reportError (sprintf "%s not defined" name) *)
+  (*       | VarSymbol _ *)
+  (*       | FuncSymbol _ *)
+  (*       | MacroSymbol _ *)
+  (*       | TypedefSymbol _ *)
+  (*       | LabelSymbol _ -> *)
+  (*         reportError (sprintf "looking up this kind of symbol not supported, yet") *)
+  (*   end) *)
+
   let runMainCommand = makeSingleArgCommand
     (fun funcname bindings ->
       runFunction bindings funcname)

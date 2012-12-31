@@ -334,7 +334,12 @@ struct
                 begin
                   let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
                   let value = StringLiteral string in
-                  Some( newBindings, [`ToplevelForm (`GlobalVar (var, value)); `Variable var] )
+                  let gvar = {
+                    gvVar = var;
+                    gvInitialValue = value;
+                    gvDefinitionLocation = expr.location;
+                  } in
+                  Some( newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var] )
                 end
             | _ -> Some (bindings, [varOrConst] )
           end
@@ -1035,7 +1040,13 @@ struct
             let tlforms = List.map (fun (`ToplevelForm f) -> f) tlforms in
             let var = globalVar name typ in
             let newBindings = addVar newBindings var in
-            Result( newBindings, tlforms @ [ (`GlobalVar (var, value) :> toplevelExpr) ] )
+            let gvar = {
+              gvVar = var;
+              gvInitialValue = value;
+              gvDefinitionLocation = expr.location;
+            }
+            in
+            Result( newBindings, tlforms @ [ (`GlobalVar gvar :> toplevelExpr) ] )
           end else
             errorFromExpr expr
               (sprintf "Expected initial value to have type %s but found %s"
@@ -1789,7 +1800,12 @@ struct
   let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
     let value = StringLiteral (Ast2.fileName expr) in
-    Result (newBindings, [`ToplevelForm (`GlobalVar (var, value)); `Variable var])
+    let gvar = {
+      gvVar = var;
+      gvInitialValue = value;
+      gvDefinitionLocation = expr.location;
+    } in
+    Result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
 
   let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])

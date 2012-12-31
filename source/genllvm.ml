@@ -1094,7 +1094,10 @@ let llvmStringLength str =
   let length = String.length str in
   length - 2 * countChar str '\\'
 
-let gencodeGlobalVar var initialValue =
+let gencodeGlobalVar gvar =
+  let var = gvar.gvVar
+  and initialValue = gvar.gvInitialValue
+  in
   let varname = "\"" ^ var.vname ^ "\"" in
   match initialValue with
     | StringLiteral value ->
@@ -1255,7 +1258,7 @@ let gencodeTypedef name = function
       sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
 let gencodeTL = function
-  | `GlobalVar (var, initialValue) -> gencodeGlobalVar var initialValue
+  | `GlobalVar var -> gencodeGlobalVar var
   | `DefineFunc func -> gencodeDefineFunc func
   | `Typedef (name, typ) -> gencodeTypedef name typ
 

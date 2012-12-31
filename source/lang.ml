@@ -207,6 +207,12 @@ type 'form genericIntrinsic = [
 | `CastIntrinsic of composedType * 'form
 ]
 
+type globalVar = {
+  gvVar :composedType variable;
+  gvInitialValue :value;
+  gvDefinitionLocation :Basics.location option;
+}
+
 type form = [
 | composedType flatArgForm
 | `Sequence of form list
@@ -229,7 +235,7 @@ and func = {
   fparametric :bool;
 }
 and toplevelExpr = [
-| `GlobalVar of composedType variable * value
+| `GlobalVar of globalVar
 | `DefineFunc of func
 | `Typedef of string * typ
 ]
@@ -344,17 +350,17 @@ let toplevelFormToSExpr =
     | `Typedef (name, typ) ->
         Ast2.simpleExpr "Typedef" [name; typeName typ]
 
-let toplevelFormDeclToString = function
-  | `GlobalVar (var, initialValue) ->
-      sprintf "var %s = %s" (varToString var) (valueString initialValue)
+let toplevelFormDeclToString : toplevelExpr -> string = function
+  | `GlobalVar gvar ->
+      sprintf "var %s = %s" (varToString gvar.gvVar) (valueString gvar.gvInitialValue)
   | `DefineFunc func ->
       sprintf "func %s" (funcDeclToString func)
   | `Typedef (name, typ) ->
       sprintf "type %s = %s" name (typeDescr typ)
 
-let toplevelFormToString = function
-  | `GlobalVar (var, initialValue) ->
-      sprintf "var %s = %s" (varToString var) (valueString initialValue)
+let toplevelFormToString : toplevelExpr -> string = function
+  | `GlobalVar gvar ->
+      sprintf "var %s = %s" (varToString gvar.gvVar) (valueString gvar.gvInitialValue)
   | `DefineFunc func ->
       sprintf "func %s" (funcToString func)
   | `Typedef (name, typ) ->
