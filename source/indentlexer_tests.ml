@@ -488,6 +488,12 @@ end = struct
     @ areValidInfixOps ["%"] (fun n -> MOD_OP n)
     @ areValidInfixOps ["!"] (fun n -> EXCLAMATION_OP n)
 
+    @ (let escapeChars = ['\''; '"'; '\\'; '0'; 'n'; 'r'; 't'; 'v'; 'a'; 'b'; 'f'; '?' ] in
+       List.map (fun chr -> isValidId (sprintf "\"\\%c\"" chr)) escapeChars
+       @ List.map (fun chr -> isValidId (sprintf "'\\%c'" chr)) escapeChars)
+    @ ["\"\\q\"", `Exception "invalid escape sequence"]
+
+
   let validateTestCases() =
     let errors =
       mapFilter
