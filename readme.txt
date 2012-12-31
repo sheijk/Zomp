@@ -37,9 +37,10 @@ External dependencies (list might be incomplete and out of date):
 - LLVM GCC 2.9
 
 To build just call make all from the root directory. To compile zomp files use
-"zompc -c foo.zomp", to use the zomp shell call zomp_shell. The accompanying
+"zompc -c foo.zomp", to use the zomp shell call zompsh. The accompanying
 Emacs mode in zomp.el is recommended. The Zomp shell is designed to make it easy
-to write integrations for other editors.
+to write integrations for other editors. Start it and enter !help to see what it
+can do.
 
 = How to contribute / licence
 

@@ -97,8 +97,8 @@ all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
     mltest source/zompvm_dummy.o has_llvm has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
-byte: dllzompvm.so zompc zomp_shell
-native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zomp_shell.native zompc.native
+byte: dllzompvm.so zompc zompsh
+native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zompsh.native zompc.native
 
 CAML_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
@@ -131,13 +131,13 @@ dllzompvm.so: source/dllzompvm.so
 	rm -f dllzompvm.so
 	ln -s source/dllzompvm.so dllzompvm.so
 
-zomp_shell: source/zomp_shell.cmo $(LANG_CMOS:.cmo=.cmx)
+zompsh: source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zomp_shell.cmo
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
-zomp_shell.native: source/zomp_shell.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
+zompsh.native: source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zomp_shell.cmx -cclib -lcurl
+	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
 zompc.native: $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx source/dllzompvm.so
 	@$(ECHO) Building $@ ...
@@ -178,8 +178,8 @@ vm_client: source/vm_client.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
 	$(CXX) $(LDFLAGS) -o $@ $< source/vm_protocol.o
 
-run_remote_zompsh_test: vm_http_server zomp_shell
-	./zomp_shell < tests/vmserver.zomp
+run_remote_zompsh_test: vm_http_server zompsh
+	./zompsh < tests/vmserver.zomp
 
 source/vm_client.o: source/vm_protocol.h
 source/vm_server.o: source/vm_protocol.h
@@ -437,7 +437,7 @@ depends.mk: $(CAMLDEP_INPUT) makefile
 CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
     gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
-    compileutils.ml semantic.ml zomp_shell.ml testing.ml typesystems.ml \
+    compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
     zompc.ml zompvm.ml basics.ml, source/$(file))
 
 source/newparser.ml: source/newparser.mly source/ast2.cmo
@@ -477,7 +477,7 @@ deps.dot deps.png: depends.mk $(CAMLDEP_INPUT) $(LANG_CMOS)
 ML_SRC_FILE_NAMES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
     expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli         \
     indentlexer_tests.ml lang.ml machine.ml newparser.mly newparser_tests.ml \
-    parseutils.ml semantic.ml zomp_shell.ml\
+    parseutils.ml semantic.ml zompsh.ml\
     testing.ml typesystems.ml zompc.ml zompvm.ml
 ML_SRC_FILES = $(foreach file, $(ML_SRC_FILE_NAMES), source/$(file))
 
@@ -511,11 +511,11 @@ clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
-	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) source/zompc.o source/zomp_shell.o
+	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) source/zompc.o source/zompsh.o
 	$(RM) -f expander_tests.cm?
 	$(RM) -f source/zompc.cm? zompc
 	$(RM) -f source/runtime.bc source/runtime.ll source/runtime.o
-	$(RM) -f zomp_shell source/zomp_shell.cmi source/zomp_shell.cmo
+	$(RM) -f zompsh source/zompsh.cmi source/zompsh.cmo
 	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
