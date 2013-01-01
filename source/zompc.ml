@@ -18,9 +18,9 @@ type sourceloc = {
 let locationFromLexbuf lexbuf =
   let {
     Lexing.pos_fname = fileName;
-    Lexing.pos_lnum = lineNum;
-    Lexing.pos_bol = columNum;
-    Lexing.pos_cnum = totalChars
+    pos_lnum = lineNum;
+    pos_bol = columNum;
+    pos_cnum = totalChars
   } = lexbuf.Lexing.lex_curr_p
   in
   let fileName = if String.length fileName > 0 then fileName else "dummy.zomp" in
