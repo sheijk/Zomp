@@ -1475,13 +1475,13 @@ struct
             end
         | (`Record _ as typ) ->
             begin
-              match valueExpr with
-                | None ->
-                    let var = variable name typ MemoryStorage false expr.location in
-                    Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, None)] )
-                | Some valueExpr ->
-                    let var = variable name typ MemoryStorage false expr.location in
-                    Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, Some (`Sequence implForms))] )
+              let value =
+                match valueExpr with
+                  | None -> None
+                  | Some valueExpr -> Some (`Sequence implForms)
+              in
+              let var = variable name typ MemoryStorage false expr.location in
+              Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, value)] )
             end
         | `TypeRef _ ->
             raiseIllegalExpression expr "Internal error: received unexpected type ref"
