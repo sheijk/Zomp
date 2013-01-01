@@ -16,6 +16,16 @@ let parseErrorToString pe =
   in
   sprintf "%s:%d: parsing error %s\n" file line pe.reason
 
+let rec fixFileName fileName expr =
+  let fixedArgs = List.map (fixFileName fileName) expr.Ast2.args in
+  match expr.Ast2.location with
+    | None ->
+      { expr with Ast2.args = fixedArgs }
+    | Some loc ->
+      { expr with
+        Ast2.location = Some { loc with fileName = fileName };
+        Ast2.args = fixedArgs }
+
 type parsingResult =
   | Exprs of Ast2.sexpr list
   | Error of parseError
