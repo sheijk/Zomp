@@ -137,14 +137,6 @@ let compileCode bindings input outstream fileName =
                     None)
 
 let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :Bindings.t =
-  let rec parse parseF (lexbuf :Lexing.lexbuf) codeAccum =
-    try
-      let expr = parseF lexbuf in
-      parse parseF lexbuf (codeAccum @ [expr])
-    with
-        Indentlexer.Eof -> codeAccum
-  in
-
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let runtimeBaseName = "source/runtime" in
   let llvmRuntimeFile = dir ^ runtimeBaseName ^ ".ll" in
