@@ -151,6 +151,10 @@ let readFile ?(paths = ["."]) fileName =
                     (combine "', '" paths)
                     (Sys.getcwd())))
 
+let applyIfSome f = function
+  | None -> None
+  | Some v -> f v
+
 let someOrDefault optionValue default =
   match optionValue with
     | Some value -> value
