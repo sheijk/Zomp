@@ -148,6 +148,7 @@ type options = {
   fileName :string;
   printTimings :bool;
   traceMacroExpansion :bool;
+  symbolTableDumpFile :string option;
 }
 
 type optionResult = Options of options | InvalidArguments of string
@@ -156,6 +157,7 @@ let extractOptions args =
   let fileName = ref "" in
   let printTimings = ref false in
   let traceMacroExpansion = ref false in
+  let symbolTableDumpFile = ref "" in
   let onAnonArg str =
     raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
   in
@@ -165,14 +167,20 @@ let extractOptions args =
       args
       ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
        "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
-       "-c", Arg.Set_string fileName, "The file to compile"]
+       "-c", Arg.Set_string fileName, "The file to compile.";
+       "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to."]
       onAnonArg
       "zompc -c fileName.zomp\n";
+    if (String.length !symbolTableDumpFile) > 0 then begin
+      let absolutePath = Common.absolutePath !symbolTableDumpFile in
+      symbolTableDumpFile := absolutePath;
+    end;
     Options {
       execNameAndPath = args.(0);
       fileName = !fileName;
       printTimings = !printTimings;
       traceMacroExpansion = !traceMacroExpansion;
+      symbolTableDumpFile = Some !symbolTableDumpFile;
     }
   with
     | Arg.Bad msg

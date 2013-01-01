@@ -304,53 +304,7 @@ end = struct
       List.iter printCommand commands)
 
   let writeSymbolsCommand = makeSingleArgCommand
-    (fun fileName bindings ->
-      if Sys.file_exists fileName then
-        Sys.remove fileName;
-      let stream = open_out fileName in
-      try
-        fprintf stream "Symbol table\n";
-
-        let printSymbol (name, symbol) =
-          fprintf stream "%s =" name;
-          begin match symbol with
-            | VarSymbol var ->
-              fprintf stream "var of type %s %s"
-                (typeName var.typ)
-                (match var.vlocation with
-                  | None -> "@?"
-                  | Some loc ->
-                    "@" ^ Basics.locationToString loc)
-            | FuncSymbol func ->
-              let argToString (name, typ) =
-                sprintf "%s %s" (typeName typ) name
-              in
-              let args = List.map argToString func.fargs in
-              let argString = Common.combine ", " args in
-              fprintf stream "%s(%s)"
-                (typeName func.rettype)
-                argString;
-            | MacroSymbol macro ->
-              fprintf stream "%s" macro.mdocstring;
-            | LabelSymbol label ->
-              fprintf stream "label %s" label.lname;
-            | TypedefSymbol typ ->
-              fprintf stream "type %s" (typeDescr typ)
-            | UndefinedSymbol ->
-              fprintf stream "undefined"
-          end;
-          fprintf stream "\n"
-        in
-        Bindings.iter printSymbol bindings;
-
-        let printBuiltinDoc name params = fprintf stream "%s =%s\n" name params in
-        Expander.foreachBaseInstructionDoc printBuiltinDoc;
-      (** zomp.el does not distinguish between toplevel and regular expressions *)
-        Expander.foreachToplevelBaseInstructionDoc printBuiltinDoc;
-
-        close_out stream
-      with _ ->
-        close_out stream)
+    (fun fileName bindings -> Compileutils.writeSymbols fileName bindings)
 
   let optimizeCommand = makeNoArgCommand
     (fun _ ->
