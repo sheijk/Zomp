@@ -131,7 +131,7 @@ let compileCode bindings input outstream fileName =
   in
   tryAllCollectingErrors
     [lazy (parseAndCompile Parseutils.parseIExprs)]
-    ~onSuccess:(fun _ -> Some ())
+    ~onSuccess:(fun finalBindings -> Some finalBindings)
     ~ifAllFailed:(fun exceptions ->
                     List.iter printError exceptions;
                     None)

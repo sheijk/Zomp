@@ -55,11 +55,11 @@ type compilation_failure_reason =
   | Failed_to_init_vm
 
 type compilation_result =
-  | Compilation_succeeded
+  | Compilation_succeeded of Bindings.t
   | Compilation_failed of compilation_failure_reason
 
 let compilation_result_to_int = function
-  | Compilation_succeeded -> 0
+  | Compilation_succeeded _ -> 0
   | Compilation_failed (Compilation_failed_with_error _) -> 1
   | Compilation_failed Compiler_did_not_return_result -> 2
   | Compilation_failed Failed_to_init_vm -> 4
@@ -77,14 +77,14 @@ let compile fileName instream outstream =
     let exitCode =
       Compileutils.catchingErrorsDo
         (fun () -> begin
-          let bindings :Bindings.t =
+          let preludeBindings :Bindings.t =
             Compileutils.loadPrelude
               ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
                 output_string outstream llvmCode)
               preludeDir
           in
-          match Compileutils.compileCode bindings input outstream fileName with
-            | Some () -> Compilation_succeeded
+          match Compileutils.compileCode preludeBindings input outstream fileName with
+            | Some finalBindings -> Compilation_succeeded finalBindings
             | None -> Compilation_failed Compiler_did_not_return_result
         end)
         ~onError:(fun msg -> Compilation_failed (Compilation_failed_with_error msg))
@@ -250,7 +250,12 @@ let () =
   close_out outStream;
 
   begin match exitCode with
-    | Compilation_succeeded -> ()
+    | Compilation_succeeded globalBindings ->
+      begin match options.symbolTableDumpFile with
+        | Some absoluteFileName ->
+          Compileutils.writeSymbols absoluteFileName globalBindings;
+        | None -> ();
+      end
     | Compilation_failed reason ->
       eprintf "Failed to compile: %s\n"
         begin match reason with
