@@ -2478,14 +2478,15 @@ type toplevelTranslationFunction =
 
 let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExprTranslateF env) expr =
   let importFile fileName =
-    let fileContent =
+    let source =
       collectTimingInfo "readFileContent"
         (fun () -> Common.readFile ~paths:!includePath fileName)
     in
     let exprs =
       collectTimingInfo "parse"
-        (fun () -> Parseutils.parseIExprsNoCatch fileContent)
+        (fun () -> Parseutils.parseIExprsNoCatch source)
     in
+    let exprs = List.map (Parseutils.fixFileName fileName) exprs in
     collectTimingInfo "translateAndEval"
       (fun () -> translateAndEval handleLLVMCodeF translateTL env exprs)
   in

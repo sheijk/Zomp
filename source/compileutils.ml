@@ -152,21 +152,14 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
      (fun () -> Zompvm.loadLLVMFile llvmRuntimeFile));
 
   let preludeBaseName = "prelude" in
-  let zompPreludeFile = dir ^ preludeBaseName ^ ".zomp" in
+  let zompPreludeFile = Common.absolutePath (dir ^ preludeBaseName ^ ".zomp") in
   let source = Common.readFile zompPreludeFile ^ appendSource in
-  let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString zompPreludeFile source in
-  let lexFunc lexbuf =
-    let r = Indentlexer.token lexstate in
-    let loc = Indentlexer.locationOfLexstate lexstate in
-    let start = lexbuf.Lexing.lex_start_p in
-    lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.line };
-    r
-  in
-  let parseF = Newparser.main lexFunc in
   let exprs =
     collectTimingInfo "parsing"
-      (fun () -> ref (parse parseF lexbuf []))
+      (fun () ->
+        ref (match Parseutils.parseIExprs source with
+          | Exprs e -> List.map (fixFileName zompPreludeFile) e
+          | Error pe -> raise (CouldNotParse pe)))
   in
   let readExpr _ =
     match !exprs with
