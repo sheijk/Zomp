@@ -615,6 +615,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (insert "/") )
 
 (defun zomp-electric-backspace (prefix)
+  "Will delete comment markers inserted by zomp-electric-*, zomp-newline, etc."
   (interactive "p")
   (delete-backward-char
    (cond ((looking-back "/// ") 4)
@@ -622,6 +623,12 @@ editor to trigger recompilations etc. and possibly resume main()"
          ((looking-back "^ \\* ") 3)
          ((looking-back "^ \\*") 2)
          (t prefix))))
+
+(defun zomp-electric-colon ()
+  "Insert \":\" and indent line."
+  (interactive)
+  (zomp-indent-line)
+  (insert ":"))
 
 (defun zomp-comment-block ()
   "Will comment out the current indentation block"
@@ -721,10 +728,8 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(?/)] 'zomp-electric-slash)
   (local-set-key (kbd "DEL") 'zomp-electric-backspace)
   (local-set-key [(control c)(control ?/)] 'zomp-comment-block)
+  (local-set-key [(?:)] 'zomp-electric-colon)
 
-  (local-set-key [(?:)] '(lambda () (interactive)
-                           (zomp-indent-line)
-                           (insert ":")))
 
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
