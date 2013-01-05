@@ -1815,8 +1815,8 @@ struct
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
 
   let register addF =
-    addF "std:env:file" ("", translateFileName);
-    addF "std:env:line" ("", translateLineNumber)
+    addF "std:env:file" ("char*", translateFileName);
+    addF "std:env:line" ("int", translateLineNumber)
 
   let registerTL addF = ()
 end
