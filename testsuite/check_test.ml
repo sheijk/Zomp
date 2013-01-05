@@ -79,6 +79,16 @@ struct
     in
     sprintf "%s.%s" noExt ext
 
+
+  let deleteOutputFiles outputFileName extensions =
+    List.iter
+      (fun ext ->
+        let name = replaceExtension outputFileName ext in
+        if Sys.file_exists name then
+          Sys.remove name)
+      extensions
+
+
   let safeParseInt str =
     try
       int_of_string str
@@ -95,6 +105,25 @@ struct
     in
     loop [] 0
 
+  let addToList item refToList = refToList := item :: !refToList
+
+  (** Returns a string enumerating all strings in last separated by strings. The
+      last element is separated by verbForLast. Like "a, b, c and d". *)
+  let verbalConcat verbForLast list =
+    match List.rev list with
+      | [] -> ""
+      | [single] -> single
+      | last :: remaining ->
+        sprintf "%s %s %s"
+          (String.concat ", " (List.rev remaining))
+          verbForLast
+          last
+
+  let timeStr time =
+    sprintf "%d-%02d-%02d %02d:%02d:%02d"
+      (time.Unix.tm_year + 1900) (time.Unix.tm_mon + 1) time.Unix.tm_mday
+      time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
+
   let escapeHtmlText str =
     let replaceChar chr =
       let between min max = (chr >= min) && (chr <= max) in
@@ -108,18 +137,6 @@ struct
         sprintf "&#%d;" ascii
     in
     String.concat "" (List.map replaceChar (stringToList str))
-
-  (** Returns a string enumerating all strings in last separated by strings. The
-      last element is separated by verbForLast. Like "a, b, c and d". *)
-  let verbalConcat verbForLast list =
-    match List.rev list with
-      | [] -> ""
-      | [single] -> single
-      | last :: remaining ->
-        sprintf "%s %s %s"
-          (String.concat ", " (List.rev remaining))
-          verbForLast
-          last
 end
 
 open Utils
@@ -170,22 +187,6 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
 
-let timeStr time =
-  sprintf "%d-%02d-%02d %02d:%02d:%02d"
-    (time.Unix.tm_year + 1900) (time.Unix.tm_mon + 1) time.Unix.tm_mday
-    time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
-
-let deleteOutputFiles outputFileName =
-  let extensions = ["bc"; "op-bc"; "ll"; "exe"; "test_output"] in
-  List.iter
-    (fun ext ->
-      let name = replaceExtension outputFileName ext in
-      if Sys.file_exists name then
-        Sys.remove name)
-    extensions
-
-let addToList item refToList = refToList := item :: !refToList
-
 let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages kindStr args lineNum =
   try
     let kind = Expectation.parse kindStr in
@@ -202,7 +203,7 @@ let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
     printf "%s:%d: warning: invalid expectation kind '%s'. Expected %s\n"
       zompFileName lineNum kindStr Expectation.validExpectationsEnumDescr
 
-let collectExpectations addExpectation lineNum line =
+let collectExpectations addExpectation (lineNum :int) line =
   if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
     let kind = Str.matched_group 1 line in
     let args = Str.split (Str.regexp " +") (Str.matched_group 2 line) in
@@ -224,7 +225,7 @@ let () =
 
   let makeCommand = Sys.argv.(2) in
 
-  deleteOutputFiles outputFileName;
+  deleteOutputFiles outputFileName ["bc"; "op-bc"; "ll"; "exe"; "test_output"];
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
