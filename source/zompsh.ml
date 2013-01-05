@@ -102,6 +102,8 @@ end
 
 open Utils
 
+let currentLocation : Basics.location option ref = ref None
+
 module Commands : sig
   val handleCommand : string -> Bindings.bindings -> unit
 end = struct
@@ -244,22 +246,18 @@ end = struct
     Bindings.iter printSymbol bindings;
     print_newline()
 
-  (* let lookupDefinitionLocation = makeSingleArgCommand *)
-  (*   (fun name bindings -> begin *)
-  (*     let reportError msg = *)
-  (*       printf "error: %s\n" msg *)
-  (*     in *)
-  (*  *)
-  (*     match Bindings.lookup bindings with *)
-  (*       | UndefinedSymbol -> *)
-  (*         reportError (sprintf "%s not defined" name) *)
-  (*       | VarSymbol _ *)
-  (*       | FuncSymbol _ *)
-  (*       | MacroSymbol _ *)
-  (*       | TypedefSymbol _ *)
-  (*       | LabelSymbol _ -> *)
-  (*         reportError (sprintf "looking up this kind of symbol not supported, yet") *)
-  (*   end) *)
+  let setSourceLocation args (_ :bindings) =
+    match args with
+      | [fileName; lineStr] ->
+        begin try
+          let line = int_of_string lineStr in
+          printf "setSourceLocation %s %d\n" fileName line;
+          currentLocation := Some { Basics.fileName; line }
+        with (Failure _) ->
+          eprintf "Could not parse line."
+        end
+      | _ ->
+        errorMessage "Expected arguments fileName and line"
 
   let runMainCommand = makeSingleArgCommand
     (fun funcname bindings ->
@@ -341,6 +339,7 @@ end = struct
       "run", [], runMainCommand, "Run a function of type void(void), default main";
       "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
       "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
+      "setSourceLocation", [], setSourceLocation, "Set source location of next line entered";
       "showStatsAtExit", [], toggleShowStatsAtExitCommand, "Show stats at exit";
       "syntax", [], toggleParseFunc, "Choose a syntax";
       "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
@@ -414,9 +413,30 @@ let readExpr bindings =
     end
   in
 
+  let fixSourceLocation expr =
+    let rec fixit loc expr =
+      let args = List.map (fixit loc) expr.args in
+      let location = {
+        Basics.fileName = loc.Basics.fileName;
+        line = Ast2.lineNumber expr + loc.Basics.line
+      }
+      in
+      { expr with args = args; location = Some location }
+    in
+    match !currentLocation with
+      | Some loc -> fixit loc expr
+      | None -> expr
+  in
+
   let parse source =
     match Parseutils.parseIExprs source with
-      | Parseutils.Exprs exprs -> Result exprs
+      | Parseutils.Exprs exprs ->
+        let exprs = (List.map fixSourceLocation exprs) in
+        (match exprs with
+          | e :: _ ->
+            printf "parsed at %s:%d\n" (Ast2.fileName e) (Ast2.lineNumber e)
+          | [] -> ());
+        Result exprs
       | Parseutils.Error e -> Error [Parseutils.parseErrorToString e]
   in
 
