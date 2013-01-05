@@ -80,15 +80,6 @@ struct
     sprintf "%s.%s" noExt ext
 
 
-  let deleteOutputFiles outputFileName extensions =
-    List.iter
-      (fun ext ->
-        let name = replaceExtension outputFileName ext in
-        if Sys.file_exists name then
-          Sys.remove name)
-      extensions
-
-
   let safeParseInt str =
     try
       int_of_string str
@@ -224,8 +215,6 @@ let () =
   let zompFileName = replaceExtension outputFileName "zomp" in
 
   let makeCommand = Sys.argv.(2) in
-
-  deleteOutputFiles outputFileName ["bc"; "op-bc"; "ll"; "exe"; "test_output"];
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in

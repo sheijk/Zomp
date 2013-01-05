@@ -115,6 +115,7 @@ testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
 %.testreport %.result: %.zomp $(ZOMPC) $(CHECK_TEST_FILE) testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
 	@$(ECHO) Running test suite case $< ...
+	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output,result,testreport}
 	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"
@@ -134,6 +135,7 @@ testsuite/prelude_is_valid: testsuite/preludevalid.testreport
 PRINT_TESTREPORT = 0
 
 testsuite/check_test_verify/works_fine.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/testsuite.mk
+	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output}
 	$(CHECK_TEST) ${<:.zomp=.testreport} 2>&1 > $@.tmp
 	cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid > /dev/null
 	mv $@.tmp $@
