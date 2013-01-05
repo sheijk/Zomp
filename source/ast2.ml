@@ -59,6 +59,73 @@ let toSingleExpr = function
   | [single] -> single
   | multiOrNone -> seqExpr multiOrNone
 
+type stringTree =
+  | STLeaf of string
+  | STBranch of stringTree list
+
+let () =
+  let printLocations = true in
+  let lastLoc = ref fakeLocation in
+  let makeLocationIndicator alwaysPrintLoc = function
+    | Some { fileName = "" } -> "~"
+    | None -> "!"
+    | Some loc ->
+      if printLocations && (alwaysPrintLoc || not (Basics.locationEqual loc !lastLoc)) then begin
+        lastLoc := loc;
+        sprintf " @%s" (Basics.locationToString loc);
+      end else
+        ""
+  in
+  let rec toStringTree expr =
+    let leafString expr = sprintf "%s%s" expr.id (makeLocationIndicator false expr.location) in
+    if expr.args = [] then
+      STLeaf (leafString expr)
+    else
+      STBranch (STLeaf (leafString expr) :: List.map toStringTree expr.args)
+  in
+  let rec stToString ~maxLength ?(indent = 0) tree =
+    let recurse = stToString ~maxLength ~indent in
+    match tree with
+      | STLeaf str -> str
+      | STBranch childs ->
+        let childStrings = List.map recurse childs in
+        let lengths = List.map String.length childStrings in
+        let sum = List.fold_left (+) 0 in
+        let totalLength = sum lengths in
+        if totalLength + List.length childStrings <= maxLength - 2 then
+          String.concat ""
+            ["("; String.concat " " childStrings; ")"]
+        else
+          let head = List.hd childStrings in
+          let tail = List.tl childStrings in
+          let indented = List.map Common.indent tail in
+          String.concat ""
+            ["("; head; "\n"; String.concat "\n" indented; ")"]
+  in
+  let testWithMaxLength maxLength =
+    let seperatorString = String.make maxLength '-' ^ "\n" in
+    let test expr =
+      let str = stToString maxLength (toStringTree expr) in
+      print_string seperatorString;
+      print_string str;
+      print_newline();
+    in
+    List.iter test
+      [idExpr "foo";
+       idExpr "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+       simpleExpr "short" ["a"; "b"];
+       simpleExpr "simple" ["arg0"; "arg1"; "arg2"; "arg3"];
+       opseqExpr
+         [simpleExpr "foo" ["bar"; "baz"; "buzz"; "long_argument_soup"];
+          simpleExpr "abcd" ["0123"];
+          idExpr "lalal"];
+       simpleExpr "x0123456789" ["a"; "b"; "c"];
+      ]
+  in
+  print_newline();
+  print_string "testing\n";
+  List.iter testWithMaxLength [10; 20]
+
 let rec makeString printLocations sexpr =
   let lastLoc = ref Basics.fakeLocation in
   let rec expression2string sexpr =
