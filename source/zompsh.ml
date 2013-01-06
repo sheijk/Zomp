@@ -316,6 +316,11 @@ end = struct
       printf "Wrote LLVM code to file %s\n" fileName;
       flush stdout)
 
+  let echoCommand args (_:bindings) =
+    List.iter (printf "%s ") args;
+    print_newline();
+    flush stdout
+
   let printVersionInfoCommand = makeNoArgCommand
     (fun _ ->
       printf "Version %s, build %s\n" version (Zompvm.zompBuildInfo());
@@ -324,6 +329,7 @@ end = struct
   let commands =
     let rec internalCommands = [
       "bindings", ["b"], printBindingsCommand, "Print a list of defined symbols";
+      "echo", [], echoCommand, "Echo all given parameters";
       "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
       "exit", ["x"; "q"], exitCommand, "Exit";
       "help", ["h"], printHelpCommand, "List all toplevel commands";
@@ -573,7 +579,7 @@ let () =
         Compileutils.catchingErrorsDo
           (fun () ->
             if !printAst then begin
-              let asString = Ast2.expression2string expr in
+              let asString = Ast2.toString expr in
               printf " => %s\n" asString;
             end;
 
