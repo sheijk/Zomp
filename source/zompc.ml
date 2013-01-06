@@ -180,7 +180,7 @@ let extractOptions args =
       fileName = !fileName;
       printTimings = !printTimings;
       traceMacroExpansion = !traceMacroExpansion;
-      symbolTableDumpFile = Some !symbolTableDumpFile;
+      symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
     }
   with
     | Arg.Bad msg
