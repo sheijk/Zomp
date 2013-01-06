@@ -12,13 +12,21 @@ type t = sexpr
 (** construction functions **)
 
 let idExpr name = { id = name; args = []; location = None }
+let idExprLoc location name = { id = name; args = []; location = Some location }
 let simpleExpr name args = { id = name; args = List.map idExpr args; location = None }
+let simpleExprLoc location name args = { id = name; args = List.map idExpr args; location = location }
 let emptyExpr = { id = "seq"; args = []; location = None }
+let emptyExprLoc location = { id = "seq"; args = []; location = Some location }
 let seqExpr args = { id = "seq"; args = args; location = None }
+let seqExprLoc location args = { id = "seq"; args = args; location = Some location }
 let opseqExpr args = { id = "opseq"; args = args; location = None }
+let opseqExprLoc location args = { id = "opseq"; args = args; location = Some location }
 let expr name args = { id = name; args = args; location = None }
+let exprLoc location name args = { id = name; args = args; location = Some location }
 let juxExpr args = { id = "opjux"; args = args; location = None }
+let juxExprLoc location args = { id = "opjux"; args = args; location = Some location }
 let callExpr args = { id = "opcall"; args = args; location = None }
+let callExprLoc location args = { id = "opcall"; args = args; location = Some location }
 
 (** construction w/ explicit loc handling (for parser) *)
 
