@@ -21,15 +21,17 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
  std_base_primitive_types.zomp parametric_functions.zomp type_errors.zomp   \
  std_base_generic.zomp std_base_cast.zomp                                   \
  zmp_compiler_linkclib_error_invalid_name.zomp                              \
- zmp_compiler_linkclib_error_non_existing_lib.zomp                          \
- $(LEXER_SOURCES_X) $(ZOMPSH_SOURCES_X) $(TESTSUITE_ERROR_REPORTING_SOURCES)
+ zmp_compiler_linkclib_error_non_existing_lib.zomp
 
 LEXER_SOURCES_X = $(wildcard testsuite/lexer/*.zomp)
 ZOMPSH_SOURCES_X = $(wildcard testsuite/zompsh/*.zomp)
 TESTSUITE_ERROR_REPORTING_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
 
+TESTSUITE_SOURCES_MORE = $(LEXER_SOURCES_X) $(ZOMPSH_SOURCES_X) $(TESTSUITE_ERROR_REPORTING_SOURCES)
+
 TESTSUITE_SOURCES = \
- $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
+ $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
+ $(TESTSUITE_SOURCES_MORE:.zomp=.testreport)
 
 TESTSUITE_IGNORED_SOURCES = crash.zomp fail.zomp \
  std_base_struct_literals_errors.zomp builtin_is_interactive.zomp empty.zomp \
@@ -53,7 +55,7 @@ testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testrepo
 testsuite/error_reporting/all: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
 
 .PHONY: testsuite/lexer/all
-testsuite/lexer/all: $(foreach FILE, $(LEXER_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
+testsuite/lexer/all: $(LEXER_SOURCES_X:.zomp=.testreport)
 
 .PHONY: testsuite/zompsh/all
 testsuite/zompsh/all: echo lalalal $(foreach FILE, $(ZOMPSH_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
