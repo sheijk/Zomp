@@ -124,7 +124,7 @@ testsuite/zompsh/%.test_output: testsuite/zompsh/%.zomp $(ZOMPSH) $(CHECK_TEST_F
 .PRECIOUS: %.ll
 testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
-%.testreport %.result: %.zomp $(ZOMPC) $(ZOMPSH) $(CHECK_TEST_FILE) testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
+%.testreport %.result: %.zomp $(ZOMPC) $(ZOMPSH) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
 	@$(ECHO) Running test suite case $< ...
 	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output,result,testreport}
 	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"

@@ -299,7 +299,7 @@ prebuilt libraries as they are 64-bit"
 .PRECIOUS: %.ll %.bc %.opt-bc
 %.ll: %.zomp $(ZOMPC) has_llvm
 	$(ECHO) Compiling $(<) to .ll...
-	$(ZOMPC) -c $< $(ZOMPCFLAGS) || rm -f $@
+	$(ZOMPC) -c $< $(ZOMPCFLAGS) || (rm -f $@; exit 1)
 
 %.bc: %.ll
 	@echo Compiling $< to $@
