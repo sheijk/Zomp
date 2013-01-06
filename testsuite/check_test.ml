@@ -188,9 +188,17 @@ let addExpectation
   in
   try
     let kind = Expectation.parse kindStr in
+    let add () =
+      addToList (kind, args, lineNum, ref false) expectedErrorMessages
+    in
     begin match kind with
       | Expectation.CompilerError ->
-        expectedCompilationSuccess := false
+        expectedCompilationSuccess := false;
+        add()
+      | Expectation.CompilerWarning
+      | Expectation.CompilerInfo
+      | Expectation.RuntimePrint ->
+        add()
       | Expectation.TestCaseExitCode ->
         begin match args with
           | [arg] ->
@@ -202,12 +210,7 @@ let addExpectation
           | _ ->
             reportWarning "expected line number"
         end
-      | Expectation.CompilerWarning
-      | Expectation.CompilerInfo
-      | Expectation.RuntimePrint ->
-        ()
-    end;
-    addToList (kind, args, lineNum, ref false) expectedErrorMessages
+    end
   with Failure _ ->
     reportWarning
       (sprintf "invalid expectation kind '%s'. Expected %s"
