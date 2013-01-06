@@ -71,6 +71,9 @@ type stringTree =
   | STLeaf of string
   | STBranch of stringTree list
 
+let lastOutput = ref ""
+let secondLastOutput = ref ""
+
 let () =
   let printLocations = true in
   let lastLoc = ref fakeLocation in
@@ -119,15 +122,9 @@ let () =
   in
 
   let testWithMaxLength maxLength =
-    let seperatorString = String.make maxLength '-' ^ "\n" in
-    let test expr =
-      let str = stToString maxLength (toStringTree expr) in
-      print_string seperatorString;
-      print_string str;
-      print_newline();
-    in
+    let seperatorString = "\n" ^ String.make maxLength '-' ^ "\n" in
     let loc line = { Basics.fileName = "testfile.zomp"; line } in
-    List.iter test
+    let exprs =
       [idExprLoc (loc 0) "foo";
        idExpr "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
        simpleExpr "short" ["a"; "b"];
@@ -150,10 +147,37 @@ let () =
          opseqExpr [
            simpleExpr "opcall" ["abort"]]];
       ]
+    in
+    let strings = List.map (fun e -> stToString maxLength (toStringTree e)) exprs in
+    Common.combine seperatorString strings
   in
-  print_newline();
-  print_string "testing\n";
-  List.iter testWithMaxLength [10; 20]
+  let runOutputs = List.map testWithMaxLength [10; 20] in
+  let output = Common.combine "\n\n" runOutputs in
+  printf "\ntesting\n%s\n" output;
+  if output = !lastOutput then
+    printf "Same result as last run\n"
+  else begin
+    printf "Output is different than last run\n";
+    let fileOld = "/tmp/fileOld.txt"
+    and fileNew = "/tmp/fileNew.txt"
+    and fileDiffOutput = "/tmp/diffOutput.txt"
+    in
+    let writeToFile ~file string =
+      Common.withFileForWriting file (fun out -> output_string out string)
+    in
+    writeToFile ~file:fileOld !lastOutput;
+    writeToFile ~file:fileNew output;
+    let runCommand cmd =
+      match Sys.command cmd with
+        | 0 -> ()
+        | errorCode ->
+          printf "returned %d\n" errorCode;
+    in
+    runCommand (sprintf "diff %s %s > %s" fileOld fileNew fileDiffOutput);
+    printf "%s\n" (Common.readFile fileDiffOutput)
+  end;
+  secondLastOutput := !lastOutput;
+  lastOutput := output
 
 let rec makeString printLocations sexpr =
   let lastLoc = ref Basics.fakeLocation in
