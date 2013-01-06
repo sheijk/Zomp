@@ -7,6 +7,9 @@ open Bindings
 
 let version = "0.?"
 
+let reportError msg =
+  eprintf "error: %s\n" msg
+
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
 
@@ -24,10 +27,6 @@ and traceMacroExpansion = ref false
 module StringMap = Map.Make(String)
 
 exception AbortExpr
-
-let errorMessage msg =
-  eprintf "%s\n" msg;
-  flush stderr
 
 let parseFunc = ref Parseutils.parseIExpr
 
@@ -138,7 +137,7 @@ end = struct
         | ["off"] | ["no"] | ["false"] -> change false
         | [] -> change (not (getF()))
         | _ ->
-          errorMessage "Expected on/off/yes/no/true/false or no arguments to toggle"
+          reportError "expected on/off/yes/no/true/false or no arguments to toggle"
 
   let makeToggleCommandForRef refvar name =
     makeToggleCommandFromGetSet
@@ -257,7 +256,7 @@ end = struct
           eprintf "Could not parse line."
         end
       | _ ->
-        errorMessage "Expected arguments fileName and line"
+        reportError "expected arguments fileName and line"
 
   let runMainCommand = makeSingleArgCommand
     (fun funcname bindings ->
@@ -380,9 +379,9 @@ end = struct
         func argList bindings
       with
         | Not_found ->
-          printf "Error: Could not find command %s.\n" commandName
+          reportError (sprintf "could not find command '%s'" commandName)
     else
-      printf "Not a command string: '%s'\n" commandLine
+      reportError (sprintf "'%s' is not a command string" commandLine)
 end
 
 type 'a mayfail =
@@ -603,7 +602,7 @@ let () =
               printf "Compiling expression took %fs\n" time;
             step newBindings (Result remExprs))
           ~onError: (fun msg ->
-            printf "%s" msg;
+            reportError msg;
             step bindings (Result remExprs))
   in
 
@@ -632,10 +631,8 @@ let () =
         let initialBindings = addToplevelBindings preludeBindings in
         initialBindings
       end)
-      ~onError:
-      (fun msg -> begin
-        printf "%s" msg;
-        eprintf "Could not load prelude. Aborting\n";
+      ~onError: (fun msg -> begin
+        reportError msg;
         exit (-2);
       end)
   in
