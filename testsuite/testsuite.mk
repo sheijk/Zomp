@@ -5,6 +5,9 @@
 
 ################################################################################
 # Targets
+#
+# testsuite/test - will run all tests
+# testsuite/$dir/all - will build all targets in that directory
 ################################################################################
 
 TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
@@ -19,25 +22,14 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
  std_base_generic.zomp std_base_cast.zomp                                   \
  zmp_compiler_linkclib_error_invalid_name.zomp                              \
  zmp_compiler_linkclib_error_non_existing_lib.zomp                          \
- $(LEXER_SOURCES_X) $(ZOMPSH_SOURCES_X)
+ $(LEXER_SOURCES_X) $(ZOMPSH_SOURCES_X) $(TESTSUITE_ERROR_REPORTING_SOURCES)
 
-LEXER_SOURCES_X = \
- lexer/invalid_escape_sequence.zomp lexer/invalid_token.zomp                \
- lexer/invalid_token_bof.zomp lexer/invalid_token_multi_line_comment.zomp   \
- lexer/invalid_token_not_first_line.zomp                                    \
- lexer/invalid_token_single_line_comment.zomp                               \
- lexer/unterminated_comment.zomp lexer/unterminated_string.zomp
-
-ZOMPSH_SOURCES_X = \
- zompsh/set_source_location.zomp \
- zompsh/source_locations.zomp \
- zompsh/source_locations_empty_lines.zomp
+LEXER_SOURCES_X = $(wildcard testsuite/lexer/*.zomp)
+ZOMPSH_SOURCES_X = $(wildcard testsuite/zompsh/*.zomp)
+TESTSUITE_ERROR_REPORTING_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
 
 TESTSUITE_SOURCES = \
- $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
- $(TESTSUITE_ERROR_REPORTING_SOURCES)
-
-TESTSUITE_ERROR_REPORTING_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
+ $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
 
 TESTSUITE_IGNORED_SOURCES = crash.zomp fail.zomp \
  std_base_struct_literals_errors.zomp builtin_is_interactive.zomp empty.zomp \
