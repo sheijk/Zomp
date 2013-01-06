@@ -128,36 +128,37 @@ let () =
 
   let testWithMaxLength maxLength =
     let seperatorString = "\n" ^ String.make maxLength '-' ^ "\n" in
-    let loc line = { Basics.fileName = "testfile.zomp"; line } in
+    let l line = { Basics.fileName = "testfile.zomp"; line } in
+    let l2 line = { Basics.fileName = "otherfile.zomp"; line } in
     let exprs =
-      [idExprLoc (loc 0) "foo";
-       idExpr "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-       simpleExpr "short" ["a"; "b"];
-       simpleExpr "simple" ["arg0"; "arg1"; "arg2"; "arg3"];
-       opseqExpr
-         [simpleExpr "foo" ["bar"; "baz"; "buzz"; "long_argument_soup"];
-          simpleExpr "abcd" ["0123"];
-          idExpr "lalal"];
-       simpleExpr "x0123456789" ["a"; "b"; "c"];
-       expr "foobar" [
-         callExpr [idExpr "f"; idExpr "x"];
-         opseqExpr [simpleExpr "f2" ["a"; "b"; "c"]]];
-       expr "if" [
-         expr "op>" [idExpr "x"; simpleExpr "op*" ["count"; "10"]];
-         idExpr "then";
-         opseqExpr [
-           simpleExpr "println" ["'hello'"];
-           simpleExpr "op=" ["x"; "0"]];
-         idExpr "else";
-         opseqExpr [
-           simpleExpr "opcall" ["abort"]]];
+      [idExprLoc (l 1) "foo";
+       idExprLoc (l 5) "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+       simpleExprLoc (l 10) "short" ["a"; "b"];
+       simpleExprLoc (l 1) "simple" ["arg0"; "arg1"; "arg2"; "arg3"];
+       opseqExprLoc (l 10)
+         [simpleExprLoc (l 10) "foo" ["bar"; "baz"; "buzz"; "long_argument_soup"];
+          simpleExprLoc (l2 11) "abcd" ["0123"];
+          idExprLoc (l2 12) "lalal"];
+       simpleExprLoc (l 1) "x0123456789" ["a"; "b"; "c"];
+       exprLoc (l 3) "foobar" [
+         callExprLoc (l 4) [idExpr "f"; idExpr "x"];
+         opseqExprLoc (l 4) [simpleExprLoc (l 5) "f2" ["a"; "b"; "c"]]];
+       exprLoc (l 1) "if" [
+         exprLoc (l 1) "op>" [idExprLoc (l 1) "x"; simpleExprLoc (l 1) "op*" ["count"; "10"]];
+         idExprLoc (l 1) "then";
+         opseqExprLoc (l 1) [
+           simpleExprLoc (l 2) "println" ["'hello'"];
+           simpleExprLoc (l 3) "op=" ["x"; "0"]];
+         idExprLoc (l 4) "else";
+         opseqExprLoc (l 4) [
+           simpleExprLoc (l 5) "opcall" ["abort"]]];
       ]
     in
     let strings = List.map (fun e -> stToString maxLength (toStringTree e)) exprs in
     Common.combine seperatorString strings
   in
   let runOutputs = List.map testWithMaxLength [10; 20] in
-  let output = Common.combine "\n\n" runOutputs in
+  let output = Common.combine "\n---\n" runOutputs in
   printf "\ntesting\n%s\n" output;
   if output = !lastOutput then
     printf "Same result as last run\n"
