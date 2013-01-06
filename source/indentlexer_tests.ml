@@ -559,7 +559,7 @@ let runTerminatorTests() =
   in
   List.iter testF testCases;
   let errorCount = List.length !errors in
-  let name = "indentlexer terminator tests" in
+  let name = "indentlexer terminator" in
   {
     Testing.Summary.name = name;
     succeeded = errorCount = 0;
