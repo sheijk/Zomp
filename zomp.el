@@ -537,7 +537,8 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     (save-excursion
       (end-of-line)
-      (setq startOfIndentBlock (looking-back " *:")))
+      (setq startOfIndentBlock (looking-back " *:"))
+      (setq isQuotation (looking-back "${[^}]*")))
 
     (save-excursion
       (move-beginning-of-line 1)
@@ -551,20 +552,15 @@ editor to trigger recompilations etc. and possibly resume main()"
         (set 'isStar t)))
 
     (save-excursion
-      (end-of-line)
-      (setq isQuotation (looking-back "${[^}]*")))
+      (back-to-indentation)
+      (setq wordAtLineBeginning (zomp-symbol-at-point)))
 
     (unless (eobp)
       (save-excursion
         (let ((thisLineIndent (zomp-current-line-indent)))
           (next-line)
-          (setq nextLineIndentDiff (- (zomp-current-line-indent) thisLineIndent)))))
+          (setq nextLineIndentDiff (- (zomp-current-line-indent) thisLineIndent))))
 
-    (save-excursion
-      (back-to-indentation)
-      (setq wordAtLineBeginning (zomp-symbol-at-point)))
-
-    (unless (eobp)
       (save-excursion
         (next-line)
         (beginning-of-line)
@@ -601,8 +597,7 @@ editor to trigger recompilations etc. and possibly resume main()"
       (indent-according-to-mode)
       (previous-line)
       (end-of-line)
-      (newline-and-indent))
-    ))
+      (newline-and-indent))))
 
 (defun zomp-electric-slash ()
   "Will change '* ' to '*/' when a newline was inserted
