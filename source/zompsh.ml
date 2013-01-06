@@ -301,7 +301,9 @@ end = struct
       List.iter printCommand commands)
 
   let writeSymbolsCommand = makeSingleArgCommand
-    (fun fileName bindings -> Compileutils.writeSymbols fileName bindings)
+    (fun fileName bindings ->
+      if not (Compileutils.writeSymbols fileName bindings) then
+        reportError (sprintf "could not write symbols to file '%s'" fileName))
 
   let optimizeCommand = makeNoArgCommand
     (fun _ ->

@@ -39,7 +39,7 @@ let printInstructions() =
   printf "to compile fileName.zomp into fileName.ll\n"
 
 let reportCommandLineArgumentError message =
-  printf "Error: %s\n" message;
+  printf "error: %s\n" message;
   printInstructions()
 
 let getBasename filename =
@@ -261,7 +261,8 @@ let () =
     | Compilation_succeeded globalBindings ->
       begin match options.symbolTableDumpFile with
         | Some absoluteFileName ->
-          Compileutils.writeSymbols absoluteFileName globalBindings;
+          if not (Compileutils.writeSymbols absoluteFileName globalBindings) then
+            printf "error: could not write symbols to '%s'\n" absoluteFileName;
         | None -> ();
       end
     | Compilation_failed reason ->
