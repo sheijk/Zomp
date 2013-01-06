@@ -84,13 +84,20 @@ let () =
       end else
         ""
   in
+
   let rec toStringTree expr =
     let leafString expr = sprintf "%s%s" expr.id (makeLocationIndicator false expr.location) in
-    if expr.args = [] then
-      STLeaf (leafString expr)
-    else
-      STBranch (STLeaf (leafString expr) :: List.map toStringTree expr.args)
+    match expr with
+      | { args = [] } ->
+        STLeaf (leafString expr)
+      (* | { id = "op>" | "op<" | "op=" | "op+" | "op-" | "op*" | "op/" ; args = [lhs; rhs] } -> *)
+      (*   STBranch [toStringTree lhs; *)
+      (*             STLeaf (leafString { expr with id = Str.string_after expr.id 2 }); *)
+      (*             toStringTree rhs] *)
+      | _ ->
+        STBranch (STLeaf (leafString expr) :: List.map toStringTree expr.args)
   in
+
   let rec stToString ~maxLength ?(indent = 0) tree =
     let recurse = stToString ~maxLength ~indent in
     match tree with
@@ -110,6 +117,7 @@ let () =
           String.concat ""
             ["("; head; "\n"; String.concat "\n" indented; ")"]
   in
+
   let testWithMaxLength maxLength =
     let seperatorString = String.make maxLength '-' ^ "\n" in
     let test expr =
@@ -118,8 +126,9 @@ let () =
       print_string str;
       print_newline();
     in
+    let loc line = { Basics.fileName = "testfile.zomp"; line } in
     List.iter test
-      [idExpr "foo";
+      [idExprLoc (loc 0) "foo";
        idExpr "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
        simpleExpr "short" ["a"; "b"];
        simpleExpr "simple" ["arg0"; "arg1"; "arg2"; "arg3"];
@@ -128,6 +137,18 @@ let () =
           simpleExpr "abcd" ["0123"];
           idExpr "lalal"];
        simpleExpr "x0123456789" ["a"; "b"; "c"];
+       expr "foobar" [
+         callExpr [idExpr "f"; idExpr "x"];
+         opseqExpr [simpleExpr "f2" ["a"; "b"; "c"]]];
+       expr "if" [
+         expr "op>" [idExpr "x"; simpleExpr "op*" ["count"; "10"]];
+         idExpr "then";
+         opseqExpr [
+           simpleExpr "println" ["'hello'"];
+           simpleExpr "op=" ["x"; "0"]];
+         idExpr "else";
+         opseqExpr [
+           simpleExpr "opcall" ["abort"]]];
       ]
   in
   print_newline();
