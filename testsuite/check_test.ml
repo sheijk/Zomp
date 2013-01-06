@@ -134,17 +134,19 @@ open Utils
 
 module Expectation =
 struct
-  type t = CompilerError | CompilerWarning | CompilerInfo | RuntimePrint
+  type t = CompilerError | CompilerWarning | CompilerInfo | RuntimePrint | TestCaseExitCode
   let compilerErrorCommand = "error"
   let compilerWarningCommand = "warning"
   let compilerInfoCommand = "info"
   let runtimePrintCommand = "print"
+  let testCaseExitCodeCommand = "exit-code"
 
   let parse str =
     if str = compilerErrorCommand then CompilerError
     else if str = compilerWarningCommand then CompilerWarning
     else if str = compilerInfoCommand then CompilerInfo
     else if str = runtimePrintCommand then RuntimePrint
+    else if str = testCaseExitCodeCommand then TestCaseExitCode
     else (failwith "Expectation.parse")
 
   let validExpectationsEnumDescr =
@@ -157,7 +159,7 @@ struct
     | CompilerWarning -> "compiler warning"
     | CompilerInfo -> "compiler info"
     | RuntimePrint -> "test case to print line"
-
+    | TestCaseExitCode -> "test case to exit with"
 
   let description kind words =
     let quote = sprintf "\"%s\"" in
@@ -178,12 +180,28 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
 
-let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages kindStr args lineNum =
+let addExpectation
+    zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
+    kindStr args lineNum =
+  let reportWarning msg =
+    printf "%s:%d: warning: %s\n" zompFileName lineNum msg
+  in
   try
     let kind = Expectation.parse kindStr in
     begin match kind with
       | Expectation.CompilerError ->
         expectedCompilationSuccess := false
+      | Expectation.TestCaseExitCode ->
+        begin match args with
+          | [arg] ->
+            begin try
+                    expectedTestCaseExitCode := int_of_string arg
+              with Failure "int_of_string" ->
+                reportWarning "lalal"; ()
+            end
+          | _ ->
+            reportWarning "expected line number"
+        end
       | Expectation.CompilerWarning
       | Expectation.CompilerInfo
       | Expectation.RuntimePrint ->
@@ -191,8 +209,9 @@ let addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
     end;
     addToList (kind, args, lineNum, ref false) expectedErrorMessages
   with Failure _ ->
-    printf "%s:%d: warning: invalid expectation kind '%s'. Expected %s\n"
-      zompFileName lineNum kindStr Expectation.validExpectationsEnumDescr
+    reportWarning
+      (sprintf "invalid expectation kind '%s'. Expected %s"
+         kindStr Expectation.validExpectationsEnumDescr)
 
 let collectExpectations addExpectation (lineNum :int) line =
   if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
@@ -218,9 +237,9 @@ let () =
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
-  let expectedReturnValueForRun = ref 0 in
+  let expectedTestCaseExitCode = ref 0 in
   let addExpectation =
-    addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages
+    addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
   in
   let collectExpectations = collectExpectations addExpectation in
 
@@ -264,6 +283,7 @@ let () =
           if List.for_all containsWord args then begin
             found := true
           end
+        | Expectation.TestCaseExitCode
         | Expectation.RuntimePrint ->
           ()
     in
@@ -326,7 +346,7 @@ let () =
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
         fprintf outFile "Expect test to exit with code %d. <br />\n"
-          !expectedReturnValueForRun;
+          !expectedTestCaseExitCode;
       List.iter writeExpectation !expectedErrorMessages);
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
@@ -355,9 +375,9 @@ let () =
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
       fprintf outFile "Exited with code %d<br />\n" runReturnCode;
-      if runReturnCode <> !expectedReturnValueForRun then
+      if runReturnCode <> !expectedTestCaseExitCode then
         reportError (sprintf "exited with code %d instead of %d"
-                       runReturnCode !expectedReturnValueForRun);
+                       runReturnCode !expectedTestCaseExitCode);
     end;
 
     writeHeader 2 "Results";
