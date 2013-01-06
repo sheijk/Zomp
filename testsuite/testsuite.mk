@@ -58,7 +58,7 @@ testsuite/error_reporting/all: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testre
 testsuite/lexer/all: $(LEXER_SOURCES_X:.zomp=.testreport)
 
 .PHONY: testsuite/zompsh/all
-testsuite/zompsh/all: echo lalalal $(foreach FILE, $(ZOMPSH_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
+testsuite/zompsh/all: $(ZOMPSH_SOURCES_X:.zomp=.testreport)
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files
