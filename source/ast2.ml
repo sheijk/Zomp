@@ -80,30 +80,38 @@ let lastOutput = ref ""
 let secondLastOutput = ref ""
 
 let () =
-  let printLocations = true in
-  let lastLoc = ref fakeLocation in
-  let makeLocationIndicator alwaysPrintLoc = function
-    | Some { fileName = "" } -> "~"
-    | None -> "!"
-    | Some loc ->
-      if printLocations && (alwaysPrintLoc || not (Basics.locationEqual loc !lastLoc)) then begin
-        lastLoc := loc;
-        sprintf " @%s" (Basics.locationToString loc);
-      end else
-        ""
-  in
+  let toStringTree expr =
+    printf "converting expr %s\n" expr.id;
+    let printLocations = true in
+    let lastLoc = ref fakeLocation in
+    let makeLocationIndicator alwaysPrintLoc = function
+      | Some { fileName = "" } -> "~"
+      | None -> "!"
+      | Some loc ->
+        if printLocations && (alwaysPrintLoc || not (Basics.locationEqual loc !lastLoc)) then begin
+          printf "lastLoc was %s, new loc is %s\n" (Basics.locationToString !lastLoc) (Basics.locationToString loc);
+          lastLoc := loc;
+          sprintf " @%s" (Basics.locationToString loc);
+        end else
+          ""
+    in
 
-  let rec toStringTree expr =
-    let leafString expr = sprintf "%s%s" expr.id (makeLocationIndicator false expr.location) in
-    match expr with
-      | { args = [] } ->
-        STLeaf (leafString expr)
-      (* | { id = "op>" | "op<" | "op=" | "op+" | "op-" | "op*" | "op/" ; args = [lhs; rhs] } -> *)
-      (*   STBranch [toStringTree lhs; *)
-      (*             STLeaf (leafString { expr with id = Str.string_after expr.id 2 }); *)
-      (*             toStringTree rhs] *)
-      | _ ->
-        STBranch (STLeaf (leafString expr) :: List.map toStringTree expr.args)
+    let rec recurse expr =
+      let leafString expr = sprintf "%s%s" expr.id (makeLocationIndicator false expr.location) in
+      match expr with
+        | { args = [] } ->
+          STLeaf (leafString expr)
+        (* | { id = "op>" | "op<" | "op=" | "op+" | "op-" | "op*" | "op/" ; args = [lhs; rhs] } -> *)
+        (*   STBranch [toStringTree lhs; *)
+        (*             STLeaf (leafString { expr with id = Str.string_after expr.id 2 }); *)
+        (*             toStringTree rhs] *)
+        | _ ->
+          let head = STLeaf (leafString expr) in
+          let childs = List.map recurse expr.args in
+          STBranch (head :: childs)
+          (* STBranch (STLeaf (leafString expr) :: List.map recurse expr.args) *)
+    in
+    recurse expr
   in
 
   let rec stToString ~maxLength ?(indent = 0) tree =
