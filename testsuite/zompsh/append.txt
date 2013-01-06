@@ -1,0 +1,6 @@
+// Appended to all source files in this directory for zompsh to recognize end of expressions, run main function and exit
+
+
+
+!run main
+!exit
