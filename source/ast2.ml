@@ -76,122 +76,62 @@ type stringTree =
   | STLeaf of string
   | STBranch of stringTree list
 
-let lastOutput = ref ""
-let secondLastOutput = ref ""
+let toStringTree expr =
+  let printLocations = true in
+  let lastFileName = ref "" in
+  let lastLine = ref 0 in
+  let makeLocationIndicator alwaysPrintLoc = function
+    | Some { fileName = "" } -> "~"
+    | None -> "!"
+    | Some loc ->
+      if printLocations then begin
+        let str =
+          match loc.fileName = !lastFileName, loc.line = !lastLine with
+            | true, true -> ""
+            | true, false -> sprintf " @:%d" loc.line
+            | false, false | false, true -> sprintf " @%s" (Basics.locationToString loc)
+        in
+        lastFileName := loc.fileName;
+        lastLine := loc.line;
+        str
+      end else
+        ""
+  in
 
-let () =
-  let toStringTree expr =
-    printf "converting expr %s\n" expr.id;
-    let printLocations = true in
-    let lastLoc = ref fakeLocation in
-    let makeLocationIndicator alwaysPrintLoc = function
-      | Some { fileName = "" } -> "~"
-      | None -> "!"
-      | Some loc ->
-        if printLocations && (alwaysPrintLoc || not (Basics.locationEqual loc !lastLoc)) then begin
-          printf "lastLoc was %s, new loc is %s\n" (Basics.locationToString !lastLoc) (Basics.locationToString loc);
-          lastLoc := loc;
-          sprintf " @%s" (Basics.locationToString loc);
-        end else
-          ""
-    in
-
-    let rec recurse expr =
-      let leafString expr = sprintf "%s%s" expr.id (makeLocationIndicator false expr.location) in
-      match expr with
-        | { args = [] } ->
-          STLeaf (leafString expr)
+  let rec recurse expr =
+    let leafString expr = sprintf "%s%s" expr.id (makeLocationIndicator false expr.location) in
+    match expr with
+      | { args = [] } ->
+        STLeaf (leafString expr)
         (* | { id = "op>" | "op<" | "op=" | "op+" | "op-" | "op*" | "op/" ; args = [lhs; rhs] } -> *)
         (*   STBranch [toStringTree lhs; *)
         (*             STLeaf (leafString { expr with id = Str.string_after expr.id 2 }); *)
         (*             toStringTree rhs] *)
-        | _ ->
-          let head = STLeaf (leafString expr) in
-          let childs = List.map recurse expr.args in
-          STBranch (head :: childs)
-          (* STBranch (STLeaf (leafString expr) :: List.map recurse expr.args) *)
-    in
-    recurse expr
+      | _ ->
+        let head = STLeaf (leafString expr) in
+        let childs = List.map recurse expr.args in
+        STBranch (head :: childs)
   in
+  recurse expr
 
-  let rec stToString ~maxLength ?(indent = 0) tree =
-    let recurse = stToString ~maxLength ~indent in
-    match tree with
-      | STLeaf str -> str
-      | STBranch childs ->
-        let childStrings = List.map recurse childs in
-        let lengths = List.map String.length childStrings in
-        let sum = List.fold_left (+) 0 in
-        let totalLength = sum lengths in
-        if totalLength + List.length childStrings <= maxLength - 2 then
-          String.concat ""
-            ["("; String.concat " " childStrings; ")"]
-        else
-          let head = List.hd childStrings in
-          let tail = List.tl childStrings in
-          let indented = List.map Common.indent tail in
-          String.concat ""
-            ["("; head; "\n"; String.concat "\n" indented; ")"]
-  in
-
-  let testWithMaxLength maxLength =
-    let seperatorString = "\n" ^ String.make maxLength '-' ^ "\n" in
-    let l line = { Basics.fileName = "testfile.zomp"; line } in
-    let l2 line = { Basics.fileName = "otherfile.zomp"; line } in
-    let exprs =
-      [idExprLoc (l 1) "foo";
-       idExprLoc (l 5) "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-       simpleExprLoc (l 10) "short" ["a"; "b"];
-       simpleExprLoc (l 1) "simple" ["arg0"; "arg1"; "arg2"; "arg3"];
-       opseqExprLoc (l 10)
-         [simpleExprLoc (l 10) "foo" ["bar"; "baz"; "buzz"; "long_argument_soup"];
-          simpleExprLoc (l2 11) "abcd" ["0123"];
-          idExprLoc (l2 12) "lalal"];
-       simpleExprLoc (l 1) "x0123456789" ["a"; "b"; "c"];
-       exprLoc (l 3) "foobar" [
-         callExprLoc (l 4) [idExpr "f"; idExpr "x"];
-         opseqExprLoc (l 4) [simpleExprLoc (l 5) "f2" ["a"; "b"; "c"]]];
-       exprLoc (l 1) "if" [
-         exprLoc (l 1) "op>" [idExprLoc (l 1) "x"; simpleExprLoc (l 1) "op*" ["count"; "10"]];
-         idExprLoc (l 1) "then";
-         opseqExprLoc (l 1) [
-           simpleExprLoc (l 2) "println" ["'hello'"];
-           simpleExprLoc (l 3) "op=" ["x"; "0"]];
-         idExprLoc (l 4) "else";
-         opseqExprLoc (l 4) [
-           simpleExprLoc (l 5) "opcall" ["abort"]]];
-      ]
-    in
-    let strings = List.map (fun e -> stToString maxLength (toStringTree e)) exprs in
-    Common.combine seperatorString strings
-  in
-  let runOutputs = List.map testWithMaxLength [10; 20] in
-  let output = Common.combine "\n---\n" runOutputs in
-  printf "\ntesting\n%s\n" output;
-  if output = !lastOutput then
-    printf "Same result as last run\n"
-  else begin
-    printf "Output is different than last run\n";
-    let fileOld = "/tmp/fileOld.txt"
-    and fileNew = "/tmp/fileNew.txt"
-    and fileDiffOutput = "/tmp/diffOutput.txt"
-    in
-    let writeToFile ~file string =
-      Common.withFileForWriting file (fun out -> output_string out string)
-    in
-    writeToFile ~file:fileOld !lastOutput;
-    writeToFile ~file:fileNew output;
-    let runCommand cmd =
-      match Sys.command cmd with
-        | 0 -> ()
-        | errorCode ->
-          printf "returned %d\n" errorCode;
-    in
-    runCommand (sprintf "diff %s %s > %s" fileOld fileNew fileDiffOutput);
-    printf "%s\n" (Common.readFile fileDiffOutput)
-  end;
-  secondLastOutput := !lastOutput;
-  lastOutput := output
+let rec stToString ~maxLength ?(indent = 0) tree =
+  let recurse = stToString ~maxLength ~indent in
+  match tree with
+    | STLeaf str -> str
+    | STBranch childs ->
+      let childStrings = List.map recurse childs in
+      let lengths = List.map String.length childStrings in
+      let sum = List.fold_left (+) 0 in
+      let totalLength = sum lengths in
+      if totalLength + List.length childStrings <= maxLength - 2 then
+        String.concat ""
+          ["("; String.concat " " childStrings; ")"]
+      else
+        let head = List.hd childStrings in
+        let tail = List.tl childStrings in
+        let indented = List.map Common.indent tail in
+        String.concat ""
+          ["("; head; "\n"; String.concat "\n" indented; ")"]
 
 let rec makeString printLocations sexpr =
   let lastLoc = ref Basics.fakeLocation in
