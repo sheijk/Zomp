@@ -1,0 +1,21 @@
+///
+/// Checking whether !setSourceLocation works
+///
+
+!echo hello there
+!printAst on
+
+
+
+
+var int line std:env:line
+
+func int main():
+!setSourceLocation foo.zomp 100
+  printString std:env:file
+  printString "##"
+  printInt line //// print foo.zomp##102
+  // printInt std:env:line //// print foo.zomp##102
+  ret 0
+end
+

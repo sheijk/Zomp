@@ -1,0 +1,13 @@
+///
+/// Some simple tests checking whether source locations are maintained in zompsh
+///
+
+func int main():
+  printString std:env:file
+  printString "##"
+  printInt std:env:line //// print source_locations.zomp##8
+  printNewline()
+
+  ret 0
+end
+

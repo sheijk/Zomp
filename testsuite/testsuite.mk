@@ -19,7 +19,7 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
  std_base_generic.zomp std_base_cast.zomp                                   \
  zmp_compiler_linkclib_error_invalid_name.zomp                              \
  zmp_compiler_linkclib_error_non_existing_lib.zomp                          \
- $(LEXER_SOURCES_X)
+ $(LEXER_SOURCES_X) $(ZOMPSH_SOURCES_X)
 
 LEXER_SOURCES_X = \
  lexer/invalid_escape_sequence.zomp lexer/invalid_token.zomp                \
@@ -27,6 +27,11 @@ LEXER_SOURCES_X = \
  lexer/invalid_token_not_first_line.zomp                                    \
  lexer/invalid_token_single_line_comment.zomp                               \
  lexer/unterminated_comment.zomp lexer/unterminated_string.zomp
+
+ZOMPSH_SOURCES_X = \
+ zompsh/set_source_location.zomp \
+ zompsh/source_locations.zomp \
+ zompsh/source_locations_empty_lines.zomp
 
 TESTSUITE_SOURCES = \
  $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
@@ -57,6 +62,9 @@ testsuite/error_reporting/all: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testre
 
 .PHONY: testsuite/lexer/all
 testsuite/lexer/all: $(foreach FILE, $(LEXER_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
+
+.PHONY: testsuite/zompsh/all
+testsuite/zompsh/all: echo lalalal $(foreach FILE, $(ZOMPSH_SOURCES_X), testsuite/$(FILE:.zomp=.testreport))
 
 # # experimental, results are incorrect because failed executions and compilations
 # # still produce files

@@ -116,7 +116,7 @@
 /testsuite/error_reporting/*.tmp
 /testsuite/error_reporting/*.zompc-log
 /testsuite/preludevalid
-
+/testsuite/zompsh/*.exe
 /zompsh
 /zompsh.native
 /zompc

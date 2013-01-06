@@ -1,0 +1,24 @@
+///
+/// Checks whether lots of empty lines break source locations. Done due to
+/// special handling of toplevel expressions in zompsh.
+///
+
+func void dummy():
+end
+
+
+
+
+
+
+
+
+func int main():
+  printString std:env:file
+  printString "##"
+  printInt std:env:line //// print source_locations_empty_lines.zomp##19
+  printNewline()
+
+  ret 0
+end
+
