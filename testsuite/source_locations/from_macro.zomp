@@ -1,0 +1,20 @@
+///
+/// Checking whether std:env:file and std:env:line work correctly when produced
+/// from within a macro.
+///
+
+macro printLoc msg:
+  ret $:
+    printString std:env:file
+    printString ":"
+    printInt std:env:line
+    printNewline()
+  end
+end
+
+func int main():
+  printLoc "loc-a" //// print loc-a from_macro.zomp 16
+  printLoc "loc-b" //// print loc-b from_macro.zomp 17
+  ret 0
+end
+
