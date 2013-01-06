@@ -9,12 +9,17 @@ type sexpr = {
 
 type t = sexpr
 
+let withLoc ast loc = { ast with location = Some loc }
+
 (** construction functions **)
 
 let idExpr name = { id = name; args = []; location = None }
 let idExprLoc location name = { id = name; args = []; location = Some location }
 let simpleExpr name args = { id = name; args = List.map idExpr args; location = None }
-let simpleExprLoc location name args = { id = name; args = List.map idExpr args; location = location }
+let simpleExprLoc location name args =
+  { id = name;
+    args = List.map (idExprLoc location) args;
+    location = Some location }
 let emptyExpr = { id = "seq"; args = []; location = None }
 let emptyExprLoc location = { id = "seq"; args = []; location = Some location }
 let seqExpr args = { id = "seq"; args = args; location = None }
