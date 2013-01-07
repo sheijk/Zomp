@@ -230,13 +230,14 @@ let () =
     flush stdout;
   end;
 
-  if Array.length Sys.argv != 3 then
+  if Array.length Sys.argv != 4 then
     failWith InvalidArguments;
 
   let outputFileName = Sys.argv.(1) in
   let zompFileName = replaceExtension outputFileName "zomp" in
 
-  let makeCommand = Sys.argv.(2) in
+  let compileCommand = Sys.argv.(2) in
+  let runTestCaseCommand = Sys.argv.(3) in
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
@@ -354,13 +355,10 @@ let () =
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
     let compilerError =
-      let cmd =
-        sprintf "( %s %s 2>&1 ) > %s"
-          makeCommand
-          (replaceExtension zompFileName "exe")
-          compilerMessagesOutputFile
-      in
-      Sys.command cmd;
+      let cmd = sprintf "(%s 2>&1) > %s" compileCommand compilerMessagesOutputFile in
+      printf "%s\n" cmd;
+      flush stdout;
+      Sys.command cmd
     in
 
     writeHeader 2 "Compiler output";
@@ -370,7 +368,9 @@ let () =
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName testOutputExt in
-      let cmd = sprintf "%s %s" makeCommand testrunOutputFile in
+      let cmd = sprintf "(%s 2>&1) > %s" runTestCaseCommand testrunOutputFile in
+      printf "%s\n" cmd;
+      flush stdout;
       let runReturnCode = Sys.command cmd in
 
       writeHeader 2 "Output";

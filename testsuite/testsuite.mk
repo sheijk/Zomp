@@ -107,29 +107,23 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma unix.cma $(CHECK_TEST_FILE)
 
-.PRECIOUS: %.test_output
-
-# Don't compile tests for zompsh (they have "!" commands in them and won't compile using zompc)
-testsuite/zompsh/%.exe: testsuite/zompsh/%.zomp $(CHECK_TEST_FILE) testsuite/testsuite.mk
-	@$(ECHO) "Building $(@) (faked as zompsh tests are not compiled) ..."
-	touch $@
-
-# Run zompsh tests using zompsh instead of the executable
-testsuite/zompsh/%.test_output: testsuite/zompsh/%.zomp $(ZOMPSH) $(CHECK_TEST_FILE) testsuite/zompsh/append.txt testsuite/testsuite.mk
-	@$(ECHO) Running zompsh test $(<:.zomp=) ...
-	(cat $< testsuite/zompsh/append.txt | $(ZOMPSH)) 2>&1 > $@
-
-%.test_output: %.exe $(ZOMPC) $(CHECK_TEST_FILE) testsuite/testsuite.mk
-	@$(ECHO) Running test $(<:.exe=) ...
-	$< > $@
-
 .PRECIOUS: %.ll
 testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
-%.testreport %.result: %.zomp $(ZOMPC) $(ZOMPSH) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
+TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 $(@:.testreport=.exe)"
+TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
+
+# Don't compile tests for zompsh (they have "!" commands in them and won't compile using zompc)
+testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
+  "echo \"Skipping compilation of $(@:.testreport=.zomp), not needed for zompsh test\""
+# Run zompsh tests using zompsh instead of the executable
+testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
+
+.PRECIOUS: %.test_output
+%.testreport %.result %.test_output: %.zomp $(ZOMPC) $(ZOMPSH) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
 	@$(ECHO) Running test suite case $< ...
 	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output,result,testreport}
-	$(CHECK_TEST) $@ "$(MAKE) SILENT=1"
+	$(CHECK_TEST) $@ $(TESTREPORT_COMPILE_CMD) $(TESTREPORT_RUN_CMD)
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"
 	cat $@
