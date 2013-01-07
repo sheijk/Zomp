@@ -67,7 +67,9 @@ testsuite/libs/libcee_astmatch.ll: libs/libcee.zomp
 testsuite/libs/math.ll: libs/math.zomp
 
 .PRECIOUS: %.ll
-testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid testsuite/check_test_verify/all source/runtime.c testsuite/testsuite.mk
+testsuite/%.ll: testsuite/%.zomp $(TESTREPORT_LIB_DEPS) $(ZOMPC) \
+  testsuite/prelude_is_valid testsuite/check_test_verify/all source/runtime.c \
+  testsuite/testsuite.mk makefile
 
 # the same w/o dependency on itself
 testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
@@ -88,8 +90,11 @@ testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
 # Run zompsh tests using zompsh instead of the executable
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
 
+TESTREPORT_LIB_DEPS = prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
+TESTREPORT_DEPS =  $(ZOMPC) $(ZOMPSH) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
+
 .PRECIOUS: %.test_output
-%.testreport %.result %.test_output: %.zomp $(ZOMPC) $(ZOMPSH) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk source/runtime.ll libs/unittest.zomp libs/libcee.zomp
+%.testreport %.result %.test_output: %.zomp $(TESTREPORT_DEPS)
 	@$(ECHO) Running test suite case $< ...
 	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output,result,testreport}
 	$(CHECK_TEST) $@ $(TESTREPORT_COMPILE_CMD) $(TESTREPORT_RUN_CMD)
