@@ -1,0 +1,15 @@
+/// 
+/// Checking whether std:vm:isInteractive works in zompsh
+/// 
+
+func int main():
+  if std:vm:isInteractive():
+    // split to avoid false positive from global var or compiler error
+    printString "running-"
+    printString "in-zompsh" //// print running-in-zompsh
+    printNewline()
+  end
+
+  ret 0
+end
+

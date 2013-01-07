@@ -21,7 +21,8 @@ TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
  std_base_primitive_types.zomp parametric_functions.zomp type_errors.zomp   \
  std_base_generic.zomp std_base_cast.zomp                                   \
  zmp_compiler_linkclib_error_invalid_name.zomp                              \
- zmp_compiler_linkclib_error_non_existing_lib.zomp
+ zmp_compiler_linkclib_error_non_existing_lib.zomp fail.zomp                \
+ std_base_struct_literals_errors.zomp std_vm.zomp
 
 LEXER_SOURCES_X = $(wildcard testsuite/lexer/*.zomp)
 ZOMPSH_SOURCES_X = $(wildcard testsuite/zompsh/*.zomp)
@@ -33,9 +34,7 @@ TESTSUITE_SOURCES = \
  $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
  $(TESTSUITE_SOURCES_MORE:.zomp=.testreport)
 
-TESTSUITE_IGNORED_SOURCES = crash.zomp fail.zomp \
- std_base_struct_literals_errors.zomp builtin_is_interactive.zomp empty.zomp \
- preludevalid.zomp require_lib.zomp
+TESTSUITE_IGNORED_SOURCES = crash.zomp empty.zomp preludevalid.zomp require_lib.zomp
 
 TESTSUITE_CASES = $(TESTSUITE_SOURCES:.zomp=.testreport)
 

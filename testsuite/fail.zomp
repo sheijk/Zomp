@@ -3,6 +3,6 @@
 ///
 
 func int main():
-  ret 1
+  ret 1 //// exit-code 1
 end
 

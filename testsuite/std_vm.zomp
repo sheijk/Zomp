@@ -1,0 +1,13 @@
+/// 
+/// Checking whether std:vm:isInteractive works in zompc
+/// 
+
+func int main():
+  if std:vm:isInteractive():
+    ret 1
+  end
+
+  ret 5 //// exit-code 5
+end
+
+
