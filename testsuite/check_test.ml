@@ -169,6 +169,14 @@ struct
        (verbalConcat "and" (List.map quote words)))
 end
 
+type exitCodeCondition =
+  | MustBe of int
+  | MustNotBe of int
+
+let exitCodeConditionToString = function
+  | MustBe exitCode -> sprintf "%d" exitCode
+  | MustNotBe exitCode -> sprintf "anything other than %d" exitCode
+
 let writeHtmlHeader outFile zompFileName =
   fprintf outFile "<html>\n";
   fprintf outFile "  <head>\n";
@@ -201,14 +209,19 @@ let addExpectation
         add()
       | Expectation.TestCaseExitCode ->
         begin match args with
-          | [arg] ->
-            begin try
-                    expectedTestCaseExitCode := int_of_string arg
-              with Failure "int_of_string" ->
-                reportWarning "lalal"; ()
+          | [lineString] ->
+            begin
+              try
+                expectedTestCaseExitCode :=
+                  if lineString.[0] = '!' then
+                    MustNotBe (int_of_string (Str.string_after lineString 1))
+                  else
+                    MustBe (int_of_string lineString);
+              with Failure "int_of_string" | Invalid_argument _ ->
+                reportWarning "could not parse line number, expected number or !number"
             end
           | _ ->
-            reportWarning "expected line number"
+            reportWarning "wrong number or arguments, expected 'line' number or '!line'"
         end
     end
   with Failure _ ->
@@ -241,7 +254,7 @@ let () =
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
-  let expectedTestCaseExitCode = ref 0 in
+  let expectedTestCaseExitCode = ref (MustBe 0) in
   let addExpectation =
     addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
   in
@@ -349,8 +362,8 @@ let () =
       fprintf outFile "Expect compilation to %s. <br />\n"
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
-        fprintf outFile "Expect test to exit with code %d. <br />\n"
-          !expectedTestCaseExitCode;
+        fprintf outFile "Expect test to exit with code %s. <br />\n"
+          (exitCodeConditionToString !expectedTestCaseExitCode);
       List.iter writeExpectation !expectedErrorMessages);
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
@@ -378,9 +391,13 @@ let () =
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
       fprintf outFile "Exited with code %d<br />\n" runReturnCode;
-      if runReturnCode <> !expectedTestCaseExitCode then
-        reportError (sprintf "exited with code %d instead of %d"
-                       runReturnCode !expectedTestCaseExitCode);
+      match !expectedTestCaseExitCode with
+        | MustBe expectedCode ->
+          if expectedCode != runReturnCode then
+            reportError (sprintf "exited with code %d instead of %d" runReturnCode expectedCode)
+        | MustNotBe unexpectedCode ->
+          if runReturnCode = unexpectedCode then
+            reportError (sprintf "exited with code %d but was expected to exit with anything else" runReturnCode);
     end;
 
     writeHeader 2 "Results";

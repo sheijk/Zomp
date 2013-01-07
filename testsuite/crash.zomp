@@ -3,8 +3,11 @@
 ///
 
 func int main():
+  printString "going to crash now"
+  printNewline()
+  flushStdout()
   var (ptr int) null nullptr(int)
-  store null 1
+  store null 1 //// exit-code !0
 
   ret 0
 end
