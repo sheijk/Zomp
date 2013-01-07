@@ -84,9 +84,9 @@ testsuite/clean:
 # Additional dependencies
 ################################################################################
 
-testsuite/libcee_misc.ll: libs/libcee.zomp libs/unittest.zomp
-testsuite/astmatch.ll: libs/libcee.zomp
-testsuite/math.ll: libs/math.zomp
+testsuite/libs/libcee_misc.ll: libs/libcee.zomp libs/unittest.zomp
+testsuite/libs/libcee_astmatch.ll: libs/libcee.zomp
+testsuite/libs/math.ll: libs/math.zomp
 
 testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid testsuite/check_test_verify/all prelude.zomp source/runtime.c testsuite/testsuite.mk
 
