@@ -3,6 +3,10 @@
 # targets need to be prefixed with testsuite/
 #
 
+# Print output of test case runs to console. If this is 0 only errors will be
+# printed.
+PRINT_TESTREPORT = 0
+
 ################################################################################
 # Targets
 #
@@ -88,7 +92,8 @@ testsuite/libs/libcee_misc.ll: libs/libcee.zomp libs/unittest.zomp
 testsuite/libs/libcee_astmatch.ll: libs/libcee.zomp
 testsuite/libs/math.ll: libs/math.zomp
 
-testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid testsuite/check_test_verify/all prelude.zomp source/runtime.c testsuite/testsuite.mk
+.PRECIOUS: %.ll
+testsuite/%.ll: testsuite/%.zomp prelude.zomp $(ZOMPC) libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp testsuite/prelude_is_valid testsuite/check_test_verify/all source/runtime.c testsuite/testsuite.mk
 
 # the same w/o dependency on itself
 testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
@@ -99,9 +104,6 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
 
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST = $(OCAML) str.cma unix.cma $(CHECK_TEST_FILE)
-
-.PRECIOUS: %.ll
-testsuite/%.ll: libs/unittest.zomp libs/libcee.zomp
 
 TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 $(@:.testreport=.exe)"
 TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
@@ -132,11 +134,10 @@ endif
 testsuite/prelude_is_valid: testsuite/preludevalid.testreport
 	$(TOUCH) $@
 
-PRINT_TESTREPORT = 0
-
 .PHONY: testsuite/check_test_verify/all
 testsuite/check_test_verify/all: testsuite/check_test_verify/test_check_test_error_report.testreport
 
+# A simple self-test.
 testsuite/check_test_verify/test_check_test_error_report.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/testsuite.mk $(CHECK_TEST_FILE)
 	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output}
 	($(CHECK_TEST) $@ "$(MAKE) SILENT=1" 2>&1) > $@.tmp
