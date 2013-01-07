@@ -46,8 +46,11 @@ testsuite/selftest:
 	-diff -U 0 -b files.tmp.txt tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
 	diff -b files.tmp.txt tests.tmp.txt
 
+.PHONY: testsuite/success
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
+.PHONY: testsuite/test
 testsuite/test: testsuite/selftest testsuite/success
+.PHONY: testsuite/quick
 testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
 
 .PHONY: testsuite/error_reporting/all
@@ -59,18 +62,6 @@ testsuite/lexer/all: $(LEXER_SOURCES_X:.zomp=.testreport)
 .PHONY: testsuite/zompsh/all
 testsuite/zompsh/all: $(ZOMPSH_SOURCES_X:.zomp=.testreport)
 
-# # experimental, results are incorrect because failed executions and compilations
-# # still produce files
-# testsuite/report: testsuite/report_start $(foreach FILE, $(TESTSUITE_CASES), testsuite/$(FILE:.zomp=.print_report))
-# testsuite/report_start:
-# 	@echo "zomp test suite results (warning, report is incorrect!):"
-# %.print_report:
-# 	@./testsuite/print_test_results.sh $(@:.print_report=)
-
-testsuite/fail: fail.testreport crash.testreport
-
-.PHONY: testsuite/clean testsuite/clear-results testsuite/redo testsuite/test
-
 TESTSUITE_CLEAN_PATTERNS = \
   *.bc *.opt-bc *.ll \
   *.s *.o *.exe \
@@ -78,9 +69,12 @@ TESTSUITE_CLEAN_PATTERNS = \
   gmon.out
 
 CLEAN_SUB_TARGETS += testsuite/clean
+.PHONY: testsuite/clean
 testsuite/clean:
 	cd testsuite && rm -f $(TESTSUITE_CLEAN_PATTERNS)
 	cd testsuite/error_reporting && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	cd testsuite/zompsh && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	cd testsuite/lexer && rm -f $(TESTSUITE_CLEAN_PATTERNS)
 	cd testsuite/check_test_verify && rm -f $(TESTSUITE_CLEAN_PATTERNS)
 	cd testsuite/include && rm -f $(TESTSUITE_CLEAN_PATTERNS)
 	rm -f testsuite/check_test.annot
