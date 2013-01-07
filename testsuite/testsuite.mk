@@ -14,33 +14,26 @@ PRINT_TESTREPORT = 0
 # testsuite/$dir/all - will build all targets in that directory
 ################################################################################
 
-TESTSUITE_SOURCES_X = overloaded_ops.zomp structs.zomp minimal.zomp         \
- simple-func.zomp variables.zomp astmatch.zomp libcee_misc.zomp             \
- bug-macro-func-samemodule.zomp strings.zomp prelude.zomp selftest.zomp     \
- float.zomp std_bindings.zomp indent.comments.zomp require.zomp arrays.zomp \
- testframework.zomp math.zomp stackoverflow.zomp std_base.zomp              \
- numeric_literals.zomp std_base_struct_literals.zomp nested_macro.zomp      \
- libcee_enum.zomp std_base_globalVar.zomp parametric_types.zomp pointers.zomp\
- varargs.zomp forward_declare_function.zomp include/relative.zomp           \
- std_base_primitive_types.zomp parametric_functions.zomp type_errors.zomp   \
- std_base_generic.zomp std_base_cast.zomp                                   \
- zmp_compiler_linkclib_error_invalid_name.zomp                              \
- zmp_compiler_linkclib_error_non_existing_lib.zomp fail.zomp crash.zomp     \
- std_base_struct_literals_errors.zomp std_vm.zomp
+TESTSUITE_SUBDIRS = \
+  simple fundamental \
+  check_test_verify error_reporting generics include lexer libs parser \
+  source_locations std std_base zompsh
 
-LEXER_SOURCES_X = $(wildcard testsuite/lexer/*.zomp)
-ZOMPSH_SOURCES_X = $(wildcard testsuite/zompsh/*.zomp)
-TESTSUITE_ERROR_REPORTING_SOURCES = $(wildcard testsuite/error_reporting/*.zomp)
+TESTSUITE_IGNORED_SOURCES = preludevalid.zomp
 
-TESTSUITE_SOURCES_MORE = $(LEXER_SOURCES_X) $(ZOMPSH_SOURCES_X) $(TESTSUITE_ERROR_REPORTING_SOURCES)
-
-TESTSUITE_SOURCES = \
- $(foreach FILE, $(TESTSUITE_SOURCES_X), testsuite/$(FILE:.zomp=.testreport)) \
- $(TESTSUITE_SOURCES_MORE:.zomp=.testreport)
-
-TESTSUITE_IGNORED_SOURCES = empty.zomp preludevalid.zomp require_lib.zomp
-
+TESTSUITE_SOURCES = $(wildcard $(TESTSUITE_SUBDIRS:%=testsuite/%/*.zomp))
 TESTSUITE_CASES = $(TESTSUITE_SOURCES:.zomp=.testreport)
+
+testsuite/%/all:
+	@$(ECHO) "Running tests in $@ ..."
+	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/*.zomp), $(SOURCE:.zomp=.testreport))
+
+.PHONY: testsuite/success
+testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
+.PHONY: testsuite/test
+testsuite/test: testsuite/selftest $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
+.PHONY: testsuite/quick
+testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
 
 .PHONY: testsuite/selftest
 testsuite/selftest:
@@ -50,37 +43,18 @@ testsuite/selftest:
 	-diff -U 0 -b files.tmp.txt tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
 	diff -b files.tmp.txt tests.tmp.txt
 
-.PHONY: testsuite/success
-testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
-.PHONY: testsuite/test
-testsuite/test: testsuite/selftest testsuite/success
-.PHONY: testsuite/quick
-testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
-
-.PHONY: testsuite/error_reporting/all
-testsuite/error_reporting/all: $(TESTSUITE_ERROR_REPORTING_SOURCES:.zomp=.testreport)
-
-.PHONY: testsuite/lexer/all
-testsuite/lexer/all: $(LEXER_SOURCES_X:.zomp=.testreport)
-
-.PHONY: testsuite/zompsh/all
-testsuite/zompsh/all: $(ZOMPSH_SOURCES_X:.zomp=.testreport)
-
-TESTSUITE_CLEAN_PATTERNS = \
-  *.bc *.opt-bc *.ll \
-  *.s *.o *.exe \
-  *.testreport *.test_output *.result \
-  gmon.out
-
 CLEAN_SUB_TARGETS += testsuite/clean
 .PHONY: testsuite/clean
 testsuite/clean:
-	cd testsuite && rm -f $(TESTSUITE_CLEAN_PATTERNS)
-	cd testsuite/error_reporting && rm -f $(TESTSUITE_CLEAN_PATTERNS)
-	cd testsuite/zompsh && rm -f $(TESTSUITE_CLEAN_PATTERNS)
-	cd testsuite/lexer && rm -f $(TESTSUITE_CLEAN_PATTERNS)
-	cd testsuite/check_test_verify && rm -f $(TESTSUITE_CLEAN_PATTERNS)
-	cd testsuite/include && rm -f $(TESTSUITE_CLEAN_PATTERNS)
+	rm -f $(TESTSUITE_CASES)
+	rm -f $(TESTSUITE_CASES:.testreport=.result)
+	rm -f $(TESTSUITE_CASES:.testreport=.test_output)
+	rm -f $(TESTSUITE_CASES:.testreport=.ll)
+	rm -f $(TESTSUITE_CASES:.testreport=.bc)
+	rm -f $(TESTSUITE_CASES:.testreport=.opt-bc)
+	rm -f $(TESTSUITE_CASES:.testreport=.s)
+	rm -f $(TESTSUITE_CASES:.testreport=.o)
+	rm -f $(TESTSUITE_CASES:.testreport=.exe)
 	rm -f testsuite/check_test.annot
 	rm -f testsuite/prelude_is_valid
 
