@@ -1,7 +1,7 @@
 
 LLVM_VERSION=2.9
 ZOMP_TOOL_PATH=$(PWD)/../tools
-include ../config.mk
+include ../source/build/config.mk
 
 WORKING = comments.zomp constant.zomp globalvar.zomp var.zomp stdlibfuncs.zomp void.zomp voidvar.zomp ops.zomp typedefs.zomp sexpr.zomp pointers.zomp records.zomp ret.zomp labels.zomp strings.zomp macros.zomp nested.zomp arrays.zomp ast.zomp compiletime.zomp casts.zomp variadicmacro.zomp floats.zomp ops.zomp
 

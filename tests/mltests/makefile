@@ -15,5 +15,5 @@ clean:
 	rm -f sexptest.exe sexptest.cmo sexptest.cmi
 
 FLYMAKE_LOG=flymake.log
-include ../flymake.mk
+include ../source/build/flymake.mk
 

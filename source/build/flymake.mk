@@ -35,7 +35,7 @@ flymake_dispatch: flymake_log check-source
 	@rm -f *_flymake.cpp
 
 flymake_missing_settings:
-	@echo "flymake.mk:1: error: Please define FLYMAKE_LOG to point to a log file for flymake"
+	$(error "Please define FLYMAKE_LOG to point to a log file for flymake")
 
 check-syntax: $(FLYMAKE_TARGET)
 

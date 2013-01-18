@@ -41,15 +41,16 @@ else
 endif
 
 ZOMP_DIR = $(PWD)
-include config.mk
+include source/build/config.mk
 
 FLYMAKE_LOG=flymake.log
-include flymake.mk
+include source/build/flymake.mk
 
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
 
--include depends.mk
+AUTO_DEPENDENCY_FILE = depends.mk
+-include $(AUTO_DEPENDENCY_FILE)
 include testsuite/testsuite.mk
 include libs/libs.mk
 include examples/examples.mk
@@ -429,9 +430,9 @@ LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 # add additional ones here. Use something like make -j 20 for a quick test
 ################################################################################
 
-depends.mk: $(CAMLDEP_INPUT) makefile
+$(AUTO_DEPENDENCY_FILE): $(CAMLDEP_INPUT) makefile
 	@$(ECHO) Calculating dependencies ...
-	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > depends.mk
+	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
 
 # When this is changed, LANG_CMO_NAMES and LANG_CMXS will need to be changed, too
 CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
@@ -466,7 +467,7 @@ TAGS:
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
 # generate a file for graphviz which visualizes the dependencies between modules
-deps.dot deps.png: depends.mk $(CAMLDEP_INPUT) $(LANG_CMOS)
+deps.dot deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS)
 	@$(ECHO) Generating dependency graph for graphviz ...
 	$(OCAMLDOC) -I source/ -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
 	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
@@ -526,7 +527,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/*_flymake.*
 	$(RM) -f source/*.cmx *.native
 	$(RM) -f deps.png deps.dot
-	$(RM) -f depends.mk
+	$(RM) -f $(AUTO_DEPENDENCY_FILE)
 	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp libs/glut.zomp
 	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
 	$(RM) -f source/indentlexer.cm? source/newparser.cm? source/newparser.o source/indentlexer.o source/newparser.ml source/newparser.mli source/newparser.conflicts
