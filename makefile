@@ -541,6 +541,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f gmon.out
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(RM) -f vm_http_server
+	$(RM) -f mltest.test_output mltest_summary.test_output
 
 clean_tags:
 	$(RM) -f source/*.annot
