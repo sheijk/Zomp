@@ -10,7 +10,7 @@
 ZOMP_MAIN_MAKEFILE=1
 
 ifndef DEBUG
-DEBUG=1
+DEBUG=0
 endif
 
 ifndef PWD
