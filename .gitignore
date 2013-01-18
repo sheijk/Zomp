@@ -137,8 +137,6 @@ tools
 /tests/llvmtest/*.exe
 /tests/llvmtest/*.dSYM
 /tests/buildlog.txt
-/tests.tmp.txt
-/files.tmp.txt
 /report.html
 /vm_client
 /vm_server

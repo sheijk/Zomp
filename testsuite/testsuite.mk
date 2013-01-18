@@ -36,12 +36,12 @@ testsuite/test: testsuite/selftest $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
 testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
 
 .PHONY: testsuite/selftest
-testsuite/selftest:
-	echo $(foreach TEST_FILE, $(TESTSUITE_SOURCES), "\n$(TEST_FILE:.testreport=.zomp)") $(foreach TEST_FILE,$(TESTSUITE_IGNORED_SOURCES), "\ntestsuite/$(TEST_FILE)") | sort > tests.tmp.txt
-	echo > files.tmp.txt
-	find testsuite -iname "*.zomp" | grep -v check_test_verify | sort >> files.tmp.txt
-	-diff -U 0 -b files.tmp.txt tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
-	diff -b files.tmp.txt tests.tmp.txt
+testsuite/selftest: $(BUILD_DIR)/.exists
+	echo $(foreach TEST_FILE, $(TESTSUITE_SOURCES), "\n$(TEST_FILE:.testreport=.zomp)") $(foreach TEST_FILE,$(TESTSUITE_IGNORED_SOURCES), "\ntestsuite/$(TEST_FILE)") | sort > $(OUT_DIR)/tests.tmp.txt
+	echo > $(OUT_DIR)/files.tmp.txt
+	find testsuite -iname "*.zomp" | grep -v check_test_verify | sort >> $(OUT_DIR)/files.tmp.txt
+	-diff -U 0 -b $(OUT_DIR)/files.tmp.txt $(OUT_DIR)/tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
+	diff -b $(OUT_DIR)/files.tmp.txt $(OUT_DIR)/tests.tmp.txt
 
 CLEAN_SUB_TARGETS += testsuite/clean
 .PHONY: testsuite/clean
