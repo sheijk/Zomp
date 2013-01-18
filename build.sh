@@ -11,8 +11,13 @@ rm -f ${BUILDLOG}
 LOGSHELL=`pwd`/logshell.sh
 echo "LOGSHELL = ${LOGSHELL}"
 echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@'" >> ${BUILDLOG}
+
 make $@ SHELL="${LOGSHELL} ${BUILDLOG}"
 RETVAL=$?
+
+echo "Auto update test report ..." >> ${BUILDLOG}
+make report.html >> ${BUILDLOG}
+
 date "+Finishing build at %Y-%m-%d %H:%M:%S with ${RETVAL}" >> ${BUILDLOG}
 exit ${RETVAL}
 
