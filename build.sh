@@ -12,6 +12,7 @@ LOGSHELL=`pwd`/logshell.sh
 echo "LOGSHELL = ${LOGSHELL}"
 echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@'" >> ${BUILDLOG}
 make $@ SHELL="${LOGSHELL} ${BUILDLOG}"
-date '+Finishing build at %Y-%m-%d %H:%M:%S' >> ${BUILDLOG}
-exit $?
+RETVAL=$?
+date "+Finishing build at %Y-%m-%d %H:%M:%S with ${RETVAL}" >> ${BUILDLOG}
+exit ${RETVAL}
 
