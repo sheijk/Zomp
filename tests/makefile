@@ -42,7 +42,7 @@ compileperftest:
 	do \
 	  rm -f compileperf.zomp; \
 	  $(OCAML) $(PERFTEST_GEN).ml $$funcs compileperf.zomp; \
-	  ./logtiming.sh timing.txt $$funcs '../zomp-check-syntax.sh compileperf.zomp'; \
+	  ./logtiming.sh timing.txt $$funcs './zomp-check-syntax.sh compileperf.zomp'; \
 	done
 
 GLAPP_LIBS = -framework Carbon -framework CoreFoundation -framework OpenGL -framework AGL ../libglfw.a ../libGLEW.a
@@ -73,7 +73,7 @@ clean_tests:
 %.check: %.zomp
 	@$(ECHO) Checking $<
 	$(RM) -f ${<:.zomp=.ll}
-	../zomp-check-syntax.sh $<
+	./zomp-check-syntax.sh $<
 
 # %.run: %.zomp
 # 	@$(RM) -f ${<:.zomp=.ll} ${<:.zomp=.bc}
@@ -114,7 +114,7 @@ clean:
 
 # %.ll: %.zomp ../zompc.native ../prelude.zomp
 # 	@$(ECHO) Compiling $< to LLVM IR
-# 	../zomp-check-syntax.sh $<
+# 	./zomp-check-syntax.sh $<
 # 
 # %.bc: %.ll ../source/runtime.c
 # 	@$(ECHO) Compiling $< to $@

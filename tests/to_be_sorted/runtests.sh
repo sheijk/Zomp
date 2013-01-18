@@ -7,6 +7,6 @@ do
     echo
     echo Checking ${f}
     echo
-    ../zomp-check-syntax.sh ${f}
+    ./zomp-check-syntax.sh ${f}
 done
 
