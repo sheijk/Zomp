@@ -104,7 +104,7 @@ endif
 GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
 GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
 
-all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
+all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.png \
     $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
@@ -477,10 +477,10 @@ TAGS:
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
 # generate a file for graphviz which visualizes the dependencies between modules
-deps.dot deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS)
+$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS)
 	@$(ECHO) Generating dependency graph for graphviz ...
-	$(OCAMLDOC) -I source/ -o deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
-	dot -Tpng deps.dot > deps.png || $(ECHO) "warning: dot not found, deps.png not generated"
+	$(OCAMLDOC) -I source/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
+	dot -Tpng $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.png || $(ECHO) "warning: dot not found, $(OUT_DIR)/deps.png not generated"
 
 # Warning, ugly. But at least not essential so who cares :)
 .PHONY: loc_stats loc_stats_no_summary
@@ -536,7 +536,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f *_flymake.*
 	$(RM) -f source/*_flymake.*
 	$(RM) -f source/*.cmx *.native
-	$(RM) -f deps.png deps.dot
+	$(RM) -f $(OUT_DIR)/deps.png $(OUT_DIR)/deps.dot
 	$(RM) -f $(AUTO_DEPENDENCY_FILE)
 	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp libs/glut.zomp
 	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
