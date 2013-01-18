@@ -124,7 +124,7 @@ ARCHFLAG = -m32
 
 LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
 
-BUILD_PLATFORM = $(shell 'uname')
+BUILD_PLATFORM := $(shell 'uname')
 
 ifeq "$(BUILD_PLATFORM)" "Linux"
 DLL_FLAG = -shared
