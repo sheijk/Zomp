@@ -43,13 +43,30 @@ endif
 ZOMP_DIR = $(PWD)
 include source/build/config.mk
 
+ifneq ("$(SILENT)", "1")
+  $(info Build variant $(BUILD_VARIANT), LLVM variant = $(LLVM_VARIANT))
+endif
+
+BUILD_DIR = build/$(BUILD_VARIANT)
+DEPLOY_DIR = $(BUILD_DIR)/deploy
+OUT_DIR = $(BUILD_DIR)/intermediate
+
+.PHONY: make_build_dir
+
+make_build_dir: $(BUILD_DIR)/.exists
+
+$(BUILD_DIR)/.exists:
+	mkdir -p $(DEPLOY_DIR)
+	mkdir -p $(OUT_DIR)
+	touch $@
+
 FLYMAKE_LOG=flymake.log
 include source/build/flymake.mk
 
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
 
-AUTO_DEPENDENCY_FILE = depends.mk
+AUTO_DEPENDENCY_FILE = $(OUT_DIR)/depends.mk
 -include $(AUTO_DEPENDENCY_FILE)
 include testsuite/testsuite.mk
 include libs/libs.mk
@@ -72,16 +89,6 @@ else
     CXXFLAGS += -O3
   else
     $(error DEBUG flag has to either 0 or 1)
-  endif
-endif
-
-ifneq ("$(SILENT)", "1")
-  ifeq ($(DEBUG), 1)
-    $(info Debug build, LLVM variant = $(LLVM_VARIANT))
-  else
-    ifeq ($(DEBUG),0)
-      $(info Release build, LLVM variant = $(LLVM_VARIANT))
-    endif
   endif
 endif
 
@@ -430,7 +437,7 @@ LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 # add additional ones here. Use something like make -j 20 for a quick test
 ################################################################################
 
-$(AUTO_DEPENDENCY_FILE): $(CAMLDEP_INPUT) makefile
+$(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 	@$(ECHO) Calculating dependencies ...
 	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
 
@@ -542,6 +549,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(RM) -f vm_http_server
 	$(RM) -f mltest.test_output mltest_summary.test_output
+	$(RM) -rdf build
 
 clean_tags:
 	$(RM) -f source/*.annot
