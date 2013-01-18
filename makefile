@@ -50,14 +50,17 @@ endif
 BUILD_DIR = build/$(BUILD_VARIANT)
 DEPLOY_DIR = $(BUILD_DIR)/deploy
 OUT_DIR = $(BUILD_DIR)/intermediate
+TESTSUITE_OUT_DIR = $(BUILD_DIR)/testsuite
 
 .PHONY: make_build_dir
 
 make_build_dir: $(BUILD_DIR)/.exists
 
 $(BUILD_DIR)/.exists:
+	@$(ECHO) Creating build directory ...
 	mkdir -p $(DEPLOY_DIR)
 	mkdir -p $(OUT_DIR)
+	mkdir -p $(TESTSUITE_OUT_DIR)
 	touch $@
 
 FLYMAKE_LOG=flymake.log
@@ -102,7 +105,7 @@ GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
 GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
-    mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang vm_http_server
+    $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 byte: dllzompvm.so zompc zompsh
@@ -221,16 +224,16 @@ report.html:
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
-mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
+$(OUT_DIR)/mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
 
-MLTEST_SUMMARY_FILE = mltest_summary.test_output
-MLTEST_OUTPUT_FILE = mltest.test_output
+MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
+MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
 
-runmltests: mltest
+runmltests: $(OUT_DIR)/mltest
 	@$(ECHO) Running OCaml test suite ...
-	$(OCAMLRUN) -b ./mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE)
+	$(OCAMLRUN) -b $(OUT_DIR)/mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE)
 
 PROF_COMP_TARGET=metaballs
 
@@ -542,13 +545,12 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/indentlexer_tests.cmo source/indentlexer_tests.cmi
 	$(RM) -f source/expandertests.cm? source/alltests.cm? source/alltests
 	$(RM) -f perflog.txt
-	$(RM) -f mltest source/mltest.cmo source/mltest.cmi
+	$(RM) -f source/mltest.cmo source/mltest.cmi
 	$(RM) -f libs/libutils.dylib
-	$(RM) -f $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	$(RM) -f gmon.out
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(RM) -f vm_http_server
-	$(RM) -f mltest.test_output mltest_summary.test_output
+	$(RM) -f $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
 	$(RM) -rdf build
 
 clean_tags:
