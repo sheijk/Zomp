@@ -373,9 +373,9 @@ libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
 	- rm -f $@ # prefix '-' means this rule is allowed to fail
 	ln -s $< $@
 
-assimp.dylib: libassimp.a makefile forcelinkassimp.c
+assimp.dylib: libassimp.a makefile libs/forcelinkassimp.c
 	@echo Building $@ ...
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp forcelinkassimp.c
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp libs/forcelinkassimp.c
 
 %.zomp: %.skel source/gen_c_bindings
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
