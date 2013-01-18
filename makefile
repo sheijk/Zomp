@@ -511,11 +511,11 @@ clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
-	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o}) source/zompc.o source/zompsh.o
+	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
 	$(RM) -f expander_tests.cm?
-	$(RM) -f source/zompc.cm? zompc
+	$(RM) -f source/zompc.cm? source/zompc.o zompc
 	$(RM) -f source/runtime.bc source/runtime.ll source/runtime.o
-	$(RM) -f zompsh source/zompsh.cmi source/zompsh.cmo
+	$(RM) -f zompsh source/zompsh.cmi source/zompsh.cmo source/zompsh.o
 	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
@@ -534,7 +534,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/indentlexer_tests.cmo source/indentlexer_tests.cmi
 	$(RM) -f source/expandertests.cm? source/alltests.cm? source/alltests
 	$(RM) -f perflog.txt
-	$(RM) -f mltest
+	$(RM) -f mltest source/mltest.cmo source/mltest.cmi
 	$(RM) -f libs/libutils.dylib
 	$(RM) -f has_llvm has_clang
 	$(RM) -f gmon.out
