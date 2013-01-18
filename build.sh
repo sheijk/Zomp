@@ -8,7 +8,7 @@ BUILDLOG=buildlog.txt
 
 cd `dirname $0`
 rm -f ${BUILDLOG}
-LOGSHELL=`pwd`/logshell.sh
+LOGSHELL=`pwd`/source/build/logshell.sh
 echo "LOGSHELL = ${LOGSHELL}"
 echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@'" >> ${BUILDLOG}
 
