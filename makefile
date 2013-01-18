@@ -540,6 +540,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f has_llvm has_clang
 	$(RM) -f gmon.out
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
+	$(RM) -f vm_http_server
 
 clean_tags:
 	$(RM) -f source/*.annot
