@@ -102,7 +102,7 @@ GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
 GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS deps.png \
-    mltest source/zompvm_dummy.o has_llvm has_clang vm_http_server
+    mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 byte: dllzompvm.so zompc zompsh
@@ -126,7 +126,7 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx \
 # Zomp tools
 ################################################################################
 
-source/dllzompvm.so: source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll has_clang
+source/dllzompvm.so: source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
@@ -259,7 +259,7 @@ perftest2: zompc.native zompc
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
-source/runtim%.bc source/runtim%.ll: source/runtim%.c has_llvm has_clang
+source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
 	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
@@ -305,7 +305,7 @@ prebuilt libraries as they are 64-bit"
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 .PRECIOUS: %.ll %.bc %.opt-bc
-%.ll: %.zomp $(ZOMPC) has_llvm
+%.ll: %.zomp $(ZOMPC) $(OUT_DIR)/has_llvm
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || (rm -f $@; exit 1)
 
@@ -417,12 +417,12 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
 
-has_llvm:
+$(OUT_DIR)/has_llvm:
 	@$(ECHO) Checking if LLVM exists ...
 	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
 
-has_clang:
+$(OUT_DIR)/has_clang:
 	@$(ECHO) Checking if clang exists ...
 	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
@@ -544,7 +544,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f perflog.txt
 	$(RM) -f mltest source/mltest.cmo source/mltest.cmi
 	$(RM) -f libs/libutils.dylib
-	$(RM) -f has_llvm has_clang
+	$(RM) -f $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	$(RM) -f gmon.out
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(RM) -f vm_http_server
