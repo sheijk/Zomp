@@ -84,7 +84,7 @@ clean_tests:
 
 %.ll: %.zomp
 	@$(ECHO) Compiling $(<) to .ll ...
-	../zompc.native -c $<
+	../zompc -c $<
 
 %.bc: %.ll
 	@echo Compiling $< to $@

@@ -3,7 +3,7 @@
 ZOMP_PATH=/Users/sheijk/Documents/Development/Stuff/ocaml/lang/git
 
 basename=${1%.zomp}
-${ZOMP_PATH}/zompc.native -c $*
+${ZOMP_PATH}/zompc -c $*
 # RESULT=$?
 # if [ $RESULT != 0 ]; then
 #     echo Failed with $RESULT

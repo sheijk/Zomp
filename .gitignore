@@ -112,9 +112,7 @@
 /testsuite/check_test.annot
 /testsuite/check_test_verify/test_check_test_error_report.testreport.tmp
 /zompsh
-/zompsh.native
 /zompc
-/zompc.native
 alltests
 data
 tools
@@ -150,3 +148,5 @@ tools
 /libs/libassimp.a
 /libs/libglfw.dylib
 /libs/assimp.dylib
+/zompc.byte
+/zompsh.byte

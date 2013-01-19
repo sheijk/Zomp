@@ -108,8 +108,8 @@ all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)
     $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
-byte: dllzompvm.so zompc zompsh
-native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zompsh.native zompc.native
+byte: dllzompvm.so zompc.byte zompsh.byte
+native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) zompsh zompc
 
 CAML_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
@@ -142,21 +142,21 @@ dllzompvm.so: source/dllzompvm.so
 	rm -f dllzompvm.so
 	ln -s source/dllzompvm.so dllzompvm.so
 
-zompsh: source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
+zompsh.byte: source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
-zompsh.native: source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
+zompsh: source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
-zompc.native: $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx source/dllzompvm.so
+zompc: $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx source/dllzompvm.so
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
-zompc: $(LANG_CMOS) source/zompc.cmo source/dllzompvm.so
+zompc.byte: $(LANG_CMOS) source/zompc.cmo source/dllzompvm.so
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) $(LANG_CMOS) source/dllzompvm.so source/machine.cmo source/zompvm.cmo source/zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/dllzompvm.so source/machine.cmo source/zompvm.cmo source/zompc.cmo
 
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
@@ -237,7 +237,7 @@ runmltests: $(OUT_DIR)/mltest
 
 PROF_COMP_TARGET=metaballs
 
-profile_comp: zompc zompc.native source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
+profile_comp: zompc.byte zompc source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
@@ -250,12 +250,12 @@ PERFTEST_GEN=
 # PERFTEST_GEN=_iexpr
 FUNCTION_COUNTS=100 1000 2000 3000 4000 5000 6000 7000 8000
 
-perftest: zompc.native zompc
+perftest: zompc zompc.byte
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest$(PERFTEST_GEN)
 	gnuplot makeperfgraph.gnuplot || $(ECHO) "Could not execute gnuplot"
 	mv temp.png perf_results$(PERFTEST_GEN).png
 
-perftest2: zompc.native zompc
+perftest2: zompc zompc.byte
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest
 	$(CP) tests/timing.txt tests/timing_sexpr.txt
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
@@ -524,9 +524,9 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
 	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
 	$(RM) -f expander_tests.cm?
-	$(RM) -f source/zompc.cm? source/zompc.o zompc
+	$(RM) -f source/zompc.cm? source/zompc.o zompc.byte zompc
 	$(RM) -f source/runtime.bc source/runtime.ll source/runtime.o
-	$(RM) -f zompsh source/zompsh.cmi source/zompsh.cmo source/zompsh.o
+	$(RM) -f zompsh zompsh.byte source/zompsh.cmi source/zompsh.cmo source/zompsh.o
 	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
@@ -535,7 +535,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f testdll.o dlltest.dylib
 	$(RM) -f *_flymake.*
 	$(RM) -f source/*_flymake.*
-	$(RM) -f source/*.cmx *.native
+	$(RM) -f source/*.cmx
 	$(RM) -f $(OUT_DIR)/deps.png $(OUT_DIR)/deps.dot
 	$(RM) -f $(AUTO_DEPENDENCY_FILE)
 	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp libs/glut.zomp

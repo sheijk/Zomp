@@ -91,7 +91,7 @@ testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
 
 TESTREPORT_LIB_DEPS = prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
-TESTREPORT_DEPS = zompc.native zompsh.native $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
+TESTREPORT_DEPS = zompc zompsh $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
 
 .PRECIOUS: %.test_output
 %.testreport %.result %.test_output: %.zomp $(TESTREPORT_DEPS)
