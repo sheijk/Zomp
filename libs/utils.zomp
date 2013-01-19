@@ -3,7 +3,7 @@
 /// Mostly wrappers around C++ container classes etc.
 ///
 
-linkclib "libutils.dylib"
+linkclib "libs/libutils.dylib"
 
 ///-----------------------------------------------------------------------------
 /// Section: StringMap

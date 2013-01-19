@@ -2,8 +2,6 @@
  * Demonstrate usage of AntTweakBar in Zomp
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib"
-
 requireLibs opengl20 glfw glutils libcee anttweakbar
 
 var int windowWidth 400

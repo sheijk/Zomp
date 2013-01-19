@@ -2,8 +2,6 @@
  * 2D metaballs
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib"
-
 requireLibs opengl20 glfw glutils libcee math
 
 var int windowWidth 400

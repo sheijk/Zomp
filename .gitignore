@@ -3,12 +3,9 @@
 *.mshark
 *.testreport
 *.test_output
-/*.dylib
 *.opt-bc
 /.DS_Store
 /TAGS
-/assimp.dylib.dSYM
-/assimp_quicklook
 /bk/*
 /build
 /buildlog.txt
@@ -38,9 +35,6 @@
 /flymake.log
 /gmon.out
 /last_build_flymake.log
-/libGLEW.a
-/libassimp.a
-/libglfw.a
 /libs/*.ll
 /libs/*.o
 /libs/glfw.zomp
@@ -151,3 +145,8 @@ tools
 /libs/stb_image.dylib
 /libs/stb_image.zomp
 *.result
+/libs/libAntTweakBar.dylib
+/libs/libGLEW.dylib
+/libs/libassimp.a
+/libs/libglfw.dylib
+/libs/assimp.dylib

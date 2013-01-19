@@ -5,8 +5,6 @@
  * - change step size proportionally to d for constant screen space error
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib"
-
 requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
 
 var int windowWidth 400

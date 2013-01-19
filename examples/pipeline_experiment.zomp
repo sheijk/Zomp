@@ -2,8 +2,6 @@
  * Experiments with pipeline export from XSI
  */
 
-linkclib "libglfw.dylib" "libGLEW.dylib"
-
 static:setRequireLibDebug true
 
 requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array unittest quicktext stdio utils persistence
