@@ -891,7 +891,7 @@ struct
 
   let generate_zomp_code = function
     | Include fileName -> sprintf "/// include %s\n" fileName
-    | LinkLib libname -> "linkclib \"lib" ^ libname ^ ".dylib\""
+    | LinkLib libname -> sprintf "linkclib \"%s\"" libname
     | Constant c ->
         let value = intToDecimal c.value previousConstants in
         previousConstants := (c.name, value) :: !previousConstants;

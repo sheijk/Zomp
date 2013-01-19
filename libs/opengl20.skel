@@ -1,5 +1,5 @@
 GL_VERSION_1_1
-	lib GLEW
+	lib libGLEW.dylib
 
 	GL_ACCUM 0x0100
 	GL_LOAD 0x0101
