@@ -47,7 +47,8 @@ ifneq ("$(SILENT)", "1")
   $(info Build variant $(BUILD_VARIANT), LLVM variant = $(LLVM_VARIANT))
 endif
 
-BUILD_DIR = build/$(BUILD_VARIANT)
+BUILD_DIR_BASE = build
+BUILD_DIR = $(BUILD_DIR_BASE)/$(BUILD_VARIANT)
 DEPLOY_DIR = $(BUILD_DIR)/deploy
 OUT_DIR = $(BUILD_DIR)/intermediate
 TESTSUITE_OUT_DIR = $(BUILD_DIR)/testsuite
@@ -63,7 +64,6 @@ $(BUILD_DIR)/.exists:
 	mkdir -p $(TESTSUITE_OUT_DIR)
 	touch $@
 
-FLYMAKE_LOG=flymake.log
 include source/build/flymake.mk
 
 # Extended by included makefiles

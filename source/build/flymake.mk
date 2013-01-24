@@ -2,7 +2,8 @@
 # Contains rules to use flymake together with OCaml (.ml) and C++ (.cpp) files
 #
 
-FLYMAKE_BUILD=last_build_$(FLYMAKE_LOG)
+FLYMAKE_LOG=$(BUILD_DIR_BASE)/flymake-log.txt
+FLYMAKE_BUILD=$(BUILD_DIR_BASE)/flymake-last-build.txt
 
 ml_check:
 	@echo Checking OCaml files $(CHK_SOURCES)
