@@ -72,7 +72,7 @@ testsuite/%.ll: testsuite/%.zomp $(TESTREPORT_LIB_DEPS) $(ZOMPC) \
   testsuite/testsuite.mk makefile
 
 # the same w/o dependency on itself
-testsuite/preludevalid.ll: testsuite/preludevalid.zomp prelude.zomp $(ZOMPC)
+testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOMPC)
 
 ################################################################################
 # Rules
@@ -90,7 +90,7 @@ testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
 # Run zompsh tests using zompsh instead of the executable
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
 
-TESTREPORT_LIB_DEPS = prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
+TESTREPORT_LIB_DEPS = source/prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
 TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
 
 .PRECIOUS: %.test_output

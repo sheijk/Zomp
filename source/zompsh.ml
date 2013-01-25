@@ -624,11 +624,12 @@ let () =
     let defaultMainSrc =
       "std:base:func int main():\n  printString\"error: no main method defined\\n\"\n  std:base:ret 1\nend\n"
     in
+    let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
     Compileutils.catchingErrorsDo
       (fun () -> begin
         let preludeBindings = Compileutils.loadPrelude
           ~appendSource:defaultMainSrc
-          "./"
+          preludeDir
         in
         let initialBindings = addToplevelBindings preludeBindings in
         initialBindings

@@ -138,8 +138,7 @@ let compileCode bindings input outstream fileName =
 
 let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :Bindings.t =
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
-  let runtimeBaseName = "source/runtime" in
-  let llvmRuntimeFile = dir ^ runtimeBaseName ^ ".ll" in
+  let llvmRuntimeFile = dir ^ "runtime.ll" in
   (collectTimingInfo "loading .ll file"
      (fun () -> Zompvm.loadLLVMFile llvmRuntimeFile));
 

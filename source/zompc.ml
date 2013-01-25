@@ -66,7 +66,7 @@ let compilation_result_to_int = function
 
 
 let compile fileName instream outstream =
-  let preludeDir = Filename.dirname Sys.executable_name ^ "/../../.." in
+  let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
   let input =
     collectTimingInfo "reading prelude file content" (fun () -> readInput instream)
   in
