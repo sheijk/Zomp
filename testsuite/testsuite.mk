@@ -33,7 +33,7 @@ testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
 .PHONY: testsuite/test
 testsuite/test: testsuite/selftest $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
 .PHONY: testsuite/quick
-testsuite/quick: testsuite/simple-func.testreport testsuite/libcee_misc.testreport
+testsuite/quick: testsuite/fundamental/simple-func.testreport testsuite/libs/libcee_misc.testreport testsuite/zompsh/std_vm_zompsh.testreport
 
 .PHONY: testsuite/selftest
 testsuite/selftest: $(BUILD_DIR)/.exists
