@@ -69,7 +69,7 @@ include source/build/flymake.mk
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
 
-AUTO_DEPENDENCY_FILE = $(OUT_DIR)/depends.mk
+AUTO_DEPENDENCY_FILE = $(OUT_DIR)/auto_depends.mk
 -include $(AUTO_DEPENDENCY_FILE)
 include testsuite/testsuite.mk
 include libs/libs.mk
@@ -551,7 +551,6 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(RM) -f vm_http_server
 	$(RM) -f $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
-	$(RM) -rdf build
 
 clean_tags:
 	$(RM) -f source/*.annot
