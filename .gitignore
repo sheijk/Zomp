@@ -12,7 +12,6 @@
 /deps.dot
 /deps.png
 /devel/Instruments.trace
-/dllzompvm.so
 /examples/*.exe
 /examples/*.o
 /examples/*.s
@@ -58,7 +57,6 @@
 /source/*.cmo
 /source/*.cmx
 /source/*.o
-/source/dllzompvm.so
 /source/gen_c_bindings
 /source/libzompvm.a
 /source/machine.c

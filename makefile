@@ -53,6 +53,7 @@ DEPLOY_DIR = $(BUILD_DIR)/deploy
 OUT_DIR = $(BUILD_DIR)/intermediate
 TESTSUITE_OUT_DIR = $(BUILD_DIR)/testsuite
 
+ZOMP_DLL_FILE = $(DEPLOY_DIR)/dllzompvm.so
 ZOMPC_BYTE_FILE = $(DEPLOY_DIR)/zompc.byte
 ZOMPC_FILE = $(DEPLOY_DIR)/zompc
 ZOMPSH_BYTE_FILE = $(DEPLOY_DIR)/zompsh.byte
@@ -113,18 +114,19 @@ all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)
     $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang $(DEPLOY_DIR)/vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
-byte: dllzompvm.so $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
-native: dllzompvm.so $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
+byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
+native: $(ZOMP_DLL_FILE) $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
 
 CAML_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
-LANG_CMO_NAMES = common.cmo basics.cmo testing.cmo typesystems.cmo bindings.cmo	\
-    ast2.cmo lang.cmo semantic.cmo machine.cmo zompvm.cmo \
-    genllvm.cmo dllzompvm.so indentlexer.cmo newparser.cmo parseutils.cmo \
-    expander.cmo testing.cmo compileutils.cmo
-LANG_CMOS = $(foreach file, $(LANG_CMO_NAMES), source/$(file))
+LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
+  source/typesystems.cmo source/bindings.cmo source/ast2.cmo source/lang.cmo \
+  source/semantic.cmo source/machine.cmo source/zompvm.cmo source/genllvm.cmo \
+  $(ZOMP_DLL_FILE) source/indentlexer.cmo source/newparser.cmo \
+  source/parseutils.cmo source/expander.cmo source/testing.cmo \
+  source/compileutils.cmo
 
-# When this is changed, LANG_CMO_NAMES and CAMLDEP_INPUT will need to be changed, too
+# When this is changed, LANG_CMOS and CAMLDEP_INPUT will need to be changed, too
 LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx \
     typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
     -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx newparser.cmx \
@@ -134,34 +136,31 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx \
 # Zomp tools
 ################################################################################
 
-source/dllzompvm.so: source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
+$(ZOMP_DLL_FILE): source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
 	ocamlmklib -o source/zompvm -lcurl source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
-
-dllzompvm.so: source/dllzompvm.so
-	rm -f dllzompvm.so
-	ln -s source/dllzompvm.so dllzompvm.so
 
 $(ZOMPSH_BYTE_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
-$(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) source/dllzompvm.so
+$(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
-$(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx source/dllzompvm.so
+$(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
-$(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo source/dllzompvm.so
+$(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/dllzompvm.so source/machine.cmo source/zompvm.cmo source/zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE) source/machine.cmo source/zompvm.cmo source/zompc.cmo
 
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
@@ -449,7 +448,7 @@ $(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 	@$(ECHO) Calculating dependencies ...
 	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
 
-# When this is changed, LANG_CMO_NAMES and LANG_CMXS will need to be changed, too
+# When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
 CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
     gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
@@ -462,8 +461,8 @@ source/newparser_tests.cmx: source/newparser.cmx
 source/indentlexer.cmo: source/newparser.ml
 source/indentlexer.cmi: source/newparser.ml
 
-source/machine.cmo: source/machine.skel source/dllzompvm.so
-source/machine.cmx: source/machine.skel source/dllzompvm.so
+source/machine.cmo: source/machine.skel $(ZOMP_DLL_FILE)
+source/machine.cmx: source/machine.skel $(ZOMP_DLL_FILE)
 source/zompvm.cmo: source/machine.cmo
 source/zompvm.cmx: source/machine.cmx
 
@@ -535,7 +534,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(RM) -f forktest forktest.cmi forktest.cmo
-	$(RM) -f source/dllzompvm.so dllzompvm.so source/libzompvm.a
+	$(RM) -f $(ZOMP_DLL_FILE) source/libzompvm.a
 	$(RM) -f source/zompvm_impl.o source/zompvm_dummy.o
 	$(RM) -f testdll.o dlltest.dylib
 	$(RM) -f *_flymake.*
