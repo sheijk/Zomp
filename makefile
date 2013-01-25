@@ -110,7 +110,7 @@ GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
 GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.png \
-    $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang vm_http_server
+    $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang $(DEPLOY_DIR)/vm_http_server
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 byte: dllzompvm.so $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
@@ -182,7 +182,7 @@ VM_HTTP_SERVER_OBJS = source/mongoose.o source/runtime.o source/zompvm_impl.o so
 source/vm_http_server.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 
-vm_http_server: $(VM_HTTP_SERVER_OBJS) source/mongoose.h
+$(DEPLOY_DIR)/vm_http_server: $(VM_HTTP_SERVER_OBJS) source/mongoose.h
 	@$(ECHO) Building $@ ...
 	$(CXX) $(LDFLAGS) -o $@ -lstdc++ -lcurl $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
 
@@ -194,7 +194,7 @@ vm_client: source/vm_client.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
 	$(CXX) $(LDFLAGS) -o $@ $< source/vm_protocol.o
 
-run_remote_zompsh_test: vm_http_server $(ZOMPSH_FILE)
+run_remote_zompsh_test: $(DEPLOY_DIR)/vm_http_server $(ZOMPSH_FILE)
 	$(ZOMPSH) < tests/vmserver.zomp
 
 source/vm_client.o: source/vm_protocol.h
@@ -554,7 +554,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f libs/libutils.dylib
 	$(RM) -f gmon.out
 	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
-	$(RM) -f vm_http_server
+	$(RM) -f $(DEPLOY_DIR)/vm_http_server
 	$(RM) -f $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
 
 clean_tags:

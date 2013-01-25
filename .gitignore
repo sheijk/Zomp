@@ -132,7 +132,6 @@ tools
 /source/vmserver/vmserver.opensdf
 /source/vmserver/vmserver.suo
 /source/vmserver/vmserver.vcxproj.user
-/vm_http_server
 /source/vmserver/Release
 /libs/stb_image.dylib
 /libs/stb_image.zomp
