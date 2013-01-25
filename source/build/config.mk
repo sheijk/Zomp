@@ -105,12 +105,12 @@ LD = ld
 ################################################################################
 
 ifeq "$(PROFILE_ZOMPC)" ""
-ZOMPC = $(ZOMP_DIR)/zompc
+ZOMPC = $(ZOMP_DIR)/$(ZOMPC_FILE)
 else
-ZOMPC = /usr/bin/time $(ZOMP_TOOL_PATH)/../zompc
+ZOMPC = /usr/bin/time $(ZOMP_DIR)/$(ZOMPC_FILE)
 endif
 
-ZOMPSH = $(ZOMP_DIR)/zompsh
+ZOMPSH = $(DEPLOY_DIR)/zompsh
 
 ################################################################################
 # Build flags
