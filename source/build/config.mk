@@ -7,10 +7,10 @@ ZOMP_TOOL_PATH=$(ZOMP_DIR)/tools
 LLVM_VERSION=2.9
 
 ifeq "$(DEBUG)" "1"
-  BUILD_VARIANT = debug-32
+  BUILD_VARIANT = debug_32
 else
   ifeq "$(DEBUG)" "0"
-  BUILD_VARIANT = release-32
+  BUILD_VARIANT = release_32
   else
     $(error Please define DEBUG to be either 0 or 1)
   endif
