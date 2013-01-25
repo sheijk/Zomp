@@ -211,7 +211,7 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltes
 
 test: runmltests libs/test examples/test testsuite/test
 
-.PHONY: report
+.PHONY: report $(BUILD_DIR)/report.html
 report: $(BUILD_DIR)/report.html
 
 $(BUILD_DIR)/report.html:
