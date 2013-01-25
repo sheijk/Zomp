@@ -8,7 +8,6 @@
 /TAGS
 /bk/*
 /build
-/buildlog.txt
 /depends.mk
 /deps.dot
 /deps.png
@@ -111,15 +110,10 @@
 /testsuite/prelude_is_valid
 /testsuite/check_test.annot
 /testsuite/check_test_verify/test_check_test_error_report.testreport.tmp
-/zompsh
-/zompc
 alltests
 data
 tools
-/has_llvm
-/has_llvm_gcc
 /tests/*.exe
-/has_clang
 /bindgen/bindgen.dylib
 /bindgen/bindgen.xcodeproj
 /bindgen/*.o

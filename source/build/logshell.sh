@@ -6,6 +6,8 @@
 
 LOGFILE=$1
 shift
+LOGFILE_DIR=`dirname ${LOGFILE}`
+mkdir -p ${LOGFILE_DIR}
 
 if [ "$1" != "-c" ]; then
     echo "error: expected $0 file.txt -c ... instead of $@"

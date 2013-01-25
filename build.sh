@@ -4,7 +4,7 @@
 # commands in buildlog.txt for inspection on errors. Just run it with the same
 # arguments as make. Make will always be invoked from the Zomp root dir
 
-BUILDLOG=buildlog.txt
+BUILDLOG=build/buildlog.txt
 
 cd `dirname $0`
 rm -f ${BUILDLOG}
