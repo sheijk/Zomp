@@ -9,7 +9,7 @@ function outputLinkIfExists()
 {
     if [ -e $1 ]
     then
-        output "<th><a href=\"$1\">$2</a></th>"
+        output "<th><a href=\"../../$1\">$2</a></th>"
     else
         output "<th> <p class=\"missing-file\" title=\"File $1 does not exist\">$2</p></th>"
     fi

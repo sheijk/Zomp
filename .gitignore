@@ -121,7 +121,7 @@ tools
 /tests/llvmtest/*.exe
 /tests/llvmtest/*.dSYM
 /tests/buildlog.txt
-/report.html
+
 /vm_client
 /vm_server
 /source/vmserver/Debug/

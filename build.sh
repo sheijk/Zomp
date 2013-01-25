@@ -16,7 +16,7 @@ make $@ SHELL="${LOGSHELL} ${BUILDLOG}"
 RETVAL=$?
 
 echo "Auto update test report ..." >> ${BUILDLOG}
-make SILENT=1 report.html >> ${BUILDLOG}
+make SILENT=1 report >> ${BUILDLOG}
 
 date "+Finishing build at %Y-%m-%d %H:%M:%S with ${RETVAL}" >> ${BUILDLOG}
 exit ${RETVAL}
