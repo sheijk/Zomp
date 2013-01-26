@@ -7,6 +7,7 @@ let map2nd f (fst, snd) = (fst, f snd)
 let map1st f (fst, snd) = (f fst, snd)
 let (<<=) f g = f g
 let (>>=) x f = f x
+let ($) f x = f x
 let (++) f g x = f (g x)
 let (|>) x f = f x
 let (=~) str re = Str.string_match (Str.regexp re) str 0
