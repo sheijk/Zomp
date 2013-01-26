@@ -8,7 +8,8 @@ open Basics
 open Parseutils
 
 exception CatchedError of string
-let signalError msg = raise (CatchedError msg)
+let signalError error = raise (CatchedError (Expander.SError.toString error))
+let signalErrorMsg msg = raise (CatchedError msg)
 
 let translateTLNoError bindings expr =
   match Expander.translateTL bindings expr with
@@ -36,24 +37,21 @@ let rec parse parseF lexbuf bindings codeAccum =
     | Indentlexer.Eof -> bindings, codeAccum
 
 let catchingErrorsDo f ~onError =
-  try
-    begin try
+  begin
+    try
       f()
     with
-      | Expander.IllegalExpression (expr, msg) ->
-          signalError (sprintf "Could not translate expression: %s\nexpr: %s\n" msg (Ast2.expression2string expr))
+      | Expander.IllegalExpression (expr, errors) ->
+        List.hd $ List.map (fun error -> onError (Expander.SError.toString error)) errors
       | Lang.CouldNotParseType descr ->
-          signalError (sprintf "Unknown type: %s\n" descr)
+        onError (sprintf "Unknown type: %s\n" descr)
       | Genllvm.CodeGenError msg ->
-          signalError (sprintf "Codegen failed: %s\n" msg)
+        onError (sprintf "Codegen failed: %s\n" msg)
       | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-          signalError (sprintf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode)
+        onError (sprintf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode)
       | Failure msg ->
-          signalError (sprintf "Internal error: Failure(%s)\n" msg)
-    end
-  with
-    | CatchedError msg ->
-        onError msg
+        onError (sprintf "Internal error: Failure(%s)\n" msg)
+  end
 
 let rec compile
     ~readExpr
@@ -126,7 +124,7 @@ let compileCode bindings input outstream fileName =
            ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                          Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
                          output_string outstream llvmCode)
-           ~onError:signalError
+           ~onError:signalErrorMsg
            bindings)
   in
   tryAllCollectingErrors
@@ -165,7 +163,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
                     processExpr expr oldBindings newBindings simpleforms llvmCode)
-      ~onError:(fun msg -> signalError msg)
+      ~onError:signalErrorMsg
       Genllvm.defaultBindings
   in
   newBindings

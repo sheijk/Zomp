@@ -549,10 +549,10 @@ let translateRun env expr =
           runFunction newBindings immediateFuncName;
           Expander.result (newBindings, [])
         with
-          | Expander.IllegalExpression (expr, msg) ->
-            Expander.errorFromExpr expr msg
+          | Expander.IllegalExpression (expr, errors) ->
+            Expander.multipleErrors errors
           | exn ->
-              Expander.errorFromStringDeprecated (Printexc.to_string exn)
+            Expander.errorFromStringDeprecated (Printexc.to_string exn)
       end
     | _ ->
         Expander.errorFromStringDeprecated (sprintf "Expected %s expr" expr.id)

@@ -23,23 +23,70 @@ end
 
 open Utilities
 
-exception IllegalExpression of sexpr * string
+let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
+  let typeName = function
+    | `Any description -> description
+    | #Lang.typ as t -> typeName t
+  in
+  sprintf "Type error: %s, expected %s but found %s in expression %s"
+    msg
+    (typeName expectedType)
+    (typeName foundType)
+    (match fe with
+    | Semantic.Form form -> Lang.formToString form
+    | Semantic.Ast ast -> Ast2.toString ast)
+
+(** Single error, to avoid name clash with Error constructor in mayfail type *)
+module SError = struct
+  type t = {
+    emsg: string;
+    eloc: Basics.location option;
+    eexpr: Ast2.t option;
+  }
+
+  let check funcName error =
+    if error.emsg =~ ".*\\.zomp:[0-9]+: error:" then begin
+      eprintf "alert, error location has been added twice (in %s)!\n" funcName;
+      Printexc.print_backtrace stderr;
+      flush stderr;
+    end;
+    error
+
+  let fromMsg eloc emsg = { emsg; eloc; eexpr = None }
+  let fromExpr expr msg =
+    let eexpr, emsg =
+      match expr.location with
+      | Some location ->
+        None, sprintf "%s: error: %s" (Basics.locationToString location) msg
+      | None ->
+        Some expr, sprintf "%s in %s" msg (Ast2.toString expr)
+    in
+    { emsg; eloc = expr.location; eexpr }
+
+  let fromTypeError bindings expr (fe,m,f,e) =
+    let msg = typeErrorMessage bindings (fe,m,f,e) in
+    check "fromTypeError" (fromExpr expr msg)
+
+  let toString error =
+    let loc =
+      match error.eloc, error.eexpr with
+      | Some l, _ -> l
+      | None, Some { location = Some l } -> l
+      | None, Some { location = None }
+      | None, None ->
+        Basics.fakeLocation
+    in
+    Basics.formatError loc error.emsg
+
+  let fromMsg eloc emsg = check "fromMsg" (fromMsg eloc emsg)
+  let fromExpr expr msg = check "fromExpr" (fromExpr expr msg)
+end
+
+
+exception IllegalExpression of sexpr * SError.t list
 
 module Translation_utils =
 struct
-  let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
-    let typeName = function
-      | `Any description -> description
-      | #Lang.typ as t -> typeName t
-    in
-    sprintf "Type error: %s, expected %s but found %s in expression %s"
-      msg
-      (typeName expectedType)
-      (typeName foundType)
-      (match fe with
-         | Semantic.Form form -> Lang.formToString form
-         | Semantic.Ast ast -> Ast2.toString ast)
-
   (* TODO: use in translateDefineVar and translateGlobalVar + test *)
   let determineStorage typ =
     match typ with
@@ -56,7 +103,8 @@ struct
             | TypedefSymbol t -> Some t
             | _ -> None
 
-  let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, msg))
+  let raiseIllegalExpression expr error = raise (IllegalExpression (expr, [SError.fromExpr expr error]))
+  let raiseIllegalExpressions expr errors = raise (IllegalExpression (expr, List.map (SError.fromExpr expr) errors))
 
   let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
     raiseIllegalExpression expr
@@ -187,62 +235,18 @@ end
 
 open Translation_utils
 
-(** Single error, to avoid name clash with Error constructor in mayfail type *)
-module SError = struct
-  type t = {
-    emsg: string;
-    eloc: Basics.location option;
-    eexpr: Ast2.t option;
-  }
-
-  let check funcName error =
-    if error.emsg =~ ".*\\.zomp:[0-9]+: error:" then begin
-      eprintf "alert, error location has been added twice (in %s)!\n" funcName;
-      Printexc.print_backtrace stderr;
-      flush stderr;
-    end;
-    error
-
-  let fromMsg eloc emsg = { emsg; eloc; eexpr = None }
-  let fromExpr expr msg =
-    let eexpr, emsg =
-      match expr.location with
-      | Some location ->
-        None, sprintf "%s: error: %s" (Basics.locationToString location) msg
-      | None ->
-        Some expr, sprintf "%s in %s" msg (Ast2.toString expr)
-    in
-    { emsg; eloc = expr.location; eexpr }
-
-  let fromTypeError bindings expr (fe,m,f,e) =
-    let msg = typeErrorMessage bindings (fe,m,f,e) in
-    check "fromTypeError" (fromExpr expr msg)
-
-  let toString error =
-    let loc =
-      match error.eloc, error.eexpr with
-      | Some l, _ -> l
-      | None, Some { location = Some l } -> l
-      | None, Some { location = None }
-      | None, None ->
-        Basics.fakeLocation
-    in
-    Basics.formatError loc error.emsg
-
-  let fromMsg eloc emsg = check "fromMsg" (fromMsg eloc emsg)
-  let fromExpr expr msg = check "fromExpr" (fromExpr expr msg)
-end
-
 type 'a mayfail =
   | Result of 'a
   | Error of SError.t list
 
 let errorFromStringDeprecated emsg = Error [{ SError.emsg; eloc = None; eexpr = None }]
 let errorFromString location msg = Error [SError.fromMsg (Some location) msg]
-let result r = Result r
 let errorFromTypeError bindings expr (fe,m,f,e) =
   Error [SError.fromTypeError bindings expr (fe,m,f,e)]
 let errorFromExpr expr msg = Error [SError.fromExpr expr msg]
+let singleError error = Error [error]
+let multipleErrors errors = Error errors
+let result r = Result r
 
 let combineResults mayfails =
   let errors = ref [] in
@@ -410,8 +414,8 @@ struct
             | Result typ ->
               name, typ
             | Error errors ->
-              let errorMessages = List.map SError.toString errors in
-              raiseIllegalExpression typeExpr (combineErrors "" errorMessages)
+              let errorMessages = List.map (SError.toString ++ SError.check "translateTypedef") errors in
+              raiseIllegalExpression typeExpr ("XXXX" ^ combineErrors "" errorMessages)
         in
         function
           | { id = typeName; args = [{ id = componentName; args = []}] } ->
@@ -1587,8 +1591,8 @@ struct
           | _ ->
               transformUnsafe id name typeExpr valueExpr
       with
-          IllegalExpression (expr, msg) ->
-            errorFromExpr expr msg
+          IllegalExpression (_, errors) ->
+            Error errors
     in
     match expr with
       | { id = id; args = [
@@ -2566,9 +2570,8 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
             errorFromExpr expr
               (Indentlexer.unknownTokenToErrorMsg
                  (Some {loc with fileName = fileName}, token, reason))
-          | IllegalExpression (expr, msg) ->
-            errorFromExpr expr
-              (sprintf "%s\nin expression\n%s\n" msg (Ast2.toString expr))
+          | IllegalExpression (expr, errors) ->
+            Error errors
           | error ->
             let msg = Printexc.to_string error in
             errorFromExpr expr

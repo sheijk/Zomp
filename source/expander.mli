@@ -1,18 +1,21 @@
 
+module SError : sig
+  type t
+  val toString : t -> string
+end
+
 (**
    Signalled by old code which cannot report errors properly. Will be replaced
    by returning Errors.t
 *)
-exception IllegalExpression of Ast2.sexpr * string
-
-module SError : sig
-  type t
-end
+exception IllegalExpression of Ast2.sexpr * SError.t list
 
 type 'a mayfail = private Result of 'a | Error of SError.t list
 val errorFromStringDeprecated : string -> 'a mayfail
 val errorFromString : Basics.location -> string -> 'a mayfail
 val errorFromExpr : Ast2.sexpr -> string -> 'a mayfail
+val singleError : SError.t -> 'a mayfail
+val multipleErrors : SError.t list -> 'a mayfail
 val result : 'a -> 'a mayfail
 
 type toplevelEnv
