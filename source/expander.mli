@@ -5,7 +5,11 @@
 *)
 exception IllegalExpression of Ast2.sexpr * string
 
-type 'a mayfail = private Result of 'a | Error of string list
+module SError : sig
+  type t
+end
+
+type 'a mayfail = private Result of 'a | Error of SError.t list
 val errorFromStringDeprecated : string -> 'a mayfail
 val errorFromString : Basics.location -> string -> 'a mayfail
 val errorFromExpr : Ast2.sexpr -> string -> 'a mayfail
