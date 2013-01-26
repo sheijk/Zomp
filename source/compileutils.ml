@@ -7,9 +7,10 @@ open Common
 open Basics
 open Parseutils
 
-exception CatchedError of string
-let signalError error = raise (CatchedError (Expander.SError.toString error))
-let signalErrorMsg msg = raise (CatchedError msg)
+exception CatchedError of Expander.SError.t list
+let signalError error = raise (CatchedError [error])
+let signalErrors errors = raise (CatchedError errors)
+let signalErrorMsg msg = raise (CatchedError [Expander.SError.fromMsg None msg])
 
 let translateTLNoError bindings expr =
   match Expander.translateTL bindings expr with
@@ -80,18 +81,16 @@ exception CouldNotParse of parseError
 let compileCode bindings input outstream fileName =
   (** TODO: return error(s) instead of printing them *)
   let printError exn =
-    let location, msg =
-      match exn with
-        | CouldNotParse err ->
-          let location = (match err.location with Some loc -> loc | None -> fakeLocation) in
-          location, err.reason
-        | CatchedError msg ->
-          fakeLocation, msg
-        | unknownError ->
-          eprintf "error: Unknown error: %s\n" (Printexc.to_string unknownError);
-          raise unknownError
-    in
-    eprintf "%s\n" (formatError location msg)
+    match exn with
+      | CouldNotParse err ->
+        let location = (match err.location with Some loc -> loc | None -> fakeLocation) in
+        eprintf "%s\n" $ formatError location err.reason
+      | CatchedError errors ->
+        List.iter (fun error -> eprintf "%s\n" (Expander.SError.toString error)) errors;
+        eprintf "  (via exception CatchedError)\n"
+      | unknownError ->
+        eprintf "error: Unknown error: %s\n" (Printexc.to_string unknownError);
+        raise unknownError
   in
   let parseAndCompile parseF =
     let exprs =
