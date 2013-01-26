@@ -105,9 +105,15 @@ LD = ld
 ################################################################################
 
 ifeq "$(PROFILE_ZOMPC)" ""
-ZOMPC = $(ZOMP_DIR)/$(ZOMPC_FILE)
+  RUN_W_PROFILE =
 else
-ZOMPC = /usr/bin/time $(ZOMP_DIR)/$(ZOMPC_FILE)
+  RUN_W_PROFILE = /usr/bin/time
+endif
+
+ifeq "$(USE_BYTE)" "1"
+  ZOMPC = $(RUN_W_PROFILE) OCAMLRUNPARAM=b $(ZOMP_DIR)/$(ZOMPC_BYTE_FILE)
+else
+  ZOMPC = $(RUN_W_PROFILE) $(ZOMP_DIR)/$(ZOMPC_FILE)
 endif
 
 ZOMPSH = $(DEPLOY_DIR)/zompsh
