@@ -53,13 +53,14 @@ module SError = struct
     error
 
   let fromMsg eloc emsg = { emsg; eloc; eexpr = None }
+
   let fromExpr expr msg =
     let eexpr, emsg =
       match expr.location with
-      | Some location ->
-        None, sprintf "%s: error: %s" (Basics.locationToString location) msg
-      | None ->
-        Some expr, sprintf "%s in %s" msg (Ast2.toString expr)
+        | Some location ->
+          None, msg
+        | None ->
+          Some expr, sprintf "%s in %s" msg (Ast2.toString expr)
     in
     { emsg; eloc = expr.location; eexpr }
 
@@ -81,7 +82,6 @@ module SError = struct
   let fromMsg eloc emsg = check "fromMsg" (fromMsg eloc emsg)
   let fromExpr expr msg = check "fromExpr" (fromExpr expr msg)
 end
-
 
 exception IllegalExpression of sexpr * SError.t list
 
