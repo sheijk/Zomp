@@ -103,8 +103,8 @@ struct
             | TypedefSymbol t -> Some t
             | _ -> None
 
-  let raiseIllegalExpression expr error = raise (IllegalExpression (expr, [SError.fromExpr expr error]))
-  let raiseIllegalExpressions expr errors = raise (IllegalExpression (expr, List.map (SError.fromExpr expr) errors))
+  let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, [SError.fromExpr expr msg]))
+  let raiseIllegalExpressions expr errors = raise (IllegalExpression (expr, errors))
 
   let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
     raiseIllegalExpression expr
@@ -416,6 +416,7 @@ struct
             | Error errors ->
               let errorMessages = List.map (SError.toString ++ SError.check "translateTypedef") errors in
               raiseIllegalExpression typeExpr ("XXXX" ^ combineErrors "" errorMessages)
+              raiseIllegalExpressions typeExpr errors
         in
         function
           | { id = typeName; args = [{ id = componentName; args = []}] } ->

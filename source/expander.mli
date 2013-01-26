@@ -2,6 +2,8 @@
 module SError : sig
   type t
   val toString : t -> string
+
+  val fromMsg : Basics.location option -> string -> t
 end
 
 (**
