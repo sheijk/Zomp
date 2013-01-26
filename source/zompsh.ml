@@ -9,6 +9,8 @@ let version = "0.?"
 
 let reportError msg =
   eprintf "error: %s\n" msg
+let report error =
+  eprintf "%s\n" (Expander.SError.toString error)
 
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
@@ -603,8 +605,8 @@ let () =
             if (time > !notifyTimeThreshold) then
               printf "Compiling expression took %fs\n" time;
             step newBindings (Result remExprs))
-          ~onError: (fun msg ->
-            reportError msg;
+          ~onErrors: (fun errors ->
+            List.iter report errors;
             step bindings (Result remExprs))
   in
 
@@ -634,10 +636,9 @@ let () =
         let initialBindings = addToplevelBindings preludeBindings in
         initialBindings
       end)
-      ~onError: (fun msg -> begin
-        reportError msg;
-        exit (-2);
-      end)
+      ~onErrors:(fun errors ->
+        List.iter report errors;
+        exit (-2))
   in
 
   let message msg = printf "%s\n" msg; flush stdout; in

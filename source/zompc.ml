@@ -88,7 +88,9 @@ let compile fileName instream outstream =
             | Some finalBindings -> Compilation_succeeded finalBindings
             | None -> Compilation_failed Compiler_did_not_return_result
         end)
-        ~onError:(fun msg -> Compilation_failed (Compilation_failed_with_error msg))
+        ~onErrors:(fun errors ->
+          List.iter (printf "%s\n" ++ Expander.SError.toString) errors;
+          Compilation_failed (Compilation_failed_with_error "oops"))
     in
     Zompvm.zompShutdown();
     exitCode

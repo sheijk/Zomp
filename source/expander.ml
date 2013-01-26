@@ -46,11 +46,17 @@ module SError = struct
 
   let check funcName error =
     if error.emsg =~ ".*\\.zomp:[0-9]+: error:" then begin
-      eprintf "alert, error location has been added twice (in %s)!\n" funcName;
-      Printexc.print_backtrace stderr;
-      flush stderr;
+      printf "alert, error location has been added twice (in %s)!\n" funcName;
+      if error.eloc = None then
+        printf "alert, error location missing (in %s)!\n" funcName;
+      Printexc.print_backtrace stdout;
+      flush stdout;
     end;
     error
+
+  let checkAll funcName errors =
+    ignore (List.map (check funcName) errors);
+    ()
 
   let fromMsg eloc emsg = { emsg; eloc; eexpr = None }
 
@@ -71,8 +77,10 @@ module SError = struct
   let toString error =
     let loc =
       match error.eloc, error.eexpr with
-      | Some l, _ -> l
-      | None, Some { location = Some l } -> l
+      | Some location, _ ->
+        location
+      | None, Some { location = Some location } ->
+        location
       | None, Some { location = None }
       | None, None ->
         Basics.fakeLocation
@@ -414,8 +422,6 @@ struct
             | Result typ ->
               name, typ
             | Error errors ->
-              let errorMessages = List.map (SError.toString ++ SError.check "translateTypedef") errors in
-              raiseIllegalExpression typeExpr ("XXXX" ^ combineErrors "" errorMessages)
               raiseIllegalExpressions typeExpr errors
         in
         function
