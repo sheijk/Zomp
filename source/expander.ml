@@ -2579,6 +2579,12 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
                  (Some {loc with fileName = fileName}, token, reason))
           | IllegalExpression (expr, errors) ->
             Error errors
+          | Sys_error _ ->
+            Error [SError.fromExpr expr
+                      (Common.combine "\n  "
+                         (sprintf "File '%s' could not be found" fileName
+                          :: sprintf "pwd = %s" (Sys.getcwd())
+                          :: List.map (sprintf "zomp-include-dir %s") !includePath))]
           | error ->
             let msg = Printexc.to_string error in
             errorFromExpr expr
