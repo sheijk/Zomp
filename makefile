@@ -224,7 +224,7 @@ $(BUILD_DIR)/report.html:
 	./examples/make_examples_result_files.sh $(EXAMPLES_SOURCES)
 	./testsuite/make_report.sh "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
 	echo "<h2>OCaml unit tests</h2>" >> $@
-	echo "<a href=\"$(MLTEST_OUTPUT_FILE)\">Output</a>\n" >> $@
+	echo "<a href=\"../../$(MLTEST_OUTPUT_FILE)\">Output</a>\n" >> $@
 	echo "<p><span style=\"font-family:monospace\">\n" >> $@
 	(cat $(MLTEST_SUMMARY_FILE) 2>/dev/null || echo "File $(MLTEST_SUMMARY_FILE) does not exist, mltests have not been run") >> $@
 	echo "</span></p>\n" >> $@
