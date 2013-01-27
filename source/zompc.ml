@@ -152,15 +152,26 @@ type options = {
   printTimings :bool;
   traceMacroExpansion :bool;
   symbolTableDumpFile :string option;
+  zompIncludePaths :string list;
 }
 
 type optionResult = Options of options | InvalidArguments of string
 
 let extractOptions args =
+  let addRelativePath list commandName dir =
+    let absolutePath = Common.absolutePath dir in
+    list := absolutePath :: !list;
+    if not (Sys.file_exists absolutePath) then
+      eprintf "warning: directory '%s' does not exist (%s)\n" absolutePath commandName
+    else if not (Sys.is_directory absolutePath) then
+      eprintf "warning: '%s' is not a directory (%s)\n" absolutePath commandName;
+  in
+
   let fileName = ref "" in
   let printTimings = ref false in
   let traceMacroExpansion = ref false in
   let symbolTableDumpFile = ref "" in
+  let zompIncludePaths = ref [] in
   let onAnonArg str =
     raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
   in
@@ -171,7 +182,10 @@ let extractOptions args =
       ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
        "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
        "-c", Arg.Set_string fileName, "The file to compile.";
-       "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to."]
+       "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
+       "--zomp-include-dir",
+         Arg.String (addRelativePath zompIncludePaths "--zomp-include-dir"),
+         "A directory to be searched by include and requireLib"]
       onAnonArg
       "zompc -c fileName.zomp\n";
     if (String.length !symbolTableDumpFile) > 0 then begin
@@ -184,6 +198,7 @@ let extractOptions args =
       printTimings = !printTimings;
       traceMacroExpansion = !traceMacroExpansion;
       symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
+      zompIncludePaths = !zompIncludePaths;
     }
   with
     | Arg.Bad msg
@@ -233,6 +248,8 @@ let () =
 
   let compilerDir = Filename.dirname options.execNameAndPath in
   addIncludePath compilerDir `Front;
+  addIncludePath (Sys.getcwd()) `Front;
+  List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
 
   let handleLLVMCode code = output_string outStream code in
 
