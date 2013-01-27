@@ -21,12 +21,12 @@ TESTSUITE_SUBDIRS = \
 
 TESTSUITE_IGNORED_SOURCES = preludevalid.zomp
 
-TESTSUITE_SOURCES = $(wildcard $(TESTSUITE_SUBDIRS:%=testsuite/%/*.zomp))
+TESTSUITE_SOURCES = $(wildcard $(TESTSUITE_SUBDIRS:%=testsuite/%/test_*.zomp))
 TESTSUITE_CASES = $(TESTSUITE_SOURCES:.zomp=.testreport)
 
 testsuite/%/all:
 	@$(ECHO) "Running tests in $@ ..."
-	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/*.zomp), $(SOURCE:.zomp=.testreport))
+	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/test_*.zomp), $(SOURCE:.zomp=.testreport))
 
 .PHONY: testsuite/success
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
