@@ -387,10 +387,6 @@ assimp.dylib: libassimp.a makefile libs/forcelinkassimp.c
 	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
 	./source/gen_c_bindings -lang zomp $(<:.skel=)
 
-libs/%.zomp: libs/%.skel source/gen_c_bindings
-	@$(ECHO) Generating Zomp bindings for $(<:.skel=) ...
-	./source/gen_c_bindings -lang zomp $(<:.skel=)
-
 libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 	@$(ECHO) Generating OpenGL enum printer ...
 	$(CP) libs/opengl20.skel libs/opengl20print.skel
