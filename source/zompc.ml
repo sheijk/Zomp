@@ -96,7 +96,7 @@ let compile fileName instream outstream =
     exitCode
   end
 
-let includePath = ref ["."]
+let includePath = ref []
 
 let addIncludePath path = function
   | `Back ->
