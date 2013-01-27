@@ -1,0 +1,8 @@
+///
+/// Impostor lib which should shadow libs/math.zomp in testsuite/include/*.zomp
+///
+
+std:base:func int thisIsNotTheLibYoureLookingFor():
+  std:base:ret 100
+end
+

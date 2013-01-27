@@ -1,0 +1,14 @@
+///
+/// Test whether paths passed by --zomp-include-dir will have preference over
+/// default libraries
+///
+
+zmpx:lib:requireLib "libs/math.zomp"
+
+func int main():
+  printString "value-"
+  printInt thisIsNotTheLibYoureLookingFor() //// print value-100
+  printNewline()
+  ret 0
+end
+
