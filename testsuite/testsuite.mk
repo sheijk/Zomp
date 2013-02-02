@@ -30,8 +30,11 @@ testsuite/%/all:
 
 .PHONY: testsuite/success
 testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
+
+TEST_SUB_TARGETS += testsuite/test
 .PHONY: testsuite/test
 testsuite/test: testsuite/selftest $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
+
 .PHONY: testsuite/quick
 testsuite/quick: testsuite/fundamental/simple-func.testreport testsuite/libs/libcee_misc.testreport testsuite/zompsh/std_vm_zompsh.testreport
 

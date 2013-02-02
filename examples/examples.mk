@@ -15,7 +15,12 @@ EXAMPLES_SOURCES = $(foreach FILE, $(EXAMPLES_SOURCES_X), examples/$(FILE))
 
 NOT_WORKING_EXAMPLES = static.zomp
 
-examples/test: $(EXAMPLES_SOURCES:.zomp=.exe)
+.PHONY: examples/all
+examples/all: $(EXAMPLES_SOURCES:.zomp=.exe)
+
+TEST_SUB_TARGETS += examples/test
+.PHONY: examples/test
+examples/test: examples/all
 
 # default to optimizations enabled
 ifeq "$(OPT)" ""

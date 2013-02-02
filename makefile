@@ -74,6 +74,7 @@ include source/build/flymake.mk
 
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
+TEST_SUB_TARGETS =
 
 AUTO_DEPENDENCY_FILE = $(OUT_DIR)/auto_depends.mk
 -include $(AUTO_DEPENDENCY_FILE)
@@ -111,7 +112,8 @@ GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
 GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.png \
-    $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang $(DEPLOY_DIR)/vm_http_server
+  $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang \
+  $(DEPLOY_DIR)/vm_http_server libs/all examples/all
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
@@ -217,11 +219,13 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltes
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests
 .PHONY: profile_comp exampletests runmltests alltests
 
-test: runmltests libs/test examples/test testsuite/test
+.PHONY: test
+test: $(TEST_SUB_TARGETS)
 
-.PHONY: report $(BUILD_DIR)/report.html
+.PHONY: report
 report: $(BUILD_DIR)/report.html
 
+.PHONY: $(BUILD_DIR)/report.html
 $(BUILD_DIR)/report.html:
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
@@ -245,6 +249,8 @@ $(OUT_DIR)/mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
 MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
 
+TEST_SUB_TARGETS += runmltests
+.PHONY: runmltests
 runmltests: $(OUT_DIR)/mltest
 	@$(ECHO) Running OCaml test suite ...
 	$(OCAMLRUN) -b $(OUT_DIR)/mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE)
@@ -255,6 +261,7 @@ profile_comp: $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE) source/runtime.bc libs/opengl20.z
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
+.PHONY: runtests
 runtests: $(LANG_CMOS)
 	@$(ECHO) Running tests ...
 	cd tests && time make clean_tests check
@@ -264,11 +271,13 @@ PERFTEST_GEN=
 # PERFTEST_GEN=_iexpr
 FUNCTION_COUNTS=100 1000 2000 3000 4000 5000 6000 7000 8000
 
+.PHONY: perftest
 perftest: $(ZOMPC_FILE) $(ZOMPC_BYTE_FILE)
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest$(PERFTEST_GEN)
 	gnuplot makeperfgraph.gnuplot || $(ECHO) "Could not execute gnuplot"
 	mv temp.png perf_results$(PERFTEST_GEN).png
 
+.PHONY: perftest2
 perftest2: $(ZOMPC_FILE) $(ZOMPC_BYTE_FILE)
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest
 	$(CP) tests/timing.txt tests/timing_sexpr.txt
