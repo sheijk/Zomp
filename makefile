@@ -170,6 +170,14 @@ source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
 	./source/gen_c_bindings source/machine
 
+source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
+	@$(ECHO) Building bytecode standard library $@ ...
+	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
+	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
+	($(SED) 's/nounwind//' | $(SED) 's/readonly//' | $(SED) 's/ssp//') < source/runtime.orig.ll > source/runtime.ll
+	$(RM) -f source/runtime.bc source/runtime.orig.ll
+	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
+
 NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo, source/$(file))
 
 ################################################################################
@@ -267,19 +275,6 @@ perftest2: $(ZOMPC_FILE) $(ZOMPC_BYTE_FILE)
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
-
-source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
-	@$(ECHO) Building bytecode standard library $@ ...
-	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
-	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
-	($(SED) 's/nounwind//' | $(SED) 's/readonly//' | $(SED) 's/ssp//') < source/runtime.orig.ll > source/runtime.ll
-	$(RM) -f source/runtime.bc source/runtime.orig.ll
-	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
-
-LLVM_INSTALL_HELP = "You do not have LLVM and clang installed. Please run make	\
-tools/llvm-$(LLVM_VERSION) to download and build them (requires an internet		\
-connection of course). Note that at least on Mac OS X you cannot use the		\
-prebuilt libraries as they are 64-bit"
 
 ################################################################################
 # Rules
@@ -396,6 +391,11 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 ################################################################################
 # LLVM download and compilation
 ################################################################################
+
+LLVM_INSTALL_HELP = "You do not have LLVM and clang installed. Please run make	\
+tools/llvm-$(LLVM_VERSION) to download and build them (requires an internet		\
+connection of course). Note that at least on Mac OS X you cannot use the		\
+prebuilt libraries as they are 64-bit"
 
 tools/clang-$(LLVM_VERSION).tgz:
 	@$(ECHO) Downloading $@ ...
