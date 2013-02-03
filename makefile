@@ -43,7 +43,7 @@ endif
 ZOMP_DIR = $(PWD)
 include source/build/config.mk
 
-ifneq ("$(SILENT)", "1")
+ifneq "$(SILENT)" "1"
   $(info Build variant $(BUILD_VARIANT), LLVM variant = $(LLVM_VARIANT))
 endif
 
@@ -90,12 +90,12 @@ CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DI
 CCFLAGS = -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS = $(ARCHFLAG) -L $(LLVM_LIB_DIR)
 
-ifeq ($(DEBUG), 1)
+ifeq "$(DEBUG)" "1"
   OCAMLC += -g
   CXXFLAGS += -pg -g -DDEBUG
   CCFLAGS += -pg -g -DDEBUG
 else
-  ifeq ($(DEBUG),0)
+  ifeq "$(DEBUG)" "0"
     CXXFLAGS += -O3
   else
     $(error DEBUG flag has to either 0 or 1)
@@ -371,7 +371,7 @@ EXTLIB_DIR = extlibs
 ASSIMP_DIR = $(EXTLIB_DIR)/assimp-svn
 
 SCONS = $(PWD)/extlibs/scons/scons.py
-ifeq ($(DEBUG), 1)
+ifeq "$(DEBUG)" "1"
 SCONSFLAGS += "debug=1"
 endif
 
