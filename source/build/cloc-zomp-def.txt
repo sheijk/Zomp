@@ -1,0 +1,4 @@
+Zomp
+    filter remove_matches ^\s*#
+    filter remove_inline #.*$
+    extension zomp

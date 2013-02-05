@@ -476,6 +476,7 @@ source/bindings.cmi: source/common.cmo source/lang.cmo
 
 source/mltest.cmo: source/newparser_tests.cmo
 source/mltest.cmo: source/indentlexer_tests.cmo
+
 ################################################################################
 # Additional utility targets
 ################################################################################
@@ -484,22 +485,22 @@ TAGS:
 	@$(ECHO) Generating tags ...
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
-# generate a file for graphviz which visualizes the dependencies between modules
+################################################################################
+# Visualize OCaml module dependencies
+################################################################################
+
 $(OUT_DIR)/deps.dot $(OUT_DIR)/deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS)
 	@$(ECHO) Generating dependency graph for graphviz ...
 	$(OCAMLDOC) -I source/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
 	dot -Tpng $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.png || $(ECHO) "warning: dot not found, $(OUT_DIR)/deps.png not generated"
 
-# Warning, ugly. But at least not essential so who cares :)
-.PHONY: loc_stats loc_stats_no_summary
+################################################################################
+# Outdated line of code statistics. Does not work anymore, kept for reference
+################################################################################
 
-ML_SRC_FILE_NAMES = ast2.ml bindings.ml bindings.mli common.ml compileutils.ml    \
-    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli         \
-    indentlexer_tests.ml lang.ml machine.ml newparser.mly newparser_tests.ml \
-    parseutils.ml semantic.ml zompsh.ml\
-    testing.ml typesystems.ml zompc.ml zompvm.ml
-ML_SRC_FILES = $(foreach file, $(ML_SRC_FILE_NAMES), source/$(file))
+ML_SRC_FILES = $(wildcard source/*.ml) $(wildcard source/*.mli) $(wildcard source/*.mll) $(wildcard source/*.mly)
 
+.PHONY: loc_stats_no_summary
 loc_stats_no_summary:
 	$(LS) $(wildcard source/*.ml source/*.mli source/*.mly source/*.mll) | grep -v source/newparser.ml | xargs $(LINE_COUNT) | $(SORT) -n
 	$(LINE_COUNT) $(wildcard *.mk) makefile | $(SORT) -n
@@ -510,15 +511,36 @@ loc_stats_no_summary:
 	$(LINE_COUNT) $(wildcard testsuite/*.zomp) | $(SORT) -n
 	$(LS) $(wildcard tests/*.zomp) | grep -v sharkperf.zomp | xargs $(LINE_COUNT) | $(SORT) -n
 
+.PHONY: loc_stats
 loc_stats: loc_stats_no_summary
 	make -ks loc_stats_no_summary | grep total | awk '{ sum = sum + $$1; } END { print sum " total lines of code "; }'
+
+################################################################################
+# Git statistics
+################################################################################
 
 GITSTATS = $(ZOMP_TOOL_PATH)/gitstats/gitstats
 .PHONY: git_repo_stats
 git_repo_stats:
 	@$(ECHO) "Creating git repository statistincs ..."
-	$(GITSTATS) . build/stats
-	@$(ECHO) "Open build/stats/index.html to see git repository statistics"
+	$(GITSTATS) . build/git-statistics
+	@$(ECHO) "Open build/git-statistics/index.html to see git repository statistics"
+
+################################################################################
+# Count lines of code
+################################################################################
+
+CLOC_LANG_DEF_FILE = $(OUT_DIR)/cloc-lang-defs.txt
+
+$(CLOC_LANG_DEF_FILE): source/build/cloc-zomp-def.txt source/build/cloc-glsl-def.txt makefile
+	@$(ECHO) Creating cloc language definition file ...
+	cloc --write-lang-def=$@
+	cat source/build/cloc-zomp-def.txt >> $@
+	cat source/build/cloc-glsl-def.txt >> $@
+
+build/cloc.txt: $(CLOC_LANG_DEF_FILE)
+	@$(ECHO) Creating lines of code statistics in $@ ...
+	cloc --read-lang-def=$(CLOC_LANG_DEF_FILE) --exclude-dir=tools,build,data --report-file=$@ .
 
 ################################################################################
 # Cleaning
