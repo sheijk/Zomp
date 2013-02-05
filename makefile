@@ -216,9 +216,6 @@ TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltes
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests
 .PHONY: profile_comp exampletests runmltests alltests
 
-.PHONY: test
-test: $(TEST_SUB_TARGETS)
-
 .PHONY: report
 report: $(BUILD_DIR)/report.html
 
@@ -281,6 +278,9 @@ perftest2: $(ZOMPC_FILE) $(ZOMPC_BYTE_FILE)
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
 	$(CP) tests/timing.txt tests/timing_iexpr.txt
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
+
+.PHONY: test
+test: $(TEST_SUB_TARGETS)
 
 ################################################################################
 # Rules
