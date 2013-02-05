@@ -108,9 +108,6 @@ endif
 
 .PHONY: all libbindings byte native
 
-GENERATED_LIBRARY_BASENAMES = opengl20 opengl20print glfw glut quicktext
-GENERATED_LIBRARY_SOURCES = $(foreach BASE, $(GENERATED_LIBRARY_BASENAMES), libs/$(BASE).zomp)
-
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.png \
   $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang \
   $(DEPLOY_DIR)/vm_http_server libs/all examples/all
@@ -549,7 +546,6 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(RM) -f source/*.cmx
 	$(RM) -f $(OUT_DIR)/deps.png $(OUT_DIR)/deps.dot
 	$(RM) -f $(AUTO_DEPENDENCY_FILE)
-	$(RM) -f libs/opengl20.zomp libs/glfw.zomp libs/opengl20print.zomp libs/quicktext.zomp libs/glut.zomp
 	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
 	$(RM) -f source/indentlexer.cm? source/newparser.cm? source/newparser.o source/indentlexer.o source/newparser.ml source/newparser.mli source/newparser.conflicts
 	$(RM) -f source/newparser_tests.cmi source/newparser_tests.cmo source/newparser_tests source/newparser_tests.o
