@@ -8,7 +8,7 @@ GENERATED_LIBRARY_SOURCES = $(GENERATED_LIBRARY_SKELS:.skel=.zomp) libs/opengl20
 ZOMP_LIBS_SRC = $(wildcard libs/*.zomp) $(GENERATED_LIBRARY_SOURCES)
 
 .PHONY: libs/all
-libs/all: $(ZOMPC) $(ZOMP_LIBS_SRC:.zomp=.ll)
+libs/all: $(ZOMPC_FILE) $(ZOMP_LIBS_SRC:.zomp=.ll)
 	$(ECHO) Compiling libraries...
 
 TEST_SUB_TARGETS += libs/test

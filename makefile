@@ -303,7 +303,7 @@ test: $(TEST_SUB_TARGETS)
 	@$(ECHO) "Compiling (bytecode) $< ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-%.cmx: %.ml
+%.cmx %.cmi: %.ml
 	@$(ECHO) "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
@@ -475,10 +475,12 @@ source/expander.cmi: source/lang.cmi
 source/bindings.cmi: source/common.cmo source/lang.cmo
 
 source/mltest.cmo: source/newparser_tests.cmo
+source/mltest.cmx: source/newparser_tests.cmx
 source/mltest.cmo: source/indentlexer_tests.cmo
+source/mltest.cmx: source/indentlexer_tests.cmx
 
 ################################################################################
-# Additional utility targets
+# Tags
 ################################################################################
 
 TAGS:
