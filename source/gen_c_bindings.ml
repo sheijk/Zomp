@@ -87,7 +87,7 @@ struct
       begin try
         List.assoc valueConstantName !constants
       with Not_found ->
-        raise (Compile_error (sprintf "Could not find constant '%s'" valueConstantName))
+        raise (Compile_error (sprintf "could not find constant '%s'" valueConstantName))
       end
 
   let mapFilter func list =

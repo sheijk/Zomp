@@ -38,10 +38,10 @@ let rec llvmTypeName : Lang.typ -> string = function
   | `Pointer `ParametricType _ ->
     "i8*"
   | `ParametricType t ->
-    raiseCodeGenError ~msg:"Cannot generate type representation for parametric type"
+    raiseCodeGenError ~msg:"cannot generate type representation for parametric type"
   | `TypeParam ->
     raiseCodeGenError
-      ~msg:"Cannot generate type representation for uninstantiated type parameter"
+      ~msg:"cannot generate type representation for uninstantiated type parameter"
   | `Pointer `Void -> "i8*"
   | `Pointer `TypeParam -> "i8*"
   | `Pointer targetType -> (llvmTypeName targetType) ^ "*"
@@ -55,7 +55,7 @@ let rec llvmTypeName : Lang.typ -> string = function
         (Common.combine ", " (List.map llvmTypeName ft.argTypes))
   | `ErrorType _ as t ->
     raiseCodeGenError
-      ~msg:(sprintf "Cannot generate type representation for %s"
+      ~msg:(sprintf "cannot generate type representation for %s"
               (typeName t))
 
 let rec llvmTypeNameLong = function
@@ -179,13 +179,13 @@ let llvmEscapedString str =
           | 'f' -> 12
           | '?' -> 63
 
-          | invalid -> raiseCodeGenError ~msg:(sprintf "Cannot escape \\%c" invalid)
+          | invalid -> raiseCodeGenError ~msg:(sprintf "cannot escape \\%c" invalid)
         in
         stringToRevCharList (sprintf "\\%02x" num)
       in
       nextChar (pos+1) (chars @ acc)
     else
-      raiseCodeGenError ~msg:"String may not end in \\"
+      raiseCodeGenError ~msg:"string may not end in \\"
   in
   let chars = nextChar 0 [] in
   let stringFromList chars =
@@ -208,7 +208,7 @@ let llvmEscapedString str =
 (*     (fun (input, expected) -> *)
 (*        let found = llvmEscapedString input in *)
 (*        if not (input = found) then *)
-(*          printf "Error: llvmEscapedString '%s' => '%s' instead of '%s'\n" *)
+(*          printf "error: llvmEscapedString '%s' => '%s' instead of '%s'\n" *)
 (*            input found expected) *)
 (*     testCases *)
 
@@ -372,7 +372,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
 
   let oneArgFunc name f = function
     | [arg] -> f arg
-    | _ -> raiseCodeGenError ~msg:(sprintf "Only one argument expected by %s" name)
+    | _ -> raiseCodeGenError ~msg:(sprintf "only one argument expected by %s" name)
   in
 
   let convertIntr funcName intrName fromType toType =
@@ -710,7 +710,7 @@ let rec llvmValue c =
     | NullpointerVal _ ->
       "null"
     | VoidVal | StringLiteral _ | ArrayVal _ | ErrorVal _ ->
-      raiseCodeGenError ~msg:(sprintf "Constants of type %s not supported"
+      raiseCodeGenError ~msg:(sprintf "constants of type %s not supported"
                                 (typeName (typeOf c)))
 
 let gencodeConstant c =
@@ -828,11 +828,11 @@ let offsetStringAndCode gencode countForm =
     | `Variable var ->
         let valueVar, valueAccessCode = gencode (`Variable (var :> composedType variable)) in
         valueVar.rvname, valueAccessCode
-    | _ -> raiseCodeGenError ~msg:"Invalid expression for count"
+    | _ -> raiseCodeGenError ~msg:"invalid expression for count"
 
 let checkType resultVar typ =
   if llvmTypeName typ <> resultVar.rvtypename then
-    raiseCodeGenError ~msg:(sprintf "Internal error: expected %s to be of type %s instead of %s"
+    raiseCodeGenError ~msg:(sprintf "internal error: expected %s to be of type %s instead of %s"
                               resultVar.rvname (llvmTypeName typ) resultVar.rvtypename)
 
 let todoBindings = defaultBindings
@@ -853,7 +853,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
               resultVar {var with typ = `Pointer var.typ},
               sprintf "; addrOf %s\n" (typeName var.typ))
           | RegisterStorage ->
-              raiseCodeGenError ~msg:"Getting address of register storage var not possible"
+              raiseCodeGenError ~msg:"getting address of register storage var not possible"
       end
   | `StoreIntrinsic (ptrForm, valueForm) ->
       begin
@@ -871,7 +871,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           match typeOfForm todoBindings expr with
             | `Pointer targetType -> targetType
             | nonPointerType ->
-                raiseCodeGenError ~msg:("Expected pointer argument instead of "
+                raiseCodeGenError ~msg:("expected pointer argument instead of "
                                         ^ (typeName nonPointerType))
         in
         let ptr = gencode expr in
@@ -890,12 +890,12 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
                 let fieldType = match componentType record.fields fieldName with
                   | Some fieldType -> fieldType
                   | None -> raiseCodeGenError ~msg:
-                      (sprintf "Could not find field %s" fieldName)
+                      (sprintf "could not find field %s" fieldName)
                 in
                 let fieldIndex = componentNum record.fields fieldName in
                 fieldType, fieldIndex
             | _ as invalidType -> raiseCodeGenError ~msg:
-                (sprintf "Expected pointer to record instead of %s" (typeName invalidType))
+                (sprintf "expected pointer to record instead of %s" (typeName invalidType))
         in
         let ptrVar = newLocalTempVar (`Pointer fieldType) in
         let record = gencode recordForm in
@@ -1004,7 +1004,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
             "fptosi"
 
           | _, _ ->
-              raiseCodeGenError ~msg:(sprintf "Cannot cast from %s to %s"
+              raiseCodeGenError ~msg:(sprintf "cannot cast from %s to %s"
                                         (typeName valueType) (typeName targetType))
       in
       let code =
@@ -1159,7 +1159,7 @@ let gencodeGlobalVar gvar =
         in
         sprintf "@%s = global %s %s\n" varname (llvmTypeName var.typ) valueStr
     | ErrorVal _ as value ->
-      raiseCodeGenError ~msg:(sprintf "Cannot generate global var of type %s"
+      raiseCodeGenError ~msg:(sprintf "cannot generate global var of type %s"
                                 (typeName (typeOf value)))
 
 let gencodeDefineFunc func =

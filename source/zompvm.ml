@@ -70,17 +70,17 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
        tryApplyToAll
          removeFunctionBody
          redefinedFunctions
-         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not remove function body: " ^ msg)));
+         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("could not remove function body: " ^ msg)));
   collectTimingInfo "send code"
     (fun () ->
        if not (Machine.zompSendCode llvmCode targetModuleName) then
-         raiseFailedToEvaluateLLVMCode llvmCode "Could not evaluate");
+         raiseFailedToEvaluateLLVMCode llvmCode "could not evaluate");
   collectTimingInfo "recompile and relink functions"
     (fun () ->
        tryApplyToAll
          recompileAndRelinkFunction
          redefinedFunctions
-         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("Could not recompile and relink function: " ^ msg)))
+         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("could not recompile and relink function: " ^ msg)))
 
 let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
   let isDefinedFunction func =
@@ -106,10 +106,10 @@ let loadLLVMFile filename =
   try
     let content = readFile filename in
     if not( Machine.zompSendCode content "" ) then
-      eprintf "Could not eval llvm code from file %s\n" filename
+      eprintf "could not eval llvm code from file %s\n" filename
   with
       Sys_error message ->
-        eprintf "Could not load file %s: %s\n" filename message
+        eprintf "could not load file %s: %s\n" filename message
 
 let currentBindings :Bindings.t ref = ref (Bindings.addTypedef Bindings.defaultBindings "asdf" `Int8)
 

@@ -50,10 +50,10 @@ let runFunction bindings funcname =
             let retval = Machine.zompRunFunctionString funcname in
             printf " => %s\n" retval
           | otherRetType ->
-            printf "Cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
+            printf "cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
       end
     | _ ->
-      eprintf "Cannot run %s because no such function was found\n" funcname
+      eprintf "cannot run %s because no such function was found\n" funcname
 
 let notifyTimeThreshold = ref 0.5
 
@@ -116,7 +116,7 @@ end = struct
         | [] ->
           f bindings
         | (_ :string list) ->
-          eprintf "Expected 0 arguments\n";
+          eprintf "expected 0 arguments\n";
           flush stderr
 
   let makeSingleArgCommand f =
@@ -125,7 +125,7 @@ end = struct
         | [arg] ->
           f arg bindings
         | _ ->
-          eprintf "Expected single argument"
+          eprintf "expected single argument"
 
   let makeToggleCommandFromGetSet name getF setF =
     let change ison =
@@ -163,7 +163,7 @@ end = struct
         defaultPrompt := newDefault;
         continuedPrompt := newContinued;
       | args ->
-        printf "Expected 0-2 arguments instead of %d\n" (List.length args)
+        printf "expected 0-2 arguments instead of %d\n" (List.length args)
 
   let exitCommand = makeNoArgCommand
     (fun _ ->
@@ -481,13 +481,13 @@ struct
           else
             let handle = Zompvm.zompLoadLib fileName in
             if handle = 0 then
-              Expander.errorFromStringDeprecated (sprintf "Could not load C library '%s'\n" fileName)
+              Expander.errorFromStringDeprecated (sprintf "could not load C library '%s'\n" fileName)
             else
               Expander.tlReturnNoExprs env
         end
     | invalidExpr ->
         Expander.errorFromStringDeprecated
-          (sprintf "Expecting '%s fileName" invalidExpr.Ast2.id)
+          (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
 end
 
 (** Parsing function which can be called from Zomp/native code. *)
@@ -557,7 +557,7 @@ let translateRun env expr =
             Expander.errorFromStringDeprecated (Printexc.to_string exn)
       end
     | _ ->
-        Expander.errorFromStringDeprecated (sprintf "Expected %s expr" expr.id)
+        Expander.errorFromStringDeprecated (sprintf "expected %s expr" expr.id)
 
 let () =
   at_exit (fun () ->

@@ -44,13 +44,13 @@ let catchingErrorsDo f ~onErrors =
       | Expander.IllegalExpression (expr, errors) ->
         onErrors errors
       | Lang.CouldNotParseType descr ->
-        onErrorMsg $ sprintf "Unknown type: %s\n" descr
+        onErrorMsg $ sprintf "unknown type: %s\n" descr
       | Genllvm.CodeGenError msg ->
-        onErrorMsg $ sprintf "Codegen failed: %s\n" msg
+        onErrorMsg $ sprintf "codegen failed: %s\n" msg
       | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-        onErrorMsg $ sprintf "Could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
+        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
       | Failure msg ->
-        onErrorMsg $ sprintf "Internal error: Failure(%s)\n" msg
+        onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
   end
 
 let rec compile
@@ -89,7 +89,7 @@ let compileCode bindings input outstream fileName =
         List.iter (fun error -> eprintf "%s\n" (Expander.SError.toString error)) errors;
         eprintf "  (via exception CatchedError)\n"
       | unknownError ->
-        eprintf "error: Unknown error: %s\n" (Printexc.to_string unknownError);
+        eprintf "error: unknown error: %s\n" (Printexc.to_string unknownError);
         raise unknownError
   in
   let parseAndCompile parseF =

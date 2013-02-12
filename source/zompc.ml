@@ -130,20 +130,20 @@ struct
                    match Common.findFileIn fileName !clibPath with
                      | None ->
                          Expander.errorFromString location
-                           (sprintf "Could not find library '%s' in paths %s"
+                           (sprintf "could not find library '%s' in paths %s"
                               fileName
                               (Common.combine ", " (List.map (sprintf "\"%s\"") !clibPath)))
                      | Some absoluteFileName ->
                          let handle = Zompvm.zompLoadLib absoluteFileName in
                          if handle = 0 then
                            Expander.errorFromStringDeprecated
-                             (sprintf "Could not load C library '%s'\n" fileName)
+                             (sprintf "could not load C library '%s'\n" fileName)
                          else
                            Expander.tlReturnNoExprs env
                end
            | invalidExpr ->
                Expander.errorFromString location
-                 (sprintf "Expecting '%s fileName" invalidExpr.Ast2.id))
+                 (sprintf "expecting '%s fileName" invalidExpr.Ast2.id))
 end
 
 type options = {

@@ -570,7 +570,7 @@ struct
                   Some (translateF bindings transformedExpr)
                 with
                   | Failure msg ->
-                      raiseIllegalExpression expr ("Could not expand macro: " ^ msg)
+                      raiseIllegalExpression expr ("could not expand macro: " ^ msg)
                 end
             | _ -> None
 
@@ -616,7 +616,7 @@ struct
     if expectedArgCount <> foundArgCount then
       raiseIllegalExpression
         (Ast2.expr name args)
-        (sprintf "Could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
+        (sprintf "could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
 
     let rec repeatedList element count =
       if count > 0 then element :: repeatedList element (count-1)
@@ -807,7 +807,7 @@ struct
     let astType =
       match lookupType bindings "ast" with
         | Some t -> t
-        | None -> raiseIllegalExpression (Ast2.idExpr "ast") "Could not find prelude type 'ast'"
+        | None -> raiseIllegalExpression (Ast2.idExpr "ast") "could not find prelude type 'ast'"
     in
     let macroFunc =
       let fargs = [argParamName, `Pointer (`Pointer astType)]
@@ -1376,7 +1376,7 @@ struct
           begin
             match lookup env.bindings varName with
               | VarSymbol var -> Result (env.bindings, [`GetAddrIntrinsic var] )
-              | _ -> raiseIllegalExpression expr (sprintf "Could not find variable %s" varName)
+              | _ -> raiseIllegalExpression expr (sprintf "could not find variable %s" varName)
           end
       | { id = "ptr"; args = [] } ->
           (** could actually be a variable called 'ptr', handle this for backwards compatibility *)
@@ -2179,7 +2179,7 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
           | None -> t remf
       end
     | [] ->
-      errorF expr "No translator matched expression"
+      errorF expr "no translator matched expression"
   in
   t translators
 
@@ -2205,7 +2205,7 @@ let translateNested = sampleFunc2 "translateNested" translateNested
 (*   try *)
 (*     Result (translateNested bindings expr) *)
 (*   with IllegalExpression (expr, msg) -> *)
-(*     errorFromExpr expr "Could not find handler for expression" *)
+(*     errorFromExpr expr "could not find handler for expression" *)
 
 (* let translateDict *)
 (*     baseInstructions *)
@@ -2479,7 +2479,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           newBindings, nestedTLForms, funcDef
       | `Errors messages -> raiseIllegalExpression
           expr (Common.combine "\n"
-                  (let msg = sprintf "Could not translate function %s:" name in
+                  (let msg = sprintf "could not translate function %s:" name in
                    msg :: messages))
   in
   match matchFunc expr with
