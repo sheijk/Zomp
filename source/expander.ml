@@ -1,4 +1,3 @@
-
 open Lang
 open Semantic
 open Ast2
@@ -44,14 +43,32 @@ module SError = struct
     eexpr: Ast2.t option;
   }
 
+  let toString error =
+    let loc =
+      match error.eloc, error.eexpr with
+        | Some location, _ ->
+          location
+        | None, Some { location = Some location } ->
+          location
+        | None, Some { location = None }
+        | None, None ->
+          Basics.fakeLocation
+    in
+    Basics.formatError loc error.emsg
+
   let check funcName error =
+    let warn msg = printf "alert, %s (in %s, msg = %s)!\n" msg funcName (toString error) in
     if error.emsg =~ ".*\\.zomp:[0-9]+: error:" then begin
-      printf "alert, error location has been added twice (in %s)!\n" funcName;
+      warn "error location has been added twice";
       if error.eloc = None then
-        printf "alert, error location missing (in %s)!\n" funcName;
+        warn "error location missing";
       Printexc.print_backtrace stdout;
       flush stdout;
     end;
+    if String.length error.emsg = 0 then
+      warn "empty error message"
+    else if (error.emsg.[0] = Char.uppercase error.emsg.[0]) then
+      warn "error message begins with upper case letter";
     error
 
   let checkAll funcName errors =
@@ -73,19 +90,6 @@ module SError = struct
   let fromTypeError bindings expr (fe,m,f,e) =
     let msg = typeErrorMessage bindings (fe,m,f,e) in
     check "fromTypeError" (fromExpr expr msg)
-
-  let toString error =
-    let loc =
-      match error.eloc, error.eexpr with
-      | Some location, _ ->
-        location
-      | None, Some { location = Some location } ->
-        location
-      | None, Some { location = None }
-      | None, None ->
-        Basics.fakeLocation
-    in
-    Basics.formatError loc error.emsg
 
   let fromMsg eloc emsg = check "fromMsg" (fromMsg eloc emsg)
   let fromExpr expr msg = check "fromExpr" (fromExpr expr msg)
@@ -1495,11 +1499,11 @@ struct
         | Some e ->
             begin
               match translateType env.bindings e with
-                | Result t -> Result t
+                | Result t -> Some t
                 | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
             end
         | None ->
-          errorFromExpr expr "TODO"
+          None
       in
       let valueType, toplevelForms, implForms =
         match valueExpr with
@@ -1515,15 +1519,15 @@ struct
       in
       let varType =
         match declaredType, valueType with
-          | Result declaredType, Some valueType
+          | Some declaredType, Some valueType
             when equalTypes env.bindings declaredType valueType ->
               declaredType
-          | Result declaredType, Some valueType ->
+          | Some declaredType, Some valueType ->
               raiseIllegalExpressionFromTypeError expr
                 (Semantic.Ast expr, "Types do not match",declaredType,valueType)
-          | Error _, Some valueType -> valueType
-          | Result declaredType, None -> declaredType
-          | Error _, None ->
+          | None, Some valueType -> valueType
+          | Some declaredType, None -> declaredType
+          | None, None ->
               raiseIllegalExpression expr "var needs either a default value or declare a type"
       in
       match varType with
