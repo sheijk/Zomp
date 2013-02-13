@@ -853,6 +853,12 @@ end
 ///-----------------------------------------------------------------------------
 
 macro linkclib fileNames...:
+  // Work-around for lost location information
+  if (u32:equal getField(fileNames, childCount) 1):
+    var astp onlyChild ast:child(fileNames, 0)
+    ret ${zmp:compiler:linkclib #onlyChild}
+  end
+
   var astp code seqAst()
   forEachAstChild fileName fileNames:
     ast:addChild code ${zmp:compiler:linkclib #fileName}
