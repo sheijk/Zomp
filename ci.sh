@@ -22,6 +22,7 @@ function run_action {
     ACTION=$1
     shift
     echo "running ${ACTION}: $@"
+    echo "running ${ACTION}: $@" >> ${MAIN_LOG}
     LOGFILE=${TARGET_DIR}/log_${ACTION}.txt
     $@ | tee ${LOGFILE}
     EXITSTATUS=$PIPESTATUS
@@ -46,6 +47,11 @@ TARGET_DIR=`cd ${TARGET_DIR_REL}; pwd`
 echo "Target dir is ${TARGET_DIR}"
 echo "External tools dir is ${EXTERNAL_TOOLS_DIR}"
 
+MAIN_LOG=${TARGET_DIR}/log.txt
+rm -f ${MAIN_LOG}
+echo "Logging to ${MAIN_LOG}"
+touch ${MAIN_LOG}
+
 run_action "git_clone" git clone ${VC_DIR} ${TARGET_DIR}/zomp_vc
 
 cd ${TARGET_DIR}
@@ -60,7 +66,7 @@ ln -s ${EXTERNAL_TOOLS_DIR}/llvm-gcc tools/llvm-gcc
 run_action "find_initial_files" find_all_files ../files_after_clone.txt
 
 run_action "make_all" make ${FLAGS} all
-# run_action "make_test" make ${FLAGS} test
+run_action "make_test" make ${FLAGS} test
 
 run_action "make_clean" make ${FLAGS} clean_all
 run_action "find_files_after_clean" find_all_files ../files_after_clean.txt
