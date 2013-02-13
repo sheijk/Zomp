@@ -3,7 +3,7 @@
 /// http://www.antisphere.com/Wiki/tools:anttweakbar
 ///
 
-linkclib "libs/libAntTweakBar.dylib"
+linkclib "libAntTweakBar.dylib"
 
 ///-----------------------------------------------------------------------------
 /// Section: Bar functions and definitions

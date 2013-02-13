@@ -2,7 +2,7 @@
 /// A simple image loader and viewer
 ///
 
-linkclib "libs/stb_image.dylib"
+linkclib "stb_image.dylib"
 
 requireLibs libcee stdio native stb_image
 requireLibs opengl20 glfw glutils mathvis anttweakbar array quicktext

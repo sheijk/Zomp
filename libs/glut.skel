@@ -1,5 +1,5 @@
 GLUT
-	lib libs/libglut.dylib
+	lib libglut.dylib
 
 	void glutcInit ()
 	void glutWireSphere (GLdouble radius, GLint slices, GLint stacks)

@@ -1,5 +1,5 @@
 QUICKTEXT_1_0
-	lib libs/libquicktext.dylib
+	lib libquicktext.dylib
 
 	void glqtStringBox (float* box, float scale, char* format, ...)
 	void glqtPrintfAt (float xpos, float ypos, float zpos, float scale, char* format, ...)

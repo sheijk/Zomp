@@ -1,5 +1,5 @@
 GLFW_2_5
-	lib libs/libglfw.dylib
+	lib libglfw.dylib
 
 	GLFW_VERSION_MAJOR 2
 	GLFW_VERSION_MINOR 5

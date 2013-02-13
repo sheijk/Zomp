@@ -109,7 +109,7 @@ struct
   open Expander
   open Ast2
 
-  let clibPath = ref ["."; ".."]
+  let clibPath = ref ["."; ".."; "./libs"; "./tools/external/lib"]
 
   let translateLinkCLib env expr =
     collectTimingInfo "translateLinkCLib"

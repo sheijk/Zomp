@@ -164,11 +164,13 @@ LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
 
+LDFLAGS += -Llibs -Ltools/external/libs
+
 LINK_QUICKTEXT = libs/libquicktext.$(DLL_EXTENSION)
-LINK_ANTTWEAKBAR = libs/libAntTweakBar.$(DLL_EXTENSION)
-LINK_ASSIMP = libs/libassimp.a
+LINK_ANTTWEAKBAR = tools/external/lib/libAntTweakBar.$(DLL_EXTENSION)
+LINK_ASSIMP = tools/external/lib/libassimp.a
 LINK_CPPSTDLIB = -lstdc++
-LINK_GLEW = libs/libGLEW.$(DLL_EXTENSION)
-LINK_GLFW = libs/libglfw.$(DLL_EXTENSION)
+LINK_GLEW = tools/external/lib/libGLEW.$(DLL_EXTENSION)
+LINK_GLFW = tools/external/lib/libglfw.$(DLL_EXTENSION)
 LINK_UTILS = libs/libutils.$(DLL_EXTENSION)
 

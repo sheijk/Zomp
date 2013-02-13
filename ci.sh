@@ -62,6 +62,7 @@ pwd
 mkdir -p tools
 ln -s ${EXTERNAL_TOOLS_DIR}/llvm-2.9 tools/llvm-2.9
 ln -s ${EXTERNAL_TOOLS_DIR}/llvm-gcc tools/llvm-gcc
+ln -s ${EXTERNAL_TOOLS_DIR}/external tools/external
 
 run_action "find_initial_files" find_all_files ../files_after_clone.txt
 

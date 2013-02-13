@@ -86,9 +86,9 @@ include bindgen/bindgen.mk
 
 PATH := $(LLVM_BIN_DIR):$(PATH)
 
-CXXFLAGS = -I /usr/local/lib/ocaml/ -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
-CCFLAGS = -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
-LDFLAGS = $(ARCHFLAG) -L $(LLVM_LIB_DIR)
+CXXFLAGS += -I /usr/local/lib/ocaml/ -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
+CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
+LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)
 
 ifeq "$(DEBUG)" "1"
   OCAMLC += -g
