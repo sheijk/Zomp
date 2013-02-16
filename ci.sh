@@ -17,11 +17,12 @@ VC_DIR=`cd $1; pwd`
 EXTERNAL_TOOLS_DIR=`cd $2; pwd`
 FLAGS=$3
 
+ACTION_NUMBER=0
+
 # abort_on_error(action, command...)
 function run_action {
     ACTION=$1
     shift
-    LOGFILE=${TARGET_DIR}/log_${ACTION}.txt
     CAN_FAIL=0
     if [ ${1-NOFAIL} == "CAN-FAIL" ]; then
         CAN_FAIL=1
@@ -30,6 +31,8 @@ function run_action {
     MSG="running ${ACTION}: $@"
     echo "${MSG}"
     echo "${MSG}" >> ${MAIN_LOG}
+    ACTION_NUMBER=$((${ACTION_NUMBER} + 1))
+    LOGFILE=${TARGET_DIR}/log_${ACTION_NUMBER}_${ACTION}.txt
     $@ | tee ${LOGFILE}
     EXITSTATUS=$PIPESTATUS
     echo "Exited with code ${EXITSTATUS}" >> ${LOGFILE}
