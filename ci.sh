@@ -28,17 +28,21 @@ function run_action {
         CAN_FAIL=1
         shift
     fi
-    MSG="running ${ACTION}: $@"
-    echo "${MSG}"
-    echo "${MSG}" >> ${MAIN_LOG}
+
     ACTION_NUMBER=$((${ACTION_NUMBER} + 1))
     LOGFILE=${TARGET_DIR}/log_${ACTION_NUMBER}_${ACTION}.txt
-    $@ | tee ${LOGFILE}
+
+    MSG="running ${ACTION} '$@'"
+    echo "${MSG}"
+    echo "${MSG}" >> ${MAIN_LOG}
+    echo "${MSG}" >> ${LOGFILE}
+
+    $@ | tee -a ${LOGFILE}
     EXITSTATUS=$PIPESTATUS
-    echo "Exited with code ${EXITSTATUS}" >> ${LOGFILE}
+    echo "${ACTION} exited with code ${EXITSTATUS}" >> ${LOGFILE}
 
     if [ "$EXITSTATUS" -ne "0" ]; then
-        echo "${ACTION} failed with ${EXITSTATUS}"
+        echo "  failed with ${EXITSTATUS}" | tee -a ${MAIN_LOG}
         if [ "${CAN_FAIL}" == "0" ]; then
             exit 1
         fi
