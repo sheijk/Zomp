@@ -21,16 +21,24 @@ FLAGS=$3
 function run_action {
     ACTION=$1
     shift
-    echo "running ${ACTION}: $@"
-    echo "running ${ACTION}: $@" >> ${MAIN_LOG}
     LOGFILE=${TARGET_DIR}/log_${ACTION}.txt
+    CAN_FAIL=0
+    if [ ${1-NOFAIL} == "CAN-FAIL" ]; then
+        CAN_FAIL=1
+        shift
+    fi
+    MSG="running ${ACTION}: $@"
+    echo "${MSG}"
+    echo "${MSG}" >> ${MAIN_LOG}
     $@ | tee ${LOGFILE}
     EXITSTATUS=$PIPESTATUS
     echo "Exited with code ${EXITSTATUS}" >> ${LOGFILE}
 
     if [ "$EXITSTATUS" -ne "0" ]; then
         echo "${ACTION} failed with ${EXITSTATUS}"
-        exit 1
+        if [ "${CAN_FAIL}" == "0" ]; then
+            exit 1
+        fi
     fi
 }
 
@@ -67,7 +75,7 @@ ln -s ${EXTERNAL_TOOLS_DIR}/external tools/external
 run_action "find_initial_files" find_all_files ../files_after_clone.txt
 
 run_action "make_all" make ${FLAGS} all
-run_action "make_test" make ${FLAGS} test
+run_action "make_test" CAN-FAIL ./build.sh ${FLAGS} test
 
 run_action "make_clean" make ${FLAGS} clean_all
 run_action "find_files_after_clean" find_all_files ../files_after_clean.txt
