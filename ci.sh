@@ -37,7 +37,7 @@ function run_action {
     echo "${MSG}" >> ${MAIN_LOG}
     echo "${MSG}" >> ${LOGFILE}
 
-    $@ | tee -a ${LOGFILE}
+    { $@ 2>&1 ; } | tee -a ${LOGFILE}
     EXITSTATUS=$PIPESTATUS
     echo "${ACTION} exited with code ${EXITSTATUS}" >> ${LOGFILE}
 
