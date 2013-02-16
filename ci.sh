@@ -74,7 +74,7 @@ ln -s ${EXTERNAL_TOOLS_DIR}/external tools/external
 
 run_action "find_initial_files" find_all_files ../files_after_clone.txt
 
-run_action "make_all" make ${FLAGS} all
+run_action "make_all" ./build.sh ${FLAGS} all
 run_action "make_test" CAN-FAIL ./build.sh ${FLAGS} test
 
 run_action "make_clean" make ${FLAGS} clean_all
