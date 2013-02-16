@@ -52,7 +52,7 @@ function find_all_files {
 
 echo "Starting build and test run"
 
-TARGET_DIR_REL=ci_run_`date '+%Y-%m-%d_%H_%M_%S'`
+TARGET_DIR_REL=`date '+%Y/%m/%d/%H_%M_%S'`
 mkdir -p ${TARGET_DIR_REL}
 TARGET_DIR=`cd ${TARGET_DIR_REL}; pwd`
 echo "Target dir is ${TARGET_DIR}"
