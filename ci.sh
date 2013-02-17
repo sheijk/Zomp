@@ -87,6 +87,6 @@ run_action "make_test" CAN-FAIL ./build.sh ${FLAGS} test
 run_action "make_clean" make ${FLAGS} clean_all
 run_action "find_files_after_clean" find_all_files ../files_after_clean.txt
 
-echo "" > .gitignore
-run_action "check_make_clean" diff ../files_after_clone.txt ../files_after_clean.txt > ../file_diff.txt
+DIFF_FORMAT="--new-line-format +%L --old-line-format=-%L --unchanged-line-format="
+run_action "check_make_clean" diff ../files_after_clone.txt ../files_after_clean.txt ${DIFF_FORMAT}
 
