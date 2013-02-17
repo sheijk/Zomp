@@ -1,16 +1,24 @@
 #!/usr/bin/env sh
-
 # A simple continuous integration script. Will do a git clone of the specified
 # directory, do a full build and run the unit test suite
 
+ERROR_INVALID_ARGS=2
+ERROR_COMMAND_FAILED=1
+
+if [ ! -z "$4" -o -z "$1" -o -z "$2" ]; then
+    echo "error: invalid arguments, expected:"
+    echo "`basename $0` zomp-git-repo external-tools-dir make-flags?"
+    exit ${ERROR_INVALID_ARGS}
+fi
+
 if [ ! -d "$1" ]; then
     echo "Cannot find vc dir '$1' in `pwd`"
-    exit 2
+    exit ${ERROR_INVALID_ARGS}
 fi
 
 if [ ! -d "$2" ]; then
     echo "Cannot find external tools dir '$2' in `pwd`"
-    exit 3
+    exit ${ERROR_INVALID_ARGS}
 fi
 
 VC_DIR=`cd $1; pwd`
@@ -44,7 +52,7 @@ function run_action {
     if [ "$EXITSTATUS" -ne "0" ]; then
         echo "  failed with ${EXITSTATUS}" | tee -a ${MAIN_LOG}
         if [ "${CAN_FAIL}" == "0" ]; then
-            exit 1
+            exit ${ERROR_COMMAND_FAILED}
         fi
     fi
 }
