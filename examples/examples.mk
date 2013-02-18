@@ -6,12 +6,7 @@ CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
 	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o
 
-EXAMPLES_SOURCES_X = \
-  cee.zomp fib.zomp instrument.zomp lighting.zomp hello.zomp \
-  metaball2d.zomp metaballs.zomp opengl.zomp shaderfun.zomp tweakbar.zomp \
-  using_assimp.zomp smallpt.zomp pipeline_experiment.zomp
-
-EXAMPLES_SOURCES = $(foreach FILE, $(EXAMPLES_SOURCES_X), examples/$(FILE))
+EXAMPLES_SOURCES = $(wildcard examples/*.zomp)
 
 NOT_WORKING_EXAMPLES = static.zomp
 
