@@ -1,6 +1,6 @@
-/**
- * A simple OpenGL example
- */
+///
+/// A simple OpenGL example
+///
 
 requireLibs libcee opengl20 glfw glutils
 

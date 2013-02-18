@@ -1,6 +1,6 @@
-/**
- * 2D metaballs
- */
+///
+/// 2D metaballs
+///
 
 requireLibs opengl20 glfw glutils libcee math
 

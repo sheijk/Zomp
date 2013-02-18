@@ -1,6 +1,6 @@
-/**
- * Nearly metaballs
- */
+///
+/// Nearly metaballs
+///
 
 requireLibs libcee
 requireLibs opengl20 glfw glut glutils

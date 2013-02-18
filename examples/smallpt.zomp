@@ -1,6 +1,6 @@
-/**
- * Port of smallpt to Zomp + libcee
- */
+///
+/// Port of smallpt to Zomp + libcee
+///
 
 requireLibs libcee math stdio
 

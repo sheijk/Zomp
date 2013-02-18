@@ -1,6 +1,6 @@
-/**
- * Demonstrate usage of AntTweakBar in Zomp
- */
+///
+/// Demonstrate usage of AntTweakBar in Zomp
+///
 
 requireLibs opengl20 glfw glutils libcee anttweakbar
 

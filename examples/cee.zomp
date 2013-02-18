@@ -1,9 +1,6 @@
-/**
- * Experimental test bed of the cee language profile
- *
-!verify off
-!syntax indent
- */
+///
+/// Experimental test bed of the cee language profile
+///
 
 //------------------------------------------------------------------------------
 /// base lib

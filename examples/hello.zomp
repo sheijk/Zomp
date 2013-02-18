@@ -1,6 +1,6 @@
-/**
- * The obligatory "Hello, World" example program
- */
+///
+/// The obligatory "Hello, World" example program
+///
 
 requireLibs libcee
 

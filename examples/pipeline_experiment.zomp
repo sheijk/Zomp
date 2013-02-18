@@ -1,6 +1,6 @@
-/**
- * Experiments with pipeline export from XSI
- */
+///
+/// Experiments with pipeline export from XSI
+///
 
 static:setRequireLibDebug true
 

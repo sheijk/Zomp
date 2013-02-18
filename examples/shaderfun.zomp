@@ -1,6 +1,6 @@
-/**
- * Experimental translation of zomp expressions to GLSL
- */
+///
+/// Experimental translation of zomp expressions to GLSL
+///
 
 require "libs/opengl20.zomp"
 require "libs/glfw.zomp"

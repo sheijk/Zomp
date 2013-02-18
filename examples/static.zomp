@@ -1,8 +1,6 @@
-/**
- * Simple compile time meta programming example
-
-!verify off
- */
+///
+/// Simple compile time meta programming example
+///
 
 func int sum(int l, int r):
   ret l + r

@@ -1,6 +1,6 @@
-/**
- * Example demonstrating the use of the assimp library to load 3d scenes
- */
+///
+/// Example demonstrating the use of the assimp library to load 3d scenes
+///
 
 requireLibs opengl20
 requireLibs glfw glutils libcee

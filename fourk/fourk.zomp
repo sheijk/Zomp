@@ -1,9 +1,9 @@
-/**
- * A simple experiment to create a shader based 4k
- *
- * Todo list:
- * - change step size proportionally to d for constant screen space error
- */
+///
+/// A simple experiment to create a shader based 4k
+/// 
+/// Todo list:
+/// - change step size proportionally to d for constant screen space error
+///
 
 requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
 
