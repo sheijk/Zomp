@@ -148,7 +148,7 @@ let readFile ?(paths = ["."]) fileName =
         readChannel channel
     | None ->
         raise (Sys_error
-                 (Printf.sprintf "File '%s' could not be found in '%s', pwd = %s"
+                 (Printf.sprintf "file '%s' could not be found in '%s', pwd = %s"
                     fileName
                     (combine "', '" paths)
                     (Sys.getcwd())))

@@ -37,7 +37,7 @@ let parseSExpr source =
   let revExprs = read [] in
   try
     let invalidChar = Indentlexer.readChar lexstate in
-    failwith (sprintf "Not at end of input, read %c" invalidChar)
+    failwith (sprintf "not at end of input, read %c" invalidChar)
   with Indentlexer.Eof ->
     List.rev revExprs
 

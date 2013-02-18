@@ -146,7 +146,7 @@ let rec replaceParams params args expr =
   and paramCount = List.length params
   in
   if argCount <> paramCount then
-    failwith (sprintf "Macro called with %d parameters, expected %d" paramCount argCount);
+    failwith (sprintf "macro called with %d parameters, expected %d" paramCount argCount);
   let replacementList = List.combine params args in
   let replace name =
     try List.assoc name replacementList

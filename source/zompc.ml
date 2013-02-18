@@ -236,7 +236,7 @@ let () =
     | Some baseName ->
       baseName
     | None ->
-      reportCommandLineArgumentError "Invalid file name. Expected *.zomp";
+      reportCommandLineArgumentError "invalid file name. Expected *.zomp";
       exit 1
   in
   let inputFileName = baseName ^ ".zomp" in
@@ -268,7 +268,7 @@ let () =
     with _ as e ->
       Compilation_failed
         (Compilation_failed_with_error
-           (sprintf "Failed to compile due to unknown exception: %s\n%s\n"
+           (sprintf "failed to compile due to unknown exception: %s\n%s\n"
               (Printexc.to_string e)
                 (** returns backtrace of last thrown exception *)
               (Printexc.get_backtrace())))
@@ -286,12 +286,12 @@ let () =
         | None -> ();
       end
     | Compilation_failed reason ->
-      eprintf "Failed to compile: %s\n"
+      eprintf "failed to compile: %s\n"
         begin match reason with
           | Failed_to_init_vm ->
-            "Could not init VM"
+            "could not init VM"
           | Compiler_did_not_return_result ->
-            "Compiler did not return a result"
+            "compiler did not return a result"
           | Compilation_failed_with_error msg ->
             msg
         end;

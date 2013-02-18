@@ -187,7 +187,7 @@ end = struct
     let confirm syntax = printf "Changed syntax to %s\n" syntax in
     match args with
       | ["indent"] -> parseFunc := Parseutils.parseIExpr; confirm "indent"
-      | _ -> printf "Invalid option. Use sexpr or indent\n"
+      | _ -> printf "error: invalid option. Use sexpr or indent\n"
 
   let toggleVerifyCommand =
     makeToggleCommandFromGetSet
@@ -207,9 +207,9 @@ end = struct
         if newTime >= 0.0 then
           notifyTimeThreshold := newTime
         else
-          printf "Given time must not be less than zero\n"
+          printf "error: given time must be at least zero\n"
       with Failure "float_of_string" ->
-        printf "Could not parse '%s' as float\n" timeStr)
+        printf "error: could not parse '%s' as float\n" timeStr)
 
   let printBindingsCommand args (bindings :bindings) =
     let regexps = List.map
@@ -255,7 +255,7 @@ end = struct
           printf "setSourceLocation %s %d\n" fileName line;
           currentLocation := Some { Basics.fileName; line }
         with (Failure _) ->
-          eprintf "Could not parse line."
+          eprintf "error: could not parse line."
         end
       | _ ->
         reportError "expected arguments fileName and line"
@@ -273,7 +273,7 @@ end = struct
         if matches ".*\\.ll" name then
           Zompvm.loadLLVMFile name
         else
-          printf "Unsupported file extension\n" )
+          printf "error: unsupported file extension\n" )
       args
 
   let connectToRemoteVMCommand = makeSingleArgCommand
@@ -281,7 +281,7 @@ end = struct
       if Machine.zompConnectToRemoteVM uri then
         printf "Connected to remote VM at %s" uri
       else
-        eprintf "Failed to connect to remote VM at %s" uri)
+        eprintf "error: failed to connect to remote VM at %s" uri)
 
   let disconnectRemoteVMCommand = makeNoArgCommand
     (fun (_:bindings) -> Machine.zompDisconnectRemoteVM())

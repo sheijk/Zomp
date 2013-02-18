@@ -27,7 +27,7 @@ let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
     | `Any description -> description
     | #Lang.typ as t -> typeName t
   in
-  sprintf "Type error: %s, expected %s but found %s in expression %s"
+  sprintf "type error: %s, expected %s but found %s in expression %s"
     msg
     (typeName expectedType)
     (typeName foundType)
@@ -393,7 +393,7 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
           | None -> error (sprintf "could not look up type %s" name)
       end
     | _ ->
-      errorFromExpr typeExpr "Don't know how to interprete as type"
+      errorFromExpr typeExpr "don't know how to interprete as type"
 
 module Translators_deprecated_style =
 struct
@@ -517,7 +517,7 @@ struct
                           if argName = compName then begin
                             let _, form, toplevelForms = translateToForms translateF bindings argExpr in
                             if List.length toplevelForms > 0 then
-                              raiseIllegalExpression expr "No nested toplevel forms allowed inside record";
+                              raiseIllegalExpression expr "no nested toplevel forms allowed inside record";
                             form
                           end else
                             raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
@@ -754,7 +754,7 @@ struct
           end
         in
         if not (id = macroReplacement) then begin
-          printf "Warning: Invoked old translateDefineMacro for '%s'\n" name;
+          printf "warning: Invoked old translateDefineMacro for '%s'\n" name;
           flush stdout;
         end;
         result
@@ -841,7 +841,7 @@ struct
                  if argCount <> paramCount then begin
                    raiseIllegalExpression
                      (Ast2.expr name args)
-                     (sprintf "Expected %d args but found %d" paramCount argCount);
+                     (sprintf "expected %d args but found %d" paramCount argCount);
                  end else begin
                    invokeMacro args
                  end
@@ -850,7 +850,7 @@ struct
                  if argCount < paramCount-1 then begin
                    raiseIllegalExpression
                      (Ast2.expr name args)
-                     (sprintf "Expected at least %d args but found only %d"
+                     (sprintf "expected at least %d args but found only %d"
                         (paramCount-1) argCount)
                  end;
                  let declaredArgs, variadicArgs = Common.splitAfter (paramCount-1) args in
@@ -1021,25 +1021,25 @@ struct
                 continueWithErrors
                   [SError.fromExpr fieldValueExpr
                       (if listContains fieldName fields then
-                          sprintf "Field %s specified several times" fieldName
+                          sprintf "field %s specified several times" fieldName
                        else
-                          sprintf "Field %s does not exist" fieldName)]
+                          sprintf "field %s does not exist" fieldName)]
                   remArgs
           end
         | unexpectedExpr :: remArgs ->
           continueWithErrors
-            [SError.fromExpr unexpectedExpr "Expected expression of the form 'id = expr'"]
+            [SError.fromExpr unexpectedExpr "expected expression of the form 'id = expr'"]
             remArgs
     in
     if List.length fields <> List.length fieldExprs then
-      Error [SError.fromMsg None "Not all fields have been defined"]
+      Error [SError.fromMsg None "not all fields have been defined"]
     else
       handleFieldExprs [] [] fields fieldExprs
 
   let translateConstantToValue env expr : value mayfail =
     match expr2VarOrConst env.bindings expr with
       | Some `Constant value -> Result value
-      | _ -> errorFromExpr expr "Must be a constant expression"
+      | _ -> errorFromExpr expr "must be a constant expression"
 
   (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
   let translateGlobalVar env expr =
@@ -1062,7 +1062,7 @@ struct
               | Result `ParametricType _
               | Result `TypeParam
               | Result `TypeRef _ ->
-                reportErrorE typeExpr "Type not supported for global variables";
+                reportErrorE typeExpr "type not supported for global variables";
                 `ErrorType "translateGlobalVar"
               | Error errors ->
                 List.iter reportError errors;
@@ -1092,7 +1092,7 @@ struct
                         | [`Constant value] ->
                           newBindings, tlforms, value
                         | _ ->
-                          reportErrorE expr "Expecting a constant expression";
+                          reportErrorE expr "expecting a constant expression";
                           List.iter (fun f -> eprintf "  %s\n" $ Lang.formToString f) forms;
                           newBindings, tlforms, ErrorVal "translateGlobalVar"
                     end
@@ -1121,11 +1121,11 @@ struct
             Result( newBindings, tlforms @ [ (`GlobalVar gvar :> toplevelExpr) ] )
           end else
             errorFromExpr expr
-              (sprintf "Expected initial value to have type %s but found %s"
+              (sprintf "expected initial value to have type %s but found %s"
                  (typeDescr typ) (typeDescr (typeOf value)))
         end
       | _ ->
-        errorFromExpr expr "Expected 'var typeExpr name initExpr'"
+        errorFromExpr expr "expected 'var typeExpr name initExpr'"
   let translateGlobalVarD = "type, name, value", translateGlobalVar
 
   let translateDefineLocalVar env expr =
@@ -1160,7 +1160,7 @@ struct
                 -> declaredType
           | Some declaredType, Some valueType ->
               raiseIllegalExpressionFromTypeError
-                expr (Semantic.Ast expr, "Types do not match",declaredType,valueType)
+                expr (Semantic.Ast expr, "types do not match",declaredType,valueType)
           | None, Some valueType ->
               valueType
           | Some declaredType, None ->
@@ -1188,18 +1188,18 @@ struct
                 | Some valueExpr ->
                   raiseIllegalExpression
                     valueExpr
-                    "Record type var must not have a default value"
+                    "record type var must not have a default value"
             end
         | `TypeRef _ ->
-            raiseIllegalExpression expr "Internal error: received unexpected type ref"
+            raiseIllegalExpression expr "internal error: received unexpected type ref"
         | `Array _ ->
-            raiseIllegalExpression expr "Array vars not supported, yet"
+            raiseIllegalExpression expr "array vars not supported, yet"
         | `TypeParam ->
-            raiseIllegalExpression expr "Cannot define local variable of type parameter type"
+            raiseIllegalExpression expr "cannot define local variable of type parameter type"
         | `ParametricType _ ->
-            raiseIllegalExpression expr "Cannot define local variable of parametric type"
+            raiseIllegalExpression expr "cannot define local variable of parametric type"
         | `ErrorType _ as t ->
-          raiseIllegalExpression expr (sprintf "Cannot define local variable of %s"
+          raiseIllegalExpression expr (sprintf "cannot define local variable of %s"
                                          (typeName t))
     in
     match expr with
@@ -1210,7 +1210,7 @@ struct
           transform id name None (Some valueExpr)
 
       | _ ->
-          errorFromExpr expr (sprintf "Expecting '%s name valueExpr'" expr.id)
+          errorFromExpr expr (sprintf "expecting '%s name valueExpr'" expr.id)
   let translateDefineLocalVarD = "name, value", translateDefineLocalVar
 
   (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
@@ -1228,7 +1228,7 @@ struct
                             toplevelForms @ [`AssignVar (lhsVar, rightHandForm)] )
                 | TypeOf invalidRhsType ->
                     errorFromExpr rightHandExpr
-                      (sprintf "Type error: cannot assign %s to %s"
+                      (sprintf "type error: cannot assign %s to %s"
                          (typeName invalidRhsType) (typeName lhsVar.typ))
                 | TypeError (fe,m,f,e) ->
                     errorFromTypeError env.bindings rightHandExpr (fe,m,f,e)
@@ -1263,7 +1263,7 @@ struct
       end
     | expr ->
       errorFromExpr expr
-        (sprintf "Expected zero or one argument instead of %d" (List.length expr.args))
+        (sprintf "expected zero or one argument instead of %d" (List.length expr.args))
   let translateReturnD = "[value]", translateReturn
 
   let translateLabel (env :exprTranslateF env) expr =
@@ -1271,7 +1271,7 @@ struct
       | [ {id = name; args = [] }] ->
           Result( addLabel env.bindings name, [`Label { lname = name; }] )
       | _ ->
-        errorFromExpr expr ("Expecting one argument which is an identifier")
+        errorFromExpr expr ("expecting one argument which is an identifier")
   let translateLabelD = "name", translateLabel
 
   let translateBranch (env :exprTranslateF env) expr =
@@ -1282,7 +1282,7 @@ struct
           end
       | [invalidBranchTarget] ->
           errorFromExpr expr
-            "Expecting 'branch labelName' where labelName is an identifier denoting an existing label"
+            "expecting 'branch labelName' where labelName is an identifier denoting an existing label"
       | [
           { id = condVarName; args = [] };
           { id = trueLabelName; args = [] };
@@ -1299,11 +1299,11 @@ struct
                   end
               | _ ->
                 errorFromExpr expr
-                  "First argument of conditional branch should be bool variable"
+                  "first argument of conditional branch should be bool variable"
           end
       | _ ->
         errorFromExpr expr
-          "Expected either 'branch labelName' or 'branch boolVar labelOnTrue labelOnFalse'"
+          "expected either 'branch labelName' or 'branch boolVar labelOnTrue labelOnFalse'"
   let translateBranchD = "label | boolValue labelOnTrue labelOnFalse", translateBranch
 
   let translateLoad (env :exprTranslateF env) expr =
@@ -1319,7 +1319,7 @@ struct
                   errorFromTypeError env.bindings ptrExpr (fe,m,f,e)
           end
       | _ ->
-          errorFromExpr expr "Expecting only one argument"
+          errorFromExpr expr "expecting only one argument"
   let translateLoadD = "pointer", translateLoad
 
   let translateStore (env :exprTranslateF env) expr =
@@ -1336,7 +1336,7 @@ struct
                   errorFromTypeError env.bindings rightHandExpr (fe,m,f,e)
           end
       | _ ->
-          errorFromExpr expr "Expected two arguments: 'store ptrExpr valueExpr'"
+          errorFromExpr expr "expected two arguments: 'store ptrExpr valueExpr'"
   let translateStoreD = "pointer, value", translateStore
 
   let translateMalloc (env :exprTranslateF env) expr =
@@ -1360,7 +1360,7 @@ struct
       | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
           buildMallocInstruction typeExpr countExpr
       | _ ->
-          errorFromExpr expr "Expected 'malloc typeExpr countExpr', countExpr being optional"
+          errorFromExpr expr "expected 'malloc typeExpr countExpr', countExpr being optional"
   let translateMallocD = "type count?", translateMalloc
 
   let translateNullptr (env :exprTranslateF env) expr =
@@ -1371,7 +1371,7 @@ struct
             | Error msgs -> Error msgs
           end
       | _ ->
-          errorFromExpr expr "Expected one argument denoting a type: 'nullptr typeExpr'"
+          errorFromExpr expr "expected one argument denoting a type: 'nullptr typeExpr'"
   let translateNullptrD = "type", translateNullptr
 
   let translateGetaddr (env :exprTranslateF env) expr =
@@ -1389,7 +1389,7 @@ struct
             | _ -> errorFromExpr expr "meh. ptr is not a variable"
           end
       | _ ->
-          errorFromExpr expr "Expected one argument denoting an lvalue: 'ptr lvalueExpr'"
+          errorFromExpr expr "expected one argument denoting an lvalue: 'ptr lvalueExpr'"
   let translateGetaddrD = "lvalue", translateGetaddr
 
   let translatePtradd (env :exprTranslateF env) expr =
@@ -1405,7 +1405,7 @@ struct
                   errorFromTypeError env.bindings expr (fe,m,f,e)
           end
       | _ ->
-          errorFromExpr expr "Expected two arguments: 'ptradd ptrExpr intExpr'"
+          errorFromExpr expr "expected two arguments: 'ptradd ptrExpr intExpr'"
   let translatePtraddD = "ptr, intExpr", translatePtradd
 
   let translatePtrDiff (env :exprTranslateF env) expr =
@@ -1425,7 +1425,7 @@ struct
               errorFromTypeError env.bindings expr (fe,m,f,e)
         end
       | _ ->
-        errorFromExpr expr "Expected two pointers as arguments"
+        errorFromExpr expr "expected two pointers as arguments"
   let translatePtrDiffD = "ptrExpr, ptrExpr", translatePtrDiff
 
   let translateGetfieldptr (env :exprTranslateF env) expr =
@@ -1450,7 +1450,7 @@ struct
                       | TypeOf invalidType ->
                           raiseIllegalExpression expr
                             (sprintf "%s but found %s"
-                               ("Can only access struct members from a var of [pointer to] record type")
+                               ("can only access struct members from a var of [pointer to] record type")
                                (typeName invalidType))
                       | TypeError (fe,m,f,e) ->
                           raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
@@ -1465,7 +1465,7 @@ struct
                   end
           end
       | _ ->
-          errorFromExpr expr "Expected two arguments: 'fieldptr structExpr id'"
+          errorFromExpr expr "expected two arguments: 'fieldptr structExpr id'"
   let translateGetfieldptrD = "structExpr, fieldName", translateGetfieldptr
 
   let translateCast (env :exprTranslateF env) expr =
@@ -1490,7 +1490,7 @@ struct
                 Error msgs
           end
       | _ ->
-          errorFromExpr expr "Expected 'cast typeExpr valueExpr'"
+          errorFromExpr expr "expected 'cast typeExpr valueExpr'"
   let translateCastD = "typeExpr, valueExpr", translateCast
 
   let translateDefineVar (env :exprTranslateF env) expr :translationResult =
@@ -1524,7 +1524,7 @@ struct
               declaredType
           | Some declaredType, Some valueType ->
               raiseIllegalExpressionFromTypeError expr
-                (Semantic.Ast expr, "Types do not match",declaredType,valueType)
+                (Semantic.Ast expr, "types do not match",declaredType,valueType)
           | None, Some valueType -> valueType
           | Some declaredType, None -> declaredType
           | None, None ->
@@ -1559,13 +1559,13 @@ struct
               Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, value)] )
             end
         | `TypeRef _ ->
-            raiseIllegalExpression expr "Internal error: received unexpected type ref"
+            raiseIllegalExpression expr "internal error: received unexpected type ref"
         | `TypeParam ->
-            raiseIllegalExpression expr "Cannot define local variable of type parameter type"
+            raiseIllegalExpression expr "cannot define local variable of type parameter type"
         | `ParametricType _ ->
-            raiseIllegalExpression expr "Cannot define local variable of parametric type"
+            raiseIllegalExpression expr "cannot define local variable of parametric type"
         | `ErrorType _ as t ->
-          raiseIllegalExpression expr (sprintf "Cannot define local variable of %s"
+          raiseIllegalExpression expr (sprintf "cannot define local variable of %s"
                                          (typeName t))
     in
     let transform id name typeExpr valueExpr :translationResult =
@@ -1630,13 +1630,13 @@ struct
 
       | _ ->
           if expr.id == "var" then
-            errorFromExpr expr "Expected var typeExpr nameId valueExpr"
+            errorFromExpr expr "expected var typeExpr nameId valueExpr"
           else if expr.id == "var2" then
-            errorFromExpr expr "Expected var2 nameId valueExpr"
+            errorFromExpr expr "expected var2 nameId valueExpr"
           else
             errorFromExpr expr
               (sprintf "%s, invoked handler for '%s' but can only handle %s and %s"
-                 "Internal compiler error"
+                 "internal compiler error"
                  expr.id macroVar macroVar2)
   let translateDefineVarD = "type, name, [value] | var2 name, value", translateDefineVar
 
@@ -1649,7 +1649,7 @@ struct
           match paramType with
             | Some t when isTypeParametric t ->
                 (* | Some ((`ParametricType _) as t) -> *)
-              printf "Parametric type param %s\n" (typeDescr (t :> typ));
+              printf "parametric type param %s\n" (typeDescr (t :> typ));
               `CastIntrinsic (t, toSingleForm forms)
             | _ ->
               toSingleForm forms
@@ -1672,11 +1672,11 @@ struct
       and argCount = List.length args in
       if (hasVarArgs && argCount < paramCount) then
         errorFromExpr expr
-          (sprintf "Expected %d parameters or more, but called with %d args"
+          (sprintf "expected %d parameters or more, but called with %d args"
              paramCount argCount)
       else if (not hasVarArgs && argCount != paramCount) then
         errorFromExpr expr
-          (sprintf "Expected %d parameters, but called with %d args"
+          (sprintf "expected %d parameters, but called with %d args"
              paramCount argCount)
       else
         let x = evalArgs args argTypes in
@@ -1722,7 +1722,7 @@ struct
                   | _ ->
                     errorFromExpr
                       expr
-                      (sprintf "Trying to call variable '%s' as a function but has type %s"
+                      (sprintf "trying to call variable '%s' as a function but has type %s"
                          var.vname
                          (typeName var.typ))
               end
@@ -1730,7 +1730,7 @@ struct
               errorFromExpr expr (sprintf "%s is neither a function nor a macro" name)
         end
       | _ ->
-        errorFromExpr expr "Unrecognized AST shape"
+        errorFromExpr expr "unrecognized AST shape"
   let translateFuncCallD = "name, args...", translateFuncCall
 
   (** called by translateApply, not registered under any name *)
@@ -1845,7 +1845,7 @@ struct
             Result r
       end
       | { args = [] } ->
-        errorFromExpr expr (sprintf "Expected 'std:base:apply expr args?'")
+        errorFromExpr expr (sprintf "expected 'std:base:apply expr args?'")
 
   let register addF =
     addF "std:base:localVar" translateDefineLocalVarD;
@@ -1912,14 +1912,14 @@ struct
           | TypeOf invalidType ->
             errorFromTypeError env.bindings arrayExpr
               (Semantic.Ast expr,
-               "Cannot get size of array",
+               "cannot get size of array",
                invalidType,
                `Any "array")
           | TypeError (fe,m,f,e) ->
             errorFromTypeError env.bindings arrayExpr (fe,m,f,e)
         end
       | _ ->
-        errorFromExpr expr "Expected 'zmp:array:size arrayExpr'"
+        errorFromExpr expr "expected 'zmp:array:size arrayExpr'"
   let arraySizeD = "array", arraySize
 
   let arrayAddr (env: exprTranslateF env) = function
@@ -1937,13 +1937,13 @@ struct
         | TypeOf invalidType ->
           errorFromTypeError env.bindings arrayPtrExpr
             (Semantic.Ast expr,
-             "Cannot get address of first element",
+             "cannot get address of first element",
              invalidType, `Any "Pointer to array")
         | TypeError (fe, m,f,e) ->
           errorFromTypeError env.bindings expr (fe,m,f,e)
       end
     | invalidExpr ->
-      errorFromExpr invalidExpr "Expected 'zmp:array:addr arrayExpr'"
+      errorFromExpr invalidExpr "expected 'zmp:array:addr arrayExpr'"
   let arrayAddrD = "arrayPtr", arrayAddr
 
   let register addF =
@@ -2017,7 +2017,7 @@ struct
                       end
                     | _ -> begin
                       errorFromExpr expr
-                        (sprintf "No overload for %s(%s, %s) found (expected function %s)"
+                        (sprintf "no overload for %s(%s, %s) found (expected function %s)"
                            baseName typenameL typenameR funcName)
                       end
                 end
@@ -2032,7 +2032,7 @@ struct
                 Error (mapFilter typeErrorMessagePotential [lresult; rresult])
         end
     | invalidExpr ->
-      errorFromExpr invalidExpr "Expected two arguments"
+      errorFromExpr invalidExpr "expected two arguments"
 
   let overloadedFunction baseName (env :exprTranslateF env) = function
     | {args = [argExpr]} as expr ->
@@ -2070,14 +2070,14 @@ struct
                       | _ ->
                         errorFromExpr expr
                           (sprintf
-                              "No overload for %s(%s) found (expected function %s or %s)"
+                              "no overload for %s(%s) found (expected function %s or %s)"
                                   baseName (typeName argType) funcName genericFuncName)
               end
             | TypeError (fe,m,f,e) ->
                 errorFromTypeError env.bindings expr (fe,m,f,e)
         end
     | invalidExpr ->
-      errorFromExpr invalidExpr "Expected one argument"
+      errorFromExpr invalidExpr "expected one argument"
 
   let register addF =
     let addOp (name, op) =
@@ -2238,7 +2238,7 @@ let translateNested = sampleFunc2 "translateNested" translateNested
 (*           } in *)
 (*           match handler env expr with *)
 (*             | Error errors -> *)
-(*                 print_string (combineErrors "Swallowed errors: " errors); *)
+(*                 print_string (combineErrors "swallowed errors: " errors); *)
 (*                 print_newline(); *)
 (*                 flush stdout; *)
 (*                 None *)
@@ -2320,7 +2320,7 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
                 Some( bindings, [] )
               end
           | _ ->
-              raiseIllegalExpression quotedExpr "Did not evaluate to a variable declaration"
+              raiseIllegalExpression quotedExpr "did not evaluate to a variable declaration"
       end
   | _ ->
       None
@@ -2407,7 +2407,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           (fun prevNames (nextName, _) ->
             if StringSet.mem nextName prevNames then
               raiseIllegalExpression expr
-                (sprintf "Each argument needs a distinct name. %s used more than once" nextName);
+                (sprintf "each argument needs a distinct name. %s used more than once" nextName);
             StringSet.add nextName prevNames)
           StringSet.empty
           params
@@ -2418,7 +2418,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     let nameRE = "^[a-zA-Z0-9][^\"]*$" in
     if not (name =~ nameRE) then
       raiseIllegalExpression expr
-        (sprintf "Function names must match the following regexp: %s" nameRE);
+        (sprintf "function names must match the following regexp: %s" nameRE);
     ()
   in
   let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption =
@@ -2439,7 +2439,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         | { id = typeExpr; args = [{ id = varName; args = [] }] } ->
             translate varName (Ast2.idExpr typeExpr)
         | _ as expr ->
-            raiseIllegalExpression expr "Expected 'typeName varName' for param"
+            raiseIllegalExpression expr "expected 'typeName varName' for param"
     in
 
     let rec bindingsWithParams bindings params =
@@ -2586,7 +2586,7 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
           | Sys_error _ ->
             Error [SError.fromExpr expr
                       (Common.combine "\n  "
-                         (sprintf "File '%s' could not be found" fileName
+                         (sprintf "file '%s' could not be found" fileName
                           :: sprintf "pwd = %s" (Sys.getcwd())
                           :: List.map (sprintf "zomp-include-dir %s") !includePath))]
           | error ->
@@ -2595,7 +2595,7 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
               (sprintf "%s, while compiling included file %s" msg fileName)
         end
       | invalidExpr ->
-        errorFromExpr invalidExpr ("Expecting 'include \"fileName.zomp\"'"))
+        errorFromExpr invalidExpr ("expecting 'include \"fileName.zomp\"'"))
 
 let makeTranslateSeqFunction handleLLVMCodeF =
   translateSeqTL handleLLVMCodeF translateTLNoErr

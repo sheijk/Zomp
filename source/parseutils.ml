@@ -62,7 +62,7 @@ let parseIExprs source =
     | Newparser.Error ->
       Error {
         location = Some (Indentlexer.locationOfLexstate lexstate);
-        reason = "No rule matched";
+        reason = "no rule matched";
       }
     | Indentlexer.UnknowToken (location, token, reason) ->
       Error {
@@ -77,7 +77,7 @@ let parseIExprs source =
     | exc ->
       Error {
         location = Some (Indentlexer.locationOfLexstate lexstate);
-        reason = sprintf "Unknown exception: %s" (Printexc.to_string exc)
+        reason = sprintf "unknown exception: %s" (Printexc.to_string exc)
       }
 
 let parseIExprsOpt source =

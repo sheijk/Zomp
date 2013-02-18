@@ -67,7 +67,7 @@ let dequoteEscapeSequence str =
   else try
     List.assoc str specialStrings
   with Not_found ->
-    failwith (sprintf "Cannot dequote escape sequence %s" str)
+    failwith (sprintf "cannot dequote escape sequence %s" str)
 
 let string2integralValue str =
   let dequoteString quoteChar str =
@@ -137,7 +137,7 @@ let rec validateValue = function
   | ArrayVal (memberType, values) as arrayValue ->
       let validateMemberVal value =
         if (typeOf value <> memberType) then
-          failwith (sprintf "Member of %s array had type %s"
+          failwith (sprintf "member of %s array had type %s"
                       (typeName memberType)
                       (typeName (typeOf value)));
         ignore (validateValue value);

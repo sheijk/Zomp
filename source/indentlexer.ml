@@ -199,7 +199,7 @@ let stripComments fileName source =
     let invalidCharLiteral msg =
       raiseIndentError
         { line = getLine(); fileName = fileName }
-        (sprintf "Error in char literal %s" msg)
+        (sprintf "error in char literal %s" msg)
     in
     match copyChar() with
       | '\\' ->
@@ -544,12 +544,12 @@ end = struct
              let last = Str.last_chars s 1 in
              String.contains "\n()[]{}" last.[0])
            then
-             failwith (sprintf "Internal error at token \"%s\"" s)
+             failwith (sprintf "internal error at token \"%s\"" s)
            else
              match splitup postfixOps s with
                | Some tokens -> `MultiTokens (List.map (fun n -> POSTFIX_OP n) tokens)
                | None ->
-                   failwith (sprintf "Internal error in parser at token \"%s\"" s))
+                   failwith (sprintf "internal error in parser at token \"%s\"" s))
       in
       let prefixRule =
         (Or (Whitespace, Or (OpenParen, Operator)),
@@ -684,7 +684,7 @@ let putback lexbuf string =
   let lastChars = Str.last_chars lexbuf.lastReadChars len in
   if lastChars <> string then begin
     printf
-      "Assertion failure: expected \"%s\" but found \"%s\"" lastChars string;
+      "assertion failure: expected \"%s\" but found \"%s\"" lastChars string;
     assert false;
   end;
   backTrack lexbuf len
@@ -843,7 +843,7 @@ let token (lexbuf : token lexerstate) : token =
 
     if lexbuf.readTokenBefore = false then begin
       if indent = prevIndent then continueLexing ()
-      else raiseIndentError lexbuf.location "First line needs to be indented at column 0"
+      else raiseIndentError lexbuf.location "first line needs to be indented at column 0"
     end else begin
       let onSameIndent() =
         `Token END
@@ -880,7 +880,7 @@ let token (lexbuf : token lexerstate) : token =
       end else begin
         raiseIndentError lexbuf.location
           (sprintf
-             "Indentation was reduced by %d spaces but only steps of 2 are legal"
+             "indentation was reduced by %d spaces but only steps of 2 are legal"
              (prevIndent - indent))
       end
     end

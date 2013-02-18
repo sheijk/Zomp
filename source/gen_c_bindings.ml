@@ -733,7 +733,7 @@ struct
           with
               Type_not_found t ->
                 let msg = Printf.sprintf
-                  "Type '%s' not found in expression %s"
+                  "type '%s' not found in expression %s"
                   t
                   (Printer.expr2string expr)
                 in
@@ -1012,10 +1012,10 @@ let _ =
       | [| _; "-lang"; "zomp-glprinter"; moduleName |] ->
           ZombindingsGLPrinterGen.process_file, moduleName
       | [| _; "-lang"; invalidLanguage; _ |] ->
-          eprintf "Language %s is not supported. Try ml or zomp\n" invalidLanguage;
+          eprintf "language %s is not supported. Try ml or zomp\n" invalidLanguage;
           exit errorInvalidLanguage;
       | _ ->
-          eprintf "Invalid arguments. 'gencode -lang lang foo' will generate bindings for module foo and language lang\n";
+          eprintf "invalid arguments. 'gencode -lang lang foo' will generate bindings for module foo and language lang\n";
           exit errorInvalidParams
   in
   try
@@ -1024,13 +1024,13 @@ let _ =
     | Invalid_argument msg
     | Sys_error msg ->
         begin
-          printf "System error: %s\n" msg;
+          printf "system error: %s\n" msg;
           Printexc.print_backtrace stdout;
           exit 1;
         end
     | Compile_error command ->
         begin
-          print_string ("Generating bindings failed: " ^ command);
+          print_string ("generating bindings failed: " ^ command);
           Printexc.print_backtrace stdout;
           exit 2;
         end

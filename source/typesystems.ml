@@ -269,7 +269,7 @@ struct
   let parseValue (typ :typ) str :value =
     let unquoted quoteChar str =
       let error() =
-        raise (Failure (sprintf "Expected format %ctext%c" quoteChar quoteChar));
+        raise (Failure (sprintf "expected format %ctext%c" quoteChar quoteChar));
       in
       let length = String.length str in
       if length < 2 then
@@ -293,22 +293,22 @@ struct
         | `Pointer `Char -> StringLiteral (unquoted '"' str)
         | `Pointer t -> if str == "null"
           then NullpointerVal t
-          else failwith "Only null is a valid pointer value"
-        | `Array _ -> failwith "Cannot parse arrays"
-        | `Record _ -> failwith "Cannot parse records"
-        | `Function _ -> failwith "Cannot parse function ptr values"
-        | `ParametricType _ -> failwith "Cannot parse parametric type"
-        | `TypeParam -> failwith "Cannot parse a type parameter"
+          else failwith "only null is a valid pointer value"
+        | `Array _ -> failwith "cannot parse array values"
+        | `Record _ -> failwith "cannot parse record values"
+        | `Function _ -> failwith "cannot parse function ptr values"
+        | `ParametricType _ -> failwith "cannot parse values of parametric type"
+        | `TypeParam -> failwith "cannot parse a type parameter"
         | `TypeRef name ->
-          failwith (sprintf "Cannot parse value of type %s referred by name" name)
+          failwith (sprintf "cannot parse value of type %s referred by name" name)
         | `ErrorType _ as t ->
-          failwith (sprintf "Cannot parse value of type %s" (typeName t))
+          failwith (sprintf "cannot parse value of type %s" (typeName t))
       end with
         | Failure s -> failwith (sprintf "%s (when parsing %s)" s str)
 
   let rec defaultValue : typ -> value = function
     | `Void -> VoidVal
-    | `TypeRef name -> failwith (sprintf "No default value for type %s referred by name" name)
+    | `TypeRef name -> failwith (sprintf "no default value for type %s referred by name" name)
     | `Int8 -> Int8Val 0l
     | `Int16 -> Int16Val 0l
     | `Int32 -> Int32Val 0l
@@ -325,7 +325,7 @@ struct
         ArrayVal (memberType, Common.listCreate size (defaultValue memberType))
     | `Function t -> NullpointerVal (`Function t)
     | `ParametricType t ->
-        failwith (sprintf "No default value for parametric types (here: %s)"
+        failwith (sprintf "no default value for parametric types (here: %s)"
                     (typeName (t :> typ)))
     | `TypeParam ->
         failwith "no default value for type parameter"

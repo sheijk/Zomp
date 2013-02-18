@@ -51,7 +51,7 @@ let typeCheckFuncCall typeCheck bindings funcallForm call =
   if (if call.fcvarargs then argCount < paramCount else argCount != paramCount) then
     TypeError (
       Form funcallForm,
-      sprintf "Expected %d params, but used with %d args" paramCount argCount,
+      sprintf "expected %d params, but used with %d args" paramCount argCount,
       `Void,
       `Void)
   else
@@ -73,7 +73,7 @@ let typeCheckFuncCall typeCheck bindings funcallForm call =
                     | None, wrongType ->
                         addError
                           (Form funcallForm)
-                          (sprintf "Argument %d has invalid type" argNum)
+                          (sprintf "argument %d has invalid type" argNum)
                           wrongType
                           (paramType :> typeRequirement)
                     | Some t1, `Pointer t2 when equalTypes bindings t1 t2 ->
@@ -98,7 +98,7 @@ let typeCheckFuncCall typeCheck bindings funcallForm call =
                   if not (equalTypes bindings paramType argType) then
                     addError
                       (Form argForm)
-                      (sprintf "Argument %d has invalid type" argNum)
+                      (sprintf "argument %d has invalid type" argNum)
                       argType
                       (paramType :> typeRequirement)
             end
@@ -133,7 +133,7 @@ let rec typeCheck bindings form : typecheckResult =
             TypeOf pointerType
         | TypeOf invalidType ->
             TypeError (Form form,
-                       "Expected pointer type",
+                       "expected pointer type",
                        invalidType,
                        `Pointer `Void)
         | _ as e -> e
@@ -143,7 +143,7 @@ let rec typeCheck bindings form : typecheckResult =
         | TypeOf typ when typ = expectType -> TypeOf typ
         | TypeOf invalidType ->
             TypeError (
-              Form form, "Invalid type in 2nd parameter", invalidType, `Int32)
+              Form form, "invalid type in 2nd parameter", invalidType, `Int32)
         | _ as e -> e
     in
     let (>>) l r =
@@ -182,7 +182,7 @@ let rec typeCheck bindings form : typecheckResult =
             | TypeOf exprType when equalTypes bindings exprType v.typ -> TypeOf `Void
             | TypeOf exprType -> TypeError (
                 Form assignVarForm,
-                "Cannot assign result of expression to var because types differ",
+                "cannot assign result of expression to var because types differ",
                 exprType,
                 (v.typ :> typeRequirement))
             | _ as typeError -> typeError
@@ -200,7 +200,7 @@ let rec typeCheck bindings form : typecheckResult =
               | RegisterStorage ->
                   TypeError (
                     Form getaddrForm,
-                    "Cannot get address of variable with register storage",
+                    "cannot get address of variable with register storage",
                     var.typ,
                     `Any "pointer")
           end
@@ -226,7 +226,7 @@ let rec typeCheck bindings form : typecheckResult =
                   TypeOf targetType
               | TypeOf invalid ->
                   TypeError (
-                    Form loadform, "Expected pointer", invalid, `Any "pointer")
+                    Form loadform, "expected pointer", invalid, `Any "pointer")
               | TypeError _ as t -> t
           end
       | `GetFieldPointerIntrinsic (recordForm, fieldName) as getfieldForm ->
@@ -240,13 +240,13 @@ let rec typeCheck bindings form : typecheckResult =
                       | None ->
                           TypeError(
                             Form getfieldForm,
-                            "Component not found",
+                            "component not found",
                             `Void, `Void)
                   end
               | TypeOf nonPtrToRecord ->
                   TypeError (
                     Form getfieldForm,
-                    "Expected pointer to record type",
+                    "expected pointer to record type",
                     nonPtrToRecord, `Any "pointer to record")
               | _ as typeError ->
                   typeError
@@ -265,9 +265,9 @@ let rec typeCheck bindings form : typecheckResult =
               if (equalTypes bindings lhsType rhsType) then
                 TypeOf `Int32
               else
-                TypeError (Form form, "Expected pointers to same type", rhsType, lhsType)
+                TypeError (Form form, "expected pointers to same type", rhsType, lhsType)
             | _, _ ->
-              TypeError (Form form, "Expected two pointers", `Void, `Void)
+              TypeError (Form form, "expected two pointers", `Void, `Void)
         end
       | `CastIntrinsic (targetType, valueExpr) ->
           TypeOf targetType
@@ -458,7 +458,7 @@ let rec typeCheckTL bindings = function
               | TypeOf wrongType ->
                   TypeError (
                     Form impl,
-                    "Function's return type is not equal to it's implementation",
+                    "function's return type is not equal to it's implementation",
                     f.rettype,
                     (wrongType :> typeRequirement))
               | TypeError _ as e ->
@@ -488,7 +488,7 @@ let functionIsValid func =
           let labels, targets = collectLabels funcImpl in
           let checkTarget target =
             if List.mem target labels then `Ok
-            else `Errors [(sprintf "Label %s does not exist" target)]
+            else `Errors [(sprintf "label %s does not exist" target)]
           in
           let jumpChecks = List.map checkTarget targets in
           let rec lastInstruction = function

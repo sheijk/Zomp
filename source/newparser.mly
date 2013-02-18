@@ -37,7 +37,7 @@
     | invalidString ->
         raise (ParseError
                  (Printf.sprintf
-                    "Invalid quoting char: %s"
+                    "invalid quoting char: %s"
                     invalidString))
 
   let opName opSymbol = "op" ^ opSymbol
@@ -59,7 +59,7 @@
           when exprId = firstTerm ->
           checkAll (remExprs, remTerms)
       | _, _ ->
-          raiseParseError (Printf.sprintf "Invalid terminators: %s for %s"
+          raiseParseError (Printf.sprintf "invalid terminators: %s for %s"
                              (Common.combine " " terminators)
                              (toString expr) )
     in
@@ -68,14 +68,14 @@
   let expectNoTerminators = function
     | [] -> ()
     | invalidTerminators ->
-        raiseParseError (Printf.sprintf "Expected no terminators but found: %s"
+        raiseParseError (Printf.sprintf "expected no terminators but found: %s"
                            (Common.combine " " invalidTerminators))
 
   let exprOfNoTerm ((expr :sexpr), (terminators :string list)) =
     match terminators with
       | [] -> expr
       | invalidTerminators -> raiseParseError
-          (Printf.sprintf "Expected no terminators but found %s in %s"
+          (Printf.sprintf "expected no terminators but found %s in %s"
              (Common.combine " " invalidTerminators)
              (toString expr))
 
@@ -88,7 +88,7 @@
       | (expr, []) :: rem ->
           worker (expr::acc) rem
       | (expr, invalidTerminators) :: rem ->
-          raiseParseError (Printf.sprintf "Expected no terminators but found %s in %s"
+          raiseParseError (Printf.sprintf "expected no terminators but found %s in %s"
                              (Common.combine " " invalidTerminators)
                              (toString expr))
     in
@@ -102,7 +102,7 @@
     | (keyword, (expr, [])) :: rem ->
         (keyword, expr) :: extractKeywordsAndExprsAndCheckTerminators rem
     | (keyword, (expr, terminators)) :: _ ->
-        raiseParseError (Printf.sprintf "Found invalid terminators '%s' after block in expr %s"
+        raiseParseError (Printf.sprintf "found invalid terminators '%s' after block in expr %s"
                            (Common.combine ", " terminators)
                            (toString expr))
 
