@@ -3,7 +3,7 @@
 ///
 
 func int sum(int l, int r):
-  ret l + r
+  ret (l + r)
 end
 
 /// doesn't work, yet
