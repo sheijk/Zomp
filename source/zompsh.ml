@@ -467,8 +467,8 @@ struct
   open Expander
   open Ast2
 
-  let translateLinkCLib env = function
-    | { args = [{id = fileName; args = []}] } ->
+  let translateLinkCLib dllPath env = function
+    | { args = [{id = fileName; args = []}] } as expr ->
         begin
           let fileName = Common.removeQuotes fileName in
           let dllExtensions = ["dylib"; "so"; "dll"] in
@@ -479,11 +479,20 @@ struct
               (sprintf "%s has invalid extension for a dll. Supported: %s"
                  fileName (Common.combine ", " dllExtensions))
           else
-            let handle = Zompvm.zompLoadLib fileName in
-            if handle = 0 then
-              Expander.errorFromStringDeprecated (sprintf "could not load C library '%s'\n" fileName)
-            else
-              Expander.tlReturnNoExprs env
+            match findFileIn fileName !dllPath with
+              | Some fullName ->
+                let handle = Zompvm.zompLoadLib fullName in
+                if handle = 0 then
+                  Expander.errorFromExpr expr
+                    (sprintf "could not load C library '%s'\n" fullName)
+                else
+                  Expander.tlReturnNoExprs env
+              | None ->
+                Expander.errorFromExpr expr
+                  (Common.combine "\n  "
+                     (sprintf "could not load C library '%s'," fileName
+                      :: sprintf "pwd = %s" (Sys.getcwd())
+                      :: List.map (sprintf "zomp-include-dir %s") !dllPath))
         end
     | invalidExpr ->
         Expander.errorFromStringDeprecated
@@ -656,10 +665,17 @@ let () =
   in
   let addToplevelInstr = Expander.addToplevelInstruction in
   addToplevelInstr "include" "zompSourceFile" translateInclude;
+
   addToplevelInstr "std:base:run" "statement..." translateRun;
   addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
+
+  let dllPath = ref [] in
+  let addDllPath path where = addToList dllPath path where in
+  addDllPath "." `Back;
+  addDllPath "./libs" `Back;
+  addDllPath "./tools/external/lib" `Back;
   addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
-    CompilerInstructions.translateLinkCLib;
+    (CompilerInstructions.translateLinkCLib dllPath);
 
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;

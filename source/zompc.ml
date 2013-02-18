@@ -97,12 +97,7 @@ let compile fileName instream outstream =
   end
 
 let includePath = ref []
-
-let addIncludePath path = function
-  | `Back ->
-    includePath := !includePath @ [path]
-  | `Front ->
-    includePath := path :: !includePath
+let addIncludePath path where = addToList includePath path where
 
 module CompilerInstructions =
 struct

@@ -526,3 +526,9 @@ let rec listContains element = function
   | e :: rem when e = element -> true
   | _ :: rem -> listContains element rem
 
+let addToList (listPlace :'a list ref) (newElement :'a) = function
+  | `Back ->
+    listPlace := !listPlace @ [newElement]
+  | `Front ->
+    listPlace := newElement :: !listPlace
+
