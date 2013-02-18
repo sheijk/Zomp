@@ -187,7 +187,8 @@ use global one"
   "Major mode for a zomp shell in which you can interactively
   compile and run zomp code"
   (set (make-variable-buffer-local 'comint-use-prompt-regexp) t)
-  (set (make-variable-buffer-local 'comint-prompt-regexp) "  # "))
+  (set (make-variable-buffer-local 'comint-prompt-regexp) "  # ")
+  (compilation-shell-minor-mode))
 
 (defun zomp-shell ()
   (interactive)
