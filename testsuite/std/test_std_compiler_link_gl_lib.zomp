@@ -1,8 +1,8 @@
 ///
-/// Test whether linking with OpenGL libs works in zompsh
+/// Test whether linking with OpenGL libs works in zompc
 ///
 
-requireLibs libcee opengl20 glfw glutils
+requireLibs libcee opengl20 glfw glut glutils
 
 var int windowWidth 400
 var int windowHeight 300

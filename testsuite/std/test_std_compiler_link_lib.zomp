@@ -1,0 +1,35 @@
+///
+/// Testing whether utils lib can be linked in zompc
+///
+
+requireLibs libcee unittest
+requireLibs utils
+
+unittest:testCase BasicStringMap:
+  a := new int 10
+  b := new int 20
+  c := new int 30
+  m := StringMap_new()
+
+  StringMap_insert m "a" (cast void* a)
+  StringMap_insert m "b" (cast void* b)
+  StringMap_insert m "c" (cast void* c)
+
+  unittest:assertAll:
+    10 == *(cast int* StringMap_find(m, "a"))
+    20 == *(cast int* StringMap_find(m, "b"))
+    30 == *(cast int* StringMap_find(m, "c"))
+  end
+
+  StringMap_debugPrint m
+
+  StringMap_delete m
+  dealloc a
+  dealloc b
+  dealloc c
+
+  println "utils-dll-worked" //// print utils-dll-worked
+end
+
+unittest:main
+
