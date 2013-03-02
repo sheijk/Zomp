@@ -9,7 +9,6 @@ open Basics
 module Utilities =
 struct
   let log message =
-    (* () *)
     eprintf "%s\n" message;
     flush stderr
 

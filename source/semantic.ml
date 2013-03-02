@@ -491,12 +491,12 @@ let functionIsValid func =
             else `Errors [(sprintf "label %s does not exist" target)]
           in
           let jumpChecks = List.map checkTarget targets in
-          let rec lastInstruction = function
-            | `Sequence [] as last -> last
-            | `Sequence [last] -> last
-            | `Sequence (_::tl) -> lastInstruction (`Sequence tl)
-            | _ as last -> last
-          in
+          (* let rec lastInstruction = function *)
+          (*   | `Sequence [] as last -> last *)
+          (*   | `Sequence [last] -> last *)
+          (*   | `Sequence (_::tl) -> lastInstruction (`Sequence tl) *)
+          (*   | _ as last -> last *)
+          (* in *)
           (*           let lastInstrCheck =  *)
 (*             match lastInstruction funcImpl with *)
 (*               | `Jump _ | `Branch _ | `Return _ -> `Ok *)
