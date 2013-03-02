@@ -285,24 +285,24 @@ test: $(TEST_SUB_TARGETS)
 # Rules
 ################################################################################
 
-%.ml: %.mly
+%.ml: %.mly $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating parser $< ...
 	$(MENHIR) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
-%.ml: %.mll
+%.ml: %.mll $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-%.cmi: %.mli
+%.cmi: %.mli $(OUT_DIR)/has_ocaml
 	@$(ECHO) "Compiling $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-%.cmo %.cmi: %.ml
+%.cmo %.cmi: %.ml $(OUT_DIR)/has_ocaml
 	@$(ECHO) "Compiling (bytecode) $< ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
-%.cmx %.cmi: %.ml
+%.cmx %.cmi: %.ml $(OUT_DIR)/has_ocaml
 	@$(ECHO) "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
@@ -318,11 +318,11 @@ test: $(TEST_SUB_TARGETS)
 	$(ECHO) Compiling $(<) to .ll...
 	$(ZOMPC) -c $< $(ZOMPCFLAGS) || (rm -f $@; exit 1)
 
-%.bc: %.ll
+%.bc: %.ll $(OUT_DIR)/has_llvm
 	@echo Compiling $< to $@
 	$(LLVM_AS) -f $< -o $@
 
-%.opt-bc: %.bc
+%.opt-bc: %.bc $(OUT_DIR)/has_llvm
 	@$(ECHO) Optimizing $< to $@ ...
 	$(LLVM_OPT) $< -o $@ -O3
 
@@ -441,6 +441,20 @@ LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 
 ################################################################################
+# Check OCaml and menhir installation
+################################################################################
+
+$(OUT_DIR)/has_ocaml:
+	@$(ECHO) "Checking OCaml ..."
+	(file `which ocamlopt.opt` | grep $(ARCH)) || $(error "OCaml for $(ARCH) not found, please install")
+	touch $@
+
+$(OUT_DIR)/has_menhir:
+	@$(ECHO) "Checking Menhir ..."
+	(file `which menhir` | grep $(ARCH)) > /dev/null || $(ECHO) "error: Menhir for $(ARCH) not found, please install"
+	touch $@
+
+################################################################################
 # Dependencies
 #
 # Try to detect dependencies automatically. Does not work for everything, yet,
@@ -461,8 +475,8 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
 source/newparser.ml: source/newparser.mly source/ast2.cmo
 source/newparser_tests.cmo: source/newparser.cmo
 source/newparser_tests.cmx: source/newparser.cmx
-source/indentlexer.cmo: source/newparser.ml
-source/indentlexer.cmi: source/newparser.ml
+source/indentlexer.cmo: source/newparser.cmo
+source/indentlexer.cmi: source/newparser.cmi
 
 source/machine.cmo: source/machine.skel $(ZOMP_DLL_FILE)
 source/machine.cmx: source/machine.skel $(ZOMP_DLL_FILE)
