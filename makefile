@@ -550,44 +550,50 @@ build/cloc.txt: $(CLOC_LANG_DEF_FILE)
 
 .PHONY: clean clean_tags clean_all
 
+CLEAN_SUB_TARGETS += source/clean
+source/clean:
+	$(DELETE_FILE) source/zompc.{cmo,cmi,o}
+	$(DELETE_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE)
+	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
+	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
+	$(DELETE_FILE) $(ZOMPSH_FILE) $(ZOMPSH_BYTE_FILE) source/zompsh.cmi source/zompsh.cmo source/zompsh.o
+	$(DELETE_FILE) source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
+	$(DELETE_FILE) source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
+	$(DELETE_FILE) $(ZOMP_DLL_FILE) source/libzompvm.a
+	$(DELETE_FILE) source/zompvm_impl.o source/zompvm_dummy.o
+	$(DELETE_FILE) source/zompvm_caml.o source/zompvm_caml_dummy.o
+	$(DELETE_FILE) source/*_flymake.*
+	$(DELETE_FILE) source/indentlexer.{cmi,cmo,cma,cmx,o}
+	$(DELETE_FILE) source/indentlexer_tests.{cmi,cmo,o}
+	$(DELETE_FILE) source/newparser.{cmi,cmo,o,ml,mli,conflicts}
+	$(DELETE_FILE) source/newparser_tests.{cmi,cmo,o} source/newparser_tests
+	$(DELETE_FILE) source/expandertests.cm? source/alltests.cm? source/alltests
+	$(DELETE_FILE) source/mltest.cmo source/mltest.cmi source/mltest.o
+	$(DELETE_FILE) source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
+	$(DELETE_FILE) source/gen_c_bindings.o
+	$(DELETE_FILE) source/dllzompvm.so
+
 clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
-	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
-	$(RM) -f $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
-	$(RM) -f expander_tests.cm?
-	$(RM) -f source/zompc.cm? source/zompc.o $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE)
-	$(RM) -f source/runtime.bc source/runtime.ll source/runtime.o
-	$(RM) -f $(ZOMPSH_FILE) $(ZOMPSH_BYTE_FILE) source/zompsh.cmi source/zompsh.cmo source/zompsh.o
-	$(RM) -f source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
-	$(RM) -f source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
-	$(RM) -f forktest forktest.cmi forktest.cmo
-	$(RM) -f $(ZOMP_DLL_FILE) source/libzompvm.a
-	$(RM) -f source/zompvm_impl.o source/zompvm_dummy.o
-	$(RM) -f testdll.o dlltest.dylib
-	$(RM) -f *_flymake.*
-	$(RM) -f source/*_flymake.*
-	$(RM) -f source/*.cmx
-	$(RM) -f $(OUT_DIR)/deps.png $(OUT_DIR)/deps.dot
-	$(RM) -f $(AUTO_DEPENDENCY_FILE)
-	$(RM) -f libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
-	$(RM) -f source/indentlexer.cm? source/newparser.cm? source/newparser.o source/indentlexer.o source/newparser.ml source/newparser.mli source/newparser.conflicts
-	$(RM) -f source/newparser_tests.cmi source/newparser_tests.cmo source/newparser_tests source/newparser_tests.o
-	$(RM) -f source/indentlexer_tests.cmo source/indentlexer_tests.cmi
-	$(RM) -f source/expandertests.cm? source/alltests.cm? source/alltests
-	$(RM) -f perflog.txt
-	$(RM) -f source/mltest.cmo source/mltest.cmi
-	$(RM) -f libs/libutils.dylib
-	$(RM) -f gmon.out
-	$(RM) -f source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
-	$(RM) -f $(DEPLOY_DIR)/vm_http_server
-	$(RM) -f $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
+	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
+	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
+	$(DELETE_FILE) expander_tests.cm?
+	$(DELETE_FILE) *_flymake.*
+	$(DELETE_FILE) $(OUT_DIR)/deps.{png,dot}
+	$(DELETE_FILE) $(AUTO_DEPENDENCY_FILE)
+	$(DELETE_FILE) libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
+	$(DELETE_FILE) perflog.txt
+	$(DELETE_FILE) libs/libutils.dylib
+	$(DELETE_FILE) gmon.out
+	$(DELETE_FILE) $(DEPLOY_DIR)/vm_http_server
+	$(DELETE_FILE) $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
 
 clean_tags:
-	$(RM) -f source/*.annot
-	$(RM) -f source/*.conflicts
-	$(RM) -f TAGS
-	$(RM) -f $(FLYMAKE_LOG)
+	$(DELETE_FILE) source/*.annot
+	$(DELETE_FILE) source/*.conflicts
+	$(DELETE_FILE) TAGS
+	$(DELETE_FILE) $(FLYMAKE_LOG)
 
 clean_all: clean clean_tags
 

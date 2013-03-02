@@ -79,6 +79,7 @@ ECHO = echo
 CAT = cat
 CP = cp
 RM = rm
+DELETE_FILE = $(RM) -f
 SED = sed
 # TR = tc
 TR = tr
