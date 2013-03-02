@@ -122,8 +122,7 @@ LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
   source/typesystems.cmo source/bindings.cmo source/ast2.cmo source/lang.cmo \
   source/semantic.cmo source/machine.cmo source/zompvm.cmo source/genllvm.cmo \
   $(ZOMP_DLL_FILE) source/indentlexer.cmo source/newparser.cmo \
-  source/parseutils.cmo source/expander.cmo source/testing.cmo \
-  source/compileutils.cmo
+  source/parseutils.cmo source/expander.cmo source/compileutils.cmo
 
 # When this is changed, LANG_CMOS and CAMLDEP_INPUT will need to be changed, too
 LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx \
@@ -159,7 +158,7 @@ $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 
 $(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE) source/machine.cmo source/zompvm.cmo source/zompc.cmo
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
 
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
@@ -238,7 +237,7 @@ $(BUILD_DIR)/report.html:
 
 $(OUT_DIR)/mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS) $(BUILD_DIR)/.exists
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS)
+	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS)
 
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
 MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
