@@ -923,8 +923,7 @@ editor to trigger recompilations etc. and possibly resume main()"
           (search-forward " =")
           (let ((startpos (point)))
             (end-of-line)
-            (concat symbol ": " (buffer-substring startpos (point))))
-          )))))
+            (concat symbol ": " (buffer-substring startpos (point)))))))))
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
@@ -993,9 +992,6 @@ editor to trigger recompilations etc. and possibly resume main()"
           (delete-overlay zomp-marker-overlay)
           (next-line)
           )))))
-
-(provide 'zomp)
-
 
 (provide 'zomp)
 
