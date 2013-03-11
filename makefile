@@ -85,7 +85,7 @@ include examples/examples.mk
 include examples/smallpt/smallpt.mk
 include bindgen/bindgen.mk
 
-PATH := $(LLVM_BIN_DIR):$(PATH)
+PATH := $(LLVM_BIN_DIR):$(PATH):./tools/arch-$(ARCH)/bin:$(OCAMLPATH)
 
 CXXFLAGS += -I /usr/local/lib/ocaml/ -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)

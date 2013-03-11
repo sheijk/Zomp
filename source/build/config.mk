@@ -2,15 +2,27 @@
 # Setting up paths and options for most tools
 #
 
-ZOMP_TOOL_PATH=$(ZOMP_DIR)/tools
+# ARCH=i386
+ARCH=x86_64
 
+ifeq "$(ARCH)" "i386"
+ARCHFLAG = -m32
+else
+  ifeq "$(ARCH)" "x86_64"
+    ARCHFLAG = -m64
+  else
+    $(error "Only i386 and x86_64 architectures supported")
+  endif
+endif
+
+ZOMP_TOOL_PATH=$(ZOMP_DIR)/tools/arch-$(ARCH)
 LLVM_VERSION=2.9
 
 ifeq "$(DEBUG)" "1"
-  BUILD_VARIANT = debug_32
+  BUILD_VARIANT = debug-$(ARCH)
 else
   ifeq "$(DEBUG)" "0"
-  BUILD_VARIANT = release_32
+  BUILD_VARIANT = release-$(ARCH)
   else
     $(error Please define DEBUG to be either 0 or 1)
   endif
@@ -22,7 +34,7 @@ endif
 
 OCAML_BIN_POSTFIX = .opt
 
-OCAMLPATH = 
+OCAMLPATH =
 OCAMLLEX = $(OCAMLPATH)ocamllex$(OCAML_BIN_POSTFIX)
 OCAMLYACC = $(OCAMLPATH)ocamlyacc
 MENHIR = $(OCAMLPATH)menhir
@@ -48,7 +60,7 @@ else
 LLVM_VARIANT = Release
 endif
 
-LLVM_BASE_DIR = $(ZOMP_TOOL_PATH)/llvm-$(LLVM_VERSION)
+LLVM_BASE_DIR = $(ZOMP_TOOL_PATH)/sources/llvm-$(LLVM_VERSION)
 LLVM_BIN_DIR = $(LLVM_BASE_DIR)/$(LLVM_VARIANT)/bin
 LLVM_INCLUDE_DIR = $(LLVM_BASE_DIR)/include
 LLVM_LIB_DIR = $(LLVM_BASE_DIR)/$(LLVM_VARIANT)/lib
@@ -129,8 +141,6 @@ CAML_PP =
 CAML_FLAGS = $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP)
 
-ARCHFLAG = -m32
-
 LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
 
 BUILD_PLATFORM := $(shell 'uname')
@@ -165,7 +175,7 @@ LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
 
-LDFLAGS += -Llibs -Ltools/external/libs
+LDFLAGS += -Llibs -Ltools/arch-$(ARCH)/external/libs
 
 LINK_QUICKTEXT = libs/libquicktext.$(DLL_EXTENSION)
 LINK_ANTTWEAKBAR = tools/external/lib/libAntTweakBar.$(DLL_EXTENSION)
