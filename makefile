@@ -75,6 +75,7 @@ include source/build/flymake.mk
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
 TEST_SUB_TARGETS =
+FILES_TO_DELETE_ON_CLEAN =
 
 AUTO_DEPENDENCY_FILE = $(OUT_DIR)/auto_depends.mk
 -include $(AUTO_DEPENDENCY_FILE)
@@ -427,11 +428,13 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
 
+FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_llvm
 $(OUT_DIR)/has_llvm:
 	@$(ECHO) Checking if LLVM exists ...
 	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
 
+FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_clang
 $(OUT_DIR)/has_clang:
 	@$(ECHO) Checking if clang exists ...
 	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
@@ -444,11 +447,13 @@ LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 # Check OCaml and menhir installation
 ################################################################################
 
+FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_ocaml
 $(OUT_DIR)/has_ocaml:
 	@$(ECHO) "Checking OCaml ..."
 	(file `which ocamlopt.opt` | grep $(ARCH)) || $(error "OCaml for $(ARCH) not found, please install")
 	touch $@
 
+FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_menhir
 $(OUT_DIR)/has_menhir:
 	@$(ECHO) "Checking Menhir ..."
 	(file `which menhir` | grep $(ARCH)) > /dev/null || $(ECHO) "error: Menhir for $(ARCH) not found, please install"
@@ -565,6 +570,7 @@ build/cloc.txt: $(CLOC_LANG_DEF_FILE)
 
 CLEAN_SUB_TARGETS += source/clean
 source/clean:
+	$(DELETE_FILE) $(FILES_TO_DELETE_ON_CLEAN)
 	$(DELETE_FILE) source/zompc.{cmo,cmi,o}
 	$(DELETE_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE)
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
