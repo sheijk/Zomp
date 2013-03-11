@@ -398,9 +398,9 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 # LLVM download and compilation
 ################################################################################
 
-LLVM_INSTALL_HELP = "You do not have LLVM and clang installed. Please run make	\
-tools/llvm-$(LLVM_VERSION) to download and build them (requires an internet		\
-connection of course). Note that at least on Mac OS X you cannot use the		\
+LLVM_INSTALL_HELP = "error: You do not have LLVM and clang installed. Please \
+run make tools/llvm-$(LLVM_VERSION) to download and build them (requires an \
+internet connection). Note that at least on Mac OS X you cannot use the \
 prebuilt libraries as they are 64-bit"
 
 tools/clang-$(LLVM_VERSION).tgz:
@@ -430,34 +430,46 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 
 FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_llvm
 $(OUT_DIR)/has_llvm:
-	@$(ECHO) Checking if LLVM exists ...
+	@$(ECHO) "Checking LLVM ..."
 	($(WHICH) -s $(LLVM_AS)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
 
 FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_clang
 $(OUT_DIR)/has_clang:
-	@$(ECHO) Checking if clang exists ...
+	@$(ECHO) "Checking clang ..."
 	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
 
 LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 
+.PHONY: check_llvm
+check_llvm: $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
+
 ################################################################################
 # Check OCaml and menhir installation
 ################################################################################
 
+OCAML_INSTALL_HELP = "error: OCaml for $(ARCH) not found in $(PATH), please install"
+
 FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_ocaml
+FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_ocaml.tmp
 $(OUT_DIR)/has_ocaml:
 	@$(ECHO) "Checking OCaml ..."
-	(file `which ocamlopt.opt` | grep $(ARCH)) || $(error "OCaml for $(ARCH) not found, please install")
+	($(FILE) `$(WHICH) ocamlopt.opt` | grep $(ARCH) > $(OUT_DIR)/has_ocaml.tmp) || ($(ECHO) $(OCAML_INSTALL_HELP); exit 1)
 	touch $@
 
+MENHIR_INSTALL_HELP = "error: Menhir for $(ARCH) not found in $(PATH), please install"
+
 FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_menhir
+FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_menhir.tmp
 $(OUT_DIR)/has_menhir:
 	@$(ECHO) "Checking Menhir ..."
-	(file `which menhir` | grep $(ARCH)) > /dev/null || $(ECHO) "error: Menhir for $(ARCH) not found, please install"
+	($(FILE) `$(WHICH) menhir` | grep $(ARCH)) > $(OUT_DIR)/has_menhir.tmp || ($(ECHO) $(MENHIR_INSTALL_HELP); exit 1)
 	touch $@
+
+.PHONY: check_ocaml
+check_ocaml: $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 
 ################################################################################
 # Dependencies

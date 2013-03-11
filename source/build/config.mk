@@ -99,6 +99,7 @@ LINE_COUNT = wc -l
 SORT = sort
 LS = ls
 WHICH = which
+FILE = file
 TOUCH = touch
 
 # image magick
