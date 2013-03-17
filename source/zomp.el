@@ -185,6 +185,21 @@ use global one"
 (defvar zomp-shell-buffer-name "*zomp-shell*"
   "The name of the buffer in which the zomp shell runs")
 
+(defvar zomp-build-architecture "x86_64"
+  "The name of the architecture to be used")
+
+(defvar zomp-build-variant "release"
+  "Whether to use the Zomp \"debug\" or \"release\" build.")
+
+(defun zomp-build-name ()
+  "Returns the variant of Zomp used. This value is composed of the build variant
+and the architecture like this: \"variant-architecture\"."
+  (format "%s-%s" zomp-build-variant zomp-build-architecture))
+
+(defun zomp-zompsh-command ()
+  "Returns the command to run zompsh."
+  (format "./build/%s/deploy/zompsh" (zomp-build-name)))
+
 (define-derived-mode zomp-shell-mode shell-mode "ZompSh"
   "Major mode for a zomp shell in which you can interactively
   compile and run zomp code"
@@ -197,7 +212,7 @@ use global one"
   (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name)
         (oldwin (selected-window)))
     (let ((default-directory zomp-basedir)
-          (explicit-shell-file-name "./build/release_32/deploy/zompsh"))
+          (explicit-shell-file-name (zomp-zompsh-command)))
       (shell zomp-shell-buffer-name))
     ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
     ;; has the same value in the shell buffer as in the zomp buffer invoking
@@ -215,6 +230,18 @@ use global one"
    (when (equal create-if-not-existing 'create)
      (zomp-shell)
      (get-buffer-process zomp-shell-buffer-name))))
+
+(defun zomp-toggle-variant ()
+  "Toggle between using Zomp variants. See `zomp-build-variant'."
+  (interactive)
+  (setq zomp-build-variant
+        (if (string= "release" zomp-build-variant)
+            "debug"
+          "release"))
+  (minibuffer-message "Now using Zomp build %s%s" (zomp-build-name)
+                      (if (zomp-get-shell-buffer nil)
+                        ", need to restart zompsh to take effect"
+                        "")))
 
 (defun zomp-shell-move-point-to-end ()
   "Will move the point to the end of the shell buffer for all
@@ -749,6 +776,8 @@ editor to trigger recompilations etc. and possibly resume main()"
 
   (local-set-key [(control c) (?.) (?s)] 'zomp-shell-sexpr-syntax)
   (local-set-key [(control c) (?.) (?i)] 'zomp-shell-indent-syntax)
+
+  (local-set-key [(control c) (?.) (?D)] 'zomp-toggle-variant)
 
   (zomp-add-seperator zomp-sep-3)
   (zomp-add-action zomp-shell-run [(control c)(control d)] "Run function...")
