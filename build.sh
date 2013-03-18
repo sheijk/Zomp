@@ -16,6 +16,7 @@ make $@ SHELL="${LOGSHELL} ${BUILDLOG}"
 RETVAL=$?
 
 echo "Auto update test report ..." >> ${BUILDLOG}
+# Will always produce report in default build dir, never in debug dir, 32-bit, etc.
 make SILENT=1 report >> ${BUILDLOG}
 
 date "+Finishing build at %Y-%m-%d %H:%M:%S with ${RETVAL}" >> ${BUILDLOG}
