@@ -1,0 +1,10 @@
+/// 
+/// Simple test case not using anything outside the prelude.
+/// 
+
+std:base:func int main():
+  printInt 666 //// print 666
+  printNewline()
+  std:base:ret 0
+end
+
