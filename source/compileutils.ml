@@ -51,6 +51,8 @@ let catchingErrorsDo f ~onErrors =
         onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
       | Failure msg ->
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
+      | CatchedError errors ->
+        onErrors errors
   end
 
 let rec compile
