@@ -162,6 +162,13 @@ CCFLAGS += -fPIC
 CXXFLAGS += -fPIC
 endif
 
+CXXFLAGS += -I /usr/local/lib/ocaml/
+# OCaml deploys headers into lib dir
+CXXFLAGS += -I $(ZOMP_TOOL_PATH)/lib/ocaml/
+CCFLAGS += -I $(ZOMP_TOOL_PATH)/lib/ocaml/
+
+MENHIR_FLAGS += --stdlib $(ZOMP_TOOL_PATH)/share/menhir
+
 ################################################################################
 # Libraries
 ################################################################################

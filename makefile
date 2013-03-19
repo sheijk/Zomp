@@ -87,7 +87,7 @@ include bindgen/bindgen.mk
 
 PATH := $(LLVM_BIN_DIR):$(PATH):./tools/arch-$(ARCH)/bin:$(OCAMLPATH)
 
-CXXFLAGS += -I /usr/local/lib/ocaml/ -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
+CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)
 
@@ -288,7 +288,7 @@ test: $(TEST_SUB_TARGETS)
 
 %.ml: %.mly $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating parser $< ...
-	$(MENHIR) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
+	$(MENHIR) $(MENHIR_FLAGS) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
 %.ml: %.mll $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
