@@ -105,6 +105,7 @@ struct
   open Ast2
 
   let clibPath = ref ["."; ".."; "./libs"; "./tools/external/lib"]
+  let addDllPath path where = addToList clibPath path where
 
   let translateLinkCLib env expr =
     collectTimingInfo "translateLinkCLib"
@@ -148,6 +149,7 @@ type options = {
   traceMacroExpansion :bool;
   symbolTableDumpFile :string option;
   zompIncludePaths :string list;
+  dllPaths :string list;
 }
 
 type optionResult = Options of options | InvalidArguments of string
@@ -167,6 +169,7 @@ let extractOptions args =
   let traceMacroExpansion = ref false in
   let symbolTableDumpFile = ref "" in
   let zompIncludePaths = ref [] in
+  let dllPaths = ref [] in
   let onAnonArg str =
     raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
   in
@@ -180,7 +183,10 @@ let extractOptions args =
        "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
        "--zomp-include-dir",
          Arg.String (addRelativePath zompIncludePaths "--zomp-include-dir"),
-         "A directory to be searched by include and requireLib"]
+         "A directory to be searched by include and requireLib";
+       "--dll-dir",
+         Arg.String (addRelativePath dllPaths "--dll-dir"),
+         "A directory to be searched for dynamic libraries"]
       onAnonArg
       "zompc -c fileName.zomp\n";
     if (String.length !symbolTableDumpFile) > 0 then begin
@@ -194,6 +200,7 @@ let extractOptions args =
       traceMacroExpansion = !traceMacroExpansion;
       symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
       zompIncludePaths = !zompIncludePaths;
+      dllPaths = !dllPaths;
     }
   with
     | Arg.Bad msg
@@ -245,6 +252,7 @@ let () =
   addIncludePath compilerDir `Front;
   addIncludePath (Sys.getcwd()) `Front;
   List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
+  List.iter (fun dir -> CompilerInstructions.addDllPath dir `Front) options.dllPaths;
 
   let handleLLVMCode code = output_string outStream code in
 
