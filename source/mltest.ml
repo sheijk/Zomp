@@ -212,7 +212,9 @@ let () =
       "Expected one argument specifying the file name of a summary file";
     exit 2
   end else
-    let summaryFile = Sys.argv.(1) in
+    let summaryFile = Common.absolutePath Sys.argv.(1) in
+    Printf.printf "Writing mltest report into %s\n" summaryFile;
+    flush stdout;
     Ast2Test.run();
     runTests summaryFile
 
