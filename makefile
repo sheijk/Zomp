@@ -236,9 +236,9 @@ $(BUILD_DIR)/report.html:
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
-$(OUT_DIR)/mltest: source/testing.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS) $(BUILD_DIR)/.exists
+$(OUT_DIR)/mltest: source/testing.cmo source/mltest.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS) $(BUILD_DIR)/.exists
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS)
+	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) source/testing.cmo $(TEST_CMOS)
 
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
 MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
