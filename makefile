@@ -177,7 +177,8 @@ source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_
 	$(RM) -f source/runtime.bc source/runtime.orig.ll
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
-NEWPARSER_CMOS = $(foreach file, common.cmo testing.cmo ast2.cmo newparser.cmo indentlexer.cmo, source/$(file))
+NEWPARSER_CMOS = $(foreach file, common.cmo basics.cmo ast2.cmo newparser.cmo indentlexer.cmo, source/$(file))
+NEWPARSER_CMXS = $(NEWPARSER_CMOS:.cmo=.cmx)
 
 ################################################################################
 # ZompVM server
@@ -211,7 +212,8 @@ source/vm_protocol.o: source/vm_protocol.h
 # Tests
 ################################################################################
 
-TEST_CMOS = source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
+TEST_CMOS = source/testing.cmo source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
+TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 
 .PHONY: runtestsuite perftest2 perftest runtestsuite runtests
 .PHONY: profile_comp exampletests runmltests alltests
@@ -236,9 +238,9 @@ $(BUILD_DIR)/report.html:
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
-$(OUT_DIR)/mltest: source/testing.cmo source/mltest.cmo $(LANG_CMOS) $(NEWPARSER_CMOS) $(TEST_CMOS) $(BUILD_DIR)/.exists
+$(OUT_DIR)/mltest: $(NEWPARSER_CMXS) $(TEST_CMXS) $(BUILD_DIR)/.exists
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ bigarray.cma str.cma $(LANG_CMOS) source/testing.cmo $(TEST_CMOS)
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ bigarray.cmxa str.cmxa $(NEWPARSER_CMXS) $(TEST_CMXS)
 
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
 MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
@@ -247,7 +249,7 @@ TEST_SUB_TARGETS += runmltests
 .PHONY: runmltests
 runmltests: $(OUT_DIR)/mltest
 	@$(ECHO) Running OCaml test suite ...
-	$(OCAMLRUN) -b $(OUT_DIR)/mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE)
+	$(OUT_DIR)/mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE); exit $${PIPESTATUS}
 
 PROF_COMP_TARGET=metaballs
 
