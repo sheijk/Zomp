@@ -166,6 +166,8 @@ CXXFLAGS += -I /usr/local/lib/ocaml/
 # OCaml deploys headers into lib dir
 CXXFLAGS += -I $(ZOMP_TOOL_PATH)/lib/ocaml/
 CCFLAGS += -I $(ZOMP_TOOL_PATH)/lib/ocaml/
+LDFLAGS += -L$(ZOMP_TOOL_PATH)/lib/
+ZOMPCFLAGS += --dll-dir $(ZOMP_TOOL_PATH)/lib/
 
 MENHIR_FLAGS += --stdlib $(ZOMP_TOOL_PATH)/share/menhir
 
@@ -186,10 +188,10 @@ endif
 LDFLAGS += -Llibs -Ltools/arch-$(ARCH)/external/libs
 
 LINK_QUICKTEXT = libs/libquicktext.$(DLL_EXTENSION)
-LINK_ANTTWEAKBAR = tools/external/lib/libAntTweakBar.$(DLL_EXTENSION)
-LINK_ASSIMP = tools/external/lib/libassimp.a
+LINK_ANTTWEAKBAR = $(ZOMP_TOOL_PATH)/lib/libAntTweakBar.$(DLL_EXTENSION)
+LINK_ASSIMP = $(ZOMP_TOOL_PATH)/lib/libassimp.a
 LINK_CPPSTDLIB = -lstdc++
-LINK_GLEW = tools/external/lib/libGLEW.$(DLL_EXTENSION)
-LINK_GLFW = tools/external/lib/libglfw.$(DLL_EXTENSION)
+LINK_GLEW = $(ZOMP_TOOL_PATH)/lib/libGLEW.$(DLL_EXTENSION)
+LINK_GLFW = $(ZOMP_TOOL_PATH)/lib/libglfw.$(DLL_EXTENSION)
 LINK_UTILS = libs/libutils.$(DLL_EXTENSION)
 
