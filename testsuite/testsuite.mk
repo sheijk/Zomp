@@ -24,7 +24,7 @@ TESTSUITE_IGNORED_SOURCES = preludevalid.zomp
 TESTSUITE_SOURCES = $(wildcard $(TESTSUITE_SUBDIRS:%=testsuite/%/test_*.zomp))
 TESTSUITE_CASES = $(TESTSUITE_SOURCES:.zomp=.testreport)
 
-testsuite/%/all:
+testsuite/%/all: testsuite/selftest
 	@$(ECHO) "Running tests in $@ ..."
 	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/test_*.zomp), $(SOURCE:.zomp=.testreport))
 
@@ -40,11 +40,8 @@ testsuite/quick: testsuite/fundamental/simple-func.testreport testsuite/libs/lib
 
 .PHONY: testsuite/selftest
 testsuite/selftest: $(BUILD_DIR)/.exists
-	echo $(foreach TEST_FILE, $(TESTSUITE_SOURCES), "\n$(TEST_FILE:.testreport=.zomp)") $(foreach TEST_FILE,$(TESTSUITE_IGNORED_SOURCES), "\ntestsuite/$(TEST_FILE)") | sort > $(OUT_DIR)/tests.tmp.txt
-	echo > $(OUT_DIR)/files.tmp.txt
-	find testsuite -iname "*.zomp" | grep -v check_test_verify | sort >> $(OUT_DIR)/files.tmp.txt
-	-diff -U 0 -b $(OUT_DIR)/files.tmp.txt $(OUT_DIR)/tests.tmp.txt | grep -v "^\\(@\\|---\\|+++\\)"
-	diff -b $(OUT_DIR)/files.tmp.txt $(OUT_DIR)/tests.tmp.txt
+	@$(ECHO) "Testsuite self test ..."
+	$(OCAMLC) -o $(OUT_DIR)/check_test.cmo str.cma unix.cma testsuite/check_test.ml
 
 CLEAN_SUB_TARGETS += testsuite/clean
 .PHONY: testsuite/clean
@@ -104,7 +101,7 @@ testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
 
 TESTREPORT_LIB_DEPS = source/prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
-TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
+TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) testsuite/selftest makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
 
 .PRECIOUS: %.test_output
 %.testreport %.result %.test_output: %.zomp $(TESTREPORT_DEPS)
