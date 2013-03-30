@@ -134,8 +134,9 @@ open Utils
 
 module Expectation =
 struct
-  type t = CompilerError | CompilerWarning | CompilerInfo | RuntimePrint | TestCaseExitCode
+  type t = CompilerError | CompilerErrorNoLoc | CompilerWarning | CompilerInfo | RuntimePrint | TestCaseExitCode
   let compilerErrorCommand = "error"
+  let compilerErrorNoLocCommand = "error-no-location"
   let compilerWarningCommand = "warning"
   let compilerInfoCommand = "info"
   let runtimePrintCommand = "print"
@@ -143,6 +144,7 @@ struct
 
   let parse str =
     if str = compilerErrorCommand then CompilerError
+    else if str = compilerErrorNoLocCommand then CompilerErrorNoLoc
     else if str = compilerWarningCommand then CompilerWarning
     else if str = compilerInfoCommand then CompilerInfo
     else if str = runtimePrintCommand then RuntimePrint
@@ -156,6 +158,7 @@ struct
 
   let kindDescription = function
     | CompilerError -> "compiler error"
+    | CompilerErrorNoLoc -> "compiler error w/o location"
     | CompilerWarning -> "compiler warning"
     | CompilerInfo -> "compiler info"
     | RuntimePrint -> "test case to print line"
@@ -203,6 +206,9 @@ let addExpectation
       | Expectation.CompilerError ->
         expectedCompilationSuccess := false;
         add()
+      | Expectation.CompilerErrorNoLoc ->
+        expectedCompilationSuccess := false;
+        addToList (kind, args, -1, ref false) expectedErrorMessages
       | Expectation.CompilerWarning
       | Expectation.CompilerInfo
       | Expectation.RuntimePrint ->
@@ -287,7 +293,7 @@ let () =
     in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
       let containsWord word =
-        Str.string_match (Str.regexp (".*" ^ Str.quote word)) message 0
+        Str.string_match (Str.regexp_case_fold (".*" ^ Str.quote word)) message 0
       in
       match kind with
         | Expectation.CompilerError
@@ -296,6 +302,10 @@ let () =
             if List.for_all containsWord args then begin
               found := true
             end
+        | Expectation.CompilerErrorNoLoc ->
+          if List.for_all containsWord args then begin
+            found := true
+          end
         | Expectation.CompilerInfo ->
           if List.for_all containsWord args then begin
             found := true
