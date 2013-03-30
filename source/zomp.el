@@ -185,7 +185,7 @@ use global one"
 (defvar zomp-shell-buffer-name "*zomp-shell*"
   "The name of the buffer in which the zomp shell runs")
 
-(defvar zomp-build-architecture "x86_64"
+(defvar zomp-build-architecture "i386"
   "The name of the architecture to be used")
 
 (defvar zomp-build-variant "release"
@@ -801,13 +801,14 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Enter code to run")
 
   (zomp-add-seperator zomp-sep-1)
-  (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
   (zomp-add-action zomp-start-or-show-shell
                    [(control c)(control s)]
                    "Start Zomp shell")
+  (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
   (zomp-add-action zomp-request-execution-abort
                    [(control c)(control k)]
                    "Request app to pause")
+
 
   ;; set additional keys on OS X
   (local-set-key [(alt r)]' zomp-run)
