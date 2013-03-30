@@ -132,7 +132,7 @@ end
 
 open Utils
 
-module Expectation =
+module ExpectationKind =
 struct
   type t = CompilerError | CompilerErrorNoLoc | CompilerWarning | CompilerInfo | RuntimePrint | TestCaseExitCode
   let compilerErrorCommand = "error"
@@ -172,13 +172,15 @@ struct
        (verbalConcat "and" (List.map quote words)))
 end
 
-type exitCodeCondition =
-  | MustBe of int
-  | MustNotBe of int
+module Exit_code = struct
+  type condition =
+    | MustBe of int
+    | MustNotBe of int
 
-let exitCodeConditionToString = function
-  | MustBe exitCode -> sprintf "%d" exitCode
-  | MustNotBe exitCode -> sprintf "anything other than %d" exitCode
+  let conditionToString = function
+    | MustBe exitCode -> sprintf "%d" exitCode
+    | MustNotBe exitCode -> sprintf "anything other than %d" exitCode
+end
 
 let writeHtmlHeader outFile zompFileName =
   fprintf outFile "<html>\n";
@@ -198,31 +200,31 @@ let addExpectation
     printf "%s:%d: warning: %s\n" zompFileName lineNum msg
   in
   try
-    let kind = Expectation.parse kindStr in
+    let kind = ExpectationKind.parse kindStr in
     let add () =
       addToList (kind, args, lineNum, ref false) expectedErrorMessages
     in
     begin match kind with
-      | Expectation.CompilerError ->
+      | ExpectationKind.CompilerError ->
         expectedCompilationSuccess := false;
         add()
-      | Expectation.CompilerErrorNoLoc ->
+      | ExpectationKind.CompilerErrorNoLoc ->
         expectedCompilationSuccess := false;
         addToList (kind, args, -1, ref false) expectedErrorMessages
-      | Expectation.CompilerWarning
-      | Expectation.CompilerInfo
-      | Expectation.RuntimePrint ->
+      | ExpectationKind.CompilerWarning
+      | ExpectationKind.CompilerInfo
+      | ExpectationKind.RuntimePrint ->
         add()
-      | Expectation.TestCaseExitCode ->
+      | ExpectationKind.TestCaseExitCode ->
         begin match args with
           | [lineString] ->
             begin
               try
                 expectedTestCaseExitCode :=
                   if lineString.[0] = '!' then
-                    MustNotBe (int_of_string (Str.string_after lineString 1))
+                    Exit_code.MustNotBe (int_of_string (Str.string_after lineString 1))
                   else
-                    MustBe (int_of_string lineString);
+                    Exit_code.MustBe (int_of_string lineString);
               with Failure "int_of_string" | Invalid_argument _ ->
                 reportWarning "could not parse line number, expected number or !number"
             end
@@ -233,7 +235,7 @@ let addExpectation
   with Failure _ ->
     reportWarning
       (sprintf "invalid expectation kind '%s'. Expected %s"
-         kindStr Expectation.validExpectationsEnumDescr)
+         kindStr ExpectationKind.validExpectationsEnumDescr)
 
 let collectExpectations addExpectation (lineNum :int) line =
   if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
@@ -260,7 +262,7 @@ let () =
 
   let expectedErrorMessages = ref [] in
   let expectedCompilationSuccess = ref true in
-  let expectedTestCaseExitCode = ref (MustBe 0) in
+  let expectedTestCaseExitCode = ref (Exit_code.MustBe 0) in
   let addExpectation =
     addExpectation zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
   in
@@ -289,29 +291,29 @@ let () =
       fprintf outFile "%s:%d: expect %s<br />\n"
         zompFileName
         lineNum
-        (Expectation.description kind args)
+        (ExpectationKind.description kind args)
     in
     let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
       let containsWord word =
         Str.string_match (Str.regexp_case_fold (".*" ^ Str.quote word)) message 0
       in
       match kind with
-        | Expectation.CompilerError
-        | Expectation.CompilerWarning ->
+        | ExpectationKind.CompilerError
+        | ExpectationKind.CompilerWarning ->
           if diagnosticLineNum = expectedLineNum then
             if List.for_all containsWord args then begin
               found := true
             end
-        | Expectation.CompilerErrorNoLoc ->
+        | ExpectationKind.CompilerErrorNoLoc ->
           if List.for_all containsWord args then begin
             found := true
           end
-        | Expectation.CompilerInfo ->
+        | ExpectationKind.CompilerInfo ->
           if List.for_all containsWord args then begin
             found := true
           end
-        | Expectation.TestCaseExitCode
-        | Expectation.RuntimePrint ->
+        | ExpectationKind.TestCaseExitCode
+        | ExpectationKind.RuntimePrint ->
           ()
     in
 
@@ -340,7 +342,7 @@ let () =
           Str.string_match (Str.regexp (".*" ^ Str.quote word)) line 0
         in
         match kind with
-          | Expectation.RuntimePrint ->
+          | ExpectationKind.RuntimePrint ->
             begin
               if List.for_all containsWord args then
                 found := true
@@ -354,7 +356,7 @@ let () =
       if !found = false then
         reportError
           (sprintf "expected %s but didn't happen"
-             (Expectation.description kind args))
+             (ExpectationKind.description kind args))
     in
 
     (** code *)
@@ -373,7 +375,7 @@ let () =
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
         fprintf outFile "Expect test to exit with code %s. <br />\n"
-          (exitCodeConditionToString !expectedTestCaseExitCode);
+          (Exit_code.conditionToString !expectedTestCaseExitCode);
       List.iter writeExpectation !expectedErrorMessages);
 
     let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
@@ -402,10 +404,10 @@ let () =
 
       fprintf outFile "Exited with code %d<br />\n" runReturnCode;
       match !expectedTestCaseExitCode with
-        | MustBe expectedCode ->
+        | Exit_code.MustBe expectedCode ->
           if expectedCode != runReturnCode then
             reportError (sprintf "exited with code %d instead of %d" runReturnCode expectedCode)
-        | MustNotBe unexpectedCode ->
+        | Exit_code.MustNotBe unexpectedCode ->
           if runReturnCode = unexpectedCode then
             reportError (sprintf "exited with code %d but was expected to exit with anything else" runReturnCode);
     end;
