@@ -20,10 +20,16 @@ func int foo():
 end
 
 macro hello name:
-  printInt foo() //// info 123
+  printString "compile-time-foo="
+  printInt foo() //// info compile-time-foo=123
   printNewline()
   var int num foo()
-  ret ${printlnInt #num} //// print 123
+
+  ret $:
+    printString("num=")
+    printlnInt(#num) //// print num=123
+    printNewline()
+  end
 end
 
 func int main():
