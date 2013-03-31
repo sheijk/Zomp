@@ -134,7 +134,7 @@ let stripComments fileName source =
   let copyEscapeChar signalError =
     let chr = copyChar signalError in
     if not (List.mem chr validEscapeChars) then
-      raiseIndentError { line = getLine(); fileName = fileName }
+      raiseIndentError { line = getLine() + 1; fileName = fileName }
         (sprintf "invalid escape sequence (char %c)" chr);
     chr
   in
@@ -211,8 +211,8 @@ let stripComments fileName source =
     let copyEscapeChar() = copyEscapeChar unexpectedEofInCharLiteral in
     let invalidCharLiteral msg =
       raiseIndentError
-        { line = getLine(); fileName = fileName }
-        (sprintf "error in char literal %s" msg)
+        { line = getLine() + 1; fileName = fileName }
+        msg
     in
     match copyChar() with
       | '\\' ->

@@ -1,0 +1,7 @@
+
+
+
+foo:
+  '' //// error valid char
+end
+
