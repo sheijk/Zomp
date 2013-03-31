@@ -62,7 +62,7 @@ let parseIExprs source =
     | Newparser.Error ->
       Error {
         location = Some (Indentlexer.locationOfLexstate lexstate);
-        reason = "no rule matched";
+        reason = "no parsing rule matched";
       }
     | Indentlexer.UnknowToken (location, token, reason) ->
       Error {

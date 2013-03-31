@@ -2182,7 +2182,7 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
           | None -> t remf
       end
     | [] ->
-      errorF expr "no translator matched expression"
+      errorF expr (sprintf "no translator matched expression, id=%s" expr.id)
   in
   t translators
 
