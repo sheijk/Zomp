@@ -108,3 +108,5 @@
 /vm_server
 data
 tools
+/testsuite/check_test.cmi
+/testsuite/check_test.cmo
