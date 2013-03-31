@@ -366,6 +366,25 @@ windows displaying it"
   (zomp-shell-move-point-to-end)
   (zomp-shell-do "!run test"))
 
+(defun zomp-test-current-file ()
+  "Will test the current file. Files in the test suite will be
+  compiled and executed"
+  (interactive)
+  (let ((test-file (buffer-file-name)))
+    (cond
+     ((string-match "\\(.*/\\)\\(testsuite/.*/test_.*\\)\\.zomp" test-file)
+      (let* ((testsuite-file (match-string 2 test-file))
+             (zomp-basedir (match-string 1 test-file))
+             (compile-command (format "%sbuild.sh ARCH=%s DEBUG=%s -ks all %s.testreport"
+                                      zomp-basedir
+                                      zomp-build-architecture
+                                      (if (string= zomp-build-variant "debug") "1" "0")
+                                      testsuite-file)))
+        (message "This is test %s" testsuite-file)
+        (call-interactively 'compile)))
+     (t
+      (message "Sorry, do not know how to test file %s" test-file)))))
+
 (defun zomp-run (&optional prefix)
 "Will run test() after evaluating
 - the current toplevel expression (function) if shell is running
@@ -782,6 +801,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-seperator zomp-sep-3)
   (zomp-add-action zomp-shell-run [(control c)(control d)] "Run function...")
   (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
+  (zomp-add-action zomp-test-current-file [(control c)(control c)] "Test current file")
   (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
   (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
   (zomp-add-action zomp-shell-help [(control c)(control ??)] "Show Zomp shell help")
