@@ -492,6 +492,7 @@ end = struct
        List.map (fun chr -> isValidId (sprintf "\"\\%c\"" chr)) escapeChars
        @ List.map (fun chr -> isValidId (sprintf "'\\%c'" chr)) escapeChars)
     @ ["\"\\q\"", `Exception "invalid escape sequence"]
+    @ ["'\\q'", `Exception "invalid escape sequence"]
 
 
   let validateTestCases() =
