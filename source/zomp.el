@@ -375,7 +375,7 @@ windows displaying it"
      ((string-match "\\(.*/\\)\\(testsuite/.*/test_.*\\)\\.zomp" test-file)
       (let* ((testsuite-file (match-string 2 test-file))
              (zomp-basedir (match-string 1 test-file))
-             (compile-command (format "%sbuild.sh ARCH=%s DEBUG=%s -ks all %s.testreport"
+             (compile-command (format "%sbuild.sh ARCH=%s DEBUG=%s -ks %s.testreport"
                                       zomp-basedir
                                       zomp-build-architecture
                                       (if (string= zomp-build-variant "debug") "1" "0")
