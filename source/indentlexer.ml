@@ -77,6 +77,9 @@ end
 
 open Util
 
+(** Characters that are valid as escape sequences *)
+let validEscapeChars = ['\''; '"'; '\\'; '0'; 'n'; 'r'; 't'; 'v'; 'a'; 'b'; 'f'; '?']
+
 let stripComments fileName source =
   let sourceLength = String.length source in
 
@@ -126,6 +129,14 @@ let stripComments fileName source =
   let unexpectedEofInComment() = unexpectedEof "comment"
   and unexpectedEofInStringLiteral() = unexpectedEof "string literal"
   and unexpectedEofInCharLiteral() = unexpectedEof "char literal"
+  in
+
+  let copyEscapeChar signalError =
+    let chr = copyChar signalError in
+    if not (List.mem chr validEscapeChars) then
+      raiseIndentError { line = getLine(); fileName = fileName }
+        (sprintf "invalid escape sequence (char %c)" chr);
+    chr
   in
 
   let rec copySource() =
@@ -186,16 +197,18 @@ let stripComments fileName source =
       unexpectedEofInComment()
   and copyStringLiteral() =
     let copyChar() = copyChar unexpectedEofInStringLiteral in
+    let copyEscapeChar() = copyEscapeChar unexpectedEofInStringLiteral in
     match copyChar() with
       | '"' ->
           copySource()
       | '\\' ->
-          let _ = copyChar() in
+          let _ = copyEscapeChar() in
           copyStringLiteral()
       | chr ->
           copyStringLiteral()
   and copyCharLiteral() =
     let copyChar() = copyChar unexpectedEofInCharLiteral in
+    let copyEscapeChar() = copyEscapeChar unexpectedEofInCharLiteral in
     let invalidCharLiteral msg =
       raiseIndentError
         { line = getLine(); fileName = fileName }
@@ -203,7 +216,7 @@ let stripComments fileName source =
     in
     match copyChar() with
       | '\\' ->
-          begin match copyChar(), copyChar() with
+          begin match copyEscapeChar(), copyChar() with
             | _, '\'' ->
                 copySource()
             | c1, c2 ->
@@ -211,7 +224,7 @@ let stripComments fileName source =
           end
       | '\'' ->
           invalidCharLiteral
-            "'' is not a valid char literal, use '\\'' if you want a quote char"
+            "'' is not a valid char literal, did you mean '\\''?"
       | c1 ->
           begin match copyChar() with
             | '\'' ->
