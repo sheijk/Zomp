@@ -251,7 +251,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
       ""
   in
   let withArg str arg =
-    if String.length arg > 0 then
+    if String.length arg = 0 then
       str
     else
       str ^ "(" ^ arg ^ ")"
