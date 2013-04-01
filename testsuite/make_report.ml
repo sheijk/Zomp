@@ -2,9 +2,9 @@ open Printf
 
 let linkIfExists file title =
   if Sys.file_exists file then
-    sprintf "<th><a href=\"../../%s\">%s</a></th>" file title
+    sprintf "<a href=\"../../%s\">%s</a>" file title
   else
-    sprintf "<th> <p class=\"missing-file\" title=\"File %s does not exist\">%s</p></th>" file title
+    sprintf "<span class=\"missing-file\" title=\"File %s does not exist\">%s</span>" file title
 
 let inHtmlTag tag args f =
   printf "<%s %s>\n" tag args;
@@ -43,53 +43,69 @@ let readFile fileName =
   with End_of_file ->
     String.concat "\n" (List.rev !lines)
 
+let produceReport title files =
+  let succeededTests = ref 0 in
+  let prevFile = ref "" in
+  let testResultRows =
+    List.map
+      (fun fileName ->
+        let title = deemphasizeCommonPrefix !prevFile fileName in
+        let sourceLink = linkIfExists (sprintf "%s.zomp" fileName) title in
+        
+        let resultInfo =
+          if Sys.file_exists (fileName ^ ".result") then begin
+            let cssClass =
+              let resultClass =
+                if 0 = (Sys.command (sprintf "grep failed %s.result > /dev/null" fileName)) then
+                  "failed"
+                else begin
+                  incr succeededTests;
+                  "ok"
+                end
+              in
+              if 0 = (Sys.command (sprintf "grep '!' %s.result > /dev/null" fileName)) then
+                resultClass ^ " changed"
+              else
+                resultClass
+            in
+            
+            let resultFileContent = readFile (fileName ^ ".result") in
+            sprintf "<th class=\"%s\">%s</th>" cssClass resultFileContent;
+          end else begin
+            sprintf "<th class=\"failed\">not run</th>"
+          end
+        in
+        
+        let reportLink = linkIfExists (fileName ^ ".testreport") "report"
+        and outputLink = linkIfExists (fileName ^ ".test_output") "output"
+        in
+        
+        prevFile := fileName;
+        
+        [sprintf "<th>%s</th>\n" sourceLink;
+         sprintf "%s\n" resultInfo;
+         sprintf "<th>%s</th>\n" reportLink;
+         sprintf "<th>%s</th>\n" outputLink])
+      files
+  in
+  
+  printf "<h1>%s</h1>\n" title;
+  print_string "<table class=\"test-results\">\n";
+  let printReportLine reportRows =
+    print_string "  <tr>\n";
+    List.iter (printf "    %s") reportRows;
+    print_string "  </tr>\n"
+  in
+  List.iter printReportLine testResultRows;
+  print_string "</table>\n";
+  
+  let totalTests = List.length files in
+  printf "<p>%d/%d succeeded</p>\n" !succeededTests totalTests
+    
 let () =
   match Array.to_list Sys.argv with
-    | program :: title :: files ->
-      begin
-        let title = Sys.argv.(1) in
-        printf "<h1>%s</h1>" title;
-        let succeededTests = ref 0 in
-        let prevFile = ref "" in
-        inHtmlTag "table" "class=\"test-results\""
-          (fun () ->
-            List.iter
-              (fun fileName ->
-                inHtmlTag "tr" "" (fun () ->
-                  let title = deemphasizeCommonPrefix !prevFile fileName in
-                  let linkToTest = linkIfExists (sprintf "%s.zomp" fileName) title in
-                  print_string linkToTest;
-
-                  if Sys.file_exists (fileName ^ ".result") then begin
-                    let cssClass =
-                      let resultClass =
-                        if 0 = (Sys.command (sprintf "grep failed %s.result > /dev/null" fileName)) then
-                          "failed"
-                        else begin
-                          incr succeededTests;
-                          "ok"
-                        end
-                      in
-                      if 0 = (Sys.command (sprintf "grep '!' %s.result > /dev/null" fileName)) then
-                        resultClass ^ " changed"
-                      else
-                        resultClass
-                    in
-
-                    let resultFileContent = readFile (fileName ^ ".result") in
-                    printf "<th class=\"%s\">%s</th>" cssClass resultFileContent;
-                  end else begin
-                    printf "<th class=\"failed\">not run</th>"
-                  end;
-
-                  print_string (linkIfExists (fileName ^ ".testreport") "report");
-                  print_string (linkIfExists (fileName ^ ".test_output") "output");
-
-                  prevFile := fileName))
-              files);
-        let totalTests = List.length files in
-        printf "<p>%d/%d succeeded</p>\n" !succeededTests totalTests
-      end
+    | _ :: title :: files ->
+      produceReport title files
     | _ ->
       printf "%s: error: expected 'make_report title files*'" Sys.argv.(0);
 
