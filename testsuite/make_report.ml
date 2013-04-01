@@ -48,6 +48,7 @@ let groupFilesByDir files =
 
 let produceReport title files =
   let groupedFiles = groupFilesByDir files in
+  let changes = ref [] in
   let testResultRowsByDir =
     List.map
       (fun (dirname, files) ->
@@ -61,14 +62,21 @@ let produceReport title files =
               let resultFileContent = readFileIfExists (fileName ^ ".result") in
               if Sys.file_exists (fileName ^ ".result") then begin
                 let cssClass =
+                  let logChangedTestResult() =
+                    changes := (dirname, fileBaseName) :: !changes;
+                  in
                   match resultFileContent with
-                    | "failed" -> "failed"
-                    | "failed!" -> "failed changed"
+                    | "failed" ->
+                      "failed"
+                    | "failed!" ->
+                      logChangedTestResult();
+                      "failed changed"
                     | "succeeded" ->
                       incr succeededTests;
                       "ok"
                     | "succeeded!" ->
                       incr succeededTests;
+                      logChangedTestResult();
                       "ok changed"
                     | _ ->
                       "failed"
@@ -93,17 +101,28 @@ let produceReport title files =
       groupedFiles
   in
 
-  printf "<h1>%s</h1>\n" title;
   let totalTests = List.length files in
   let succeededTests = List.fold_left
     (fun totalSucceeded (_, _, succeeded) -> succeeded + totalSucceeded)
     0
     testResultRowsByDir
   in
+
+  printf "<h1>%s</h1>\n" title;
   if (succeededTests = totalTests) then
     printf "<p class=\"summary\">%d/%d succeeded</p>\n" succeededTests totalTests
   else
     printf "<p class=\"summary\"><span class=\"failed\">%d/%d</span> succeeded</p>\n" succeededTests totalTests;
+
+  if (List.length !changes > 0) then begin
+    printf "<p class=\"changed\">\n";
+    printf "  Changed tests<br />\n";
+    List.iter
+      (fun (dirname, fileBaseName) ->
+        printf "  %s<br />\n" (Filename.concat dirname fileBaseName))
+      !changes;
+    printf "</p>\n"
+  end;
 
   let printReportLine reportRows =
     print_string "  <tr>\n";
