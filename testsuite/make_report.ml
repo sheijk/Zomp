@@ -135,8 +135,7 @@ let produceReport title files =
       let styledBaseDir = sprintf "<span class=\"dirname\">%s</span>" basedir in
       let styledSummary =
         let total = List.length testResultRows in
-        let css = if succeeded = total then "short-summary" else "failed" in
-        sprintf "<span class=\"%s\">(%d/%d)</span>" css succeeded total
+        sprintf "<span class=\"short-summary\">(%d/%d)</span>" succeeded total
       in
       printf "  <tr><th>%s %s</th><th></th><th></th><th></th></tr>\n"
         styledBaseDir styledSummary;
