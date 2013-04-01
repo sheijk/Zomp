@@ -36,11 +36,19 @@ do
         grep failed ${test}.result > /dev/null
         if [ "$?" == "0" ];
         then
-            output "<th class=\"failed\">`cat ${test}.result`</th>"
+            CSS_CLASS="failed"
         else
             SUCCESS=$(($SUCCESS + 1))
-            output "<th class=\"ok\">`cat ${test}.result`</th>"
+            CSS_CLASS="ok"
         fi
+
+        grep "!" ${test}.result > /dev/null
+        if [ "$?" == "0" ];
+        then
+            CSS_CLASS="${CSS_CLASS} changed"
+        fi
+
+        output "<th class=\"${CSS_CLASS}\">`cat ${test}.result`</th>"
     else
         output "<th class=\"failed\">not run</th>"
     fi

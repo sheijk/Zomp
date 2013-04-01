@@ -1,6 +1,7 @@
 *.glexe
 *.opt-bc
 *.result
+*.last_result
 *.test_output
 *.testreport
 .DS_Store

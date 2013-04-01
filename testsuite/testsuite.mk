@@ -106,7 +106,8 @@ TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) testsuite/self
 .PRECIOUS: %.test_output
 %.testreport %.result %.test_output: %.zomp $(TESTREPORT_DEPS)
 	@$(ECHO) Running test suite case $< ...
-	rm -f ${@:.testreport=.}{bc,opt-bc,ll,exe,test_output,result,testreport}
+	-mv ${@:.testreport=.result} ${@:.testreport=.last_result}
+	rm -f ${@:.testreport=.}{bc,opt-bc,ll,exe,test_output,testreport}
 	$(CHECK_TEST) $@ $(TESTREPORT_COMPILE_CMD) $(TESTREPORT_RUN_CMD)
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"

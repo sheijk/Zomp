@@ -33,8 +33,9 @@ struct
   let withOpenFileIn fileName f =
     let stream = open_in fileName in
     try
-      f stream;
-      close_in stream
+      let result = f stream in
+      close_in stream;
+      result
     with exn ->
       close_in stream;
       raise exn
@@ -69,6 +70,14 @@ struct
       with End_of_file -> ()
     in
     withOpenFileIn fileName (read 1)
+
+  let readOneLineFileIfPresent fileName =
+    try
+      withOpenFileIn fileName (fun stream ->
+        let line = input_line stream in
+        Some line)
+    with End_of_file | Sys_error _ ->
+      None
 
   let replaceExtension fileName ext =
     let noExt =
@@ -128,6 +137,13 @@ struct
         sprintf "&#%d;" ascii
     in
     String.concat "" (List.map replaceChar (stringToList str))
+
+  let withoutSuffix line suffix =
+    let lineLength = String.length line in
+    if (lineLength > 0) && (line.[lineLength-1] = suffix ) then
+      Str.string_before line (lineLength-1)
+    else
+      line
 end
 
 open Utils
@@ -435,6 +451,17 @@ let () =
       cssClass result;
 
     let resultFile = replaceExtension zompFileName "result" in
+    let result =
+      match readOneLineFileIfPresent (replaceExtension zompFileName "last_result") with
+        | Some line ->
+          let lastStatus = withoutSuffix line '!' in
+          if lastStatus <> result then
+            result ^ "!"
+          else
+            result
+        | None ->
+          result
+    in
     begin match Sys.command (sprintf "echo %s > %s" result resultFile) with
       | 0 -> ()
       | error ->
