@@ -368,7 +368,7 @@ let () =
       List.iter checkPrintExpectation !expectedErrorMessages
     in
 
-    let reportMissingDiagnostic (kind, args, lineNum, found) =
+    let reportIfMissing (kind, args, lineNum, found) =
       if !found = false then
         reportError
           (sprintf "expected %s but didn't happen"
@@ -439,7 +439,7 @@ let () =
       reportError "compilation succeeded, but unit test expected errors";
     end;
 
-    List.iter reportMissingDiagnostic !expectedErrorMessages;
+    List.iter reportIfMissing !expectedErrorMessages;
 
     let cssClass, result =
       if !errorOccured then

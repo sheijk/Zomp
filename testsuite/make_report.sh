@@ -24,11 +24,15 @@ echo "<table class=\"test-results\">"
 SUCCESS=0
 TOTAL=0
 
+PREV_TEST_NAME=""
+
 for test in $@
 do
     TOTAL=$(($TOTAL + 1))
     output "<tr>"
-    outputLinkIfExists "${test}.zomp" "${test}"
+    TITLE="`ocaml str.cma ./testsuite/common_prefix.ml ${PREV_TEST_NAME} ${test}`"
+    outputLinkIfExists "${test}.zomp" "${TITLE}"
+    # echo "checking ${test}, ${PREV_TEST_NAME}, &lt;${TITLE}&gt;<br />"
     # output "<tr> <th>${test}</th>"
 
     if [ -e ${test}.result ];
@@ -58,6 +62,8 @@ do
 
     output "</tr>"
     echo
+
+    PREV_TEST_NAME=${test}
 done
 
 echo "</table>"
