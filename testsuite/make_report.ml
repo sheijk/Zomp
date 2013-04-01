@@ -62,21 +62,21 @@ let produceReport title files =
               let resultFileContent = readFileIfExists (fileName ^ ".result") in
               if Sys.file_exists (fileName ^ ".result") then begin
                 let cssClass =
-                  let logChangedTestResult() =
-                    changes := (dirname, fileBaseName) :: !changes;
+                  let logChangedTestResult kind =
+                    changes := (kind, dirname, fileBaseName) :: !changes;
                   in
                   match resultFileContent with
                     | "failed" ->
                       "failed"
                     | "failed!" ->
-                      logChangedTestResult();
+                      logChangedTestResult `Broke;
                       "failed changed"
                     | "succeeded" ->
                       incr succeededTests;
                       "ok"
                     | "succeeded!" ->
                       incr succeededTests;
-                      logChangedTestResult();
+                      logChangedTestResult `Fixed;
                       "ok changed"
                     | _ ->
                       "failed"
@@ -115,13 +115,19 @@ let produceReport title files =
     printf "<p class=\"summary\"><span class=\"failed\">%d/%d</span> succeeded</p>\n" succeededTests totalTests;
 
   if (List.length !changes > 0) then begin
-    printf "<p class=\"changed\">\n";
+    printf "<div class=\"changed\">\n";
     printf "  Changed tests<br />\n";
+    printf "  <ul>\n";
     List.iter
-      (fun (dirname, fileBaseName) ->
-        printf "  %s<br />\n" (Filename.concat dirname fileBaseName))
+      (fun (kind, dirname, fileBaseName) ->
+        printf "    <li class=\"%s\">%s</li>\n"
+          (match kind with
+            | `Broke -> "failed"
+            | `Fixed -> "ok")
+          (Filename.concat dirname fileBaseName))
       !changes;
-    printf "</p>\n"
+    printf "  </ul>\n";
+    printf "</div>\n";
   end;
 
   let printReportLine reportRows =
