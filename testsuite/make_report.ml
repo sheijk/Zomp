@@ -32,16 +32,19 @@ let deemphasizeCommonPrefix str1 str2 =
     let str2Postfix = Str.string_after str2 firstDifferentChar in
     sprintf "<span class=\"common-prefix\">%s</span>%s" commonPrefix str2Postfix
 
-let readFile fileName =
-  let ch = open_in fileName in
-  let lines = ref [] in
-  try
-    while true do
-      lines := input_line ch :: !lines
-    done;
+let readFileIfExists fileName =
+  try begin
+    let ch = open_in fileName in
+    let lines = ref [] in
+    try
+      while true do
+        lines := input_line ch :: !lines
+      done;
+      ""
+    with End_of_file ->
+      String.concat "\n" (List.rev !lines)
+  end with Sys_error _ ->
     ""
-  with End_of_file ->
-    String.concat "\n" (List.rev !lines)
 
 let produceReport title files =
   let succeededTests = ref 0 in
@@ -53,23 +56,21 @@ let produceReport title files =
         let sourceLink = linkIfExists (sprintf "%s.zomp" fileName) title in
         
         let resultInfo =
+          let resultFileContent = readFileIfExists (fileName ^ ".result") in
           if Sys.file_exists (fileName ^ ".result") then begin
             let cssClass =
-              let resultClass =
-                if 0 = (Sys.command (sprintf "grep failed %s.result > /dev/null" fileName)) then
-                  "failed"
-                else begin
+              match resultFileContent with
+                | "failed" -> "failed"
+                | "failed!" -> "failed changed"
+                | "succeeded" ->
                   incr succeededTests;
                   "ok"
-                end
-              in
-              if 0 = (Sys.command (sprintf "grep '!' %s.result > /dev/null" fileName)) then
-                resultClass ^ " changed"
-              else
-                resultClass
+                | "succeeded!" ->
+                  incr succeededTests;
+                  "ok changed"
+                | _ ->
+                  "failed"
             in
-            
-            let resultFileContent = readFile (fileName ^ ".result") in
             sprintf "<th class=\"%s\">%s</th>" cssClass resultFileContent;
           end else begin
             sprintf "<th class=\"failed\">not run</th>"
