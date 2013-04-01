@@ -4,6 +4,7 @@
 *.last_result
 *.test_output
 *.testreport
+*.annot
 .DS_Store
 /TAGS
 /bindgen/*.o

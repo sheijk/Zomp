@@ -221,16 +221,18 @@ TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 .PHONY: report
 report: $(BUILD_DIR)/report.html
 
+MAKE_REPORT = ocaml str.cma testsuite/make_report.ml
+
 .PHONY: $(BUILD_DIR)/report.html
 $(BUILD_DIR)/report.html:
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
 	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
-	./testsuite/make_report.sh "Unit tests" $(sort $(TESTSUITE_CASES:.testreport=)) >> $@
+	$(MAKE_REPORT) "Unit tests" $(sort $(TESTSUITE_CASES:.testreport=)) >> $@
 	./libs/make_libs_result_files.sh $(ZOMP_LIBS_SRC)
-	./testsuite/make_report.sh "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
+	$(MAKE_REPORT) "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
 	./examples/make_examples_result_files.sh $(EXAMPLES_SOURCES)
-	./testsuite/make_report.sh "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
+	$(MAKE_REPORT) "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
 	echo "<h2>OCaml unit tests</h2>" >> $@
 	echo "<a href=\"../../$(MLTEST_OUTPUT_FILE)\">Output</a>\n" >> $@
 	echo "<p><span style=\"font-family:monospace\">\n" >> $@
