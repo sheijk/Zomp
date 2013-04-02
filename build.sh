@@ -11,7 +11,7 @@ OPTIONS=`echo "$@" | tr " " "\n" | grep "^[A-Za-z_][A-Za-z0-9_]*=" | tr "\n" " "
 cd `dirname $0`
 rm -f ${BUILDLOG}
 LOGSHELL=`pwd`/source/build/logshell.sh
-echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = ${OPTIONS}" >> ${BUILDLOG}
+echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = ${OPTIONS}" > ${BUILDLOG}
 
 make $@ SHELL="${LOGSHELL} ${BUILDLOG}"
 RETVAL=$?
