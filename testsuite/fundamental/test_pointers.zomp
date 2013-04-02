@@ -88,8 +88,8 @@ end
 
 unittest:testCase SimpleFunctionPointer:
   var (fptr int int) pNext &add1
-  var (fptr int int) pPrev &sub1
-  var (fptr int int int) pAdd &add
+  var int(int)* pPrev &sub1
+  var int(int, int)* pAdd &add
 
   unittest:assertAll:
     pNext 3 == 4
@@ -108,8 +108,8 @@ func int get5():
 end
 
 unittest:testCase RegressionFunctionPointerNoArgs:
-  var (fptr int) pGet3 &get3
-  var (fptr int) pGet5 &get5
+  var int()* pGet3 &get3
+  var int()* pGet5 &get5
 
   unittest:assertAll:
     get3() == 3
@@ -121,7 +121,7 @@ unittest:testCase RegressionFunctionPointerNoArgs:
 end
 
 
-type IntFunc (fptr int)
+type IntFunc int()*
 
 // unittest:testCase functionPointerArray:
 //   // var IntFunc[2] funcs
@@ -135,8 +135,8 @@ type IntFunc (fptr int)
 // end
 
 struct MyVTable:
-  (fptr void int) setId
-  (fptr int) getId
+  void(int)* setId
+  int()* getId
 end
 
 var int vtableId 0

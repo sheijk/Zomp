@@ -195,7 +195,6 @@ struct
     | `Bool -> "bool"
     | `Char -> "char"
     | `TypeRef name -> name
-    | `Pointer (`Function _ as f) -> "(" ^ (typeName f) ^ ")*"
     | `Pointer t -> (typeName t) ^ "*"
     | `Array (`Function _ as baseType, size) ->
         sprintf "(%s)[%d]" (typeName baseType) size
@@ -206,7 +205,7 @@ struct
     | `Function ft ->
         let retName = typeName ft.returnType in
         let argNames = List.map typeName ft.argTypes in
-        sprintf "%s -> %s" (Common.combine ", " argNames) retName
+        sprintf "%s(%s)" retName (Common.combine ", " argNames)
     | `ParametricType t ->
         typeName (t :> typ) ^ "!T"
     | `TypeParam -> "'T"

@@ -1,0 +1,13 @@
+///
+/// Test whether using the deprecated fptr like syntax for function pointers
+/// will emit a warning
+///
+
+std:base:func int main():
+  var (fptr void cstring) print &printString //// warning deprecated
+  print "using the bad syntax" //// print bad syntax
+  printNewline()
+
+  ret 0
+end
+

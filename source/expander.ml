@@ -293,7 +293,7 @@ let extractErrors = function
 
 exception MayfailError of SError.t list
 
-let rec translateType bindings typeExpr : Lang.typ mayfail =
+let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
   let error msg = errorFromExpr typeExpr msg in
   let instantiateType parametricType argumentType =
     let rec inst = function
@@ -324,7 +324,7 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
   in
 
   let translatePtr targetTypeExpr =
-    match translateType bindings targetTypeExpr with
+    match translateType bindings emitWarning targetTypeExpr with
       | Result t -> Result (`Pointer t)
       | error -> error
   in
@@ -339,38 +339,50 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
           end
         | _ -> None
     in
-    match translateType bindings memberTypeExpr, potentialSize with
+    match translateType bindings emitWarning memberTypeExpr, potentialSize with
       | Result t, Some size -> Result (`Array(t, size))
       | errorM, _ -> errorM
   in
+  let translateFunction returnTypeExpr argTypeExprs =
+    try
+      let translate typ =
+        match translateType bindings emitWarning typ with
+          | Result t -> t
+          | Error errors ->
+            raise (MayfailError errors)
+      in
+      begin
+        Result (`Function {
+          returnType = translate returnTypeExpr;
+          argTypes = List.map translate argTypeExprs;
+        })
+      end
+    with MayfailError errors ->
+      Error errors
+  in
   match typeExpr with
-        (** function pointers *)
+    (** function pointers *)
+    | { id = "opcall"; args = returnTypeExpr :: argTypeExprs } ->
+      translateFunction returnTypeExpr argTypeExprs
     | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
-      begin try
-              let translate typ =
-                match translateType bindings typ with
-                  | Result t -> t
-                  | Error errors ->
-                    raise (MayfailError errors)
-              in
-              begin
-                Result (`Pointer (`Function {
-                  returnType = translate returnTypeExpr;
-                  argTypes = List.map translate argTypeExprs;
-                }))
-              end
-        with MayfailError errors ->
-          Error errors
+      begin match translateFunction returnTypeExpr argTypeExprs with
+        | Result typ ->
+          let () = (* fix return type *)
+            emitWarning typeExpr (sprintf "fptr is deprecated. Use %s instead" (Typesystems.Zomp.typeName typ))
+          in
+          Result (`Pointer typ)
+        | Error _ as errors ->
+          errors
       end
 
     | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
-      translateType bindings (shiftId args)
+      translateType bindings emitWarning (shiftId args)
 
     | { id = "op!"; args =
         [{ id = paramTypeName; args = [] };
          argumentTypeExpr ] } ->
       begin
-        match lookup bindings paramTypeName, translateType bindings argumentTypeExpr with
+        match lookup bindings paramTypeName, translateType bindings emitWarning argumentTypeExpr with
           | TypedefSymbol ((`ParametricType _) as t), Result `TypeParam ->
             Result t
           | TypedefSymbol (`ParametricType t), Result argumentType ->
@@ -400,6 +412,11 @@ let rec translateType bindings typeExpr : Lang.typ mayfail =
 
 module Translators_deprecated_style =
 struct
+  let reportWarning expr msg =
+    eprintf "%s\n" (SError.diagnosticsToString "warning" (SError.fromExpr expr msg))
+
+  let translateType bindings expr =
+    translateType bindings reportWarning expr
 
   let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
     match expr2VarOrConst bindings expr with
@@ -988,6 +1005,9 @@ struct
 
   let reportErrorE expr msg = reportError (SError.fromExpr expr msg)
   let reportErrorM messages = List.iter (fun msg -> reportError (SError.fromMsg None msg)) messages
+
+  let translateType bindings expr =
+    translateType bindings Translators_deprecated_style.reportWarning expr
 
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
   let translateStructLiteralArgs fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
@@ -2402,6 +2422,9 @@ let matchFunc =
         `NotAFunc expr
 
 let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings) expr =
+  let translateType bindings expr =
+    translateType bindings Translators_deprecated_style.reportWarning expr
+  in
   let doSanityChecks returnType name params =
     let module StringSet = Set.Make(String) in
     let checkForDuplicateParameterName() =
