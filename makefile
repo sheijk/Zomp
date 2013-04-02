@@ -343,7 +343,7 @@ endif
 	@$(ECHO) Assembling $@ ...
 	$(AS) -o $@ $< -arch i386
 
-%.exe: %.o source/runtime.o
+%.exe: %.o source/runtime.o $(LIBS)
 	@$(ECHO) Making $@ ...
 	$(CC) $(LDFLAGS) -o $@ -L. -L./examples -L./testsuite $(LIBS) $< -arch i386
 
