@@ -2,8 +2,7 @@
 # Setting up paths and options for most tools
 #
 
-# ARCH=i386
-ARCH=x86_64
+ARCH=i386
 
 ifeq "$(ARCH)" "i386"
 ARCHFLAG = -m32
