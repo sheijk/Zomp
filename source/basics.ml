@@ -15,8 +15,12 @@ let locationEqual lhs rhs =
   (lhs.line = rhs.line) &&
     ((String.compare lhs.fileName rhs.fileName) = 0)
 
-let formatError location message =
-  sprintf "%s: error: %s" (locationToString location) message
+let formatDiagnostics kind location message =
+  sprintf "%s: %s: %s" (locationToString location) kind message
+
+let formatError = formatDiagnostics "error"
+let formatWarning = formatDiagnostics "warning"
+let formatInfo = formatDiagnostics "info"
 
 let fakeLocation = { fileName = "???.zomp"; line = 1 }
 

@@ -42,7 +42,8 @@ module SError = struct
     eexpr: Ast2.t option;
   }
 
-  let toString error =
+  (** TODO: add 'in $expr' if location is missing *)
+  let diagnosticsToString kind error =
     let loc =
       match error.eloc, error.eexpr with
         | Some location, _ ->
@@ -53,7 +54,10 @@ module SError = struct
         | None, None ->
           Basics.fakeLocation
     in
-    Basics.formatError loc error.emsg
+    Basics.formatDiagnostics kind loc error.emsg
+
+  let toString error =
+    diagnosticsToString "error" error
 
   let check funcName error =
     let warn msg = printf "alert, %s (in %s, msg = %s)!\n" msg funcName (toString error) in
