@@ -62,8 +62,19 @@ rm -f ${MAIN_LOG}
 touch ${MAIN_LOG}
 echo "Logging to ${MAIN_LOG}"
 
+OLD_REV=`git rev-parse --verify HEAD || echo old_invalid`
 run_action "git_pull" git pull
 run_action "git_checkout" git checkout master
+NEW_REV=`git rev-parse --verify HEAD || echo new_invalid`
+
+# Short circuit if no changes where found and ci has not been run before
+if [ -e ci_archive ]; then
+    if [ "${OLD_REV}" == "${NEW_REV}" ]; then
+        echo "No changes"
+        exit 0
+    fi
+fi
+
 git rev-parse HEAD > build/ci_git_revision.txt
 run_action "make" ./build.sh ${FLAGS} all test
 run_action "archive" copy_to_archive
