@@ -62,6 +62,8 @@ rm -f ${MAIN_LOG}
 touch ${MAIN_LOG}
 echo "Logging to ${MAIN_LOG}"
 
+LAST_RUN_FILE=ci_archive/last_run.txt
+
 OLD_REV=`git rev-parse --verify HEAD || echo old_invalid`
 run_action "git_pull" git pull
 run_action "git_checkout" git checkout master
@@ -71,6 +73,11 @@ NEW_REV=`git rev-parse --verify HEAD || echo new_invalid`
 if [ -e ci_archive ]; then
     if [ "${OLD_REV}" == "${NEW_REV}" ]; then
         echo "No changes"
+
+        if [ -e ${LAST_RUN_FILE} ]; then
+            cat ${LAST_RUN_FILE}
+        fi
+
         exit 0
     fi
 fi
@@ -78,4 +85,6 @@ fi
 git rev-parse HEAD > build/ci_git_revision.txt
 run_action "make" ./build.sh ${FLAGS} all test
 run_action "archive" copy_to_archive
+
+echo "Last run finished at `date '+%Y-%m-%d %H:%M:%S'`" > ${LAST_RUN_FILE}
 
