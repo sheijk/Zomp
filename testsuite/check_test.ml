@@ -333,17 +333,17 @@ let () =
           ()
     in
 
-    let errorRe =
-      let re = (sprintf "^%s:\\([0-9]\\)+: .*error: \\(.*\\)" (Str.quote zompFileName)) in
+    let diagnosticRe =
+      let re = (sprintf "^%s:\\([0-9]\\)+: .*\\(error\\|warning\\|info\\): \\(.*\\)" (Str.quote zompFileName)) in
       Str.regexp re
     in
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
-      let isErrorMessage = Str.string_match errorRe line 0 in
+      let isErrorMessage = Str.string_match diagnosticRe line 0 in
       if isErrorMessage then begin
         let diagnosticLineNum = safeParseInt (Str.matched_group 1 line) in
-        let message = Str.matched_group 2 line in
+        let message = Str.matched_group 3 line in
         List.iter (checkExpectation message diagnosticLineNum) !expectedErrorMessages
       end else begin
         List.iter (checkExpectation line 0) !expectedErrorMessages
