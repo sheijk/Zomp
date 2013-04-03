@@ -35,7 +35,7 @@ function run_action {
     rm -f ${LOGFILE}
     touch ${LOGFILE}
 
-    MSG="running ${ACTION_NAME} '${COMMAND}'"
+    MSG="running ${ACTION_NAME} '${COMMAND}' at `date '+%Y-%m-%d %H:%M:%S'`"
     echo "${MSG}"
     echo "${MSG}" >> ${MAIN_LOG}
     echo "${MSG}" >> ${LOGFILE}
