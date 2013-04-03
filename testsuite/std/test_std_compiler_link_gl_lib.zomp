@@ -2,54 +2,11 @@
 /// Test whether linking with OpenGL libs works in zompc
 ///
 
-requireLibs libcee opengl20 glfw glut glutils
-
-var int windowWidth 400
-var int windowHeight 300
-var bool initCalled false
-
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
-
-    printString "Initialized" //// print Initialized
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
-  end
-end
+requireLibs libcee opengl20 glfw
 
 func int main():
-  init()
-
-  glMatrixMode( GL_PROJECTION )
-  glLoadIdentity()
-  const double aspect (int:toDouble windowWidth /_d int:toDouble windowHeight)
-  gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
-
-  autoSetupViewport()
-  glClearColor(0.0, 0.0, 0.0, 1.0)
-  glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
-
-  glMatrixMode GL_MODELVIEW
-  glLoadIdentity()
-  glTranslatef( 0., 1., float:neg(4.) )
-  glRotatef( 90., 0., 1., 0. )
-
-  drawCoordSys( 8.0 )
-
-  drawPausedOverlay()
-  glfwSwapBuffers()
-  drawPausedOverlay()
-  glfwPollEvents()
-
-  printlnString "cu"
+  glfwInit()
+  glfwTerminate()
 
   ret 0
 end
