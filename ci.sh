@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# A simplified CI script that will just pull updates, run a build and archive everything
+# A simplified CI script that will just pull updates, run a build and archive
+# everything. Run this in a loop using 'source/build/watch.sh ./ci.sh'
 
 ERROR_COMMAND_FAILED=1
 ERROR_INVALID_ARGS=2
