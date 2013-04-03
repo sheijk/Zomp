@@ -48,6 +48,7 @@ CLEAN_SUB_TARGETS += testsuite/clean
 testsuite/clean:
 	rm -f $(TESTSUITE_CASES)
 	rm -f $(TESTSUITE_CASES:.testreport=.result)
+	rm -f $(TESTSUITE_CASES:.testreport=.last_result)
 	rm -f $(TESTSUITE_CASES:.testreport=.test_output)
 	rm -f $(TESTSUITE_CASES:.testreport=.ll)
 	rm -f $(TESTSUITE_CASES:.testreport=.bc)
