@@ -86,5 +86,6 @@ git rev-parse HEAD > build/ci_git_revision.txt
 run_action "make" ./build.sh ${FLAGS} all test
 run_action "archive" copy_to_archive
 
+rm -f ${LAST_RUN_FILE}
 echo "Last run finished at `date '+%Y-%m-%d %H:%M:%S'`" > ${LAST_RUN_FILE}
 
