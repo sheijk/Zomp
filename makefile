@@ -398,6 +398,32 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 	./source/gen_c_bindings -lang zomp-glprinter $(@:.zomp=)
 	$(RM) -f libs/opengl20print.skel
 
+# The install names of external libs are expected to be relative to the
+# executable using @executable_path so we need to add links to them into all
+# directories that will contain binaries requiring those libs.
+EXTERNAL_LIB_LINK_NAMES = glfw GLEW GLEW.1.9 GLEW.1.9.0
+EXTERNAL_LIB_TARGET_DIRS = examples testsuite/std
+EXTERNAL_LIB_LINKS = $(foreach target_dir, $(EXTERNAL_LIB_TARGET_DIRS), \
+  $(foreach lib, $(EXTERNAL_LIB_LINK_NAMES), $(target_dir)/lib$(lib).dylib))
+
+examples/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
+	@$(ECHO) "Creating symlink to library $@ ..."
+	rm -f $(@)
+	ln -s $(<) $(@)
+
+testsuite/std/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
+	@$(ECHO) "Creating symlink to library $@ ..."
+	rm -f $(@)
+	ln -s $(<) $(@)
+
+.PHONY: external_lib_links
+external_lib_links: $(EXTERNAL_LIB_LINKS)
+
+CLEAN_SUB_TARGETS += clean_external_lib_links
+.PHONY: clean_external_lib_links
+clean_external_lib_links:
+	rm -f $(EXTERNAL_LIB_LINKS)
+
 ################################################################################
 # LLVM download and compilation
 ################################################################################

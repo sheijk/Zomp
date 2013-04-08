@@ -14,7 +14,8 @@ else
   endif
 endif
 
-ZOMP_TOOL_PATH=$(ZOMP_DIR)/tools/arch-$(ARCH)
+ZOMP_TOOL_PATH_RELATIVE = ./tools/arch-$(ARCH)
+ZOMP_TOOL_PATH=$(ZOMP_DIR)/$(ZOMP_TOOL_PATH_RELATIVE)
 LLVM_VERSION=2.9
 
 ifeq "$(DEBUG)" "1"

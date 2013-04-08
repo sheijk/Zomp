@@ -112,3 +112,11 @@ data
 tools
 /testsuite/check_test.cmi
 /testsuite/check_test.cmo
+/testsuite/std/libGLEW.1.9.0.dylib
+/testsuite/std/libGLEW.1.9.dylib
+/testsuite/std/libGLEW.dylib
+/testsuite/std/libglfw.dylib
+/examples/libGLEW.1.9.0.dylib
+/examples/libGLEW.1.9.dylib
+/examples/libGLEW.dylib
+/examples/libglfw.dylib
