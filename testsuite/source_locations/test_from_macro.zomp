@@ -5,6 +5,8 @@
 
 macro printLoc msg:
   ret $:
+    printString #msg
+    printString " is at "
     printString std:env:file
     printString ":"
     printInt std:env:line

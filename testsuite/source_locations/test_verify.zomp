@@ -34,8 +34,8 @@ std:base:func void printLocalSourceLocationInfos():
     printNewline()
   end
 
-  //// print verify_correct_source_locations.zomp:26
-  //// print verify_correct_source_locations.zomp
+  //// print test_verify.zomp:26
+  //// print test_verify.zomp
   printString "hello from "
   printString __FILE__
   printString ":"
