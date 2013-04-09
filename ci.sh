@@ -6,6 +6,8 @@ ERROR_COMMAND_FAILED=1
 ERROR_INVALID_ARGS=2
 ERROR_ZOMP_WORKING_DIR_BROKEN=3
 
+TESTED_BRANCH=master
+
 if [ ! -z "$2" ]; then
     echo "error: invalid arguments, expected:"
     echo "`basename $0` make-flags?"
@@ -50,6 +52,11 @@ function run_action {
     fi
 }
 
+function git_fetch_and_reset {
+    git fetch
+    git reset --hard origin/${TESTED_BRANCH}
+}
+
 function copy_to_archive {
     ARCHIVE_DIR=ci_archive/${START_TIME}
     mkdir -p ${ARCHIVE_DIR}
@@ -66,7 +73,7 @@ echo "Logging to ${MAIN_LOG}"
 LAST_RUN_FILE=ci_archive/last_run.txt
 
 OLD_REV=`git rev-parse --verify HEAD || echo old_invalid`
-run_action "git_pull" git pull
+run_action "git_get_remote_changes" git_fetch_and_reset
 run_action "git_checkout" git checkout master
 NEW_REV=`git rev-parse --verify HEAD || echo new_invalid`
 
