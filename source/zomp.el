@@ -774,6 +774,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(control c)(control ?/)] 'zomp-comment-block)
   (local-set-key [(?:)] 'zomp-electric-colon)
 
+  (local-set-key [(meta ?.)] 'zomp-goto-definition)
 
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
@@ -960,20 +961,44 @@ editor to trigger recompilations etc. and possibly resume main()"
       (setq funcsym nil))
     (or exprsym funcsym linesym "nothing found")))
 
+(defun zomp-goto-definition ()
+  (interactive)
+  (let (symbol doc-line source-location file line)
+    (setq symbol (word-at-point))
+    (unless symbol
+      (error "No symbol at point"))
+    (save-excursion
+      (zomp-build-symbol-buffer)
+      (setq doc-line (zomp-get-doc-line-for-symbol symbol))
+      (unless doc-line
+        (error "Symbol \"%s\" is not defined anywhere" symbol))
+      (unless (string-match ".* @\\([a-zA-Z_0-9\\./-]*\\):\\([0-9]+\\)" doc-line)
+        (error "Symbol \"%s\" does not have location info" symbol))
+      (setq file (match-string 1 doc-line))
+      (setq line (string-to-int (match-string 2 doc-line)))
+      (message "Symbol is at file %s line %s" file line)
+      (find-file-existing file)
+      (goto-line line)
+      (recenter))))
+
+(defun zomp-get-doc-line-for-symbol (symbol)
+  (condition-case nil
+      (save-excursion
+        (set-buffer (get-buffer-create zomp-symbol-buffer))
+        (goto-char (point-max))
+        (search-backward-regexp (concat "^" symbol " ="))
+        (search-forward " =")
+        (let ((startpos (point)))
+          (end-of-line)
+          (concat symbol ": " (buffer-substring startpos (point)))))
+    (error nil)))
+
 (defun zomp-get-eldoc-string ()
-  (let ((symbol "unknown"))
+  (let ((symbol "???"))
     (ignore-errors
       (save-excursion
         (zomp-build-symbol-buffer)
-        (setq symbol (zomp-symbol-at-point))
-        (set-buffer (get-buffer-create zomp-symbol-buffer))
-        (save-excursion
-          (goto-char (point-max))
-          (search-backward-regexp (concat "^" symbol " ="))
-          (search-forward " =")
-          (let ((startpos (point)))
-            (end-of-line)
-            (concat symbol ": " (buffer-substring startpos (point)))))))))
+        (zomp-get-doc-line-for-symbol (zomp-symbol-at-point))))))
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
