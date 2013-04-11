@@ -67,10 +67,10 @@ indent the next line when they occur at the beginning of a line"
   "A face used to highlight expression for a brief time after they have been
 evaluated.")
 
-(defface todo-face
+(defface zomp-todo-face
   '((t (:foreground "#A00")))
   "A face for todo items")
-(defvar todo-face 'todo-face)
+(defvar zomp-todo-face 'zomp-todo-face)
 
 (defface zomp-testsuite-directive-face
   '((t (:inherit font-lock-doc-face :weight bold)))
@@ -80,7 +80,7 @@ The word \"error\" will be highlighted in this face.")
 
 (defvar zomp-mode-hook nil)
 
-(defun goto-match-paren (arg)
+(defun zomp-goto-match-paren (arg)
   "Go to the matching parenthesis if on paranthesis. Else go to the
    opening paranthesis one level up.
    Partially ripped from unknow source, probably emacswiki.org"
@@ -168,7 +168,7 @@ use global one"
   (zomp-prev-toplevel-expr)
   (push-mark (point) t t)
   (if (looking-at "(")
-      (goto-match-paren 4)
+      (zomp-goto-match-paren 4)
     (progn
       (next-line)
       (let ((next-line-pos (point)))
@@ -459,12 +459,10 @@ editor to trigger recompilations etc. and possibly resume main()"
   (interactive)
   (backward-sexp) )
 
-
-(unless (boundp 'current-line)
-  (defun current-line ()
-    "Return number of current line in current buffer
+(defun zomp-current-line ()
+  "Return number of current line in current buffer
     (provided by `zomp.el` because it was not defined)"
-    (count-lines (point-min) (if (eobp) (point) (1+ (point))))) )
+  (count-lines (point-min) (if (eobp) (point) (1+ (point)))))
 
 (defun zomp-indent-line ()
   (interactive)
@@ -473,7 +471,7 @@ editor to trigger recompilations etc. and possibly resume main()"
       (back-to-indentation)
       (setq oldindent (current-column))
       ;; not in first line
-      (when (> (current-line) 1)
+      (when (> (zomp-current-line) 1)
         (save-excursion
           (setq left
                 (condition-case nil
@@ -485,7 +483,7 @@ editor to trigger recompilations etc. and possibly resume main()"
                           (beginning-of-line)
                           (when (not (looking-at " *$"))
                             (setq dontabort nil))
-                          (when (<= (current-line) 1)
+                          (when (<= (zomp-current-line) 1)
                             (setq dontabort nil))))
 
                       ;; get indentation of previous line
@@ -512,7 +510,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
           ;; if previous line was already a continued line, don't indent this
           ;; one again
-          (when (> (current-line) 1)
+          (when (> (zomp-current-line) 1)
             (previous-line)
             (end-of-line)
             (when (looking-back zomp-continued-line-regexp)
@@ -858,7 +856,7 @@ editor to trigger recompilations etc. and possibly resume main()"
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
     ("'[^']'" 0 font-lock-string-face)
 
-    ("// *\\(TODO\\)" 1 todo-face t t)
+    ("// *\\(TODO\\)" 1 zomp-todo-face t t)
 
     ("\\(\\b[a-zA-Z0-9_]+\\b:\\) +[^ \n]" 1 font-lock-keyword-face)
     ("\\bconst\\b" 0 font-lock-keyword-face)
@@ -912,6 +910,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 (defun zomp-build-symbol-buffer ()
   (interactive)
   (save-excursion
+    ;; TODO: why this order and not update file first?
     (when (file-exists-p zomp-symbol-file)
       (set-buffer (get-buffer-create zomp-symbol-buffer))
       (insert-file-contents zomp-symbol-file nil nil nil t))
@@ -944,7 +943,7 @@ editor to trigger recompilations etc. and possibly resume main()"
     (setq funcsym
           (save-excursion
             (ignore-errors
-              (goto-match-paren 0)
+              (zomp-goto-match-paren 0)
               (setq parenopen (point))
               (when (> (point) 0)
                 (if (looking-back "\\( \\|\\$\\)")
