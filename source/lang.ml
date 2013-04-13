@@ -235,6 +235,7 @@ and func = {
   fargs :(string * composedType) list;
   impl :form option;
   cvarargs :bool;
+  flocation :Basics.location option;
   fparametric :bool;
 }
 and toplevelExpr = [
@@ -377,38 +378,42 @@ let toSingleForm formlist =
 let isFuncParametric args =
   List.exists (isTypeParametric ++ snd) args
 
-let func name rettype args impl = {
+let func name rettype args impl location = {
   fname = name;
   rettype = rettype;
   fargs = args;
   impl = impl;
+  flocation = Some location;
   cvarargs = false;
   fparametric = isFuncParametric args;
 }
 
-let varargFunc name rettype args impl = {
+let varargFunc name rettype args impl location = {
   fname = name;
   rettype = rettype;
   fargs = args;
   impl = impl;
+  flocation = Some location;
   cvarargs = true;
   fparametric = isFuncParametric args;
 }
 
-let funcDecl name rettype args = {
+let funcDecl name rettype args location = {
   fname = name;
   rettype = rettype;
   fargs = args;
   impl = None;
+  flocation = Some location;
   cvarargs = false;
   fparametric = isFuncParametric args;
 }
 
-let funcDef name rettype args impl = {
+let funcDef name rettype args impl location = {
   fname = name;
   rettype = rettype;
   fargs = args;
   impl = Some impl;
+  flocation = location;
   cvarargs = false;
   fparametric = isFuncParametric args;
 }

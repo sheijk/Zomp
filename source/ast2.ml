@@ -65,6 +65,11 @@ let lineNumber ast =
   match ast.location with
     | Some { line = line } -> line
     | None -> 0
+
+let locationOr ast defaultLocation =
+  match ast.location with
+    | Some loc -> loc
+    | None -> defaultLocation
   
 (** transformations **)
 

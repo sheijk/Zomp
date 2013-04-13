@@ -5,9 +5,11 @@
 open Printf
 
 type location = {
-  line :int;
   fileName :string;
+  line :int;
 }
+
+let location fileName line = { fileName; line }
 
 let locationToString loc = sprintf "%s:%d" loc.fileName loc.line
 

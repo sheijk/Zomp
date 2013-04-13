@@ -529,7 +529,7 @@ struct
           match lookup bindings name with
             | TypedefSymbol `Record record ->
                 begin
-                  let recordInitFunc name components = func (name ^ "_init") `Void components None in
+                  let recordInitFunc name components = func (name ^ "_init") `Void components None Basics.fakeLocation in
                   let initFunc = recordInitFunc name record.fields in
                   let translate param compExpr = match (param, compExpr) with
                     | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
@@ -618,7 +618,7 @@ struct
     let macroFunc =
       let fargs = List.map (fun name -> (name, astPtrType)) argNames
       and impl = Some (toSingleForm implforms) in
-      func macroName astPtrType fargs impl
+      func macroName astPtrType fargs impl Basics.fakeLocation
     in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     let llvmCodes = List.map Genllvm.gencodeTL tlforms in
@@ -681,7 +681,7 @@ struct
         `CastIntrinsic (`Int32, `Variable resultVar);
       ]
       in
-      let func = `DefineFunc (func "macroExec" `Int32 [] (Some (`Sequence implForms))) in
+      let func = `DefineFunc (func "macroExec" `Int32 [] (Some (`Sequence implForms)) Basics.fakeLocation) in
       log "...";
       let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
       let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
@@ -836,7 +836,7 @@ struct
     let macroFunc =
       let fargs = [argParamName, `Pointer (`Pointer astType)]
       and impl = Some (toSingleForm implforms) in
-      func macroName astPtrType fargs impl
+      func macroName astPtrType fargs impl Basics.fakeLocation
     in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     tlforms, macroFunc
@@ -2497,7 +2497,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           nestedTLForms, Some (`Sequence implFormsWithFixedVars)
       | None -> [], None
     in
-    let f = (if hasvarargs then varargFunc else func) name typ params impl in
+    let f = (if hasvarargs then varargFunc else func) name typ params impl Basics.fakeLocation in
     match Semantic.functionIsValid f with
       | `Ok ->
           let newBindings =
