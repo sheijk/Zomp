@@ -169,6 +169,49 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
   in
   newBindings
 
+let writeSymbolsToStream bindings stream =
+  fprintf stream "Symbol table\n";
+
+  let printSymbol (name, symbol) =
+    let module Typesystem = Typesystems.Zomp in
+    fprintf stream "%s =" name;
+    let doc, location =
+      match symbol with
+        | Bindings.VarSymbol var ->
+          (sprintf "var of type %s"
+             (Typesystem.typeName var.Lang.typ)),
+          var.Lang.vlocation
+        | Bindings.FuncSymbol func ->
+          let argToString (name, typ) =
+            sprintf "%s %s" (Typesystem.typeName typ) name
+          in
+          let args = List.map argToString func.Lang.fargs in
+          let argString = Common.combine ", " args in
+          (sprintf "%s(%s)"
+             (Typesystem.typeName func.Lang.rettype)
+             argString),
+          func.Lang.flocation
+        | Bindings.MacroSymbol macro ->
+          sprintf "%s" macro.Lang.mdocstring, None
+        | Bindings.LabelSymbol label ->
+          sprintf "label %s" label.Lang.lname, None
+        | Bindings.TypedefSymbol typ ->
+          sprintf "type %s" (Typesystem.typeDescr typ), None
+        | Bindings.UndefinedSymbol ->
+          sprintf "undefined", None
+    in
+    begin match location with
+      | Some location -> fprintf stream "%s @%s" doc (Basics.locationToString location)
+      | None -> fprintf stream "%s" doc
+    end;
+    fprintf stream "\n"
+  in
+  Bindings.iter printSymbol bindings;
+
+  let printBuiltinDoc name params = fprintf stream "%s =%s\n" name params in
+  Expander.foreachBaseInstructionDoc printBuiltinDoc;
+  (** zomp.el does not distinguish between toplevel and regular expressions *)
+  Expander.foreachToplevelBaseInstructionDoc printBuiltinDoc
 
 (**
  * Writes a very primitive symbol table to the given file. Deletes file if it
@@ -176,55 +219,16 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
  *)
 let writeSymbols fileName bindings =
   try begin
-    let module Typesystem = Typesystems.Zomp in
     if Sys.file_exists fileName then
       Sys.remove fileName;
     let stream = open_out fileName in
     try
-      fprintf stream "Symbol table\n";
-
-      let printSymbol (name, symbol) =
-        fprintf stream "%s =" name;
-        begin match symbol with
-          | Bindings.VarSymbol var ->
-            fprintf stream "var of type %s %s"
-              (Typesystem.typeName var.Lang.typ)
-              (match var.Lang.vlocation with
-                | None -> "@?"
-                | Some loc ->
-                  "@" ^ Basics.locationToString loc)
-          | Bindings.FuncSymbol func ->
-            let argToString (name, typ) =
-              sprintf "%s %s" (Typesystem.typeName typ) name
-            in
-            let args = List.map argToString func.Lang.fargs in
-            let argString = Common.combine ", " args in
-            fprintf stream "%s(%s)"
-              (Typesystem.typeName func.Lang.rettype)
-              argString;
-          | Bindings.MacroSymbol macro ->
-            fprintf stream "%s" macro.Lang.mdocstring;
-          | Bindings.LabelSymbol label ->
-            fprintf stream "label %s" label.Lang.lname;
-          | Bindings.TypedefSymbol typ ->
-            fprintf stream "type %s" (Typesystem.typeDescr typ)
-          | Bindings.UndefinedSymbol ->
-            fprintf stream "undefined"
-        end;
-        fprintf stream "\n"
-      in
-      Bindings.iter printSymbol bindings;
-
-      let printBuiltinDoc name params = fprintf stream "%s =%s\n" name params in
-      Expander.foreachBaseInstructionDoc printBuiltinDoc;
-      (** zomp.el does not distinguish between toplevel and regular expressions *)
-      Expander.foreachToplevelBaseInstructionDoc printBuiltinDoc;
-
+      writeSymbolsToStream bindings stream;
       close_out stream;
       true
     with exn ->
       close_out stream;
       raise exn
- end with Sys_error _ ->
-   false
+  end with Sys_error _ ->
+    false
 

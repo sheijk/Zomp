@@ -307,6 +307,10 @@ end = struct
       if not (Compileutils.writeSymbols fileName bindings) then
         reportError (sprintf "could not write symbols to file '%s'" fileName))
 
+  let printSymbolsCommand = makeNoArgCommand
+    (fun bindings ->
+      Compileutils.writeSymbolsToStream bindings stdout)
+
   let optimizeCommand = makeNoArgCommand
     (fun _ ->
       Machine.zompOptimizeFunctions();
@@ -354,6 +358,7 @@ end = struct
       "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
       "version", [], printVersionInfoCommand, "Print version/build info";
       "writeSymbols", [], writeSymbolsCommand, "Write all symbols to given file for emacs eldoc-mode";
+      "printSymbols", [], printSymbolsCommand, "Like writeSymbols but prints to stdout";
       "writellvm", [], writeLLVMCodeToFileCommand, "Write LLVM code to file";
 
       "connect", [], connectToRemoteVMCommand, "Connect to remote ZompVM server";
