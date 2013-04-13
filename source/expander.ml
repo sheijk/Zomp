@@ -584,9 +584,9 @@ let macroFuncs = ref []
 
 module Old_macro_support =
 struct
-  let translateMacro translateF (bindings :bindings) expr =
+  let translateMacroCall translateF (bindings :bindings) expr =
     match expr with
-      | { id = macroName; args = args; } as expr ->
+      | { id = macroName; args = args; } ->
           match lookup bindings macroName with
             | MacroSymbol macro ->
                 begin try
@@ -2220,7 +2220,7 @@ let rec translateNested (bindings :bindings) (expr :Ast2.sexpr) =
       translateBaseInstruction translateNested;
       Translators_deprecated_style.translateRestrictedFunCall;
       Translators_deprecated_style.translateSimpleExpr;
-      Old_macro_support.translateMacro;
+      Old_macro_support.translateMacroCall;
       Old_macro_support.translateDefineMacro translateNested;
       Translators_deprecated_style.translateRecord;
     ]
@@ -2564,7 +2564,7 @@ and translateTLNoErr bindings expr =
     sampleFunc3 "translateFunc" translateFunc;
     sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
     sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
-    sampleFunc3 "translateMacro" Old_macro_support.translateMacro;
+    sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
     sampleFunc3 "translateCompileTimeVar" translateCompileTimeVar;
   ]
   bindings expr
