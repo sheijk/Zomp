@@ -890,6 +890,62 @@ foreach i in subdirs(currentDir)
    func N add(N l, N r) where Number N
 
    func<Number N> N add(N l, N r) // schick
+
+*** case studies for sum
+**** Rust
+
+trait Vector {
+    static dims: uint;
+    fn get(&self, dim: uint) -> uint;
+}
+
+struct Point2D { x: uint, y: uint }
+
+impl Vector for Point2D {
+    static dims: uint = 2;
+    fn get(&self, dim: uint) -> uint {
+        assert!(dim < 2);
+        if dim == 0 {self.x} else {self.y}
+    }
+}
+
+fn sum<V: Vector>(v: &V) -> uint {
+    let sum = 0;
+    for uint::range(0, V::dims) |i| {
+        sum += v.get_dim(i);
+    }
+    return sum;
+}
+
+**** w/o implicit member params
+
+// could be trait, with some additional checking/sugar
+struct Vector!V:
+  int dims
+  uint(V&, uint)* get_dim
+
+struct Point2D:
+  uint x, y
+
+fn uint get(Point2D& pt, uint dim):
+  return: if (dim == 0) then pt.x else pt.y
+
+@implicit
+_ := Vector!Point2D(dims = 2, get_dim = &get)
+
+fn uint sum!V(V& v, implicit Vector!V vimpl):
+  sum := 0
+  foreach range(vimpl.dims):
+    sum += vimpl.get_dim(v, i)
+
+**** w/ implicit member params
+
+/// members of implicit args are imported
+fn uint sum!V(V& v, implicit Vector!V):
+  sum := 0
+  foreach range(dims):
+    sum += get_dim(v, i)
+
 ** TODO [#A] doch benutzerdefinierbare syntax?
    :PROPERTIES:
    :ID:       C6C18821-4C95-486D-966C-ECEE1FB59DA6
