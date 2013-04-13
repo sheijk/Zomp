@@ -15,7 +15,6 @@ func int main():
   printString std:env:file
   printString "##"
   printInt line //// print foo.zomp##102
-  // printInt std:env:line //// print foo.zomp##102
   ret 0
 end
 
