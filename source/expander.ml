@@ -584,19 +584,44 @@ let macroFuncs = ref []
 
 module Old_macro_support =
 struct
+  (* make it easy to find places where this code is still used *)
+  let trace functionName location = ()
+    (* printf "[TRACE] Old_macro_support.%s @%s\n" *)
+    (*   functionName *)
+    (*   (applyOptOrDefault location locationToString "???") *)
+
+  (** TODO: this can result in quadratic run time, fix source locations directly
+   * after transferring from native code *)
+  let rec withDefaultSourceLocation location expr =
+    let fixedArgs = List.map (withDefaultSourceLocation location) expr.args in
+    match expr.location with
+      | Some _ ->
+        { expr with args = fixedArgs }
+      | None ->
+        { expr with location = Some location; args = fixedArgs }
+
   let translateMacroCall translateF (bindings :bindings) expr =
+    trace "translateMacroCall" expr.location;
     match expr with
       | { id = macroName; args = args; } ->
-          match lookup bindings macroName with
-            | MacroSymbol macro ->
-                begin try
-                  let transformedExpr = macro.mtransformFunc bindings expr in
-                  Some (translateF bindings transformedExpr)
-                with
-                  | Failure msg ->
-                      raiseIllegalExpression expr ("could not expand macro: " ^ msg)
-                end
-            | _ -> None
+        match lookup bindings macroName with
+          | MacroSymbol macro ->
+            begin
+              try
+                let transformedExpr =
+                  let withBrokenLocations = macro.mtransformFunc bindings expr in
+                  match expr.location with
+                    | Some location ->
+                      withDefaultSourceLocation location withBrokenLocations
+                    | None ->
+                      withBrokenLocations
+                in
+                Some (translateF bindings transformedExpr)
+              with
+                | Failure msg ->
+                  raiseIllegalExpression expr ("could not expand macro: " ^ msg)
+            end
+          | _ -> None
 
   let createNativeMacro translateF bindings macroName argNames impl =
     let sexprImpl = impl in
@@ -730,7 +755,9 @@ struct
     in
     translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
 
-  let translateDefineMacro translateNestedF translateF (bindings :bindings) = function
+  let translateDefineMacro translateNestedF translateF (bindings :bindings) expr =
+    trace "translateDefineMacro" expr.location;
+    match expr with
     | { id = id; args =
           { id = name; args = [] }
           :: paramImpl

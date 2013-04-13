@@ -162,6 +162,11 @@ let someOrDefault optionValue default =
     | Some value -> value
     | None -> default
 
+let applyOptOrDefault optionalValue f default =
+  match optionalValue with
+    | Some value -> f value
+    | None -> default
+
 let some x = Some x
 let id x = x
 
