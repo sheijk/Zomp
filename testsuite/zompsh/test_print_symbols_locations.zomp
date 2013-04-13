@@ -1,0 +1,27 @@
+///
+/// Testing basic functionality of !printSymbols which is used for IDE support.
+/// This is one checks whether source locations are correect.
+///
+
+!printDecl off
+
+
+
+// this needs to be line 10
+var int testVarForPrintSymbol001 10
+std:base:func void testFuncForPrintSymbol002():
+end
+
+std:base:func int main():
+  std:base:ret 0
+end
+
+//// print testVarForPrintSymbol001 11 @test_print_symbols.zomp
+//// print testFuncForPrintSymbol002 12 @test_print_symbols.zomp
+//// print main 15 @test_print_symbols.zomp
+
+
+
+
+!printSymbols
+
