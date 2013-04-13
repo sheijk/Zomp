@@ -519,7 +519,9 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
     zompc.ml zompvm.ml basics.ml, source/$(file))
 
-source/newparser.ml: source/newparser.mly source/ast2.cmo
+source/newparser.cmo: source/newparser.mly source/ast2.ml
+source/newparser.cmx: source/newparser.mly source/ast2.ml
+source/newparser.cmi: source/newparser.mly source/ast2.ml
 source/newparser_tests.cmo: source/newparser.cmo
 source/newparser_tests.cmx: source/newparser.cmx
 source/indentlexer.cmo: source/newparser.cmo
