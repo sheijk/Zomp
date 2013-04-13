@@ -4,8 +4,12 @@
 
 requireLibs libcee
 
-func int main():
+func void greet():
   println "Hello, Zomp"
+end
+
+func int main():
+  greet()
   ret 0
 end
 
