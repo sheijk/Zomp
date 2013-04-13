@@ -50,6 +50,7 @@ testsuite/clean:
 	rm -f $(TESTSUITE_CASES:.testreport=.result)
 	rm -f $(TESTSUITE_CASES:.testreport=.last_result)
 	rm -f $(TESTSUITE_CASES:.testreport=.test_output)
+	rm -f $(TESTSUITE_CASES:.testreport=.compile_output)
 	rm -f $(TESTSUITE_CASES:.testreport=.ll)
 	rm -f $(TESTSUITE_CASES:.testreport=.bc)
 	rm -f $(TESTSUITE_CASES:.testreport=.opt-bc)
@@ -105,10 +106,11 @@ TESTREPORT_LIB_DEPS = source/prelude.zomp source/runtime.ll libs/unittest.zomp l
 TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) external_lib_links testsuite/selftest makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
 
 .PRECIOUS: %.test_output
-%.testreport %.result %.test_output: %.zomp $(TESTREPORT_DEPS)
+.PRECIOUS: %.compile_output
+%.testreport %.result %.test_output %.compile_output: %.zomp $(TESTREPORT_DEPS)
 	@$(ECHO) Running test suite case $< ...
 	-mv ${@:.testreport=.result} ${@:.testreport=.last_result}
-	rm -f ${@:.testreport=.}{bc,opt-bc,ll,exe,test_output,testreport}
+	rm -f ${@:.testreport=.}{bc,opt-bc,ll,exe,test_output,compile_output,testreport}
 	$(CHECK_TEST) $@ $(TESTREPORT_COMPILE_CMD) $(TESTREPORT_RUN_CMD)
 ifeq "$(PRINT_TESTREPORT)" "1"
 	echo "--- Content of $@"
@@ -130,7 +132,7 @@ testsuite/check_test_verify/all: testsuite/check_test_verify/test_check_test_err
 
 # A simple self-test.
 testsuite/check_test_verify/test_check_test_error_report.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/testsuite.mk $(CHECK_TEST_FILE)
-	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output}
+	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output,compile_output}
 	($(CHECK_TEST) $@ "$(MAKE) SILENT=1" 2>&1) > $@.tmp
 # suppress printing of command to avoid it being recognized as an error pattern
 	@(cat $@.tmp | grep 'testsuite/check_test_verify/test_check_test_error_report.zomp:2:' | grep warning | grep invalid) 2>&1 > /dev/null

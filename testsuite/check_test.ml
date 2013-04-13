@@ -11,6 +11,7 @@ open Printf
 let scriptName = "check_test"
 
 let testOutputExt = "test_output"
+let compilationOutputExt = "compile_output"
 let reportOutputExt = "testreport"
 
 type usageError =
@@ -394,7 +395,7 @@ let () =
           (Exit_code.conditionToString !expectedTestCaseExitCode);
       List.iter writeExpectation !expectedErrorMessages);
 
-    let compilerMessagesOutputFile = Filename.temp_file "zompc" "out" in
+    let compilerMessagesOutputFile = replaceExtension outputFileName compilationOutputExt in
     let compilerError =
       let cmd = sprintf "(%s 2>&1) > %s" compileCommand compilerMessagesOutputFile in
       printf "%s\n" cmd;
