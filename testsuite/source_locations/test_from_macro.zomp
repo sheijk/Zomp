@@ -15,8 +15,8 @@ macro printLoc msg:
 end
 
 func int main():
-  printLoc "loc-a" //// print loc-a from_macro.zomp 16
-  printLoc "loc-b" //// print loc-b from_macro.zomp 17
+  printLoc "loc-a" //// print loc-a from_macro.zomp 18
+  printLoc "loc-b" //// print loc-b from_macro.zomp 19
   ret 0
 end
 
