@@ -4,9 +4,9 @@
 
 requireLibs unittest
 
-type VoidFunction (fptr void)
-type Int2VoidFunction (fptr void int)
-type Int2IntFunction (fptr int int)
+type VoidFunction void()*
+type Int2VoidFunction void(int)*
+type Int2IntFunction int(int)*
 
 func void action():
 end
