@@ -25,6 +25,19 @@
   let raiseParseErrorLex lexloc str = raiseParseError (getLocation lexloc) str
   let raiseParseErrorNoLoc str = raiseParseError fakeLocation str
 
+  let raiseFoundButExpected lexloc found expected =
+    raiseParseErrorLex
+      lexloc
+      (sprintf "expected '%s' but found '%s'" expected found)
+
+  (** Will cause value to be evaluated even if it is not needed. This only
+      happens infrequently in the error case so it's fine. *)
+  let expectClosing expectedSymbol (lexloc, foundSymbol) value =
+    if expectedSymbol = foundSymbol then
+      value
+    else
+      raiseFoundButExpected lexloc foundSymbol expectedSymbol
+
   let idExprLoc id loc =
     let l = getLocation loc in
     let e = idExpr id in
@@ -214,28 +227,35 @@ closedExpr:
 | l = closedExpr; op = EXCLAMATION_OP; r = closedExpr;
   { exprInferLoc (opName op) [l; r] }
 
-| OPEN_PAREN; e = expr; CLOSE_PAREN;
-  { e }
+| OPEN_PAREN; e = expr; posAndSymbol = closeBrackets;
+  { expectClosing ")" posAndSymbol e }
 
-| OPEN_CURLY; CLOSE_CURLY;
-  { withLoc (exprInferLoc "op{}" []) $startpos }
-| OPEN_CURLY; e = expr; CLOSE_CURLY;
-  { exprInferLoc "op{}" [e] }
+| OPEN_CURLY; posAndSymbol = closeBrackets;
+  { expectClosing "}" posAndSymbol (withLoc (exprInferLoc "op{}" []) $startpos) }
+| OPEN_CURLY; e = expr; posAndSymbol = closeBrackets;
+  { expectClosing "}" posAndSymbol (exprInferLoc "op{}" [e]) }
 
-| OPEN_BRACKET; CLOSE_BRACKET;
-  { withLoc (exprInferLoc "op[]" []) $startpos }
-| OPEN_BRACKET; e = expr; CLOSE_BRACKET;
-  { exprInferLoc "op[]" [e] }
+| OPEN_BRACKET; posAndSymbol = closeBrackets;
+  { expectClosing "]" posAndSymbol (withLoc (exprInferLoc "op[]" []) $startpos) }
+| OPEN_BRACKET; e = expr; posAndSymbol = closeBrackets;
+  { expectClosing "]" posAndSymbol (exprInferLoc "op[]" [e]) }
 
-| head = closedExpr; OPEN_BRACKET_POSTFIX; arg = expr; CLOSE_BRACKET;
-  { exprInferLoc "postop[]" [head; arg] }
+| head = closedExpr; OPEN_ARGLIST; args = separated_list(COMMA, expr); posAndSymbol = closeBrackets;
+  { expectClosing ")" posAndSymbol (callExprInferLoc (head :: args)) }
 
-| head = closedExpr; OPEN_ARGLIST; args = separated_list(COMMA, expr); CLOSE_PAREN;
-  { callExprInferLoc (head :: args) }
+| head = closedExpr; OPEN_BRACKET_POSTFIX; arg = expr; posAndSymbol = closeBrackets;
+  { expectClosing "]" posAndSymbol (exprInferLoc "postop[]" [head; arg]) }
 
 | BEGIN_BLOCK; exprs = terminatedExpr*; END_BLOCK;
   { seqExprInferLoc exprs }
-    
+
+%inline closeBrackets:
+| c = CLOSE_PAREN;
+  { ignore c; $startpos(c), ")" }
+| c = CLOSE_BRACKET;
+  { ignore c; $startpos(c), "]" }
+| c = CLOSE_CURLY;
+  { ignore c; $startpos(c), "}" }
 
 %inline opSymbol:
 | o = ADD_OP
