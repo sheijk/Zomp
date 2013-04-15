@@ -80,7 +80,7 @@ let rec compile
 
 exception CouldNotParse of parseError
 
-let compileCode bindings input outstream fileName =
+let compileCode bindings input outStream fileName =
   (** TODO: return error(s) instead of printing them *)
   let printError exn =
     match exn with
@@ -124,7 +124,7 @@ let compileCode bindings input outstream fileName =
            ~readExpr
            ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                          Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                         output_string outstream llvmCode)
+                         output_string outStream llvmCode)
            ~onErrors:signalErrors
            bindings)
   in

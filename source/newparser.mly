@@ -1,10 +1,8 @@
 
 %{
-  exception ParseError of string
   open Printf
   open Ast2
   open Basics
-  let raiseParseError str = raise (ParseError str)
 
   let reportParsedExpression e =
     let locationToString l =
@@ -23,6 +21,10 @@
 
   let withLoc expr lbloc = { expr with location = Some (getLocation lbloc) }
 
+  let raiseParseError loc str = raise (ParseError (loc, str))
+  let raiseParseErrorLex lexloc str = raiseParseError (getLocation lexloc) str
+  let raiseParseErrorNoLoc str = raiseParseError fakeLocation str
+
   let idExprLoc id loc =
     let l = getLocation loc in
     let e = idExpr id in
@@ -36,7 +38,8 @@
     | "#" -> "antiquote"
     | invalidString ->
         raise (ParseError
-                 (Printf.sprintf
+                 (fakeLocation,
+                  Printf.sprintf
                     "invalid quoting char: %s"
                     invalidString))
 
@@ -59,22 +62,23 @@
           when exprId = firstTerm ->
           checkAll (remExprs, remTerms)
       | _, _ ->
-          raiseParseError (Printf.sprintf "invalid terminators: %s for %s"
-                             (Common.combine " " terminators)
-                             (toString expr) )
+          raiseParseErrorNoLoc
+            (Printf.sprintf "invalid terminators: %s for %s"
+               (Common.combine " " terminators)
+               (toString expr) )
     in
     checkAll (idExpr expr.id :: expr.args, terminators)
 
   let expectNoTerminators = function
     | [] -> ()
     | invalidTerminators ->
-        raiseParseError (Printf.sprintf "expected no terminators but found: %s"
-                           (Common.combine " " invalidTerminators))
+        raiseParseErrorNoLoc (Printf.sprintf "expected no terminators but found: %s"
+                                (Common.combine " " invalidTerminators))
 
   let exprOfNoTerm ((expr :sexpr), (terminators :string list)) =
     match terminators with
       | [] -> expr
-      | invalidTerminators -> raiseParseError
+      | invalidTerminators -> raiseParseErrorNoLoc
           (Printf.sprintf "expected no terminators but found %s in %s"
              (Common.combine " " invalidTerminators)
              (toString expr))
@@ -88,7 +92,7 @@
       | (expr, []) :: rem ->
           worker (expr::acc) rem
       | (expr, invalidTerminators) :: rem ->
-          raiseParseError (Printf.sprintf "expected no terminators but found %s in %s"
+          raiseParseErrorNoLoc (Printf.sprintf "expected no terminators but found %s in %s"
                              (Common.combine " " invalidTerminators)
                              (toString expr))
     in
@@ -102,7 +106,7 @@
     | (keyword, (expr, [])) :: rem ->
         (keyword, expr) :: extractKeywordsAndExprsAndCheckTerminators rem
     | (keyword, (expr, terminators)) :: _ ->
-        raiseParseError (Printf.sprintf "found invalid terminators '%s' after block in expr %s"
+        raiseParseErrorNoLoc (Printf.sprintf "found invalid terminators '%s' after block in expr %s"
                            (Common.combine ", " terminators)
                            (toString expr))
 

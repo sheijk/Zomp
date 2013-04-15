@@ -65,10 +65,10 @@ let compilation_result_to_int = function
   | Compilation_failed Failed_to_init_vm -> 4
 
 
-let compile fileName instream outstream =
+let compile fileName inStream outStream =
   let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
   let input =
-    collectTimingInfo "reading prelude file content" (fun () -> readInput instream)
+    collectTimingInfo "reading prelude file content" (fun () -> readInput inStream)
   in
 
   if not( Zompvm.zompInit() ) then begin
@@ -81,10 +81,10 @@ let compile fileName instream outstream =
           let preludeBindings :Bindings.t =
             Compileutils.loadPrelude
               ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                output_string outstream llvmCode)
+                output_string outStream llvmCode)
               preludeDir
           in
-          match Compileutils.compileCode preludeBindings input outstream fileName with
+          match Compileutils.compileCode preludeBindings input outStream fileName with
             | Some finalBindings -> Compilation_succeeded finalBindings
             | None -> Compilation_failed Compiler_did_not_return_result
         end)
