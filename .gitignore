@@ -3,6 +3,7 @@
 *.result
 *.last_result
 *.test_output
+*.compile_output
 *.testreport
 *.annot
 .DS_Store
