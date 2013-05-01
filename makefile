@@ -519,9 +519,11 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
     zompc.ml zompvm.ml basics.ml, source/$(file))
 
-source/newparser.cmo: source/newparser.mly source/ast2.ml
-source/newparser.cmx: source/newparser.mly source/ast2.ml
-source/newparser.cmi: source/newparser.mly source/ast2.ml
+source/newparser.cmo: source/newparser.mly source/ast2.cmo
+source/newparser.cmx: source/newparser.mly source/ast2.cmx
+source/newparser.cmi: source/newparser.mly source/ast2.cmi
+source/newparser.ml: source/newparser.mly source/ast2.cmo
+
 source/newparser_tests.cmo: source/newparser.cmo
 source/newparser_tests.cmx: source/newparser.cmx
 source/indentlexer.cmo: source/newparser.cmo
@@ -553,7 +555,7 @@ TAGS:
 # Visualize OCaml module dependencies
 ################################################################################
 
-$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS)
+$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS) source/newparser.ml
 	@$(ECHO) Generating dependency graph for graphviz ...
 	$(OCAMLDOC) -I source/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
 	dot -Tpng $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.png || $(ECHO) "warning: dot not found, $(OUT_DIR)/deps.png not generated"
