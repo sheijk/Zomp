@@ -111,7 +111,7 @@ endif
 
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.png \
   $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang \
-  $(DEPLOY_DIR)/vm_http_server libs/all examples/all
+  $(DEPLOY_DIR)/vm_http_server libs/all examples/all external_lib_links
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
@@ -402,9 +402,14 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 # executable using @executable_path so we need to add links to them into all
 # directories that will contain binaries requiring those libs.
 EXTERNAL_LIB_LINK_NAMES = glfw GLEW GLEW.1.9 GLEW.1.9.0
-EXTERNAL_LIB_TARGET_DIRS = examples testsuite/std
+EXTERNAL_LIB_TARGET_DIRS = examples testsuite/std libs
 EXTERNAL_LIB_LINKS = $(foreach target_dir, $(EXTERNAL_LIB_TARGET_DIRS), \
   $(foreach lib, $(EXTERNAL_LIB_LINK_NAMES), $(target_dir)/lib$(lib).dylib))
+
+libs/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
+	@$(ECHO) "Creating symlink to library $@ ..."
+	rm -f $(@)
+	ln -s $(<) $(@)
 
 examples/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
 	@$(ECHO) "Creating symlink to library $@ ..."
