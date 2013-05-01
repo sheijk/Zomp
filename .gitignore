@@ -121,3 +121,7 @@ tools
 /examples/libGLEW.1.9.dylib
 /examples/libGLEW.dylib
 /examples/libglfw.dylib
+/libs/libGLEW.1.9.0.dylib
+/libs/libGLEW.1.9.dylib
+/examples/assimp.dylib
+/examples/libAntTweakBar.dylib
