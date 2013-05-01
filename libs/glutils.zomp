@@ -760,9 +760,9 @@ func void printTexture2DInfo(GLenum tex, cstring name):
 end
 
 macro mainloop body...:
-  ret ${seq:
-    time := 0.0
-    lastTime := 0.0
+  ret $:
+    time := toFloat glfwGetTime()
+    lastTime := time
     frameDuration := 0.0
     frameNum := 0
     startTime := toFloat glfwGetTime()
@@ -784,6 +784,6 @@ macro mainloop body...:
     end
 
     endTime := toFloat glfwGetTime()
-  end}
+  end
 end
 
