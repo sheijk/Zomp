@@ -9,11 +9,12 @@ var int windowHeight 300
 var bool initCalled false
 
 func void init():
-  if bool:not(initCalled):
+  if !initCalled:
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
-    times 2 glfwPollEvents()
+    glfwPollEvents()
+    glfwPollEvents()
 
     printString "Initialized"
     println()
@@ -27,59 +28,32 @@ end
 
 var float angle 0.0
 
-// avoid writing it over and over, part of utils lib
-macro mainloop body...:
-  ret ${seq:
-    var float time 0.0
-    var bool running true
-    zompSetRequestPause false
-    while running:
-      time = double:toFloat(glfwGetTime())
-      angle = time * 128.0
-
-      #body
-
-      glfwSwapBuffers()
-      glfwPollEvents()
-
-      if zompRequestedPause():
-        running = false
-      end
-
-      running = running && bool:not( isPressed(GLFW_KEY_ESC) )
-    end
-  end}
-end
-
 func int main():
   init()
 
-  glMatrixMode( GL_PROJECTION )
+  glMatrixMode GL_PROJECTION
   glLoadIdentity()
-  const double aspect (int:toDouble windowWidth /_d int:toDouble windowHeight)
+  aspect := toDouble windowWidth / toDouble windowHeight
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
   mainloop:
     autoSetupViewport()
+    angle += frameDuration * 20.0
+
     glClearColor(0.0, 0.0, 0.0, 1.0)
-    glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     glMatrixMode GL_MODELVIEW
     glLoadIdentity()
-    glTranslatef( 0., 1., float:neg(4.) )
+    glTranslatef( 0., 1., -4. )
     glRotatef( angle, 0., 1., 0. )
 
-    drawCoordSys( 8.0 )
+    drawCoordSys( 2.0 )
   end
 
   drawPausedOverlay()
-  glfwSwapBuffers()
-  drawPausedOverlay()
-  glfwPollEvents()
 
   printlnString "cu"
 
   ret 0
 end
-
-
