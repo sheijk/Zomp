@@ -843,6 +843,26 @@ foreach i in subdirs(currentDir)
 
 
 * more extensions
+** TODO problems with opjux
+
+allowing arbitrary juxtaposition of expressions
+- introduces ambiguities
+- reduces options to use same operator symbol for different things
+
+if jux is not valid at arbitrary places we can use some symbol both as bracket
+and as infix symbol
+
+print (a | b), x
+print |a, b|, x
+
+syntax for lambdas:
+map [1, 2, 3, 4] |a| a + 1
+map [1, 2, 3, 4] (|a| a + 1)
+map [1, 2, 3, 4] (a => a + 1)
+map [1, 2, 3, 4] fn(a => a + 1)
+map: [1, 2, 3, 4] with: a => a + 1
+map [1, 2, 3, 4], a => a + 1
+
 ** TODO possible template syntax
    :PROPERTIES:
    :ID:       786D599C-88BF-45D2-AF26-938FD063757F
@@ -947,18 +967,21 @@ fn uint sum!V(V& v, implicit Vector!V):
     sum += get_dim(v, i)
 
 ** TODO [#A] doch benutzerdefinierbare syntax?
-   :PROPERTIES:
-   :ID:       C6C18821-4C95-486D-966C-ECEE1FB59DA6
-   :END:
+:PROPERTIES:
+:ID:       C6C18821-4C95-486D-966C-ECEE1FB59DA6
+:END:
 
-   anfang + ende definiert durch ein token
-   ende definiert durch indent level?
-   tokens koennen in namespaces leben
+anfang + ende definiert durch ein token
+ende definiert durch indent level?
+tokens koennen in namespaces leben
 
-   matches = zomp.db.sql
-     SELECT foo, bar FROM WHERE foo > bar
+matches = zomp.db.sql
+  SELECT foo, bar FROM table1 WHERE foo > bar
 
-   zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >>
+zomp.db.sql <<  SELECT foo, bar FROM WHERE foo > bar >>
+
+matches = zomp.db.sql
+  select: foo, bar from: table1 where: foo > bar
 
 ** TODO [#A] reconsider the syntax
    :PROPERTIES:
