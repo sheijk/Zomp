@@ -57,9 +57,9 @@ macro shader name body:
     end
   end
 
-  pret ${seq:
+  pret $:
     struct #structName #structMembers
-  end}
+  end
 end
 
 shader foobar:

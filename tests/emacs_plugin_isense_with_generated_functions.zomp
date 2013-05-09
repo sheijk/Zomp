@@ -6,7 +6,7 @@
 // requireLibs libcee
 
 macro createFunctions:
-  ret ${seq:
+  ret $:
     func void functionA():
     end
     func void functionB(int a, int b):
@@ -17,18 +17,18 @@ macro createFunctions:
     end
     func void functionC(float f):
     end
-  end}
+  end
 end
 
 macro createFunctions2:
-  ret ${seq:
+  ret $:
     func void functionX():
     end
     func void functionY(int a, int b):
     end
     func void functionZ(float f):
     end
-  end}
+  end
 end
 
 createFunctions

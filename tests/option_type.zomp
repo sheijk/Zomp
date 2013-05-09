@@ -37,14 +37,14 @@ macro ifValid option value onValid more...:
     ret ${error "Invalid else clause" #more}
   end
 
-  ret ${seq:
+  ret $:
     if !isNull(#option.ptr):
       #value := *#option.ptr
       #onValid
     else:
       #onInvalid
     end
-  end}
+  end
 end
 
 unittest:testCase MatchSimple:

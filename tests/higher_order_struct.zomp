@@ -32,10 +32,10 @@ macro makeStructDecl name fields:
   /// Create a macro which will create the definition and then invoke it. Do
   /// this indirectly because "#fields defineStructField" cannot be called
   /// directly inside the macro
-  ret ${seq:
+  ret $:
     #decl
     makeStructDeclHelper
-  end}
+  end
 end
 
 makeStructDecl Point3 point_fields
@@ -71,11 +71,11 @@ macro superstruct name fields:
     ast:addChild line ast:child(field, 1)
   end
 
-  ret ${seq:
+  ret $:
     template #fieldsMacroName apply #applyFields
     makeStructDecl #name #fieldsMacroName
     makeStructPrinter #name #fieldsMacroName
-  end}
+  end
 end
 
 superstruct Circle:

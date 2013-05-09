@@ -6,9 +6,9 @@ requireLibs libcee
 
 xmacro foo(v, expr n):
   uniqueId nEvaluated "foo"
-  ret ${seq:
+  ret $:
     #v = #n * #n
-  end}
+  end
 end
 
 macro foo v n_:
@@ -18,10 +18,10 @@ macro foo v n_:
     ret ${error #e}
   end
   n := nResult.argumentName
-  evalCode = ${seq:
+  evalCode = $:
     #evalCode
     #n.evalCode
-  end}
+  end
 
   body...
 end

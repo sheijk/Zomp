@@ -122,7 +122,7 @@ end
 
 // avoid writing it over and over, part of utils lib
 macro mainloop body...:
-  ret ${seq:
+  ret $:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -160,7 +160,7 @@ macro mainloop body...:
     glfwSwapBuffers()
     glfwSleep (1.0d /_d 10.0d)
     glfwPollEvents()
-  end}
+  end
 end
 
 macro assert code:

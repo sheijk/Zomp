@@ -413,7 +413,7 @@ end = struct
                IDENTIFIER "public"; BEGIN_BLOCK; END_BLOCK[];
                IDENTIFIER "private"; BEGIN_BLOCK; END_BLOCK[]; END];
 
-      "empty ${seq:\nend}",
+      "empty $:\nend",
       `Return [IDENTIFIER "empty"; QUOTE "$"; OPEN_CURLY; IDENTIFIER "seq"; BEGIN_BLOCK;
                END_BLOCK []; CLOSE_CURLY; END];
 

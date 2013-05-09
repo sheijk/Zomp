@@ -11,7 +11,7 @@ end
 
 macro defineListType memberT:
   listT := ast:fromString List:listTypeName(memberT.id)
-  code := ${seq:
+  code := $:
     struct #listT:
       #memberT data
       #listT* next
@@ -20,7 +20,7 @@ macro defineListType memberT:
       this.data = data
       this.next = next
     end
-  end}
+  end
   ast:replace code "INITFUNCNAME" ast:fromString(listT.id ++ ":init")
   ret code
 end
@@ -44,7 +44,7 @@ end
 macro List:foreach_ptr list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${seq:
+  ret $:
     #current := #list
     #indexVar := 0
     while isNotNull(#current):
@@ -53,13 +53,13 @@ macro List:foreach_ptr list indexVar dataVar code:
       ++(#indexVar)
       #current = #current.next
     end
-  end}
+  end
 end
 
 macro List:foreach list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${seq:
+  ret $:
     #current := #list
     #indexVar := 0
     while isNotNull(#current):
@@ -68,7 +68,7 @@ macro List:foreach list indexVar dataVar code:
       ++(#indexVar)
       #current = #current.next
     end
-  end}
+  end
 end
 
 ///-----------------------------------------------------------------------------
@@ -83,14 +83,14 @@ end
 
 macro defineEvent id:
   varname := eventVarName id.id
-  ret ${seq:
+  ret $:
     var astp_List* #varname null
-  end}
+  end
 end
 
 macro onEvent id code:
   varname := eventVarName id.id
-  ret ${seq:
+  ret $:
     macro mtmp:
       newList := malloc astp_List
       newList*.next = #varname
@@ -99,7 +99,7 @@ macro onEvent id code:
       ret ${}
     end
     mtmp
-  end}
+  end
 end
 
 defineEvent init
@@ -110,7 +110,7 @@ end
 
 macro triggerEvent id:
   varname := eventVarName id.id
-  ret ${seq:
+  ret $:
     macro mtmp:
       code := ${}
       List:foreach #varname i icode:
@@ -124,7 +124,7 @@ macro triggerEvent id:
       ret code
     end
     mtmp
-  end}
+  end
 end
 
 func void test():

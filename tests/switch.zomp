@@ -34,10 +34,10 @@ macro switch intvalue cases...:
     ast:addChild code casecode
   end
 
-  code = ${seq:
+  code = $:
     var int #value #intvalue
     #code
-  end}
+  end
 
   ret code
 end

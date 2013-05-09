@@ -6,10 +6,10 @@ requireLibs libcee unittest
 
 // macro hasType var type:
 //   uniqueId tmp "hasType"
-//   ret ${seq:
+//   ret $:
 //     #tmp := nullptr #type
 //     #tmp = &#var
-//   end}
+//   end
 // end
 
 unittest:testCase defVarFromSequence:

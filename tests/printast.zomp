@@ -16,7 +16,7 @@ func void ast:pprintHelper(ast* code, int indent):
   macro printArgs seperator:
     uniqueId childNum "childnum"
     uniqueId child "childvar"
-    ret ${seq:
+    ret $:
       for #childNum 0 code.childCount:
         #child := ast:child code #childNum
         if (#childNum > 0):
@@ -24,7 +24,7 @@ func void ast:pprintHelper(ast* code, int indent):
         end
         ast:pprintHelper #child newIndent
       end
-    end}
+    end
   end
 
   printCharRep ' ' indent

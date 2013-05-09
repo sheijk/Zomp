@@ -16,7 +16,7 @@ end
 macro for2 counter in first to last body...:
   uniqueIds "for" start continue exit testVar
 
-  ret ${seq:
+  ret $:
     var int #counter #first
     label #start
     var bool #testVar (#counter <= #last)
@@ -26,7 +26,7 @@ macro for2 counter in first to last body...:
     #counter = #counter + 1
     branch #start
     label #exit
-  end}
+  end
 end
 
 func void test():

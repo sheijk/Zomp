@@ -46,7 +46,7 @@ end
 
 macro defineListType memberT:
   listT := ast:fromString List:listTypeName(memberT.id)
-  code := ${seq:
+  code := $:
     struct #listT:
       #memberT data
       #listT* next
@@ -55,7 +55,7 @@ macro defineListType memberT:
       this.data = data
       this.next = next
     end
-  end}
+  end
   ast:replace code "INITFUNCNAME" ast:fromString(listT.id ++ ":init")
   ret code
 end
@@ -85,7 +85,7 @@ end
 macro List:foreach_ptr list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${seq:
+  ret $:
     #current := #list
     #indexVar := 0
     while isNotNull(#current):
@@ -94,13 +94,13 @@ macro List:foreach_ptr list indexVar dataVar code:
       ++(#indexVar)
       #current = #current.next
     end
-  end}
+  end
 end
 
 macro List:foreach list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${seq:
+  ret $:
     #current := #list
     #indexVar := 0
     while isNotNull(#current):
@@ -109,30 +109,30 @@ macro List:foreach list indexVar dataVar code:
       ++(#indexVar)
       #current = #current.next
     end
-  end}
+  end
 end
 
 macro printList list name printMemberF:
   uniqueId ptr "printList"
   uniqueId index "printList"
-  ret ${seq:
+  ret $:
     println #name ": "
     List:foreach_ptr #list #index #ptr:
       #printMemberF #ptr
     end
-  end}
+  end
 end
 
 macro List:length count listPtr:
   uniqueId ptr "List:length"
-  ret ${seq:
+  ret $:
     #ptr := #listPtr
     #count = 0
     while isNotNull(#ptr):
       #count += 1
       #ptr = #ptr.next
     end
-  end}
+  end
 end
 
 macro List:prepend type listVar newElement:
@@ -165,14 +165,14 @@ macro initMemory startAddressExpr valueExpr countExpr:
   uniqueId count "initMemory"
   uniqueId counter "initMemory"
 
-  ret ${seq:
+  ret $:
     #startAddress := #startAddressExpr
     #value := #valueExpr
     #count := #countExpr
     for #counter 0 #count:
       store (#startAddress + #counter) #value
     end
-  end}
+  end
 end
 
 /// TODO fix mem leaks
@@ -533,10 +533,10 @@ end
 
 macro hasType vr typ:
   uniqueId tmp "hasType"
-  ret ${seq:
+  ret $:
     #tmp := nullptr #typ
     #tmp = &#vr
-  end}
+  end
 end
 
 ///-----------------------------------------------------------------------------
@@ -761,14 +761,14 @@ end
 
 macro defineEvent id:
   varname := eventVarName id.id
-  ret ${seq:
+  ret $:
     var astp_List* #varname null
-  end}
+  end
 end
 
 macro onEvent id code:
   varname := eventVarName id.id
-  ret ${seq:
+  ret $:
     macro mtmp:
       newList := malloc astp_List
       newList.next = #varname
@@ -777,12 +777,12 @@ macro onEvent id code:
       ret ${}
     end
     mtmp
-  end}
+  end
 end
 
 macro triggerEvent id:
   varname := eventVarName id.id
-  ret ${seq:
+  ret $:
     macro mtmp:
       code := ${}
       List:foreach #varname i icode:
@@ -791,7 +791,7 @@ macro triggerEvent id:
       ret code
     end
     mtmp
-  end}
+  end
 end
 
 ///-----------------------------------------------------------------------------
@@ -3206,11 +3206,11 @@ macro log args...:
     instrumentedBody := ${seq}
     forEachAstChild statement body:
       descr := cstring:quote statement.id
-      ast:addChild instrumentedBody ${seq:
+      ast:addChild instrumentedBody $:
         print "Running "
         ast:printLimited(${#statement}, 80)
         println()
-      end}
+      end
       ast:addChild instrumentedBody statement
     end
 

@@ -357,7 +357,7 @@ macro while test body...:
   uniqueId goon "while_body"
   uniqueId testVar "while_testvar"
 
-  std:base:ret ${seq:
+  std:base:ret $:
     var bool #testVar true
     label #begin
     assign #testVar (#test)
@@ -366,18 +366,18 @@ macro while test body...:
     #body
     branch #begin
     label #exit
-  end}
+  end
 end
 
 macro for index min supremum code:
-  std:base:ret ${seq:
+  std:base:ret $:
     var int #index #min
 
     while (u32:sless #index #supremum):
       #code
       assign #index (u32:add #index 1)
     end
-  end}
+  end
 end
 
 macro when test onTrue:
@@ -385,13 +385,13 @@ macro when test onTrue:
   uniqueId endLabel "when_end"
   uniqueId testResult "when_testresult"
 
-  var ast* result ${seq:
+  var ast* result $:
     var bool #testResult #test
     branch #testResult #trueLabel #endLabel
     label #trueLabel
     #onTrue
     label #endLabel
-  end}
+  end
   std:base:ret result
 end
 
@@ -432,12 +432,12 @@ macro if cond onTrue remArgs...:
     var astp econd ast:child(remArgs, u32:add currentArg 1)
     var astp eexpr ast:child(remArgs, u32:add currentArg 2)
 
-    ast:addChild code ${seq:
+    ast:addChild code $:
       when #econd:
         #eexpr
         branch #endLabel
       end
-    end}
+    end
 
     assign currentArg u32:add(currentArg, 3)
   end
@@ -458,13 +458,13 @@ macro forEachAstChild childVar tree code:
   uniqueId count "count"
   uniqueId index "index"
 
-  std:base:ret ${seq:
+  std:base:ret $:
     const int #count (getField #tree childCount)
     for #index 0 #count:
       const (ptr ast) #childVar (ast:child #tree #index)
       #code
     end
-  end}
+  end
 end
 
 macro ret expr...:
@@ -529,13 +529,13 @@ template testf impl...:
 end
 
 macro assert checkCode:
-  ret ${seq:
+  ret $:
     when (bool:not (#checkCode)):
       printlnString "Assertion failed"
       ast:print ${#checkCode} 0
       exit 1
     end
-  end}
+  end
 end
 
 macro cstring:concat firstString strings...:
@@ -730,7 +730,7 @@ macro deprecatedVarArgs name replacementName warningCode:
 
   var astp impl ${}
   ast:addChild code impl
-  ast:addChild impl ${seq:
+  ast:addChild impl $:
     #warningCode
     // compiler:printWarning #warning
 
@@ -740,7 +740,7 @@ macro deprecatedVarArgs name replacementName warningCode:
     end
 
     ret call
-  end}
+  end
 
   ret code
 end

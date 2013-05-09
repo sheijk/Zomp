@@ -78,7 +78,7 @@ var float nearPlaneDistance 1.0
 
 // avoid writing it over and over, should be part of utils lib
 macro mainloop body...:
-  ret ${seq:
+  ret $:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -104,7 +104,7 @@ macro mainloop body...:
     end
 
     endTime := toFloat glfwGetTime()
-  end}
+  end
 end
 
 ///-----------------------------------------------------------------------------
@@ -239,10 +239,10 @@ macro array:setAll array valueExpr:
   uniqueId value "array:setAll"
   uniqueId index "array:setAll"
 
-  ret ${seq:
+  ret $:
     #value := #valueExpr
     array:init #array #index #value
-  end}
+  end
 end
 
 func void placeOnCircle(v3f_Array* points, float radius):
@@ -468,7 +468,7 @@ func GLint pointsMaterial():
   #extension GL_EXT_gpu_shader4 : enable
   "
   vertexSource := "
-  void main(void) {seq:
+  void main(void) {
     // gl_Position = ftransform();
     gl_Position = gl_ModelViewMatrix * gl_Vertex;
     gl_Position.xyz = gl_Position.xyz / gl_Position.w;

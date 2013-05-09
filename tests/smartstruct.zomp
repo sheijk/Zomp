@@ -72,10 +72,10 @@ macro pstruct name members:
   printerName := name.id ++ ":print"
   printF := ${func void #printerName(#name* this) #printCode}
 
-  ret ${seq:
+  ret $:
     #decl
     #printF
-  end}
+  end
 end
 
 pstruct Bar:

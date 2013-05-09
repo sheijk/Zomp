@@ -21,11 +21,11 @@ requireLibs libcee mesh
 
 macro printField fieldName:
   fieldNameQuoted := cstring:quote fieldName.id
-  ret ${seq:
+  ret $:
     times (indent+2) printChar(' ')
     print #fieldNameQuoted " = " this.#fieldName
     println()
-  end}
+  end
 end
 
 template printFieldi fieldName:
@@ -352,12 +352,12 @@ func void aiMesh:print(aiMesh* this, int indent):
   macro printUnlessNull fieldName:
     fieldNameQ := cstring:quote fieldName.id
 
-    ret ${seq:
+    ret $:
       if isNotNull(this.#fieldName):
         printString #fieldNameQ
         printChar ' '
       end
-    end}
+    end
   end
 
   printUnlessNull mVertices

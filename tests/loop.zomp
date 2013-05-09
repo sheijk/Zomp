@@ -21,15 +21,15 @@ func void loop_modifier_var(Loop* loop, ast* args, int* childNum):
   childNum*++
   counterName := loop.counterName
   init := loop.init
-  loop.init = ${seq:
+  loop.init = $:
     var int #name #counterName
     #init
-  end}
+  end
   test := loop.test
-  loop.test = ${seq:
+  loop.test = $:
     #name = #counterName
     #test
-  end}
+  end
 end
 
 func void loop_modifier_to(Loop* loop, ast* args, int* childNum):
@@ -37,46 +37,46 @@ func void loop_modifier_to(Loop* loop, ast* args, int* childNum):
   counterName := loop.counterName
   exitLabel := loop.exitLabel
   test := loop.test
-  loop.test = ${seq:
+  loop.test = $:
     #test
     if (#counterName >= #supremum):
       branch #exitLabel
     end
-  end}
+  end
 end
 
 func void loop_modifier_from(Loop* loop, ast* args, int* childNum):
   startValue := getField ast:child(args, ++childNum*) id
   counterName := loop.counterName
   init := loop.init
-  loop.init = ${seq:
+  loop.init = $:
     #counterName = #startValue
     #init
-  end}
+  end
 end
 
 func void loop_modifier_if(Loop* loop, ast* args, int* childNum):
   cond := ast:child args ++childNum*
   continueLabel := loop.continueLabel
   test := loop.test
-  loop.test = ${seq:
+  loop.test = $:
     #test
     if !(#cond):
       branch #continueLabel
     end
-  end}
+  end
 end
 
 func void loop_modifier_while(Loop* loop, ast* args, int* childNum):
   cond := ast:child args ++childNum*
   test := loop.test
   exitLabel := loop.exitLabel
-  loop.test = ${seq:
+  loop.test = $:
     #test
     if !(#cond):
       branch #exitLabel
     end
-  end}
+  end
 end
 
 macro loop modsAndBody...:
@@ -128,7 +128,7 @@ macro loop modsAndBody...:
   exitLabel := loop.exitLabel
   continueLabel := loop.continueLabel
 
-  ret ${seq:
+  ret $:
     var int #counterName 0
     #init
     label #testLabel
@@ -139,7 +139,7 @@ macro loop modsAndBody...:
     ++#counterName
     branch #testLabel
     label #exitLabel
-  end}
+  end
 end
 
 func int main():

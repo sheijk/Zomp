@@ -365,7 +365,7 @@ end
 macro op|| l r:
   uniqueId result "||"
 
-  ret ${seq:
+  ret $:
     #result := false
     if #l:
       #result = true
@@ -373,19 +373,19 @@ macro op|| l r:
       #result = true
     end
     #result
-  end}
+  end
 end
 
 macro op&& l r:
   uniqueId result "&&"
 
-  ret ${seq:
+  ret $:
     #result := false
     if #l:
       #result = #r
     end
     #result
-  end}
+  end
 end
 
 template op==_str left right:
@@ -407,10 +407,10 @@ end
 ///   num := undef int
 macro undef type:
   uniqueId name "undef_value"
-  ret ${seq:
+  ret $:
     var #type #name
     #name
-  end}
+  end
 end
 
 //------------------------------------------------------------------------------
@@ -473,10 +473,10 @@ macro ret expr...:
     ast:addChild retcode e
   end
 
-  std:base:ret ${seq:
+  std:base:ret $:
     onFunctionEnd
     #retcode
-  end}
+  end
 end
 
 macro cee:internal:cleanupBeforeFunc:
@@ -535,11 +535,11 @@ macro func args...:
   end
 
   cee:internal:insideCeeFunc = true
-  std:base:ret ${seq:
+  std:base:ret $:
     cee:internal:cleanupBeforeFunc
     #funcCode
     cee:internal:cleanupOnReturn
-  end}
+  end
 end
 
 /// Given an ast and an ast containing placeholders _/__ the
@@ -704,9 +704,9 @@ macro defineArray type varname values...:
   ast:addChild arrayType type
   ast:addChild arrayType ${#size}
 
-  code := ${seq:
+  code := $:
     var #arrayType #varname
-  end}
+  end
 
   valnum := 0
   forEachAstChild value values:
@@ -751,21 +751,21 @@ macro new type args...:
 
   var ast* initCall cee:internal:makeInitCall(getField(type,id), ${#name}, args)
 
-  ret ${seq:
+  ret $:
     var (ptr #type) #name (malloc #type)
     #initCall
     #name
-  end}
+  end
 end
 
 macro local type args...:
   uniqueId name "local"
   var ast* initCall cee:internal:makeInitCall(getField(type,id), ${ptr #name}, args)
-  ret ${seq:
+  ret $:
     var #type #name
     #initCall
     &#name
-  end}
+  end
 end
 
 func void bool:init(bool* this, bool value):
@@ -822,11 +822,11 @@ end
 
 macro swap a b:
   uniqueId t "swap"
-  ret ${seq:
+  ret $:
     t := #a
     #a = #b
     #b = t
-  end}
+  end
 end
 
 macro preop& obj:
@@ -888,7 +888,7 @@ macro ast:foreach3 t0 t1 t2 tree code:
 
   uniqueId childnum "ast:foreach3"
 
-  ret ${seq:
+  ret $:
     #childnum := 0
     while (#childnum + 2 < #tree.childCount):
       #t0 := ast:child #tree (#childnum+0)
@@ -897,7 +897,7 @@ macro ast:foreach3 t0 t1 t2 tree code:
       #code
       #childnum = #childnum + 3
     end
-  end}
+  end
 end
 
 macro ast:foreach2 t0 t1 tree code:
@@ -907,7 +907,7 @@ macro ast:foreach2 t0 t1 tree code:
 
   uniqueId childnum "ast:foreach2"
 
-  ret ${seq:
+  ret $:
     #childnum := 0
     while (#childnum + 1 < #tree.childCount):
       #t0 := ast:child #tree (#childnum+0)
@@ -915,7 +915,7 @@ macro ast:foreach2 t0 t1 tree code:
       #code
       #childnum = #childnum + 2
     end
-  end}
+  end
 end
 
 ///
@@ -967,7 +967,7 @@ macro cee:xp:loop code:
   uniqueId start "loop_start"
   uniqueId end "loop_end"
 
-  ret ${seq:
+  ret $:
     template break:
       branch #end
     end
@@ -976,7 +976,7 @@ macro cee:xp:loop code:
     #code
     branch #start
     label #end
-  end}
+  end
 end
 
 /// execute code n times
@@ -1016,10 +1016,10 @@ macro switch intvalue default cases...:
     ast:addChild code casecode
   end
 
-  code = ${seq:
+  code = $:
     var int #value #intvalue
     #code
-  end}
+  end
 
   ret code
 end
@@ -1075,11 +1075,11 @@ func ast* defineOpCode(cstring type, cstring rettype, cstring opr, cstring func)
   funcname := type ++ ":" ++ func
   oprname := opr ++ "_" ++ type ++ "_" ++ type
 
-  ret ${seq:
+  ret $:
     func #rettype #oprname(#type l, #type r):
       #funcname(l, r)
     end
-  end}
+  end
 end
 
 alias u8:div u8:sdiv l r
@@ -1121,9 +1121,9 @@ macro overloadedOps type:
     oprName := cstring:quote opr.id
     funcName := cstring:quote name.id
 
-    ret ${seq:
+    ret $:
       ast:addChild code (defineOpCode type.id #rettype #oprName #funcName)
-    end}
+    end
   end
 
   code := ${}
@@ -1395,9 +1395,9 @@ end
 
 /// print indent levels of spaces, then pass remaining arguments to print macro
 macro iprint indent args...:
-  var astp code ${seq:
+  var astp code $:
     printIndent #indent
-  end}
+  end
 
   forEachAstChild arg args:
     ast:addChild code ${zmp:cee:print #arg}
@@ -1420,9 +1420,9 @@ macro println args...:
 end
 
 macro iprintln indent args...:
-  var astp code ${seq:
+  var astp code $:
     printIndent #indent
-  end}
+  end
 
   forEachAstChild arg args:
     ast:addChild code ${zmp:cee:print #arg}
@@ -1453,9 +1453,9 @@ end
 macro structlit structType fieldsAndValues...:
   uniqueId structVar "struct"
 
-  code := ${seq:
+  code := $:
     var #structType #structVar
-  end}
+  end
 
   ast:foreach2 field value fieldsAndValues:
     ast:addChild code ${#structVar.#field = #value}
@@ -1678,11 +1678,11 @@ end
 ///-----------------------------------------------------------------------------
 
 macro enum name fields:
-  code := ${seq:
+  code := $:
     type #name:
       int value
     end
-  end}
+  end
 
   value := -1
 

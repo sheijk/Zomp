@@ -30,7 +30,7 @@ macro assert testCode:
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${seq:
+    ret $:
       #lvar := #l
       #rvar := #r
       unless (#compareF #lvar #rvar):
@@ -44,15 +44,15 @@ macro assert testCode:
         println()
         ast:print ${#testCode} 0
       end
-    end}
+    end
   else:
-    ret ${seq:
+    ret $:
       unless #testCode:
         printHLine '-' 40
         printlnString "Assertion failed"
         ast:print ${#testCode} 0
       end
-    end}
+    end
   end
 
   ret ${}
@@ -123,7 +123,7 @@ macro measureAndReport actionDescr code:
   uniqueId startTime "measureAndReport"
   uniqueId stopTime "measureAndReport"
 
-  ret ${seq:
+  ret $:
     #startTime := glfwGetTime()
     #code
     #stopTime := glfwGetTime()
@@ -132,7 +132,7 @@ macro measureAndReport actionDescr code:
     printDouble (#stopTime -_d #startTime)
     printChar 's'
     println()
-  end}
+  end
 end
 
 func int main():

@@ -41,16 +41,16 @@ macro intmatch expr emptySeq cases...:
 
   if isNotNull(onElse):
     ast:addChild conditionalExpr ${else}
-    ast:addChild conditionalExpr ${seq:
+    ast:addChild conditionalExpr $:
       #elseVar := #exprResult
       #onElse
-    end}
+    end
   end
 
-  code := ${seq:
+  code := $:
     #exprResult := #expr
     #conditionalExpr
-  end}
+  end
 
   println "returning"
   mret code

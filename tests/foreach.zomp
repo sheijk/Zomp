@@ -21,9 +21,9 @@ end
 macro makeList values...:
   uniqueId head "makeList"
 
-  code := ${seq:
+  code := $:
     #head := nullptr Intlist
-  end}
+  end
 
   for i 0 values*.childCount:
     valueAst := ast:child values (values*.childCount - 1 - i)
@@ -91,13 +91,13 @@ macro foreach iter containerT container code:
   validF := containerT.id ++ "_range:valid"
   popFrontF := containerT.id ++ "_range:popFront"
 
-  mret ${seq:
+  mret $:
     #iter := #rangeF #container
     while #validF(&#iter):
       #code
       #popFrontF &#iter
     end
-  end}
+  end
 end
 
 ///-----------------------------------------------------------------------------

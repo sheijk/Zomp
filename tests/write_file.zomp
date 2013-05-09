@@ -31,19 +31,19 @@ end
 macro printNonZeroResults compare intExprs:
   uniqueId result "printNonZeroResults"
 
-  code := ${seq:
+  code := $:
     #result := 0
-  end}
+  end
 
   ast:replaceId(compare, "_", result)
 
   forEachAstChild expr intExprs:
-    ast:addChild code ${seq:
+    ast:addChild code $:
       #result = #expr
       if !(#compare):
         println "Warning, expression " ${#expr} " returned " #result
       end
-    end}
+    end
   end
 
   ret code

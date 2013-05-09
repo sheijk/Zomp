@@ -47,10 +47,10 @@ end
 
 macro hasType thevar type:
   uniqueId tmp "hasType"
-  ret ${seq:
+  ret $:
     #tmp := nullptr #type
     #tmp = &#thevar
-  end}
+  end
 end
 
 func double Sphere:intersect(Sphere* this, Ray* r):
@@ -157,7 +157,7 @@ end
 
 macro select type default boolExpr a b:
   uniqueId tmp "select_tmp"
-  ret ${seq:
+  ret $:
     var #type #tmp #default
     if #boolExpr:
       #tmp = #a
@@ -165,7 +165,7 @@ macro select type default boolExpr a b:
       #tmp = #b
     end
     #tmp
-  end}
+  end
 end
 
 template float:select boolExpr a b:

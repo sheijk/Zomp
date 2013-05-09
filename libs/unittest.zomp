@@ -35,7 +35,7 @@ macro unittest:assert testCode:
     compareF := testCode.id
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${seq:
+    ret $:
       #lvar := #l
       #rvar := #r
       unless (#compareF #lvar #rvar):
@@ -50,16 +50,16 @@ macro unittest:assert testCode:
         println()
         ast:print ${#testCode} 0
       end
-    end}
+    end
   else:
-    ret ${seq:
+    ret $:
       unless #testCode:
         ++unittest:failedCount
         printHLine '-' 40
         printlnString "Assertion failed"
         ast:print ${#testCode} 0
       end
-    end}
+    end
   end
 
   ret ${}
@@ -129,15 +129,15 @@ end
 macro unittest:testCase name code:
   case := unittest:registerTestCase(name.id)
   funcName := (getField case functionName)
-  funcDef := ${seq:
+  funcDef := $:
     func void #funcName():
       ++unittest:testCount
       #code
     end
-  end}
+  end
   if std:vm:isInteractive:
     quotedFuncName := cstring:quote funcName
-    ret ${seq:
+    ret $:
       func void test():
         println "Last compilation of unit test failed!"
       end
@@ -146,7 +146,7 @@ macro unittest:testCase name code:
         println "Interactive, running unit test function " #quotedFuncName
         #funcName()
       end
-    end}
+    end
   end
   ret funcDef
 end

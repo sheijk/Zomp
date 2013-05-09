@@ -21,9 +21,9 @@ macro defFormat name formatString:
   fixedFormatString := strdup formatString.id
   fixedFormatString[1] = u32:toChar 27
 
-  ret ${seq:
+  ret $:
     var char* #name #fixedFormatString
-  end}
+  end
 end
 
 defFormat fmtDefault "X[0m"

@@ -11,7 +11,7 @@ macro ifExprInt test onTrue onFalse:
   uniqueId testResult "iftestresult"
   uniqueId resultVar "ifResult"
 
-  var (ptr ast) result ${seq:
+  var ptr ast result $:
     var int #resultVar 0
     var bool #testResult #test
     branch #testResult #trueLabel #falseLabel
@@ -25,7 +25,7 @@ macro ifExprInt test onTrue onFalse:
 
     label #endLabel
     #resultVar
-  end}
+  end
   ret result
 end
 

@@ -73,12 +73,12 @@ end
 
 macro VertexStream:foreach stream type dataPtr code:
   uniqueId index "vertexIndex"
-  ret ${seq:
+  ret $:
     for #index 0 #stream.size:
       #dataPtr := ptradd(cast #type* #stream.data, #index * #stream.components)
       #code
     end
-  end}
+  end
 end
 
 func void VertexStream:printDetailed(VertexStream* this):
@@ -140,12 +140,12 @@ end
 
 macro Mesh:foreachStream mesh streamptr code:
   uniqueId streamnum "Mesh:foreachStream"
-  ret ${seq:
+  ret $:
     for #streamnum 0 #mesh.streamCount:
       #streamptr := ptradd #mesh.streams #streamnum
       #code
     end
-  end}
+  end
 end
 
 func void Mesh:print(Mesh* this, int indent):
@@ -155,11 +155,11 @@ func void Mesh:print(Mesh* this, int indent):
   macro printVS stream:
     name := cstring:quote stream.id
 
-    ret ${seq:
+    ret $:
       if (this.#stream !=_ptr nullptr VertexStream):
         print #name " "
       end
-    end}
+    end
   end
 
   iprint indent "  default streams: "
@@ -226,12 +226,12 @@ end
 macro Mesh:define mesh size streams:
   streamCount := streams.childCount
 
-  code := ${seq:
+  code := $:
     #mesh := malloc Mesh
     #mesh.streamCount = #streamCount
     #mesh.streams = malloc(VertexStream, #streamCount)
     #mesh.geometry_kind = GL_TRIANGLES
-  end}
+  end
 
   for streamnum 0 streamCount:
     stream := ast:child streams streamnum

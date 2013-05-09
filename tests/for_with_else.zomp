@@ -28,7 +28,7 @@ macro xfor varName initExpr supremum args...:
 
   loopBody := ast:child args 0
 
-  code := ${seq:
+  code := $:
     #varName := #initExpr
     #supremumValue := #supremum
     if (#supremumValue > #varName):
@@ -39,7 +39,7 @@ macro xfor varName initExpr supremum args...:
     else:
       #elseBody
     end
-  end}
+  end
 
   ret code
 end

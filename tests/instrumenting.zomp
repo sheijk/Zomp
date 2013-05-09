@@ -68,11 +68,11 @@ macro log args...:
     instrumentedBody := ${seq}
     forEachAstChild statement body:
       descr := cstring:quote statement.id
-      ast:addChild instrumentedBody ${seq:
+      ast:addChild instrumentedBody $:
         print "Running "
         ast:printLimited(${#statement}, 30)
         println()
-      end}
+      end
       ast:addChild instrumentedBody statement
     end
 

@@ -36,7 +36,7 @@ macro ast:foreach2 t0 t1 tree code:
 
   uniqueId childnum "ast:foreach2"
 
-  ret ${seq:
+  ret $:
     #childnum := 0
     while (#childnum + 1 < #tree.childCount):
       #t0 := ast:child #tree (#childnum+0)
@@ -44,7 +44,7 @@ macro ast:foreach2 t0 t1 tree code:
       #code
       #childnum = #childnum + 2
     end
-  end}
+  end
 end
 
 ///-----------------------------------------------------------------------------

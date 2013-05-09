@@ -375,7 +375,7 @@ macro ffor index min max step code:
   uniqueId testResult "for2_testvar"
   uniqueId execLabel "for2_body"
 
-  ret ${seq:
+  ret $:
     var float #index #min
     var bool #testResult false
 
@@ -390,7 +390,7 @@ macro ffor index min max step code:
     branch #startLabel
 
     label #endLabel
-  end}
+  end
 end
 
 func void drawOrientationGridXZ(float size):
@@ -730,11 +730,11 @@ func void printTexture2DInfo(GLenum tex, cstring name):
   macro printTexLevelParam param printF:
     paramName := cstring:quote param.id
 
-    ret ${seq:
+    ret $:
       print "  " #paramName " = "
       #printF gl:texLevelParameteri(GL_TEXTURE_2D, 0, #param)
       println()
-    end}
+    end
   end
 
   if (tex == 0):

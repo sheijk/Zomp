@@ -24,7 +24,7 @@ macro defineOpNS op postfix func namespace:
 end
 
 macro defineFloatOps postfix namespace:
-  ret ${seq:
+  ret $:
     defineOpNS op+ #postfix add #namespace
     defineOpNS op- #postfix sub #namespace
     defineOpNS op* #postfix mul #namespace
@@ -37,7 +37,7 @@ macro defineFloatOps postfix namespace:
     defineOpNS op>= #postfix ogreaterEqual #namespace
     defineOpNS op< #postfix oless #namespace
     defineOpNS op<= #postfix olessEqual #namespace
-  end}
+  end
 end
 
 defineFloatOps _f float

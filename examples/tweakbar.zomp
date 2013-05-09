@@ -37,7 +37,7 @@ end
 
 // avoid writing it over and over, part of utils lib
 macro mainloop body...:
-  ret ${seq:
+  ret $:
     time = 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -59,7 +59,7 @@ macro mainloop body...:
     end
 
     endTime := toFloat glfwGetTime()
-  end}
+  end
 end
 
 func void onWindowResize(int newWidth, int newHeight):
@@ -72,11 +72,11 @@ end
 
 macro doTrace sectionName code:
   sectionNameStr := cstring:quote sectionName.id
-  ret ${seq:
+  ret $:
     println "Starting section " #sectionNameStr
     #code
     println "Done section " #sectionNameStr
-  end}
+  end
 end
 
 func int main():

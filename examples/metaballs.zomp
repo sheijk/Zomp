@@ -48,7 +48,7 @@ macro unittest:assert testCode:
     uniqueId rvar "rvar"
     l := ast:child(testCode, 0)
     r := ast:child(testCode, 1)
-    ret ${seq:
+    ret $:
       #lvar := #l
       #rvar := #r
       unless (#compareF #lvar #rvar):
@@ -62,15 +62,15 @@ macro unittest:assert testCode:
         println()
         ast:print ${#testCode} 0
       end
-    end}
+    end
   else:
-    ret ${seq:
+    ret $:
       unless #testCode:
         printHLine '-' 40
         printlnString "Assertion failed"
         ast:print ${#testCode} 0
       end
-    end}
+    end
   end
 
   ret ${}
@@ -181,7 +181,7 @@ var float angle 0.0
 
 // avoid writing it over and over, part of utils lib
 macro mainloop body...:
-  ret ${seq:
+  ret $:
     time := 0.0
     lastTime := 0.0
     frameDuration := 0.0
@@ -204,7 +204,7 @@ macro mainloop body...:
     end
 
     endTime := double:toFloat glfwGetTime()
-  end}
+  end
 end
 
 //------------------------------------------------------------------------------
@@ -595,10 +595,10 @@ func void Framebuffer:print(Framebuffer* this):
   macro printMember name printF:
     quoteStr := char:toCString '"' // '"' dumb emacs parser \o/
     text := quoteStr ++ " " ++ name.id ++ "=" ++ quoteStr
-    ret ${seq:
+    ret $:
       printString #text
       #printF this.#name
-    end}
+    end
   end
 
   template printIntMember name:
@@ -631,7 +631,7 @@ end
 
 macro defineListType memberT:
   listT := ast:fromString List:listTypeName(memberT.id)
-  code := ${seq:
+  code := $:
     struct #listT:
       #memberT data
       #listT* next
@@ -640,7 +640,7 @@ macro defineListType memberT:
       this.data = data
       this.next = next
     end
-  end}
+  end
   ast:replace code "INITFUNCNAME" ast:fromString(listT.id ++ ":init")
   ret code
 end
@@ -664,7 +664,7 @@ end
 macro List:foreach_ptr list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${seq:
+  ret $:
     #current := #list
     #indexVar := 0
     while isNotNull(#current):
@@ -673,13 +673,13 @@ macro List:foreach_ptr list indexVar dataVar code:
       ++(#indexVar)
       #current = #current.next
     end
-  end}
+  end
 end
 
 macro List:foreach list indexVar dataVar code:
   uniqueId current "Current_list_item"
 
-  ret ${seq:
+  ret $:
     #current := #list
     #indexVar := 0
     while isNotNull(#current):
@@ -688,7 +688,7 @@ macro List:foreach list indexVar dataVar code:
       ++(#indexVar)
       #current = #current.next
     end
-  end}
+  end
 end
 
 //------------------------------------------------------------------------------

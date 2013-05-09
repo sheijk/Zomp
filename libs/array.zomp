@@ -21,7 +21,7 @@ macro defineArrayType type:
   ast:addChild releaseDecl ast:fromString(arrayTypeName ++ ":release")
   ast:addChild releaseDecl ${#arrayTypeName* this}
 
-  code := ${seq:
+  code := $:
     struct #arrayTypeName:
       int length
       #type* elements
@@ -37,23 +37,23 @@ macro defineArrayType type:
       free (cast void* this.elements)
       this.elements = nullptr #type
     end
-  end}
+  end
 
   ret code
 end
 
 macro newArray type size:
   arrayTypeName := Array:nameForType type.id
-  ret ${seq:
+  ret $:
     new #arrayTypeName #size
-  end}
+  end
 end
 
 macro makeArray type size:
   arrayTypeName := Array:nameForType type.id
-  ret ${seq:
+  ret $:
     local #arrayTypeName #size
-  end}
+  end
 end
 
 template aptr array index:
@@ -80,12 +80,12 @@ macro array:setAll array value:
   uniqueId size "lala"
   uniqueId i "lala"
 
-  ret ${seq:
+  ret $:
     size := getField(#array, length)
     for #i 0 size:
       aset #array #i #value
     end
-  end}
+  end
 end
 
 macro Array:foreach array indexVar code:
@@ -107,21 +107,21 @@ end
 
 macro printArray array name printMemberF:
   uniqueId counter "printArray"
-  ret ${seq:
+  ret $:
     println #array.length " " #name ": "
     Array:foreach #array #counter:
       #printMemberF aptr(#array, #counter)
     end
-  end}
+  end
 end
 
 macro iprintArray array name printMemberF indent:
   uniqueId counter "printArray"
-  ret ${seq:
+  ret $:
     iprintln #indent #array.length " " #name ": "
     Array:foreach #array #counter:
       #printMemberF aptr(#array, #counter) (#indent + 2)
     end
-  end}
+  end
 end
 

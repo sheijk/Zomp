@@ -9,12 +9,12 @@ macro printNameUsage name:
   var cstring messageFound (cstring:quote (cstring:concat (getField name id) " is bound!\n"))
   var cstring messageNotFound (cstring:quote (cstring:concat (getField name id) ", where art thou?\n"))
 
-  ret ${seq:
+  ret $:
     if (std:bindings:isNameUsed #name):
       printString #messageFound
       printString #messageNotFound
     end
-  end}
+  end
 end
 
 
