@@ -30,6 +30,14 @@
       lexloc
       (sprintf "expected '%s' but found '%s'" expected found)
 
+  let raiseParseErrorMissingClosing errorPos openPosAndSymbol =
+    let openPos, expectedSymbol = openPosAndSymbol in
+    raiseParseErrorLex errorPos
+      (sprintf "missing closing %s, opened at line %d:%d"
+         expectedSymbol
+         openPos.Lexing.pos_lnum
+         openPos.Lexing.pos_cnum)
+
   (** Will cause value to be evaluated even if it is not needed. This only
       happens infrequently in the error case so it's fine. *)
   let expectClosing expectedSymbol (lexloc, foundSymbol) value =
@@ -241,11 +249,24 @@ closedExpr:
 | OPEN_BRACKET; e = expr; posAndSymbol = closeBrackets;
   { expectClosing "]" posAndSymbol (exprInferLoc "op[]" [e]) }
 
+| posAndSymbol = openBrackets; expr; e = error;
+  { ignore e;
+    raiseParseErrorMissingClosing $startpos(e) posAndSymbol }
+
+
 | head = closedExpr; OPEN_ARGLIST; args = separated_list(COMMA, expr); posAndSymbol = closeBrackets;
   { expectClosing ")" posAndSymbol (callExprInferLoc (head :: args)) }
+| closedExpr; o = OPEN_ARGLIST; separated_list(COMMA, expr); e = error;
+  { ignore e;
+    ignore o;
+    raiseParseErrorMissingClosing $startpos(e) ($startpos(o), ")") }
 
 | head = closedExpr; OPEN_BRACKET_POSTFIX; arg = expr; posAndSymbol = closeBrackets;
   { expectClosing "]" posAndSymbol (exprInferLoc "postop[]" [head; arg]) }
+| closedExpr; o = OPEN_BRACKET_POSTFIX; e = error;
+  { ignore e;
+    ignore o;
+    raiseParseErrorMissingClosing $startpos(e) ($startpos(o), "]") }
 
 | BEGIN_BLOCK; exprs = terminatedExpr*; END_BLOCK;
   { seqExprInferLoc exprs }
@@ -257,6 +278,17 @@ closedExpr:
   { ignore c; $startpos(c), "]" }
 | c = CLOSE_CURLY;
   { ignore c; $startpos(c), "}" }
+
+%inline openBrackets:
+| c = OPEN_PAREN;
+  { ignore c;
+    $startpos(c), ")" }
+| c = OPEN_CURLY;
+  { ignore c;
+    $startpos(c), "}" }
+| c = OPEN_BRACKET;
+  { ignore c;
+    $startpos(c), "]" }
 
 %inline opSymbol:
 | o = ADD_OP
