@@ -29,14 +29,23 @@ let parseIExprsFromLexbuf lexbuf lexstate : Ast2.t list =
   let exprs = Newparser.main lexFunc lexbuf in
   exprs
 
+let createLexState ~fileName source =
+  let open Lexing in
+  let lexbuf =
+    let lexbufNoLoc = Lexing.from_string source in
+    { lexbufNoLoc with
+      lex_start_p = { lexbufNoLoc.lex_start_p with pos_fname = fileName };
+      lex_curr_p = { lexbufNoLoc.lex_curr_p with pos_fname = fileName } }
+  in
+  let lexstate = Indentlexer.lexbufFromString ~fileName source in
+  lexbuf, lexstate
+
 let parseIExprsNoCatch ~fileName source : Ast2.t list =
-  let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString fileName source in
+  let lexbuf, lexstate = createLexState ~fileName source in
   parseIExprsFromLexbuf lexbuf lexstate
 
 let parseIExprs ~fileName source : parsingResult =
-  let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString fileName source in
+  let lexbuf, lexstate = createLexState ~fileName source in
   try
     Exprs (parseIExprsFromLexbuf lexbuf lexstate)
   with
