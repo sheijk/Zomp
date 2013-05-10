@@ -11,7 +11,7 @@ let zompShellDummyFileName = "zompsh"
 let reportError msg =
   eprintf "error: %s\n" msg
 let report error =
-  eprintf "%s\n" (Expander.Serror.toString error)
+  eprintf "%s\n" (Serror.toString error)
 
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar

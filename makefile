@@ -123,13 +123,13 @@ LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
   source/typesystems.cmo source/bindings.cmo source/ast2.cmo source/lang.cmo \
   source/semantic.cmo source/machine.cmo source/zompvm.cmo source/genllvm.cmo \
   $(ZOMP_DLL_FILE) source/indentlexer.cmo source/newparser.cmo \
-  source/parseutils.cmo source/expander.cmo source/compileutils.cmo
+  source/parseutils.cmo source/serror.cmo source/expander.cmo source/compileutils.cmo
 
 # When this is changed, LANG_CMOS and CAMLDEP_INPUT will need to be changed, too
 LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx \
     typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
     -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx newparser.cmx \
-    parseutils.cmx expander.cmx testing.cmx compileutils.cmx
+    parseutils.cmx source/serror.cmx expander.cmx testing.cmx compileutils.cmx
 
 ################################################################################
 # Zomp tools
@@ -518,8 +518,8 @@ $(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
 
 # When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
-CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml expander.ml \
-    gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
+CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
+    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
     zompc.ml zompvm.ml basics.ml, source/$(file))

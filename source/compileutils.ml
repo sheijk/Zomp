@@ -7,7 +7,7 @@ open Common
 open Basics
 open Parseutils
 
-exception CatchedError of Expander.Serror.t list
+exception CatchedError of Serror.t list
 let signalErrors errors = raise (CatchedError errors)
 
 exception CouldNotParse of parseError
@@ -38,7 +38,7 @@ let rec parse parseF lexbuf bindings codeAccum =
     | Indentlexer.Eof -> bindings, codeAccum
 
 let catchingErrorsDo f ~onErrors =
-  let onErrorMsg msg = onErrors [Expander.Serror.fromMsg None msg] in
+  let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
   begin
     try
       f()
@@ -56,7 +56,7 @@ let catchingErrorsDo f ~onErrors =
       | CatchedError errors ->
         onErrors errors
       | CouldNotParse err ->
-        let e = Expander.Serror.fromMsg err.location err.reason in
+        let e = Serror.fromMsg err.location err.reason in
         onErrors [e]
   end
 
@@ -91,7 +91,7 @@ let compileCode bindings input outStream fileName =
         let location = (match err.location with Some loc -> loc | None -> fakeLocation) in
         eprintf "%s\n" $ formatError location err.reason
       | CatchedError errors ->
-        List.iter (fun error -> eprintf "%s\n" (Expander.Serror.toString error)) errors;
+        List.iter (fun error -> eprintf "%s\n" (Serror.toString error)) errors;
         eprintf "  (via exception CatchedError)\n"
       | unknownError ->
         eprintf "error: unknown error: %s\n" (Printexc.to_string unknownError);
