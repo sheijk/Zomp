@@ -17,7 +17,11 @@ type parsingResult =
   | Exprs of Ast2.sexpr list
   | Error of Serror.t
 
-let parseIExprsFromLexbuf lexbuf lexstate : Ast2.t list =
+let lineCount source =
+  let lines = Str.split (Str.regexp_string "\\n") source in
+  List.length lines + 1
+
+let parseIExprsFromLexbuf lexbuf lexstate lineCount : Ast2.t list =
   let lexFunc lexbuf =
     let r = Indentlexer.token lexstate in
     let loc = Indentlexer.locationOfLexstate lexstate in
@@ -25,9 +29,15 @@ let parseIExprsFromLexbuf lexbuf lexstate : Ast2.t list =
     lexbuf.Lexing.lex_start_p <- { start with Lexing.pos_lnum = loc.line };
     r
   in
-  let lexFunc = sampleFunc1 "lexing" lexFunc in
-  let exprs = Newparser.main lexFunc lexbuf in
-  exprs
+  try
+    let lexFunc = sampleFunc1 "lexing" lexFunc in
+    let exprs = Newparser.main lexFunc lexbuf in
+    exprs
+  with ParseError (loc, msg) as exn ->
+    if loc.line > lineCount then
+      raise (ParseError ({ loc with line = loc.line - 1 }, msg))
+    else
+      raise exn
 
 let createLexState ~fileName source =
   let open Lexing in
@@ -42,12 +52,12 @@ let createLexState ~fileName source =
 
 let parseIExprsNoCatch ~fileName source : Ast2.t list =
   let lexbuf, lexstate = createLexState ~fileName source in
-  parseIExprsFromLexbuf lexbuf lexstate
+  parseIExprsFromLexbuf lexbuf lexstate (lineCount source)
 
 let parseIExprs ~fileName source : parsingResult =
   let lexbuf, lexstate = createLexState ~fileName source in
   try
-    Exprs (parseIExprsFromLexbuf lexbuf lexstate)
+    Exprs (parseIExprsFromLexbuf lexbuf lexstate (lineCount source))
   with
     | Newparser.Error ->
       Error (Serror.fromMsg
