@@ -10,7 +10,7 @@ open Parseutils
 exception CatchedError of Serror.t list
 let signalErrors errors = raise (CatchedError errors)
 
-exception CouldNotParse of parseError
+exception CouldNotParse of Serror.t
 
 let translateTLNoError bindings expr =
   match Expander.translateTL bindings expr with
@@ -55,9 +55,8 @@ let catchingErrorsDo f ~onErrors =
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
       | CatchedError errors ->
         onErrors errors
-      | CouldNotParse err ->
-        let e = Serror.fromMsg err.location err.reason in
-        onErrors [e]
+      | CouldNotParse error ->
+        onErrors [error]
   end
 
 let rec compile
@@ -87,9 +86,8 @@ let compileCode bindings input outStream fileName =
   (** TODO: return error(s) instead of printing them *)
   let printError exn =
     match exn with
-      | CouldNotParse err ->
-        let location = (match err.location with Some loc -> loc | None -> fakeLocation) in
-        eprintf "%s\n" $ formatError location err.reason
+      | CouldNotParse error ->
+        eprintf "%s\n" $ Serror.toString error
       | CatchedError errors ->
         List.iter (fun error -> eprintf "%s\n" (Serror.toString error)) errors;
         eprintf "  (via exception CatchedError)\n"
@@ -105,13 +103,7 @@ let compileCode bindings input outStream fileName =
              | Parseutils.Exprs exprs ->
                List.map (fixFileName fileName) exprs
              | Parseutils.Error error ->
-                 let errorWithCorrectFile = {
-                   error with
-                     location = match error.location with
-                       | Some l -> Some { l with fileName = fileName }
-                       | None -> error.location }
-                 in
-                 raise (CouldNotParse errorWithCorrectFile))
+               raise (CouldNotParse error))
     in
     let leftExprs = ref exprs in
     let readExpr _ =

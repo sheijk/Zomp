@@ -452,7 +452,7 @@ let readExpr bindings =
             printf "parsed at %s:%d\n" (Ast2.fileName e) (Ast2.lineNumber e)
           | [] -> ());
         Result exprs
-      | Parseutils.Error e -> Error [Parseutils.parseErrorToString e]
+      | Parseutils.Error e -> Error [Serror.toString e]
   in
 
   let rec read wsLines previousLines =
@@ -512,7 +512,7 @@ let parseNativeAst ~fileName str =
       | Parseutils.Exprs [expr] -> expr
       | Parseutils.Exprs exprs -> Ast2.seqExpr exprs
       | Parseutils.Error error ->
-          let msg = Parseutils.parseErrorToString error in
+          let msg = Serror.toString error in
           Ast2.juxExpr [Ast2.idExpr "error"; Ast2.idExpr msg]
   in
   Zompvm.NativeAst.buildNativeAst expr

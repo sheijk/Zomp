@@ -3,19 +3,6 @@ open Common
 open Printf
 open Basics
 
-type parseError = {
-  location :location option;
-  reason :string;
-}
-
-let parseErrorToString pe =
-  let file, line =
-    match pe.location with
-      | Some loc -> loc.fileName, loc.line
-      | None -> "???.zomp", -1
-  in
-  sprintf "%s:%d: parsing error %s\n" file line pe.reason
-
 let rec fixFileName fileName expr =
   let fixedArgs = List.map (fixFileName fileName) expr.Ast2.args in
   match expr.Ast2.location with
@@ -28,7 +15,7 @@ let rec fixFileName fileName expr =
 
 type parsingResult =
   | Exprs of Ast2.sexpr list
-  | Error of parseError
+  | Error of Serror.t
 
 let parseIExprsFromLexbuf lexbuf lexstate =
   let lexFunc lexbuf =
@@ -60,27 +47,21 @@ let parseIExprs ~fileName source =
     Exprs (parseIExprsFromLexbuf lexbuf lexstate)
   with
     | Newparser.Error ->
-      Error {
-        location = Some (Indentlexer.locationOfLexstate lexstate);
-        reason = "no parsing rule matched";
-      }
+      Error (Serror.fromMsg
+               (Some (Indentlexer.locationOfLexstate lexstate))
+               "no parsing rule matched")
     | Basics.ParseError (location, reason) ->
-      Error { location = Some location; reason }
+      Error (Serror.fromMsg (Some location) reason)
     | Indentlexer.UnknowToken (location, token, reason) ->
-      Error {
-        location = Some location;
-        reason = Indentlexer.unknownTokenToErrorMsg (None, token, reason)
-      }
+      Error (Serror.fromMsg
+               (Some location)
+               (Indentlexer.unknownTokenToErrorMsg (None, token, reason)))
     | Indentlexer.IndentError (location, msg) ->
-      Error {
-        location = Some location;
-        reason = msg;
-      }
-    | exc ->
-      Error {
-        location = Some (Indentlexer.locationOfLexstate lexstate);
-        reason = sprintf "unknown exception: %s" (Printexc.to_string exc)
-      }
+      Error (Serror.fromMsg (Some location) msg)
+    | exn ->
+      Error (Serror.fromException 
+               (Some (Indentlexer.locationOfLexstate lexstate))
+               exn)
 
 let parseIExprsOpt ~fileName source =
   match parseIExprs ~fileName source with
