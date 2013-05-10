@@ -7,22 +7,6 @@ open Printf
 open Common
 open Newparser
 
-let readBlock channel =
-  let rec readLine lineAcc =
-    flush stdout;
-    let line = input_line channel in
-    if line = "" then begin
-      let line2 = input_line channel in
-      if line2 = "" then
-        line2 :: lineAcc
-      else
-        readLine (line :: line2 :: lineAcc)
-    end else begin
-      readLine (line :: lineAcc)
-    end
-  in
-  Common.combine "\n" (List.rev (readLine []))
-
 let parseSExpr source =
   let source = source ^ "\n" in
   let lexbuf = Lexing.from_string source in
