@@ -444,6 +444,7 @@ let readExpr bindings =
   in
 
   let parse source =
+    let source = source ^ "\n" in
     match Parseutils.parseIExprs ~fileName:zompShellDummyFileName source with
       | Parseutils.Exprs exprs ->
         let exprs = (List.map fixSourceLocation exprs) in
