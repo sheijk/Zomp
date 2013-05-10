@@ -24,6 +24,7 @@ let readBlock channel =
   Common.combine "\n" (List.rev (readLine []))
 
 let parseSExpr source =
+  let source = source ^ "\n" in
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString ~fileName:"newparser_tests.ml-parseSExpr" source in
   let lexFunc _ = Indentlexer.token lexstate in

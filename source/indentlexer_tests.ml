@@ -23,7 +23,8 @@ end = struct
 
   type result = [ `Return of output | `Exception of string ]
 
-  let testedFunc = lexString ~fileName:"indentlexer_tests.ml-IndentLexerTestCase"
+  let testedFunc source =
+    lexString ~fileName:"indentlexer_tests.ml-IndentLexerTestCase" (source ^ "\n")
 
   let testCasesNoEof : (input * result) list =
     let id x = IDENTIFIER x in
