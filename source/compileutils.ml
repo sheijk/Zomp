@@ -10,6 +10,8 @@ open Parseutils
 exception CatchedError of Expander.SError.t list
 let signalErrors errors = raise (CatchedError errors)
 
+exception CouldNotParse of parseError
+
 let translateTLNoError bindings expr =
   match Expander.translateTL bindings expr with
     | Expander.Result r -> r
@@ -53,6 +55,9 @@ let catchingErrorsDo f ~onErrors =
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
       | CatchedError errors ->
         onErrors errors
+      | CouldNotParse err ->
+        let e = Expander.SError.fromMsg err.location err.reason in
+        onErrors [e]
   end
 
 let rec compile
@@ -77,8 +82,6 @@ let rec compile
     ~onErrors:(fun errors ->
       let () = onErrors errors in
       continue bindings)
-
-exception CouldNotParse of parseError
 
 let compileCode bindings input outStream fileName =
   (** TODO: return error(s) instead of printing them *)
