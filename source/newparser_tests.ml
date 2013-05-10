@@ -25,7 +25,7 @@ let readBlock channel =
 
 let parseSExpr source =
   let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  let lexstate = Indentlexer.lexbufFromString ~fileName:"newparser_tests.ml-parseSExpr" source in
   let lexFunc _ = Indentlexer.token lexstate in
   let exprs = Newparser.main lexFunc lexbuf in
   try
@@ -60,7 +60,7 @@ struct
     try
       parseSExpr str
     with error ->
-      let tokens = Indentlexer.lexString str in
+      let tokens = Indentlexer.lexString ~fileName:"newparser_tests.ml-IndentParserTestCase" str in
       let str = Indentlexer.tokensToString tokens in
       raise (ParsingFailure(error, "Tokens: " ^ str ^ "; caused error: " ^ Printexc.to_string error))
 

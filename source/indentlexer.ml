@@ -973,13 +973,13 @@ let makeLexbuf fileName source =
   in
   lexbuf
 
-let lexbufFromString fileName string =
+let lexbufFromString ~fileName string =
   let sourceWithEOL = string ^ "\n" in
   makeLexbuf fileName sourceWithEOL
 
-let lexbufFromChannel fileName channel =
+let lexbufFromChannel ~fileName channel =
   let source = Common.readChannel channel in
-  lexbufFromString fileName source
+  lexbufFromString ~fileName source
 
 let dummymllexbuf =
   {
@@ -997,8 +997,8 @@ let dummymllexbuf =
     lex_curr_p = Lexing.dummy_pos;
   }
 
-let lexString str =
-  let lexbuf = lexbufFromString "dummy.zomp" str in
+let lexString ~fileName str =
+  let lexbuf = lexbufFromString ~fileName str in
   let rec worker acc =
     let maybeToken =
       try Some (token lexbuf)
@@ -1011,7 +1011,7 @@ let lexString str =
   worker []
 
 let runInternalTests() =
-  let l = lexbufFromString "d.zomp" "abcde" in
+  let l = lexbufFromString ~fileName:"indentlexer.ml-runInternalTests" "abcde" in
   let source, sourceLength = sourceAndSize l in
   let expectChar chr = assert( chr = readOneChar l (source, sourceLength) ) in
   expectChar 'a';
