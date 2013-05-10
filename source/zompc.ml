@@ -32,8 +32,6 @@ let locationFromLexbuf lexbuf =
     charsFromBeginning = totalChars;
   }
 
-let readInput = Common.readChannel
-  
 let printInstructions() =
   printf "zompc -c fileName.zomp\n";
   printf "to compile fileName.zomp into fileName.ll\n"
@@ -68,7 +66,7 @@ let compilation_result_to_int = function
 let compile fileName inStream outStream =
   let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
   let input =
-    collectTimingInfo "reading prelude file content" (fun () -> readInput inStream)
+    collectTimingInfo "reading prelude file content" (fun () -> Common.readChannel inStream)
   in
 
   if not( Zompvm.zompInit() ) then begin

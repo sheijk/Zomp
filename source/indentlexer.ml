@@ -108,7 +108,7 @@ let stripComments fileName source =
     getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine
   in
 
-  let strippedSource = String.make (sourceLength+1) '\n' in
+  let strippedSource = String.make (sourceLength) ' ' in
   let writePos = ref 0 in
   let writeChar chr =
     strippedSource.[!writePos] <- chr;
@@ -234,7 +234,7 @@ let stripComments fileName source =
           end
   in
   copySource();
-  String.sub strippedSource 0 (!writePos + 1)
+  String.sub strippedSource 0 !writePos
 
 let beginIndentBlockChar = '\r'
 
@@ -973,9 +973,8 @@ let makeLexbuf fileName source =
   in
   lexbuf
 
-let lexbufFromString ~fileName string =
-  let sourceWithEOL = string ^ "\n" in
-  makeLexbuf fileName sourceWithEOL
+let lexbufFromString ~fileName source =
+  makeLexbuf fileName source
 
 let lexbufFromChannel ~fileName channel =
   let source = Common.readChannel channel in

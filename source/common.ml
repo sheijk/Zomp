@@ -48,11 +48,6 @@ let rec combine seperator strings =
         copyStrings measuredStrings 0;
         buffer
 
-(* let rec combine seperator = function *)
-(*     [] -> "" *)
-(*   | [str] -> str *)
-(*   | hd :: tl -> hd ^ seperator ^ (combine seperator tl) *)
-
 let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let rec combine seperator = function
       [] -> ""
@@ -74,27 +69,18 @@ let indent string =
   let indentedLines = List.map indentLine lines in
   combine "\n" indentedLines
 
-
+(** Read all lines from the given file. Adds a newline after last line even if
+    not present. *)
 let readChannel channel =
-  let rec worker lines totalLength =
+  let rec worker lines =
     try
       let newline = input_line channel in
-      let lineLength = String.length newline in
-      worker ((newline, lineLength) :: lines) (totalLength + lineLength + 1)
-    with End_of_file -> lines, totalLength
+      worker (newline :: lines)
+    with End_of_file ->
+      lines
   in
-  let lines, totalLength = worker [] 0 in
-  let fileContent = String.make totalLength ' ' in
-  let rec copyLines lines endPos =
-    match lines with
-      | [] -> ()
-      | (line, lineLength) :: rem ->
-          let startPos = endPos - lineLength - 1 in
-          String.blit line 0 fileContent startPos lineLength;
-          fileContent.[endPos-1] <- '\n';
-          copyLines rem startPos
-  in
-  copyLines lines totalLength;
+  let lines = worker [] in
+  let fileContent = combine "\n" (List.rev ("" :: lines)) in
   fileContent
 
 let makeGuardedFunction constructor destructor =
