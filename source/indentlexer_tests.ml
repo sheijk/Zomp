@@ -414,8 +414,7 @@ end = struct
                IDENTIFIER "private"; BEGIN_BLOCK; END_BLOCK[]; END];
 
       "empty $:\nend",
-      `Return [IDENTIFIER "empty"; QUOTE "$"; OPEN_CURLY; IDENTIFIER "seq"; BEGIN_BLOCK;
-               END_BLOCK []; CLOSE_CURLY; END];
+      `Return [IDENTIFIER "empty"; QUOTE "$"; BEGIN_BLOCK; END_BLOCK []; END];
 
       (* leading whitespace/newlines *)
       "   a b c", `Return (ids ["a"; "b"; "c"] @ [END]);
