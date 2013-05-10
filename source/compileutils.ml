@@ -217,7 +217,7 @@ let writeSymbolsToStream bindings stream =
  * Writes a very primitive symbol table to the given file. Deletes file if it
  * existed
  *)
-let writeSymbols fileName bindings =
+let writeSymbols bindings fileName =
   try begin
     if Sys.file_exists fileName then
       Sys.remove fileName;

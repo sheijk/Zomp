@@ -284,7 +284,7 @@ let () =
     | Compilation_succeeded globalBindings ->
       begin match options.symbolTableDumpFile with
         | Some absoluteFileName ->
-          if not (Compileutils.writeSymbols absoluteFileName globalBindings) then
+          if not (Compileutils.writeSymbols globalBindings absoluteFileName) then
             printf "error: could not write symbols to '%s'\n" absoluteFileName;
         | None -> ();
       end

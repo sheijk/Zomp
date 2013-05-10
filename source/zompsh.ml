@@ -304,7 +304,7 @@ end = struct
 
   let writeSymbolsCommand = makeSingleArgCommand
     (fun fileName bindings ->
-      if not (Compileutils.writeSymbols fileName bindings) then
+      if not (Compileutils.writeSymbols bindings fileName) then
         reportError (sprintf "could not write symbols to file '%s'" fileName))
 
   let printSymbolsCommand = makeNoArgCommand
