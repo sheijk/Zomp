@@ -27,19 +27,12 @@ let parseSExpr source =
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
   let lexFunc _ = Indentlexer.token lexstate in
-  let rec read acc =
-    try
-      let expr = Newparser.main lexFunc lexbuf in
-      read (expr :: acc)
-    with
-      | Indentlexer.Eof -> acc
-  in
-  let revExprs = read [] in
+  let exprs = Newparser.main lexFunc lexbuf in
   try
     let invalidChar = Indentlexer.readChar lexstate in
     failwith (sprintf "not at end of input, read %c" invalidChar)
   with Indentlexer.Eof ->
-    List.rev revExprs
+    exprs
 
 let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list

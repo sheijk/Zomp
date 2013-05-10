@@ -9,7 +9,8 @@ val unknownTokenToErrorMsg : Basics.location option * string * string -> string
 (** Found invalid indentation *)
 exception IndentError of Basics.location * string
 
-(** Read the next token *)
+(** Read the next token. When reaching the end of input one EOF token will be
+    inserted. After that each call causes an Eof exception. *)
 val token : Newparser.token lexerstate -> Newparser.token
 
 val lexbufFromChannel : string -> in_channel -> 'a lexerstate

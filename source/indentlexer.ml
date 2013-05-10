@@ -289,6 +289,7 @@ let tokenToString (lineIndent, indentNext) (token :token) =
             "BEGIN_BLOCK\n", (lineIndent + 1, `Indent)
           | END_BLOCK _ -> failwith "match failure"
           | END -> "END\n", ind
+          | EOF -> "EOF\n", noind
           | IDENTIFIER str -> "IDENTIFIER(" ^ str ^ ")", noind
           | COMMA -> "COMMA", noind
           | ADD_OP arg -> withArg "ADD_OP" arg, noind
@@ -375,7 +376,7 @@ end = struct
       | PREFIX_OP _ | POSTFIX_OP _ | QUOTE _
       | COMMA | SEMICOLON _
           -> true
-      | IDENTIFIER _ | END | BEGIN_BLOCK | END_BLOCK _
+      | IDENTIFIER _ | END | EOF | BEGIN_BLOCK | END_BLOCK _
       | OPEN_PAREN | CLOSE_PAREN | OPEN_ARGLIST | OPEN_CURLY | CLOSE_CURLY
       | OPEN_BRACKET | OPEN_BRACKET_POSTFIX | CLOSE_BRACKET
       | DOT
@@ -622,12 +623,17 @@ type source =
   | Unprocessed of string
   | NoCommentsAndIndent of string * int
 
+type 'token tokenStreamState =
+(** Pushed [] is the normal state. No seperate tag to avoid having an invalid state *)
+| Pushed of 'token list
+| EndOfInput
+
 type 'token lexerstate = {
   mutable content : source;
   mutable position : int;
   mutable location : location;
   mutable prevIndent : int;
-  mutable pushedTokens : 'token list;
+  mutable state : 'token tokenStreamState;
   mutable readTokenBefore : bool;
   mutable lastReadChars :string;
   mutable previousToken :[`Whitespace | `Token of token];
@@ -683,7 +689,8 @@ let backTrack lexbuf n =
     (String.length lexbuf.lastReadChars - n)
 
 let returnMultipleTokens state first remaining =
-  state.pushedTokens <- remaining;
+  assert (state.state = Pushed []);
+  state.state <- Pushed remaining;
   first
 
 let putback lexbuf string =
@@ -928,18 +935,28 @@ let token (lexbuf : token lexerstate) : token =
           getNextToken()
       | `Token token -> token
   in
-  let token =
-    match lexbuf.pushedTokens with
-      | [] -> getNextToken()
-      | firstToken :: remainingTokens ->
-          lexbuf.pushedTokens <- remainingTokens;
+  try
+    let token =
+      match lexbuf.state with
+        | Pushed [] -> getNextToken()
+        | Pushed (firstToken :: remainingTokens) ->
+          lexbuf.state <- Pushed remainingTokens;
           firstToken
-  in
+        | EndOfInput ->
+          raise Eof
+    in
 
-  lexbuf.readTokenBefore <- true;
-  lexbuf.previousToken <- `Token token;
-  lexbuf.lastReadChars <- Str.last_chars lexbuf.lastReadChars 1;
-  token
+    lexbuf.readTokenBefore <- true;
+    lexbuf.previousToken <- `Token token;
+    lexbuf.lastReadChars <- Str.last_chars lexbuf.lastReadChars 1;
+    token
+  with Eof as exn ->
+    if lexbuf.state = EndOfInput then
+      raise exn
+    else begin
+      lexbuf.state <- EndOfInput;
+      EOF
+    end
 
 let makeLexbuf fileName source =
   let rec lexbuf =
@@ -948,7 +965,7 @@ let makeLexbuf fileName source =
       position = 0;
       location = { line = 1; fileName = fileName };
       prevIndent = 0;
-      pushedTokens = [];
+      state = Pushed [];
       readTokenBefore = false;
       lastReadChars = "\n";
       previousToken = `Whitespace;

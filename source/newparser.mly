@@ -128,6 +128,7 @@
 
 %token <string> IDENTIFIER
 %token END
+%token EOF
 %token BEGIN_BLOCK
 %token <string list> END_BLOCK
 
@@ -173,12 +174,12 @@
 %left DOT
 %right QUOTE
 
-%start <Ast2.sexpr> main
+%start <Ast2.sexpr list> main
 
 %%
 
 main:
-| e = terminatedExpr;
+| e = terminatedExpr* EOF;
   { e }
 
 terminatedExpr:

@@ -25,7 +25,7 @@ end = struct
 
   let testedFunc = lexString
 
-  let testCases : (input * result) list =
+  let testCasesNoEof : (input * result) list =
     let id x = IDENTIFIER x in
     let ids stringList =
       let idTokens = List.map (fun str -> (IDENTIFIER str :> token)) stringList in
@@ -494,6 +494,12 @@ end = struct
     @ ["\"\\q\"", `Exception "invalid escape sequence"]
     @ ["'\\q'", `Exception "invalid escape sequence"]
 
+  let testCases =
+    let appendEof = function
+      | (_, `Exception _) as case -> case
+      | (source, `Return tokens) -> source, `Return (tokens @ [EOF])
+    in
+    List.map appendEof testCasesNoEof
 
   let validateTestCases() =
     let errors =
@@ -501,11 +507,13 @@ end = struct
         (fun (i, o) ->
            match o with
              | `Return tokens ->
-                 if lastElement tokens <> Some END then
-                   Some (sprintf "Test case lacks END:\n%s\n%s\n\n"
-                           i (tokensToString tokens))
-                 else
+               begin match List.rev tokens with
+                 | EOF :: END :: _ ->
                    None
+                 | _ ->
+                     Some (sprintf "Test case lacks END:\n%s\n%s\n\n"
+                             i (tokensToString tokens))
+               end
              | _ -> None)
         testCases
     in

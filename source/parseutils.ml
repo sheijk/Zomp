@@ -17,7 +17,7 @@ type parsingResult =
   | Exprs of Ast2.sexpr list
   | Error of Serror.t
 
-let parseIExprsFromLexbuf lexbuf lexstate =
+let parseIExprsFromLexbuf lexbuf lexstate : Ast2.t list =
   let lexFunc lexbuf =
     let r = Indentlexer.token lexstate in
     let loc = Indentlexer.locationOfLexstate lexstate in
@@ -26,21 +26,15 @@ let parseIExprsFromLexbuf lexbuf lexstate =
     r
   in
   let lexFunc = sampleFunc1 "lexing" lexFunc in
-  let rec read acc =
-    try
-      let expr = Newparser.main lexFunc lexbuf in
-      read (expr :: acc)
-    with
-      | Indentlexer.Eof -> acc
-  in
-  List.rev (read [])
+  let exprs = Newparser.main lexFunc lexbuf in
+  exprs
 
-let parseIExprsNoCatch ~fileName source =
+let parseIExprsNoCatch ~fileName source : Ast2.t list =
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString fileName source in
   parseIExprsFromLexbuf lexbuf lexstate
 
-let parseIExprs ~fileName source =
+let parseIExprs ~fileName source : parsingResult =
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString fileName source in
   try
@@ -63,13 +57,14 @@ let parseIExprs ~fileName source =
                (Some (Indentlexer.locationOfLexstate lexstate))
                exn)
 
-let parseIExprsOpt ~fileName source =
+(** Used in legacy code in Expander *)
+let parseIExprsOpt ~fileName source : Ast2.t list option =
   match parseIExprs ~fileName source with
     | Exprs e -> Some e
     | Error _ -> None
 
 (** try to parse a string using indent/new syntax *)
-let parseIExpr ~fileName source =
+let parseIExpr ~fileName source : Ast2.t option =
   if String.length source >= 3 && Str.last_chars source 3 = "\n\n\n" then
     match parseIExprs ~fileName source with
       | Exprs [singleExpr] ->
