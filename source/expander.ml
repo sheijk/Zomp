@@ -35,7 +35,7 @@ let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
     | Semantic.Ast ast -> Ast2.toString ast)
 
 (** Single error, to avoid name clash with Error constructor in mayfail type *)
-module SError = struct
+module Serror = struct
   type t = {
     emsg: string;
     eloc: Basics.location option;
@@ -98,7 +98,7 @@ module SError = struct
   let fromExpr expr msg = check "fromExpr" (fromExpr expr msg)
 end
 
-exception IllegalExpression of sexpr * SError.t list
+exception IllegalExpression of sexpr * Serror.t list
 
 module Translation_utils =
 struct
@@ -118,7 +118,7 @@ struct
             | TypedefSymbol t -> Some t
             | _ -> None
 
-  let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, [SError.fromExpr expr msg]))
+  let raiseIllegalExpression expr msg = raise (IllegalExpression (expr, [Serror.fromExpr expr msg]))
   let raiseIllegalExpressions expr errors = raise (IllegalExpression (expr, errors))
 
   let raiseIllegalExpressionFromTypeError expr (formOrExpr, msg, found, expected) =
@@ -252,13 +252,13 @@ open Translation_utils
 
 type 'a mayfail =
   | Result of 'a
-  | Error of SError.t list
+  | Error of Serror.t list
 
-let errorFromStringDeprecated emsg = Error [{ SError.emsg; eloc = None; eexpr = None }]
-let errorFromString location msg = Error [SError.fromMsg (Some location) msg]
+let errorFromStringDeprecated emsg = Error [{ Serror.emsg; eloc = None; eexpr = None }]
+let errorFromString location msg = Error [Serror.fromMsg (Some location) msg]
 let errorFromTypeError bindings expr (fe,m,f,e) =
-  Error [SError.fromTypeError bindings expr (fe,m,f,e)]
-let errorFromExpr expr msg = Error [SError.fromExpr expr msg]
+  Error [Serror.fromTypeError bindings expr (fe,m,f,e)]
+let errorFromExpr expr msg = Error [Serror.fromExpr expr msg]
 let singleError error = Error [error]
 let multipleErrors errors = Error errors
 let result r = Result r
@@ -291,7 +291,7 @@ let extractErrors = function
   | Result _ -> []
   | Error errors -> errors
 
-exception MayfailError of SError.t list
+exception MayfailError of Serror.t list
 
 let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
   let error msg = errorFromExpr typeExpr msg in
@@ -389,7 +389,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
             Result (instantiateType (t :> typ) argumentType)
           | paramTypeResult, argumentResult ->
             let otherErrors = extractErrors argumentResult in
-            let error = SError.fromExpr typeExpr "could not translate type" in
+            let error = Serror.fromExpr typeExpr "could not translate type" in
             Error (error :: otherErrors)
       end
 
@@ -413,7 +413,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
 module Translators_deprecated_style =
 struct
   let reportWarning expr msg =
-    eprintf "%s\n" (SError.diagnosticsToString "warning" (SError.fromExpr expr msg))
+    eprintf "%s\n" (Serror.diagnosticsToString "warning" (Serror.fromExpr expr msg))
 
   let translateType bindings expr =
     translateType bindings reportWarning expr
@@ -1028,10 +1028,10 @@ end
 module Base : Zomp_transformer =
 struct
   let reportError error =
-    eprintf "%s\n" (SError.toString error)
+    eprintf "%s\n" (Serror.toString error)
 
-  let reportErrorE expr msg = reportError (SError.fromExpr expr msg)
-  let reportErrorM messages = List.iter (fun msg -> reportError (SError.fromMsg None msg)) messages
+  let reportErrorE expr msg = reportError (Serror.fromExpr expr msg)
+  let reportErrorM messages = List.iter (fun msg -> reportError (Serror.fromMsg None msg)) messages
 
   let translateType bindings expr =
     translateType bindings Translators_deprecated_style.reportWarning expr
@@ -1069,7 +1069,7 @@ struct
                 end
               | _, _ ->
                 continueWithErrors
-                  [SError.fromExpr fieldValueExpr
+                  [Serror.fromExpr fieldValueExpr
                       (if listContains fieldName fields then
                           sprintf "field %s specified several times" fieldName
                        else
@@ -1078,11 +1078,11 @@ struct
           end
         | unexpectedExpr :: remArgs ->
           continueWithErrors
-            [SError.fromExpr unexpectedExpr "expected expression of the form 'id = expr'"]
+            [Serror.fromExpr unexpectedExpr "expected expression of the form 'id = expr'"]
             remArgs
     in
     if List.length fields <> List.length fieldExprs then
-      Error [SError.fromMsg None "not all fields have been defined"]
+      Error [Serror.fromMsg None "not all fields have been defined"]
     else
       handleFieldExprs [] [] fields fieldExprs
 
@@ -2075,7 +2075,7 @@ struct
                 let typeErrorMessagePotential potError =
                   match potError with
                     | TypeError (fe,msg,found,expected) ->
-                      Some (SError.fromTypeError env.bindings expr (fe, msg, found, expected))
+                      Some (Serror.fromTypeError env.bindings expr (fe, msg, found, expected))
                     | _ ->
                       None
                 in
@@ -2188,7 +2188,7 @@ let translateFromDict
     match handler env expr with
       | Error errors ->
         let printError error =
-          printf "%s\n" (SError.toString error)
+          printf "%s\n" (Serror.toString error)
         in
         List.iter printError errors;
         print_newline();
@@ -2637,7 +2637,7 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
           | IllegalExpression (expr, errors) ->
             Error errors
           | Sys_error _ ->
-            Error [SError.fromExpr expr
+            Error [Serror.fromExpr expr
                       (Common.combine "\n  "
                          (sprintf "file '%s' could not be found" fileName
                           :: sprintf "pwd = %s" (Sys.getcwd())
