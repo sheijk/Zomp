@@ -533,6 +533,7 @@ source/newparser.ml: source/newparser.mly source/ast2.cmo
 source/newparser_tests.cmo: source/newparser.cmo
 source/newparser_tests.cmx: source/newparser.cmx
 source/indentlexer.cmo: source/newparser.cmo
+source/indentlexer.cmx: source/newparser.cmx
 source/indentlexer.cmi: source/newparser.cmi
 
 source/machine.cmo: source/machine.skel $(ZOMP_DLL_FILE)
