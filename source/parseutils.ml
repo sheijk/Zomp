@@ -48,14 +48,14 @@ let parseIExprsFromLexbuf lexbuf lexstate =
   in
   List.rev (read [])
 
-let parseIExprsNoCatch source =
+let parseIExprsNoCatch ~fileName source =
   let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  let lexstate = Indentlexer.lexbufFromString fileName source in
   parseIExprsFromLexbuf lexbuf lexstate
 
-let parseIExprs source =
+let parseIExprs ~fileName source =
   let lexbuf = Lexing.from_string source in
-  let lexstate = Indentlexer.lexbufFromString "dummy.zomp" source in
+  let lexstate = Indentlexer.lexbufFromString fileName source in
   try
     Exprs (parseIExprsFromLexbuf lexbuf lexstate)
   with
@@ -82,15 +82,15 @@ let parseIExprs source =
         reason = sprintf "unknown exception: %s" (Printexc.to_string exc)
       }
 
-let parseIExprsOpt source =
-  match parseIExprs source with
+let parseIExprsOpt ~fileName source =
+  match parseIExprs ~fileName source with
     | Exprs e -> Some e
     | Error _ -> None
 
 (** try to parse a string using indent/new syntax *)
-let parseIExpr source =
+let parseIExpr ~fileName source =
   if String.length source >= 3 && Str.last_chars source 3 = "\n\n\n" then
-    match parseIExprs source with
+    match parseIExprs ~fileName source with
       | Exprs [singleExpr] ->
           Some singleExpr
       | Exprs multipleExprs ->

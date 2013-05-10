@@ -816,7 +816,7 @@ type 'translateF env = {
   translateF :'translateF;
   translateExprOld : bindings -> Ast2.t -> bindings * formWithTLsEmbedded list;
   translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
-  parseF :string -> Ast2.t list option;
+  parseF : fileName:string -> string -> Ast2.t list option;
 }
 
 let envBindings env = env.bindings
@@ -2611,7 +2611,7 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
     in
     let exprs =
       collectTimingInfo "parse"
-        (fun () -> Parseutils.parseIExprsNoCatch source)
+        (fun () -> Parseutils.parseIExprsNoCatch ~fileName source)
     in
     let exprs = List.map (Parseutils.fixFileName fileName) exprs in
     collectTimingInfo "translateAndEval"

@@ -98,7 +98,7 @@ let compileCode bindings input outStream fileName =
     let exprs =
       collectTimingInfo "parsing"
         (fun () ->
-           match parseF input with
+           match parseF ~fileName input with
              | Parseutils.Exprs exprs ->
                List.map (fixFileName fileName) exprs
              | Parseutils.Error error ->
@@ -147,8 +147,10 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
   let exprs =
     collectTimingInfo "parsing"
       (fun () ->
-        ref (match Parseutils.parseIExprs source with
-          | Exprs e -> List.map (fixFileName zompPreludeFile) e
+        ref (match Parseutils.parseIExprs ~fileName:zompPreludeFile source with
+          | Exprs exprs ->
+            List.iter Ast2.assertHasLocation exprs;
+            exprs
           | Error pe -> raise (CouldNotParse pe)))
   in
   let readExpr _ =

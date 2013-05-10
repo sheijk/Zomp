@@ -70,7 +70,10 @@ let locationOr ast defaultLocation =
   match ast.location with
     | Some loc -> loc
     | None -> defaultLocation
-  
+
+let assertHasLocation expr =
+  assert (expr.location != None)
+
 (** transformations **)
 
 let toSingleExpr = function

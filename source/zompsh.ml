@@ -6,6 +6,7 @@ open Common
 open Bindings
 
 let version = "0.?"
+let zompShellDummyFileName = "zompsh"
 
 let reportError msg =
   eprintf "error: %s\n" msg
@@ -443,7 +444,7 @@ let readExpr bindings =
   in
 
   let parse source =
-    match Parseutils.parseIExprs source with
+    match Parseutils.parseIExprs ~fileName:zompShellDummyFileName source with
       | Parseutils.Exprs exprs ->
         let exprs = (List.map fixSourceLocation exprs) in
         (match exprs with
@@ -505,9 +506,9 @@ struct
 end
 
 (** Parsing function which can be called from Zomp/native code. *)
-let parseNativeAst str =
+let parseNativeAst ~fileName str =
   let expr =
-    match Parseutils.parseIExprs str with
+    match Parseutils.parseIExprs ~fileName str with
       | Parseutils.Exprs [expr] -> expr
       | Parseutils.Exprs exprs -> Ast2.seqExpr exprs
       | Parseutils.Error error ->
