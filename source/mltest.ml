@@ -206,6 +206,41 @@ module Ast2Test = struct
 
 end
 
+module CommonTests = struct
+  open Common
+
+  let testCanonicalFileName() =
+    let cases =
+      let unchanged path = path, path in
+      [
+        unchanged "";
+        unchanged "/foo/bar/buzz.jpg";
+        "/foo/bar/../buzz.jpg", "/foo/buzz.jpg";
+        unchanged "/etc/zomp";
+        "/etc/zomp/stuff/..", "/etc/zomp";
+        "/etc/zomp/../stuff", "/etc/stuff";
+        "C:\\apps\\stuff", "C:/apps/stuff";
+        unchanged "C:/apps/stuff";
+        "/foo/bar/.", "/foo/bar";
+        "/foo/./bar", "/foo/bar";
+        "/foo//etc", "/foo/etc";
+        "/foo/./..", "/";
+        "/a/b/.././../c", "/c";
+      ]
+    in
+    let handle (input, expected) =
+      let result = canonicalFileName input in
+      if result <> expected then begin
+        Printf.printf "error: for %s got %s but expected %s\n" input result expected;
+      end
+    in
+    Printf.printf "Testing canonicalFileName\n";
+    List.iter handle cases
+
+  let run() =
+    testCanonicalFileName()
+end
+
 let () =
   if Array.length Sys.argv < 2 then begin
     Printf.fprintf stderr
@@ -215,6 +250,7 @@ let () =
     let summaryFile = Common.absolutePath Sys.argv.(1) in
     Printf.printf "Writing mltest report into %s\n" summaryFile;
     flush stdout;
+    CommonTests.run();
     Ast2Test.run();
     runTests summaryFile
 

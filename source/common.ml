@@ -123,6 +123,46 @@ let absolutePath fileName =
   else
     fileName
 
+(**
+   Will
+   - remove ".." and "." path elements
+   - remove trailing "/"
+   - remove duplicate "/"
+   - change "\\" to "/"
+
+   Correctly works with both Unix and Windows syle paths.
+  *)
+let canonicalFileName fileName =
+  let fileNameLength = String.length fileName in
+  if fileNameLength = 0 then
+    ""
+  else
+    let elements = Str.split (Str.regexp "[/\\]") fileName in
+    let isImportant = function
+      | "." | "" -> false
+      | _ -> true
+    in
+    let noNoopElements = List.filter isImportant elements in
+    let removeRelPaths elements =
+      let rec step elements acc =
+        match elements, acc with
+          | [], `ReverseList reversed ->
+            `ReverseList reversed
+          | (".." :: rem), `ReverseList (_ :: accRem) ->
+            step rem (`ReverseList accRem)
+          | element :: rem, `ReverseList acc ->
+            step rem (`ReverseList (element :: acc))
+      in
+      step elements (`ReverseList [])
+    in
+    let `ReverseList reversedElements = removeRelPaths noNoopElements in
+    let combinedAndCleanedElements = String.concat "/" (List.rev reversedElements) in
+    let startedWithSlash = fileName.[0] = '/' in
+    if startedWithSlash then
+      "/" ^ combinedAndCleanedElements
+    else
+      combinedAndCleanedElements
+
 let rec findFileIn fileName paths =
   if Filename.is_implicit fileName then begin
     match paths with
