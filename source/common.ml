@@ -59,6 +59,10 @@ let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let commentedLines = List.map (fun line -> startDelim ^ line ^ stopDelim) lines in
   combine "\n" commentedLines
 
+let lineCount source =
+  let lines = Str.split (Str.regexp_string "\\n") source in
+  List.length lines + 1
+
 let indent string =
   let indentLine line =
     let len = String.length line in

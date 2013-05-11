@@ -17,10 +17,6 @@ type parsingResult =
   | Exprs of Ast2.sexpr list
   | Error of Serror.t
 
-let lineCount source =
-  let lines = Str.split (Str.regexp_string "\\n") source in
-  List.length lines + 1
-
 let parseIExprsFromLexbuf lexbuf lexstate lineCount : Ast2.t list =
   let lexFunc lexbuf =
     let r = Indentlexer.token lexstate in

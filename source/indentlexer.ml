@@ -73,6 +73,10 @@ struct
 
   let appendChar string char = string ^ String.make 1 char
 
+  let endsWithNewline source =
+    let sourceLength = String.length source in
+    sourceLength > 0 && source.[sourceLength - 1] = '\n'
+
 end
 
 open Util
@@ -649,7 +653,9 @@ let sourceAndSize lexbuf =
     | NoCommentsAndIndent (source, length) -> source, length
     | Unprocessed unprocessed ->
       let buffer = stripComments lexbuf.location.fileName unprocessed in
+      assert (endsWithNewline buffer);
       markIndentBlocks buffer;
+      assert (endsWithNewline buffer);
       let source, length = buffer, String.length buffer in
       lexbuf.content <- NoCommentsAndIndent (source, length);
       source, length
@@ -959,6 +965,12 @@ let token (lexbuf : token lexerstate) : token =
     end
 
 let makeLexbuf fileName source =
+  if not (endsWithNewline source) then begin
+    (* printf "-=- source -=-\n%s<-END\n" source; *)
+    (* flush stdout; *)
+    raiseIndentError (Basics.location fileName (lineCount source))
+      "source does not end with a newline";
+  end;
   let rec lexbuf =
     {
       content = Unprocessed source;
@@ -1010,7 +1022,7 @@ let lexString ~fileName str =
   worker []
 
 let runInternalTests() =
-  let l = lexbufFromString ~fileName:"indentlexer.ml-runInternalTests" "abcde" in
+  let l = lexbufFromString ~fileName:"indentlexer.ml-runInternalTests" "abcde\n" in
   let source, sourceLength = sourceAndSize l in
   let expectChar chr = assert( chr = readOneChar l (source, sourceLength) ) in
   expectChar 'a';
