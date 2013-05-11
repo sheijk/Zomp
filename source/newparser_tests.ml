@@ -8,7 +8,6 @@ open Common
 open Newparser
 
 let parseSExpr source =
-  let source = source ^ "\n" in
   let lexbuf = Lexing.from_string source in
   let lexstate = Indentlexer.lexbufFromString ~fileName:"newparser_tests.ml-parseSExpr" source in
   let lexFunc _ = Indentlexer.token lexstate in
@@ -17,7 +16,7 @@ let parseSExpr source =
     let invalidChar = Indentlexer.readChar lexstate in
     failwith (sprintf "not at end of input, read %c" invalidChar)
   with Indentlexer.Eof ->
-    exprs
+      exprs
 
 let printEachOnLine printF list =
   List.iter (fun x -> printF x; print_newline()) list
@@ -42,6 +41,7 @@ struct
   type result = [ `Return of output | `Exception of string ]
 
   let testedFunc str =
+    let str = str ^ "\n" in
     try
       parseSExpr str
     with error ->
