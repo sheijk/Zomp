@@ -317,10 +317,11 @@ let () =
       match kind with
         | ExpectationKind.CompilerError
         | ExpectationKind.CompilerWarning ->
-          if diagnosticLineNum = expectedLineNum then
+          if diagnosticLineNum = expectedLineNum then begin
             if List.for_all containsWord args then begin
               found := true
             end
+          end
         | ExpectationKind.CompilerErrorNoLoc ->
           if List.for_all containsWord args then begin
             found := true
@@ -335,7 +336,7 @@ let () =
     in
 
     let diagnosticRe =
-      let re = (sprintf "^%s:\\([0-9]\\)+: .*\\(error\\|warning\\|info\\): \\(.*\\)" (Str.quote zompFileName)) in
+      let re = (sprintf "^%s:\\([0-9]+\\)+: .*\\(error\\|warning\\|info\\): \\(.*\\)" (Str.quote zompFileName)) in
       Str.regexp re
     in
     let checkCompilerExpectationsAndPrintLine _ line =
