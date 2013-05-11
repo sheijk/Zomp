@@ -239,8 +239,8 @@ let () =
       reportCommandLineArgumentError "invalid file name. Expected *.zomp";
       exit 1
   in
-  let inputFileName = baseName ^ ".zomp" in
-  let outputFileName = baseName ^ ".ll" in
+  let inputFileName = canonicalFileName (baseName ^ ".zomp") in
+  let outputFileName = canonicalFileName (baseName ^ ".ll") in
 
   let inStream = open_in inputFileName
   and outStream = open_out outputFileName

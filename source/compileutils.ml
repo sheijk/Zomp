@@ -137,7 +137,8 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
      (fun () -> Zompvm.loadLLVMFile llvmRuntimeFile));
 
   let preludeBaseName = "prelude" in
-  let zompPreludeFile = Common.absolutePath (dir ^ preludeBaseName ^ ".zomp") in
+  let zompPreludeFile = Common.canonicalFileName
+    (Common.absolutePath (dir ^ preludeBaseName ^ ".zomp")) in
   let source = Common.readFile zompPreludeFile ^ appendSource in
   let exprs =
     collectTimingInfo "parsing"
