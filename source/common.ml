@@ -27,6 +27,21 @@ struct
       in
       destructor resource;
       result
+
+    (**
+       A simple type to mark staged computations. Use this when a function
+       produces another function and does non-trivial precomputation to
+       distinguish it from a partial application. This helps to avoid
+       accidentally introducing repeated calls to the expensive function.
+
+        For example:
+
+        let makeMatcher txt =
+          let re = Str.regexp_string txt in
+          let f str = Str.string_match re str in
+          Staged f
+    *)
+  type ('a, 'b) staged = Staged of ('a -> 'b)
 end
 include CommonCombinators
 

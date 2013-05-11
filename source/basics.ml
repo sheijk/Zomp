@@ -76,7 +76,7 @@ let makeDiagnosticChecker fileName =
     else
       None
   in
-  parseDiagnostics
+  Staged parseDiagnostics
 
 exception ParseError of location * string
 

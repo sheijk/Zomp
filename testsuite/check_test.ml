@@ -331,13 +331,14 @@ let () =
           ()
     in
 
-    let parseDiagnostics = Basics.makeDiagnosticChecker zompFileName in
+    let Common.Staged parseDiagnostics = Basics.makeDiagnosticChecker zompFileName in
 
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
       match parseDiagnostics line with
-        | Some (loc, message) ->
+        | Some (loc, kind, message) ->
+          ignore kind;
           List.iter (checkExpectation message loc.line) !expectedErrorMessages
         | None ->
           List.iter (checkExpectation line 0) !expectedErrorMessages
