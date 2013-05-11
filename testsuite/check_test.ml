@@ -181,6 +181,13 @@ struct
        (kindDescription kind)
        (match words with [_] -> "" | _ -> "s")
        (verbalConcat "and" (List.map quote words)))
+
+  let locationDescription fileName lineNum kind =
+    match kind with
+      | CompilerErrorNoLoc ->
+        "_:0"
+      | _ ->
+        sprintf "%s:%d" fileName lineNum
 end
 
 module Exit_code = struct
@@ -221,7 +228,7 @@ let addExpectation
         add()
       | ExpectationKind.CompilerErrorNoLoc ->
         expectedCompilationSuccess := false;
-        addToList (kind, args, -1, ref false) expectedErrorMessages
+        addToList (kind, args, 0, ref false) expectedErrorMessages
       | ExpectationKind.CompilerWarning
       | ExpectationKind.CompilerInfo
       | ExpectationKind.RuntimePrint ->
@@ -300,9 +307,8 @@ let () =
     in
 
     let writeExpectation (kind, args, lineNum, found) =
-      fprintf outFile "%s:%d: expect %s<br />\n"
-        zompFileName
-        lineNum
+      fprintf outFile "%s: expect %s<br />\n"
+        (ExpectationKind.locationDescription zompFileName lineNum kind)
         (ExpectationKind.description kind args)
     in
     let checkExpectation message diagnosticLineNum diagnosticKind
