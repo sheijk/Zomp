@@ -1025,17 +1025,23 @@ let dummymllexbuf =
   }
 
 let lexString ~fileName str =
-  let lexbuf = lexbufFromString ~fileName str in
+  let lexstate = lexbufFromString ~fileName str in
   let rec worker acc =
     let maybeToken =
-      try Some (token lexbuf)
+      try Some (token lexstate)
       with Eof -> None
     in
     match maybeToken with
       | Some t -> worker (t::acc)
       | None -> List.rev acc
   in
-  worker []
+  let tokens = worker [] in
+  try
+    let invalidChar = readChar lexstate in
+    failwith
+      (sprintf "not at end of input, read %c in lexString, at pos %d" invalidChar lexstate.position)
+  with Eof ->
+    tokens
 
 let runInternalTests() =
   let l = lexbufFromString ~fileName:"indentlexer.ml-runInternalTests" "abcde\n" in
