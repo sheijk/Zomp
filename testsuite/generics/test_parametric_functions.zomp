@@ -26,7 +26,7 @@ end
 //------------------------------------------------------------------------------
 
 type Printable!T:
-  (fptr void T*) print
+  void(T*)* print
 end
 
 func void print:int(int* i):
@@ -37,13 +37,13 @@ func void genericPrint!T(T* value, Printable!T* vtable):
   // vtable.print value
 end
 
-func int main():
-  vtableInt := Printable!int(print = print:int)
-  x := 10
-  // vtableInt.print &x
-  genericPrint &x &vtableInt
-  ret 0
-end
+// func int main():
+//   vtableInt := Printable!int(print = print:int)
+//   x := 10
+//   // vtableInt.print &x
+//   genericPrint &x &vtableInt
+//   ret 0
+// end
 
 // testf:
 //   x := main()
@@ -52,11 +52,11 @@ end
 
 //------------------------------------------------------------------------------
 
-// type RefCounted!T:
-//   T value
-//   int refCount
-// end
-// 
+type RefCounted!T:
+  T value
+  int refCount
+end
+
 // func void retain!T(RefCounted!T* rc):
 //   println "lalal"
 //   ++rc.refCount
@@ -75,5 +75,5 @@ end
 
 //------------------------------------------------------------------------------
 
-// unittest:main
+unittest:main
 
