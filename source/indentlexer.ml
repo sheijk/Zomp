@@ -676,7 +676,7 @@ let sourceAndSize lexbuf =
       source, length
 
 let readChars lexbuf (source, sourceLength) n =
-  if lexbuf.position + n < sourceLength then begin
+  if lexbuf.position + n <= sourceLength then begin
     let str = String.sub source lexbuf.position n in
     lexbuf.position <- lexbuf.position + n;
     lexbuf.lastReadChars <- lexbuf.lastReadChars ^ str;
