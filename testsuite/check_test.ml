@@ -287,8 +287,9 @@ let () =
 
   withOpenFileOut outputFileName (fun outFile ->
     let errorOccured = ref false in
-    let reportError msg =
-      let msg = sprintf "%s:1: error: %s" zompFileName msg in
+    let reportError ?line msg =
+      let line = match line with Some l -> l | _ -> 0 in
+      let msg = sprintf "%s:%d: error: %s" zompFileName line msg in
       fprintf outFile "%s<br />\n" msg;
       fprintf stderr "%s\n" msg;
       errorOccured := true;
@@ -372,7 +373,7 @@ let () =
 
     let reportIfMissing (kind, args, lineNum, found) =
       if !found = false then
-        reportError
+        reportError ~line:lineNum
           (sprintf "expected %s but didn't happen"
              (ExpectationKind.description kind args))
     in
