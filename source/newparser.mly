@@ -17,7 +17,8 @@
 
   let getLocation loc =
     { fileName = loc.Lexing.pos_fname;
-      line = loc.Lexing.pos_lnum }
+      line = loc.Lexing.pos_lnum;
+      column = Some loc.Lexing.pos_cnum; }
 
   let withLoc expr lbloc = { expr with location = Some (getLocation lbloc) }
 

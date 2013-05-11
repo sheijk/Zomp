@@ -555,7 +555,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     ]
   in
   let defaultBindings =
-    let builtinLocation = Basics.location "builtin" 0 in
+    let builtinLocation = Basics.location "builtin" 0 None in
     let toFunc (name, _, typ, args) =
       name, FuncSymbol (funcDecl name typ args builtinLocation)
     in

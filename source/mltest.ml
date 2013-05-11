@@ -149,8 +149,9 @@ module Ast2Test = struct
   let run() =
     let testWithMaxLength maxLength =
       let seperatorString = "\n" ^ String.make maxLength '-' ^ "\n" in
-      let l line = { Basics.fileName = "testfile.zomp"; line } in
-      let l2 line = { Basics.fileName = "otherfile.zomp"; line } in
+      let column = None in
+      let l line = { Basics.fileName = "testfile.zomp"; line; column } in
+      let l2 line = { Basics.fileName = "otherfile.zomp"; line; column } in
       let exprs =
         [idExprLoc (l 1) "foo";
          idExprLoc (l 5) "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";

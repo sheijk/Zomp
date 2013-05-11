@@ -87,18 +87,24 @@ let validEscapeChars = ['\''; '"'; '\\'; '0'; 'n'; 'r'; 't'; 'v'; 'a'; 'b'; 'f';
 let stripComments fileName source =
   let sourceLength = String.length source in
 
-  let getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine =
+  let getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine, getColumn =
     let readPos = ref 0 in
     let line = ref 0 in
+    let currentLineStart = ref 0 in
 
     let getReadPos() = !readPos in
     let getLine() = !line in
     let readOneChar() =
       let chr = source.[!readPos] in
-      if chr = '\n' then
+      if chr = '\n' then begin
         line := !line + 1;
+        currentLineStart := !readPos;
+      end;
       readPos := !readPos + 1;
       chr
+    in
+    let getColumn() =
+      !readPos - !currentLineStart
     in
     let readTwoChars() =
       (* weird errors when omitting the let bindings here *)
@@ -109,7 +115,7 @@ let stripComments fileName source =
     let moveBackReadPos() =
       readPos := !readPos - 1
     in
-    getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine
+    getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine, getColumn
   in
 
   let strippedSource = String.make (sourceLength) ' ' in
@@ -119,7 +125,8 @@ let stripComments fileName source =
     incr writePos
   in
   let unexpectedEof src =
-    raiseIndentError { line = getLine(); fileName = fileName } (sprintf "unexpected end of file while parsing %s" src)
+    let column = Some (getColumn()) in
+    raiseIndentError { line = getLine(); fileName; column } (sprintf "unexpected end of file while parsing %s" src)
   in
   let copyChar signalError =
     if getReadPos() <= sourceLength - 1 then begin
@@ -138,7 +145,7 @@ let stripComments fileName source =
   let copyEscapeChar signalError =
     let chr = copyChar signalError in
     if not (List.mem chr validEscapeChars) then
-      raiseIndentError { line = getLine() + 1; fileName = fileName }
+      raiseIndentError { line = getLine() + 1; fileName = fileName; column = Some (getColumn()) }
         (sprintf "invalid escape sequence (char %c)" chr);
     chr
   in
@@ -215,7 +222,7 @@ let stripComments fileName source =
     let copyEscapeChar() = copyEscapeChar unexpectedEofInCharLiteral in
     let invalidCharLiteral msg =
       raiseIndentError
-        { line = getLine() + 1; fileName = fileName }
+        { line = getLine() + 1; fileName = fileName; column = Some (getColumn()) }
         msg
     in
     match copyChar() with
@@ -984,14 +991,14 @@ let makeLexbuf fileName source =
   if not (endsWithNewline source) then begin
     (* printf "-=- source -=-\n%s<-END\n" source; *)
     (* flush stdout; *)
-    raiseIndentError (Basics.location fileName (lineCount source))
+    raiseIndentError (Basics.location fileName (lineCount source) None)
       "source does not end with a newline";
   end;
   let rec lexbuf =
     {
       content = Unprocessed source;
       position = 0;
-      location = { line = 1; fileName = fileName };
+      location = { line = 1; fileName = fileName; column = Some 0 };
       prevIndent = 0;
       state = Pushed [];
       readTokenBefore = false;

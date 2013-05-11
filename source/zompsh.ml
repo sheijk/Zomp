@@ -253,8 +253,9 @@ end = struct
       | [fileName; lineStr] ->
         begin try
           let line = int_of_string lineStr in
+          let column = Some 0 in
           printf "setSourceLocation %s %d\n" fileName line;
-          currentLocation := Some { Basics.fileName; line }
+          currentLocation := Some { Basics.fileName; line; column }
         with (Failure _) ->
           eprintf "error: could not parse line."
         end
@@ -433,7 +434,10 @@ let readExpr bindings =
       let args = List.map (fixit loc) expr.args in
       let location = {
         Basics.fileName = loc.Basics.fileName;
-        line = Ast2.lineNumber expr + loc.Basics.line
+        line = Ast2.lineNumber expr + loc.Basics.line;
+        column = match expr.location with
+          | Some { Basics.column } -> column
+          | _ -> None
       }
       in
       { expr with args = args; location = Some location }

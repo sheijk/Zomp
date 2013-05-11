@@ -66,6 +66,11 @@ let lineNumber ast =
     | Some { line = line } -> line
     | None -> 0
 
+let column ast =
+  match ast.location with
+    | Some { column = Some column } -> column
+    | _ -> 0
+
 let locationOr ast defaultLocation =
   match ast.location with
     | Some loc -> loc
