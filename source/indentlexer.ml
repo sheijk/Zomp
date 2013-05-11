@@ -51,7 +51,7 @@ struct
 
   let isNewline chr = chr = '\n'
 
-  let whitespaceRE = Str.regexp " +"
+  let whitespaceRE, whitespaceREDoc = Str.regexp " +", " +"
   let isWhitespace chr = chr = ' '
 
   let validIdentifierChars = "a-zA-Z0-9:_"
@@ -347,6 +347,8 @@ module Rules : sig
 
   type rule
 
+  val toString : rule -> string
+
   val rules : (rule * tokenBuilder) list
 
   val ruleMatchesAt : prevToken:[`Whitespace | `Token of token]
@@ -369,7 +371,7 @@ end = struct
     | PostfixOperator
     | Or of (charre * charre)
 
-  type rule = (charre * Str.regexp)
+  type rule = (charre * Str.regexp * string)
 
   let opSymbols = "-+\\*/&.><=!|:;,%^{}~"
 
@@ -423,9 +425,9 @@ end = struct
    * each rule consists of two regexps (one for the string allowed to precede the expression
    * and one which matches the token) and a function turning the matched string into a token
    *)
-  let rules : ((charre * Str.regexp) * tokenBuilder) list =
+  let rules : ((charre * Str.regexp * string) * tokenBuilder) list =
     let re regexpString =
-      Any, Str.regexp regexpString
+      Any, Str.regexp regexpString, regexpString
     in
     let idFunc s = `Token (IDENTIFIER s) in
     let regexpRule str token =
@@ -441,8 +443,10 @@ end = struct
       re identifierRE, (fun str -> `Token (IDENTIFIER str))
     in
     let opRule symbol (tokenF :string -> token) =
+      let restr = Str.quote symbol ^ (sprintf "[%s0-9(]" validIdentifierFirstChar) in
       (Not (Or (Whitespace, Or (Operator, OpenParen))),
-       Str.regexp (Str.quote symbol ^ (sprintf "[%s0-9(]" validIdentifierFirstChar))),
+       Str.regexp restr,
+       restr),
       (fun str ->
          let strLength = String.length str in
          let lastChar = str.[strLength - 1] in
@@ -450,7 +454,8 @@ end = struct
          `PutBack( tokenF (trim withoutLastChar), String.make 1 lastChar ) )
     in
     let opRuleWS symbol (tokenF :string -> token) =
-      (Whitespace, Str.regexp (sprintf " *%s\\( +\\|\n\\)" (opre symbol))),
+      let restr = sprintf " *%s\\( +\\|\n\\)" (opre symbol) in
+      (Whitespace, Str.regexp restr, restr),
       (fun str ->
          let token = (tokenF (trimLinefeed str)) in
          if lastChar str = '\n' then
@@ -467,7 +472,7 @@ end = struct
       List.flatten rules
     in
     let contextInsensitiveOp symbol f =
-      (Any, Str.regexp symbol), (fun t -> `Token (f t))
+      (Any, Str.regexp symbol, symbol), (fun t -> `Token (f t))
     in
     let stringRule = re "\"\\([^\"\\]\\|\\\\.\\)*\"", idFunc in
     let charRule = re "'[^']'", idFunc in
@@ -478,23 +483,25 @@ end = struct
          assert( str = foundStr );
          `Token (QUOTE str))
     in
-    let whitespaceRule = (Any, whitespaceRE), (fun _ -> `Ignore) in
+    let whitespaceRule = (Any, whitespaceRE, whitespaceREDoc), (fun _ -> `Ignore) in
     let opfuncRule prefix =
       re ((Str.quote prefix) ^ sprintf "[%s]+\\(_[a-zA-Z0-9_]+\\)? *" opSymbols),
       (fun (str:string) -> `Token (IDENTIFIER (trim str)))
     in
+    let regexpFromString str = Str.regexp_string str, Str.quote str in
+    let regexp str = Str.regexp str, str in
     (let preArglist = Or (Identifier, ClosingParen) in
-     let re = Str.regexp_string "(" in
+     let re, doc = regexpFromString "(" in
      [
-       (preArglist, re), (fun _ -> `Token OPEN_ARGLIST);
-       (Not preArglist, re), (fun _ -> `Token OPEN_PAREN)
+       (preArglist, re, doc), (fun _ -> `Token OPEN_ARGLIST);
+       (Not preArglist, re, doc), (fun _ -> `Token OPEN_PAREN)
      ])
     @ (
       let bracketRule =
-        (Or (Whitespace, OpenParen), Str.regexp_string "["), fun _ -> `Token OPEN_BRACKET
+        (Or (Whitespace, OpenParen), Str.regexp_string "[", "["), fun _ -> `Token OPEN_BRACKET
       in
       let postfixBracketRule =
-        (Or (Identifier, Operator), Str.regexp_string "["),
+        (Or (Identifier, Operator), Str.regexp_string "[", "["),
         fun _ -> `Token OPEN_BRACKET_POSTFIX
       in
       [bracketRule; postfixBracketRule])
@@ -532,14 +539,16 @@ end = struct
         in
         let dotnumRE = "[0-9]*\\.[0-9]+[a-zA-Z]*" in
         let numdotRE = "[0-9]+\\.\\([^a-zA-Z]\\| *\n\\)" in
-        (Not Identifier, Str.regexp (sprintf "-?\\(%s\\|%s\\)" dotnumRE numdotRE)),
+        let restr = (sprintf "-?\\(%s\\|%s\\)" dotnumRE numdotRE) in
+        (Not Identifier, Str.regexp restr, restr),
         trimIdFunc
       in
       [floatRule])
     @ (
       let numberRE = "\\(0\\|[1-9][0-9_]*\\)" in
       let negIntRule =
-        (Not (Or (Identifier, ClosingParen)), Str.regexp ("-" ^ numberRE)), idFunc
+        let re, doc = regexp ("-" ^ numberRE) in
+        (Not (Or (Identifier, ClosingParen)), re, doc), idFunc
       in
       let hexnumberRE = "0x[0-9a-fA-F]+" in
       let binnumberRE = "0b[01]+" in
@@ -555,8 +564,10 @@ end = struct
         "\\(" ^ Common.combine "\\|" (List.map Str.quote oplist) ^ "\\)+"
       in
       let postfixRule =
+        let restr = buildRE postfixOps in
         (Or (Identifier, ClosingParen),
-         Str.regexp (buildRE postfixOps)),
+         Str.regexp restr,
+         restr),
         (fun s ->
            if String.length s >= 1 && (
              let last = Str.last_chars s 1 in
@@ -570,8 +581,10 @@ end = struct
                    failwith (sprintf "internal error in parser at token \"%s\"" s))
       in
       let prefixRule =
+        let restr = buildRE prefixOps in
         (Or (Whitespace, Or (OpenParen, Operator)),
-         Str.regexp (buildRE prefixOps)),
+         Str.regexp restr,
+         restr),
         fun s ->
           match splitup prefixOps s with
             | Some tokens -> `MultiTokens (List.map (fun n -> PREFIX_OP n) tokens)
@@ -616,11 +629,13 @@ end = struct
     @ opRulesMultiSym ["&"; "|"; "^"; "<<"; ">>"] (fun s -> STRICT_BOOL_OP s)
       (** Attention: all characters used as operators need to be listed in the regexp in opfuncRule *)
 
-  let ruleMatchesAt ~prevToken ~source ~pos ((prevCharRE, regexp), _) =
+  let ruleMatchesAt ~prevToken ~source ~pos ((prevCharRE, regexp, _), _) =
     if (charreMatch prevCharRE prevToken && Str.string_match regexp source pos) then
       Some (Str.match_end() - Str.match_beginning())
     else
       None
+
+  let toString (_, _, str) = str
 end
 
 type source =
@@ -960,6 +975,7 @@ let token (lexbuf : token lexerstate) : token =
     if lexbuf.state = EndOfInput then
       raise exn
     else begin
+      assert (lexbuf.state = Pushed []);
       lexbuf.state <- EndOfInput;
       EOF
     end
