@@ -7,6 +7,7 @@
  *)
 
 open Printf
+open Basics
 
 let scriptName = "check_test"
 
@@ -88,13 +89,6 @@ struct
         fileName
     in
     sprintf "%s.%s" noExt ext
-
-
-  let safeParseInt str =
-    try
-      int_of_string str
-    with Failure _ ->
-      -1
 
   let (=~) str re = Str.string_match (Str.regexp re) str 0
 
@@ -315,6 +309,7 @@ let () =
       let containsWord word =
         Str.string_match (Str.regexp_case_fold (".*" ^ Str.quote word)) message 0
       in
+      (* TODO: this will match warnings against error messages, too *)
       match kind with
         | ExpectationKind.CompilerError
         | ExpectationKind.CompilerWarning ->
@@ -336,21 +331,16 @@ let () =
           ()
     in
 
-    let diagnosticRe =
-      let re = (sprintf "^%s:\\([0-9]+\\)+: .*\\(error\\|warning\\|info\\): \\(.*\\)" (Str.quote zompFileName)) in
-      Str.regexp re
-    in
+    let parseDiagnostics = Basics.makeDiagnosticChecker zompFileName in
+
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
-      let isErrorMessage = Str.string_match diagnosticRe line 0 in
-      if isErrorMessage then begin
-        let diagnosticLineNum = safeParseInt (Str.matched_group 1 line) in
-        let message = Str.matched_group 3 line in
-        List.iter (checkExpectation message diagnosticLineNum) !expectedErrorMessages
-      end else begin
-        List.iter (checkExpectation line 0) !expectedErrorMessages
-      end
+      match parseDiagnostics line with
+        | Some (loc, message) ->
+          List.iter (checkExpectation message loc.line) !expectedErrorMessages
+        | None ->
+          List.iter (checkExpectation line 0) !expectedErrorMessages
     in
 
     let checkRuntimeExpectationsAndPrintLine _ line =

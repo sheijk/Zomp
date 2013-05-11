@@ -48,6 +48,12 @@ let rec combine seperator strings =
         copyStrings measuredStrings 0;
         buffer
 
+let safeParseInt str =
+  try
+    int_of_string str
+  with Failure _ ->
+    -1
+
 let commentOut startDelim ?(stopDelim = "") multiLineSource =
   let rec combine seperator = function
       [] -> ""
