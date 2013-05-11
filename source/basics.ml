@@ -22,6 +22,9 @@ let locationToString loc =
     | None ->
       sprintf "%s:%d" loc.fileName loc.line
 
+let locationOptToString locOpt =
+  locationToString (someOrDefault locOpt fakeLocation)
+
 let locationEqual lhs rhs =
   (lhs.line = rhs.line) &&
     ((String.compare lhs.fileName rhs.fileName) = 0)

@@ -183,8 +183,13 @@ struct
         `Record { rname = typeName; fields = List.map convert components }
     | ErrorVal msg -> `ErrorType msg
 
-  (* val typeName : typ -> string *)
-  let rec typeName : typ -> string = function
+
+  let recordDescr typeNameRec record =
+    let component2String (name, typ) = sprintf "%s :%s" name (typeNameRec typ) in
+    let componentStrings = List.map component2String record.fields in
+    record.rname ^ " {" ^ Common.combine ", " componentStrings ^ "}"
+
+  let typeNameRec typeNameRec : typ -> string = function
     | `Void -> "void"
     | `Int8 -> "u8"
     | `Int16 -> "u16"
@@ -195,31 +200,39 @@ struct
     | `Bool -> "bool"
     | `Char -> "char"
     | `TypeRef name -> name
-    | `Pointer t -> (typeName t) ^ "*"
+    | `Pointer t -> (typeNameRec t) ^ "*"
     | `Array (`Function _ as baseType, size) ->
-        sprintf "(%s)[%d]" (typeName baseType) size
+        sprintf "(%s)[%d]" (typeNameRec baseType) size
     | `Array (baseType, size) ->
-        sprintf "%s[%d]" (typeName baseType) size
+        sprintf "%s[%d]" (typeNameRec baseType) size
     | `Record record ->
         record.rname
     | `Function ft ->
-        let retName = typeName ft.returnType in
-        let argNames = List.map typeName ft.argTypes in
+        let retName = typeNameRec ft.returnType in
+        let argNames = List.map typeNameRec ft.argTypes in
         sprintf "%s(%s)" retName (Common.combine ", " argNames)
     | `ParametricType t ->
-        typeName (t :> typ) ^ "!T"
+        typeNameRec (t :> typ) ^ "!T"
     | `TypeParam -> "'T"
     | `ErrorType msg -> "error_t(\"" ^ msg ^ "\")"
 
+  (* val typeName : typ -> string *)
+  let rec typeName (typ :typ) : string =
+    typeNameRec typeName typ
+
   let rec typeDescr = function
     | `Record record ->
-        let component2String (name, typ) = sprintf "%s :%s" name (typeName typ) in
-        let componentStrings = List.map component2String record.fields in
-        record.rname ^ " {" ^ Common.combine ", " componentStrings ^ "}"
+      recordDescr typeDescr record
     | `ParametricType t ->
         "<T> " ^ typeDescr (t :> typ)
     | other ->
         typeName other
+
+  let rec typeNameExplicit = function
+    | `TypeRef name -> sprintf "typedef %s" name
+    | `Pointer t -> typeNameExplicit t ^ "*"
+    | `Record record -> recordDescr typeNameExplicit record
+    | other -> typeNameRec typeNameExplicit other
 
   let rec valueString : value -> string =
     function
