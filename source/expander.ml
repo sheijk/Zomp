@@ -353,7 +353,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
 module Translators_deprecated_style =
 struct
   let reportWarning expr msg =
-    eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Error (Serror.fromExpr expr msg))
+    eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Warning (Serror.fromExpr expr msg))
 
   let translateType bindings expr =
     translateType bindings reportWarning expr
