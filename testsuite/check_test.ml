@@ -305,29 +305,41 @@ let () =
         lineNum
         (ExpectationKind.description kind args)
     in
-    let checkExpectation message diagnosticLineNum (kind, args, expectedLineNum, found) =
+    let checkExpectation message diagnosticLineNum diagnosticKind
+        (expectationKind, args, expectedLineNum, found)
+        =
       let containsWord word =
         Str.string_match (Str.regexp_case_fold (".*" ^ Str.quote word)) message 0
       in
-      (* TODO: this will match warnings against error messages, too *)
-      match kind with
-        | ExpectationKind.CompilerError
-        | ExpectationKind.CompilerWarning ->
+
+      let module Expect = ExpectationKind in
+      let module Diag = DiagnosticKind in
+
+      match expectationKind, diagnosticKind with
+        | Expect.CompilerError, Diag.Error
+        | Expect.CompilerWarning, Diag.Warning ->
           if diagnosticLineNum = expectedLineNum then begin
             if List.for_all containsWord args then begin
               found := true
             end
           end
-        | ExpectationKind.CompilerErrorNoLoc ->
+        | Expect.CompilerErrorNoLoc, Diag.Error ->
           if List.for_all containsWord args then begin
             found := true
           end
-        | ExpectationKind.CompilerInfo ->
+        | Expect.CompilerInfo, Diag.Info ->
           if List.for_all containsWord args then begin
             found := true
           end
-        | ExpectationKind.TestCaseExitCode
-        | ExpectationKind.RuntimePrint ->
+
+        | Expect.TestCaseExitCode, _
+        | Expect.RuntimePrint, _
+        | _, Diag.Other _
+        | Expect.CompilerInfo, (Diag.Warning | Diag.Error)
+        | Expect.CompilerWarning, (Diag.Info | Diag.Error)
+        | Expect.CompilerError, (Diag.Warning | Diag.Info)
+        | Expect.CompilerErrorNoLoc, (Diag.Warning | Diag.Info)
+          ->
           ()
     in
 
@@ -346,10 +358,9 @@ let () =
 
       match parseDiagnostics line with
         | Some (loc, kind, message) ->
-          ignore kind;
-          List.iter (checkExpectation message loc.line) !expectedErrorMessages
+          List.iter (checkExpectation message loc.line kind) !expectedErrorMessages
         | None ->
-          List.iter (checkExpectation line 0) !expectedErrorMessages
+          List.iter (checkExpectation line 0 (DiagnosticKind.Other "")) !expectedErrorMessages
     in
 
     let checkRuntimeExpectationsAndPrintLine _ line =
