@@ -38,10 +38,12 @@ testsuite/test: testsuite/selftest $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
 .PHONY: testsuite/quick
 testsuite/quick: testsuite/fundamental/simple-func.testreport testsuite/libs/libcee_misc.testreport testsuite/zompsh/std_vm_zompsh.testreport
 
+# We test if check_test compiles here but still use ocamlrun to execute it
+# TODO: fix this
 .PHONY: testsuite/selftest
 testsuite/selftest: $(BUILD_DIR)/.exists
 	@$(ECHO) "Testsuite self test ..."
-	$(OCAMLC) -o $(OUT_DIR)/check_test.cmo str.cma unix.cma testsuite/check_test.ml
+	$(OCAMLC) -I source -o $(OUT_DIR)/check_test.cmo $(CHECK_TEST_SYS_LIBS) $(CHECK_TEST_DEPS) $(CHECK_TEST_FILE)
 
 CLEAN_SUB_TARGETS += testsuite/clean
 .PHONY: testsuite/clean
@@ -91,7 +93,9 @@ ZOMPCFLAGS_W_INCLUDE = --zomp-include-dir testsuite/include
 testsuite/include/test_%.ll: ZOMPCFLAGS=$(ZOMPCFLAGS_W_INCLUDE)
 
 CHECK_TEST_FILE = testsuite/check_test.ml
-CHECK_TEST = $(OCAML) str.cma unix.cma $(CHECK_TEST_FILE)
+CHECK_TEST_DEPS = source/common.cmo source/basics.cmo
+CHECK_TEST_SYS_LIBS = str.cma unix.cma bigarray.cma
+CHECK_TEST = $(OCAML) -I source $(CHECK_TEST_SYS_LIBS) $(CHECK_TEST_DEPS) $(CHECK_TEST_FILE)
 
 TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 $(@:.testreport=.exe)"
 TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
@@ -103,7 +107,7 @@ testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
 
 TESTREPORT_LIB_DEPS = source/prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
-TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) external_lib_links testsuite/selftest makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
+TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) external_lib_links testsuite/selftest makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS) $(CHECK_TEST_DEPS)
 
 .PRECIOUS: %.test_output
 .PRECIOUS: %.compile_output
