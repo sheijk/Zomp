@@ -6,7 +6,7 @@ type t = private {
 }
 
 val toString : t -> string
-val diagnosticsToString : string -> t -> string
+val diagnosticsToString : Basics.DiagnosticKind.t -> t -> string
 
 val fromMsg : Basics.location option -> string -> t
 val fromExpr : Ast2.t -> string -> t

@@ -25,7 +25,7 @@ let diagnosticsToString kind error =
   Basics.formatDiagnostics kind loc error.emsg
 
 let toString error =
-  diagnosticsToString "error" error
+  diagnosticsToString Basics.DiagnosticKind.Error error
 
 let check funcName error =
   let warn msg = printf "alert, %s (in %s, msg = %s)!\n" msg funcName (toString error) in

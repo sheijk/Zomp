@@ -26,13 +26,33 @@ let locationEqual lhs rhs =
   (lhs.line = rhs.line) &&
     ((String.compare lhs.fileName rhs.fileName) = 0)
 
+module DiagnosticKind =
+struct
+  type t =
+  | Error
+  | Warning
+  | Info
+  | Other of string
+
+  let toString = function
+    | Error -> "error"
+    | Warning -> "warning"
+    | Info -> "info"
+    | Other str -> str
+
+  let parse = function
+    | "error" -> Error
+    | "warning" -> Warning
+    | "info" -> Info
+    | otherString -> Other otherString
+end
 
 let formatDiagnostics kind location message =
-  sprintf "%s: %s: %s" (locationToString location) kind message
+  sprintf "%s: %s: %s" (locationToString location) (DiagnosticKind.toString kind) message
 
-let formatError = formatDiagnostics "error"
-let formatWarning = formatDiagnostics "warning"
-let formatInfo = formatDiagnostics "info"
+let formatError = formatDiagnostics DiagnosticKind.Error
+let formatWarning = formatDiagnostics DiagnosticKind.Warning
+let formatInfo = formatDiagnostics DiagnosticKind.Info
 
 let makeDiagnosticChecker fileName =
   let diagnosticRe =
@@ -40,8 +60,7 @@ let makeDiagnosticChecker fileName =
     Str.regexp re
   in
   let parseDiagnostics line =
-    let isDiagnostics = Str.string_match diagnosticRe line 0 in
-    if isDiagnostics then begin
+    if (Str.string_match diagnosticRe line 0) then
       let fileName = Str.matched_group 1 line in
       let lineNum = int_of_string (Str.matched_group 2 line) in
       let column =
@@ -49,13 +68,12 @@ let makeDiagnosticChecker fileName =
           let columnStr, _ = splitLastChar (Str.matched_group 3 line) in
           Some (int_of_string columnStr)
         with Not_found ->
-            None
+          None
       in
-      let kindStr = Str.matched_group 4 line in
-      ignore kindStr;
+      let kind = DiagnosticKind.parse (Str.matched_group 4 line) in
       let message = Str.matched_group 5 line in
-      Some (location fileName lineNum column, message)
-    end else
+      Some (location fileName lineNum column, kind, message)
+    else
       None
   in
   parseDiagnostics
