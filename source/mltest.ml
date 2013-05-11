@@ -3,6 +3,45 @@ let newlineRE = Str.regexp_string "\n"
 let failedRE = Str.regexp_string "failed"
 let succeededRE = Str.regexp_string "succeeded"
 
+module BasicsParseDiagnosticsTest : Testing.CASE_STRUCT =
+struct
+  open Basics
+
+  type input = string
+  type output = (Basics.location * DiagnosticKind.t * string) option
+  type result = [ `Return of output | `Exception of string ]
+
+  let outputEqual l r = l = r
+
+  let outputToString = function
+    | Some (loc, kind, msg) ->
+      formatDiagnostics kind loc msg
+    | None ->
+      "None"
+
+  let inputToString str = str
+
+  let testedFunc = parseDiagnostics
+
+  let testCases =
+    let module Diag = DiagnosticKind in
+    [
+      "file.zomp:10:5: error: omg an error with column",
+      `Return (Some ({ fileName = "file.zomp"; line = 10; column = Some 5 },
+                     Diag.Error,
+                     "omg an error with column"));
+      "file.zomp:1: warning: omg a warning without column",
+      `Return (Some ({ fileName = "file.zomp"; line = 1; column = None },
+                     Diag.Warning,
+                     "omg a warning without column"));
+      "file.zomp:1: foobar: omg a foobar without column",
+      `Return None;
+      "something completely different",
+      `Return None;
+    ]
+
+end
+
 let runTests summaryFile =
   Indentlexer.runInternalTests();
 
@@ -10,6 +49,10 @@ let runTests summaryFile =
     Indentlexer_tests.runTerminatorTests;
     Indentlexer_tests.runTests;
     Newparser_tests.runTests;
+
+    fun () ->
+      let module M = Testing.Tester(BasicsParseDiagnosticsTest) in
+      M.runTestsAndReport "Basics.parseDiagnostics";
   ] in
 
   let call f = f() in
