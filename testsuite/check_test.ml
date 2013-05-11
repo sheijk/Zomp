@@ -331,7 +331,15 @@ let () =
           ()
     in
 
-    let Common.Staged parseDiagnostics = Basics.makeDiagnosticChecker zompFileName in
+    let parseDiagnostics line =
+      Common.applyIfSome
+        (fun (location, kind, message as result) ->
+          if location.fileName = zompFileName then
+            Some result
+          else
+            None)
+        (Basics.parseDiagnostics line)
+    in
 
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);

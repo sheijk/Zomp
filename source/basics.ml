@@ -54,29 +54,26 @@ let formatError = formatDiagnostics DiagnosticKind.Error
 let formatWarning = formatDiagnostics DiagnosticKind.Warning
 let formatInfo = formatDiagnostics DiagnosticKind.Info
 
-let makeDiagnosticChecker fileName =
-  let diagnosticRe =
-    let re = (sprintf "^\\(%s\\):\\([0-9]+\\)+:\\([0-9]+:\\)? .*\\(error\\|warning\\|info\\): \\(.*\\)" (Str.quote fileName)) in
-    Str.regexp re
-  in
-  let parseDiagnostics line =
-    if (Str.string_match diagnosticRe line 0) then
-      let fileName = Str.matched_group 1 line in
-      let lineNum = int_of_string (Str.matched_group 2 line) in
-      let column =
-        try
-          let columnStr, _ = splitLastChar (Str.matched_group 3 line) in
-          Some (int_of_string columnStr)
-        with Not_found ->
-          None
-      in
-      let kind = DiagnosticKind.parse (Str.matched_group 4 line) in
-      let message = Str.matched_group 5 line in
-      Some (location fileName lineNum column, kind, message)
-    else
-      None
-  in
-  Staged parseDiagnostics
+let diagnosticRe =
+  let re = "^\\([a-zA-Z_0-9-.\\-]+\\):\\([0-9]+\\)+:\\([0-9]+:\\)? .*\\(error\\|warning\\|info\\): \\(.*\\)" in
+  Str.regexp re
+  
+let parseDiagnostics line =
+  if (Str.string_match diagnosticRe line 0) then
+    let fileName = Str.matched_group 1 line in
+    let lineNum = int_of_string (Str.matched_group 2 line) in
+    let column =
+      try
+        let columnStr, _ = splitLastChar (Str.matched_group 3 line) in
+        Some (int_of_string columnStr)
+      with Not_found ->
+        None
+    in
+    let kind = DiagnosticKind.parse (Str.matched_group 4 line) in
+    let message = Str.matched_group 5 line in
+    Some (location fileName lineNum column, kind, message)
+  else
+    None
 
 exception ParseError of location * string
 
