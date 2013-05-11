@@ -5,12 +5,12 @@
 
 var int topInt 10
 
-func int main():
+std:base:func int main():
   var int topInt 20
   var int funcInt 10
   var int funcInt 30 //// error funcInt defin
 
-  ret 0
+  std:base:ret 0
 end
 
 
