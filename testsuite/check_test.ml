@@ -145,7 +145,27 @@ open Utils
 
 module ExpectationKind =
 struct
-  type t = CompilerError | CompilerErrorNoLoc | CompilerWarning | CompilerInfo | RuntimePrint | TestCaseExitCode
+
+  type t =
+  (** Compiler output that looks like "name.zomp:10: error: message" or
+      "name.zomp:10:3: error: message". The numbers are line and column.
+      Using this once or more will result in compilation being expected to
+      fail. Line and file name in the error diagnostics must be the same as
+      the the file and line number where the expectation is put. *)
+  | CompilerError
+  (** Any compiler output. Also will expect compilation to be expected to fail. *)
+  | CompilerErrorNoLoc
+  (** Like CompilerError but with "warning" instead of error *)
+  | CompilerWarning
+  (** Like CompilerError but with "info" instead of error *)
+  | CompilerInfo
+  (** Expect the execution of the test to print a line matching this. *)
+  | RuntimePrint
+  (** Execution of the test case will exit with a specific exit code which is
+      given as the single argument. If the number is prefixed with "!" any exit
+      code but the given number will be expected. *)
+  | TestCaseExitCode
+
   let compilerErrorCommand = "error"
   let compilerErrorNoLocCommand = "error-no-location"
   let compilerWarningCommand = "warning"
@@ -329,7 +349,7 @@ let () =
               found := true
             end
           end
-        | Expect.CompilerErrorNoLoc, Diag.Error ->
+        | Expect.CompilerErrorNoLoc, _ ->
           if List.for_all containsWord args then begin
             found := true
           end
@@ -345,9 +365,7 @@ let () =
         | Expect.CompilerInfo, (Diag.Warning | Diag.Error)
         | Expect.CompilerWarning, (Diag.Info | Diag.Error)
         | Expect.CompilerError, (Diag.Warning | Diag.Info)
-        | Expect.CompilerErrorNoLoc, (Diag.Warning | Diag.Info)
-          ->
-          ()
+          -> ()
     in
 
     let parseDiagnostics line =
