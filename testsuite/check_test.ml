@@ -333,6 +333,7 @@ let () =
           if List.for_all containsWord args then begin
             found := true
           end
+        | Expect.CompilerInfo, Diag.Other _
         | Expect.CompilerInfo, Diag.Info ->
           if List.for_all containsWord args then begin
             found := true
