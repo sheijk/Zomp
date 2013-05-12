@@ -41,7 +41,7 @@ struct
     | Error -> "error"
     | Warning -> "warning"
     | Info -> "info"
-    | Other str -> str
+    | Other str -> sprintf "other('%s')" str
 
   let parse = function
     | "error" -> Error
@@ -58,7 +58,7 @@ let formatWarning = formatDiagnostics DiagnosticKind.Warning
 let formatInfo = formatDiagnostics DiagnosticKind.Info
 
 let diagnosticRe =
-  let re = "^\\([a-zA-Z_0-9-.\\-]+\\):\\([0-9]+\\)+:\\([0-9]+:\\)? .*\\(error\\|warning\\|info\\): \\(.*\\)" in
+  let re = "^\\([a-zA-Z_0-9/\\.-]+\\):\\([0-9]+\\)+:\\([0-9]+:\\)? .*\\(error\\|warning\\|info\\): \\(.*\\)" in
   Str.regexp re
   
 let parseDiagnostics line =
