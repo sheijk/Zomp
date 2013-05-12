@@ -852,7 +852,8 @@ editor to trigger recompilations etc. and possibly resume main()"
   '(
     ("//.*" 0 font-lock-comment-face t t)
     ("///.*" 0 font-lock-doc-face t t)
-    ("//// \\(print\\|info\\|warning\\|error\\|error-no-location\\|exit-code\\) .*" 1 'zomp-testsuite-directive-face t t)
+    ("//// +\\(error\\|error-no-location\\|compiler-output\\|warning\\|info\\|print\\|exit-code\\) .*" 1 'zomp-testsuite-directive-face t t)
+    ("//// +\\(compilation-fails\\) *" 1 'zomp-testsuite-directive-face t t)
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
     ("'[^']'" 0 font-lock-string-face)
 

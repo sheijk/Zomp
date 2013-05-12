@@ -1,3 +1,4 @@
 // empty file to check if compiling prelude only crashes the compiler
-//// error-no-location main
-//// error-no-location undefined
+//// compiler-output main
+//// compiler-output undefined
+//// compilation-fails

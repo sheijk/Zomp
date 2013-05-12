@@ -153,8 +153,12 @@ struct
       fail. Line and file name in the error diagnostics must be the same as
       the the file and line number where the expectation is put. *)
   | CompilerError
-  (** Any compiler output. Also will expect compilation to be expected to fail. *)
+  (** Like compiler error but file and line can be anything. *)
   | CompilerErrorNoLoc
+  (** Any compiler output. *)
+  | CompilerOutput
+  (** Will expect the compilation to fail. *)
+  | CompilationWillFail
   (** Like CompilerError but with "warning" instead of error *)
   | CompilerWarning
   (** Like CompilerError but with "info" instead of error *)
@@ -168,6 +172,8 @@ struct
 
   let compilerErrorCommand = "error"
   let compilerErrorNoLocCommand = "error-no-location"
+  let compilerOutput = "compiler-output"
+  let compilationWillFail = "compilation-fails"
   let compilerWarningCommand = "warning"
   let compilerInfoCommand = "info"
   let runtimePrintCommand = "print"
@@ -176,6 +182,8 @@ struct
   let parse str =
     if str = compilerErrorCommand then CompilerError
     else if str = compilerErrorNoLocCommand then CompilerErrorNoLoc
+    else if str = compilerOutput then CompilerOutput
+    else if str = compilationWillFail then CompilationWillFail
     else if str = compilerWarningCommand then CompilerWarning
     else if str = compilerInfoCommand then CompilerInfo
     else if str = runtimePrintCommand then RuntimePrint
@@ -190,6 +198,8 @@ struct
   let kindDescription = function
     | CompilerError -> "compiler error"
     | CompilerErrorNoLoc -> "compiler error w/o location"
+    | CompilerOutput -> "compiler output"
+    | CompilationWillFail -> "compilation to fail"
     | CompilerWarning -> "compiler warning"
     | CompilerInfo -> "compiler info"
     | RuntimePrint -> "test case to print line"
@@ -204,8 +214,10 @@ struct
 
   let locationDescription fileName lineNum kind =
     match kind with
-      | CompilerErrorNoLoc ->
-        "_:0"
+      | CompilerErrorNoLoc
+      | CompilerOutput
+      | RuntimePrint ->
+        "any-file:any-line"
       | _ ->
         sprintf "%s:%d" fileName lineNum
 end
@@ -249,6 +261,10 @@ let addExpectation
       | ExpectationKind.CompilerErrorNoLoc ->
         expectedCompilationSuccess := false;
         addToList (kind, args, 0, ref false) expectedErrorMessages
+      | ExpectationKind.CompilerOutput ->
+        addToList (kind, args, 0, ref false) expectedErrorMessages
+      | ExpectationKind.CompilationWillFail ->
+        expectedCompilationSuccess := false
       | ExpectationKind.CompilerWarning
       | ExpectationKind.CompilerInfo
       | ExpectationKind.RuntimePrint ->
@@ -276,7 +292,7 @@ let addExpectation
          kindStr ExpectationKind.validExpectationsEnumDescr)
 
 let collectExpectations addExpectation (lineNum :int) line =
-  if line =~ ".*//// \\([^ ]+\\) \\(.*\\)" then begin
+  if line =~ ".*//// +\\([^ ]+\\) ?\\(.*\\)" then begin
     let kind = Str.matched_group 1 line in
     let args = Str.split (Str.regexp " +") (Str.matched_group 2 line) in
     addExpectation kind args lineNum
@@ -331,40 +347,50 @@ let () =
         (ExpectationKind.locationDescription zompFileName lineNum kind)
         (ExpectationKind.description kind args)
     in
-    let checkExpectation message diagnosticLineNum diagnosticKind
+    let checkExpectation message diagnosticLoc diagnosticKind
         (expectationKind, args, expectedLineNum, found)
         =
       let containsWord word =
         Str.string_match (Str.regexp_case_fold (".*" ^ Str.quote word)) message 0
       in
+      let locationMatches diagnosticLoc =
+        diagnosticLoc.line = expectedLineNum
+        && zompFileName = diagnosticLoc.fileName
+      in
+      let setToTrueIfAllWordsMatch() =
+        if List.for_all containsWord args then
+          found := true
+      in
 
       let module Expect = ExpectationKind in
       let module Diag = DiagnosticKind in
 
-      match expectationKind, diagnosticKind with
-        | Expect.CompilerError, Diag.Error
-        | Expect.CompilerWarning, Diag.Warning ->
-          if diagnosticLineNum = expectedLineNum then begin
-            if List.for_all containsWord args then begin
-              found := true
-            end
+      match expectationKind, diagnosticKind, diagnosticLoc with
+        | Expect.CompilerError, Diag.Error, Some diagnosticLoc
+        | Expect.CompilerWarning, Diag.Warning, Some diagnosticLoc ->
+          if locationMatches diagnosticLoc then begin
+            setToTrueIfAllWordsMatch()
           end
-        | Expect.CompilerErrorNoLoc, _ ->
-          if List.for_all containsWord args then begin
-            found := true
-          end
-        | Expect.CompilerInfo, Diag.Other _
-        | Expect.CompilerInfo, Diag.Info ->
-          if List.for_all containsWord args then begin
-            found := true
-          end
+        | Expect.CompilerErrorNoLoc, Diag.Error, Some _ ->
+          setToTrueIfAllWordsMatch()
+        | Expect.CompilerInfo, Diag.Info, Some diagnosticLoc ->
+          if locationMatches diagnosticLoc then
+            setToTrueIfAllWordsMatch()
+        | Expect.CompilerOutput, _, _ ->
+          setToTrueIfAllWordsMatch()
 
-        | Expect.TestCaseExitCode, _
-        | Expect.RuntimePrint, _
-        | _, Diag.Other _
-        | Expect.CompilerInfo, (Diag.Warning | Diag.Error)
-        | Expect.CompilerWarning, (Diag.Info | Diag.Error)
-        | Expect.CompilerError, (Diag.Warning | Diag.Info)
+        | Expect.CompilationWillFail, _, _
+        | Expect.TestCaseExitCode, _, _
+        | Expect.RuntimePrint, _, _
+        | _, Diag.Other _, _
+        | Expect.CompilerInfo, Diag.Info, _
+        | Expect.CompilerInfo, (Diag.Warning | Diag.Error), _
+        | Expect.CompilerWarning, (Diag.Info | Diag.Error), _
+        | Expect.CompilerWarning, Diag.Warning, None
+        | Expect.CompilerError, Diag.Error, None
+        | Expect.CompilerError, (Diag.Warning | Diag.Info), _
+        | Expect.CompilerErrorNoLoc, Diag.Error, None
+        | Expect.CompilerErrorNoLoc, (Diag.Info | Diag.Warning), _
           -> ()
     in
 
@@ -383,9 +409,9 @@ let () =
 
       match parseDiagnostics line with
         | Some (loc, kind, message) ->
-          List.iter (checkExpectation message loc.line kind) !expectedErrorMessages
+          List.iter (checkExpectation message (Some loc) kind) !expectedErrorMessages
         | None ->
-          List.iter (checkExpectation line 0 (DiagnosticKind.Other "")) !expectedErrorMessages
+          List.iter (checkExpectation line None (DiagnosticKind.Other "")) !expectedErrorMessages
     in
 
     let checkRuntimeExpectationsAndPrintLine _ line =

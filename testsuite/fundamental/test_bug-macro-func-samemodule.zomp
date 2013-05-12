@@ -21,7 +21,7 @@ end
 
 macro hello name:
   printString "compile-time-foo="
-  printInt foo() //// info compile-time-foo=123
+  printInt foo() //// compiler-output compile-time-foo=123
   printNewline()
   var int num foo()
 
