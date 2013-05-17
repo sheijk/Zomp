@@ -4,6 +4,7 @@
 #+INFOJS_OPT: view:content toc:nil
 
 * To be sorted
+** TODO examples/metaball2d.exe does not depend on libs/opengl20.zomp     :bug:
 ** TODO [#A] always require parenthesis for quote/antiquotes         :syntax:
    - would make some cases a lot clearer ('#foo(10)' as '#(foo)(10)' vs. '#(foo(10))')
    - would allow to overload $ (and #) to distinguish between
@@ -1767,6 +1768,48 @@ end
    :PROPERTIES:
    :ID:       DDFAD85A-153D-460C-AC5E-323F09F5286F
    :END:
+* Mile stones
+** 0.1 - error handling and source locations
+
+Make error handling and tracking of source locations robust enough that Zomp
+could be tried by external users. Also fix all known bugs in the test suite.
+
+- all error messages must have correct source location
+- all error messages should be meaningful
+- all errors and warnings need to have an id and documentation
+- compiler can be used from outside project dir
+- installation step
+
+Next up:
+- [X] add column to source locations
+- [ ] add source locations to native ast type
+- [ ] automatically generate source location for expressions created in macros
+
+Minor tasks:
+- useful handling of ret at end of function
+  identify "terminating" basic blocks, do not require return at unreachable
+  basic blocks
+- find good error handling strategy?
+  get inspired by go and common lisp restarts, maybe with a hint of monads
+  - errors must to be ignored explicitly
+  - allow it to automate reaction to errors and cleanup
+
+** 0.2 - proper language
+
+- generics
+- modules
+- new macro system
+- finish definition of base language
+
+** development experience
+
+- faster compilation
+- seperate compilation + caching
+- emit debug info
+- optimization in vm
+- de-optimization
+- allow debugging right from within VM
+- html based IDE?
 * Use Cases                                                            :usecase:
 ** .obj Loader [0/2]
    :PROPERTIES:
