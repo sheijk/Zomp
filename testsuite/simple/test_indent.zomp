@@ -1,0 +1,21 @@
+///
+/// A more or less random collection of "unusual"/non-trivial things that can be
+/// done using indentation blocks.
+///
+
+requireLibs libcee
+
+func int main():
+  ast:print($:
+    foo bar baz
+  end, 10)
+
+  x := (:
+    20
+  end) + 10
+
+  println "x=" x //// print x=30
+
+  ret 0
+end
+
