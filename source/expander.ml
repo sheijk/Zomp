@@ -24,7 +24,7 @@ open Utilities
 let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
   let typeName = function
     | `Any description -> description
-    | #Lang.typ as t -> typeName t
+    | #Lang.typ as t -> typeNameExplicit t
   in
   sprintf "type error: %s, expected %s but found %s in expression %s"
     msg
