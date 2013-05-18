@@ -511,12 +511,16 @@ struct
           None
 end
 
+(** Also needs to be updated in zompvm_impl.cpp and prelude.zomp *)
 let astType = `Record {
   rname = "ast";
   fields = [
     "id", `Pointer `Char;
     "childCount", `Int32;
-    "childs", `Pointer (`Pointer (`TypeRef "ast"))
+    "childs", `Pointer (`Pointer (`TypeRef "ast"));
+    "file", `Pointer `Char;
+    "line", `Int32;
+    "column", `Int32;
   ] }
 let astPtrType = `Pointer astType
 

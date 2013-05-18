@@ -180,21 +180,40 @@ end
 /// Section: Abstract syntax tree representation
 ///-----------------------------------------------------------------------------
 
+/// Also needs to be updated in zompvm_impl.cpp and expander.ml
 type ast:
   cstring id
   int childCount
   ast** childs
+
+  char* file
+  int line
+  int column
 end
 type astp ast*
 
 std:base:func cstring cstrings:append(cstring l, cstring r)
 
+std:base:func void ast:init(ast* a):
+  store (fieldptr a id) ""
+  store (fieldptr a childCount) 0
+  store (fieldptr a childs) nullptr(ast*)
+  store (fieldptr a file) nullptr(char)
+  store (fieldptr a line) 0
+  store (fieldptr a column) 0
+end
+
+std:base:func void ast:setLocation(ast* a, char* file, int line, int column):
+  store (fieldptr a file) file
+  store (fieldptr a line) line
+  store (fieldptr a column) column
+end
+
 std:base:func ast* ast:fromString(cstring name):
   var ast* a (malloc ast)
 
+  ast:init(a)
   store (fieldptr a id) (cstrings:append name "")
-  store (fieldptr a childCount) 0
-  store (fieldptr a childs) (nullptr ast*)
 
   std:base:ret a
 end

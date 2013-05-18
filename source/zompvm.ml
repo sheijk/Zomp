@@ -8,12 +8,15 @@ include Machine
 (** Utilities to convert between Ast2.sexpr and Zomp native AST *)
 module NativeAst =
 struct
+  let totalNativeAstsCreated = ref 0
+  let totalOCamlAstsCreated = ref 0
 
   let isValidId name =
     foldString
       name (fun wasValid chr -> wasValid && Char.code chr < 128) true
 
   let rec extractSExprFromNativeAst astAddress =
+    incr totalOCamlAstsCreated;
     if zompAstIsNull astAddress then
       Ast2.idExpr "error, macro returned NULL"
     else
@@ -36,14 +39,20 @@ struct
       in
       Ast2.expr name childs
 
-  let rec buildNativeAst = function
-    | {Ast2.id = id; args = []} ->
-        zompSimpleAst id
-    | ast ->
+  let applyLocation nativeId ast =
+    zompSetAstLocation nativeId (Ast2.fileName ast) (Ast2.lineNumber ast) (Ast2.column ast);
+    nativeId
+
+  let rec buildNativeAst ast =
+    incr totalNativeAstsCreated;
+    match ast with
+      | {Ast2.id = id; args = []} ->
+        applyLocation (zompSimpleAst id) ast
+      | _ ->
         let childs = List.map buildNativeAst ast.Ast2.args in
         let nativeAst = zompSimpleAst ast.Ast2.id in
         List.iter (fun child -> zompAddChild ~parent:nativeAst ~child) childs;
-        nativeAst
+        applyLocation nativeAst ast
 end
 
 (* exception FailedToEvaluateLLVMCode of string * string *)

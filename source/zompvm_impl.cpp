@@ -178,6 +178,7 @@ namespace
   }
 
   static Function* simpleAst = NULL;
+  static Function* astSetLocation = NULL;
   static Function* addChild = NULL;
   static Function* macroAstId = NULL;
   static Function* macroAstChildCount = NULL;
@@ -198,9 +199,16 @@ namespace
     PointerType* astPtr = getPointerType(astFwd);
     llvmModule->addTypeName("astp", astPtr);
 
+    /// Also needs to be updated in expander.ml and prelude.zomp
     PointerType* astPtrPtr = getPointerType(astPtr);
     // childs
     astStructFields.push_back(astPtrPtr);
+    // file
+    astStructFields.push_back(getPointerType(Type::getInt8Ty(*context)));
+    // line
+    astStructFields.push_back(Type::getInt32Ty(*context));
+    // column
+    astStructFields.push_back(Type::getInt32Ty(*context));
     StructType* ast = StructType::get(*context, astStructFields, /*isPacked=*/false);
     llvmModule->addTypeName("ast", ast);
     cast<OpaqueType>(astFwd.get())->refineAbstractTypeTo(ast);
@@ -228,6 +236,30 @@ namespace
         GlobalValue::ExternalLinkage,
         "ast:fromString", llvmModule);
       simpleAst->setCallingConv(CallingConv::C);
+    }
+
+    { // ast:setLocation  decl
+      std::vector<const Type*> argTypes;
+      // ast
+      argTypes.push_back(astPtr);
+      // file
+      argTypes.push_back(cstringPtr);
+      // line
+      argTypes.push_back(Type::getInt32Ty(*context));
+      // column
+      argTypes.push_back(Type::getInt32Ty(*context));
+
+      FunctionType* funcType = FunctionType::get(
+        Type::getVoidTy(*context),
+        argTypes,
+        false);
+
+      astSetLocation = Function::Create(
+        funcType,
+        GlobalValue::ExternalLinkage,
+        "ast:setLocation",
+        llvmModule);
+      astSetLocation->setCallingConv(CallingConv::C);
     }
 
     { // addChild decl
@@ -973,6 +1005,14 @@ extern "C" {
     ZMP_ASSERT( simpleAstF, );
 
     return simpleAstF(name);
+  }
+
+  void zompSetAstLocation(void* ast, const char* file, int line, int column) {
+    static void (*setLocationF)(void*, const void*, int, int) =
+      (void (*)(void*, const void*, int, int)) executionEngine->getPointerToFunction(astSetLocation);
+    ZMP_ASSERT( setLocationF, );
+
+    setLocationF(ast, file, line, column);
   }
 
   void zompAddChild(void* parent, void* child) {

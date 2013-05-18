@@ -47,6 +47,7 @@ http://sheijk.dword.org/zomp
     int zompLoadLib (const char* name)
 
     void* zompSimpleAst (const char* name)
+    void zompSetAstLocation (void* ast, const char* file, int line, int column)
     void zompAddChild (void* parent, void* child)
     const char* zompAstId (void* ast)
     int zompAstChildCount (void* ast)
