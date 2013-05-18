@@ -4,56 +4,7 @@
 
 requireLibs opengl20 glfw glutils libcee math
 
-var int windowWidth 400
-var int windowHeight 300
-var bool initCalled false
-
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
-
-    printString "Initialized"
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
-  end
-end
-
-// avoid writing it over and over, part of utils lib
-macro mainloop body...:
-  ret $:
-    time := 0.0
-    lastTime := 0.0
-    frameDuration := 0.0
-    frameNum := 0
-    startTime := toFloat glfwGetTime()
-    running := true
-
-    zompSetRequestPause false
-
-    while running:
-      lastTime = time
-      time = toFloat glfwGetTime()
-      frameDuration = time - lastTime
-
-      #body
-
-      glfwSwapBuffers()
-      glfwPollEvents()
-      running = running && bool:not(zompRequestedPause()) && (bool:not isPressed(GLFW_KEY_ESC))
-      ++frameNum
-    end
-
-    endTime := toFloat glfwGetTime()
-  end
-end
+var AppInfo* app nullptr(AppInfo)
 
 template saveMatrix code:
   glPushMatrix()
@@ -206,10 +157,6 @@ func void drawTilesTest():
   end
 end
 
-template begin code:
-  #code
-end
-
 func void drawMetaballs2d(float* values, int width, int height):
   dx := 1.0 / toFloat (width - 1)
   dy := 1.0 / toFloat (height - 1)
@@ -293,7 +240,11 @@ func float float:srandom():
 end
 
 func int main():
-  init()
+  if isNull(app):
+    app = new AppInfo
+    app*.fsaaSamples = 4
+  end
+  init(app)
 
   angle := 0.0
 
@@ -329,7 +280,7 @@ func int main():
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
-    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    aspect := toDouble(app*.windowWidth) / toDouble(app*.windowHeight)
     glOrtho 0.0d 400.0d 300.0d 0.0d 0.9d 2.0d
     glColor4f 1. 1. 1. 1.
 
@@ -349,6 +300,7 @@ func int main():
     end
 
     drawTilesTest()
+
     // if (time - startTime > 5.0)
     //   running = false
     // end
