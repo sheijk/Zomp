@@ -779,11 +779,48 @@ macro mainloop body...:
 
       glfwSwapBuffers()
       glfwPollEvents()
-      running = running && bool:not(zompRequestedPause()) && (bool:not isPressed(GLFW_KEY_ESC))
+      running &&= !zompRequestedPause()
+      running &&= !isPressed(GLFW_KEY_ESC)
+      running &&= glfwGetWindowParam GLFW_OPENED == GL_TRUE
       ++frameNum
     end
 
     endTime := toFloat glfwGetTime()
+  end
+end
+
+struct AppInfo:
+  int windowWidth
+  int windowHeight
+  bool initCalled
+end
+
+func void AppInfo:init(AppInfo* info):
+  info*.windowWidth = 1280
+  info*.windowHeight = 720
+  info*.initCalled = false
+end
+
+func void init(AppInfo* info):
+  if !info*.initCalled:
+    info*.initCalled = true
+    glfwInit()
+
+    println "Initialized"
+  else:
+    println "Already initialized"
+  end
+
+  if (GL_TRUE == glfwGetWindowParam GLFW_ICONIFIED):
+    glfwRestoreWindow()
+    println "Restored window"
+  elseif (GL_FALSE == glfwGetWindowParam GLFW_OPENED):
+    glfwOpenWindow info*.windowWidth info*.windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+    glewInit()
+    times 2 glfwPollEvents()
+    println "Opened window"
+  else:
+    println "Window already opened"
   end
 end
 
