@@ -152,62 +152,6 @@ func void Color:init(Color* this, float r, float g, float b, float a):
 end
 
 //------------------------------------------------------------------------------
-// application
-
-var float sideLengthf 20.0
-
-var int windowWidth 1280
-var int windowHeight 720
-var bool initCalled false
-
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
-
-    printString "Initialized"
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
-  end
-end
-
-var float angle 0.0
-
-// avoid writing it over and over, part of utils lib
-macro mainloop body...:
-  ret $:
-    time := 0.0
-    lastTime := 0.0
-    frameDuration := 0.0
-    frameNum := 0
-    startTime := double:toFloat glfwGetTime()
-    running := true
-
-    while running:
-      lastTime = time
-      time = double:toFloat glfwGetTime()
-      frameDuration = time - lastTime
-      angle = time * 128.0
-
-      #body
-
-      glfwSwapBuffers()
-      glfwPollEvents()
-      running = bool:not isPressed(GLFW_KEY_ESC)
-      ++frameNum
-    end
-
-    endTime := double:toFloat glfwGetTime()
-  end
-end
-
-//------------------------------------------------------------------------------
 
 type Field3D:
   int sideLength
@@ -283,6 +227,8 @@ func void Field3D:show(Field3D* this):
     end
   end
 end
+
+var float sideLengthf 20.0
 
 struct Metaballs:
   int count
@@ -529,10 +475,14 @@ end
 
 //------------------------------------------------------------------------------
 
+var AppInfo* app nullptr(AppInfo)
+
 func void resizeWindow(int width, int height):
-  windowWidth = width
-  windowHeight = height
-  glfwSetWindowSize windowWidth windowHeight
+  if isNotNull(app):
+    app*.windowWidth = width
+    app*.windowHeight = height
+    glfwSetWindowSize app*.windowWidth app*.windowHeight
+  end
 end
 
 var int lastMouseX 0
@@ -584,9 +534,11 @@ func void onWindowResize(int newWidth, int newHeight):
   printInt newHeight
   println()
 
-  windowWidth = newWidth
-  windowHeight = newHeight
-  glViewport 0 0 windowWidth windowHeight
+  if isNotNull(app):
+    app*.windowWidth = newWidth
+    app*.windowHeight = newHeight
+    glViewport 0 0 app*.windowWidth app*.windowHeight
+  end
 
   resizeDirty = true
 end
@@ -827,50 +779,48 @@ func GLint makeFilterShader(int size):
   ret glowShader
 end
 
-/*
-func FilterEffect* makeGlowFilter(int offsetSpan):
-  offsetCount := 3
-  // offsetCount := 1
-  glowShader := makeFilterShader offsetCount
-
-  horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
-  vertPass := new FilterEffect offsetCount glowShader horPass
-
-  pixw := 1.0 / toFloat(windowWidth)
-  pixh := 1.0 / toFloat(windowHeight)
-
-  // vertPass.xoffsets[0] = 0.0
-  // vertPass.yoffsets[0] = 0.0
-  // vertPass.weights[0] = 1.0
-  // 
-  // horPass.xoffsets[0] = 0.0
-  // horPass.yoffsets[0] = 0.0
-  // horPass.weights[0] = 1.0
-
-  vertPass.xoffsets[0] = float:neg pixw
-  vertPass.yoffsets[0] = 0.0
-  vertPass.xoffsets[1] = 0.0
-  vertPass.yoffsets[1] = 0.0
-  vertPass.xoffsets[2] = pixw
-  vertPass.yoffsets[2] = 0.0
-
-  horPass.xoffsets[0] = 0.0
-  horPass.yoffsets[0] = float:neg pixh
-  horPass.xoffsets[1] = 0.0
-  horPass.yoffsets[1] = 0.0
-  horPass.xoffsets[2] = 0.0
-  horPass.yoffsets[2] = pixh
-
-  horPass.weights[0] = 0.25
-  horPass.weights[1] = 0.5
-  horPass.weights[2] = 0.25
-  vertPass.weights[0] = 0.25
-  vertPass.weights[1] = 0.5
-  vertPass.weights[2] = 0.25
-
-  ret vertPass
-end
-*/
+// func FilterEffect* makeGlowFilter(int offsetSpan):
+//   offsetCount := 3
+//   // offsetCount := 1
+//   glowShader := makeFilterShader offsetCount
+// 
+//   horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
+//   vertPass := new FilterEffect offsetCount glowShader horPass
+// 
+//   pixw := 1.0 / toFloat(windowWidth)
+//   pixh := 1.0 / toFloat(windowHeight)
+// 
+//   // vertPass.xoffsets[0] = 0.0
+//   // vertPass.yoffsets[0] = 0.0
+//   // vertPass.weights[0] = 1.0
+//   // 
+//   // horPass.xoffsets[0] = 0.0
+//   // horPass.yoffsets[0] = 0.0
+//   // horPass.weights[0] = 1.0
+// 
+//   vertPass.xoffsets[0] = float:neg pixw
+//   vertPass.yoffsets[0] = 0.0
+//   vertPass.xoffsets[1] = 0.0
+//   vertPass.yoffsets[1] = 0.0
+//   vertPass.xoffsets[2] = pixw
+//   vertPass.yoffsets[2] = 0.0
+// 
+//   horPass.xoffsets[0] = 0.0
+//   horPass.yoffsets[0] = float:neg pixh
+//   horPass.xoffsets[1] = 0.0
+//   horPass.yoffsets[1] = 0.0
+//   horPass.xoffsets[2] = 0.0
+//   horPass.yoffsets[2] = pixh
+// 
+//   horPass.weights[0] = 0.25
+//   horPass.weights[1] = 0.5
+//   horPass.weights[2] = 0.25
+//   vertPass.weights[0] = 0.25
+//   vertPass.weights[1] = 0.5
+//   vertPass.weights[2] = 0.25
+// 
+//   ret vertPass
+// end
 
 func FilterEffect* makeGlowFilter(int offsetSpan):
   offsetCount := 2 * offsetSpan + 1
@@ -879,8 +829,9 @@ func FilterEffect* makeGlowFilter(int offsetSpan):
   horPass := new FilterEffect offsetCount glowShader nullptr(FilterEffect)
   vertPass := new FilterEffect offsetCount glowShader horPass
 
-  pixw := 1.0 / toFloat(windowWidth)
-  pixh := 1.0 / toFloat(windowHeight)
+  assert isNotNull(app)
+  pixw := 1.0 / toFloat(app*.windowWidth)
+  pixh := 1.0 / toFloat(app*.windowHeight)
 
   for i 1 (offsetSpan+1):
     s := toFloat i
@@ -1094,8 +1045,13 @@ func void RendererInfo:print(RendererInfo* this):
   println()
 end
 
+var float angle 0.0
+
 func int main():
-  init()
+  if isNull(app):
+    app = new AppInfo
+  end
+  init(app)
 
   rendererInfo := new RendererInfo
   RendererInfo:print rendererInfo
@@ -1124,15 +1080,15 @@ func int main():
     end
 
     template createRenderTargets:
-      renderTargetsA = makeMipmapRenderTargets windowWidth windowHeight glowSteps
-      renderTargetsB = makeMipmapRenderTargets windowWidth windowHeight glowSteps
+      renderTargetsA = makeMipmapRenderTargets app*.windowWidth app*.windowHeight glowSteps
+      renderTargetsB = makeMipmapRenderTargets app*.windowWidth app*.windowHeight glowSteps
     end
 
     createRenderTargets
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
-    aspect := int:toDouble(windowWidth) /_d int:toDouble windowHeight
+    aspect := int:toDouble(app*.windowWidth) /_d int:toDouble app*.windowHeight
     gluPerspective 90.0d aspect 1.0d 200.0d
 
     glEnable GL_BLEND
@@ -1156,11 +1112,14 @@ func int main():
       else:
         mouseXDelta = 0
       end
-      cam.longitude = cam.longitude + toFloat(mouseXDelta)
-      cam.latitude = cam.latitude + toFloat(mouseYDelta)
+      if (GL_TRUE == glfwGetWindowParam GLFW_ACTIVE):
+        cam.longitude = cam.longitude + toFloat(mouseXDelta)
+        cam.latitude = cam.latitude + toFloat(mouseYDelta)
+      end
       SpaceballCamera:restrictParams cam
       mouseXDelta = 0
       mouseYDelta = 0
+      angle = time * 128.0
 
       if (time - startTime > 1.0):
         Metaballs:update mballs frameDuration
@@ -1240,7 +1199,7 @@ func int main():
       end
 
       glUseProgram 0
-      glViewport 0 0 windowWidth windowHeight
+      glViewport 0 0 app*.windowWidth app*.windowHeight
       glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       saveAttribs:
         glEnable GL_BLEND
@@ -1320,8 +1279,6 @@ func int main():
     end
 
     drawPausedOverlay()
-    glfwSwapBuffers()
-    glfwPollEvents()
 
     println()
     printFloat (endTime - startTime)
