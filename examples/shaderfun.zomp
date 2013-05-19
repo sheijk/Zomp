@@ -91,32 +91,12 @@ end
 //------------------------------------------------------------------------------
 /// utils ///
 
-var int windowWidth 1280
-var int windowHeight 720
-var bool initCalled false
-
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
-
-    printString "Initialized"
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
-  end
-end
+var AppInfo* app nullptr(AppInfo)
 
 func void reopenWindow():
   glfwCloseWindow()
   glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
-  glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+  glfwOpenWindow app*.windowWidth app*.windowHeight 8 8 8 8 16 0 GLFW_WINDOW
   glfwSetWindowPos 100 1400
 end
 
@@ -174,7 +154,11 @@ end
 // Section main
 
 func int main():
-  init()
+  if isNull(app):
+    app = new AppInfo
+    app*.fsaaSamples = 4
+  end
+  init(app)
 
   angle := 0.0
 
@@ -240,7 +224,7 @@ func int main():
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
-    aspect := int:toDouble windowWidth /_d int:toDouble windowHeight
+    aspect := int:toDouble app*.windowWidth /_d int:toDouble app*.windowHeight
     gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
     glMatrixMode GL_MODELVIEW
