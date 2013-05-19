@@ -794,6 +794,9 @@ struct AppInfo:
   int windowHeight
   int fsaaSamples
 
+  char* windowTitle
+  void()* customInit
+
   bool initCalled
 end
 
@@ -802,13 +805,22 @@ func void AppInfo:init(AppInfo* info):
   info*.windowHeight = 720
   info*.fsaaSamples = 0
 
+  info*.windowTitle = nullptr char
+  info*.customInit = nullptr void()
+
   info*.initCalled = false
 end
 
 func void init(AppInfo* info):
-  if !info*.initCalled:
+  firstInitCall := !info*.initCalled
+  info*.initCalled = false
+
+  if firstInitCall:
     info*.initCalled = true
-    glfwInit()
+    if (glfwInit() != GL_TRUE):
+      println "glfw initialization failed, exiting"
+      exit 1
+    end
 
     println "Initialized"
   else:
@@ -821,6 +833,9 @@ func void init(AppInfo* info):
   elseif (GL_FALSE == glfwGetWindowParam GLFW_OPENED):
     if (info*.fsaaSamples > 0):
       glfwOpenWindowHint GLFW_FSAA_SAMPLES info*.fsaaSamples
+      if isNotNull(info*.windowTitle):
+        glfwSetWindowTitle info*.windowTitle
+      end
     elseif (info*.fsaaSamples < 0):
       println "warning: " info*.fsaaSamples " is not a valid number of FSAA sample"
     end
@@ -830,6 +845,10 @@ func void init(AppInfo* info):
     println "Opened window"
   else:
     println "Window already opened"
+  end
+
+  if (firstInitCall && isNotNull info*.customInit):
+    info*.customInit()
   end
 end
 

@@ -49,6 +49,7 @@ examples/metaball2d.zomp: libs/libcee.zomp libs/opengl20.zomp libs/opengl20print
 examples/opengl.ll: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
 examples/shaderfun.ll: libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp libs/glut.zomp libs/quicktext.zomp libs/libcee.zomp
 examples/using_assimp.zomp: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
+examples/tweakbar.ll: libs/libcee.zomp libs/glutils.zomp libs/opengl20.zomp libs/glfw.zomp libs/anttweakbar.zomp
 
 ################################################################################
 # Rules
