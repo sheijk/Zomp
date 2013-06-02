@@ -4,6 +4,7 @@
 #+INFOJS_OPT: view:content toc:nil
 
 * To be sorted
+** TODO create ast conversion benchmark to estimate cost of converting between ocaml and native
 ** TODO examples/metaball2d.exe does not depend on libs/opengl20.zomp     :bug:
 ** TODO [#A] always require parenthesis for quote/antiquotes         :syntax:
    - would make some cases a lot clearer ('#foo(10)' as '#(foo)(10)' vs. '#(foo(10))')
