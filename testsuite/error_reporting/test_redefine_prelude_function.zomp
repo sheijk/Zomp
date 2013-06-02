@@ -1,0 +1,11 @@
+/// 
+/// Checking whether redefining a function from the prelude causes an error.
+/// 
+
+func void ast:print(ast* a, int indent): //// error ast:print redef
+end
+
+func int main():
+  ret 0
+end
+

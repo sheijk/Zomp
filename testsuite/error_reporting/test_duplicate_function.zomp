@@ -1,0 +1,20 @@
+///
+/// Testing whether duplication function definition causes compiler error.
+///
+
+std:base:func void hello():
+  printf "first definition of hello()\n"
+  std:base:ret
+end
+
+std:base:func void hello(): //// error defin hello
+  printf "second definition of hello()\n"
+  std:base:ret
+end
+
+func int main():
+  hello()
+
+  ret 0
+end
+

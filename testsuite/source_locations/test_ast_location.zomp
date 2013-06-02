@@ -1,0 +1,38 @@
+///
+/// Testing whether AST carries proper location
+///
+
+requireLibs libcee
+
+func void printAstLocation(ast* ast):
+  println ast.id "@" ast.file ":" ast.line ":" ast.column
+end
+
+macro printLoc ast:
+  printAstLocation(ast)
+  ret ${}
+end
+
+printLoc toplevelAst //// compiler-output toplevelAst@ test_ast_location.zomp:16
+
+
+
+
+
+
+
+
+
+
+
+
+
+// This must be line 30
+func int main():
+  println "Printing location of ast"
+  printAstLocation ${simpleIdAst} //// print simpleIdAst@ test_ast_location.zomp:33
+  printLoc foo(bar) //// compiler-output opcall@ test_ast_location.zomp:34
+  
+  ret 0
+end
+

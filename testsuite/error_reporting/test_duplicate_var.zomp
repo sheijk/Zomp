@@ -1,0 +1,16 @@
+///
+/// Checking whether defining the same global variable multiple times causes an
+/// error.
+///
+
+var int foobar 10
+
+var int foobar 20 //// error defin foobar
+
+func int main():
+  printf("foobar = %d\n", foobar)
+
+  ret 0
+end
+
+
