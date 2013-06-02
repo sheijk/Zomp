@@ -813,7 +813,6 @@ end
 
 func void init(AppInfo* info):
   firstInitCall := !info*.initCalled
-  info*.initCalled = false
 
   if firstInitCall:
     info*.initCalled = true
@@ -833,13 +832,16 @@ func void init(AppInfo* info):
   elseif (GL_FALSE == glfwGetWindowParam GLFW_OPENED):
     if (info*.fsaaSamples > 0):
       glfwOpenWindowHint GLFW_FSAA_SAMPLES info*.fsaaSamples
-      if isNotNull(info*.windowTitle):
-        glfwSetWindowTitle info*.windowTitle
-      end
     elseif (info*.fsaaSamples < 0):
       println "warning: " info*.fsaaSamples " is not a valid number of FSAA sample"
     end
+
+    if isNotNull(info*.windowTitle):
+      glfwSetWindowTitle info*.windowTitle
+    end
+
     glfwOpenWindow info*.windowWidth info*.windowHeight 8 8 8 8 16 0 GLFW_WINDOW
+
     glewInit()
     times 2 glfwPollEvents()
     println "Opened window"
