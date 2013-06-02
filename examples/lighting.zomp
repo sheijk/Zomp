@@ -31,34 +31,13 @@ func cstring unquote(cstring quoted):
   ret quoted
 end
 
-var int windowWidth 400
-var int windowHeight 300
-var bool initCalled false
+var AppInfo* app nullptr(AppInfo)
 
-func void init():
-  if bool:not(initCalled):
-    if (glfwInit() != GL_TRUE):
-      println "glfw initialization failed, exiting"
-      exit 1
-    end
-    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glfwSetWindowTitle "super duper lighting"
-
-    glewInit()
-    times 2 glfwPollEvents()
-
-    if (TwInit(TW_OPENGL, nullptr void) == 0):
-      println "AntTweakBar initialization failed, exiting"
-      glfwTerminate()
-      exit 2
-    end
-
-    println "Initialized"
-
-    initCalled = true
-  else:
-    println "Already initialized"
+func void myInit():
+  if (TwInit(TW_OPENGL, nullptr void) == 0):
+    println "AntTweakBar initialization failed, exiting"
+    glfwTerminate()
+    exit 2
   end
 end
 
@@ -75,37 +54,6 @@ var float sphereSize 10.0
 
 var float farPlaneDistance 50.0
 var float nearPlaneDistance 1.0
-
-// avoid writing it over and over, should be part of utils lib
-macro mainloop body...:
-  ret $:
-    time := 0.0
-    lastTime := 0.0
-    frameDuration := 0.0
-    frameNum := 0
-    startTime := toFloat glfwGetTime()
-    running := true
-
-    while running:
-      lastTime = time
-      time = toFloat glfwGetTime()
-      frameDuration = time - lastTime
-
-      #body
-
-      glfwSwapBuffers()
-      glfwPollEvents()
-      running = running && bool:not isPressed(GLFW_KEY_ESC)
-      if isPressed(GLFW_KEY_I):
-        glfwIconifyWindow()
-        running = false
-      end
-      ++frameNum
-    end
-
-    endTime := toFloat glfwGetTime()
-  end
-end
 
 ///-----------------------------------------------------------------------------
 /// Section: input handling
@@ -283,7 +231,7 @@ end
 
 func void onWindowResize(int newWidth, int newHeight):
   autoSetupViewport()
-  glfwGetWindowSize &windowWidth &windowHeight
+  glfwGetWindowSize &app*.windowWidth &app*.windowHeight
 
   TwWindowSize(newWidth, newHeight)
   ret
@@ -565,8 +513,20 @@ end
 //   ret shader
 // end
 
+
 func int main():
-  init()
+  trace "initialization"
+
+  if isNull(app):
+    app = new AppInfo
+    app*.fsaaSamples = 4
+    app*.windowWidth = 400
+    app*.windowHeight = 300
+    app*.windowTitle = "super duper lighting"
+    app*.customInit = &myInit
+  end
+
+  init(app)
 
   // glfwRestoreWindow()
   // array:setAll lightPositions (structlit v3f x 0. y 12. z 0.)
@@ -604,7 +564,7 @@ func int main():
   loadOptions := aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals | aiProcess_PreTransformVertices
 
   scene := aiImportFile sceneFilename loadOptions
-  abortIf (scene == nullptr aiScene) "Error while loading file: ":
+  abortIf isNull(scene) "Error while loading file: ":
     println aiGetErrorString()
   end
 
@@ -731,8 +691,13 @@ func int main():
   mainloop:
     /// updating
     autoSetupViewport()
-    glfwGetWindowSize &windowWidth &windowHeight
+    glfwGetWindowSize &app*.windowWidth &app*.windowHeight
     angle = angle + 128.0 * frameDuration
+
+    if isPressed(GLFW_KEY_I):
+      glfwIconifyWindow()
+      running = false
+    end
 
     if (abs mouseXDelta > abs mouseYDelta):
       mouseYDelta = 0
@@ -803,7 +768,7 @@ func int main():
 
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
-    aspect := toDouble(windowWidth) / toDouble(windowHeight)
+    aspect := toDouble(app*.windowWidth) / toDouble(app*.windowHeight)
     gluPerspective( 90.0d, aspect, 1.0d, toDouble(farPlaneDistance) )
 
     glMatrixMode GL_MODELVIEW
