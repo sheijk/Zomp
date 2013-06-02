@@ -11,6 +11,13 @@ struct
   let totalNativeAstsCreated = ref 0
   let totalOCamlAstsCreated = ref 0
 
+  let () =
+    at_exit (fun () ->
+      printf "Total number of Ast conversions %d (%d native to ocaml, %d ocaml to native)\n"
+        (!totalNativeAstsCreated + !totalOCamlAstsCreated)
+        (!totalOCamlAstsCreated)
+        (!totalNativeAstsCreated))
+
   let isValidId name =
     foldString
       name (fun wasValid chr -> wasValid && Char.code chr < 128) true
@@ -37,7 +44,16 @@ struct
         in
         getChilds 0
       in
-      Ast2.expr name childs
+      let location = Basics.location
+        (zompAstFile astAddress)
+        (zompAstLine astAddress)
+        (Some (zompAstColumn astAddress))
+      in
+      let exprNoLoc = Ast2.expr name childs in
+      if Basics.locationValid location then
+          Ast2.withLoc exprNoLoc location
+      else
+          exprNoLoc
 
   let applyLocation nativeId ast =
     zompSetAstLocation nativeId (Ast2.fileName ast) (Ast2.lineNumber ast) (Ast2.column ast);

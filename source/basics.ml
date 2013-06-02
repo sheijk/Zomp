@@ -29,6 +29,13 @@ let locationEqual lhs rhs =
   (lhs.line = rhs.line) &&
     ((String.compare lhs.fileName rhs.fileName) = 0)
 
+(** Catch some common kinds of invalid locations. *)
+let locationValid = function
+  | { fileName = ""; line = 0; column = (Some 0 | None) } ->
+    false
+  | _ ->
+    true
+
 module DiagnosticKind =
 struct
   type t =

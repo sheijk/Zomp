@@ -192,6 +192,14 @@ type ast:
 end
 type astp ast*
 
+var int ast:totalCreatedAsts 0
+
+std:base:func void ast:printStatistics():
+  printString "ast:totalCreatedAsts = "
+  printInt ast:totalCreatedAsts
+  printNewline()
+end
+
 std:base:func cstring cstrings:append(cstring l, cstring r)
 
 std:base:func void ast:init(ast* a):
@@ -209,10 +217,30 @@ std:base:func void ast:setLocation(ast* a, char* file, int line, int column):
   store (fieldptr a column) column
 end
 
+std:base:func char* ast:file(ast* a):
+  // TODO: fix
+  // var bool isnull u32:equal(cast int a, 0)
+  // branch isnull returnDummy returnValue
+  // label returnValue
+  // std:base:ret load(fieldptr a file)
+  // std:base:ret "x"
+  // label returnDummy
+  std:base:ret ""
+end
+
+std:base:func int ast:line(ast* a):
+  std:base:ret load(fieldptr a line)
+end
+
+std:base:func int ast:column(ast* a):
+  std:base:ret load(fieldptr a column)
+end
+
 std:base:func ast* ast:fromString(cstring name):
   var ast* a (malloc ast)
 
   ast:init(a)
+  assign ast:totalCreatedAsts (u32:add ast:totalCreatedAsts 1)
   store (fieldptr a id) (cstrings:append name "")
 
   std:base:ret a

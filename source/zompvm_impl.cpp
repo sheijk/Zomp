@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <map>
 
 #include <curl/curl.h>
 
@@ -177,152 +178,98 @@ namespace
     static bool optimizeFunctions = false;
   }
 
+  static Function* makeLLVMFunction(
+    const Type* returnType,
+    const char* name,
+    const Type* argType0 = 0,
+    const Type* argType1 = 0,
+    const Type* argType2 = 0,
+    const Type* argType3 = 0)
+  {
+    std::vector<const Type*> argTypes;
+    if(argType0) {
+      argTypes.push_back(argType0);
+    }
+    if(argType1) {
+      argTypes.push_back(argType1);
+    }
+    if(argType2) {
+      argTypes.push_back(argType2);
+    }
+    if(argType3) {
+      argTypes.push_back(argType3);
+    }
+
+    FunctionType* funcType = FunctionType::get(returnType, argTypes, false);
+
+    Function* func = Function::Create(
+      funcType, GlobalValue::ExternalLinkage, name, llvmModule);
+    func->setCallingConv(CallingConv::C);
+
+    return func;
+  }
+
   static Function* simpleAst = NULL;
-  static Function* astSetLocation = NULL;
   static Function* addChild = NULL;
   static Function* macroAstId = NULL;
   static Function* macroAstChildCount = NULL;
   static Function* macroAstChild = NULL;
+  static Function* astSetLocation = NULL;
+  static Function* astFile = NULL;
+  static Function* astLine = NULL;
+  static Function* astColumn = NULL;
 
   static void loadLLVMFunctions()
   {
-    const PointerType* cstringPtr = Type::getInt8PtrTy(*context);
-    llvmModule->addTypeName("cstring", cstringPtr);
+    const PointerType* cstringType = Type::getInt8PtrTy(*context);
+    llvmModule->addTypeName("cstring", cstringType);
+    const Type* voidType = Type::getVoidTy(*context);
+    const Type* i32Type = Type::getInt32Ty(*context);
 
-    // see definition in prelude.zomp
-    std::vector<const Type*> astStructFields;
-    // id
-    astStructFields.push_back(cstringPtr);
-    // child count
-    astStructFields.push_back(Type::getInt32Ty(*context));
-    PATypeHolder astFwd = OpaqueType::get(*context);
-    PointerType* astPtr = getPointerType(astFwd);
-    llvmModule->addTypeName("astp", astPtr);
+    PointerType* astPtrType = 0;
 
-    /// Also needs to be updated in expander.ml and prelude.zomp
-    PointerType* astPtrPtr = getPointerType(astPtr);
-    // childs
-    astStructFields.push_back(astPtrPtr);
-    // file
-    astStructFields.push_back(getPointerType(Type::getInt8Ty(*context)));
-    // line
-    astStructFields.push_back(Type::getInt32Ty(*context));
-    // column
-    astStructFields.push_back(Type::getInt32Ty(*context));
-    StructType* ast = StructType::get(*context, astStructFields, /*isPacked=*/false);
-    llvmModule->addTypeName("ast", ast);
-    cast<OpaqueType>(astFwd.get())->refineAbstractTypeTo(ast);
-    ast = cast<StructType>(astFwd.get());
-
-    std::vector<const Type*>FuncTy_80_args;
-    FuncTy_80_args.push_back(astPtr);
-    FuncTy_80_args.push_back(astPtr);
-    // ParamAttrsList *FuncTy_80_PAL = 0;
-    FunctionType* FuncTy_80 = FunctionType::get(
-      Type::getVoidTy(*context),
-      FuncTy_80_args,
-      false);
-      // FuncTy_80_PAL);
-
-    { // simpleAst decl
-      std::vector<const Type*>FuncTy_73_args;
-      FuncTy_73_args.push_back(cstringPtr);
-      // ParamAttrsList *FuncTy_73_PAL = 0;
-      FunctionType* FuncTy_73 = FunctionType::get(astPtr, FuncTy_73_args, false);
-        // FuncTy_73_PAL);
-
-      simpleAst = Function::Create(
-        FuncTy_73,
-        GlobalValue::ExternalLinkage,
-        "ast:fromString", llvmModule);
-      simpleAst->setCallingConv(CallingConv::C);
-    }
-
-    { // ast:setLocation  decl
-      std::vector<const Type*> argTypes;
-      // ast
-      argTypes.push_back(astPtr);
+    /// Make ast type. Also needs to be updated in expander.ml and prelude.zomp
+    {
+      PATypeHolder astFwd = OpaqueType::get(*context);
+      astPtrType = getPointerType(astFwd);
+      llvmModule->addTypeName("astp", astPtrType);
+    
+      // see definition in prelude.zomp
+      std::vector<const Type*> astStructFields;
+      // id
+      astStructFields.push_back(cstringType);
+      // child count
+      astStructFields.push_back(Type::getInt32Ty(*context));
+      PointerType* astPtrPtr = getPointerType(astPtrType);
+      // childs
+      astStructFields.push_back(astPtrPtr);
       // file
-      argTypes.push_back(cstringPtr);
+      astStructFields.push_back(getPointerType(Type::getInt8Ty(*context)));
       // line
-      argTypes.push_back(Type::getInt32Ty(*context));
+      astStructFields.push_back(Type::getInt32Ty(*context));
       // column
-      argTypes.push_back(Type::getInt32Ty(*context));
+      astStructFields.push_back(Type::getInt32Ty(*context));
 
-      FunctionType* funcType = FunctionType::get(
-        Type::getVoidTy(*context),
-        argTypes,
-        false);
-
-      astSetLocation = Function::Create(
-        funcType,
-        GlobalValue::ExternalLinkage,
-        "ast:setLocation",
-        llvmModule);
-      astSetLocation->setCallingConv(CallingConv::C);
+      StructType* astType = StructType::get(*context, astStructFields, /*isPacked=*/false);
+      llvmModule->addTypeName("ast", astType);
+      cast<OpaqueType>(astFwd.get())->refineAbstractTypeTo(astType);
+      astType = cast<StructType>(astFwd.get());
     }
 
-    { // addChild decl
-      addChild = Function::Create(
-        FuncTy_80, GlobalValue::ExternalLinkage, "ast:addChild", llvmModule);
-      addChild->setCallingConv(CallingConv::C);
-    }
+    simpleAst = makeLLVMFunction(astPtrType, "ast:fromString", cstringType);
+    addChild = makeLLVMFunction(voidType, "ast:addChild", astPtrType, astPtrType);
+    macroAstId = makeLLVMFunction(cstringType, "macroAstId", astPtrType);
+    macroAstChildCount = makeLLVMFunction(i32Type, "macroAstChildCount", astPtrType);
+    macroAstChild = makeLLVMFunction(astPtrType, "macroAstChild", astPtrType, i32Type);
 
-    { // macroAstId decl
-      std::vector<const Type*>FuncTy_61_args;
-      // FuncTy_61_args.push_back(IntegerType::get(32));
-      FuncTy_61_args.push_back(astPtr);
-      // ParamAttrsList *FuncTy_61_PAL = 0;
-      FunctionType* FuncTy_61 = FunctionType::get(
-        /*Result=*/cstringPtr,
-        /*Params=*/FuncTy_61_args,
-        /*isVarArg=*/false);
-        // /*ParamAttrs=*/FuncTy_61_PAL);
-      macroAstId = Function::Create(
-        FuncTy_61,
-        GlobalValue::ExternalLinkage,
-        "macroAstId", llvmModule);
-      macroAstId->setCallingConv(CallingConv::C);
-    }
+    astSetLocation = makeLLVMFunction(
+      voidType,
+      "ast:setLocation",
+      astPtrType, cstringType, i32Type, i32Type);
 
-    { // macroAstChildCount decl
-      std::vector<const Type*>macroAstChildCountArgs;
-      // macroAstChildCountArgs.push_back(IntegerType::get(32));
-      macroAstChildCountArgs.push_back(astPtr);
-      // ParamAttrsList *FuncTy_59_PAL = 0;
-      FunctionType* FuncTy_59 = FunctionType::get(
-        // /*Result=*/IntegerType::get(32),
-        /*Result=*/Type::getInt32Ty(*context),
-        /*Params=*/macroAstChildCountArgs,
-        /*isVarArg=*/false);
-        // /*ParamAttrs=*/FuncTy_59_PAL);
-
-      macroAstChildCount = Function::Create(
-        FuncTy_59,
-        GlobalValue::ExternalLinkage,
-        "macroAstChildCount", llvmModule);
-      macroAstChildCount->setCallingConv(CallingConv::C);
-    }
-
-    { // macroAstChild decl
-      std::vector<const Type*>FuncTy_105_args;
-      // FuncTy_105_args.push_back(IntegerType::get(32));
-      FuncTy_105_args.push_back(astPtr);
-      FuncTy_105_args.push_back(Type::getInt32Ty(*context));
-      // ParamAttrsList *FuncTy_105_PAL = 0;
-      FunctionType* FuncTy_105 = FunctionType::get(
-        // /*Result=*/IntegerType::get(32),
-        /*Result=*/astPtr,
-        /*Params=*/FuncTy_105_args,
-        /*isVarArg=*/false);
-        // /*ParamAttrs=*/FuncTy_105_PAL);
-
-      macroAstChild = Function::Create(
-        FuncTy_105,
-        GlobalValue::ExternalLinkage,
-        "macroAstChild", llvmModule);
-      macroAstChild->setCallingConv(CallingConv::C);
-    }
+    astFile = makeLLVMFunction(cstringType, "ast:file", astPtrType);
+    astLine = makeLLVMFunction(i32Type, "ast:line", astPtrType);
+    astColumn = makeLLVMFunction(i32Type, "ast:column", astPtrType);
   }
 
   static void assureModuleExists() {
@@ -1007,14 +954,6 @@ extern "C" {
     return simpleAstF(name);
   }
 
-  void zompSetAstLocation(void* ast, const char* file, int line, int column) {
-    static void (*setLocationF)(void*, const void*, int, int) =
-      (void (*)(void*, const void*, int, int)) executionEngine->getPointerToFunction(astSetLocation);
-    ZMP_ASSERT( setLocationF, );
-
-    setLocationF(ast, file, line, column);
-  }
-
   void zompAddChild(void* parent, void* child) {
     static void (*addChildF)(void*, void*) =
       (void (*)(void*,void*)) executionEngine->getPointerToFunction(addChild);
@@ -1045,6 +984,49 @@ extern "C" {
     ZMP_ASSERT( macroAstChildF != NULL ,);
 
     return macroAstChildF(ast, num);
+  }
+
+  void zompSetAstLocation(void* ast, const char* file, int line, int column) {
+    static void (*setLocationF)(void*, const void*, int, int) =
+      (void (*)(void*, const void*, int, int)) executionEngine->getPointerToFunction(astSetLocation);
+    ZMP_ASSERT( setLocationF, );
+
+    setLocationF(ast, file, line, column);
+  }
+
+  const char* zompAstFile(void* ast) {
+    return "";
+    // TODO: use int to identify file, use file table to store strings
+    // typedef const char* (*AstFileFunc)(void* ast);
+    // static AstFileFunc astFileF = (AstFileFunc) executionEngine->getPointerToFunction(astFile);
+    // ZMP_ASSERT( astFileF, );
+    //
+    // if(ast)
+    //   return astFileF(ast);
+    // else
+    //   return "";
+  }
+
+  int zompAstLine(void* ast) {
+    typedef int (*AstLineFunc)(void* ast);
+    static AstLineFunc astLineF = (AstLineFunc) executionEngine->getPointerToFunction(astLine);
+    ZMP_ASSERT( astLineF, );
+
+    if(ast)
+      return astLineF(ast);
+    else
+      return -1;
+  }
+
+  int zompAstColumn(void* ast) {
+    typedef int (*AstColumnFunc)(void* ast);
+    static AstColumnFunc astColumnF = (AstColumnFunc) executionEngine->getPointerToFunction(astColumn);
+    ZMP_ASSERT( astColumnF, );
+
+    if(ast)
+      return astColumnF(ast);
+    else
+      return 0;
   }
 
   bool zompAstIsNull(void* ast) {
