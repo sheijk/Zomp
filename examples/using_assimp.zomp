@@ -78,23 +78,7 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
-
-    printString "Initialized"
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
-  end
-end
+var AppInfo* app nullptr(AppInfo)
 
 var bool firstRun true
 
@@ -136,7 +120,13 @@ macro measureAndReport actionDescr code:
 end
 
 func int main():
-  init()
+  if isNull(app):
+    app = new AppInfo
+    app*.windowWidth = 400
+    app*.windowHeight = 300
+    app*.fsaaSamples = 4
+  end
+  init(app)
 
   angle := 0.0
 
