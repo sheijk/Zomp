@@ -793,6 +793,7 @@ struct AppInfo:
   int windowWidth
   int windowHeight
   int fsaaSamples
+  bool vsync
 
   char* windowTitle
   void()* customInit
@@ -804,6 +805,7 @@ func void AppInfo:init(AppInfo* info):
   info*.windowWidth = 1280
   info*.windowHeight = 720
   info*.fsaaSamples = 0
+  info*.vsync = false
 
   info*.windowTitle = nullptr char
   info*.customInit = nullptr void()
@@ -838,6 +840,10 @@ func void init(AppInfo* info):
 
     if isNotNull(info*.windowTitle):
       glfwSetWindowTitle info*.windowTitle
+    end
+
+    if info*.vsync:
+      glfwSwapInterval 1
     end
 
     glfwOpenWindow info*.windowWidth info*.windowHeight 8 8 8 8 16 0 GLFW_WINDOW

@@ -2,7 +2,7 @@
 /// Experiments with pipeline export from XSI
 ///
 
-static:setRequireLibDebug true
+// static:setRequireLibDebug true
 
 requireLibs opengl20 glfw glutils mathvis assimp libcee anttweakbar array unittest quicktext stdio utils persistence
 
@@ -798,32 +798,13 @@ end
 /// Section: initialization
 ///-----------------------------------------------------------------------------
 
-var int windowWidth 400
-var int windowHeight 300
-var bool initCalled false
+var AppInfo* app nullptr(AppInfo)
 
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindowHint GLFW_FSAA_SAMPLES 2
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glfwSwapInterval 1
-    glewInit()
-    times 2 glfwPollEvents()
-
-    if (TwInit(TW_OPENGL, nullptr void) == 0):
-      println "AntTweakBar initialization failed, exiting"
-      glfwTerminate()
-      exit 2
-    end
-
-    printString "Initialized"
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
+func void myInit():
+  if (TwInit(TW_OPENGL, nullptr void) == 0):
+    println "AntTweakBar initialization failed, exiting"
+    glfwTerminate()
+    exit 2
   end
 end
 
@@ -912,12 +893,12 @@ func void onWindowResize(int newWidth, int newHeight):
   twMoveBar "Settings" 0 20 200 guiBottom
   twMoveBar "Shaders" (newWidth-300) 20 (newWidth-2) guiBottom
 
-  windowWidth = newWidth
-  windowHeight = newHeight
-  glfwSetWindowSize windowWidth windowHeight
-  TwWindowSize windowWidth windowHeight
+  app*.windowWidth = newWidth
+  app*.windowHeight = newHeight
+  glfwSetWindowSize app*.windowWidth app*.windowHeight
+  TwWindowSize app*.windowWidth app*.windowHeight
 
-  println "new window size is " windowWidth "x" windowHeight
+  println "new window size is " app*.windowWidth "x" app*.windowHeight
   
   ret
 end
@@ -3079,8 +3060,8 @@ func void timelineOnMouseMove(int x, int y):
     return
   end
 
-  csMouseX := toFloat x / toFloat windowWidth
-  csMouseY := toFloat (windowHeight - y) / toFloat windowHeight
+  csMouseX := toFloat x / toFloat app*.windowWidth
+  csMouseY := toFloat (app*.windowHeight - y) / toFloat app*.windowHeight
   if insideRect(csMouseX, csMouseY, &timeline.screenPos):
     relativePos &csMouseX &csMouseY &timeline.screenPos
     if (timelineSelectedItem == 0):
@@ -3098,8 +3079,8 @@ end
 var float doubleClickTime 0.3
 
 func void onTimelineButton(KeyEvent* keyEvent):
-  csMouseX := toFloat keyEvent.mouseX / toFloat windowWidth
-  csMouseY := toFloat (windowHeight - keyEvent.mouseY) / toFloat windowHeight
+  csMouseX := toFloat keyEvent.mouseX / toFloat app*.windowWidth
+  csMouseY := toFloat (app*.windowHeight - keyEvent.mouseY) / toFloat app*.windowHeight
 
   if (keyEvent.action == GLFW_PRESS):
     sinceLastClick := toFloat glfwGetTime() - timelineLastButtonClickTime
@@ -3231,7 +3212,15 @@ macro lfunc retType nameAndArgs body:
 end
 
 func int main():
-  init()
+  if isNull(app):
+    app = new AppInfo
+    app*.windowWidth = 400
+    app*.windowHeight = 300
+    app*.fsaaSamples = 2
+    app*.vsync = true
+    app*.customInit = &myInit
+  end
+  init(app)
 
   println "triggering event startup..."
   triggerEvent startup
@@ -3340,9 +3329,9 @@ func int main():
 
   mainBar := TwNewBar "Settings"
   TwDefine " Settings refresh=0.01 color='0 0 0' alpha=102 "
-  twMoveBar "Settings" 0 20 200 (windowHeight-150)
+  twMoveBar "Settings" 0 20 200 (app*.windowHeight-150)
   shaderBar := TwNewBar "Shaders"
-  twMoveBar "Shaders" (windowWidth-300) 20 (windowWidth-2) (windowHeight-150)
+  twMoveBar "Shaders" (app*.windowWidth-300) 20 (app*.windowWidth-2) (app*.windowHeight-150)
   TwDefine " Shaders color='0 0 0' alpha=102 "
   onReturn TwDeleteAllBars()
 
@@ -3540,7 +3529,7 @@ func int main():
     
       glMatrixMode GL_PROJECTION
       glLoadIdentity()
-      aspect := toDouble(windowWidth) / toDouble(windowHeight)
+      aspect := toDouble(app*.windowWidth) / toDouble(app*.windowHeight)
       camDistance := 0.8
       farPlaneDist := camDistance * meshSize * 2.0 +
         float:max(sqrtf (20.*20.*2.), 0.5 * meshSize + v3f:length mv3f(cameraOffsetX, cameraOffsetY, cameraOffsetZ) * 10.0)
