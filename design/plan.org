@@ -1778,6 +1778,7 @@ could be tried by external users. Also fix all known bugs in the test suite.
 - all error messages should be meaningful
 - all errors and warnings need to have an id and documentation
 - compiler can be used from outside project dir
+- don't prefix all .ll files with code from prelude
 - installation step
 
 Next up:
@@ -1811,6 +1812,10 @@ Minor tasks:
 - allow debugging right from within VM
 - html based IDE?
 * Use Cases                                                            :usecase:
+** Examples
+*** Flocking shooter
+einfaches Asteroid-like game mit _VIELEN_ kleinen drohnen mit flocking verhalten
+evtl. in 3d mit oculus rift?
 ** .obj Loader [0/2]
    :PROPERTIES:
    :ID:       A80446DC-2A31-4AA7-AB42-60F8848D2C15
@@ -1890,7 +1895,6 @@ Minor tasks:
    :ID:       D6F16872-F388-4043-BCCC-75811667721D
    :END:
    Um zu kucken wie sich Restriktionen umsetzen lassen
-
 ** Archive                                                             :ARCHIVE:
 
 *** Indent based syntax [3/3]
@@ -3939,29 +3943,41 @@ Put macro functions into seperate module
    :ID:       123A74E1-1A30-4E51-B2C1-4A3AABF856B5
    :END:
 
-   There exist several brands and companies of the name "zomp". Thus alternatives should be considered.
+There exist several brands and companies of the name "zomp". Thus alternatives
+should be considered.
 
-   zump - only name which sounds more stupid than zump :)
-   zompl - zero overhead meta programming language
-   baremp - bare metal meta programming / bare metal programming
-   bmmp
-   llmp - low level meta programming
-   lowmp
-   zoml - zero overhead meta language
-   0mp
-   roomp
+chromatic
+chroma
+metachrome
+landin
+steel
+eisen
+eisenguard
+cyber
+cyder
+acid
 
-   self-assembly, or something inspired from nano technology?
-   moleculang
-   submicron
-   microstruct
-   meso-lang
-   monolayer
-   monolang
-   mesolayer
-   membrane
-   metalipid
-   nanolang, microlang, zeptolang
+zump - only name which sounds more stupid than zump :)
+zompl - zero overhead meta programming language
+baremp - bare metal meta programming / bare metal programming
+bmmp
+llmp - low level meta programming
+lowmp
+zoml - zero overhead meta language
+0mp
+roomp
+
+self-assembly, or something inspired from nano technology?
+moleculang
+submicron
+microstruct
+meso-lang
+monolayer
+monolang
+mesolayer
+membrane
+metalipid
+nanolang, microlang, zeptolang
 
 ** Type annotations
    :PROPERTIES:
