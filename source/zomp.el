@@ -366,6 +366,15 @@ windows displaying it"
   (zomp-shell-move-point-to-end)
   (zomp-shell-do "!run test"))
 
+(defun zomp-compile-command (target)
+  "Will create the compile command string to build the given
+  `target'. `target' must be relative to main zomp dir"
+  (format "%sbuild.sh ARCH=%s DEBUG=%s -ks %s"
+          zomp-basedir
+          zomp-build-architecture
+          (if (string= zomp-build-variant "debug") "1" "0")
+          target))
+
 (defun zomp-test-current-file ()
   "Will test the current file. Files in the test suite will be
   compiled and executed"
@@ -373,14 +382,16 @@ windows displaying it"
   (let ((test-file (buffer-file-name)))
     (cond
      ((string-match "\\(.*/\\)\\(testsuite/.*/test_.*\\)\\.zomp" test-file)
-      (let* ((testsuite-file (match-string 2 test-file))
+      (let* ((file-basename (match-string 2 test-file))
              (zomp-basedir (match-string 1 test-file))
-             (compile-command (format "%sbuild.sh ARCH=%s DEBUG=%s -ks %s.testreport"
-                                      zomp-basedir
-                                      zomp-build-architecture
-                                      (if (string= zomp-build-variant "debug") "1" "0")
-                                      testsuite-file)))
-        (message "This is test %s" testsuite-file)
+             (report-file (format "%s.testreport" file-basename))
+             (compile-command (zomp-compile-command report-file)))
+        (call-interactively 'compile)))
+     ((string-match "\\(.*\\)\\(examples/.*\\)\\.zomp" test-file)
+      (let* ((source-file (match-string 2 test-file))
+             (zomp-basedir (match-string 1 test-file))
+             (exe-file (format "%s.exe" source-file))
+             (compile-command (zomp-compile-command exe-file)))
         (call-interactively 'compile)))
      (t
       (message "Sorry, do not know how to test file %s" test-file)))))
