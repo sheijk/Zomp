@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 #include <map>
 
 #include <curl/curl.h>
@@ -987,32 +988,55 @@ extern "C" {
   }
 
   /**
-   * Takes ownership of a bunch of strings and provides fast lookup.
+   * Takes ownership of a bunch of strings and provides fast lookup. This
+   * assumes that the number of strings is low and most candidates will already
+   * be contained in the storage.
    */
   class StringStorage
   {
-    typedef std::map<std::string, const char*> StringMap;
-    StringMap strings;
+    typedef std::vector<char*> StringArray;
+    StringArray strings;
     std::string name;
+
+    const char* find(const char* cstr) const
+    {
+      for( size_t i = 0, size = strings.size(); i < size; ++i ) {
+        if( strings[i] == cstr ) {
+          return cstr;
+        }
+        else if( strcmp(cstr, strings[i]) == 0 ) {
+          return strings[i];
+        }
+      }
+
+      return 0;
+    }
 
   public:
     explicit StringStorage(const std::string& name) : name(name)
     {
     }
 
+    ~StringStorage()
+    {
+      for( size_t i = 0, size = strings.size(); i < size; ++i ) {
+        std::free(strings[i]);
+        strings[i] = 0;
+      }
+    }
+
     /// Returns a string with the same content than the given one that is owned
     /// by the class.
     const char* internalize(const char* cstr)
     {
-      std::string str = cstr;
-      StringMap::iterator it = strings.find(str);
-      if(it == strings.end()) {
-        const char* cstrCopy = strdup(cstr);
-        strings.insert(std::make_pair(str, cstrCopy));
-        return cstrCopy;
+      const char* internal = find(cstr);
+      if(internal) {
+        return internal;
       }
       else {
-        return it->second;
+        char* copy = strdup(cstr);
+        strings.push_back(copy);
+        return copy;
       }
     }
 
@@ -1021,15 +1045,14 @@ extern "C" {
     /// owned by this storage.
     bool isInternalized(const char* cstr) const
     {
-      return strings.find(std::string(cstr)) != strings.end();
+      return find(cstr) != 0;
     }
 
     void dump()
     {
       printf("Content of %s:\n", name.c_str());
-      const StringMap::const_iterator stringsEnd = strings.end();
-      for( StringMap::const_iterator it = strings.begin(); it != stringsEnd; ++it ) {
-        printf("  %s\n", it->second);
+      for( size_t i = 0, size = strings.size(); i < size; ++i ) {
+        printf("  %s\n", strings[i]);
       }
     }
   };
