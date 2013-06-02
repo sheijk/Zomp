@@ -515,8 +515,6 @@ end
 
 
 func int main():
-  trace "initialization"
-
   if isNull(app):
     app = new AppInfo
     app*.fsaaSamples = 4
