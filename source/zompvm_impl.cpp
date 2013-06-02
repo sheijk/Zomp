@@ -771,8 +771,8 @@ extern "C" {
     return (int)result.IntVal.getLimitedValue();
   }
 
-  std::vector<const Type*> argTypes;
-  std::vector<GenericValue> argValues;
+  static std::vector<const Type*> argTypes;
+  static std::vector<GenericValue> argValues;
 
   void zompResetArgs() {
     argTypes.clear();
@@ -986,25 +986,86 @@ extern "C" {
     return macroAstChildF(ast, num);
   }
 
+  /**
+   * Takes ownership of a bunch of strings and provides fast lookup.
+   */
+  class StringStorage
+  {
+    typedef std::map<std::string, const char*> StringMap;
+    StringMap strings;
+    std::string name;
+
+  public:
+    explicit StringStorage(const std::string& name) : name(name)
+    {
+    }
+
+    /// Returns a string with the same content than the given one that is owned
+    /// by the class.
+    const char* internalize(const char* cstr)
+    {
+      std::string str = cstr;
+      StringMap::iterator it = strings.find(str);
+      if(it == strings.end()) {
+        const char* cstrCopy = strdup(cstr);
+        strings.insert(std::make_pair(str, cstrCopy));
+        return cstrCopy;
+      }
+      else {
+        return it->second;
+      }
+    }
+
+    /// Returns true if this is a pointer to a string owned by the storage.
+    /// Will return false if this does not point to the first char of a string
+    /// owned by this storage.
+    bool isInternalized(const char* cstr) const
+    {
+      return strings.find(std::string(cstr)) != strings.end();
+    }
+
+    void dump()
+    {
+      printf("Content of %s:\n", name.c_str());
+      const StringMap::const_iterator stringsEnd = strings.end();
+      for( StringMap::const_iterator it = strings.begin(); it != stringsEnd; ++it ) {
+        printf("  %s\n", it->second);
+      }
+    }
+  };
+
+  static StringStorage fileNames("file names");
+
   void zompSetAstLocation(void* ast, const char* file, int line, int column) {
     static void (*setLocationF)(void*, const void*, int, int) =
       (void (*)(void*, const void*, int, int)) executionEngine->getPointerToFunction(astSetLocation);
     ZMP_ASSERT( setLocationF, );
 
-    setLocationF(ast, file, line, column);
+    const char* internalFile = fileNames.internalize(file);
+    setLocationF(ast, internalFile, line, column);
   }
 
   const char* zompAstFile(void* ast) {
-    return "";
-    // TODO: use int to identify file, use file table to store strings
-    // typedef const char* (*AstFileFunc)(void* ast);
-    // static AstFileFunc astFileF = (AstFileFunc) executionEngine->getPointerToFunction(astFile);
-    // ZMP_ASSERT( astFileF, );
-    //
-    // if(ast)
-    //   return astFileF(ast);
-    // else
-    //   return "";
+    typedef const char* (*AstFileFunc)(void* ast);
+    static AstFileFunc astFileF = (AstFileFunc) executionEngine->getPointerToFunction(astFile);
+    ZMP_ASSERT( astFileF, );
+
+    if(ast) {
+      const char* file = astFileF(ast);
+      if(file == 0) {
+        return "";
+      }
+      else {
+        ZMP_ASSERT(
+          file[0] == '\0' ||
+          fileNames.isInternalized(file),
+          printf("file = '%s'\n", file); fileNames.dump());
+        return file;
+      }
+    }
+    else {
+      return "";
+    }
   }
 
   int zompAstLine(void* ast) {

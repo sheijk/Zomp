@@ -186,6 +186,7 @@ type ast:
   int childCount
   ast** childs
 
+  // All file names must be owned by the ZompVM
   char* file
   int line
   int column
@@ -218,13 +219,11 @@ std:base:func void ast:setLocation(ast* a, char* file, int line, int column):
 end
 
 std:base:func char* ast:file(ast* a):
-  // TODO: fix
-  // var bool isnull u32:equal(cast int a, 0)
-  // branch isnull returnDummy returnValue
-  // label returnValue
-  // std:base:ret load(fieldptr a file)
-  // std:base:ret "x"
-  // label returnDummy
+  var bool isnull u32:equal(cast int a, 0)
+  branch isnull returnDummy returnValue
+  label returnValue
+  std:base:ret load(fieldptr a file)
+  label returnDummy
   std:base:ret ""
 end
 
