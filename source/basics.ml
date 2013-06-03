@@ -65,7 +65,13 @@ let formatWarning = formatDiagnostics DiagnosticKind.Warning
 let formatInfo = formatDiagnostics DiagnosticKind.Info
 
 let diagnosticRe =
-  let re = "^\\([a-zA-Z_0-9/\\.-]+\\):\\([0-9]+\\)+:\\([0-9]+:\\)? .*\\(error\\|warning\\|info\\): \\(.*\\)" in
+  let fileRe = "\\([a-zA-Z_0-9/\\.-]+\\)" in
+  let lineRe = "\\([0-9]+\\)" in
+  let columnColonRe = "\\([0-9]+:\\)" in
+  let re =
+    sprintf "^%s:%s:%s? *\\(error\\|warning\\|info\\): \\(.*\\)"
+      fileRe lineRe columnColonRe
+  in
   Str.regexp re
   
 let parseDiagnostics line =

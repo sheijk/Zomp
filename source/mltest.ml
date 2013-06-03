@@ -38,6 +38,12 @@ struct
       `Return None;
       "something completely different",
       `Return None;
+      "testsuite/fundamental/test_type_errors.zomp:29: error: type error: lala",
+      `Return (Some ({ fileName = "testsuite/fundamental/test_type_errors.zomp";
+                       line = 29;
+                       column = None },
+                     Diag.Error,
+                     "type error: lala"))
     ]
 
 end
