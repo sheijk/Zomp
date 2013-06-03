@@ -1,0 +1,9 @@
+///
+/// Testing whether forward declaring a function with the same name as a global
+/// variable causes an error.
+///
+
+var int foobar 0
+
+std:base:func void foobar() //// error redef foobar
+

@@ -1,0 +1,21 @@
+///
+/// Testing whether functions can be redefined in the zomp shell.
+///
+
+std:base:func void greet():
+  printString "nonononono"
+  printNewline()
+end
+
+std:base:func void greet():
+  printString "hel"
+  printString "lo" //// print hello
+  printNewline()
+end
+
+func int main():
+  greet()
+  ret 0
+end
+
+

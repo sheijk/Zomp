@@ -350,6 +350,41 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
     | _ ->
       errorFromExpr typeExpr "don't know how to interprete as type"
 
+let errorIfRedefined
+    (newDefinitionType : [`NewVar | `NewFuncDef | `NewFuncDecl | `NewType | `NewMacro])
+    name expr bindings
+    =
+  let reportRedefinition previousDefinitionLoc =
+    let error = Serror.fromExpr expr (sprintf "redefinition of %s" name) in
+    match previousDefinitionLoc with
+      | Some _ ->
+        Error [error; Serror.fromMsg previousDefinitionLoc "previous definition"]
+      | None ->
+        Error [error]
+  in
+  match Bindings.lookup bindings name, newDefinitionType with
+    | VarSymbol var, _ ->
+      reportRedefinition var.vlocation
+    | FuncSymbol { impl = Some _; flocation }, `NewFuncDef ->
+      if Zompvm.isInteractive() then
+        Result ()
+      else
+        reportRedefinition flocation
+    | FuncSymbol { flocation }, (`NewVar | `NewType | `NewMacro) ->
+      reportRedefinition flocation
+    | MacroSymbol _, _ ->
+      reportRedefinition None
+    | TypedefSymbol _, _ ->
+      reportRedefinition None
+    | LabelSymbol _, _ ->
+      failwith "internal error, global label defined"
+    | FuncSymbol { impl = None }, `NewFuncDef
+    | FuncSymbol _, `NewFuncDecl
+    | UndefinedSymbol, _ ->
+      Result ()
+
+let reportError error = eprintf "%s\n" (Serror.toString error)
+
 module Translators_deprecated_style =
 struct
   let reportWarning expr msg =
@@ -379,6 +414,9 @@ struct
 
   let translateTypedef translateF (bindings :bindings) =
     let translateRecordTypedef bindings typeName componentExprs expr =
+      let redefinitionError = errorIfRedefined `NewType typeName expr bindings in
+      List.iter reportError (extractErrors redefinitionError);
+
       let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
       let expr2component =
         let translate name typeExpr =
@@ -401,12 +439,16 @@ struct
       in
       let components = List.map expr2component componentExprs in
       let recordType = `Record { rname = typeName; fields = components } in
-      Some recordType
+      match redefinitionError with
+        | Result () ->
+          Some recordType
+        | Error _ ->
+          None
     in
     let returnRecordTypedef bindings name componentExprs expr =
       match translateRecordTypedef bindings name componentExprs expr with
         | Some rt ->
-            Some (addTypedef bindings name rt, [`Typedef (name, rt)])
+          Some (addTypedef bindings name rt, [`Typedef (name, rt)])
         | None ->
             None
     in
@@ -441,13 +483,20 @@ struct
       | { id = id; args = [
             { id = newTypeName; args = [] };
             targetTypeExpr;
-          ] }
+          ] } as expr
           when id = macroTypedef ->
           begin
-            match translateType bindings targetTypeExpr with
-              | Error _ -> raiseInvalidType targetTypeExpr
-              | Result t -> Some (addTypedef bindings newTypeName t,
-                                  [`Typedef (newTypeName, t)] )
+            let redefinitionError = errorIfRedefined `NewType newTypeName expr bindings in
+            List.iter reportError (extractErrors redefinitionError);
+
+            match translateType bindings targetTypeExpr, redefinitionError with
+              | Error _, _ ->
+                raiseInvalidType targetTypeExpr
+              | Result t, Result () ->
+                Some (addTypedef bindings newTypeName t,
+                      [`Typedef (newTypeName, t)] )
+              | _, Error _ ->
+                None
           end
       (** record typedef *)
       | { id = id; args =
@@ -706,6 +755,9 @@ struct
           { id = name; args = [] }
           :: paramImpl
       } when id = macroMacro or id = macroReplacement ->
+        let redefinitionError = errorIfRedefined `NewMacro name expr bindings in
+        List.iter reportError (extractErrors redefinitionError);
+
         let result =
           begin match List.rev paramImpl with
             | [] -> None
@@ -739,8 +791,12 @@ struct
                     end else
                       (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
                   in
-                  Some( Bindings.addMacro bindings name docstring
-                          (fun bindings expr -> macroF bindings argNames expr.args impl), [] )
+                  match redefinitionError with
+                    | Result () ->
+                      Some( Bindings.addMacro bindings name docstring
+                              (fun bindings expr -> macroF bindings argNames expr.args impl), [] )
+                    | Error _ ->
+                      None
                 end
           end
         in
@@ -761,6 +817,7 @@ type 'translateF env = {
   translateExprOld : bindings -> Ast2.t -> bindings * formWithTLsEmbedded list;
   translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
   parseF : fileName:string -> string -> Ast2.t list option;
+  reportError : Serror.t -> unit;
 }
 
 let envBindings env = env.bindings
@@ -925,36 +982,42 @@ struct
     match decomposeMacroDefinition expr with
       | Result (name, paramNames, implExprs, isVariadic) ->
           begin
-            let tlexprs, func =
-              buildNativeMacroFunc
-                translateNestedF env.bindings
-                name paramNames implExprs isVariadic
-            in
+            let redefinitionError = errorIfRedefined `NewMacro name expr env.bindings in
+            match redefinitionError with
+              | Result () ->
+                let tlexprs, func =
+                  buildNativeMacroFunc
+                    translateNestedF env.bindings
+                    name paramNames implExprs isVariadic
+                in
 
-            let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
+                let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
 
-            Zompvm.evalLLVMCodeB
-              ~targetModule:Zompvm.Runtime
-              (if listContains name !macroFuncs then
-                 [name]
-               else begin
-                 macroFuncs := name :: !macroFuncs;
-                 []
-               end)
-              []
-              (Common.combine "\n" llvmCodeFragments);
+                Zompvm.evalLLVMCodeB
+                  ~targetModule:Zompvm.Runtime
+                  (if listContains name !macroFuncs then
+                      [name]
+                   else begin
+                     macroFuncs := name :: !macroFuncs;
+                     []
+                   end)
+                  []
+                  (Common.combine "\n" llvmCodeFragments);
 
-            flush stdout;
+                flush stdout;
 
-            let docstring =
-              Common.combine " " paramNames ^
-                match isVariadic with | `IsVariadic -> "..." | _ -> ""
-            in
+                let docstring =
+                  Common.combine " " paramNames ^
+                    match isVariadic with | `IsVariadic -> "..." | _ -> ""
+                in
 
-            let newBindings = Bindings.addMacro env.bindings name docstring
-              (translateMacroCall name (List.length paramNames) isVariadic)
-            in
-            Result (newBindings, [])
+                let newBindings = Bindings.addMacro env.bindings name docstring
+                  (translateMacroCall name (List.length paramNames) isVariadic)
+                in
+
+                Result (newBindings, [])
+              | Error errors ->
+                Error errors
           end
       | Error reasons ->
           Error reasons
@@ -971,11 +1034,8 @@ end
 
 module Base : Zomp_transformer =
 struct
-  let reportError error =
-    eprintf "%s\n" (Serror.toString error)
-
-  let reportErrorE expr msg = reportError (Serror.fromExpr expr msg)
-  let reportErrorM messages = List.iter (fun msg -> reportError (Serror.fromMsg None msg)) messages
+  let reportErrorE env expr msg = env.reportError (Serror.fromExpr expr msg)
+  let reportErrorM env messages = List.iter (fun msg -> env.reportError (Serror.fromMsg None msg)) messages
 
   let translateType bindings expr =
     translateType bindings Translators_deprecated_style.reportWarning expr
@@ -1044,6 +1104,7 @@ struct
         valueExpr
       ] } ->
         begin
+          let redefinitionError = errorIfRedefined `NewVar name expr env.bindings in
           let typ =
             match translateType env.bindings typeExpr with
               | Result (#integralType as typ)
@@ -1056,10 +1117,10 @@ struct
               | Result `ParametricType _
               | Result `TypeParam
               | Result `TypeRef _ ->
-                reportErrorE typeExpr "type not supported for global variables";
+                reportErrorE env typeExpr "type not supported for global variables";
                 `ErrorType "translateGlobalVar"
               | Error errors ->
-                List.iter reportError errors;
+                List.iter env.reportError errors;
                 `ErrorType "translateGlobalVar"
           in
           let newBindings, tlforms, value =
@@ -1086,12 +1147,12 @@ struct
                         | [`Constant value] ->
                           newBindings, tlforms, value
                         | _ ->
-                          reportErrorE expr "expecting a constant expression";
+                          reportErrorE env expr "expecting a constant expression";
                           List.iter (fun f -> eprintf "  %s\n" $ Lang.formToString f) forms;
                           newBindings, tlforms, ErrorVal "translateGlobalVar"
                     end
                   | Error messages ->
-                    List.iter reportError messages;
+                    List.iter env.reportError messages;
                     env.bindings, [], ErrorVal "translateGlobalVar"
           in
           let typeEquivalent lt rt =
@@ -1112,11 +1173,17 @@ struct
               gvDefinitionLocation = expr.location;
             }
             in
-            Result( newBindings, tlforms @ [ (`GlobalVar gvar :> toplevelExpr) ] )
+            match redefinitionError with
+              | Result () ->
+                Result( newBindings, tlforms @ [ (`GlobalVar gvar :> toplevelExpr) ] )
+              | Error errors ->
+                Error errors
           end else
-            errorFromExpr expr
-              (sprintf "expected initial value to have type %s but found %s"
-                 (typeDescr typ) (typeDescr (typeOf value)))
+            Error
+              (extractErrors redefinitionError @
+              [Serror.fromExpr expr
+                  (sprintf "expected initial value to have type %s but found %s"
+                     (typeDescr typ) (typeDescr (typeOf value)))])
         end
       | _ ->
         errorFromExpr expr "expected 'var typeExpr name initExpr'"
@@ -2128,6 +2195,7 @@ let translateFromDict
         let newBindings, formsWTL = translateExprOld env.bindings expr in
         Result (newBindings, formsWTL));
       parseF = Parseutils.parseIExprsOpt;
+      reportError = reportError;
     } in
     match handler env expr with
       | Error errors ->
@@ -2472,9 +2540,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     match Semantic.functionIsValid f with
       | `Ok ->
           let newBindings =
-            match impl with
-              | None -> addFunc bindings f
-              | _ -> bindings
+            addFunc bindings f
           in
           let funcDef = `DefineFunc f in
           newBindings, nestedTLForms, funcDef
@@ -2495,28 +2561,46 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           in
           match translateType bindings typeExpr with
             | Result typ -> begin
-                let tempBindings, _, _ =
-                  buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None
-                in
-                let newBindings, toplevelForms, funcDef =
-                  buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr)
-                in
-                match typeCheckTL newBindings funcDef with
-                  | TypeOf _ -> Some( newBindings, toplevelForms @ [funcDef] )
-                  | TypeError (fe, msg, declaredType, returnedType) ->
-                      raiseIllegalExpression
-                        expr
-                        (typeErrorMessage bindings (fe, msg, returnedType, declaredType))
-              end
+              let redefinitionError = errorIfRedefined `NewFuncDef name expr bindings in
+              List.iter reportError (extractErrors redefinitionError);
+
+              (** Add function declaration so it can be called in body *)
+              let tempBindings, _, _ =
+                buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None
+              in
+              (** Add function definition *)
+              let newBindings, toplevelForms, funcDef =
+                buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr)
+              in
+
+              match typeCheckTL newBindings funcDef with
+                | TypeOf _ ->
+                  begin match redefinitionError with
+                    | Result () ->
+                      Some( newBindings, toplevelForms @ [funcDef] )
+                    | Error errors ->
+                      raiseIllegalExpression expr "method was already defined"
+                  end
+                | TypeError (fe, msg, declaredType, returnedType) ->
+                  raiseIllegalExpression
+                    expr
+                    (typeErrorMessage bindings (fe, msg, returnedType, declaredType))
+            end
             | Error _ -> raiseInvalidType typeExpr
         end
     | `FuncDecl (name, typeExpr, paramExprs, hasvarargs) ->
         begin
+          let redefinitionError = errorIfRedefined `NewFuncDecl name expr bindings in
+          List.iter reportError (extractErrors redefinitionError);
           match translateType bindings typeExpr with
             | Result typ ->
                 begin
                   let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs hasvarargs None in
-                  Some (newBindings, [funcDecl] )
+                  match redefinitionError with
+                    | Result () ->
+                      Some (newBindings, [funcDecl] )
+                    | Error _ ->
+                      raiseIllegalExpression expr "method was already defined"
                 end
             | Error _ ->
                 raiseInvalidType typeExpr

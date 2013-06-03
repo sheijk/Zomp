@@ -1,0 +1,10 @@
+///
+/// Test whether defining a type with the same name as an existing function will
+/// cause a proper error report.
+///
+
+std:base:func void someFunc():
+end
+
+type someFunc int //// error redef someFunc
+

@@ -1,0 +1,12 @@
+///
+/// Test whether defining a macro with the same name of an existing function
+/// will cause a proper errors report.
+///
+
+std:base:func void foobar():
+end
+
+macro foobar: //// error redef foobar
+  ret ${}
+end
+
