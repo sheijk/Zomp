@@ -170,40 +170,30 @@ struct
       code but the given number will be expected. *)
   | TestCaseExitCode
 
-  let compilerErrorCommand = "error"
-  let compilerErrorNoLocCommand = "error-no-location"
-  let compilerOutput = "compiler-output"
-  let compilationWillFail = "compilation-fails"
-  let compilerWarningCommand = "warning"
-  let compilerInfoCommand = "info"
-  let runtimePrintCommand = "print"
-  let testCaseExitCodeCommand = "exit-code"
+  (** variant, command name, description *)
+  let metadata = [
+    CompilerError, "error", "compiler error";
+    CompilerErrorNoLoc, "error-no-location", "compiler error w/o location";
+    CompilerOutput, "compiler-output", "compiler output";
+    CompilationWillFail, "compilation-fails", "compilation to fail";
+    CompilerWarning, "warning", "compiler warning";
+    CompilerInfo, "info", "compiler info";
+    RuntimePrint, "print", "test case to print line";
+    TestCaseExitCode, "exit-code", "test case to exit with";]
 
   let parse str =
-    if str = compilerErrorCommand then CompilerError
-    else if str = compilerErrorNoLocCommand then CompilerErrorNoLoc
-    else if str = compilerOutput then CompilerOutput
-    else if str = compilationWillFail then CompilationWillFail
-    else if str = compilerWarningCommand then CompilerWarning
-    else if str = compilerInfoCommand then CompilerInfo
-    else if str = runtimePrintCommand then RuntimePrint
-    else if str = testCaseExitCodeCommand then TestCaseExitCode
-    else (failwith "Expectation.parse")
+    try
+      let (variant, _, _) = List.find (fun (_, cmd, _) -> cmd = str) metadata in
+      variant
+    with Not_found ->
+      failwith "Expectation.parse"
 
   let validExpectationsEnumDescr =
-    verbalConcat "or"
-      [compilerErrorCommand; compilerWarningCommand; compilerInfoCommand;
-       runtimePrintCommand]
+    verbalConcat "or" (List.map (fun (_, cmd, _) -> cmd) metadata)
 
-  let kindDescription = function
-    | CompilerError -> "compiler error"
-    | CompilerErrorNoLoc -> "compiler error w/o location"
-    | CompilerOutput -> "compiler output"
-    | CompilationWillFail -> "compilation to fail"
-    | CompilerWarning -> "compiler warning"
-    | CompilerInfo -> "compiler info"
-    | RuntimePrint -> "test case to print line"
-    | TestCaseExitCode -> "test case to exit with"
+  let kindDescription command =
+    let (_, _, description) = List.find (fun (cmd, _, _) -> cmd = command) metadata in
+    description
 
   let description kind words =
     let quote = sprintf "\"%s\"" in
