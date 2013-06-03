@@ -393,6 +393,12 @@ windows displaying it"
              (exe-file (format "%s.exe" source-file))
              (compile-command (zomp-compile-command exe-file)))
         (call-interactively 'compile)))
+     ((string-match "\\(.*\\)\\(libs/.*\\)\\.zomp" test-file)
+      (let* ((source-file (match-string 2 test-file))
+             (zomp-basedir (match-string 1 test-file))
+             (ll-file (format "%s.ll" source-file))
+             (compile-command (zomp-compile-command ll-file)))
+        (call-interactively 'compile)))
      (t
       (message "Sorry, do not know how to test file %s" test-file)))))
 
