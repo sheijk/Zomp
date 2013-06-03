@@ -686,7 +686,17 @@ std:base:func void runMain():
   printlnInt retval
 end
 
-testf runMain()
+macro ifInteractive code:
+  if std:vm:isInteractive():
+    ret ${code}
+  end
+
+  ret ${}
+end
+
+ifInteractive:
+  testf runMain()
+end
 
 template float:neg x (float:sub 0. #x)
 
