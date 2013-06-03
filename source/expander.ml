@@ -383,7 +383,12 @@ let errorIfRedefined
     | UndefinedSymbol, _ ->
       Result ()
 
-let reportError error = eprintf "%s\n" (Serror.toString error)
+let reportError error =
+  eprintf "%s\n" (Serror.toString error)
+let reportWarning warning =
+  eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Warning warning)
+let reportInfo info =
+  eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Info info)
 
 module Translators_deprecated_style =
 struct
@@ -756,7 +761,7 @@ struct
           :: paramImpl
       } when id = macroMacro or id = macroReplacement ->
         let redefinitionError = errorIfRedefined `NewMacro name expr bindings in
-        List.iter reportError (extractErrors redefinitionError);
+        List.iter reportWarning (extractErrors redefinitionError);
 
         let result =
           begin match List.rev paramImpl with
@@ -791,12 +796,8 @@ struct
                     end else
                       (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
                   in
-                  match redefinitionError with
-                    | Result () ->
-                      Some( Bindings.addMacro bindings name docstring
-                              (fun bindings expr -> macroF bindings argNames expr.args impl), [] )
-                    | Error _ ->
-                      None
+                  Some( Bindings.addMacro bindings name docstring
+                          (fun bindings expr -> macroF bindings argNames expr.args impl), [] )
                 end
           end
         in
@@ -983,41 +984,39 @@ struct
       | Result (name, paramNames, implExprs, isVariadic) ->
           begin
             let redefinitionError = errorIfRedefined `NewMacro name expr env.bindings in
-            match redefinitionError with
-              | Result () ->
-                let tlexprs, func =
-                  buildNativeMacroFunc
-                    translateNestedF env.bindings
-                    name paramNames implExprs isVariadic
-                in
+            List.iter reportWarning (extractErrors redefinitionError);
 
-                let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
+            let tlexprs, func =
+              buildNativeMacroFunc
+                translateNestedF env.bindings
+                name paramNames implExprs isVariadic
+            in
 
-                Zompvm.evalLLVMCodeB
-                  ~targetModule:Zompvm.Runtime
-                  (if listContains name !macroFuncs then
-                      [name]
-                   else begin
-                     macroFuncs := name :: !macroFuncs;
-                     []
-                   end)
-                  []
-                  (Common.combine "\n" llvmCodeFragments);
+            let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
 
-                flush stdout;
+            Zompvm.evalLLVMCodeB
+              ~targetModule:Zompvm.Runtime
+              (if listContains name !macroFuncs then
+                  [name]
+               else begin
+                 macroFuncs := name :: !macroFuncs;
+                 []
+               end)
+              []
+              (Common.combine "\n" llvmCodeFragments);
 
-                let docstring =
-                  Common.combine " " paramNames ^
-                    match isVariadic with | `IsVariadic -> "..." | _ -> ""
-                in
+            flush stdout;
 
-                let newBindings = Bindings.addMacro env.bindings name docstring
-                  (translateMacroCall name (List.length paramNames) isVariadic)
-                in
+            let docstring =
+              Common.combine " " paramNames ^
+                match isVariadic with | `IsVariadic -> "..." | _ -> ""
+            in
 
-                Result (newBindings, [])
-              | Error errors ->
-                Error errors
+            let newBindings = Bindings.addMacro env.bindings name docstring
+              (translateMacroCall name (List.length paramNames) isVariadic)
+            in
+
+            Result (newBindings, [])
           end
       | Error reasons ->
           Error reasons
