@@ -13,7 +13,14 @@ type location = {
 
 let location fileName line column = { fileName; line; column }
 
+(** A fake location used in places where location info is not available due to
+legacy code. Always use this value so it get's easier to search for places that
+need to be fixed. This should go away once all code in the compiler handles
+locations properly. *)
 let fakeLocation = { fileName = "???.zomp"; line = 1; column = None }
+
+(** The location used for compiler provided types, macros, etc. *)
+let builtinLocation = location "builtin" 0 None
 
 let locationToString loc =
   match loc.column with
