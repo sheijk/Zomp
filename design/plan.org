@@ -1784,7 +1784,8 @@ could be tried by external users. Also fix all known bugs in the test suite.
 
 Next up:
 - [X] add column to source locations
-- [ ] add source locations to native ast type
+- [X] add source locations to native ast type
+- [ ] add source locations to macros and Bindings.TypedefSymbol and builtin macros/types
 - [ ] automatically generate source location for expressions created in macros
 
 Minor tasks:
