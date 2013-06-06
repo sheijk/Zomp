@@ -19,7 +19,7 @@ val addTypedef :
   bindings -> string -> Lang.composedType -> bindings
 val addLabel : bindings -> string -> bindings
 val addMacro :
-  bindings -> string -> string ->
+  bindings -> string -> string -> Basics.location ->
   (bindings -> Ast2.sexpr -> Ast2.sexpr) -> bindings
 val lookup : bindings -> string -> symbol
 val lookupInfo : bindings -> string -> symbolInfo

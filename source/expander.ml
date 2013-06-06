@@ -796,8 +796,9 @@ struct
                     end else
                       (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
                   in
-                  Some( Bindings.addMacro bindings name docstring
-                          (fun bindings expr -> macroF bindings argNames expr.args impl), [] )
+                  let location = someOrDefault expr.location Basics.fakeLocation in
+                  let f = fun bindings expr -> macroF bindings argNames expr.args impl in
+                  Some( Bindings.addMacro bindings name docstring location f, [] )
                 end
           end
         in
@@ -1012,7 +1013,8 @@ struct
                 match isVariadic with | `IsVariadic -> "..." | _ -> ""
             in
 
-            let newBindings = Bindings.addMacro env.bindings name docstring
+            let location = someOrDefault expr.location Basics.fakeLocation in
+            let newBindings = Bindings.addMacro env.bindings name docstring location
               (translateMacroCall name (List.length paramNames) isVariadic)
             in
 

@@ -422,5 +422,9 @@ type 'bindings macro = {
   mname :string;
   mtransformFunc : 'bindings -> Ast2.sexpr -> Ast2.sexpr;
   mdocstring :string;
+  mlocation :Basics.location option;
 }
+
+let macro name doc location func =
+  { mname = name; mtransformFunc = func; mdocstring = doc; mlocation = Some location }
 

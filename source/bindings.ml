@@ -49,8 +49,8 @@ let addTypedef bindings name typ =
 let addLabel bindings name =
   addSymbol name (LabelSymbol { lname = name }) bindings
 
-let addMacro bindings name doc implF =
-  let macro = { mname = name; mdocstring = doc; mtransformFunc = implF } in
+let addMacro bindings name doc location implF =
+  let macro = { mname = name; mdocstring = doc; mtransformFunc = implF; mlocation = Some location } in
   addSymbol name (MacroSymbol macro) bindings
 
 let lookup bindings name =

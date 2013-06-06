@@ -441,7 +441,10 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
   in
 
   let builtinMacros =
-    let macro name doc f = (name, MacroSymbol { mname = name; mdocstring = doc; mtransformFunc = f; }) in
+    let macro name doc f =
+      (name, MacroSymbol (Lang.macro name doc Basics.builtinLocation f))
+    in
+
     let quoteMacro =
       macro "quote"
         "ast..."
