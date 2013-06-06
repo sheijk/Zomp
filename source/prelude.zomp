@@ -688,7 +688,7 @@ end
 
 macro ifInteractive code:
   if std:vm:isInteractive():
-    ret ${code}
+    ret code
   end
 
   ret ${}
