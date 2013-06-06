@@ -24,11 +24,11 @@ func int main():
     var cstring foo "xxx"
     ast:print ${lalal #foo} 0
 
-    template foo param:
+    template foo2 param:
       printString #param
     end
 
-    foo "bar"
+    foo2 "bar"
   end
 
   ret 0
