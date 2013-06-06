@@ -1,0 +1,37 @@
+///
+/// Testing defining a local var/func/macro/type with the name of an existing
+/// global does not produce an error.
+///
+
+requireLibs libcee
+
+var int existingGlobalVar 0
+
+std:base:func void existingGlobalFunc():
+end
+
+macro existingGlobalMacro:
+  ret ${}
+end
+
+std:base:func int main():
+  var float existingGlobalVar 0.0
+  var float existingGlobalFunc 0.0
+  var float existingGlobalMacro 0.0
+
+  macro existingGlobalVar:
+    ret ${}
+  end
+
+  macro existingGlobalFunc:
+    ret ${}
+  end
+
+  macro existingGlobalMacro:
+    ret ${}
+  end
+
+  printf "everything-works\n" //// print everything-works
+  std:base:ret 0
+end
+

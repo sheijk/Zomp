@@ -1,0 +1,15 @@
+///
+/// Check that redefining builtin macros, etc. does not cause a warning.
+///
+
+//// not compiler-output isInteractive previous definition
+macro std:vm:isInteractive:
+  ret ${le test}
+end
+
+//// not compiler-output u32:shl previous definition
+std:base:func u32 u32:shl(u32 l, u32 r):
+  std:base:ret 0
+end
+
+
