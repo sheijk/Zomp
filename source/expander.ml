@@ -380,7 +380,10 @@ let hasRedefinitionErrors
       else
         reportRedefinition flocation error
     | `NewMacro,  MacroSymbol { mlocation } ->
-      reportRedefinition mlocation warning
+      if mlocation = Some Basics.builtinLocation then
+        false
+      else
+        reportRedefinition mlocation warning
     | `NewType,  TypedefSymbol _ ->
       (** TODO: this should be an error if the types differ *)
       false
