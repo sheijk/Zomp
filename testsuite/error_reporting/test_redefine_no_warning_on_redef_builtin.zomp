@@ -2,7 +2,7 @@
 /// Check that redefining builtin macros, etc. does not cause a warning.
 ///
 
-//// not compiler-output isInteractive previous definition
+//// not-compiler-output isInteractive previous definition
 macro std:vm:isInteractive:
   ret ${le test}
 end
@@ -10,5 +10,4 @@ end
 func int main():
   ret 0
 end
-
 

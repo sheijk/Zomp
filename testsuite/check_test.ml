@@ -157,6 +157,8 @@ struct
   | CompilerErrorNoLoc
   (** Any compiler output. *)
   | CompilerOutput
+  (** This particular compiler output won't appear. *)
+  | NotCompilerOutput
   (** Will expect the compilation to fail. *)
   | CompilationWillFail
   (** Like CompilerError but with "warning" instead of error *)
@@ -175,6 +177,7 @@ struct
     CompilerError, "error", "compiler error";
     CompilerErrorNoLoc, "error-no-location", "compiler error w/o location";
     CompilerOutput, "compiler-output", "compiler output";
+    NotCompilerOutput, "not-compiler-output", "compiler output not to happen";
     CompilationWillFail, "compilation-fails", "compilation to fail";
     CompilerWarning, "warning", "compiler warning";
     CompilerInfo, "info", "compiler info";
@@ -251,24 +254,33 @@ let addExpectation
   in
   try
     let kind = ExpectationKind.parse kindStr in
-    let addExpectationForLine line =
-      addToList { Expectation.kind; words = args; line; found = ref false } expectedErrorMessages
+    let addExpectationForLine line shouldBeFound =
+      addToList
+        {
+          Expectation.kind;
+          words = args;
+          line;
+          found = ref (not shouldBeFound);
+        }
+        expectedErrorMessages
     in
     begin match kind with
       | ExpectationKind.CompilerError ->
         expectedCompilationSuccess := false;
-        addExpectationForLine line
+        addExpectationForLine line true
       | ExpectationKind.CompilerErrorNoLoc ->
         expectedCompilationSuccess := false;
-        addExpectationForLine 0
+        addExpectationForLine 0 true
       | ExpectationKind.CompilerOutput ->
-        addExpectationForLine 0
+        addExpectationForLine 0 true
+      | ExpectationKind.NotCompilerOutput ->
+        addExpectationForLine 0 false
       | ExpectationKind.CompilationWillFail ->
         expectedCompilationSuccess := false
       | ExpectationKind.CompilerWarning
       | ExpectationKind.CompilerInfo
       | ExpectationKind.RuntimePrint ->
-        addExpectationForLine line
+        addExpectationForLine line true
       | ExpectationKind.TestCaseExitCode ->
         begin match args with
           | [lineString] ->
@@ -293,9 +305,9 @@ let addExpectation
 
 let collectExpectations addExpectation (lineNum :int) line =
   if line =~ ".*//// +\\([^ ]+\\) ?\\(.*\\)" then begin
-    let kind = Str.matched_group 1 line in
+    let kindStr = Str.matched_group 1 line in
     let args = Str.split (Str.regexp " +") (Str.matched_group 2 line) in
-    addExpectation kind args lineNum
+    addExpectation kindStr args lineNum
   end
 
 let () =
@@ -357,9 +369,9 @@ let () =
         diagnosticLoc.line = expectation.E.line
         && zompFileName = diagnosticLoc.fileName
       in
-      let setToTrueIfAllWordsMatch() =
+      let setIfAllWordsMatch value =
         if List.for_all containsWord expectation.E.words then
-          expectation.E.found := true
+          expectation.E.found := value
       in
 
       let module Expect = ExpectationKind in
@@ -369,15 +381,17 @@ let () =
         | Expect.CompilerError, Diag.Error, Some diagnosticLoc
         | Expect.CompilerWarning, Diag.Warning, Some diagnosticLoc ->
           if locationMatches diagnosticLoc then begin
-            setToTrueIfAllWordsMatch()
+            setIfAllWordsMatch true
           end
         | Expect.CompilerErrorNoLoc, Diag.Error, Some _ ->
-          setToTrueIfAllWordsMatch()
+          setIfAllWordsMatch true
         | Expect.CompilerInfo, Diag.Info, Some diagnosticLoc ->
           if locationMatches diagnosticLoc then
-            setToTrueIfAllWordsMatch()
+            setIfAllWordsMatch true
         | Expect.CompilerOutput, _, _ ->
-          setToTrueIfAllWordsMatch()
+          setIfAllWordsMatch true
+        | Expect.NotCompilerOutput, _, _ ->
+          setIfAllWordsMatch false
 
         | Expect.CompilationWillFail, _, _
         | Expect.TestCaseExitCode, _, _
