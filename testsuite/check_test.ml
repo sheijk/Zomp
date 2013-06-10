@@ -212,6 +212,16 @@ struct
         sprintf "%s:%d" fileName lineNum
 end
 
+module Expectation =
+struct
+  type t = {
+    kind : ExpectationKind.t;
+    words : string list;
+    line : int;
+    found : bool ref;
+  }
+end
+
 module Exit_code = struct
   type condition =
     | MustBe of int
@@ -235,30 +245,30 @@ let writeHtmlHeader outFile zompFileName =
 
 let addExpectation
     zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
-    kindStr args lineNum =
+    kindStr args line =
   let reportWarning msg =
-    printf "%s:%d: warning: %s\n" zompFileName lineNum msg
+    printf "%s:%d: warning: %s\n" zompFileName line msg
   in
   try
     let kind = ExpectationKind.parse kindStr in
-    let add () =
-      addToList (kind, args, lineNum, ref false) expectedErrorMessages
+    let addExpectationForLine line =
+      addToList { Expectation.kind; words = args; line; found = ref false } expectedErrorMessages
     in
     begin match kind with
       | ExpectationKind.CompilerError ->
         expectedCompilationSuccess := false;
-        add()
+        addExpectationForLine line
       | ExpectationKind.CompilerErrorNoLoc ->
         expectedCompilationSuccess := false;
-        addToList (kind, args, 0, ref false) expectedErrorMessages
+        addExpectationForLine 0
       | ExpectationKind.CompilerOutput ->
-        addToList (kind, args, 0, ref false) expectedErrorMessages
+        addExpectationForLine 0
       | ExpectationKind.CompilationWillFail ->
         expectedCompilationSuccess := false
       | ExpectationKind.CompilerWarning
       | ExpectationKind.CompilerInfo
       | ExpectationKind.RuntimePrint ->
-        add()
+        addExpectationForLine line
       | ExpectationKind.TestCaseExitCode ->
         begin match args with
           | [lineString] ->
@@ -332,30 +342,30 @@ let () =
       fprintf outFile "</span></p>\n"
     in
 
-    let writeExpectation (kind, args, lineNum, found) =
+    let writeExpectation expectation =
+      let { Expectation.kind; line = lineNum; words } = expectation in
       fprintf outFile "%s: expect %s<br />\n"
         (ExpectationKind.locationDescription zompFileName lineNum kind)
-        (ExpectationKind.description kind args)
+        (ExpectationKind.description kind words)
     in
-    let checkExpectation message diagnosticLoc diagnosticKind
-        (expectationKind, args, expectedLineNum, found)
-        =
+    let checkExpectation message diagnosticLoc diagnosticKind expectation =
+      let module E = Expectation in
       let containsWord word =
         Str.string_match (Str.regexp_case_fold (".*" ^ Str.quote word)) message 0
       in
       let locationMatches diagnosticLoc =
-        diagnosticLoc.line = expectedLineNum
+        diagnosticLoc.line = expectation.E.line
         && zompFileName = diagnosticLoc.fileName
       in
       let setToTrueIfAllWordsMatch() =
-        if List.for_all containsWord args then
-          found := true
+        if List.for_all containsWord expectation.E.words then
+          expectation.E.found := true
       in
 
       let module Expect = ExpectationKind in
       let module Diag = DiagnosticKind in
 
-      match expectationKind, diagnosticKind, diagnosticLoc with
+      match expectation.E.kind, diagnosticKind, diagnosticLoc with
         | Expect.CompilerError, Diag.Error, Some diagnosticLoc
         | Expect.CompilerWarning, Diag.Warning, Some diagnosticLoc ->
           if locationMatches diagnosticLoc then begin
@@ -407,26 +417,28 @@ let () =
     let checkRuntimeExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
-      let checkPrintExpectation (kind, args, expectedLineNum, found) =
+      let checkPrintExpectation expectation =
+        let module E = Expectation in
         let containsWord word =
           Str.string_match (Str.regexp (".*" ^ Str.quote word)) line 0
         in
-        match kind with
+        match expectation.E.kind with
           | ExpectationKind.RuntimePrint ->
             begin
-              if List.for_all containsWord args then
-                found := true
+              if List.for_all containsWord expectation.E.words then
+                expectation.E.found := true
             end
           | _ -> ()
       in
       List.iter checkPrintExpectation !expectedErrorMessages
     in
 
-    let reportIfMissing (kind, args, lineNum, found) =
+    let reportIfMissing expectation =
+      let { Expectation.kind; line; words; found } = expectation in
       if !found = false then
-        reportError ~line:lineNum
+        reportError ~line
           (sprintf "expected %s but didn't happen"
-             (ExpectationKind.description kind args))
+             (ExpectationKind.description kind words))
     in
 
     (** code *)
