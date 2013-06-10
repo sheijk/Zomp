@@ -89,8 +89,8 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOM
 # Rules
 ################################################################################
 
-ZOMPCFLAGS_W_INCLUDE = --zomp-include-dir testsuite/include
-testsuite/include/test_%.ll: ZOMPCFLAGS=$(ZOMPCFLAGS_W_INCLUDE)
+ZOMPCFLAGS_W_TESTSUITE_INCLUDE = --zomp-include-dir testsuite/include
+testsuite/include/test_%.ll: ZOMPCFLAGS=$(ZOMPCFLAGS_W_TESTSUITE_INCLUDE)
 
 CHECK_TEST_FILE = testsuite/check_test.ml
 CHECK_TEST_DEPS = source/common.cmo source/basics.cmo
