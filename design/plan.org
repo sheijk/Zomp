@@ -4,6 +4,8 @@
 #+INFOJS_OPT: view:content toc:nil
 
 * To be sorted
+** TODO cause error when printing to read-only stdout                     :bug:
+./examples/hello.exe 1< /dev/null
 ** TODO create ast conversion benchmark to estimate cost of converting between ocaml and native
 ** TODO examples/metaball2d.exe does not depend on libs/opengl20.zomp     :bug:
 ** TODO [#A] always require parenthesis for quote/antiquotes         :syntax:
