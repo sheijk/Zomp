@@ -14,11 +14,17 @@ macro existingGlobalMacro:
   ret ${}
 end
 
-std:base:func int main():
+type existingGlobalType int
+
+std:base:func void localVarsCanHideGlobals():
+  var float existingGlobalVar 0.0
   var float existingGlobalVar 0.0
   var float existingGlobalFunc 0.0
   var float existingGlobalMacro 0.0
+  var float existingGlobalType 0.0
+end
 
+std:base:func void localMacrosCanHideGlobals():
   macro existingGlobalVar:
     ret ${}
   end
@@ -30,6 +36,15 @@ std:base:func int main():
   macro existingGlobalMacro:
     ret ${}
   end
+
+  macro existingGlobalType:
+    ret ${}
+  end
+end
+
+std:base:func int main():
+  localVarsCanHideGlobals()
+  localMacrosCanHideGlobals()
 
   printf "everything-works\n" //// print everything-works
   std:base:ret 0
