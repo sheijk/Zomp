@@ -7,7 +7,7 @@ var int topInt 10
 
 std:base:func int main():
   var int topInt 20
-  var int funcInt 10
+  var int funcInt 10 //// info funcInt previous defin
   var int funcInt 30 //// error funcInt defin
 
   std:base:ret 0

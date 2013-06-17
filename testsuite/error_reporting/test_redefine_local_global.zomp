@@ -18,20 +18,21 @@ type existingGlobalType int
 
 std:base:func void localVarsCanHideGlobals():
   var float existingGlobalVar 0.0
-  var float existingGlobalVar 0.0
   var float existingGlobalFunc 0.0
   var float existingGlobalMacro 0.0
   var float existingGlobalType 0.0
 end
 
 std:base:func void localMacrosCanHideGlobals():
-  macro existingGlobalVar:
-    ret ${}
-  end
+  // TODO: functions created from macros need a distinct name to avoid collisions
 
-  macro existingGlobalFunc:
-    ret ${}
-  end
+  // macro existingGlobalVar:
+  //   ret ${}
+  // end
+
+  // macro existingGlobalFunc:
+  //   ret ${}
+  // end
 
   macro existingGlobalMacro:
     ret ${}

@@ -358,53 +358,104 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
  *)
 let hasRedefinitionErrors
     (newDefinitionType : [`NewVar | `NewFuncDef | `NewFuncDecl | `NewType | `NewMacro])
+    (scope : [`Local | `Global])
     name expr bindings emitDiagnostics
     =
+  let reportPreviousDefinition previousDefinitionLocOpt =
+    if previousDefinitionLocOpt <> None then
+      emitDiagnostics
+        Basics.DiagnosticKind.Info
+        (Serror.fromMsg previousDefinitionLocOpt (sprintf "previous definition of %s" name))
+  in
   let reportRedefinition previousDefinitionLoc diagnosticsKind =
     let error = Serror.fromExpr expr (sprintf "redefinition of %s" name) in
     emitDiagnostics diagnosticsKind error;
-    if previousDefinitionLoc <> None then
-      emitDiagnostics
-        Basics.DiagnosticKind.Info
-        (Serror.fromMsg previousDefinitionLoc (sprintf "previous definition of %s" name));
+    reportPreviousDefinition previousDefinitionLoc;
     diagnosticsKind = Basics.DiagnosticKind.Error
   in
   let error = Basics.DiagnosticKind.Error
   and warning = Basics.DiagnosticKind.Warning in
-  match newDefinitionType, Bindings.lookup bindings name with
-    | `NewVar,  VarSymbol var ->
-      reportRedefinition var.vlocation error
-    | `NewFuncDef,  FuncSymbol { impl = Some _; flocation } ->
-      if Zompvm.isInteractive() then
-        false
-      else
-        reportRedefinition flocation error
-    | `NewMacro,  MacroSymbol { mlocation } ->
-      if mlocation = Some Basics.builtinLocation then
-        false
-      else
-        reportRedefinition mlocation warning
-    | `NewType,  TypedefSymbol _ ->
-      (** TODO: this should be an error if the types differ *)
+  let previousBinding = Bindings.lookup bindings name in
+  let previousBindingScope =
+    match previousBinding with
+      | VarSymbol { vglobal = false }
+      | LabelSymbol _ ->
+        `Local
+
+      | VarSymbol { vglobal = true }
+      | FuncSymbol _ ->
+        `Global
+
+      | MacroSymbol _
+      | TypedefSymbol _ ->
+        `Unknown
+
+       | UndefinedSymbol ->
+        `Undefined
+  in
+
+  let previousDefinitionLocOpt =
+    match previousBinding with
+      | VarSymbol { vlocation = locOpt }
+      | FuncSymbol { flocation = locOpt }
+      | MacroSymbol { mlocation = locOpt }
+        ->
+        locOpt
+
+      | TypedefSymbol _
+      | LabelSymbol _
+      | UndefinedSymbol ->
+        None
+  in
+
+  match scope, previousBindingScope with
+    | _, `Undefined
+    | _, `Unknown
+    | `Local, `Global ->
       false
 
-    (** Redefining as something different than before is an error *)
-    | (`NewFuncDef | `NewFuncDecl | `NewType | `NewMacro),  VarSymbol var ->
-      reportRedefinition var.vlocation error
-    | (`NewVar | `NewType | `NewMacro),  FuncSymbol { flocation } ->
-      reportRedefinition flocation error
-    | (`NewVar | `NewType | `NewFuncDecl | `NewFuncDef),  MacroSymbol { mlocation } ->
-      reportRedefinition mlocation error
-    | (`NewVar | `NewFuncDef | `NewFuncDecl | `NewMacro),  TypedefSymbol _ ->
-      reportRedefinition None error
-    | _,  LabelSymbol _ ->
-      failwith "internal error, global label defined"
+    | `Global, `Local ->
+      emitDiagnostics error (Serror.fromExpr expr "internal error, global hiding local definition");
+      reportPreviousDefinition previousDefinitionLocOpt;
+      true
 
-    | `NewFuncDef,  FuncSymbol { impl = None }
-    | `NewFuncDecl,  FuncSymbol _
-      (** TODO: should be an error if signatures are different *)
-    | _,  UndefinedSymbol ->
-      false
+    | `Local, `Local
+    | `Global, `Global ->
+      begin match newDefinitionType, previousBinding with
+        | `NewVar,  VarSymbol var ->
+          reportRedefinition var.vlocation error
+        | `NewFuncDef,  FuncSymbol { impl = Some _; flocation } ->
+          if Zompvm.isInteractive() then
+            false
+          else
+            reportRedefinition flocation error
+        | `NewMacro,  MacroSymbol { mlocation } ->
+          if mlocation = Some Basics.builtinLocation then
+            false
+          else
+            reportRedefinition mlocation warning
+        | `NewType,  TypedefSymbol _ ->
+        (** TODO: this should be an error if the types differ *)
+          false
+
+        (** Redefining as something different than before is an error *)
+        | (`NewFuncDef | `NewFuncDecl | `NewType | `NewMacro),  VarSymbol var ->
+          reportRedefinition var.vlocation error
+        | (`NewVar | `NewType | `NewMacro),  FuncSymbol { flocation } ->
+          reportRedefinition flocation error
+        | (`NewVar | `NewType | `NewFuncDecl | `NewFuncDef),  MacroSymbol { mlocation } ->
+          reportRedefinition mlocation error
+        | (`NewVar | `NewFuncDef | `NewFuncDecl | `NewMacro),  TypedefSymbol _ ->
+          reportRedefinition None error
+        | _,  LabelSymbol _ ->
+          failwith "internal error, global label defined"
+
+        | `NewFuncDef,  FuncSymbol { impl = None }
+        | `NewFuncDecl,  FuncSymbol _
+        (** TODO: should be an error if signatures are different *)
+        | _,  UndefinedSymbol ->
+          false
+      end
 
 let reportDiagnostics kind diagnostic =
   eprintf "%s\n" (Serror.diagnosticsToString kind diagnostic)
@@ -442,7 +493,7 @@ struct
   let translateTypedef translateF (bindings :bindings) =
     let translateRecordTypedef bindings typeName componentExprs expr =
       let isRedefinitionError =
-        hasRedefinitionErrors `NewType typeName expr bindings reportDiagnostics
+        hasRedefinitionErrors `NewType `Global typeName expr bindings reportDiagnostics
       in
 
       let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
@@ -514,7 +565,7 @@ struct
           when id = macroTypedef ->
           begin
             let isRedefinitionError =
-              hasRedefinitionErrors `NewType newTypeName expr bindings reportDiagnostics
+              hasRedefinitionErrors `NewType `Global newTypeName expr bindings reportDiagnostics
             in
 
             match translateType bindings targetTypeExpr, isRedefinitionError with
@@ -776,7 +827,7 @@ struct
     in
     translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
 
-  let translateDefineMacro translateNestedF translateF (bindings :bindings) expr =
+  let translateDefineMacro translateNestedF scope translateF (bindings :bindings) expr =
     trace "translateDefineMacro" expr.location;
     match expr with
     | { id = id; args =
@@ -784,7 +835,7 @@ struct
           :: paramImpl
       } when id = macroMacro or id = macroReplacement ->
         let isRedefinitionError =
-          hasRedefinitionErrors `NewMacro name expr bindings reportDiagnostics
+          hasRedefinitionErrors `NewMacro scope name expr bindings reportDiagnostics
         in
 
         if isRedefinitionError then
@@ -944,7 +995,7 @@ struct
          | None, _ ->
              result : bindings -> Ast2.sexpr -> Ast2.sexpr)
 
-  let translateDefineMacro translateNestedF env expr =
+  let translateDefineMacro translateNestedF scope env expr =
     let decomposeMacroDefinition expr =
       let nameParamImplOption =
         match expr with
@@ -1013,7 +1064,7 @@ struct
       | Result (name, paramNames, implExprs, isVariadic) ->
         begin
           let isRedefinitionError =
-            hasRedefinitionErrors `NewMacro name expr env.bindings reportDiagnostics
+            hasRedefinitionErrors `NewMacro scope name expr env.bindings reportDiagnostics
           in
 
           if isRedefinitionError then
@@ -1140,7 +1191,7 @@ struct
       ] } ->
         begin
           let isRedefinitionError =
-            hasRedefinitionErrors `NewVar name expr env.bindings reportDiagnostics
+            hasRedefinitionErrors `NewVar `Global name expr env.bindings reportDiagnostics
           in
           let typ =
             match translateType env.bindings typeExpr with
@@ -1666,37 +1717,14 @@ struct
     in
     let transform id name typeExpr valueExpr :translationResult =
       try
-        begin
-          if name = "funcInt" then
-            match expr.location with
-              | Some loc -> printf "var %s @ %s\n" name (locationToString loc)
-              | None -> printf "var %s no loc\n" name
-        end;
-        match lookup env.bindings name with
-          | VarSymbol { vglobal = false } ->
-              (* todo: move somewhere else *)
-              let module Errors =
-                struct
-                  let lexerBaseCode = 100
-                  and parserBaseCode = 200
-                  and expanderBaseCode = 300
+        let isRedefinitionError =
+          hasRedefinitionErrors `NewVar `Local name expr env.bindings reportDiagnostics
+        in
 
-                  let makeErrorString localErrorCode expr msg =
-                    let errorCode = expanderBaseCode + localErrorCode in
-                    match expr.location with
-                      | Some loc ->
-                          sprintf "error %d: %s: %d: %s" errorCode loc.fileName loc.line msg
-                      | None ->
-                          sprintf "error %d: %s in\n  %s" errorCode msg (Ast2.toString expr)
-
-                  let localVarDefinedTwice loc varName =
-                    errorFromExpr expr
-                      (sprintf "redefinition of local variable '%s'" name)
-                end
-              in
-              Errors.localVarDefinedTwice expr name
-          | _ ->
-              transformUnsafe id name typeExpr valueExpr
+        if isRedefinitionError then
+          Error []
+        else
+          transformUnsafe id name typeExpr valueExpr
       with
           IllegalExpression (_, errors) ->
             Error errors
@@ -2295,7 +2323,7 @@ let rec translateNested (bindings :bindings) (expr :Ast2.sexpr) =
       Translators_deprecated_style.translateRestrictedFunCall;
       Translators_deprecated_style.translateSimpleExpr;
       Old_macro_support.translateMacroCall;
-      Old_macro_support.translateDefineMacro translateNested;
+      Old_macro_support.translateDefineMacro translateNested `Local;
       Translators_deprecated_style.translateRecord;
     ]
   bindings expr
@@ -2385,7 +2413,7 @@ let translateSeqTL handleLLVMCodeF translateTL env expr =
 
 let () =
   addBaseInstruction macroMacro "name, args..., body"
-    (Macros.translateDefineMacro translateNested)
+    (Macros.translateDefineMacro translateNested `Local)
 
 let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
@@ -2398,7 +2426,7 @@ let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstr
   in
 
   add macroMacro "name, args..., body"
-    (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested));
+    (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested `Global));
   Base.registerTL (fun name (doc, f) -> add name doc f);
 
   translateFromDict table, add, (fun f -> Hashtbl.iter f documentation)
@@ -2597,7 +2625,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           match translateType bindings typeExpr with
             | Result typ -> begin
               let isRedefinitionError =
-                hasRedefinitionErrors `NewFuncDef name expr bindings reportDiagnostics
+                hasRedefinitionErrors `NewFuncDef `Global name expr bindings reportDiagnostics
               in
 
               (** Add function declaration so it can be called in body *)
@@ -2625,7 +2653,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
     | `FuncDecl (name, typeExpr, paramExprs, hasvarargs) ->
         begin
           let isRedefinitionError =
-            hasRedefinitionErrors `NewFuncDecl name expr bindings reportDiagnostics
+            hasRedefinitionErrors `NewFuncDecl `Global name expr bindings reportDiagnostics
           in
           match translateType bindings typeExpr with
             | Result typ ->
@@ -2653,7 +2681,7 @@ and translateTLNoErr bindings expr =
     sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
     sampleFunc3 "translateFunc" translateFunc;
     sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
-    sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
+    sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested `Global);
     sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
     sampleFunc3 "translateCompileTimeVar" translateCompileTimeVar;
   ]
