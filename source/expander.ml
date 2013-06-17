@@ -912,11 +912,13 @@ type toplevelTranslationResult = toplevelExpr translationResultV
 
 module Macros =
 struct
-  let macroFunctionName macroName =
-    "zomp$macro$" ^ macroName
-
-  let buildNativeMacroFunc translateF bindings
-      macroName argNames implExprs (isVariadic : [`IsVariadic | `IsNotVariadic])
+  let buildNativeMacroFunc
+      translateF
+      bindings
+      (`MacroFuncName macroFuncName)
+      argNames
+      implExprs
+      (isVariadic : [`IsVariadic | `IsNotVariadic])
       =
     let argParamName = "macro_args" in
     let bindings = Bindings.addVar bindings
@@ -948,14 +950,13 @@ struct
     let macroFunc =
       let fargs = [argParamName, `Pointer (`Pointer astType)]
       and impl = Some (toSingleForm implforms) in
-      let macroFuncName = macroFunctionName macroName in
       func macroFuncName astPtrType fargs impl Basics.fakeLocation
     in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     tlforms, macroFunc
 
-  let translateMacroCall name paramCount isVariadic =
-    let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name:(macroFunctionName name) in
+  let translateMacroCall macroName (`MacroFuncName macroFuncName) paramCount isVariadic =
+    let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name:macroFuncName in
     (fun bindings expr ->
        let result =
          let args = expr.args in
@@ -973,7 +974,7 @@ struct
              | `IsNotVariadic -> begin
                  if argCount <> paramCount then begin
                    raiseIllegalExpression
-                     (Ast2.expr name args)
+                     (Ast2.expr macroName args)
                      (sprintf "expected %d args but found %d" paramCount argCount);
                  end else begin
                    invokeMacro args
@@ -982,7 +983,7 @@ struct
              | `IsVariadic -> begin
                  if argCount < paramCount-1 then begin
                    raiseIllegalExpression
-                     (Ast2.expr name args)
+                     (Ast2.expr macroName args)
                      (sprintf "expected at least %d args but found only %d"
                         (paramCount-1) argCount)
                  end;
@@ -1074,16 +1075,21 @@ struct
           if isRedefinitionError then
             Error []
           else begin
-
+            let macroFuncName =
+              let prefix = match scope with
+                | `Global -> "zomp$macro$"
+                | `Local -> "zomp$local-macro$"
+              in
+              prefix ^ macroName
+            in
             let tlexprs, func =
               buildNativeMacroFunc
                 translateNestedF env.bindings
-                macroName paramNames implExprs isVariadic
+                (`MacroFuncName macroFuncName) paramNames implExprs isVariadic
             in
 
             let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
 
-            let macroFuncName = macroFunctionName macroName in
             Zompvm.evalLLVMCodeB
               ~targetModule:Zompvm.Runtime
               (if listContains macroFuncName !macroFuncs then
@@ -1104,7 +1110,7 @@ struct
 
             let location = someOrDefault expr.location Basics.fakeLocation in
             let newBindings = Bindings.addMacro env.bindings macroName docstring location
-              (translateMacroCall macroName (List.length paramNames) isVariadic)
+              (translateMacroCall macroName (`MacroFuncName macroFuncName) (List.length paramNames) isVariadic)
             in
 
             Result (newBindings, [])
