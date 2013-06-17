@@ -912,18 +912,21 @@ type toplevelTranslationResult = toplevelExpr translationResultV
 
 module Macros =
 struct
+  let macroFunctionName macroName =
+    "zomp$macro$" ^ macroName
+
   let buildNativeMacroFunc translateF bindings
       macroName argNames implExprs (isVariadic : [`IsVariadic | `IsNotVariadic])
       =
+    let argParamName = "macro_args" in
     let bindings = Bindings.addVar bindings
       (Lang.variable
-         ~name:"macro_args"
+         ~name:argParamName
          ~typ:(`Pointer astPtrType)
          ~storage:MemoryStorage
          ~global:false
          ~location:None)
     in
-    let argParamName = "macro_args" in
     let buildParamFetchExpr num name =
       Ast2.expr "std:base:localVar" [Ast2.idExpr name;
                                      Ast2.expr "load" [
@@ -945,13 +948,14 @@ struct
     let macroFunc =
       let fargs = [argParamName, `Pointer (`Pointer astType)]
       and impl = Some (toSingleForm implforms) in
-      func macroName astPtrType fargs impl Basics.fakeLocation
+      let macroFuncName = macroFunctionName macroName in
+      func macroFuncName astPtrType fargs impl Basics.fakeLocation
     in
     let tlforms = initForms @ [`DefineFunc macroFunc] in
     tlforms, macroFunc
 
   let translateMacroCall name paramCount isVariadic =
-    let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name in
+    let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name:(macroFunctionName name) in
     (fun bindings expr ->
        let result =
          let args = expr.args in
@@ -1061,10 +1065,10 @@ struct
             errorFromExpr expr (sprintf "expecting '%s name paramName* lastParamVariadic...? seq" expr.id)
     in
     match decomposeMacroDefinition expr with
-      | Result (name, paramNames, implExprs, isVariadic) ->
+      | Result (macroName, paramNames, implExprs, isVariadic) ->
         begin
           let isRedefinitionError =
-            hasRedefinitionErrors `NewMacro scope name expr env.bindings reportDiagnostics
+            hasRedefinitionErrors `NewMacro scope macroName expr env.bindings reportDiagnostics
           in
 
           if isRedefinitionError then
@@ -1074,17 +1078,18 @@ struct
             let tlexprs, func =
               buildNativeMacroFunc
                 translateNestedF env.bindings
-                name paramNames implExprs isVariadic
+                macroName paramNames implExprs isVariadic
             in
 
             let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
 
+            let macroFuncName = macroFunctionName macroName in
             Zompvm.evalLLVMCodeB
               ~targetModule:Zompvm.Runtime
-              (if listContains name !macroFuncs then
-                  [name]
+              (if listContains macroFuncName !macroFuncs then
+                  [macroFuncName]
                else begin
-                 macroFuncs := name :: !macroFuncs;
+                 macroFuncs := macroFuncName :: !macroFuncs;
                  []
                end)
               []
@@ -1098,8 +1103,8 @@ struct
             in
 
             let location = someOrDefault expr.location Basics.fakeLocation in
-            let newBindings = Bindings.addMacro env.bindings name docstring location
-              (translateMacroCall name (List.length paramNames) isVariadic)
+            let newBindings = Bindings.addMacro env.bindings macroName docstring location
+              (translateMacroCall macroName (List.length paramNames) isVariadic)
             in
 
             Result (newBindings, [])

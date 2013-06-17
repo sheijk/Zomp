@@ -24,15 +24,13 @@ std:base:func void localVarsCanHideGlobals():
 end
 
 std:base:func void localMacrosCanHideGlobals():
-  // TODO: functions created from macros need a distinct name to avoid collisions
+  macro existingGlobalVar:
+    ret ${}
+  end
 
-  // macro existingGlobalVar:
-  //   ret ${}
-  // end
-
-  // macro existingGlobalFunc:
-  //   ret ${}
-  // end
+  macro existingGlobalFunc:
+    ret ${}
+  end
 
   macro existingGlobalMacro:
     ret ${}
