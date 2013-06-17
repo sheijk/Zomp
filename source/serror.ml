@@ -28,7 +28,10 @@ let toString error =
   diagnosticsToString Basics.DiagnosticKind.Error error
 
 let check funcName error =
-  let warn msg = printf "alert, %s (in %s, msg = %s)!\n" msg funcName (toString error) in
+  let warn msg =
+    let shortMsg = restrictLength 80 (toString error) in
+    printf "alert, %s (in %s, msg = %s)!\n" msg funcName shortMsg
+  in
   if error.emsg =~ ".*\\.zomp:[0-9]+: error:" then begin
     warn "error location has been added twice";
     if error.eloc = None then

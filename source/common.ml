@@ -231,6 +231,16 @@ struct
 
   let stringToCharList = List.rev ++ stringToRevCharList
 
+  let restrictLength maxChars str =
+    let strLength = String.length str in
+    let dots = "..." in
+    if strLength <= maxChars then
+      str
+    else
+      let shortenedStr = String.sub str 0 maxChars in
+      let dotsLength = String.length dots in
+      String.blit dots 0 shortenedStr (maxChars - dotsLength) dotsLength;
+      shortenedStr
 end
 include CommonString
 
