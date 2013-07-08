@@ -236,9 +236,13 @@ module Exit_code = struct
 end
 
 let writeHtmlHeader outFile zompFileName =
+  let monospace = "font-family", "monospace" in
+  let lightLineLeft = [
+    "border-left", "1px solid gray";
+    "padding-left", "10px"]
+  in
   let ulClass cssClass = [
-    sprintf ".%s" cssClass, [
-      "font-family", "monospace"];
+    sprintf ".%s" cssClass, [monospace];
     sprintf ".%s ul" cssClass, [
       "padding-left", "20px";
       "list-style-type", "square"];
@@ -247,16 +251,11 @@ let writeHtmlHeader outFile zompFileName =
   let cssElements = [
     ".ok", ["color", "green"];
     ".failed", ["color", "red"];
-    ".test-output", [
-      "font-family", "monospace";
-      "border-left", "1px solid gray";
-      "padding-left", "10px"];
-    ".compiler-output", [
-      "font-family", "monospace";
-      "border-left", "1px solid gray";
-      "padding-left", "10px"];
+    ".test-output", monospace :: lightLineLeft;
+    ".compiler-output", monospace :: lightLineLeft;
+
     ".source ol", [
-      "font-family", "monospace";
+      monospace;
       "color", "gray"];
     ".source li", [
       "background", "#fff";
