@@ -253,10 +253,11 @@ let writeHtmlHeader outFile zompFileName =
     ".failed", ["color", "red"];
     ".test-output", monospace :: lightLineLeft;
     ".compiler-output", monospace :: lightLineLeft;
-
+  ] @ [
     ".source ol", [
       monospace;
-      "color", "gray"];
+      "color", "gray";
+      "display", "inline-block"];
     ".source li", [
       "background", "#fff";
       "padding-left", "10px";
@@ -605,7 +606,7 @@ let () =
     writeHeader 2 "Source";
     inElements ["span"; "ol"] ~cssClass:"source" (fun () ->
       forEachLineInFile zompFileName (fun _ line ->
-        fprintf outFile "  <li><code>%s</code></li>\n" line));
+        fprintf outFile "  <li><code>%s</code></li>\n" (escapeHtmlText line)));
 
     fprintf outFile "</html>")
 
