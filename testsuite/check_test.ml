@@ -257,7 +257,9 @@ let writeHtmlHeader outFile zompFileName =
     ".source ol li code", [
       "color", "black"];
     ".source li:hover", [
-      "background", "#eee"]
+      "background", "#eee"];
+    ".expectations", [
+      "font-family", "monospace"]
   ] in
 
   fprintf outFile "<html>\n";
@@ -378,11 +380,6 @@ let () =
       fprintf outFile "<h%d>%s</h%d>\n" n header n
     in
 
-    let inMonospace f =
-      fprintf outFile "<p><span style=\"font-family:monospace\">\n";
-      f();
-      fprintf outFile "</span></p>\n"
-    in
     let inElement element ?cssClass f =
       fprintf outFile "<%s%s>\n"
         element
@@ -393,7 +390,7 @@ let () =
 
     let writeExpectation expectation =
       let { Expectation.kind; line = lineNum; words } = expectation in
-      fprintf outFile "%s: expect %s<br />\n"
+      fprintf outFile "  <li>%s: expect %s</li>\n"
         (ExpectationKind.locationDescription zompFileName lineNum kind)
         (ExpectationKind.description kind words)
     in
@@ -503,11 +500,11 @@ let () =
     forEachLineInFile zompFileName collectExpectations;
     expectedErrorMessages := List.rev !expectedErrorMessages;
     writeHeader 2 "Expectations";
-    inMonospace (fun () ->
-      fprintf outFile "Expect compilation to %s. <br />\n"
+    inElement "ul" ~cssClass:"expectations" (fun () ->
+      fprintf outFile "  <li>Expect compilation to %s.</li>\n"
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
-        fprintf outFile "Expect test to exit with code %s. <br />\n"
+        fprintf outFile "  <li>Expect test to exit with code %s.</li>\n"
           (Exit_code.conditionToString !expectedTestCaseExitCode);
       List.iter writeExpectation !expectedErrorMessages);
 
