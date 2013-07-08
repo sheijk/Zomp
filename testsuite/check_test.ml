@@ -236,35 +236,41 @@ module Exit_code = struct
 end
 
 let writeHtmlHeader outFile zompFileName =
+  let cssElements = [
+    ".ok", ["color", "green"];
+    ".failed", ["color", "red"];
+    ".test-output", [
+      "font-family", "monospace";
+      "border-left", "1px solid gray";
+      "padding-left", "10px"];
+    ".compiler-output", [
+      "font-family", "monospace";
+      "border-left", "1px solid gray";
+      "padding-left", "10px"];
+    ".source ol", [
+      "font-family", "monospace";
+      "color", "gray"];
+    ".source li", [
+      "background", "#fff";
+      "padding-left", "10px";
+      "border-left", "1px solid gray"];
+    ".source ol li code", [
+      "color", "black"];
+    ".source li:hover", [
+      "background", "#eee"]
+  ] in
+
   fprintf outFile "<html>\n";
   fprintf outFile "  <head>\n";
   fprintf outFile "    <title>Report for %s</title>\n" zompFileName;
   fprintf outFile "    <style type=\"text/css\">\n";
-  fprintf outFile "      .ok { color: green; }\n";
-  fprintf outFile "      .failed { color: red; }\n";
-  fprintf outFile "      .test-output {\n";
-  fprintf outFile "        font-family: monospace;\n";
-  fprintf outFile "        border-left: 1px solid gray;\n";
-  fprintf outFile "        padding-left: 10px;\n";
-  fprintf outFile "      }\n";
-  fprintf outFile "      .compiler-output {\n";
-  fprintf outFile "        font-family: monospace;\n";
-  fprintf outFile "        border-left: 1px solid gray;\n";
-  fprintf outFile "        padding-left: 10px;\n";
-  fprintf outFile "      }\n";
-  fprintf outFile "      .source ol {\n";
-  fprintf outFile "        font-family: monospace;\n";
-  fprintf outFile "        color: gray;\n";
-  fprintf outFile "      }\n";
-  fprintf outFile "      .source li {\n";
-  fprintf outFile "        background: #fff;\n";
-  fprintf outFile "        padding-left: 10px;\n";
-  fprintf outFile "        border-left: 1px solid gray;\n";
-  fprintf outFile "      }\n";
-  fprintf outFile "      .source ol li code {\n";
-  fprintf outFile "        color: black;\n";
-  fprintf outFile "      }\n";
-  fprintf outFile "      .source li:hover { background: #eee }\n";
+  List.iter (fun ((path:string), attributes) ->
+    let makeAttributeLine (name, value) =
+      sprintf "%s: %s;" name value
+    in
+    let attributeLines = List.map makeAttributeLine attributes in
+    fprintf outFile "      %s {\n        %s\n      }\n" path (Common.combine "\n        " attributeLines);
+  ) cssElements;
   fprintf outFile "    </style>\n";
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n";
