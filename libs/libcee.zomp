@@ -1351,8 +1351,21 @@ end
 /// Section: Overloaded printing
 ///-----------------------------------------------------------------------------
 
+func void print_u8(u8 i):
+  printInt (cast u32 i)
+end
+
+func void print_u16(u16 i):
+  printInt (cast u32 i)
+end
+
 func void print_u32(int i):
   printInt i
+end
+
+func void print_u64(u64 i):
+  printf("%ld", i)
+  ret // work-around to avoid error when last expression does not return void
 end
 
 func void print_float(float f):

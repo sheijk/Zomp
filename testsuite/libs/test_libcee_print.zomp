@@ -1,0 +1,21 @@
+///
+/// Checking print function in libcee
+///
+
+requireLibs libcee
+
+func int main():
+  println (cast u8 108) //// print 108
+  println (cast u16 116) //// print 116
+  println 132 //// print 132
+  println (cast u64 164) //// print 164
+
+  println 32.0f //// print 32.0
+  println 64.0d //// print 64.0
+
+  println 'X' //// print X
+  println "foobar" //// print foobar
+
+  ret 0
+end
+
