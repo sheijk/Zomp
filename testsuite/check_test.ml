@@ -242,6 +242,16 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "    <style type=\"text/css\">\n";
   fprintf outFile "      .ok { color: green; }\n";
   fprintf outFile "      .failed { color: red; }\n";
+  fprintf outFile "      .test-output {\n";
+  fprintf outFile "        font-family: monospace;\n";
+  fprintf outFile "        border-left: 1px solid gray;\n";
+  fprintf outFile "        padding-left: 10px;\n";
+  fprintf outFile "      }\n";
+  fprintf outFile "      .compiler-output {\n";
+  fprintf outFile "        font-family: monospace;\n";
+  fprintf outFile "        border-left: 1px solid gray;\n";
+  fprintf outFile "        padding-left: 10px;\n";
+  fprintf outFile "      }\n";
   fprintf outFile "    </style>\n";
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n"
@@ -352,6 +362,13 @@ let () =
       fprintf outFile "<p><span style=\"font-family:monospace\">\n";
       f();
       fprintf outFile "</span></p>\n"
+    in
+    let inElement element ?cssClass f =
+      fprintf outFile "<%s%s>\n"
+        element
+        (match cssClass with None -> "" | Some name -> sprintf " class=\"%s\"" name);
+      f();
+      fprintf outFile "</%s>\n" element;
     in
 
     let writeExpectation expectation =
@@ -483,7 +500,7 @@ let () =
     in
 
     writeHeader 2 "Compiler output";
-    inMonospace (fun () ->
+    inElement "p" ~cssClass:"compiler-output" (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
     fprintf outFile "Compiler exited with code %d</br>\n" compilerError;
 
@@ -495,7 +512,7 @@ let () =
       let runReturnCode = Sys.command cmd in
 
       writeHeader 2 "Output";
-      inMonospace (fun () ->
+      inElement "p" ~cssClass:"test-output" (fun () ->
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
       fprintf outFile "Exited with code %d<br />\n" runReturnCode;
