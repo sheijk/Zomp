@@ -59,5 +59,13 @@ unittest:testCase FloatIntConversion:
   end
 end
 
+unittest:testCase Arithmetic64:
+  /// TODO: test 64-bit arithmetic
+  /// TODO: test bit shift
+  /// TODO: test all arithmetic operations
+  unittest:assertAll:
+  end
+end
+
 unittest:main
 

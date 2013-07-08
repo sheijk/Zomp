@@ -1789,6 +1789,8 @@ Next up:
 - [X] add source locations to native ast type
 - [ ] add source locations to macros and Bindings.TypedefSymbol and builtin macros/types
 - [ ] automatically generate source location for expressions created in macros
+- [ ] "no translator matched expression" must go away
+- [ ] proper statistics module
 
 Minor tasks:
 - useful handling of ret at end of function
