@@ -236,6 +236,14 @@ module Exit_code = struct
 end
 
 let writeHtmlHeader outFile zompFileName =
+  let ulClass cssClass = [
+    sprintf ".%s" cssClass, [
+      "font-family", "monospace"];
+    sprintf ".%s ul" cssClass, [
+      "padding-left", "20px";
+      "list-style-type", "square"];
+  ]
+  in
   let cssElements = [
     ".ok", ["color", "green"];
     ".failed", ["color", "red"];
@@ -258,9 +266,10 @@ let writeHtmlHeader outFile zompFileName =
       "color", "black"];
     ".source li:hover", [
       "background", "#eee"];
-    ".expectations", [
-      "font-family", "monospace"]
-  ] in
+  ]
+    @ ulClass "expectations"
+    @ ulClass "results"
+  in
 
   fprintf outFile "<html>\n";
   fprintf outFile "  <head>\n";
@@ -368,10 +377,15 @@ let () =
 
   withOpenFileOut outputFileName (fun outFile ->
     let errorOccured = ref false in
-    let reportError ?line msg =
+    let reportError tag ?line msg =
       let line = match line with Some l -> l | _ -> 0 in
       let msg = sprintf "%s:%d: error: %s" zompFileName line msg in
-      fprintf outFile "%s<br />\n" msg;
+      begin match tag with
+        | `Br ->
+          fprintf outFile "%s<br />\n" msg
+        | `Li ->
+          fprintf outFile "  <li>%s</li>\n" msg
+      end;
       fprintf stderr "%s\n" msg;
       errorOccured := true;
     in
@@ -380,12 +394,18 @@ let () =
       fprintf outFile "<h%d>%s</h%d>\n" n header n
     in
 
-    let inElement element ?cssClass f =
-      fprintf outFile "<%s%s>\n"
-        element
+    let inElements elements ?cssClass f =
+      let first = List.hd elements
+      and remaining = List.tl elements
+      in
+      fprintf outFile "<%s%s>"
+        first
         (match cssClass with None -> "" | Some name -> sprintf " class=\"%s\"" name);
+      List.iter (fun element -> fprintf outFile "<%s>" element) remaining;
+      fprintf outFile "\n";
       f();
-      fprintf outFile "</%s>\n" element;
+      List.iter (fun element -> fprintf outFile "</%s>" element) (List.rev remaining);
+      fprintf outFile "</%s>\n" first;
     in
 
     let writeExpectation expectation =
@@ -484,7 +504,7 @@ let () =
     let reportIfMissing expectation =
       let { Expectation.kind; line; words; found } = expectation in
       if !found = false then
-        reportError ~line
+        reportError `Li ~line
           (sprintf "expected %s but didn't happen"
              (ExpectationKind.description kind words))
     in
@@ -500,7 +520,7 @@ let () =
     forEachLineInFile zompFileName collectExpectations;
     expectedErrorMessages := List.rev !expectedErrorMessages;
     writeHeader 2 "Expectations";
-    inElement "ul" ~cssClass:"expectations" (fun () ->
+    inElements ["span"; "ul"] ~cssClass:"expectations" (fun () ->
       fprintf outFile "  <li>Expect compilation to %s.</li>\n"
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
@@ -517,7 +537,7 @@ let () =
     in
 
     writeHeader 2 "Compiler output";
-    inElement "p" ~cssClass:"compiler-output" (fun () ->
+    inElements ["p"] ~cssClass:"compiler-output" (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
     fprintf outFile "Compiler exited with code %d</br>\n" compilerError;
 
@@ -529,31 +549,32 @@ let () =
       let runReturnCode = Sys.command cmd in
 
       writeHeader 2 "Output";
-      inElement "p" ~cssClass:"test-output" (fun () ->
+      inElements ["p"] ~cssClass:"test-output" (fun () ->
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
       fprintf outFile "Exited with code %d<br />\n" runReturnCode;
       match !expectedTestCaseExitCode with
         | Exit_code.MustBe expectedCode ->
           if expectedCode != runReturnCode then
-            reportError (sprintf "exited with code %d instead of %d" runReturnCode expectedCode)
+            reportError `Br (sprintf "exited with code %d instead of %d" runReturnCode expectedCode)
         | Exit_code.MustNotBe unexpectedCode ->
           if runReturnCode = unexpectedCode then
-            reportError (sprintf "exited with code %d but was expected to exit with anything else" runReturnCode);
+            reportError `Br (sprintf "exited with code %d but was expected to exit with anything else" runReturnCode);
     end;
 
     writeHeader 2 "Results";
 
-    if !expectedCompilationSuccess && compilerError <> 0 then begin
-      reportError "compilation failed, but no errors expected";
-      let printLine _ line = print_string line; print_newline() in
-      forEachLineInFile compilerMessagesOutputFile printLine;
-      print_newline();
-    end else if not !expectedCompilationSuccess && compilerError = 0 then begin
-      reportError "compilation succeeded, but unit test expected errors";
-    end;
+    inElements ["span"; "ul"] ~cssClass:"results" (fun () ->
+      if !expectedCompilationSuccess && compilerError <> 0 then begin
+        reportError `Li "compilation failed, but no errors expected";
+        let printLine _ line = print_string line; print_newline() in
+        forEachLineInFile compilerMessagesOutputFile printLine;
+        print_newline();
+      end else if not !expectedCompilationSuccess && compilerError = 0 then begin
+        reportError `Li "compilation succeeded, but unit test expected errors";
+      end;
 
-    List.iter reportIfMissing !expectedErrorMessages;
+      List.iter reportIfMissing !expectedErrorMessages);
 
     let cssClass, result =
       if !errorOccured then
@@ -583,10 +604,9 @@ let () =
     end;
 
     writeHeader 2 "Source";
-    inElement "span" ~cssClass:"source" (fun () ->
-      inElement "ol" (fun () ->
-        forEachLineInFile zompFileName (fun _ line ->
-          fprintf outFile "  <li><code>%s</code></li>\n" line)));
+    inElements ["span"; "ol"] ~cssClass:"source" (fun () ->
+      forEachLineInFile zompFileName (fun _ line ->
+        fprintf outFile "  <li><code>%s</code></li>\n" line));
 
     fprintf outFile "</html>")
 
