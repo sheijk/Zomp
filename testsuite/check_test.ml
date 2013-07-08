@@ -252,9 +252,23 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "        border-left: 1px solid gray;\n";
   fprintf outFile "        padding-left: 10px;\n";
   fprintf outFile "      }\n";
+  fprintf outFile "      .source ol {\n";
+  fprintf outFile "        font-family: monospace;\n";
+  fprintf outFile "        color: gray;\n";
+  fprintf outFile "      }\n";
+  fprintf outFile "      .source li {\n";
+  fprintf outFile "        background: #fff;\n";
+  fprintf outFile "        padding-left: 10px;\n";
+  fprintf outFile "        border-left: 1px solid gray;\n";
+  fprintf outFile "      }\n";
+  fprintf outFile "      .source ol li code {\n";
+  fprintf outFile "        color: black;\n";
+  fprintf outFile "      }\n";
+  fprintf outFile "      .source li:hover { background: #eee }\n";
   fprintf outFile "    </style>\n";
   fprintf outFile "  </head>\n";
-  fprintf outFile "  <body>\n"
+  fprintf outFile "  <body>\n";
+  ()
 
 let addExpectation
     zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
@@ -564,6 +578,12 @@ let () =
       | error ->
         printf "error: failed to create file %s\n" resultFile;
     end;
+
+    writeHeader 2 "Source";
+    inElement "span" ~cssClass:"source" (fun () ->
+      inElement "ol" (fun () ->
+        forEachLineInFile zompFileName (fun _ line ->
+          fprintf outFile "  <li><code>%s</code></li>\n" line)));
 
     fprintf outFile "</html>")
 
