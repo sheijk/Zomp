@@ -109,9 +109,9 @@ let fragmentTypeToString = function
 (** Characters that are valid as escape sequences *)
 let validEscapeChars = ['\''; '"'; '\\'; '0'; 'n'; 'r'; 't'; 'v'; 'a'; 'b'; 'f'; '?']
 
-exception CommentError of string * int * int * string
+exception CommentError of location * string
 let raiseCommentError ~file ~line ~column ~msg =
-  raise (CommentError (file, line, column, msg))
+  raise (CommentError (location file line (Some column), msg))
 
 let parseCommentsAndStrings
     (write : fragmentType -> string -> unit)

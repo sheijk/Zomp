@@ -103,7 +103,11 @@ let stripComments fileName source =
     writePos := !writePos + strLength
   in
 
-  Basics.parseCommentsAndStrings write fileName source;
+  begin try
+    Basics.parseCommentsAndStrings write fileName source;
+  with Basics.CommentError (location, msg) ->
+    raiseIndentError location msg
+  end;
 
   String.sub strippedSource 0 !writePos
 
