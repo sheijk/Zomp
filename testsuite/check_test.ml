@@ -414,6 +414,7 @@ let parseCommentsAndStrings
 
   let buffer = String.make (sourceLength) ' ' in
   let writePos = ref 0 in
+  let totalWrittenChars = ref 0 in
   let fragmentType = ref Source in
   let startNewFragment nextFragmentType =
     if !writePos > 0 then begin
@@ -424,7 +425,8 @@ let parseCommentsAndStrings
   in
   let writeChar chr =
     buffer.[!writePos] <- chr;
-    incr writePos
+    incr writePos;
+    incr totalWrittenChars;
   in
   let unexpectedEof src =
     let file, line, column = fileName, getLine(), getColumn() in
@@ -576,6 +578,7 @@ let parseCommentsAndStrings
         end
   in
   copySource();
+  assert (!totalWrittenChars = sourceLength);
   startNewFragment Source
 
 let writeHtml outFile typ source =
