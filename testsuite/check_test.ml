@@ -247,12 +247,14 @@ let writeHtmlHeader outFile zompFileName =
   let monospace = "font-family", "monospace" in
   let lightLineLeft = [
     "border-left", "1px solid gray";
-    "padding-left", "10px"]
+    "padding-left", "10px";
+    "margin-left", "10px"]
   in
   let ulClass cssClass = [
     sprintf ".%s" cssClass, [monospace];
     sprintf ".%s ul" cssClass, [
       "padding-left", "20px";
+      "margin-left", "5px";
       "list-style-type", "square"];
   ]
   in
@@ -268,7 +270,7 @@ let writeHtmlHeader outFile zompFileName =
       "display", "inline-block"];
     ".source li", [
       "background", "#fff";
-      "padding-left", "10px";
+      "padding-left", "5px";
       "border-left", "1px solid gray"];
     ".source ol li code", [
       "color", "black"];
@@ -366,7 +368,7 @@ let collectExpectations addExpectation (lineNum :int) line =
 
 let makeHtmlSourceWriter() =
   let reversedSegments = ref [] in
-  let writeHtml typ source =
+  let collectHtml typ source =
     let cssClass = match typ with
       | Source -> "source"
       | Comment -> "source-comment"
@@ -378,7 +380,7 @@ let makeHtmlSourceWriter() =
     let segment = sprintf "<span class=\"%s\">%s</span>" cssClass sourceWithHtml in
     reversedSegments := segment :: !reversedSegments
   in
-  writeHtml, reversedSegments
+  collectHtml, reversedSegments
 
 let () =
   if false then begin
@@ -548,8 +550,9 @@ let () =
 
     forEachLineInFile zompFileName collectExpectations;
     expectedErrorMessages := List.rev !expectedErrorMessages;
+
     writeHeader 2 "Expectations";
-    inElements ["span"; "ul"] ~cssClass:"expectations" (fun () ->
+    inElements ["div"; "ul"] ~cssClass:"expectations" (fun () ->
       fprintf outFile "  <li>Expect compilation to %s.</li>\n"
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
@@ -593,7 +596,7 @@ let () =
 
     writeHeader 2 "Results";
 
-    inElements ["span"; "ul"] ~cssClass:"results" (fun () ->
+    inElements ["div"; "ul"] ~cssClass:"results" (fun () ->
       if !expectedCompilationSuccess && compilerError <> 0 then begin
         reportError `Li "compilation failed, but no errors expected";
         let printLine _ line = print_string line; print_newline() in
@@ -633,7 +636,7 @@ let () =
     end;
 
     writeHeader 2 "Source";
-    inElements ["span"; "ol"] ~cssClass:"source" (fun () ->
+    inElements ["div"; "ol"] ~cssClass:"source" (fun () ->
       let source = readFile zompFileName in
       try
         let write, reversedSegments = makeHtmlSourceWriter() in
