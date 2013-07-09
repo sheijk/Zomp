@@ -364,16 +364,21 @@ let collectExpectations addExpectation (lineNum :int) line =
     addExpectation kindStr args lineNum
   end
 
-let writeHtml outFile typ source =
-  let cssClass = match typ with
-    | Source -> "source"
-    | Comment -> "source-comment"
-    | String -> "source-string"
+let makeHtmlSourceWriter() =
+  let reversedSegments = ref [] in
+  let writeHtml typ source =
+    let cssClass = match typ with
+      | Source -> "source"
+      | Comment -> "source-comment"
+      | String -> "source-string"
+    in
+    let escapedSource = escapeHtmlText source in
+    let replacement = sprintf "</span></code></li>\n  <li><code><span class=\"%s\">" cssClass in
+    let sourceWithHtml = Str.global_replace (Str.regexp (Str.quote "&#10;")) replacement escapedSource in
+    let segment = sprintf "<span class=\"%s\">%s</span>" cssClass sourceWithHtml in
+    reversedSegments := segment :: !reversedSegments
   in
-  let escapedSource = escapeHtmlText source in
-  let replacement = sprintf "</span></code></li>\n  <li><code><span class=\"%s\">" cssClass in
-  let sourceWithHtml = Str.global_replace (Str.regexp (Str.quote "&#10;")) replacement escapedSource in
-  fprintf outFile "<span class=\"%s\">%s</span>" cssClass sourceWithHtml
+  writeHtml, reversedSegments
 
 let () =
   if false then begin
@@ -630,10 +635,17 @@ let () =
     writeHeader 2 "Source";
     inElements ["span"; "ol"] ~cssClass:"source" (fun () ->
       let source = readFile zompFileName in
-      fprintf outFile "  <li><code>";
-      parseCommentsAndStrings (writeHtml outFile) zompFileName source;
-      fprintf outFile "</code></li>";
-    );
+      try
+        let write, reversedSegments = makeHtmlSourceWriter() in
+        parseCommentsAndStrings write zompFileName source;
+        fprintf outFile "  <li><code>";
+        List.iter (fprintf outFile "%s") (List.rev !reversedSegments);
+        fprintf outFile "</code></li>";
+      with Basics.CommentError (location, msg) ->
+        let printLine _ line =
+          fprintf outFile "  <li><code>%s</code></li>\n" line
+        in
+        forEachLineInFile zompFileName printLine);
 
     fprintf outFile "</html>")
 
