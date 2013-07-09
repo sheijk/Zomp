@@ -86,165 +86,25 @@ let validEscapeChars = ['\''; '"'; '\\'; '0'; 'n'; 'r'; 't'; 'v'; 'a'; 'b'; 'f';
 
 let stripComments fileName source =
   let sourceLength = String.length source in
-
-  let getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine, getColumn =
-    let readPos = ref 0 in
-    let line = ref 0 in
-    let currentLineStart = ref 0 in
-
-    let getReadPos() = !readPos in
-    let getLine() = !line in
-    let readOneChar() =
-      let chr = source.[!readPos] in
-      if chr = '\n' then begin
-        line := !line + 1;
-        currentLineStart := !readPos;
-      end;
-      readPos := !readPos + 1;
-      chr
-    in
-    let getColumn() =
-      !readPos - !currentLineStart
-    in
-    let readTwoChars() =
-      (* weird errors when omitting the let bindings here *)
-      let a = readOneChar() in
-      let b = readOneChar() in
-      a, b
-    in
-    let moveBackReadPos() =
-      readPos := !readPos - 1
-    in
-    getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine, getColumn
-  in
-
   let strippedSource = String.make (sourceLength) ' ' in
   let writePos = ref 0 in
-  let writeChar chr =
-    strippedSource.[!writePos] <- chr;
-    incr writePos
-  in
-  let unexpectedEof src =
-    let column = Some (getColumn()) in
-    raiseIndentError { line = getLine(); fileName; column } (sprintf "unexpected end of file while parsing %s" src)
-  in
-  let copyChar signalError =
-    if getReadPos() <= sourceLength - 1 then begin
-      let chr = readOneChar() in
-      writeChar chr;
-      chr
-    end else
-      signalError()
+
+  let write typ str =
+    let strLength = String.length str in
+    begin match typ with
+      | Comment ->
+        for i = 0 to strLength - 1 do
+          if str.[i] = '\n' then
+            strippedSource.[!writePos + i] <- '\n'
+        done
+      | Source | String ->
+        String.blit str 0 strippedSource !writePos strLength;
+    end;
+    writePos := !writePos + strLength
   in
 
-  let unexpectedEofInComment() = unexpectedEof "comment"
-  and unexpectedEofInStringLiteral() = unexpectedEof "string literal"
-  and unexpectedEofInCharLiteral() = unexpectedEof "char literal"
-  in
+  Basics.parseCommentsAndStrings write fileName source;
 
-  let copyEscapeChar signalError =
-    let chr = copyChar signalError in
-    if not (List.mem chr validEscapeChars) then
-      raiseIndentError { line = getLine() + 1; fileName = fileName; column = Some (getColumn()) }
-        (sprintf "invalid escape sequence (char %c)" chr);
-    chr
-  in
-
-  let rec copySource() =
-    if getReadPos() <= sourceLength - 1 then begin
-      match readOneChar() with
-        | '/' ->
-            if getReadPos() <= sourceLength - 1 then begin
-              match readOneChar() with
-                | '/' ->
-                    writeChar ' '; writeChar ' ';
-                    skipSingleLineComment();
-                | '*' ->
-                    writeChar ' '; writeChar ' ';
-                    skipMultiLineComment()
-                | '"' ->
-                    writeChar '/'; writeChar '"';
-                    copyStringLiteral()
-                | chr ->
-                    writeChar '/'; writeChar chr;
-                    copySource()
-            end
-        | '"' ->
-            writeChar '"';
-            copyStringLiteral()
-        | '\'' ->
-            writeChar '\'';
-            copyCharLiteral();
-        | chr ->
-            writeChar chr;
-            copySource()
-    end
-  and skipSingleLineComment() =
-    if getReadPos() <= sourceLength - 1 then
-      let chr = readOneChar() in
-      if chr = '\n' then begin
-        writeChar '\n';
-        copySource()
-      end else
-        skipSingleLineComment()
-    else
-      unexpectedEofInComment()
-  and skipMultiLineComment() =
-    if getReadPos() <= sourceLength - 2 then begin
-      match readTwoChars() with
-        | '*', '/' -> copySource()
-        | chr, '*' ->
-            if chr = '\n' then
-              writeChar '\n';
-            moveBackReadPos();
-            skipMultiLineComment()
-        | chr1, chr2 ->
-            if chr1 = '\n' then
-              writeChar '\n';
-            if chr2 = '\n' then
-              writeChar '\n';
-            skipMultiLineComment()
-    end else
-      unexpectedEofInComment()
-  and copyStringLiteral() =
-    let copyChar() = copyChar unexpectedEofInStringLiteral in
-    let copyEscapeChar() = copyEscapeChar unexpectedEofInStringLiteral in
-    match copyChar() with
-      | '"' ->
-          copySource()
-      | '\\' ->
-          let _ = copyEscapeChar() in
-          copyStringLiteral()
-      | chr ->
-          copyStringLiteral()
-  and copyCharLiteral() =
-    let copyChar() = copyChar unexpectedEofInCharLiteral in
-    let copyEscapeChar() = copyEscapeChar unexpectedEofInCharLiteral in
-    let invalidCharLiteral msg =
-      raiseIndentError
-        { line = getLine() + 1; fileName = fileName; column = Some (getColumn()) }
-        msg
-    in
-    match copyChar() with
-      | '\\' ->
-          begin match copyEscapeChar(), copyChar() with
-            | _, '\'' ->
-                copySource()
-            | c1, c2 ->
-                invalidCharLiteral (sprintf "'\\%c%c is no a valid char literal" c1 c2)
-          end
-      | '\'' ->
-          invalidCharLiteral
-            "'' is not a valid char literal, did you mean '\\''?"
-      | c1 ->
-          begin match copyChar() with
-            | '\'' ->
-                copySource()
-            | c2 ->
-                invalidCharLiteral (sprintf "'%c%c is no a valid char literal" c1 c2)
-          end
-  in
-  copySource();
   String.sub strippedSource 0 !writePos
 
 let beginIndentBlockChar = '\r'
