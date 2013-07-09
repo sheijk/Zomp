@@ -247,7 +247,7 @@ let writeHtmlHeader outFile zompFileName =
   let monospace = "font-family", "monospace" in
   let lightLineLeft = [
     "border-left", "1px solid gray";
-    "padding-left", "10px";
+    "padding-left", "5px";
     "margin-left", "10px"]
   in
   let ulClass cssClass = [
