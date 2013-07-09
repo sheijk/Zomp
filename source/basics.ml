@@ -187,7 +187,7 @@ let parseCommentsAndStrings
   let copyEscapeChar signalError =
     let chr = copyChar signalError in
     if not (List.mem chr validEscapeChars) then begin
-      let line, file, column = getLine(), fileName, getColumn() in
+      let line, file, column = getLine() + 1, fileName, getColumn() in
       let msg = sprintf "invalid escape sequence (char %c)" chr in
       raiseCommentError ~file ~line ~column ~msg;
     end;
@@ -290,7 +290,7 @@ let parseCommentsAndStrings
     let copyChar() = copyChar unexpectedEofInCharLiteral in
     let copyEscapeChar() = copyEscapeChar unexpectedEofInCharLiteral in
     let invalidCharLiteral msg =
-      let file, line, column = fileName, getLine(), getColumn() in
+      let file, line, column = fileName, getLine() + 1, getColumn() in
       raiseCommentError ~file ~line ~column ~msg
     in
     match copyChar() with
