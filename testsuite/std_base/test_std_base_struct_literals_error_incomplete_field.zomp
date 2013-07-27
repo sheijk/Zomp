@@ -9,12 +9,9 @@ struct Point:
   int y
 end
 
-func void FieldDefinedTwice():
-  Point(x = 1, y = 2, x = 2) //// error x
-  Point(x = 1, x = 2, y = 2) //// error x
-  Point(x = 1, y = 2, y = 3) //// error y
-
-  Point(x = 10) //// error y missing
+func void NotAllFieldsDefined():
+  // TODO: also test with only setting x once compiler does not abort after
+  // first error, anymore
   Point(y = 10) //// error x missing
 
   return

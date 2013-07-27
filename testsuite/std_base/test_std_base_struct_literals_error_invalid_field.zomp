@@ -1,0 +1,19 @@
+///
+/// Testing error cases for struct literals in std:base
+///
+
+requireLibs libcee unittest
+
+struct Point:
+  int xpos
+  int ypos
+end
+
+func void FieldSetThatDoesNotExist():
+  Point(xpos = 1, ypos = 2, foobarbuzz = 2) //// error foobarbuzz
+
+  return
+end
+
+unittest:main
+
