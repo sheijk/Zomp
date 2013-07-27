@@ -1,0 +1,19 @@
+///
+/// Checking for some common type errors
+///
+
+requireLibs unittest
+require "testsuite/fundamental/type_errors_common"
+
+struct VTable:
+  VoidFunction start
+  VoidFunction stop
+end
+
+unittest:testCase InvalidFunctionPtrInStruct:
+  var VTable vtable
+  vtable.stop = &takeInt //// error type
+end
+
+unittest:main
+

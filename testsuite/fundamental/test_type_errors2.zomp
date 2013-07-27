@@ -1,0 +1,14 @@
+///
+/// Checking for some common type errors
+///
+
+requireLibs unittest
+require "testsuite/fundamental/type_errors_common"
+
+unittest:testCase InvalidFunctionPtrType:
+  fvoid := nullptr VoidFunction
+  fvoid = &plusOne //// error type
+end
+
+unittest:main
+

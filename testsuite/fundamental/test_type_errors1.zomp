@@ -1,0 +1,20 @@
+///
+/// Checking for some common type errors
+///
+
+requireLibs unittest
+require "testsuite/fundamental/type_errors_common"
+
+unittest:testCase ValidAssignments:
+  var VoidFunction voidf &action
+  var Int2VoidFunction i2v &takeInt
+  var Int2IntFunction i2i &plusOne
+end
+
+unittest:testCase InvalidFunctionPtrType:
+  fvoid := nullptr VoidFunction
+  fvoid = &takeInt //// error type
+end
+
+unittest:main
+

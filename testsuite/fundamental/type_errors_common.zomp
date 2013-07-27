@@ -1,0 +1,18 @@
+///
+/// Checking for some common type errors
+///
+
+type VoidFunction void()*
+type Int2VoidFunction void(int)*
+type Int2IntFunction int(int)*
+
+func void action():
+end
+
+func void takeInt(int i):
+end
+
+func int plusOne(int i):
+  ret (i+1)
+end
+
