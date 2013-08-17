@@ -542,6 +542,18 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
            Ast2.idExpr (if Zompvm.isInteractive() then "true" else "false"))
     in
 
+    let setTraceMacroExpansionMacro =
+      macro "std:compiler:setTraceMacroExpansion" "bool"
+        (fun bindings expr ->
+          match expr.args with
+            | [{ Ast2.id = "true" | "false" as newState; args = [] }] ->
+              Zompvm.traceMacroExpansionOn := (newState = "true");
+              printf "info: set traceMacroExpansion to %s\n" newState;
+              Ast2.emptyExpr
+            | _ ->
+              Ast2.idExpr "error")
+    in
+
     [
       testMacro;
       quoteMacro;
@@ -550,6 +562,8 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       bindingsLookupVar;
 
       isInteractiveMacro;
+
+      setTraceMacroExpansionMacro;
 
       (** macros to support indent expressions *)
       opjuxMacro;

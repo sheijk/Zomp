@@ -226,8 +226,10 @@ let () =
   end;
   if options.traceMacroExpansion then begin
     let trace s e =
-      let locString = sprintf "%s:%d" (Ast2.fileName e) (Ast2.lineNumber e) in
-      printf "%s: Expansion step %s:\n%s\n" locString s (Ast2.toString e)
+      if !Zompvm.traceMacroExpansionOn then begin
+        let locString = sprintf "%s:%d" (Ast2.fileName e) (Ast2.lineNumber e) in
+        printf "%s: Expansion step %s:\n%s\n" locString s (Ast2.toString e)
+      end
     in
     Expander.setTraceMacroExpansion (Some trace);
   end;
@@ -271,7 +273,7 @@ let () =
         (Compilation_failed_with_error
            (sprintf "failed to compile due to unknown exception: %s\n%s\n"
               (Printexc.to_string e)
-                (** returns backtrace of last thrown exception *)
+              (** returns backtrace of last thrown exception *)
               (Printexc.get_backtrace())))
   in
 

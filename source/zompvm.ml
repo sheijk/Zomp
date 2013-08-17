@@ -142,6 +142,8 @@ let isInteractiveFlag = ref false
 let isInteractive() = !isInteractiveFlag
 let setIsInteractive on = isInteractiveFlag := on
 
+let traceMacroExpansionOn = ref false
+
 (** Callbacks which can be called from Zomp *)
 module Callbacks : sig
 end = struct
