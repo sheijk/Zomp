@@ -245,17 +245,32 @@ std:base:func ast* ast:fromString(cstring name):
   std:base:ret a
 end
 
-std:base:func (ptr ast) seqAst():
-  ast:fromString "seq"
+std:base:func ast* ast:fromStringLoc(cstring name, cstring file, int line, int column):
+  var ast* a ast:fromString(name)
+  ast:setLocation a file line column
+  std:base:ret a
 end
 
 std:base:func (ptr ast) ast:fromInt(int i):
   ast:fromString (int2cstring i)
 end
 
+std:base:func ast* ast:fromIntLoc(int i, cstring file, int line, int column):
+  var ast* a ast:fromInt(i)
+  ast:setLocation a file line column
+  std:base:ret a
+end
+
 std:base:func astp ast:fromFloat(float f):
   ast:fromString (float2cstring f)
 end
+
+std:base:func ast* ast:fromFloatLoc(float f, cstring file, int line, int column):
+  var ast* a ast:fromFloat(f)
+  ast:setLocation a file line column
+  std:base:ret a
+end
+
 
 std:base:func void ast:print((ptr ast) a, int indent):
   printIndent indent
@@ -915,7 +930,7 @@ macro linkclib fileNames...:
     ret ${zmp:compiler:linkclib #onlyChild}
   end
 
-  var astp code seqAst()
+  var astp code ${}
   forEachAstChild fileName fileNames:
     ast:addChild code ${zmp:compiler:linkclib #fileName}
   end

@@ -242,12 +242,24 @@ let newUniqueId() =
 let newUniqueName() =
   "__temp_" ^ string_of_int (newUniqueId())
 
-let sexpr2codeNoAntiquotes recursion = function
+let sexpr2codeNoAntiquotes recursion expr =
+  let astFromString id locationOpt =
+    let dummyLocation = Basics.location "builtins_ast:fromString" 0 None in
+    let loc = someOrDefault locationOpt dummyLocation in
+    simpleExpr "ast:fromStringLoc"
+      [id;
+       "\"" ^ loc.Basics.fileName ^ "\"";
+       sprintf "%d" loc.Basics.line;
+       sprintf "%d" (someOrDefault loc.Basics.column 0)]
+  in
+  match expr with
   | { id = id; args = [] } ->
-      if id = "'\\0'" then
-        simpleExpr "ast:fromString" ["\"'!'\""]
-      else
-        simpleExpr "ast:fromString" ["\"" ^ id ^ "\""]
+    (* TODO: check why an ad-hoc work-around is needed here *)
+    let fixedId =
+      if id = "'\\0'" then "\"'!'\""
+      else ("\"" ^ id ^ "\"")
+    in
+    astFromString fixedId expr.location
   | sexprWithArgs ->
       let tempVarName = newUniqueName() in
       let defVarExpr =
@@ -255,8 +267,8 @@ let sexpr2codeNoAntiquotes recursion = function
           args = [
             simpleExpr "ptr" ["ast"];
             idExpr tempVarName;
-            simpleExpr "ast:fromString" ["\"" ^ sexprWithArgs.id ^ "\""]];
-          location = None }
+            astFromString ("\"" ^ sexprWithArgs.id ^ "\"") expr.location];
+          location = expr.location }
       in
       let returnExpr = idExpr tempVarName in
       let addChildExpr childExpr =
@@ -267,7 +279,6 @@ let sexpr2codeNoAntiquotes recursion = function
         location = None }
       in
       let argExprs = List.map recursion sexprWithArgs.args in
-(*       let argExprs = List.map (sexpr2code ~antiquoteF) sexprWithArgs.args in *)
       let argAddExprs = List.map addChildExpr argExprs in
       seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
 

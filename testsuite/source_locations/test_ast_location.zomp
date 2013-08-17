@@ -28,10 +28,11 @@ printLoc toplevelAst //// compiler-output toplevelAst@ test_ast_location.zomp:16
 
 
 // This must be line 30
-func int main():
+std:base:func int main():
   println "Printing location of ast"
   printAstLocation ${simpleIdAst} //// print simpleIdAst@ test_ast_location.zomp:33
-  printLoc foo(bar) //// compiler-output opcall@ test_ast_location.zomp:34
+  printAstLocation ${0} //// print 0@ test_ast_location.zomp:34
+  printLoc foo(bar) //// compiler-output opcall@ test_ast_location.zomp:35
   
   ret 0
 end
