@@ -99,7 +99,7 @@ end
 // pointer utils
 
 macro ptrvars type names...:
-  decls := seqAst()
+  decls := ${}
   forEachAstChild name names:
     ast:addChild decls ${var #type #name nullptr(#type)}
   end
