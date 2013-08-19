@@ -592,7 +592,7 @@ loc_stats: loc_stats_no_summary
 # Git statistics
 ################################################################################
 
-GITSTATS = $(ZOMP_TOOL_PATH)/gitstats/gitstats
+GITSTATS = $(ZOMP_TOOL_PATH)/../gitstats/gitstats
 .PHONY: git_repo_stats
 git_repo_stats:
 	@$(ECHO) "Creating git repository statistincs ..."
