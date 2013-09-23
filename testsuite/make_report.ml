@@ -88,12 +88,14 @@ let produceReport title files =
             in
 
             let reportLink = linkIfExists (fileName ^ ".testreport") "report"
+            and compilationLink = linkIfExists (fileName ^ ".compile_output") "compilation"
             and outputLink = linkIfExists (fileName ^ ".test_output") "output"
             in
 
             [sprintf "<th>&nbsp;&nbsp;&nbsp;&nbsp;%s</th>" sourceLink;
              sprintf "%s" resultInfo;
              sprintf "<th>%s</th>" reportLink;
+             sprintf "<th>%s</th>" compilationLink;
              sprintf "<th>%s</th>" outputLink])
           files
         in
