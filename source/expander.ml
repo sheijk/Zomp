@@ -1000,71 +1000,72 @@ struct
          | None, _ ->
              result : bindings -> Ast2.sexpr -> Ast2.sexpr)
 
-  let translateDefineMacro translateNestedF scope env expr =
-    let decomposeMacroDefinition expr =
-      let nameParamImplOption =
-        match expr with
-          | {Ast2.args = {Ast2.id = name; args = []} :: paramsAndImpl} ->
-              begin match List.rev paramsAndImpl with
-                | {Ast2.id = seqId; args = implExprs} :: params ->
-                    Some (name, List.rev params, implExprs)
-                | _ ->
-                    None
-              end
-          | _ ->
+  let decomposeMacroDefinition expr =
+    let nameParamImplOption =
+      match expr with
+        | {Ast2.args = {Ast2.id = name; args = []} :: paramsAndImpl} ->
+          begin match List.rev paramsAndImpl with
+            | {Ast2.id = seqId; args = implExprs} :: params ->
+              Some (name, List.rev params, implExprs)
+            | _ ->
               None
-      in
-
-      match nameParamImplOption with
-        | Some (name, params, implExprs) ->
-            begin
-              let decomposeMacroParam = function
-                | {Ast2.id = paramName; Ast2.args = []} ->
-                    Result (paramName, `IsNotVariadic)
-                | {Ast2.id = id; args = [{Ast2.id = paramName; Ast2.args=[]}]}
-                    when id = macroRest ->
-                    Result (paramName, `IsVariadic)
-                | (_ as invalidParam) ->
-                  errorFromExpr invalidParam
-                    "invalid macro parameter, expected id or id..."
-              in
-              match List.rev params with
-                | [] ->
-                    Result (name, ([] :string list), implExprs, `IsNotVariadic)
-                | lastParam :: frontParamsRev ->
-                    let combineParams names param =
-                      match names, param with
-                        | Result names, Result (paramName, `IsNotVariadic) ->
-                            Result (paramName :: names)
-                        | Result names, Result (paramName, `IsVariadic) ->
-                            errorFromExpr expr
-                              (sprintf "parameter %s is variadic but is not the last parameter" paramName)
-                        | Error msg, _
-                        | _, Error msg ->
-                            Error msg
-                    in
-                    let frontParamNamesOpt =
-                      List.fold_left combineParams
-                        (Result [])
-                        (List.map decomposeMacroParam frontParamsRev)
-                    in
-                    match frontParamNamesOpt with
-                      | Result frontParamNames ->
-                          begin match decomposeMacroParam lastParam with
-                            | Result (lastParamName, isVariadic) ->
-                                Result (name,
-                                        frontParamNames @ [lastParamName],
-                                        implExprs,
-                                        isVariadic)
-                            | Error msg ->
-                                Error msg
-                          end
-                      | Error msg ->
-                          Error msg
-            end
+          end
         | _ ->
-            errorFromExpr expr (sprintf "expecting '%s name paramName* lastParamVariadic...? seq" expr.id)
+          None
     in
+
+    match nameParamImplOption with
+      | Some (name, params, implExprs) ->
+        begin
+          let decomposeMacroParam = function
+            | {Ast2.id = paramName; Ast2.args = []} ->
+              Result (paramName, `IsNotVariadic)
+            | {Ast2.id = id; args = [{Ast2.id = paramName; Ast2.args=[]}]}
+                when id = macroRest ->
+              Result (paramName, `IsVariadic)
+            | (_ as invalidParam) ->
+              errorFromExpr invalidParam
+                "invalid macro parameter, expected id or id..."
+          in
+          match List.rev params with
+            | [] ->
+              Result (name, ([] :string list), implExprs, `IsNotVariadic)
+            | lastParam :: frontParamsRev ->
+              let combineParams names param =
+                match names, param with
+                  | Result names, Result (paramName, `IsNotVariadic) ->
+                    Result (paramName :: names)
+                  | Result names, Result (paramName, `IsVariadic) ->
+                    errorFromExpr expr
+                      (sprintf "parameter %s is variadic but is not the last parameter" paramName)
+                  | Error msg, _
+                  | _, Error msg ->
+                    Error msg
+              in
+              let frontParamNamesOpt =
+                List.fold_left combineParams
+                  (Result [])
+                  (List.map decomposeMacroParam frontParamsRev)
+              in
+              match frontParamNamesOpt with
+                | Result frontParamNames ->
+                  begin match decomposeMacroParam lastParam with
+                    | Result (lastParamName, isVariadic) ->
+                      Result (name,
+                              frontParamNames @ [lastParamName],
+                              implExprs,
+                              isVariadic)
+                    | Error msg ->
+                      Error msg
+                  end
+                | Error msg ->
+                  Error msg
+        end
+      | _ ->
+        errorFromExpr expr (sprintf "expecting '%s name paramName* lastParamVariadic...? seq" expr.id)
+      
+  (* TODO: kick out all source location info *)
+  let translateDefineMacro translateNestedF scope env expr =
     match decomposeMacroDefinition expr with
       | Result (macroName, paramNames, implExprs, isVariadic) ->
         begin
