@@ -53,9 +53,9 @@ const int TW_TYPE_QUAT4D 20
 const int TW_TYPE_DIR3F 21
 const int TW_TYPE_DIR3D 22
 
-type TwSetVarCallback (fptr void void* void*) // value, clientData
-type TwGetVarCallback (fptr void void* void*) // value, clientData
-type TwButtonCallback (fptr void void*) // clientData
+type TwSetVarCallback void(void*, void*)* // value, clientData
+type TwGetVarCallback void(void*, void*)* // value, clientData
+type TwButtonCallback void(void*)* // clientData
 
 dfunc int TwAddVarRW(TwBar* bar, cstring name, TwType type, void* var, cstring def)
 dfunc int TwAddVarRO(TwBar* bar, cstring name, TwType type, void* var, cstring def)
@@ -80,14 +80,14 @@ type TwStructMember:
 end
 
 // summaryString, summaryMaxLength, value, clientData
-type TwSummaryCallback (fptr void cstring size_t void* void*)
+type TwSummaryCallback void(cstring, size_t, void*, void*)*
 
 dfunc int TwDefine(cstring def)
 dfunc TwType TwDefineEnum(cstring name, TwEnumVal* enumValues, int nbValues)
 dfunc TwType TwDefineStruct(cstring name, TwStructMember* structMembers, int nbMembers, size_t structSize, TwSummaryCallback summaryCallback, void* summaryClientData)
 
 // destinationClientStringPtr, sourceString
-type TwCopyCDStringToClient (fptr void char** cstring)
+type TwCopyCDStringToClient void(char**, cstring)*
 dfunc void TwCopyCDStringToClientFunc(TwCopyCDStringToClient copyCDStringFunc)
 dfunc void TwCopyCDStringToLibrary(char** destinationLibraryStringPtr, cstring sourceClientString)
 
@@ -174,7 +174,7 @@ dfunc int TwMouseWheel(int pos)
 
 dfunc cstring TwGetLastError()
 // errorMessage
-type TwErrorHandler (fptr void cstring)
+type TwErrorHandler void(cstring)*
 dfunc void TwHandleErrors(TwErrorHandler errorHandler)
 
 // ----------------------------------------------------------------------------

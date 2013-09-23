@@ -80,7 +80,7 @@ end
 struct TestCase:
   cstring name
   cstring functionName
-  // (fptr void) function
+  // void()* function
   TestCase* next
 end
 

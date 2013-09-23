@@ -125,7 +125,7 @@ func void Section:loadFrom(Section* this, cstring fileName):
   Section:loadFromAst this code
 end
 
-func void Section:print(Section* this, (fptr void cstring) printF_, int indent):
+func void Section:print(Section* this, void(cstring)* printF_, int indent):
   printF := printF_
   quoteSign := "x"
   quoteSign[0] = '"' // '"' lalal, fucked up syntax highlighting
