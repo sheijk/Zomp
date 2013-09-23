@@ -6,6 +6,8 @@
 
 BUILDLOG=build/buildlog.txt
 
+# Find all make options of the form FOO_BAR=... to keep them for multiple make
+# invocations
 OPTIONS=`echo "$@" | tr " " "\n" | grep "^[A-Za-z_][A-Za-z0-9_]*=" | tr "\n" " "`
 
 cd `dirname $0`

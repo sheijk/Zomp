@@ -323,7 +323,7 @@ test: $(TEST_SUB_TARGETS)
 .PRECIOUS: %.ll %.bc %.opt-bc
 %.ll %.compile_output: %.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
 	$(ECHO) Compiling $(<) to .ll...
-	($(ZOMPC) -c $< $(ZOMPCFLAGS) | tee $(<:.zomp=.compile_output)) || (rm -f $@; exit 1)
+	($(ZOMPC) -c $< $(ZOMPCFLAGS) 2>&1 | tee $(<:.zomp=.compile_output)) || (rm -f $@; exit 1)
 
 %.bc: %.ll $(OUT_DIR)/has_llvm
 	@echo Compiling $< to $@
