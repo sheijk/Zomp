@@ -1,0 +1,68 @@
+
+* Design for statistics collecting module
+
+  - Main code in C or Zomp
+  - Bindings for OCaml
+
+#+begin_src c++
+  
+  typedef i64 (*CounterQueryFunction)(Counter*);
+  
+  struct Counter
+  {
+      cstring name;
+      void* userData;
+      u32 fractionalDigits;
+      CounterQueryFunction query;
+  };
+  
+  struct Section
+  {
+      char* name;
+      list<Counter> counters;
+  };
+  
+  Section* MainSection();
+  Section* CreateSection(Section* parent, cstring name);
+  void DeleteSection(Counter*);
+  Counter* CreateCounter(Section* parent, cstring name, void* userData, u32 fractionalDigits, CounterQueryFunction query);
+  void DeleteCounter(Counter*);
+
+  Section* NextSection(Section*);
+  Section* FirstChildSection(Section*);
+  Counter* FirstCounter(Section*);
+  Counter* NextCounter(Counter*);
+
+#+end_src
+
+#+begin_src tuareg
+module type Statistics =
+sig
+  type counter
+  type section
+
+  val mainSection : () -> section
+  val createSection : section -> string -> section
+  val createCounter : section -> string -> u32 -> counter
+
+  val createIntCounter : section -> string -> int ref -> counter
+  val createFloatCounter : section -> string -> float ref -> counter
+
+  val childSections : section -> section list
+  val counters : section -> counter list
+end
+#+end_src
+
+* Existing statistics collecting code
+
+- Indentlexer.Stats
+- zompPrintStats in machine.c / zompvm_impl.cpp
+- printTimingStats in zompc.ml
+- !showStatsAtExit in zompsh
+- preludeLoadTime in zompsh
+- Common.Profiling
+
+* Missing stats
+
+- performance
+
