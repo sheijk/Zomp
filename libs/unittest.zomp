@@ -29,6 +29,15 @@ var int unittest:testCount 0
 macro unittest:assert testCode:
   isCompare := isCompareCode(testCode)
 
+  file := cstring:quote ast:file(testCode)
+  line := ast:line(testCode)
+  printError := $:
+    printString #file
+    printString ":"
+    printInt #line
+    printlnString ": error: assertion failed"
+  end
+
   if isCompare:
     uniqueId lvar "lvar"
     uniqueId rvar "rvar"
@@ -41,7 +50,7 @@ macro unittest:assert testCode:
       unless (#compareF #lvar #rvar):
         ++unittest:failedCount
         printHLine '-' 40
-        printlnString "Assertion failed"
+        #printError
         printString "left = "
         print #lvar
         println()
@@ -56,7 +65,7 @@ macro unittest:assert testCode:
       unless #testCode:
         ++unittest:failedCount
         printHLine '-' 40
-        printlnString "Assertion failed"
+        #printError
         ast:print ${#testCode} 0
       end
     end
