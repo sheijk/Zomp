@@ -1,7 +1,7 @@
-/**
- * developing an algol/common lisp like loop construct
- *
- */
+///
+/// An example of a complex macro (algol/common lisp like loop construct).
+///
+
 // TODO: make sure that all orders of modifiers yield the same result,
 // especially interaction of if and while
 // TODO: have a look at REXX's do/looping construct
@@ -13,8 +13,6 @@ struct Loop:
   cstring initLabel testLabel bodyLabel exitLabel continueLabel
   cstring counterName
 end
-
-"foobar"
 
 func void loop_modifier_var(Loop* loop, ast* args, int* childNum):
   name := getField ast:child(args, childNum* + 1) id
@@ -81,8 +79,6 @@ end
 
 macro loop modsAndBody...:
   loop := undef Loop
-  // loop.init = ${println "[loop.init]"}
-  // loop.test = ${println "[loop.test]"}
   loop.init  = ${}
   loop.test = ${}
   loop.body = ast:child modsAndBody (modsAndBody.childCount-1)
