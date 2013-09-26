@@ -1,0 +1,33 @@
+///
+/// Testing order of evaluation, etc.
+///
+
+requireLibs libcee unittest
+
+var int countAndReturnIdCalls 0
+
+func int* countAndReturnId(int* ptr):
+  ++countAndReturnIdCalls
+  ret ptr
+end
+
+/// Checking whether expressions/arguments get evaluated the correct number of
+/// times.
+unittest:testCase IncrementDecrement:
+  countAndReturnIdCalls = 0
+  value := 0
+
+  ++(*countAndReturnId(&value))
+  unittest:assertAll:
+    countAndReturnIdCalls == 1
+  end
+
+  countAndReturnIdCalls = 0
+  ++(*countAndReturnId(&value))
+  unittest:assertAll:
+    countAndReturnIdCalls == 1
+  end
+end
+
+unittest:main
+
