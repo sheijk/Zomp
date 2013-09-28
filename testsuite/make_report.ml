@@ -1,10 +1,22 @@
 open Printf
 
-let linkIfExists file title =
-  if Sys.file_exists file then
-    sprintf "<a href=\"../../%s\">%s</a>" file title
-  else
-    sprintf "<span class=\"missing-file\" title=\"File %s does not exist\">%s</span>" file title
+let linkIfExists filesAndTitles =
+  let rec loop = function
+    | (file, title) :: remFiles ->
+      if Sys.file_exists file then
+        sprintf "<a href=\"../../%s\">%s</a>" file title
+      else
+        loop remFiles
+    | [] ->
+      let missingMessage, title =
+        match filesAndTitles with
+          | [] -> "No files to link to", "no title"
+          | [file, title] -> sprintf "File %s does not exist" file, title
+          | _ -> sprintf "Files %s do not exist" (String.concat ", " (List.map fst filesAndTitles)), snd (List.hd filesAndTitles)
+      in
+      sprintf "<span class=\"missing-file\" title=\"%s\">%s</span>" missingMessage title
+  in
+  loop filesAndTitles
 
 let inHtmlTag tag args f =
   printf "<%s %s>\n" tag args;
@@ -56,7 +68,7 @@ let produceReport title files =
         let reportRows = List.map
           (fun fileBaseName ->
             let fileName = Filename.concat dirname fileBaseName in
-            let sourceLink = linkIfExists (sprintf "%s.zomp" fileName) fileBaseName in
+            let sourceLink = linkIfExists [sprintf "%s.zomp" fileName, fileBaseName] in
 
             let resultInfo =
               let resultFileContent = readFileIfExists (fileName ^ ".result") in
@@ -87,16 +99,14 @@ let produceReport title files =
               end
             in
 
-            let reportLink = linkIfExists (fileName ^ ".testreport") "report"
-            and compilationLink = linkIfExists (fileName ^ ".compile_output") "compilation"
-            and outputLink = linkIfExists (fileName ^ ".test_output") "output"
-            in
+            let reportLink = linkIfExists [
+              fileName ^ ".testreport", "report";
+              fileName ^ ".compile_output", "compilation"
+            ] in
 
             [sprintf "<th>&nbsp;&nbsp;&nbsp;&nbsp;%s</th>" sourceLink;
              sprintf "%s" resultInfo;
-             sprintf "<th>%s</th>" reportLink;
-             sprintf "<th>%s</th>" compilationLink;
-             sprintf "<th>%s</th>" outputLink])
+             sprintf "<th>%s</th>" reportLink;])
           files
         in
         dirname, reportRows, !succeededTests)

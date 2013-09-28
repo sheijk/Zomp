@@ -259,10 +259,13 @@ let writeHtmlHeader outFile zompFileName =
   ]
   in
   let cssElements = [
+    "h1", ["margin-bottom", "0"];
+    "h2", ["margin-bottom", "0"];
     ".ok", ["color", "green"];
     ".failed", ["color", "red"];
     ".test-output", monospace :: lightLineLeft;
     ".compiler-output", monospace :: lightLineLeft;
+    ".file-link", ["color", "gray"; "margin-bottom", "10px"; "font-size", "90%"];
   ] @ [
     ".source ol", [
       monospace;
@@ -424,6 +427,10 @@ let () =
     let writeHeader n header =
       fprintf outFile "<h%d>%s</h%d>\n" n header n
     in
+    let writeHeaderWithLink n header target =
+      fprintf outFile "<h%d>%s</h%d>\n" n header n;
+      fprintf outFile "<div class=\"file-link\"><a href=\"%s\">Raw file</a></div>\n" target;
+    in
 
     let inElements elements ?cssClass f =
       let first = List.hd elements
@@ -543,8 +550,7 @@ let () =
     (** code *)
 
     writeHtmlHeader outFile zompFileName;
-    fprintf outFile "<h1>Test report for <a href=\"%s\">%s</a></h1>"
-      (Filename.basename zompFileName) zompFileName;
+    writeHeaderWithLink 1 (sprintf "Test report for %s" zompFileName) (Filename.basename zompFileName);
     fprintf outFile "Executed at %s</br>\n"
       (timeStr (Unix.localtime (Unix.gettimeofday())));
 
@@ -568,7 +574,7 @@ let () =
       Sys.command cmd
     in
 
-    writeHeader 2 "Compiler output";
+    writeHeaderWithLink 2 "Compiler output" (replaceExtension (Filename.basename zompFileName) "compile_output");
     inElements ["p"] ~cssClass:"compiler-output" (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
     fprintf outFile "Compiler exited with code %d</br>\n" compilerError;
@@ -580,7 +586,7 @@ let () =
       flush stdout;
       let runReturnCode = Sys.command cmd in
 
-      writeHeader 2 "Output";
+      writeHeaderWithLink 2 "Output" (replaceExtension (Filename.basename zompFileName) "test_output");
       inElements ["p"] ~cssClass:"test-output" (fun () ->
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
