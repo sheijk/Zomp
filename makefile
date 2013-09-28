@@ -216,9 +216,6 @@ source/vm_protocol.o: source/vm_protocol.h
 TEST_CMOS = source/testing.cmo source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
 TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 
-.PHONY: runtestsuite perftest2 perftest runtestsuite runtests
-.PHONY: profile_comp exampletests runmltests alltests
-
 .PHONY: report
 report: $(BUILD_DIR)/report.html
 
@@ -256,6 +253,7 @@ runmltests: $(OUT_DIR)/mltest
 
 PROF_COMP_TARGET=metaballs
 
+.PHONY: profile_comp
 profile_comp: $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE) source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
@@ -640,7 +638,7 @@ source/clean:
 	$(DELETE_FILE) source/indentlexer_tests.{cmi,cmo,o}
 	$(DELETE_FILE) source/newparser.{cmi,cmo,o,ml,mli,conflicts}
 	$(DELETE_FILE) source/newparser_tests.{cmi,cmo,o} source/newparser_tests
-	$(DELETE_FILE) source/expandertests.cm? source/alltests.cm? source/alltests
+	$(DELETE_FILE) source/expandertests.cm?
 	$(DELETE_FILE) source/mltest.cmo source/mltest.cmi source/mltest.o
 	$(DELETE_FILE) source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(DELETE_FILE) source/gen_c_bindings.o
