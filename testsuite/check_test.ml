@@ -266,6 +266,9 @@ let writeHtmlHeader outFile zompFileName =
     ".test-output", monospace :: lightLineLeft;
     ".compiler-output", monospace :: lightLineLeft;
     ".file-link", ["color", "gray"; "margin-bottom", "10px"; "font-size", "90%"];
+    "a.file-link:link", ["color", "gray"];
+    "a.file-link:visited", ["color", "#868"];
+    "a.file-link:hover", ["color", "blue"];
   ] @ [
     ".source ol", [
       monospace;
@@ -429,7 +432,7 @@ let () =
     in
     let writeHeaderWithLink n header target =
       fprintf outFile "<h%d>%s</h%d>\n" n header n;
-      fprintf outFile "<div class=\"file-link\"><a href=\"%s\">Raw file</a></div>\n" target;
+      fprintf outFile "<div class=\"file-link\"><a class=\"file-link\" href=\"%s\">Raw file</a></div>\n" target;
     in
 
     let inElements elements ?cssClass f =
