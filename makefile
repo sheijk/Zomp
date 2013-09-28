@@ -24,6 +24,7 @@ help:
 debug:
 	@$(ECHO) "PATH = "
 	@$(ECHO) "$(PATH)" | $(TR) : \\n
+	@$(ECHO) "SHELL = " $(SHELL)
 	@$(ECHO) "LLVM_BIN_DIR = $(LLVM_BIN_DIR)"
 	@$(ECHO) "LLVM_CONFIG = $(LLVM_CONFIG)"
 	@$(ECHO) "CC = $(CC)"
@@ -85,7 +86,9 @@ include examples/examples.mk
 include examples/smallpt/smallpt.mk
 include bindgen/bindgen.mk
 
-PATH := $(LLVM_BIN_DIR):$(PATH):./tools/arch-$(ARCH)/bin:$(OCAMLPATH)
+export PATH := $(LLVM_BIN_DIR):$(PATH):./tools/arch-$(ARCH)/bin:$(OCAMLPATH)
+# If this line is removed the PATH above won't be in effect.
+SHELL = sh
 
 CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
@@ -219,10 +222,13 @@ TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 .PHONY: report
 report: $(BUILD_DIR)/report.html
 
-MAKE_REPORT = ocaml str.cma testsuite/make_report.ml
+testsuite/make_report: testsuite/make_report.cmx
+	$(ECHO) Building $@ ...
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ str.cmxa $<
+MAKE_REPORT = testsuite/make_report
 
 .PHONY: $(BUILD_DIR)/report.html
-$(BUILD_DIR)/report.html:
+$(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
 	echo Report generated at `date "+%Y-%m-%d %H:%M:%S"` >> $@
@@ -658,6 +664,7 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) gmon.out
 	$(DELETE_FILE) $(DEPLOY_DIR)/vm_http_server
 	$(DELETE_FILE) $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
+	$(DELETE_FILE) testsuite/make_report testsuite/make_report.{cmx,cmi,o}
 
 clean_tags:
 	$(DELETE_FILE) source/*.annot

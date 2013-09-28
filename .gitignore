@@ -125,3 +125,7 @@ tools
 /libs/libGLEW.1.9.dylib
 /examples/assimp.dylib
 /examples/libAntTweakBar.dylib
+/testsuite/make_report
+/testsuite/make_report.cmi
+/testsuite/make_report.cmx
+/testsuite/make_report.o
