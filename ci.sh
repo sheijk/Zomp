@@ -80,7 +80,7 @@ run_action "git_get_remote_changes" git_fetch_and_reset
 run_action "git_checkout" git checkout master
 NEW_REV=`git rev-parse --verify HEAD || echo new_invalid`
 
-# Short circuit if no changes where found and ci has not been run before
+# Short circuit if no changes where found and ci has been run before
 if [ -e ci_archive ]; then
     if [ "${OLD_REV}" == "${NEW_REV}" ]; then
         echo "No changes"
