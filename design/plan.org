@@ -1803,6 +1803,7 @@ Minor tasks:
 
 ** 0.2 - proper language
 
+- user defined llvm intrinsics
 - generics
 - modules
 - new macro system
@@ -1817,6 +1818,7 @@ Minor tasks:
 - de-optimization
 - allow debugging right from within VM
 - html based IDE?
+
 * Use Cases                                                            :usecase:
 ** Examples
 *** Flocking shooter
