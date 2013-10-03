@@ -29,6 +29,11 @@ TESTSUITE_IGNORED_SOURCES = preludevalid.zomp
 TESTSUITE_SOURCES = $(wildcard $(TESTSUITE_SUBDIRS:%=testsuite/%/test_*.zomp))
 TESTSUITE_CASES = $(TESTSUITE_SOURCES:.zomp=.testreport)
 
+.PHONY: $(BUILD_DIR)/testsuite/summary.txt
+$(BUILD_DIR)/testsuite/summary.txt: $(BUILD_DIR)/report.html
+	@$(ECHO) Generating $@ ...
+	$(PERL) -0777 -p -e 's#    <th>&nbsp;&nbsp;&nbsp;&nbsp;<a href="../../(.*\.zomp)">.*</a></th>\n    <th class="[a-z]+">([a-z]+)</th>#XXXX\1=\2#g' $(BUILD_DIR)/report.html |grep XXXX |sed 's/XXXX//' > $@
+
 testsuite/%/all: testsuite/selftest
 	@$(ECHO) "Running tests in $@ ..."
 	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/test_*.zomp), $(SOURCE:.zomp=.testreport))

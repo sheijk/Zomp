@@ -101,6 +101,7 @@ LS = ls
 WHICH = which
 FILE = file
 TOUCH = touch
+PERL = perl
 
 # image magick
 CONVERT_IMAGE = convert

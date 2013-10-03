@@ -220,7 +220,7 @@ TEST_CMOS = source/testing.cmo source/indentlexer_tests.cmo source/newparser_tes
 TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 
 .PHONY: report
-report: $(BUILD_DIR)/report.html
+report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
 testsuite/make_report: testsuite/make_report.cmx
 	$(ECHO) Building $@ ...
