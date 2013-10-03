@@ -129,3 +129,7 @@ tools
 /testsuite/make_report.cmi
 /testsuite/make_report.cmx
 /testsuite/make_report.o
+/testsuite/make_history_report
+/testsuite/make_history_report.cmi
+/testsuite/make_history_report.cmx
+/testsuite/make_history_report.o

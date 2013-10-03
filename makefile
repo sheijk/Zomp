@@ -244,8 +244,13 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
-print_ci_stats:
-	 ./testsuite/for_each_ci_run.sh $(OCAML) str.cma bigarray.cma -I ../Zomp/source common.cmo testsuite/make_history_report.ml
+MAKE_HISTORY_REPORT=testsuite/make_history_report
+$(MAKE_HISTORY_REPORT): source/common.cmx testsuite/make_history_report.cmx
+	$(ECHO) Building $@ ...
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ str.cmxa bigarray.cmxa $^
+
+print_ci_stats: $(MAKE_HISTORY_REPORT)
+	 ./testsuite/for_each_ci_run.sh $(MAKE_HISTORY_REPORT)
 
 $(OUT_DIR)/mltest: $(NEWPARSER_CMXS) $(TEST_CMXS) $(BUILD_DIR)/.exists
 	@$(ECHO) Building $@ ...
@@ -667,7 +672,8 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) gmon.out
 	$(DELETE_FILE) $(DEPLOY_DIR)/vm_http_server
 	$(DELETE_FILE) $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
-	$(DELETE_FILE) testsuite/make_report testsuite/make_report.{cmx,cmi,o}
+	$(DELETE_FILE) testsuite/make_report{.cmx,.cmi,.o,}
+	$(DELETE_FILE) testsuite/make_history_report{.cmx,.cmi,.o,}
 
 clean_tags:
 	$(DELETE_FILE) source/*.annot
