@@ -86,7 +86,7 @@ include examples/examples.mk
 include examples/smallpt/smallpt.mk
 include bindgen/bindgen.mk
 
-export PATH := $(LLVM_BIN_DIR):$(PATH):./tools/arch-$(ARCH)/bin:$(OCAMLPATH)
+export PATH := $(LLVM_BIN_DIR):./tools/arch-$(ARCH)/bin:$(OCAMLPATH):$(PATH)
 # If this line is removed the PATH above won't be in effect.
 SHELL = sh
 
