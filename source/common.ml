@@ -246,9 +246,7 @@ include CommonString
 
 module CommonFile =
 struct
-  (** Read all lines from the given file. Adds a newline after last line even if
-      not present. *)
-  let readChannel channel =
+  let readLinesRev channel =
     let rec worker lines =
       try
         let newline = input_line channel in
@@ -256,10 +254,21 @@ struct
       with End_of_file ->
         lines
     in
-    let lines = worker [] in
-    let fileContent = combine "\n" (List.rev ("" :: lines)) in
+    worker []
+
+  let readLines channel =
+    List.rev (readLinesRev channel)
+
+  (** Read all lines from the given file. Adds a newline after last line even if
+      not present. *)
+  let readChannel channel =
+    let revLines = readLinesRev channel in
+    let fileContent = combine "\n" (List.rev ("" :: revLines)) in
     fileContent
   
+  let withFileForReading filename f =
+    (makeGuardedFunction open_in close_in) filename f
+
   let withFileForWriting filename f =
     (makeGuardedFunction open_out close_out) filename f
 
@@ -337,6 +346,9 @@ struct
       else
         None
     end
+
+  let readFileLines fileName =
+    withFileForReading fileName readLines
 
   let readFile ?(paths = ["."]) fileName =
     match findFileIn fileName paths with
@@ -483,6 +495,14 @@ struct
     | [] -> false
     | e :: rem when e = element -> true
     | _ :: rem -> listContains element rem
+
+  let indexOf element list =
+    let rec worker index = function
+      | [] -> failwith "indexOf"
+      | hd :: _ when hd = element -> index
+      | _ :: rem -> worker (index+1) rem
+    in
+    worker 0 list
 
   let addToList (listPlace :'a list ref) (newElement :'a) = function
     | `Back ->
