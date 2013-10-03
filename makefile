@@ -244,6 +244,9 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
+print_ci_stats:
+	 ./testsuite/for_each_ci_run.sh $(OCAML) str.cma bigarray.cma -I ../Zomp/source common.cmo testsuite/make_history_report.ml
+
 $(OUT_DIR)/mltest: $(NEWPARSER_CMXS) $(TEST_CMXS) $(BUILD_DIR)/.exists
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ bigarray.cmxa str.cmxa $(NEWPARSER_CMXS) $(TEST_CMXS)

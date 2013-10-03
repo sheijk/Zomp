@@ -95,6 +95,7 @@ fi
 
 git rev-parse HEAD > build/ci_git_revision.txt
 run_action "make" ./build.sh ${FLAGS} all test
+run_action "stats" ./build.sh ${FLAGS} print_ci_stats
 run_action "archive" copy_to_archive
 
 rm -f ${LAST_RUN_FILE}
