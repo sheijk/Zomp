@@ -11,6 +11,7 @@ EXAMPLES_SOURCES = $(wildcard examples/*.zomp)
 NOT_WORKING_EXAMPLES = static.zomp
 
 .PHONY: examples/all
+ALL_TARGETS += examples/all
 examples/all: $(EXAMPLES_SOURCES:.zomp=.exe)
 
 TEST_SUB_TARGETS += examples/test

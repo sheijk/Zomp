@@ -78,6 +78,7 @@ CLEAN_SUB_TARGETS =
 CLEAN_FILES =
 TEST_SUB_TARGETS =
 FILES_TO_DELETE_ON_CLEAN =
+ALL_TARGETS=
 
 AUTO_DEPENDENCY_FILE = $(OUT_DIR)/auto_depends.mk
 -include $(AUTO_DEPENDENCY_FILE)
@@ -111,20 +112,19 @@ endif
 # Combined/main targets
 ################################################################################
 
-
 .PHONY: all
-all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.svg \
-  $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang \
-  $(DEPLOY_DIR)/vm_http_server libs/all examples/all external_lib_links
 
 .PHONY: libbindings
+ALL_TARGETS += libbindings
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 
 .PHONY: byte
+ALL_TARGETS += byte
 byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
 
 .PHONY: native
+ALL_TARGETS += native
 native: $(ZOMP_DLL_FILE) $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
 
 CAML_LIBS = str.cma bigarray.cma
@@ -145,6 +145,8 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx \
 ################################################################################
 # Zomp tools
 ################################################################################
+
+ALL_TARGETS += source/zompvm_dummy.o
 
 $(ZOMP_DLL_FILE): source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
@@ -185,6 +187,7 @@ source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
 	./source/gen_c_bindings source/machine
 
+ALL_TARGETS += source/runtime.bc source/runtime.ll
 source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
@@ -205,6 +208,7 @@ VM_HTTP_SERVER_OBJS = source/mongoose.o source/runtime.o source/zompvm_impl.o so
 source/vm_http_server.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 
+ALL_TARGETS += $(DEPLOY_DIR)/vm_http_server
 $(DEPLOY_DIR)/vm_http_server: $(VM_HTTP_SERVER_OBJS) source/mongoose.h
 	@$(ECHO) Building $@ ...
 	$(CXX) $(LDFLAGS) -o $@ -lstdc++ -lcurl $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
@@ -266,6 +270,7 @@ $(MAKE_HISTORY_REPORT): CAML_NATIVE_FLAGS += str.cmxa bigarray.cmxa source/commo
 print_ci_stats: $(MAKE_HISTORY_REPORT)
 	 ./testsuite/for_each_ci_run.sh $(MAKE_HISTORY_REPORT)
 
+ALL_TARGETS += $(OUT_DIR)/mltest
 $(OUT_DIR)/mltest: $(NEWPARSER_CMXS) $(TEST_CMXS) $(BUILD_DIR)/.exists
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ bigarray.cmxa str.cmxa $(NEWPARSER_CMXS) $(TEST_CMXS)
@@ -447,6 +452,7 @@ testsuite/std/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
 	ln -s $(<) $(@)
 
 .PHONY: external_lib_links
+ALL_TARGETS += external_lib_links
 external_lib_links: $(EXTERNAL_LIB_LINKS)
 
 CLEAN_SUB_TARGETS += clean_external_lib_links
@@ -495,6 +501,7 @@ $(OUT_DIR)/has_llvm:
 	$(TOUCH) $@
 
 FILES_TO_DELETE_ON_CLEAN += $(OUT_DIR)/has_clang
+ALL_TARGETS += $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 $(OUT_DIR)/has_clang:
 	@$(ECHO) "Checking clang ..."
 	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
@@ -575,6 +582,7 @@ source/mltest.cmx: source/newparser_tests.cmx source/indentlexer_tests.cmx
 # Tags
 ################################################################################
 
+ALL_TARGETS += TAGS
 TAGS:
 	@$(ECHO) Generating tags ...
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
@@ -583,6 +591,7 @@ TAGS:
 # Visualize OCaml module dependencies
 ################################################################################
 
+ALL_TARGETS += $(OUT_DIR)/deps.svg
 $(OUT_DIR)/deps.dot $(OUT_DIR)/deps.svg: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS) source/newparser.ml
 	@$(ECHO) Generating dependency graph for graphviz ...
 	$(OCAMLDOC) -I source/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
@@ -686,4 +695,6 @@ clean_tags:
 	$(DELETE_FILE) $(FLYMAKE_LOG)
 
 clean_all: clean clean_tags
+
+all: $(ALL_TARGETS)
 
