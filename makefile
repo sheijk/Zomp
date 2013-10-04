@@ -529,7 +529,7 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.mli bindings.ml common.ml serro
     expander.mli expander.ml gen_c_bindings.ml genllvm.ml indentlexer.mli indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml mltest.ml, source/$(file))
+    zompc.ml zompvm.ml basics.ml, source/$(file))
 
 source/newparser.ml: source/ast2.cmx
 
@@ -549,10 +549,8 @@ source/ast2.cmx: source/basics.cmx source/common.cmx
 
 source/expander.cmi: source/genllvm.cmx source/parseutils.cmx
 
-source/mltest.cmo: source/newparser_tests.cmo
-source/mltest.cmx: source/newparser_tests.cmx
-source/mltest.cmo: source/indentlexer_tests.cmo
-source/mltest.cmx: source/indentlexer_tests.cmx
+source/mltest.cmo: source/newparser_tests.cmo source/indentlexer_tests.cmo
+source/mltest.cmx: source/newparser_tests.cmx source/indentlexer_tests.cmx
 
 ################################################################################
 # Tags
