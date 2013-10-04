@@ -68,6 +68,16 @@ function copy_to_archive {
     find ${ARCHIVED_SRC_DIRS} \( -iname \*.zomp -or -iname \*.testreport -or -iname \*.test_output \) -exec cp -a {} ${ARCHIVE_DIR}/{} \;
 }
 
+function build {
+    ./build.sh ${FLAGS} all
+    if [ "$?" -ne 0 ]; then
+        echo "Build failed, trying clean build" >> ${MAIN_LOG}
+        echo "Build failed, trying clean build"
+        ./build.sh ${FLAGS} clean_all
+        ./build.sh ${FLAGS} all
+    fi
+}
+
 MAIN_LOG=build/ci_log.txt
 rm -f ${MAIN_LOG}
 touch ${MAIN_LOG}
@@ -94,7 +104,8 @@ if [ -e ci_archive ]; then
 fi
 
 git rev-parse HEAD > build/ci_git_revision.txt
-run_action "make" ./build.sh ${FLAGS} all test
+run_action "make" build
+run_action "testsuite" ./build.sh ${FLAGS} test
 run_action "stats" ./build.sh ${FLAGS} print_ci_stats
 run_action "archive" copy_to_archive
 
