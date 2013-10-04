@@ -75,6 +75,7 @@ include source/build/flymake.mk
 
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
+CLEAN_FILES =
 TEST_SUB_TARGETS =
 FILES_TO_DELETE_ON_CLEAN =
 
@@ -149,22 +150,27 @@ else # OS X
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
+CLEAN_FILES += $(ZOMPSH_BYTE_FILE)
 $(ZOMPSH_BYTE_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
+CLEAN_FILES += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
 $(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
+CLEAN_FILES += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
+CLEAN_FILES += $(ZOMPC_BYTE_FILE)
 $(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
 
+CLEAN_FILES += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) source/gen_c_bindings.cmo
@@ -216,6 +222,9 @@ source/vm_protocol.o: source/vm_protocol.h
 # Tests
 ################################################################################
 
+CLEAN_FILES += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
+CLEAN_FILES += source/newparser_tests{.cmi,.cmo,.cmx,.o}
+CLEAN_FILES += source/mltest{.cmi,.cmo,.cmx,.o,}
 TEST_CMOS = source/testing.cmo source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
 TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 
@@ -628,30 +637,25 @@ build/cloc.txt: $(CLOC_LANG_DEF_FILE)
 CLEAN_SUB_TARGETS += source/clean
 source/clean:
 	$(DELETE_FILE) $(FILES_TO_DELETE_ON_CLEAN)
-	$(DELETE_FILE) source/zompc.{cmo,cmi,o}
-	$(DELETE_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE)
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
 	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
-	$(DELETE_FILE) $(ZOMPSH_FILE) $(ZOMPSH_BYTE_FILE) source/zompsh.cmi source/zompsh.cmo source/zompsh.o
-	$(DELETE_FILE) source/gen_c_bindings.cmi source/gen_c_bindings.cmo source/gen_c_bindings
 	$(DELETE_FILE) source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
 	$(DELETE_FILE) $(ZOMP_DLL_FILE) source/libzompvm.a
 	$(DELETE_FILE) source/zompvm_impl.o source/zompvm_dummy.o
 	$(DELETE_FILE) source/zompvm_caml.o source/zompvm_caml_dummy.o
 	$(DELETE_FILE) source/*_flymake.*
 	$(DELETE_FILE) source/indentlexer.{cmi,cmo,cma,cmx,o}
-	$(DELETE_FILE) source/indentlexer_tests.{cmi,cmo,o}
 	$(DELETE_FILE) source/newparser.{cmi,cmo,o,ml,mli,conflicts}
 	$(DELETE_FILE) source/newparser_tests.{cmi,cmo,o} source/newparser_tests
 	$(DELETE_FILE) source/expandertests.cm?
 	$(DELETE_FILE) source/mltest.cmo source/mltest.cmi source/mltest.o
 	$(DELETE_FILE) source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
-	$(DELETE_FILE) source/gen_c_bindings.o
 	$(DELETE_FILE) source/dllzompvm.so
 
 clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
+	$(DELETE_FILE) $(CLEAN_FILES)
 	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
 	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
 	$(DELETE_FILE) expander_tests.cm?
