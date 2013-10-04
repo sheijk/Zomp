@@ -112,7 +112,7 @@ endif
 
 .PHONY: all libbindings byte native
 
-all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.png \
+all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.svg \
   $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang \
   $(DEPLOY_DIR)/vm_http_server libs/all examples/all external_lib_links
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
