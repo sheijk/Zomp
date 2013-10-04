@@ -111,14 +111,20 @@ endif
 # Combined/main targets
 ################################################################################
 
-.PHONY: all libbindings byte native
 
+.PHONY: all
 all: byte native source/runtime.bc source/runtime.ll libbindings TAGS $(OUT_DIR)/deps.svg \
   $(OUT_DIR)/mltest source/zompvm_dummy.o $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang \
   $(DEPLOY_DIR)/vm_http_server libs/all examples/all external_lib_links
+
+.PHONY: libbindings
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
+
+.PHONY: byte
 byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
+
+.PHONY: native
 native: $(ZOMP_DLL_FILE) $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
 
 CAML_LIBS = str.cma bigarray.cma
@@ -254,9 +260,9 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "</body>\n</html>" >> $@
 
 MAKE_HISTORY_REPORT=testsuite/make_history_report
+CLEAN_FILES += testsuite/make_history_report{.cmx,.cmi,.cmo,.o,}
 $(MAKE_HISTORY_REPORT): source/common.cmx testsuite/make_history_report.cmx
-	$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ str.cmxa bigarray.cmxa $^
+$(MAKE_HISTORY_REPORT): CAML_NATIVE_FLAGS += str.cmxa bigarray.cmxa source/common.cmx
 
 print_ci_stats: $(MAKE_HISTORY_REPORT)
 	 ./testsuite/for_each_ci_run.sh $(MAKE_HISTORY_REPORT)
@@ -326,6 +332,10 @@ test: $(TEST_SUB_TARGETS)
 	if [ -e $(<:.ml=.mli) ]; then $(OCAMLC) $(CAML_FLAGS) -c $(<:.ml=.mli); fi
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
+
+%: %.cmx
+	$(ECHO) Building ml program $@ ...
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ $<
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
@@ -538,7 +548,7 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.mli bindings.ml common.ml serro
     expander.mli expander.ml gen_c_bindings.ml genllvm.ml indentlexer.mli indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml, source/$(file))
+    zompc.ml zompvm.ml basics.ml, source/$(file)) testsuite/make_history_report.ml
 
 source/newparser.ml: source/ast2.cmx
 
@@ -669,7 +679,6 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) $(DEPLOY_DIR)/vm_http_server
 	$(DELETE_FILE) $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
 	$(DELETE_FILE) testsuite/make_report{.cmx,.cmi,.o,}
-	$(DELETE_FILE) testsuite/make_history_report{.cmx,.cmi,.o,}
 
 clean_tags:
 	$(DELETE_FILE) source/*.annot
