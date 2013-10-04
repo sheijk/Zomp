@@ -574,10 +574,12 @@ TAGS:
 # Visualize OCaml module dependencies
 ################################################################################
 
-$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.png: $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS) source/newparser.ml
+$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.svg: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS) source/newparser.ml
 	@$(ECHO) Generating dependency graph for graphviz ...
 	$(OCAMLDOC) -I source/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
-	dot -Tpng $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.png || $(ECHO) "warning: dot not found, $(OUT_DIR)/deps.png not generated"
+	cat $(OUT_DIR)/deps.dot | sed 's/rotate=90;/rotate=0;/' > $(OUT_DIR)/deps.dot.tmp
+	mv $(OUT_DIR)/deps.dot.tmp $(OUT_DIR)/deps.dot
+	-dot -Tsvg $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.svg
 
 ################################################################################
 # Outdated line of code statistics. Does not work anymore, kept for reference
