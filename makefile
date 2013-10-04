@@ -75,7 +75,6 @@ include source/build/flymake.mk
 
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
-CLEAN_FILES =
 TEST_SUB_TARGETS =
 FILES_TO_DELETE_ON_CLEAN =
 ALL_TARGETS=
@@ -158,27 +157,27 @@ else # OS X
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
-CLEAN_FILES += $(ZOMPSH_BYTE_FILE)
+FILES_TO_DELETE_ON_CLEAN += $(ZOMPSH_BYTE_FILE)
 $(ZOMPSH_BYTE_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
-CLEAN_FILES += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
+FILES_TO_DELETE_ON_CLEAN += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
 $(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
-CLEAN_FILES += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
+FILES_TO_DELETE_ON_CLEAN += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
-CLEAN_FILES += $(ZOMPC_BYTE_FILE)
+FILES_TO_DELETE_ON_CLEAN += $(ZOMPC_BYTE_FILE)
 $(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
 
-CLEAN_FILES += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
+FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) source/gen_c_bindings.cmo
@@ -232,9 +231,9 @@ source/vm_protocol.o: source/vm_protocol.h
 # Tests
 ################################################################################
 
-CLEAN_FILES += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
-CLEAN_FILES += source/newparser_tests{.cmi,.cmo,.cmx,.o}
-CLEAN_FILES += source/mltest{.cmi,.cmo,.cmx,.o,}
+FILES_TO_DELETE_ON_CLEAN += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
+FILES_TO_DELETE_ON_CLEAN += source/newparser_tests{.cmi,.cmo,.cmx,.o}
+FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
 TEST_CMOS = source/testing.cmo source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
 TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 
@@ -242,7 +241,7 @@ TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
 MAKE_REPORT = testsuite/make_report
-CLEAN_FILES += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
+FILES_TO_DELETE_ON_CLEAN += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
 $(MAKE_REPORT): CAML_NATIVE_FLAGS += str.cmxa
 
 .PHONY: $(BUILD_DIR)/report.html
@@ -263,7 +262,7 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "</body>\n</html>" >> $@
 
 MAKE_HISTORY_REPORT=testsuite/make_history_report
-CLEAN_FILES += testsuite/make_history_report{.cmx,.cmi,.cmo,.o,}
+FILES_TO_DELETE_ON_CLEAN += testsuite/make_history_report{.cmx,.cmi,.cmo,.o,}
 $(MAKE_HISTORY_REPORT): source/common.cmx testsuite/make_history_report.cmx
 $(MAKE_HISTORY_REPORT): CAML_NATIVE_FLAGS += str.cmxa bigarray.cmxa source/common.cmx
 
@@ -655,7 +654,6 @@ build/cloc.txt: $(CLOC_LANG_DEF_FILE)
 
 CLEAN_SUB_TARGETS += source/clean
 source/clean:
-	$(DELETE_FILE) $(FILES_TO_DELETE_ON_CLEAN)
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
 	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
 	$(DELETE_FILE) source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
@@ -674,7 +672,7 @@ source/clean:
 clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
-	$(DELETE_FILE) $(CLEAN_FILES)
+	$(DELETE_FILE) $(FILES_TO_DELETE_ON_CLEAN)
 	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
 	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
 	$(DELETE_FILE) expander_tests.cm?
