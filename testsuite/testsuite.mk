@@ -7,10 +7,10 @@
 # printed.
 PRINT_TESTREPORT = 0
 
-CHECK_TEST_FILE = testsuite/check_test.ml
-CHECK_TEST_DEPS = source/common.cmo source/basics.cmo
-CHECK_TEST_SYS_LIBS = str.cma unix.cma bigarray.cma
-CHECK_TEST = $(OCAML) -I source $(CHECK_TEST_SYS_LIBS) $(CHECK_TEST_DEPS) $(CHECK_TEST_FILE)
+CHECK_TEST = testsuite/check_test
+CLEAN_FILES += testsuite/check_test{.cmi,.cmo,.cmx,.o,}
+$(CHECK_TEST): source/common.cmx source/basics.cmx
+$(CHECK_TEST): CAML_NATIVE_FLAGS += str.cmxa unix.cmxa bigarray.cmxa source/common.cmx source/basics.cmx
 
 ################################################################################
 # Targets
@@ -34,26 +34,19 @@ $(BUILD_DIR)/testsuite/summary.txt: $(BUILD_DIR)/report.html
 	@$(ECHO) Generating $@ ...
 	$(PERL) -0777 -p -e 's#    <th>&nbsp;&nbsp;&nbsp;&nbsp;<a href="../../(.*\.zomp)">.*</a></th>\n    <th class="[a-z]+">([a-z]+)</th>#XXXX\1=\2#g' $(BUILD_DIR)/report.html |grep XXXX |sed 's/XXXX//' > $@
 
-testsuite/%/all: testsuite/selftest
+testsuite/%/all: $(CHECK_TEST)
 	@$(ECHO) "Running tests in $@ ..."
 	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/test_*.zomp), $(SOURCE:.zomp=.testreport))
 
 .PHONY: testsuite/success
-testsuite/success: testsuite/selftest $(TESTSUITE_CASES)
+testsuite/success: $(CHECK_TEST) $(TESTSUITE_CASES)
 
 TEST_SUB_TARGETS += testsuite/test
 .PHONY: testsuite/test
-testsuite/test: testsuite/selftest $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
+testsuite/test: $(CHECK_TEST) $(TESTSUITE_SUBDIRS:%=testsuite/%/all)
 
 .PHONY: testsuite/quick
 testsuite/quick: testsuite/fundamental/simple-func.testreport testsuite/libs/libcee_misc.testreport testsuite/zompsh/std_vm_zompsh.testreport
-
-# We test if check_test compiles here but still use ocamlrun to execute it
-# TODO: fix this
-.PHONY: testsuite/selftest
-testsuite/selftest: $(BUILD_DIR)/.exists $(CHECK_TEST_DEPS)
-	@$(ECHO) "Testsuite self test ..."
-	$(OCAMLC) -I source -o $(OUT_DIR)/check_test.cmo $(CHECK_TEST_SYS_LIBS) $(CHECK_TEST_DEPS) $(CHECK_TEST_FILE)
 
 CLEAN_SUB_TARGETS += testsuite/clean
 .PHONY: testsuite/clean
@@ -69,7 +62,6 @@ testsuite/clean:
 	rm -f $(TESTSUITE_CASES:.testreport=.s)
 	rm -f $(TESTSUITE_CASES:.testreport=.o)
 	rm -f $(TESTSUITE_CASES:.testreport=.exe)
-	rm -f testsuite/check_test.annot
 	rm -f testsuite/prelude_is_valid
 
 ################################################################################
@@ -112,7 +104,7 @@ testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
 
 TESTREPORT_LIB_DEPS = source/prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
-TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST_FILE) external_lib_links testsuite/selftest makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS) $(CHECK_TEST_DEPS)
+TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST) external_lib_links makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)
 
 .PRECIOUS: %.test_output
 .PRECIOUS: %.compile_output
@@ -140,7 +132,7 @@ testsuite/prelude_is_valid: testsuite/preludevalid.testreport
 testsuite/check_test_verify/all: testsuite/check_test_verify/test_check_test_error_report.testreport
 
 # A simple self-test.
-testsuite/check_test_verify/test_check_test_error_report.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/testsuite.mk $(CHECK_TEST_FILE)
+testsuite/check_test_verify/test_check_test_error_report.testreport: testsuite/check_test_verify/test_check_test_error_report.zomp testsuite/testsuite.mk $(CHECK_TEST)
 	rm -f ${@:.testreport=.}{bc,op-bc,ll,exe,test_output,compile_output}
 	($(CHECK_TEST) $@ "$(MAKE) SILENT=1" 2>&1) > $@.tmp
 # suppress printing of command to avoid it being recognized as an error pattern

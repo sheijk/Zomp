@@ -237,10 +237,9 @@ TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
-testsuite/make_report: testsuite/make_report.cmx
-	$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ str.cmxa $<
 MAKE_REPORT = testsuite/make_report
+CLEAN_FILES += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
+$(MAKE_REPORT): CAML_NATIVE_FLAGS += str.cmxa
 
 .PHONY: $(BUILD_DIR)/report.html
 $(BUILD_DIR)/report.html: $(MAKE_REPORT)
@@ -548,7 +547,8 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.mli bindings.ml common.ml serro
     expander.mli expander.ml gen_c_bindings.ml genllvm.ml indentlexer.mli indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml, source/$(file)) testsuite/make_history_report.ml
+    zompc.ml zompvm.ml basics.ml, source/$(file)) \
+    testsuite/make_history_report.ml testsuite/make_report.ml
 
 source/newparser.ml: source/ast2.cmx
 
@@ -678,7 +678,6 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) gmon.out
 	$(DELETE_FILE) $(DEPLOY_DIR)/vm_http_server
 	$(DELETE_FILE) $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
-	$(DELETE_FILE) testsuite/make_report{.cmx,.cmi,.o,}
 
 clean_tags:
 	$(DELETE_FILE) source/*.annot
