@@ -303,25 +303,19 @@ test: $(TEST_SUB_TARGETS)
 # Rules
 ################################################################################
 
-%.ml: %.mly $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
+%.ml %.mli: %.mly $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating parser $< ...
 	$(MENHIR) $(MENHIR_FLAGS) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
-	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
+# 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
 
 %.ml: %.mll $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-%.cmi: %.mli $(OUT_DIR)/has_ocaml
-	@$(ECHO) "Compiling $@ ..."
+%.cmo %.cmx %.cmi: %.ml $(OUT_DIR)/has_ocaml
+	@$(ECHO) "Compiling (native+bytecode) $< ..."
+	if [ -e $(<:.ml=.mli) ]; then $(OCAMLC) $(CAML_FLAGS) -c $(<:.ml=.mli); fi
 	$(OCAMLC) $(CAML_FLAGS) -c $<
-
-%.cmo %.cmi: %.ml $(OUT_DIR)/has_ocaml
-	@$(ECHO) "Compiling (bytecode) $< ..."
-	$(OCAMLC) $(CAML_FLAGS) -c $<
-
-%.cmx %.cmi: %.ml $(OUT_DIR)/has_ocaml
-	@$(ECHO) "Compiling (native) $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
 %.o: %.c
@@ -531,31 +525,29 @@ $(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
 
 # When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
-CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
-    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml indentlexer.mli \
+CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.mli bindings.ml common.ml serror.mli serror.ml \
+    expander.mli expander.ml gen_c_bindings.ml genllvm.ml indentlexer.mli indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml, source/$(file))
+    zompc.ml zompvm.ml basics.ml mltest.ml, source/$(file))
 
-source/newparser.cmo: source/newparser.mly source/ast2.cmo
-source/newparser.cmx: source/newparser.mly source/ast2.cmx
-source/newparser.cmi: source/newparser.mly source/ast2.cmi
-source/newparser.ml: source/newparser.mly source/ast2.cmo
+source/newparser.ml: source/ast2.cmx
 
-source/newparser_tests.cmo: source/newparser.cmo
-source/newparser_tests.cmx: source/newparser.cmx
+source/newparser_tests.cmo: source/newparser.cmo source/basics.cmo
+source/newparser_tests.cmx: source/newparser.cmx source/basics.cmx
 source/indentlexer.cmo: source/newparser.cmo
 source/indentlexer.cmx: source/newparser.cmx
-source/indentlexer.cmi: source/newparser.cmi
+source/indentlexer.cmi: source/newparser.cmx
 
 source/machine.cmo: source/machine.skel $(ZOMP_DLL_FILE)
 source/machine.cmx: source/machine.skel $(ZOMP_DLL_FILE)
 source/zompvm.cmo: source/machine.cmo
 source/zompvm.cmx: source/machine.cmx
 
-source/lang.cmi: source/common.cmo
-source/expander.cmi: source/lang.cmi
-source/bindings.cmi: source/common.cmo source/lang.cmo
+source/ast2.cmo: source/basics.cmo source/common.cmo
+source/ast2.cmx: source/basics.cmx source/common.cmx
+
+source/expander.cmi: source/genllvm.cmx source/parseutils.cmx
 
 source/mltest.cmo: source/newparser_tests.cmo
 source/mltest.cmx: source/newparser_tests.cmx

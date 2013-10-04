@@ -69,12 +69,12 @@ function copy_to_archive {
 }
 
 function build {
-    ./build.sh ${FLAGS} all
+    ./build.sh -j8 ${FLAGS} all
     if [ "$?" -ne 0 ]; then
         echo "Build failed, trying clean build" >> ${MAIN_LOG}
         echo "Build failed, trying clean build"
         ./build.sh ${FLAGS} clean_all
-        ./build.sh ${FLAGS} all
+        ./build.sh -j8 ${FLAGS} all
     fi
 }
 
@@ -105,7 +105,7 @@ fi
 
 git rev-parse HEAD > build/ci_git_revision.txt
 run_action "make" build
-run_action "testsuite" ./build.sh ${FLAGS} test
+run_action "testsuite" ./build.sh -j8 ${FLAGS} test
 run_action "stats" ./build.sh ${FLAGS} print_ci_stats
 run_action "archive" copy_to_archive
 
