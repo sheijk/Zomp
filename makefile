@@ -26,6 +26,7 @@ help:
 	exit 1
 
 debug:
+	@$(ECHO) "BUILD_VARIANT = " $(BUILD_VARIANT)
 	@$(ECHO) "PATH = "
 	@$(ECHO) "$(PATH)" | $(TR) : \\n
 	@$(ECHO) "SHELL = " $(SHELL)
@@ -59,9 +60,7 @@ OUT_DIR = $(BUILD_DIR)/intermediate
 TESTSUITE_OUT_DIR = $(BUILD_DIR)/testsuite
 
 ZOMP_DLL_FILE = $(DEPLOY_DIR)/dllzompvm.so
-ZOMPC_BYTE_FILE = $(DEPLOY_DIR)/zompc.byte
 ZOMPC_FILE = $(DEPLOY_DIR)/zompc
-ZOMPSH_BYTE_FILE = $(DEPLOY_DIR)/zompsh.byte
 ZOMPSH_FILE = $(DEPLOY_DIR)/zompsh
 
 .PHONY: make_build_dir
@@ -126,7 +125,7 @@ ifeq "$(CAML_BYTE_CODE)" "1"
 
 .PHONY: byte
 ALL_TARGETS += byte
-byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
+byte: $(ZOMP_DLL_FILE) $(ZOMPC_FILE) $(ZOMPSH_FILE)
 compiler: byte
 
 else
@@ -169,25 +168,31 @@ else # OS X
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
-FILES_TO_DELETE_ON_CLEAN += $(ZOMPSH_BYTE_FILE)
-$(ZOMPSH_BYTE_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
-	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) source/zompsh.cmo
-
-FILES_TO_DELETE_ON_CLEAN += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
-$(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
-	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
+ifeq "$(CAML_BYTE_CODE)" "0"
 
 FILES_TO_DELETE_ON_CLEAN += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_COMPILER_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
-FILES_TO_DELETE_ON_CLEAN += $(ZOMPC_BYTE_FILE)
-$(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
+FILES_TO_DELETE_ON_CLEAN += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
+$(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
+	@$(ECHO) Building $@ ...
+	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
+
+else
+
+FILES_TO_DELETE_ON_CLEAN += $(ZOMPC_FILE)
+$(ZOMPC_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
 	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
+
+FILES_TO_DELETE_ON_CLEAN += $(ZOMPSH_FILE)
+$(ZOMPSH_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
+	@$(ECHO) Building $@ ...
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) source/zompsh.cmo
+
+endif
 
 FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
@@ -299,7 +304,7 @@ runmltests: $(OUT_DIR)/mltest
 PROF_COMP_TARGET=metaballs
 
 .PHONY: profile_comp
-profile_comp: $(ZOMPC_BYTE_FILE) $(ZOMPC_FILE) source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
+profile_comp: $(ZOMPC_FILE) source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
 
@@ -314,13 +319,13 @@ PERFTEST_GEN=
 FUNCTION_COUNTS=100 1000 2000 3000 4000 5000 6000 7000 8000
 
 .PHONY: perftest
-perftest: $(ZOMPC_FILE) $(ZOMPC_BYTE_FILE)
+perftest: $(ZOMPC_FILE)
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest$(PERFTEST_GEN)
 	gnuplot makeperfgraph.gnuplot || $(ECHO) "Could not execute gnuplot"
 	mv temp.png perf_results$(PERFTEST_GEN).png
 
 .PHONY: perftest2
-perftest2: $(ZOMPC_FILE) $(ZOMPC_BYTE_FILE)
+perftest2: $(ZOMPC_FILE)
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest
 	$(CP) tests/timing.txt tests/timing_sexpr.txt
 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
