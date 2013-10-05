@@ -100,6 +100,7 @@ if [ -e ci_archive ]; then
 fi
 
 git rev-parse HEAD > build/ci_git_revision.txt
+run_action "initial-clean" ./build.sh ${FLAGS} clean_all
 run_action "make" build
 run_action "testsuite" ./build.sh -j8 ${FLAGS} test
 run_action "stats" ./build.sh ${FLAGS} print_ci_stats
