@@ -126,7 +126,7 @@ byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
 ALL_TARGETS += native
 native: $(ZOMP_DLL_FILE) $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
 
-CAML_LIBS = str.cma bigarray.cma
+CAML_COMPILER_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
 LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
   source/typesystems.cmo source/bindings.cmo source/ast2.cmo source/serror.cmo \
@@ -160,7 +160,7 @@ endif
 FILES_TO_DELETE_ON_CLEAN += $(ZOMPSH_BYTE_FILE)
 $(ZOMPSH_BYTE_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) source/zompsh.cmo
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
 FILES_TO_DELETE_ON_CLEAN += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
 $(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
@@ -170,17 +170,17 @@ $(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
 FILES_TO_DELETE_ON_CLEAN += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_COMPILER_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
 FILES_TO_DELETE_ON_CLEAN += $(ZOMPC_BYTE_FILE)
 $(ZOMPC_BYTE_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
+	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
 
 FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_LIBS) source/gen_c_bindings.cmo
+	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_COMPILER_LIBS) source/gen_c_bindings.cmo
 
 source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
