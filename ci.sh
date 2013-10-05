@@ -8,13 +8,7 @@ ERROR_ZOMP_WORKING_DIR_BROKEN=3
 
 TESTED_BRANCH=master
 
-if [ ! -z "$2" ]; then
-    echo "error: invalid arguments, expected:"
-    echo "`basename $0` make-flags?"
-    exit ${ERROR_INVALID_ARGS}
-fi
-
-FLAGS=$1
+FLAGS=$@
 START_TIME=`date '+%Y/%m/%d/%H_%M_%S'`
 
 if [ ! -e .git ]; then
@@ -82,6 +76,8 @@ MAIN_LOG=build/ci_log.txt
 rm -f ${MAIN_LOG}
 touch ${MAIN_LOG}
 echo "Logging to ${MAIN_LOG}"
+echo "Building with FLAGS=${FLAGS}" >> ${MAIN_LOG}
+echo "Building with FLAGS=${FLAGS}"
 
 LAST_RUN_FILE=ci_archive/last_run.txt
 
