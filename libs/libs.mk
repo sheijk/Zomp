@@ -9,7 +9,7 @@ ZOMP_LIBS_SRC = $(wildcard libs/*.zomp) $(GENERATED_LIBRARY_SOURCES)
 
 .PHONY: libs/all
 ALL_TARGETS += libs/all
-libs/all: $(ZOMPC_FILE) $(ZOMP_LIBS_SRC:.zomp=.ll)
+libs/all: $(ZOMPC_FILE) libbindings $(ZOMP_LIBS_SRC:.zomp=.ll)
 	$(ECHO) Compiling libraries...
 
 TEST_SUB_TARGETS += libs/test
