@@ -18,11 +18,17 @@ ZOMP_TOOL_PATH_RELATIVE = ./tools/arch-$(ARCH)
 ZOMP_TOOL_PATH=$(ZOMP_DIR)/$(ZOMP_TOOL_PATH_RELATIVE)
 LLVM_VERSION=2.9
 
+ifeq "$(CAML_BYTE_CODE)" "1"
+  BUILD_ARCH_CAML=_caml-bc
+else
+  BUILD_ARCH_CAML=
+endif
+
 ifeq "$(DEBUG)" "1"
-  BUILD_VARIANT = debug-$(ARCH)
+  BUILD_VARIANT = debug-$(ARCH)$(BUILD_ARCH_CAML)
 else
   ifeq "$(DEBUG)" "0"
-  BUILD_VARIANT = release-$(ARCH)
+  BUILD_VARIANT = release-$(ARCH)$(BUILD_ARCH_CAML)
   else
     $(error Please define DEBUG to be either 0 or 1)
   endif
@@ -49,6 +55,14 @@ OCAMLDOC = $(OCAMLPATH)ocamldoc$(OCAML_BIN_POSTFIX)
 # OCaml tags program (currently only works with OCaml 3.9 and thus is probably
 # not present anymore)
 OTAGS = otags
+
+ifeq "$(CAML_BYTE_CODE)" "0"
+CAML_OBJ_EXT=cmx
+CAML_LIB_EXT=cmxa
+else
+CAML_OBJ_EXT=cmo
+CAML_LIB_EXT=cma
+endif
 
 ################################################################################
 # LLVM binaries
@@ -125,7 +139,7 @@ else
   RUN_W_PROFILE = /usr/bin/time
 endif
 
-ifeq "$(USE_BYTE)" "1"
+ifeq "$(CAML_BYTE_CODE)" "1"
   ZOMPC = $(RUN_W_PROFILE) OCAMLRUNPARAM=b $(ZOMP_DIR)/$(ZOMPC_BYTE_FILE)
 else
   ZOMPC = $(RUN_W_PROFILE) $(ZOMP_DIR)/$(ZOMPC_FILE)
@@ -140,6 +154,10 @@ ZOMPSH = $(DEPLOY_DIR)/zompsh
 CAML_INCLUDE = -I source/
 CAML_PP =
 
+CAML_LIBS =
+CAML_OBJS =
+CAML_DEPENDENCIES = $(foreach obj, $(CAML_OBJS), $(obj).$(CAML_OBJ_EXT))
+CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), $(lib).$(CAML_LIB_EXT)) $(CAML_DEPENDENCIES)
 CAML_FLAGS = $(CAML_INCLUDE) $(CAML_PP)
 CAML_NATIVE_FLAGS = $(CAML_INCLUDE) $(CAML_PP)
 

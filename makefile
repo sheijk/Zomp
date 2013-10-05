@@ -13,6 +13,10 @@ ifndef DEBUG
 DEBUG=0
 endif
 
+ifndef CAML_BYTE_CODE
+CAML_BYTE_CODE=0
+endif
+
 ifndef PWD
 PWD=`pwd`
 endif
@@ -118,13 +122,21 @@ ALL_TARGETS += libbindings
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
   libs/libglut.dylib libs/libquicktext.dylib libs/libutils.dylib libs/stb_image.dylib
 
+ifeq "$(CAML_BYTE_CODE)" "1"
+
 .PHONY: byte
 ALL_TARGETS += byte
 byte: $(ZOMP_DLL_FILE) $(ZOMPC_BYTE_FILE) $(ZOMPSH_BYTE_FILE)
+compiler: byte
+
+else
 
 .PHONY: native
 ALL_TARGETS += native
 native: $(ZOMP_DLL_FILE) $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
+compiler: native
+
+endif
 
 CAML_COMPILER_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
@@ -242,7 +254,7 @@ report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
 MAKE_REPORT = testsuite/make_report
 FILES_TO_DELETE_ON_CLEAN += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
-$(MAKE_REPORT): CAML_NATIVE_FLAGS += str.cmxa
+$(MAKE_REPORT): CAML_LIBS += str
 
 .PHONY: $(BUILD_DIR)/report.html
 $(BUILD_DIR)/report.html: $(MAKE_REPORT)
@@ -263,8 +275,8 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 
 MAKE_HISTORY_REPORT=testsuite/make_history_report
 FILES_TO_DELETE_ON_CLEAN += testsuite/make_history_report{.cmx,.cmi,.cmo,.o,}
-$(MAKE_HISTORY_REPORT): source/common.cmx testsuite/make_history_report.cmx
-$(MAKE_HISTORY_REPORT): CAML_NATIVE_FLAGS += str.cmxa bigarray.cmxa source/common.cmx
+$(MAKE_HISTORY_REPORT): CAML_OBJS += source/common
+$(MAKE_HISTORY_REPORT): CAML_LIBS += str bigarray
 
 print_ci_stats: $(MAKE_HISTORY_REPORT)
 	 ./testsuite/for_each_ci_run.sh $(MAKE_HISTORY_REPORT)
@@ -336,9 +348,17 @@ test: $(TEST_SUB_TARGETS)
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
 
-%: %.cmx
+ifeq "$(CAML_BYTE_CODE)" "0"
+%: %.cmx $(CAML_DEPENDENCIES)
+	$(ECHO) Building native ml program $@ ...
+	@echo "CAML_LIBS = " $(CAML_LIBS)
+	@echo "CAML_OBJS = " $(CAML_OBJS)
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+else
+%: %.cmo $(CAML_DEPENDENCIES)
 	$(ECHO) Building ml program $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ $<
+	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+endif
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
