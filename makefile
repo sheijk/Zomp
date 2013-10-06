@@ -132,7 +132,7 @@ else
 
 .PHONY: native
 ALL_TARGETS += native
-native: $(ZOMP_DLL_FILE) $(LANG_CMOS:.cmo=.cmx) $(ZOMPC_FILE) $(ZOMPSH_FILE)
+native: $(ZOMP_DLL_FILE) $(ZOMPC_FILE) $(ZOMPSH_FILE)
 compiler: native
 
 endif
@@ -197,9 +197,13 @@ endif
 FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: CAML_LIBS += str
 
-source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
+source/machin%.c source/machin%.ml: source/gen_c_bindings source/machin%.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
 	./source/gen_c_bindings source/machine
+
+source/machine.mli: source/machine.ml
+	@$(ECHO) "Generating $@ ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $@
 
 ALL_TARGETS += source/runtime.bc source/runtime.ll
 source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
@@ -331,37 +335,55 @@ perftest2: $(ZOMPC_FILE)
 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
 .PHONY: test
-test: $(TEST_SUB_TARGETS)
+test: all $(TEST_SUB_TARGETS)
 
 ################################################################################
 # Rules
 ################################################################################
 
-%.ml %.mli: %.mly $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
+.PRECIOUS: %.mli $(OUT_DIR)/has_menhir
+%.ml: %.mly $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating parser $< ...
 	$(MENHIR) $(MENHIR_FLAGS) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --explain --infer $<
-# 	$(OCAMLC) $(CAML_FLAGS) -c $(<:.mly=.mli)
+
+%.mli: %.ml %.mly
+	@$(ECHO) "Generating $@ ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $@
 
 %.ml: %.mll $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-%.cmo %.cmx %.cmi: %.ml $(OUT_DIR)/has_ocaml
-	@$(ECHO) "Compiling (native+bytecode) $< ..."
-	if [ -e $(<:.ml=.mli) ]; then $(OCAMLC) $(CAML_FLAGS) -c $(<:.ml=.mli); fi
-	$(OCAMLC) $(CAML_FLAGS) -c $<
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -c $<
-
 ifeq "$(CAML_BYTE_CODE)" "0"
+
+%.cmi: %.mli
+	@$(ECHO) "Compiling $@ ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -c $<
+
+%.cmx: %.ml %.cmi
+	@$(ECHO) "Compiling $@ ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -c $<
+
 %: %.cmx $(CAML_DEPENDENCIES)
 	$(ECHO) Building native ml program $@ ...
 	@echo "CAML_LIBS = " $(CAML_LIBS)
 	@echo "CAML_OBJS = " $(CAML_OBJS)
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+
 else
+
+%.cmi: %.mli
+	@$(ECHO) "Compiling $@ ..."
+	$(OCAMLC) $(CAML_FLAGS) -c $<
+
+%.cmo: %.ml %.cmi
+	@$(ECHO) "Compiling $@ ..."
+	$(OCAMLC) $(CAML_FLAGS) -c $<
+
 %: %.cmo $(CAML_DEPENDENCIES)
 	$(ECHO) Building ml program $@ ...
 	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+
 endif
 
 %.o: %.c
@@ -573,20 +595,25 @@ $(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
 
 # When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
-CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.mli bindings.ml common.ml serror.mli serror.ml \
-    expander.mli expander.ml gen_c_bindings.ml genllvm.ml indentlexer.mli indentlexer.ml \
+CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
+    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml, source/$(file)) \
-    testsuite/make_history_report.ml testsuite/make_report.ml
+    zompc.ml zompvm.ml basics.ml, source/$(file) source/$(file:.ml=.mli)) \
+    $(foreach file, make_history_report.ml make_report.ml check_test.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
 
-source/newparser.ml: source/ast2.cmx
-
-source/newparser_tests.cmo: source/newparser.cmo source/basics.cmo
-source/newparser_tests.cmx: source/newparser.cmx source/basics.cmx
+source/newparser_tests.cmi: source/newparser.cmi
+source/newparser_tests.cmo: source/newparser.cmo
+source/newparser_tests.cmx: source/newparser.cmx
+source/indentlexer.cmi: source/newparser.$(CAML_OBJ_EXT)
 source/indentlexer.cmo: source/newparser.cmo
 source/indentlexer.cmx: source/newparser.cmx
-source/indentlexer.cmi: source/newparser.cmx
+
+source/newparser.ml: source/ast2.$(CAML_OBJ_EXT)
+source/newparser.mli: source/ast2.$(CAML_OBJ_EXT)
+source/newparser.cmi: source/ast2.cmi
+source/newparser.cmo: source/ast2.cmo
+source/newparser.cmx: source/ast2.cmx
 
 source/machine.cmo: source/machine.skel $(ZOMP_DLL_FILE)
 source/machine.cmx: source/machine.skel $(ZOMP_DLL_FILE)
@@ -595,8 +622,6 @@ source/zompvm.cmx: source/machine.cmx
 
 source/ast2.cmo: source/basics.cmo source/common.cmo
 source/ast2.cmx: source/basics.cmx source/common.cmx
-
-source/expander.cmi: source/genllvm.cmx source/parseutils.cmx
 
 source/mltest.cmo: source/newparser_tests.cmo source/indentlexer_tests.cmo
 source/mltest.cmx: source/newparser_tests.cmx source/indentlexer_tests.cmx
@@ -615,9 +640,9 @@ TAGS:
 ################################################################################
 
 ALL_TARGETS += $(OUT_DIR)/deps.svg
-$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.svg: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT) $(LANG_CMOS) source/newparser.ml
+$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.svg: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
 	@$(ECHO) Generating dependency graph for graphviz ...
-	$(OCAMLDOC) -I source/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml
+	$(OCAMLDOC) -I source/ -I testsuite/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
 	cat $(OUT_DIR)/deps.dot | sed 's/rotate=90;/rotate=0;/' > $(OUT_DIR)/deps.dot.tmp
 	mv $(OUT_DIR)/deps.dot.tmp $(OUT_DIR)/deps.dot
 	-dot -Tsvg $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.svg

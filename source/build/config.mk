@@ -151,7 +151,7 @@ ZOMPSH = $(DEPLOY_DIR)/zompsh
 # Build flags
 ################################################################################
 
-CAML_INCLUDE = -I source/
+CAML_INCLUDE = -I source/ -I testsuite/
 CAML_PP =
 
 CAML_LIBS =

@@ -9,8 +9,8 @@ PRINT_TESTREPORT = 0
 
 CHECK_TEST = testsuite/check_test
 FILES_TO_DELETE_ON_CLEAN += testsuite/check_test{.cmi,.cmo,.cmx,.o,}
-$(CHECK_TEST): source/common.cmx source/basics.cmx
-$(CHECK_TEST): CAML_NATIVE_FLAGS += str.cmxa unix.cmxa bigarray.cmxa source/common.cmx source/basics.cmx
+$(CHECK_TEST): CAML_OBJS += source/common source/basics
+$(CHECK_TEST): CAML_LIBS += str unix bigarray
 
 ################################################################################
 # Targets
