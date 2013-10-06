@@ -106,6 +106,7 @@ CAT = cat
 CP = cp
 RM = rm
 DELETE_FILE = $(RM) -f
+DELETE_DIR = $(RM) -rdf
 SED = sed
 # TR = tc
 TR = tr

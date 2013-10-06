@@ -729,6 +729,8 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) gmon.out
 	$(DELETE_FILE) $(DEPLOY_DIR)/vm_http_server
 	$(DELETE_FILE) $(MLTEST_SUMMARY_FILE) $(MLTEST_OUTPUT_FILE)
+	$(DELETE_FILE) $(BUILD_DIR)/.exists
+	$(DELETE_DIR) -rdf $(OUT_DIR) $(DEPLOY_DIR) $(TESTSUITE_OUT_DIR)
 
 clean_tags:
 	$(DELETE_FILE) source/*.annot
