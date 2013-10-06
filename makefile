@@ -223,7 +223,8 @@ NEWPARSER_ML_SRC = $(foreach file, common basics ast2 newparser indentlexer, sou
 # ZompVM server
 ################################################################################
 
-VM_HTTP_SERVER_OBJS = source/mongoose.o source/runtime.o source/zompvm_impl.o source/zompvm_caml_dummy.o source/vm_http_server.o
+VM_HTTP_SERVER_OBJS = source/mongoose.o source/runtime.o source/zompvm_impl.o \
+  source/zompvm_caml_dummy.o source/stats_impl.o source/vm_http_server.o
 
 source/vm_http_server.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
