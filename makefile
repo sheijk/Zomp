@@ -263,7 +263,7 @@ source/vm_protocol.o: source/vm_protocol.h
 FILES_TO_DELETE_ON_CLEAN += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
 FILES_TO_DELETE_ON_CLEAN += source/newparser_tests{.cmi,.cmo,.cmx,.o}
 FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
-TEST_ML_SRC = source/testing.ml source/indentlexer_tests.ml source/newparser_tests.ml source/mltest.ml
+TEST_ML_SRC = source/testing.ml source/indentlexer_tests.ml source/newparser_tests.ml
 
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
@@ -301,7 +301,7 @@ print_ci_stats: $(MAKE_HISTORY_REPORT)
 ALL_TARGETS += $(OUT_DIR)/mltest
 FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
 $(OUT_DIR)/mltest: $(NEWPARSER_ML_SRC:.ml=.$(CAML_OBJ_EXT)) $(TEST_ML_SRC:.ml=.$(CAML_OBJ_EXT))
-$(OUT_DIR)/mltest: CAML_OBJS = $(NEWPARSER_ML_SRC) $(TEST_ML_SRC)
+$(OUT_DIR)/mltest: CAML_OBJS = $(NEWPARSER_ML_SRC:.ml=) $(TEST_ML_SRC:.ml=)
 $(OUT_DIR)/mltest: CAML_LIBS = str bigarray
 
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
@@ -378,6 +378,10 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 	$(ECHO) "Building native ml program $@ ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
+$(OUT_DIR)/%: source/%.cmx $(CAML_DEPENDENCIES)
+	$(ECHO) "Building native ml program $@ ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+
 else
 
 %.cmi: %.mli
@@ -389,6 +393,10 @@ else
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
 %: %.cmo $(CAML_DEPENDENCIES)
+	$(ECHO) "Building ml program $@ ..."
+	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+
+$(OUT_DIR)/%: source/%.cmo
 	$(ECHO) "Building ml program $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
