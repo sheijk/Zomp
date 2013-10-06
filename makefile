@@ -257,13 +257,8 @@ source/vm_server.o: source/vm_protocol.h
 source/vm_protocol.o: source/vm_protocol.h
 
 ################################################################################
-# Tests
+# Reporting
 ################################################################################
-
-FILES_TO_DELETE_ON_CLEAN += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
-FILES_TO_DELETE_ON_CLEAN += source/newparser_tests{.cmi,.cmo,.cmx,.o}
-FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
-TEST_ML_SRC = source/testing.ml source/indentlexer_tests.ml source/newparser_tests.ml
 
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
@@ -298,6 +293,15 @@ $(MAKE_HISTORY_REPORT): CAML_LIBS += str bigarray
 print_ci_stats: $(MAKE_HISTORY_REPORT)
 	 ./testsuite/for_each_ci_run.sh $(MAKE_HISTORY_REPORT)
 
+################################################################################
+# Tests
+################################################################################
+
+FILES_TO_DELETE_ON_CLEAN += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
+FILES_TO_DELETE_ON_CLEAN += source/newparser_tests{.cmi,.cmo,.cmx,.o}
+FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
+TEST_ML_SRC = source/testing.ml source/indentlexer_tests.ml source/newparser_tests.ml
+
 ALL_TARGETS += $(OUT_DIR)/mltest
 FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
 $(OUT_DIR)/mltest: $(NEWPARSER_ML_SRC:.ml=.$(CAML_OBJ_EXT)) $(TEST_ML_SRC:.ml=.$(CAML_OBJ_EXT))
@@ -313,39 +317,43 @@ runmltests: $(OUT_DIR)/mltest
 	@$(ECHO) Running OCaml test suite ...
 	$(OUT_DIR)/mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE); exit $${PIPESTATUS}
 
-PROF_COMP_TARGET=metaballs
-
-.PHONY: profile_comp
-profile_comp: $(ZOMPC_FILE) source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
-	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
-	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
-
-.PHONY: runtests
-runtests: $(LANG_CMOS)
-	@$(ECHO) Running tests ...
-	cd tests && time make clean_tests check
-
-# FUNCTION_COUNTS=10 1000
-PERFTEST_GEN=
-# PERFTEST_GEN=_iexpr
-FUNCTION_COUNTS=100 1000 2000 3000 4000 5000 6000 7000 8000
-
-.PHONY: perftest
-perftest: $(ZOMPC_FILE)
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest$(PERFTEST_GEN)
-	gnuplot makeperfgraph.gnuplot || $(ECHO) "Could not execute gnuplot"
-	mv temp.png perf_results$(PERFTEST_GEN).png
-
-.PHONY: perftest2
-perftest2: $(ZOMPC_FILE)
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest
-	$(CP) tests/timing.txt tests/timing_sexpr.txt
-	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
-	$(CP) tests/timing.txt tests/timing_iexpr.txt
-	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
-
 .PHONY: test
 test: all $(TEST_SUB_TARGETS)
+
+################################################################################
+# Out of date, TODO: fix and add to test suite
+################################################################################
+
+# PROF_COMP_TARGET=metaballs
+# 
+# .PHONY: profile_comp
+# profile_comp: $(ZOMPC_FILE) source/runtime.bc libs/opengl20.zomp libs/glfw.zomp
+# 	cd examples && $(RM) -f $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc
+# 	cd examples && time make $(PROF_COMP_TARGET).ll $(PROF_COMP_TARGET).bc ZOMPCFLAGS=--print-timings
+# 
+# .PHONY: runtests
+# runtests: $(LANG_CMOS)
+# 	@$(ECHO) Running tests ...
+# 	cd tests && time make clean_tests check
+# 
+# # FUNCTION_COUNTS=10 1000
+# PERFTEST_GEN=
+# # PERFTEST_GEN=_iexpr
+# FUNCTION_COUNTS=100 1000 2000 3000 4000 5000 6000 7000 8000
+# 
+# .PHONY: perftest
+# perftest: $(ZOMPC_FILE)
+# 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest$(PERFTEST_GEN)
+# 	gnuplot makeperfgraph.gnuplot || $(ECHO) "Could not execute gnuplot"
+# 	mv temp.png perf_results$(PERFTEST_GEN).png
+# 
+# .PHONY: perftest2
+# perftest2: $(ZOMPC_FILE)
+# 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest
+# 	$(CP) tests/timing.txt tests/timing_sexpr.txt
+# 	cd tests && make clean_tests compileperftest FUNCTION_COUNTS="$(FUNCTION_COUNTS)" PERFTEST_GEN=genperftest_iexpr
+# 	$(CP) tests/timing.txt tests/timing_iexpr.txt
+# 	gnuplot makeperfgraph2.gnuplot || $(ECHO) "Could not execute gnuplot"
 
 ################################################################################
 # Rules
