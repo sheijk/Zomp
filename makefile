@@ -263,7 +263,8 @@ source/vm_protocol.o: source/vm_protocol.h
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
-MAKE_REPORT = testsuite/make_report
+MAKE_REPORT = $(OUT_DIR)/testsuite/make_report
+ALL_TARGETS += $(MAKE_REPORT)
 FILES_TO_DELETE_ON_CLEAN += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
 $(MAKE_REPORT): CAML_LIBS += str
 
@@ -285,7 +286,8 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
-MAKE_HISTORY_REPORT=testsuite/make_history_report
+MAKE_HISTORY_REPORT = $(OUT_DIR)/testsuite/make_history_report
+ALL_TARGETS += $(MAKE_HISTORY_REPORT)
 FILES_TO_DELETE_ON_CLEAN += testsuite/make_history_report{.cmx,.cmi,.cmo,.o,}
 $(MAKE_HISTORY_REPORT): CAML_OBJS += source/common
 $(MAKE_HISTORY_REPORT): CAML_LIBS += str bigarray

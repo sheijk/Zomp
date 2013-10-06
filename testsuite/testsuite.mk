@@ -7,7 +7,8 @@
 # printed.
 PRINT_TESTREPORT = 0
 
-CHECK_TEST = testsuite/check_test
+CHECK_TEST = $(OUT_DIR)/testsuite/check_test
+ALL_TARGETS += $(CHECK_TEST)
 FILES_TO_DELETE_ON_CLEAN += testsuite/check_test{.cmi,.cmo,.cmx,.o,}
 $(CHECK_TEST): CAML_OBJS += source/common source/basics
 $(CHECK_TEST): CAML_LIBS += str unix bigarray
