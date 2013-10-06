@@ -299,23 +299,23 @@ print_ci_stats: $(MAKE_HISTORY_REPORT)
 
 FILES_TO_DELETE_ON_CLEAN += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
 FILES_TO_DELETE_ON_CLEAN += source/newparser_tests{.cmi,.cmo,.cmx,.o}
-FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
 TEST_ML_SRC = source/testing.ml source/indentlexer_tests.ml source/newparser_tests.ml
 
-ALL_TARGETS += $(OUT_DIR)/mltest
+MLTEST = $(OUT_DIR)/source/mltest
+ALL_TARGETS += $(MLTEST)
 FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
-$(OUT_DIR)/mltest: $(NEWPARSER_ML_SRC:.ml=.$(CAML_OBJ_EXT)) $(TEST_ML_SRC:.ml=.$(CAML_OBJ_EXT))
-$(OUT_DIR)/mltest: CAML_OBJS = $(NEWPARSER_ML_SRC:.ml=) $(TEST_ML_SRC:.ml=)
-$(OUT_DIR)/mltest: CAML_LIBS = str bigarray
+$(MLTEST): $(NEWPARSER_ML_SRC:.ml=.$(CAML_OBJ_EXT)) $(TEST_ML_SRC:.ml=.$(CAML_OBJ_EXT))
+$(MLTEST): CAML_OBJS = $(NEWPARSER_ML_SRC:.ml=) $(TEST_ML_SRC:.ml=)
+$(MLTEST): CAML_LIBS = str bigarray
 
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
 MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
 
 TEST_SUB_TARGETS += runmltests
 .PHONY: runmltests
-runmltests: $(OUT_DIR)/mltest
+runmltests: $(MLTEST)
 	@$(ECHO) Running OCaml test suite ...
-	$(OUT_DIR)/mltest $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE); exit $${PIPESTATUS}
+	$(MLTEST) $(MLTEST_SUMMARY_FILE) | tee $(MLTEST_OUTPUT_FILE); exit $${PIPESTATUS}
 
 .PHONY: test
 test: all $(TEST_SUB_TARGETS)
@@ -386,8 +386,9 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 	$(ECHO) "Building native ml program $@ ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
-$(OUT_DIR)/%: source/%.cmx $(CAML_DEPENDENCIES)
+$(OUT_DIR)/%: %.cmx $(CAML_DEPENDENCIES)
 	$(ECHO) "Building native ml program $@ ..."
+	mkdir -p `dirname $@`
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 else
@@ -404,8 +405,9 @@ else
 	$(ECHO) "Building ml program $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
-$(OUT_DIR)/%: source/%.cmo
+$(OUT_DIR)/%: %.cmo
 	$(ECHO) "Building ml program $@ ..."
+	mkdir -p `dirname $@`
 	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 endif
