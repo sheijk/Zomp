@@ -214,8 +214,7 @@ source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_
 	$(RM) -f source/runtime.bc source/runtime.orig.ll
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
-NEWPARSER_CMOS = $(foreach file, common.cmo basics.cmo ast2.cmo newparser.cmo indentlexer.cmo, source/$(file))
-NEWPARSER_CMXS = $(NEWPARSER_CMOS:.cmo=.cmx)
+NEWPARSER_ML_SRC = $(foreach file, common basics ast2 newparser indentlexer, source/$(file).ml)
 
 ################################################################################
 # ZompVM server
@@ -253,8 +252,7 @@ source/vm_protocol.o: source/vm_protocol.h
 FILES_TO_DELETE_ON_CLEAN += source/indentlexer_tests{.cmi,.cmo,.cmx,.o}
 FILES_TO_DELETE_ON_CLEAN += source/newparser_tests{.cmi,.cmo,.cmx,.o}
 FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
-TEST_CMOS = source/testing.cmo source/indentlexer_tests.cmo source/newparser_tests.cmo source/mltest.cmo
-TEST_CMXS = $(TEST_CMOS:.cmo=.cmx)
+TEST_ML_SRC = source/testing.ml source/indentlexer_tests.ml source/newparser_tests.ml source/mltest.ml
 
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
@@ -290,9 +288,10 @@ print_ci_stats: $(MAKE_HISTORY_REPORT)
 	 ./testsuite/for_each_ci_run.sh $(MAKE_HISTORY_REPORT)
 
 ALL_TARGETS += $(OUT_DIR)/mltest
-$(OUT_DIR)/mltest: $(NEWPARSER_CMXS) $(TEST_CMXS) $(BUILD_DIR)/.exists
-	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -o $@ bigarray.cmxa str.cmxa $(NEWPARSER_CMXS) $(TEST_CMXS)
+FILES_TO_DELETE_ON_CLEAN += source/mltest{.cmi,.cmo,.cmx,.o,}
+$(OUT_DIR)/mltest: $(NEWPARSER_ML_SRC:.ml=.$(CAML_OBJ_EXT)) $(TEST_ML_SRC:.ml=.$(CAML_OBJ_EXT))
+$(OUT_DIR)/mltest: CAML_OBJS = $(NEWPARSER_ML_SRC) $(TEST_ML_SRC)
+$(OUT_DIR)/mltest: CAML_LIBS = str bigarray
 
 MLTEST_SUMMARY_FILE = $(TESTSUITE_OUT_DIR)/mltest_summary.test_output
 MLTEST_OUTPUT_FILE = $(TESTSUITE_OUT_DIR)/mltest.test_output
@@ -714,7 +713,6 @@ source/clean:
 	$(DELETE_FILE) source/newparser.{cmi,cmo,o,ml,mli,conflicts}
 	$(DELETE_FILE) source/newparser_tests.{cmi,cmo,o} source/newparser_tests
 	$(DELETE_FILE) source/expandertests.cm?
-	$(DELETE_FILE) source/mltest.cmo source/mltest.cmi source/mltest.o
 	$(DELETE_FILE) source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(DELETE_FILE) source/dllzompvm.so
 
