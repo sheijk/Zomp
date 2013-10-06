@@ -2,7 +2,7 @@ open Str
 open Printf
 
 exception Type_not_found of string
-exception Compile_error of string
+exception Compile_error of int * string
 
 module Utils =
 struct
@@ -87,7 +87,7 @@ struct
       begin try
         List.assoc valueConstantName !constants
       with Not_found ->
-        raise (Compile_error (sprintf "could not find constant '%s'" valueConstantName))
+        raise (Compile_error (0, sprintf "could not find constant '%s'" valueConstantName))
       end
 
   let mapFilter func list =
@@ -108,13 +108,13 @@ module BindingExpressions =
 struct
   type constant = {
     name :string;
-    value: string
+    value: string;
   }
 
   type param = {
     pname : string option;
     ptype : string;
-    mltype : string option
+    mltype : string option;
   }
 
   let untransformedParam name typ = {
@@ -126,16 +126,19 @@ struct
   type func = {
     fname : string;
     retval : string;
-    params : param list
+    params : param list;
   }
 
-  type expr =
+  type exprCase =
     | Include of string
     | LinkLib of string
     | Constant of constant
     | Function of func
     | Unknown of string
 
+  type expr = int * exprCase
+
+  let lineNum (line, _) = line
 end
 
 module type PARSER =
@@ -164,46 +167,49 @@ struct
     let typeAndNames = Str.split (Str.regexp ", *") str in
     List.map splitparam typeAndNames
 
-  let parseLine line =
+  let parseLine lineNum line =
     let constantRE = Str.regexp "[\t ]*\\([A-Za-z0-9_]+\\) +\\([A-Za-z0-9_]+\\) *$"
     and functionRE = Str.regexp "[\t ]*\\([a-zA-Z0-9_ ]+\\*?\\) \\([a-zA-Z0-9_]+\\) (\\([^)]*\\))"
     and includeRE = Str.regexp "[\t ]*include \\([\"<][a-zA-Z0-9_\\./]*[\">]\\)"
     and linklibRE = Str.regexp "[\t ]*lib +\\([^ \t]+\\) *$"
     in
     let lineMatches re = Str.string_match re line 0 in
-    if lineMatches includeRE then
-      let filename = Str.matched_group 1 line in
-      Include filename
-    else if lineMatches linklibRE then
-      LinkLib (Str.matched_group 1 line)
-    else if lineMatches constantRE then
-      Constant {
-        name = (Str.matched_group 1 line);
-        value = (String.lowercase (Str.matched_group 2 line))
-      }
-    else if lineMatches functionRE then
-      let name = Str.matched_group 2 line
-      and retval = Str.matched_group 1 line
-      and params = Str.matched_group 3 line
-      in
-      Function {
-        fname = name;
-        retval = retval;
-        params = extractParams params
-      }
-    else
-      Unknown line
+    let exprCase =
+      if lineMatches includeRE then
+        let filename = Str.matched_group 1 line in
+        Include filename
+      else if lineMatches linklibRE then
+        LinkLib (Str.matched_group 1 line)
+      else if lineMatches constantRE then
+        Constant {
+          name = (Str.matched_group 1 line);
+          value = (String.lowercase (Str.matched_group 2 line));
+        }
+      else if lineMatches functionRE then
+        let name = Str.matched_group 2 line
+        and retval = Str.matched_group 1 line
+        and params = Str.matched_group 3 line
+        in
+        Function {
+          fname = name;
+          retval = retval;
+          params = extractParams params;
+        }
+      else
+        Unknown line
+    in
+    lineNum, exprCase
 
   let parse channel =
-    let rec readline () =
+    let rec readline lineNum =
       let line = input_line channel in
-      let expr = parseLine line in
+      let expr = parseLine lineNum line in
       begin match expr with
           (* extra exit for interactive usage *)
-          Unknown str when str = "!" -> []
+          _, Unknown str when str = "!" -> []
         | _ -> begin
             try
-              expr :: readline ()
+              expr :: readline (lineNum + 1)
             with
                 End_of_file -> []
               | Type_not_found typeName ->
@@ -212,11 +218,11 @@ struct
                     typeName
                     line
                   in
-                  raise (Compile_error message)
+                  raise (Compile_error (lineNum, message))
           end
       end (* match *)
     in
-    readline()
+    readline 1
 end
 
 module Printer =
@@ -398,10 +404,9 @@ end
 module Processor(Parser : PARSER)(Codegen : CODEGEN) =
 struct
   let print_warnings filename content =
-    let line_number = ref 1 in
     StdLabels.List.iter content
       ~f:(function
-            | BindingExpressions.Unknown text ->
+            | lineNum, BindingExpressions.Unknown text ->
                 let matches str re = Str.string_match (Str.regexp re) str 0 in
                 let legal_lines = [
                   "^[ \t]*$";         (* whitspace lines *)
@@ -410,9 +415,8 @@ struct
                   "^http://";         (* url of specification *)
                 ] in
                 if not( List.exists (matches text) legal_lines ) then
-                  eprintf "%s:%d: warning: suspicious line: %s\n" filename !line_number text;
-                incr line_number;
-            | _ -> incr line_number)
+                  eprintf "%s:%d: warning: suspicious line: %s\n" filename lineNum text
+            | _ -> ())
 
   let process_file moduleName =
     let writefile ~filename ~text =
@@ -478,18 +482,18 @@ struct
 
   let gencaml_unknown str = "(* " ^ str ^ " *)"
 
-  let gen_caml_code expressions =
+  let gen_caml_code (expressions :BindingExpressions.expr list) =
     let helpers =
       "type double = float\n" ^
         "type cptr\n" ^
         "\n"
     in
     let expr2str = function
-      | Include filename -> "(* included " ^ filename ^ " *)"
-      | LinkLib libname -> "(* lib " ^ libname ^ " *)"
-      | Constant c -> gencaml_constant c
-      | Function f -> gencaml_function f
-      | Unknown u -> gencaml_unknown u
+      | _, Include filename -> "(* included " ^ filename ^ " *)"
+      | _, LinkLib libname -> "(* lib " ^ libname ^ " *)"
+      | _, Constant c -> gencaml_constant c
+      | _, Function f -> gencaml_function f
+      | _, Unknown u -> gencaml_unknown u
     in
     let stringList =
       List.map (fun e -> expr2str e) expressions (*TODO: remove fun e.. *)
@@ -683,9 +687,9 @@ struct
     in
     wrapperFunction ^ "\n\n" ^ bytecodeWrapperFunction
 
-  let gen_c_code expressions =
+  let gen_c_code (expressions : BindingExpressions.expr list) =
     let expr2decl = function
-      | Function f ->
+      | _, Function f ->
           sprintf "%s %s(%s);"
             f.retval
             f.fname
@@ -696,9 +700,9 @@ struct
     let includes, glueFuncs =
       List.fold_right (fun expr (includes, glueFuncs) ->
                          match expr with
-                           | Function f ->
+                           | _, Function f ->
                                (includes, genc_function f :: glueFuncs)
-                           | Include filename ->
+                           | _, Include filename ->
                                (("#include " ^ filename) :: includes, glueFuncs)
                            | _ -> includes, glueFuncs)
         expressions
@@ -717,10 +721,10 @@ struct
 
   let transformExpr (expr : expr) : expr =
     match expr with
-        Function f -> Function {
+        lineNum, Function f -> lineNum, Function {
           fname = f.fname;
           retval = f.retval;
-          params = List.map transformParam f.params
+          params = List.map transformParam f.params;
         }
       | _ -> expr
 
@@ -732,12 +736,8 @@ struct
             (transformExpr expr) :: (transformExprList rem)
           with
               Type_not_found t ->
-                let msg = Printf.sprintf
-                  "type '%s' not found in expression %s"
-                  t
-                  (Printer.expr2string expr)
-                in
-                raise (Compile_error msg)
+                let msg = Printf.sprintf "type '%s' not found" t in
+                raise (Compile_error (lineNum expr, msg))
         end
     in
     transformExprList expressions
@@ -890,13 +890,13 @@ struct
   let previousConstants = ref []
 
   let generate_zomp_code = function
-    | Include fileName -> sprintf "/// include %s\n" fileName
-    | LinkLib libname -> sprintf "linkclib \"%s\"" libname
-    | Constant c ->
+    | _, Include fileName -> sprintf "/// include %s\n" fileName
+    | _, LinkLib libname -> sprintf "linkclib \"%s\"" libname
+    | _, Constant c ->
         let value = intToDecimal c.value previousConstants in
         previousConstants := (c.name, value) :: !previousConstants;
         CodePrinter.printConstant ~typ:"GLint" ~name:c.name ~default:value
-    | Function f ->
+    | _, Function f ->
         begin
           let error = ref None in
           let translateType ctype =
@@ -937,7 +937,7 @@ struct
             | Some errorMessage ->
                 CodePrinter.printError ~decl:declaration ~msg:errorMessage
         end
-    | Unknown text ->
+    | _, Unknown text ->
         CodePrinter.printUnknown ~text
 
   let generate_lang_code (exprs :BindingExpressions.expr list) =
@@ -965,8 +965,8 @@ struct
 
   let generate_c_code _ = ""
 
-  let generate_lang_code exprs =
-    let enums = Utils.mapFilter (function Constant c -> Some c | _ -> None) exprs in
+  let generate_lang_code (exprs :BindingExpressions.expr list) =
+    let enums = Utils.mapFilter (function _, Constant c -> Some c | _ -> None) exprs in
     let enumToStringFunc =
       let elseifs = List.map
         (fun c -> sprintf "  elseif (enum == %s):\n    ret \"%s\"" c.name c.name)
@@ -1024,13 +1024,13 @@ let _ =
     | Invalid_argument msg
     | Sys_error msg ->
         begin
-          printf "system error: %s\n" msg;
+          printf "%s.skel: 0: error: %s\n" moduleName msg;
           Printexc.print_backtrace stdout;
           exit 1;
         end
-    | Compile_error command ->
+    | Compile_error (lineNum, command) ->
         begin
-          print_string ("generating bindings failed: " ^ command);
+          printf "%s.skel: %d: error: %s\n" moduleName lineNum command;
           Printexc.print_backtrace stdout;
           exit 2;
         end
