@@ -171,13 +171,14 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx \
 
 ALL_TARGETS += source/zompvm_dummy.o
 
-$(ZOMP_DLL_FILE): source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
+ZOMP_DLL_OBJS = source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine.o
+
+$(ZOMP_DLL_FILE): $(ZOMP_DLL_OBJS) source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
-	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
-	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC $(ZOMP_DLL_OBJS) -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o source/zompvm -lcurl source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o source/zompvm -lcurl $(ZOMP_DLL_OBJS) -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
