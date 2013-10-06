@@ -195,9 +195,7 @@ $(ZOMPSH_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 endif
 
 FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
-source/gen_c_bindings: source/gen_c_bindings.cmo source/gen_c_bindings.ml
-	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS)  -o $@ $(CAML_COMPILER_LIBS) source/gen_c_bindings.cmo
+source/gen_c_bindings: CAML_LIBS += str
 
 source/machine.c source/machine.ml: source/gen_c_bindings source/machine.skel
 	@$(ECHO) Making OCaml bindings for zomp-machine ...
