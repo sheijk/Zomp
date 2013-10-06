@@ -144,6 +144,7 @@ type options = {
   execNameAndPath :string;
   fileName :string;
   printTimings :bool;
+  printStats :bool;
   traceMacroExpansion :bool;
   symbolTableDumpFile :string option;
   zompIncludePaths :string list;
@@ -164,6 +165,7 @@ let extractOptions args =
 
   let fileName = ref "" in
   let printTimings = ref false in
+  let printStats = ref false in
   let traceMacroExpansion = ref false in
   let symbolTableDumpFile = ref "" in
   let zompIncludePaths = ref [] in
@@ -176,6 +178,7 @@ let extractOptions args =
     Arg.parse_argv
       args
       ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
+       "--print-stats", Arg.Set printStats, "print statistics on exit.";
        "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
        "-c", Arg.Set_string fileName, "The file to compile.";
        "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
@@ -195,6 +198,7 @@ let extractOptions args =
       execNameAndPath = args.(0);
       fileName = !fileName;
       printTimings = !printTimings;
+      printStats = !printStats;
       traceMacroExpansion = !traceMacroExpansion;
       symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
       zompIncludePaths = !zompIncludePaths;
@@ -223,6 +227,9 @@ let () =
       Zompvm.zompPrintStats();
     in
     at_exit printTimingStats;
+  end;
+  if options.printStats then begin
+    at_exit (fun () -> Stats.statsPrintReport 0);
   end;
   if options.traceMacroExpansion then begin
     let trace s e =

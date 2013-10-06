@@ -25,6 +25,7 @@ and printDeclarations = ref true
 and llvmEvaluationOn = ref true
 and printForms = ref false
 and showStatsAtExit = ref false
+and showTimingStatsAtExit = ref false
 and traceMacroExpansion = ref false
 
 module StringMap = Map.Make(String)
@@ -179,8 +180,14 @@ end = struct
     makeToggleCommandForRef llvmEvaluationOn "Evaluating LLVM code"
   let togglePrintFormsCommand =
     makeToggleCommandForRef printForms "Print translated forms"
+
   let toggleShowStatsAtExitCommand =
     makeToggleCommandForRef showStatsAtExit "Show stats at exit"
+  let toggleShowTimingStatsAtExitCommand =
+    makeToggleCommandForRef showTimingStatsAtExit "Shot timing stats at exit"
+  let printStatsCommand =
+    makeNoArgCommand (fun _ -> Stats.statsPrintReport 0)
+
   let toggleTraceMacroExpansionCommand =
     makeToggleCommandForRef traceMacroExpansion "Trace macro expansion"
 
@@ -350,12 +357,14 @@ end = struct
       "printBaseLang", [], togglePrintFormsCommand, "Toggle printing translated base lang forms";
       "printDecl", [], togglePrintDeclarationsCommand, "Toggle printing declarations";
       "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
+      "printStats", [], printStatsCommand, "Print statistics";
       "prompt", [], changePromptCommand, "Set prompt";
       "run", [], runMainCommand, "Run a function of type void(void), default main";
       "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
       "setOptimizeFunctions", [], toggleOptimizeFunctionCommand, "Optimize functions on definition";
       "setSourceLocation", [], setSourceLocation, "Set source location of next line entered";
-      "showStatsAtExit", [], toggleShowStatsAtExitCommand, "Show stats at exit";
+      "showStatsAtExit", [], toggleShowStatsAtExitCommand, "Show statistics at exit";
+      "showTimingStatsAtExit", [], toggleShowTimingStatsAtExitCommand, "Show timing statistics at exit";
       "syntax", [], toggleParseFunc, "Choose a syntax";
       "verify", ["v"], toggleVerifyCommand, "Verify generated llvm code";
       "version", [], printVersionInfoCommand, "Print version/build info";
@@ -581,12 +590,17 @@ let translateRun env expr =
 
 let () =
   at_exit (fun () ->
-    if !showStatsAtExit then (
+    if !showTimingStatsAtExit then (
       Profiling.printTimings();
       Indentlexer.printStats();
       flush stdout;
-      Zompvm.zompPrintStats()));
+      Zompvm.zompPrintStats());
+
+    if !showStatsAtExit then (
+      Stats.statsPrintReport 0));
+
   Zompvm.zompVerifyCode false;
+
   let rec step bindings parseState =
     match parseState with
       | Error errors ->

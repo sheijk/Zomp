@@ -359,7 +359,6 @@ extern "C" {
 
   void zompPrintStats() {
     stats.print();
-    statsPrintReport(0);
   }
 } // extern C
 

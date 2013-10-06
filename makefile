@@ -91,7 +91,7 @@ $(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 # When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
 CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
     expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml \
-    indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
+    indentlexer_tests.ml lang.ml machine.ml stats.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
     zompc.ml zompvm.ml basics.ml, source/$(file) source/$(file:.ml=.mli)) \
     $(foreach file, make_history_report.ml make_report.ml check_test.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
@@ -154,14 +154,14 @@ CAML_COMPILER_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
 LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
   source/typesystems.cmo source/bindings.cmo source/ast2.cmo source/serror.cmo \
-  source/lang.cmo source/semantic.cmo source/machine.cmo source/zompvm.cmo \
+  source/lang.cmo source/semantic.cmo source/machine.cmo source/stats.cmo source/zompvm.cmo \
   source/genllvm.cmo $(ZOMP_DLL_FILE) source/indentlexer.cmo \
   source/newparser.cmo source/parseutils.cmo source/expander.cmo \
   source/compileutils.cmo
 
 # When this is changed, LANG_CMOS and CAMLDEP_INPUT will need to be changed, too
 LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx \
-    typesystems.cmx lang.cmx semantic.cmx machine.cmx zompvm.cmx genllvm.cmx \
+    typesystems.cmx lang.cmx semantic.cmx machine.cmx stats.cmx zompvm.cmx genllvm.cmx \
      -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx \
     newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
@@ -171,7 +171,7 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx \
 
 ALL_TARGETS += source/zompvm_dummy.o
 
-ZOMP_DLL_OBJS = source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine.o
+ZOMP_DLL_OBJS = source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine.o source/stats.o
 
 $(ZOMP_DLL_FILE): $(ZOMP_DLL_OBJS) source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
@@ -640,8 +640,10 @@ source/newparser.cmi: source/ast2.cmi
 source/newparser.cmo: source/ast2.cmo
 source/newparser.cmx: source/ast2.cmx
 
-source/machine.cmo: source/machine.skel $(ZOMP_DLL_FILE)
-source/machine.cmx: source/machine.skel $(ZOMP_DLL_FILE)
+source/machine.cmo: $(ZOMP_DLL_FILE)
+source/machine.cmx: $(ZOMP_DLL_FILE)
+source/stats.cmo: $(ZOMP_DLL_FILE)
+source/stats.cmx: $(ZOMP_DLL_FILE)
 source/zompvm.cmo: source/machine.cmo
 source/zompvm.cmx: source/machine.cmx
 
@@ -750,7 +752,8 @@ CLEAN_SUB_TARGETS += source/clean
 source/clean:
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
 	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
-	$(DELETE_FILE) source/machine.c source/machine.ml source/machine.cmi source/machine.cmo source/machine.o
+	$(DELETE_FILE) source/machine.{cmi,cmo,cmx,o,c,ml}
+	$(DELETE_FILE) source/stats.{cmi,cmo,cmx,o,c,ml}
 	$(DELETE_FILE) $(ZOMP_DLL_FILE) source/libzompvm.a
 	$(DELETE_FILE) source/zompvm_impl.o source/zompvm_dummy.o
 	$(DELETE_FILE) source/zompvm_caml.o source/zompvm_caml_dummy.o

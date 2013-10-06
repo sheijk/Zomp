@@ -1,0 +1,10 @@
+Stats
+http://sheijk.dword.org/zomp
+    include <caml/mlvalues.h>
+    include <caml/alloc.h>
+    include <caml/memory.h>
+
+#    void statsCreateCamlSection (const char* sectionName)
+#    void statsCreateCamlCounter (const char* sectionName, const char* name, int id)
+    void statsPrintReport (int indent)
+

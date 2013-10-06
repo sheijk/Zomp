@@ -135,3 +135,4 @@
 /testsuite/*.cmx
 /testsuite/*.o
 /testsuite/check_test
+/source/stats.ml
