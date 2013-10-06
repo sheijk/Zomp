@@ -171,13 +171,13 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx \
 
 ALL_TARGETS += source/zompvm_dummy.o
 
-$(ZOMP_DLL_FILE): source/zompvm_impl.o source/zompvm_caml.o source/zomputils.h source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
+$(ZOMP_DLL_FILE): source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/machine.c source/runtime.o source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
 	$(CC) $(CCFLAGS) -I /usr/local/lib/ocaml/ -c source/machine.c -o source/machine.o
 ifeq "$(BUILD_PLATFORM)" "Linux"
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o source/zompvm -lcurl source/zompvm_impl.o source/zompvm_caml.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o source/zompvm -lcurl source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine.o -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
@@ -207,14 +207,6 @@ endif
 
 FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: CAML_LIBS += str
-
-source/machin%.c source/machin%.ml: source/gen_c_bindings source/machin%.skel
-	@$(ECHO) Making OCaml bindings for zomp-machine ...
-	./source/gen_c_bindings source/machine
-
-source/machine.mli: source/machine.ml
-	@$(ECHO) "Generating $@ ..."
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $@
 
 ALL_TARGETS += source/runtime.bc source/runtime.ll
 source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
@@ -374,6 +366,10 @@ test: all $(TEST_SUB_TARGETS)
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
+source/%.c source/%.ml: source/%.skel source/gen_c_bindings
+	@$(ECHO) Making OCaml bindings for zomp-machine ...
+	./source/gen_c_bindings $(<:.skel=)
+
 ifeq "$(CAML_BYTE_CODE)" "0"
 
 %.cmi: %.mli
@@ -383,6 +379,10 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 %.cmx: %.ml %.cmi
 	@$(ECHO) "Compiling $@ ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -c $<
+
+source/%.mli: source/%.ml source/%.skel
+	@$(ECHO) "Generating $@ ..."
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $@
 
 %: %.cmx $(CAML_DEPENDENCIES)
 	$(ECHO) "Building native ml program $@ ..."
@@ -402,6 +402,10 @@ else
 %.cmo: %.ml %.cmi
 	@$(ECHO) "Compiling $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) -c $<
+
+source/%.mli: source/%.ml source/%.skel
+	@$(ECHO) "Generating $@ ..."
+	$(OCAMLC) $(CAML_FLAGS) -i $< > $@
 
 %: %.cmo $(CAML_DEPENDENCIES)
 	$(ECHO) "Building ml program $@ ..."
@@ -641,6 +645,26 @@ source/ast2.cmx: source/basics.cmx source/common.cmx
 
 source/mltest.cmo: source/newparser_tests.cmo source/indentlexer_tests.cmo
 source/mltest.cmx: source/newparser_tests.cmx source/indentlexer_tests.cmx
+
+# TODO: auto generate C/C++ dependencies
+source/runtime.o: source/zomputils.h
+
+source/zompvm_impl.o: source/zomputils.h
+source/zompvm_impl.o: source/zompvm_impl.h
+source/zompvm_impl.o: source/zompvm_caml.h
+source/zompvm_impl.o: source/stats_impl.h
+source/zompvm_caml.o: source/zomputils.h
+source/stats_impl.o: source/zomputils.h
+source/stats_impl.o: source/stats_impl.h
+source/vm_http_server.o: source/zomputils.h
+source/vm_http_server.o: source/zompvm_impl.h
+source/vm_http_server.o: source/mongoose.h
+source/vm_http_server.o: source/
+
+source/vm_protocol.o: source/vm_protocol.h
+source/vm_client.o: source/vm_protocol.h
+source/vm_server.o: source/vm_protocol.h
+
 
 ################################################################################
 # Tags

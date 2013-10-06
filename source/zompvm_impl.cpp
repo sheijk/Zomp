@@ -5,6 +5,7 @@
 ///
 
 #include "zomputils.h"
+#include "stats_impl.h"
 
 #include <cstdio>
 #include <iostream>
@@ -51,6 +52,12 @@ using std::printf;
 using namespace llvm;
 
 namespace {
+static i64 ReturnInt64Value(Counter*, void* userData)
+{
+  i64* ptr = (i64*)userData;
+  return *ptr;
+}
+
   struct Stats {
     typedef uint64_t milliseconds;
 
@@ -62,6 +69,14 @@ namespace {
       parsingTimeMS = 0;
       verifyTimeMS = 0;
       optimizingTimeMS = 0;
+    }
+
+    void registerStats()
+    {
+      Section* section = statsCreateSection(statsMainSection(), "ZompVM timings");
+      statsCreateCounter(section, "parsing (ms)", 0, &parsingTimeMS, ReturnInt64Value);
+      statsCreateCounter(section, "verify LLVM byte code (ms)", 0, &verifyTimeMS, ReturnInt64Value);
+      statsCreateCounter(section, "optimize LLVM byte code (ms)", 0, &optimizingTimeMS, ReturnInt64Value);
     }
 
     void print() {
@@ -344,6 +359,7 @@ extern "C" {
 
   void zompPrintStats() {
     stats.print();
+    statsPrintReport(0);
   }
 } // extern C
 
@@ -644,6 +660,8 @@ extern "C" {
     //if( false ) {
     //  initCrashSignalHandler();
     //}
+
+    stats.registerStats();
 
     return true;
   }
