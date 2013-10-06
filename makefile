@@ -68,7 +68,7 @@ ZOMPSH_FILE = $(DEPLOY_DIR)/zompsh
 make_build_dir: $(BUILD_DIR)/.exists
 
 $(BUILD_DIR)/.exists:
-	@$(ECHO) Creating build directory ...
+	@$(ECHO) "Creating build directory ..."
 	mkdir -p $(DEPLOY_DIR)
 	mkdir -p $(OUT_DIR)
 	mkdir -p $(TESTSUITE_OUT_DIR)
@@ -83,6 +83,19 @@ FILES_TO_DELETE_ON_CLEAN =
 ALL_TARGETS=
 
 AUTO_DEPENDENCY_FILE = $(OUT_DIR)/auto_depends.mk
+
+$(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
+	@$(ECHO) "Calculating dependencies ..."
+	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
+
+# When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
+CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
+    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml \
+    indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
+    compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
+    zompc.ml zompvm.ml basics.ml, source/$(file) source/$(file:.ml=.mli)) \
+    $(foreach file, make_history_report.ml make_report.ml check_test.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
+
 -include $(AUTO_DEPENDENCY_FILE)
 include testsuite/testsuite.mk
 include libs/libs.mk
@@ -362,9 +375,7 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -c $<
 
 %: %.cmx $(CAML_DEPENDENCIES)
-	$(ECHO) Building native ml program $@ ...
-	@echo "CAML_LIBS = " $(CAML_LIBS)
-	@echo "CAML_OBJS = " $(CAML_OBJS)
+	$(ECHO) "Building native ml program $@ ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 else
@@ -378,7 +389,7 @@ else
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
 %: %.cmo $(CAML_DEPENDENCIES)
-	$(ECHO) Building ml program $@ ...
+	$(ECHO) "Building ml program $@ ..."
 	$(OCAMLC) $(CAML_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 endif
@@ -586,18 +597,6 @@ check_ocaml: $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 # Try to detect dependencies automatically. Does not work for everything, yet,
 # add additional ones here. Use something like make -j 20 for a quick test
 ################################################################################
-
-$(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
-	@$(ECHO) Calculating dependencies ...
-	$(OCAMLDEP) -I source $(CAML_PP) $(CAMLDEP_INPUT) > $(AUTO_DEPENDENCY_FILE)
-
-# When this is changed, LANG_CMOS and LANG_CMXS will need to be changed, too
-CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
-    expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml \
-    indentlexer_tests.ml lang.ml machine.ml newparser_tests.ml parseutils.ml \
-    compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml, source/$(file) source/$(file:.ml=.mli)) \
-    $(foreach file, make_history_report.ml make_report.ml check_test.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
 
 source/newparser_tests.cmi: source/newparser.cmi
 source/newparser_tests.cmo: source/newparser.cmo
