@@ -256,6 +256,8 @@ source/vm_protocol.o: source/vm_protocol.h
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
+EXPECTED_BUILD_PRODUCTS = $(DEPLOY_DIR)/zompc $(DEPLOY_DIR)/zompsh $(DEPLOY_DIR)/vm_http_server
+
 MAKE_REPORT = $(OUT_DIR)/testsuite/make_report
 ALL_TARGETS += $(MAKE_REPORT)
 FILES_TO_DELETE_ON_CLEAN += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
@@ -275,7 +277,8 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "<h2>OCaml unit tests</h2>" >> $@
 	echo "<a href=\"../../$(MLTEST_OUTPUT_FILE)\">Output</a>\n" >> $@
 	echo "<p><span style=\"font-family:monospace\">\n" >> $@
-	(cat $(MLTEST_SUMMARY_FILE) 2>/dev/null || echo "File $(MLTEST_SUMMARY_FILE) does not exist, mltests have not been run") >> $@
+	(cat $(MLTEST_SUMMARY_FILE) 2>/dev/null || echo "File <span class=\"failed\">$(MLTEST_SUMMARY_FILE)</span> does not exist, mltests have not been run<br />") >> $@
+	BEGIN_ERROR="<span class=\"failed\">" END_ERROR="</span>" NEWLINE="<br />" ./source/build/check_build_products.sh $(ARCH) $(EXPECTED_BUILD_PRODUCTS) >> $@
 	echo "</span></p>\n" >> $@
 	echo "</body>\n</html>" >> $@
 
