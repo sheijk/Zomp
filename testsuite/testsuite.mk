@@ -25,8 +25,6 @@ TESTSUITE_SUBDIRS = \
   check_test_verify error_reporting generics include lexer libs parser \
   source_locations std std_base zompsh
 
-TESTSUITE_IGNORED_SOURCES = preludevalid.zomp
-
 TESTSUITE_SOURCES = $(wildcard $(TESTSUITE_SUBDIRS:%=testsuite/%/test_*.zomp))
 TESTSUITE_CASES = $(TESTSUITE_SOURCES:.zomp=.testreport)
 
