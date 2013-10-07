@@ -532,6 +532,60 @@ struct
 end
 include CommonList
 
+module Ref =
+struct
+  let get r = !r
+  let getter r () = !r
+  let set r value = r := value
+end
+
+module Vector : sig
+  type 'a t
+
+  val make : unit -> 'a t
+  val append : 'a t -> 'a -> int
+  val size : 'a t -> int
+  val get : 'a t -> int -> 'a
+end = struct
+  type 'a t = {
+    mutable values : 'a array;
+    (** number of used elements in values *)
+    mutable size :int;
+  }
+
+  let validIndex vec index = index >= 0 && index < vec.size
+
+  let make () = { values = [||]; size = 0 }
+
+  let append vec value =
+    if vec.size + 1 > Array.length vec.values then begin
+      (** No, we do not want to grow by a factor of two. 1.5 reduces memory
+       overhead while releatedly appending stays logarithmic. The factor should
+       be configurable, though. *)
+      let newSize = if vec.size = 0 then 2 else vec.size * 3 / 2 in
+      let newValues = Array.make newSize value in
+      Array.blit vec.values 0 newValues 0 vec.size;
+      vec.values <- newValues
+    end;
+    vec.values.(vec.size) <- value;
+    vec.size <- vec.size + 1;
+    vec.size - 1
+
+  let size vec = vec.size
+
+  let get vec index =
+    if validIndex vec index then
+      vec.values.(index)
+    else
+      failwith "Vector.get"
+
+  let set vec index value =
+    if validIndex vec index then
+      vec.values.(index) <- value
+    else
+      failwith "Vector.set"
+end
+
 module Profiling =
 struct
   type timingInfo = {

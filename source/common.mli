@@ -163,6 +163,20 @@ val tryAll :
 val tryAllCollectingErrors :
   onSuccess:('a -> 'b) ->
   ifAllFailed:(exn list -> 'b) -> 'a Lazy.t list -> 'b
+module Ref :
+  sig
+    val get : 'a ref -> 'a
+    val getter : 'a ref -> unit -> 'a
+    val set : 'a ref -> 'a -> unit
+  end
+module Vector :
+  sig
+    type 'a t
+    val make : unit -> 'a t
+    val append : 'a t -> 'a -> int
+    val size : 'a t -> int
+    val get : 'a t -> int -> 'a
+  end
 module Profiling :
   sig
     type timingInfo = {
