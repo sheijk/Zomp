@@ -17,7 +17,13 @@ esac
 
 # Find all make options of the form FOO_BAR=... to keep them for multiple make
 # invocations
-OPTIONS=`echo "$@" | tr " " "\n" | grep "^[A-Za-z_][A-Za-z0-9_]*=" | tr "\n" " "`
+OPTIONS=()
+for arg in "$@"; do
+    echo "${arg}" | grep "^[A-Za-z_][A-Za-z0-9_]*=" > /dev/null
+    if [ "$?" -eq "0" ]; then
+        OPTIONS+=("${arg}")
+    fi
+done
 
 cd `dirname $0`
 rm -f ${BUILDLOG}
@@ -34,11 +40,11 @@ then
     make --print-directory -s ${OPTIONS} clean || exit 1
 fi
 
-make --print-directory $@ SHELL="${LOGSHELL} ${BUILDLOG}"
+make --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}"
 RETVAL=$?
 
 echo "Auto update test report ..." >> ${BUILDLOG}
-(make SILENT=1 ${OPTIONS} debug report 2>&1) > ${BUILDLOG_REPORT}
+(make SILENT=1 "${OPTIONS[@]}" debug report 2>&1) > ${BUILDLOG_REPORT}
 if [ $? -eq 0 ];
 then
     cat ${BUILDLOG_REPORT} >> ${BUILDLOG}

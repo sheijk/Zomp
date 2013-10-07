@@ -41,7 +41,7 @@ debug:
 	@$(ECHO) "LLVM_EXTRA_OPTIONS = $(LLVM_EXTRA_OPTIONS)"
 	@$(ECHO) "ZOMP_MAIN_MAKEFILE = $(ZOMP_MAIN_MAKEFILE)"
 ifneq "$(PRINT_VAR)" ""
-	@$(ECHO) "$(PRINT_VAR) = " $($(PRINT_VAR))
+	@$(ECHO) "$(PRINT_VAR) = '$($(PRINT_VAR))'"
 else
 	@$(ECHO) "Use PRINT_VAR=foo to print foo"
 endif
