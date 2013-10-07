@@ -55,6 +55,7 @@ testsuite/clean:
 	rm -f $(TESTSUITE_CASES:.testreport=.last_result)
 	rm -f $(TESTSUITE_CASES:.testreport=.test_output)
 	rm -f $(TESTSUITE_CASES:.testreport=.compile_output)
+	rm -f $(TESTSUITE_CASES:.testreport=.compile_stats)
 	rm -f $(TESTSUITE_CASES:.testreport=.ll)
 	rm -f $(TESTSUITE_CASES:.testreport=.bc)
 	rm -f $(TESTSUITE_CASES:.testreport=.opt-bc)
@@ -93,7 +94,7 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOM
 ZOMPCFLAGS_W_TESTSUITE_INCLUDE = --zomp-include-dir testsuite/include
 testsuite/include/test_%.ll: ZOMPCFLAGS=$(ZOMPCFLAGS_W_TESTSUITE_INCLUDE)
 
-TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 $(@:.testreport=.exe)"
+TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 ZOMPCFLAGS='--stats $(@:.testreport=.compile_stats)' $(@:.testreport=.exe)"
 TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
 
 # Don't compile tests for zompsh (they have "!" commands in them and won't compile using zompc)
@@ -107,7 +108,8 @@ TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST) external_lib_links 
 
 .PRECIOUS: %.test_output
 .PRECIOUS: %.compile_output
-%.testreport %.result %.test_output %.compile_output: %.zomp $(TESTREPORT_DEPS)
+.PRECIOUS: %.compile_stats
+%.testreport %.result %.test_output %.compile_output %.compile_stats: %.zomp $(TESTREPORT_DEPS)
 	@$(ECHO) Running test suite case $< ...
 	-mv ${@:.testreport=.result} ${@:.testreport=.last_result}
 	rm -f ${@:.testreport=.}{bc,opt-bc,ll,exe,test_output,compile_output,testreport}

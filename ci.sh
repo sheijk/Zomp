@@ -59,7 +59,7 @@ function copy_to_archive {
     ln -s ../${ARCHIVE_DIR} ci_archive/last
     ARCHIVED_SRC_DIRS="testsuite examples libs"
     find ${ARCHIVED_SRC_DIRS} -type d -exec mkdir -p ${ARCHIVE_DIR}/{} \;
-    find ${ARCHIVED_SRC_DIRS} \( -iname \*.zomp -or -iname \*.testreport -or -iname \*.test_output -or -iname \*.compile_output -or -iname \*.result \) -exec cp -a {} ${ARCHIVE_DIR}/{} \;
+    find ${ARCHIVED_SRC_DIRS} \( -iname \*.zomp -or -iname \*.testreport -or -iname \*.test_output -or -iname \*.compile_output -or -iname \*.result -iname \*.compile_stats \) -exec cp -a {} ${ARCHIVE_DIR}/{} \;
 }
 
 function build {
