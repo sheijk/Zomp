@@ -200,16 +200,17 @@ public:
         for(Counter* counter = firstCounter(); counter != NULL; counter = counter->next())
         {
             printIndent(out, indent + 4);
+
             i64 value = counter->query();
             u32 fractionalDigits = counter->fractionalDigits();
             if(fractionalDigits == 0) {
                 fprintf(out, "%lld - %s\n", value, counter->name());
             }
             else {
-                i64 mask = (~(i64)-1) >> (64 - fractionalDigits);
-                i64 fract = value & mask;
-                i64 nonFractional = (value - fract) >> counter->fractionalDigits();
-                fprintf(out, "%lld.%.*lld - %s\n", nonFractional, counter->fractionalDigits(), fract, counter->name());
+                double fraction = double(value) / double(1LL << fractionalDigits);
+                // smallest value is 1/(2**fractionalDigits) so we need fractionalDigits
+                // number of digits precision.
+                fprintf(out, "%.*f - %s\n", fractionalDigits, fraction, counter->name());
             }
         }
 
