@@ -28,6 +28,10 @@ typedef __uint32_t u32;
 typedef __int64_t i64;
 typedef __uint64_t u64;
 
+#ifndef __cplusplus
+typedef int bool;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,6 +1,8 @@
 #ifndef ZOMPVM_H_20070929_INCLUDED
 #define ZOMPVM_H_20070929_INCLUDED
 
+#include "zomputils.h"
+
 #ifdef __cplusplus
 namespace llvm {
     class LLVMContext;
@@ -11,8 +13,6 @@ llvm::LLVMContext* zompLLVMContext();
 llvm::Module* zompLLVMModule();
 
 extern "C" {
-#else
-typedef int bool;
 #endif
 
 #define ZMP_CONST const

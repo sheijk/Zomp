@@ -112,14 +112,15 @@ module Commands : sig
 end = struct
   type commandFunc = string list -> Bindings.bindings -> unit
 
+  let arglistToString argL = Common.combine " " argL
+
   let makeNoArgCommand f =
     fun argL bindings ->
       match argL with
         | [] ->
           f bindings
         | (_ :string list) ->
-          eprintf "expected 0 arguments\n";
-          flush stderr
+          eprintf "error: expected no arguments instead of %s\n" (arglistToString argL)
 
   let makeSingleArgCommand f =
     fun argL bindings ->
@@ -127,7 +128,15 @@ end = struct
         | [arg] ->
           f arg bindings
         | _ ->
-          eprintf "expected single argument"
+          eprintf "error: expected single argument instead of %s\n" (arglistToString argL)
+
+  let makeOptionalArgCommand f =
+    fun argL bindings ->
+      match argL with
+        | [] -> f None
+        | [arg] -> f (Some arg)
+        | _ ->
+          eprintf "error: expected one or zero arguments instead of %s" (arglistToString argL)
 
   let makeToggleCommandFromGetSet name getF setF =
     let change ison =
@@ -141,7 +150,8 @@ end = struct
         | ["off"] | ["no"] | ["false"] -> change false
         | [] -> change (not (getF()))
         | _ ->
-          reportError "expected on/off/yes/no/true/false or no arguments to toggle"
+          eprintf "error: expected on/off/yes/no/true/false or no arguments to toggle instead of %s\n"
+            (arglistToString args)
 
   let makeToggleCommandForRef refvar name =
     makeToggleCommandFromGetSet
@@ -165,7 +175,7 @@ end = struct
         defaultPrompt := newDefault;
         continuedPrompt := newContinued;
       | args ->
-        printf "expected 0-2 arguments instead of %d\n" (List.length args)
+        eprintf "expected 0-2 arguments instead of %s\n" (arglistToString args)
 
   let exitCommand = makeNoArgCommand
     (fun _ ->
@@ -186,7 +196,11 @@ end = struct
   let toggleShowTimingStatsAtExitCommand =
     makeToggleCommandForRef showTimingStatsAtExit "Shot timing stats at exit"
   let printStatsCommand =
-    makeNoArgCommand (fun _ -> Stats.statsPrintReport 0)
+    makeOptionalArgCommand (function
+      | None -> Stats.statsPrintReport 0
+      | Some fileName ->
+        if (not (Stats.statsPrintReportToFile fileName 0)) then
+          eprintf "error: could not print statistics to file %s\n" fileName)
 
   let toggleTraceMacroExpansionCommand =
     makeToggleCommandForRef traceMacroExpansion "Trace macro expansion"

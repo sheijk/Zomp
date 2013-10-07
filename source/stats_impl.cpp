@@ -24,11 +24,11 @@ static bool isValidName(const char* name)
     return name != NULL;
 };
 
-static void printIndent(int indent)
+static void printIndent(FILE* out, int indent)
 {
     for ( int ii = 0; ii < indent; ++ii )
     {
-        printf(" ");
+        fprintf(out, " ");
     }
 }
 
@@ -190,32 +190,32 @@ public:
         return NULL;
     }
 
-    void printReport(int indent)
+    void printReport(FILE* out, int indent)
     {
         if(name_.size() > 1) {
-            printIndent(indent);
-            printf("%s:\n", c_str(name_));
+            printIndent(out, indent);
+            fprintf(out, "%s:\n", c_str(name_));
         }
 
         for(Counter* counter = firstCounter(); counter != NULL; counter = counter->next())
         {
-            printIndent(indent + 4);
+            printIndent(out, indent + 4);
             i64 value = counter->query();
             u32 fractionalDigits = counter->fractionalDigits();
             if(fractionalDigits == 0) {
-                printf("%lld - %s\n", value, counter->name());
+                fprintf(out, "%lld - %s\n", value, counter->name());
             }
             else {
                 i64 mask = (~(i64)-1) >> (64 - fractionalDigits);
                 i64 fract = value & mask;
                 i64 nonFractional = (value - fract) >> counter->fractionalDigits();
-                printf("%lld.%.*lld - %s\n", nonFractional, counter->fractionalDigits(), fract, counter->name());
+                fprintf(out, "%lld.%.*lld - %s\n", nonFractional, counter->fractionalDigits(), fract, counter->name());
             }
         }
 
         for(Section* child = firstChildSection(); child != NULL; child = child->next())
         {
-            child->printReport(indent + 4);
+            child->printReport(out, indent + 4);
         }
     }
 };
@@ -321,9 +321,28 @@ i32 statsCounterFractionalDigits(Counter* counter)
 
 void statsPrintReport(int indent)
 {
-    printf("Zomp statistics\n");
-    statsMainSection()->printReport(indent);
+    statsPrintReportToStream(stdout, indent);
 }
+
+void statsPrintReportToStream(FILE* out, int indent)
+{
+    fprintf(out, "Zomp statistics\n");
+    statsMainSection()->printReport(out, indent);
+}
+
+bool statsPrintReportToFile(const char* fileName, int indent)
+{
+    FILE* file = fopen(fileName, "w");
+    if(file == NULL) {
+        return false;
+    }
+    else {
+        statsPrintReportToStream(file, indent);
+        fclose(file);
+        return true;
+    }
+}
+
 
 } // extern "C"
 

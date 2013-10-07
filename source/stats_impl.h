@@ -63,6 +63,8 @@ i32 statsCounterFractionalDigits(Counter*);
 
 /// Will print the values of all counters to stdout.
 void statsPrintReport(int indent);
+void statsPrintReportToStream(FILE* out, int indent);
+bool statsPrintReportToFile(const char* fileName, int indent);
 
 #ifdef __cplusplus
 } // extern "C"
