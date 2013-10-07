@@ -6,6 +6,7 @@
 
 #include "zomputils.h"
 #include "stats_impl.h"
+#include "zompvm_caml.h"
 
 #include <string.h>
 #include <vector>
@@ -14,7 +15,8 @@
 namespace {
 enum Constants
 {
-    MAX_COUNTER_NAME_LENGTH = 1024
+    MAX_COUNTER_NAME_LENGTH = 1024,
+    MAX_CAML_INT = (1 << 30),
 };
 
 static bool isValidName(const char* name)
@@ -175,6 +177,19 @@ public:
             return NULL;
     }
 
+    Section* findNamedChild(const char* name)
+    {
+        for(Section* section = firstChildSection(); section != NULL; section = section->next())
+        {
+            if(strncmp(c_str(section->name_), name, MAX_COUNTER_NAME_LENGTH) == 0)
+            {
+                return section;
+            }
+        }
+
+        return NULL;
+    }
+
     void printReport(int indent)
     {
         if(name_.size() > 1) {
@@ -236,6 +251,32 @@ static i64 ReturnIntValue(Counter*, void* userData)
 Counter* statsCreateCounterForValue(Section* parent, const char* name, u32 fractionalDigits, int* ptr)
 {
     return parent->createCounter(name, fractionalDigits, ptr, ReturnIntValue);
+}
+
+void statsCreateNamedSection(const char* sectionName)
+{
+    if(statsMainSection()->findNamedChild(sectionName) == NULL) {
+        statsCreateSection(statsMainSection(), sectionName);
+    }
+}
+
+static i64 ReturnCamlCounterValue(Counter*, void* userData)
+{
+    ptrdiff_t id =(ptrdiff_t)userData;
+    ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%d, %d\n", id, MAX_CAML_INT));
+
+    return zompGetCamlCounterValue(id);
+}
+
+void statsCreateCamlCounter(const char* sectionName, const char* name, int id, int fractionalDigits)
+{
+    Section* section = statsMainSection()->findNamedChild(sectionName);
+    ZMP_ASSERT(section,);
+
+    if(section != NULL)
+    {
+        statsCreateCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValue);
+    }
 }
 
 // void DeleteCounter(Counter* counter)

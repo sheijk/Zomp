@@ -7,6 +7,12 @@ extern "C"
 void zompInitCamlCallbacks();
 bool zompCamlCallbacksValid();
 
+bool isBound(char* name);
+int zompLookup(char* name);
+void* zompParse(char* source);
+
+int zompGetCamlCounterValue(int id);
+
 } // extern "C"
 
 #endif

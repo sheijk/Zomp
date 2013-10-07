@@ -5,6 +5,46 @@ open Lang
 
 include Machine
 
+module Statistics : sig
+    type section
+    type counter
+
+    val createSection : string -> section
+    val createCounter : section -> string -> int -> (unit -> int) -> counter
+
+    (* val createCounterRef : section -> string -> int -> int ref -> counter *)
+
+end = struct
+
+    let counterGetters : (unit -> int) Vector.t = Vector.make()
+
+    type section = string
+    (** can't directly use unit here as it screws the type checker *)
+    (* type counter = { dummy : unit } *)
+    type counter = unit
+
+    let createSection name =
+      Stats.statsCreateNamedSection name;
+      name
+
+    let createCounter section name fractionalDigits getValue =
+      let id = Vector.append counterGetters getValue in
+      Stats.statsCreateCamlCounter section name id fractionalDigits;
+      ()
+
+    let createCounterRef section name fractionalDigits (r :int ref) =
+      createCounter section name fractionalDigits (fun _ -> !r)
+
+    let getCounterValue id : int =
+      let getValue = Vector.get counterGetters id in
+      getValue()
+
+    let () =
+      Callback.register "getCounterValue" getCounterValue
+end
+
+let zompvmSection = Statistics.createSection "zompvm"
+  
 (** Utilities to convert between Ast2.sexpr and Zomp native AST *)
 module NativeAst =
 struct
@@ -12,11 +52,13 @@ struct
   let totalOCamlAstsCreated = ref 0
 
   let () =
-    at_exit (fun () ->
-      printf "Total number of Ast conversions %d (%d native to ocaml, %d ocaml to native)\n"
-        (!totalNativeAstsCreated + !totalOCamlAstsCreated)
-        (!totalOCamlAstsCreated)
-        (!totalNativeAstsCreated))
+    let addCounter name f =
+      let counter = Statistics.createCounter zompvmSection name 0 f in
+      ignore counter
+    in
+    addCounter "total ASTs created" (fun () -> !totalOCamlAstsCreated + !totalNativeAstsCreated);
+    addCounter "OCaml ASTs from native created" (Ref.getter totalOCamlAstsCreated);
+    addCounter "native ASTs from OCaml created" (Ref.getter totalNativeAstsCreated)
 
   let isValidId name =
     foldString
@@ -144,7 +186,7 @@ let setIsInteractive on = isInteractiveFlag := on
 
 let traceMacroExpansionOn = ref false
 
-(** Callbacks which can be called from Zomp *)
+(** Callbacks which can be called from Zomp. The C++ part of this is in zompvm_caml.cpp *)
 module Callbacks : sig
 end = struct
 

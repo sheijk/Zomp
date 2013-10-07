@@ -11,5 +11,6 @@ extern "C"
     bool isBound(char*) { return false; }
     int zompLookup(char*) { return 0; }
     void* zompParse(char* source) { return 0; }
+    int zompGetCamlCounterValue(int id) { return 0; }
 } // extern "C"
 

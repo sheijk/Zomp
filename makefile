@@ -670,6 +670,7 @@ source/zompvm_impl.o: source/zomputils.h
 source/zompvm_impl.o: source/zompvm_impl.h
 source/zompvm_impl.o: source/zompvm_caml.h
 source/zompvm_impl.o: source/stats_impl.h
+source/zompvm_impl.o: source/zompvm_caml.h
 source/zompvm_caml.o: source/zomputils.h
 source/stats_impl.o: source/zomputils.h
 source/stats_impl.o: source/stats_impl.h

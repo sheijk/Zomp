@@ -17,10 +17,12 @@ Section* statsCreateSection(Section* parent, const char* name);
 // void statsDeleteSection(Section*);
 Counter* statsCreateCounter(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunction query);
 Counter* statsCreateCounterForValue(Section* parent, const char* name, u32 fractionalDigits, int* ptr);
+void statsCreateNamedSection(const char* sectionName);
+void statsCreateCamlCounter(const char* sectionName, const char* name, int id, int fractionalDigits);
 // void statsDeleteCounter(Counter*);
 
-Section* statsNextSection(Section*);
 Section* statsFirstChildSection(Section*);
+Section* statsNextSection(Section*);
 Counter* statsFirstCounter(Section*);
 Counter* statsNextCounter(Counter*);
 

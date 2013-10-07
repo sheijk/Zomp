@@ -15,18 +15,20 @@ extern "C"
 
 /**
  * These are callbacks to the parts of the zomp compiler/runtime implemented
- * in OCaml. You can find the OCaml counter parts in ZompVM.Callable
+ * in OCaml. You can find the OCaml counter parts in zompvm.ml.
  */
 
 static value* isBoundCB = NULL;
 static value* lookupCB = NULL;
 static value* parseCB = NULL;
+static value* getCounterValue = NULL;
 
 extern "C" {
     void zompInitCamlCallbacks() {
         isBoundCB = caml_named_value("isBound");
         lookupCB = caml_named_value("lookup");
         parseCB = caml_named_value("parse");
+        getCounterValue = caml_named_value("getCounterValue");
     }
 
     void zompShutdownCamlCallbacks() {
@@ -68,6 +70,13 @@ extern "C" {
         ZMP_ASSERT(parseCB != NULL,);
         value result = caml_callback(*parseCB, caml_copy_string(source));
         return (void*)(result);
+    }
+
+    int zompGetCamlCounterValue(int id)
+    {
+        ZMP_ASSERT(getCounterValue != NULL,);
+        value result = caml_callback(*getCounterValue, Val_int(id));
+        return Int_val(result);
     }
 
 } // extern "C"
