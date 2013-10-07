@@ -5,6 +5,6 @@ http://sheijk.dword.org/zomp
     include <caml/memory.h>
 
     void statsCreateNamedSection (const char* sectionName)
-    void statsCreateCamlCounter (const char* sectionName, const char* name, int id, int fractionalDigits)
+    void statsCreateCamlCounter (const char* sectionName, const char* name, int fractionalDigits, int id)
     void statsPrintReport (int indent)
 

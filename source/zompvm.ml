@@ -29,7 +29,7 @@ end = struct
 
     let createCounter section name fractionalDigits getValue =
       let id = Vector.append counterGetters getValue in
-      Stats.statsCreateCamlCounter section name id fractionalDigits;
+      Stats.statsCreateCamlCounter section name fractionalDigits id;
       ()
 
     let createCounterRef section name fractionalDigits (r :int ref) =

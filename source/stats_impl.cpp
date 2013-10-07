@@ -268,7 +268,7 @@ static i64 ReturnCamlCounterValue(Counter*, void* userData)
     return zompGetCamlCounterValue(id);
 }
 
-void statsCreateCamlCounter(const char* sectionName, const char* name, int id, int fractionalDigits)
+void statsCreateCamlCounter(const char* sectionName, const char* name, int fractionalDigits, int id)
 {
     Section* section = statsMainSection()->findNamedChild(sectionName);
     ZMP_ASSERT(section,);

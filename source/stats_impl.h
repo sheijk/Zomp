@@ -37,7 +37,7 @@ void statsCreateNamedSection(const char* sectionName);
 
 /// Will create a counter whose value is read by passing the given id to the
 /// OCaml function denoted by the named value getCounterValue.
-void statsCreateCamlCounter(const char* sectionName, const char* name, int id, int fractionalDigits);
+void statsCreateCamlCounter(const char* sectionName, const char* name, int fractionalDigits, int id);
 
 // TODO: add functions to freeze counters/sections (so their query functions)
 // won't get called, again.
