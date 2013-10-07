@@ -7,12 +7,15 @@
 BUILDLOG=build/buildlog.txt
 BUILDLOG_REPORT=build/buildlog_report.txt
 
-CLEAN_BUILD=0
+CLEAN_TARGET=0
 
 case "$1" in
-    "--clean")
-        shift
-        CLEAN_BUILD=1 ;;
+    --clean)
+        CLEAN_TARGET="clean"
+        shift ;;
+    --clean=*)
+        CLEAN_TARGET=`echo $1 | sed 's#--clean=\(.*\)#\1/clean#'`
+        shift ;;
 esac
 
 # Find all make options of the form FOO_BAR=... to keep them for multiple make
@@ -34,10 +37,10 @@ echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = 
 # other tools) shows correct source locations even when compilation command has
 # not been triggered from this directory.
 
-if [ "${CLEAN_BUILD}" -eq "1" ]
+if [ "${CLEAN_TARGET}" != "0" ]
 then
-    echo "Cleaning before build ..."
-    make --print-directory -s ${OPTIONS} clean || exit 1
+    echo "Cleaning ${CLEAN_TARGET} before build ..."
+    make --print-directory -s ${OPTIONS} ${CLEAN_TARGET} || exit 1
 fi
 
 make --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}"
