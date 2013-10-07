@@ -257,7 +257,8 @@ source/vm_protocol.o: source/vm_protocol.h
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
 
-EXPECTED_BUILD_PRODUCTS = $(DEPLOY_DIR)/zompc $(DEPLOY_DIR)/zompsh $(DEPLOY_DIR)/vm_http_server
+EXPECTED_BUILD_PRODUCTS = $(DEPLOY_DIR)/zompc $(DEPLOY_DIR)/zompsh $(DEPLOY_DIR)/vm_http_server \
+    $(MLTEST) $(MAKE_REPORT) $(MAKE_HISTORY_REPORT) $(CHECK_TEST)
 
 MAKE_REPORT = $(OUT_DIR)/testsuite/make_report
 ALL_TARGETS += $(MAKE_REPORT)
