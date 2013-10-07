@@ -459,6 +459,16 @@ endif
 	@$(ECHO) Making $@ ...
 	$(CC) $(LDFLAGS) -o $@ -L. -L./examples -L./testsuite $(LIBS) $< -arch i386
 
+ifeq "$(REGEN_MLI)" "1"
+# Use this to re-generate an OCaml module interface (mli file) from the ml file.
+# for those modules that simply export everything they define.
+# rm -f path/foo.mli
+# make path/gen-foo.mli REGEN_MLI=1
+gen-%.mli: %.ml
+	@$(ECHO) "Auto generating interface $(<)i from $< ..."
+	if [ -e "$(<)i" ]; then echo "$<i: 0: error: file exists. delete it first!"; exit 1; fi
+	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $(<:.ml=.mli)
+endif
 
 ################################################################################
 # External libraries
