@@ -49,7 +49,7 @@ void zompAddMacroArg(void* ptr);
 void* zompAddressOfMacroFunction(ZMP_CONST char* name);
 void* zompCallMacro(void* macroAddress);
 ZMP_CONST char* float2string(double d);
-void zompPrintStats();
+void zompPrintTimingStats();
 
 // from runtime.c
 int zompLoadLib(ZMP_CONST char* name);

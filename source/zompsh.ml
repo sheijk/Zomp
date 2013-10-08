@@ -607,7 +607,7 @@ let () =
     if !showTimingStatsAtExit then (
       Profiling.printTimings();
       flush stdout;
-      Zompvm.zompPrintStats());
+      Zompvm.zompPrintTimingStats());
 
     if !showStatsAtExit then (
       Stats.statsPrintReport 0));

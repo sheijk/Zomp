@@ -230,7 +230,7 @@ let () =
     let printTimingStats() =
       Profiling.printTimings();
       flush stdout;
-      Zompvm.zompPrintStats();
+      Zompvm.zompPrintTimingStats();
     in
     at_exit printTimingStats;
   end;

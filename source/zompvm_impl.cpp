@@ -74,7 +74,7 @@ static i64 ReturnInt64Value(Counter*, void* userData)
     void registerStats()
     {
       Section* section = statsCreateSection(statsMainSection(), "ZompVM timings");
-      statsCreateCounter(section, "parsing (ms)", 0, &parsingTimeMS, ReturnInt64Value);
+      statsCreateCounter(section, "parsing LLVM byte code (ms)", 0, &parsingTimeMS, ReturnInt64Value);
       statsCreateCounter(section, "verify LLVM byte code (ms)", 0, &verifyTimeMS, ReturnInt64Value);
       statsCreateCounter(section, "optimize LLVM byte code (ms)", 0, &optimizingTimeMS, ReturnInt64Value);
     }
@@ -357,7 +357,7 @@ extern "C" {
     return buffer;
   }
 
-  void zompPrintStats() {
+  void zompPrintTimingStats() {
     stats.print();
   }
 } // extern C

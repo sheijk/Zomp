@@ -62,7 +62,7 @@ http://sheijk.dword.org/zomp
     void* zompCallMacro (void* macroAddress)
 
     const char* float2string (double f)
-    void zompPrintStats ()
+    void zompPrintTimingStats ()
 
     bool zompAstIsNull (void* ptr)
 

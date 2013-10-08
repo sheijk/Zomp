@@ -57,7 +57,7 @@ external zompAddressOfMacroFunction : name:string -> cptr
   = "ml_zompAddressOfMacroFunction"
 external zompCallMacro : macroAddress:cptr -> cptr = "ml_zompCallMacro"
 external float2string : f:double -> string = "ml_float2string"
-external zompPrintStats : unit -> unit = "ml_zompPrintStats"
+external zompPrintTimingStats : unit -> unit = "ml_zompPrintTimingStats"
 external zompAstIsNull : ptr:cptr -> bool = "ml_zompAstIsNull"
 external zompIsDebugBuild : unit -> bool = "ml_zompIsDebugBuild"
 external zompBuildInfo : unit -> string = "ml_zompBuildInfo"
