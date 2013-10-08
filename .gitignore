@@ -48,8 +48,9 @@
 /source/dllzompvm.so
 /source/gen_c_bindings
 /source/libzompvm.a
-/source/machine.c
 /source/machine.ml
+/source/machine.mli
+/source/machine_stubs.c
 /source/newparser.conflicts
 /source/newparser.ml
 /source/newparser.mli
@@ -137,3 +138,5 @@
 /testsuite/*.o
 /testsuite/check_test
 /source/stats.ml
+/source/stats.mli
+/source/stats_stubs.c

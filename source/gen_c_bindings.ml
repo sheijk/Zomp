@@ -435,7 +435,7 @@ struct
     if String.length langCode > 0 then
       writefile ~filename:(moduleName ^ "." ^ Codegen.lang_extension) ~text:langCode;
     if String.length ccode > 0 then
-      writefile ~filename:(moduleName ^ ".c") ~text:ccode
+      writefile ~filename:(moduleName ^ "_stubs.c") ~text:ccode
 end
 
 (**

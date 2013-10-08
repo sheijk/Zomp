@@ -142,6 +142,7 @@ ifeq "$(CAML_BYTE_CODE)" "1"
 .PHONY: byte
 ALL_TARGETS += byte
 byte: $(ZOMP_DLL_FILE) $(ZOMPC_FILE) $(ZOMPSH_FILE)
+.PHONY: compiler
 compiler: byte
 
 else
@@ -149,6 +150,7 @@ else
 .PHONY: native
 ALL_TARGETS += native
 native: $(ZOMP_DLL_FILE) $(ZOMPC_FILE) $(ZOMPSH_FILE)
+.PHONY: compiler
 compiler: native
 
 endif
@@ -168,13 +170,15 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx \
      -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx \
     newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
+.PRECIOUS: source/machine_stubs.c source/machine.mli source/stats_stubs.c source/stats.mli
+
 ################################################################################
 # Zomp tools
 ################################################################################
 
 ALL_TARGETS += source/zompvm_dummy.o
 
-ZOMP_DLL_OBJS = source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine.o source/stats.o
+ZOMP_DLL_OBJS = source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine_stubs.o source/stats_stubs.o
 
 $(ZOMP_DLL_FILE): $(ZOMP_DLL_OBJS) source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
@@ -375,8 +379,8 @@ test: all $(TEST_SUB_TARGETS)
 	@$(ECHO) Generating lexer $< ...
 	$(OCAMLLEX) $<
 
-source/%.c source/%.ml: source/%.skel source/gen_c_bindings
-	@$(ECHO) Making OCaml bindings for zomp-machine ...
+source/%_stubs.c source/%.ml: source/%.skel source/gen_c_bindings
+	@$(ECHO) Making OCaml bindings for $(<.skel=) ...
 	./source/gen_c_bindings $(<:.skel=)
 
 ifeq "$(CAML_BYTE_CODE)" "0"
@@ -779,8 +783,8 @@ CLEAN_SUB_TARGETS += source/clean
 source/clean:
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
 	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
-	$(DELETE_FILE) source/machine.{cmi,cmo,cmx,o,c,ml}
-	$(DELETE_FILE) source/stats.{cmi,cmo,cmx,o,c,ml}
+	$(DELETE_FILE) source/machine.{cmi,cmo,cmx,ml,mli} source/machine_stubs.{c,o}
+	$(DELETE_FILE) source/stats.{cmi,cmo,cmx,ml,mli} source/stats_stubs.{c,o}
 	$(DELETE_FILE) $(ZOMP_DLL_FILE) source/libzompvm.a
 	$(DELETE_FILE) source/zompvm_impl.o source/zompvm_dummy.o
 	$(DELETE_FILE) source/zompvm_caml.o source/zompvm_caml_dummy.o
