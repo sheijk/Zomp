@@ -4,6 +4,7 @@
 *.last_result
 *.test_output
 *.compile_output
+*.compile_stats
 *.testreport
 *.annot
 .DS_Store

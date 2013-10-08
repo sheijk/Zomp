@@ -91,10 +91,12 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOM
 # Rules
 ################################################################################
 
-ZOMPCFLAGS_W_TESTSUITE_INCLUDE = --zomp-include-dir testsuite/include
-testsuite/include/test_%.ll: ZOMPCFLAGS=$(ZOMPCFLAGS_W_TESTSUITE_INCLUDE)
+testsuite/*/test_%.ll: ZOMPCFLAGS += --stats $(@:.ll=.compile_stats)
 
-TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 ZOMPCFLAGS='--stats $(@:.testreport=.compile_stats)' $(@:.testreport=.exe)"
+ZOMPCFLAGS_W_TESTSUITE_INCLUDE = --zomp-include-dir testsuite/include
+testsuite/include/test_%.ll: ZOMPCFLAGS += $(ZOMPCFLAGS_W_TESTSUITE_INCLUDE)
+
+TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 $(@:.testreport=.exe)"
 TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
 
 # Don't compile tests for zompsh (they have "!" commands in them and won't compile using zompc)

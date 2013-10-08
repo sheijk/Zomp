@@ -1790,7 +1790,10 @@ Next up:
 - [ ] add source locations to macros and Bindings.TypedefSymbol and builtin macros/types
 - [ ] automatically generate source location for expressions created in macros
 - [ ] "no translator matched expression" must go away
-- [ ] proper statistics module [[file:stats.org][Stats]]
+- [-] proper statistics module [[file:stats.org][Stats]]
+  - [X] implement for c++, OCaml and Zomp
+  - [X] add to test reports
+  - [ ] move all existing stats to new system
 
 Minor tasks:
 - useful handling of ret at end of function

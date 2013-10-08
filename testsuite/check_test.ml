@@ -14,6 +14,7 @@ let scriptName = "check_test"
 let testOutputExt = "test_output"
 let compilationOutputExt = "compile_output"
 let reportOutputExt = "testreport"
+let statsExt = "compile_stats"
 
 type usageError =
   | InvalidArguments
@@ -263,8 +264,7 @@ let writeHtmlHeader outFile zompFileName =
     "h2", ["margin-bottom", "0"];
     ".ok", ["color", "green"];
     ".failed", ["color", "red"];
-    ".test-output", monospace :: lightLineLeft;
-    ".compiler-output", monospace :: lightLineLeft;
+    ".console-output", monospace :: lightLineLeft;
     ".file-link", ["color", "gray"; "margin-bottom", "10px"; "font-size", "90%"];
     "a.file-link:link", ["color", "gray"];
     "a.file-link:visited", ["color", "#868"];
@@ -444,9 +444,16 @@ let () =
         (match cssClass with None -> "" | Some name -> sprintf " class=\"%s\"" name);
       List.iter (fun element -> fprintf outFile "<%s>" element) remaining;
       fprintf outFile "\n";
-      f();
-      List.iter (fun element -> fprintf outFile "</%s>" element) (List.rev remaining);
-      fprintf outFile "</%s>\n" first;
+      let closeElements() =
+        List.iter (fun element -> fprintf outFile "</%s>" element) (List.rev remaining);
+        fprintf outFile "</%s>\n" first;
+      in
+      try
+        f();
+        closeElements()
+      with exn ->
+        closeElements();
+        raise exn
     in
 
     let writeExpectation expectation =
@@ -578,7 +585,7 @@ let () =
     in
 
     writeHeaderWithLink 2 "Compiler output" (replaceExtension (Filename.basename zompFileName) "compile_output");
-    inElements ["p"] ~cssClass:"compiler-output" (fun () ->
+    inElements ["p"] ~cssClass:"console-output" (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
     fprintf outFile "Compiler exited with code %d</br>\n" compilerError;
 
@@ -590,7 +597,7 @@ let () =
       let runReturnCode = Sys.command cmd in
 
       writeHeaderWithLink 2 "Output" (replaceExtension (Filename.basename zompFileName) "test_output");
-      inElements ["p"] ~cssClass:"test-output" (fun () ->
+      inElements ["p"] ~cssClass:"console-output" (fun () ->
         forEachLineInFile testrunOutputFile checkRuntimeExpectationsAndPrintLine);
 
       fprintf outFile "Exited with code %d<br />\n" runReturnCode;
@@ -644,6 +651,20 @@ let () =
         printf "error: failed to create file %s\n" resultFile;
     end;
 
+    begin
+      writeHeaderWithLink 2 "Stats" (replaceExtension (Filename.basename zompFileName) statsExt);
+      let statsFile = replaceExtension zompFileName statsExt in
+      try
+        inElements ["p"] ~cssClass:"console-output" (fun () ->
+          let printLineToReport _ line =
+            fprintf outFile "%s<br />\n" (escapeHtmlText line)
+          in
+          forEachLineInFile statsFile printLineToReport);
+      with Sys_error _ ->
+        inElements ["br"] (fun () ->
+          fprintf outFile "File <span class=\"failed\">%s</span> missing." statsFile)
+    end;
+
     writeHeader 2 "Source";
     inElements ["div"; "ol"] ~cssClass:"source" (fun () ->
       let source = readFile zompFileName in
@@ -654,10 +675,10 @@ let () =
         List.iter (fprintf outFile "%s") (List.rev !reversedSegments);
         fprintf outFile "</code></li>";
       with Basics.CommentError (location, msg) ->
-        let printLine _ line =
-          fprintf outFile "  <li><code>%s</code></li>\n" line
+        let printLineToReport _ line =
+          fprintf outFile "  <li><code>%s</code></li>\n" (escapeHtmlText line)
         in
-        forEachLineInFile zompFileName printLine);
+        forEachLineInFile zompFileName printLineToReport);
 
     fprintf outFile "</html>")
 
