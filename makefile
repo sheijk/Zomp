@@ -78,9 +78,10 @@ include source/build/flymake.mk
 
 # Extended by included makefiles
 CLEAN_SUB_TARGETS =
-TEST_SUB_TARGETS =
 FILES_TO_DELETE_ON_CLEAN =
+TEST_SUB_TARGETS =
 ALL_TARGETS=
+DOC_TARGETS=
 
 AUTO_DEPENDENCY_FILE = $(OUT_DIR)/auto_depends.mk
 
@@ -110,6 +111,8 @@ SHELL = sh
 CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)
+
+OCAMLDOC_FLAGS = -I source/ -I testsuite/
 
 ifeq "$(DEBUG)" "1"
   OCAMLC += -g
@@ -460,6 +463,10 @@ endif
 	@$(ECHO) Making $@ ...
 	$(CC) $(LDFLAGS) -o $@ -L. -L./examples -L./testsuite $(LIBS) $< -arch i386
 
+%.svg: %.dot
+	@$(ECHO) "Generating $@ ..."
+	-dot -Tsvg $< > $@
+
 ifeq "$(REGEN_MLI)" "1"
 # Use this to re-generate an OCaml module interface (mli file) from the ml file.
 # for those modules that simply export everything they define.
@@ -698,13 +705,21 @@ TAGS:
 # Visualize OCaml module dependencies
 ################################################################################
 
-ALL_TARGETS += $(OUT_DIR)/deps.svg
-$(OUT_DIR)/deps.dot $(OUT_DIR)/deps.svg: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
+DOC_TARGETS += $(OUT_DIR)/caml-modules.svg
+
+$(OUT_DIR)/caml-modules.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
 	@$(ECHO) Generating dependency graph for graphviz ...
-	$(OCAMLDOC) -I source/ -I testsuite/ -o $(OUT_DIR)/deps.dot -dot -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
-	cat $(OUT_DIR)/deps.dot | sed 's/rotate=90;/rotate=0;/' > $(OUT_DIR)/deps.dot.tmp
-	mv $(OUT_DIR)/deps.dot.tmp $(OUT_DIR)/deps.dot
-	-dot -Tsvg $(OUT_DIR)/deps.dot > $(OUT_DIR)/deps.svg
+	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -o $@ -dot -dot-include-all -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
+	cat $@ | sed 's/rotate=90;/rotate=0;/' > $@.tmp
+	mv $@.tmp $@
+
+DOC_TARGETS += $(OUT_DIR)/caml-types.svg
+
+$(OUT_DIR)/caml-types.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
+	@$(ECHO) Generating dependency graph for graphviz ...
+	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -o $@ -dot -dot-types -dot-include-all -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
+	cat $@ | sed 's/rotate=90;/rotate=0;/' | sed 's/rankdir = TB ;/rankdir=LR;/' > $@.tmp
+	mv $@.tmp $@
 
 ################################################################################
 # Outdated line of code statistics. Does not work anymore, kept for reference
@@ -785,7 +800,6 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
 	$(DELETE_FILE) expander_tests.cm?
 	$(DELETE_FILE) *_flymake.*
-	$(DELETE_FILE) $(OUT_DIR)/deps.{png,dot}
 	$(DELETE_FILE) $(AUTO_DEPENDENCY_FILE)
 	$(DELETE_FILE) libs/glQuickText.o libs/libquicktext.dylib libs/libglut.dylib
 	$(DELETE_FILE) perflog.txt
@@ -803,6 +817,9 @@ clean_tags:
 	$(DELETE_FILE) $(FLYMAKE_LOG)
 
 clean_all: clean clean_tags
+
+ALL_TARGETS += doc
+doc: $(DOC_TARGETS)
 
 all: $(ALL_TARGETS)
 
