@@ -218,7 +218,6 @@ let extractOptions args =
 
 let () =
   let s = Statistics.createSection "test" in
-  Statistics.createFloatCounter s "ten" 2 (fun () -> 10.125);
   Printexc.record_backtrace true;
   let options =
     match extractOptions Sys.argv with
