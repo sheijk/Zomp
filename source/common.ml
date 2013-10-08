@@ -592,9 +592,11 @@ module Statistics : sig
 
   val createSection : string -> section
   val createCounter : section -> string -> int -> (unit -> int) -> counter
+  val createCounterFloat : section -> string -> int -> (unit -> float) -> counter
 
+  type counterType = Float | Int
   type sectionRegisterFunc = sectionName:string -> unit
-  type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> id:int -> unit
+  type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> typ:counterType -> id:int -> unit
 
   val setImplementation : sectionRegisterFunc -> counterRegisterFunc -> unit
 
@@ -602,13 +604,14 @@ end = struct
   type section = string
   type counter = unit
 
-  type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> id:int -> unit
+  type counterType = Float | Int
+  type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> typ:counterType -> id:int -> unit
   type sectionRegisterFunc = sectionName:string -> unit
 
   let delayedCounters = ref []
   let delayedSections = ref []
-  let registerCounterDelayed ~sectionName ~name ~fractionalDigits ~id =
-    delayedCounters := (sectionName, name, fractionalDigits, id) :: !delayedCounters
+  let registerCounterDelayed ~sectionName ~name ~fractionalDigits ~typ ~id =
+    delayedCounters := (sectionName, name, fractionalDigits, typ, id) :: !delayedCounters
   let registerSectionDelayed ~sectionName =
     delayedSections := sectionName :: !delayedSections
 
@@ -619,32 +622,47 @@ end = struct
     List.iter (fun sectionName -> section ~sectionName) !delayedSections;
     delayedSections := [];
     List.iter
-      (fun (sectionName, name, fractionalDigits, id) -> counter ~sectionName ~name ~fractionalDigits ~id)
+      (fun (sectionName, name, fractionalDigits, typ, id) -> counter ~sectionName ~name ~fractionalDigits ~typ ~id)
       !delayedCounters;
     delayedCounters := [];
     registerSection := section;
     registerCounter := counter
 
-  let counterGetters : (unit -> int) Vector.t = Vector.make()
+  type getter = GetFloat of (unit -> float) | GetInt of (unit -> int)
+  let counterGetters : getter Vector.t = Vector.make()
 
   let createSection name =
     !registerSection name;
     name
 
   let createCounter section name fractionalDigits getValue =
-    let id = Vector.append counterGetters getValue in
-    !registerCounter section name fractionalDigits id;
+    let id = Vector.append counterGetters (GetInt getValue) in
+    !registerCounter section name fractionalDigits Int id;
+    ()
+
+  let createCounterFloat section name fractionalDigits getValue =
+    let id = Vector.append counterGetters (GetFloat getValue) in
+    !registerCounter section name fractionalDigits Float id;
     ()
 
   let createCounterRef section name fractionalDigits (r :int ref) =
     createCounter section name fractionalDigits (fun _ -> !r)
 
-  let getCounterValue id : int =
-    let getValue = Vector.get counterGetters id in
-    getValue()
+  let getCounterValueInt id : int =
+    let getter = Vector.get counterGetters id in
+    match getter with
+      | GetInt f -> f()
+      | _ -> failwith "getCounterValueInt"
+
+  let getCounterValueFloat (id : int) : float =
+    let getter = Vector.get counterGetters id in
+    match getter with
+      | GetFloat f -> f()
+      | _ -> failwith "getCounterValueFloat"
 
   let () =
-    Callback.register "getCounterValue" getCounterValue
+    Callback.register "zompCommonGetCounterValueInt" getCounterValueInt;
+    Callback.register "zompCommonGetCounterValueFloat" getCounterValueFloat
 end
 
 module Profiling =

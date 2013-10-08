@@ -183,10 +183,14 @@ module Statistics :
     type counter
     val createSection : string -> section
     val createCounter : section -> string -> int -> (unit -> int) -> counter
+    val createCounterFloat :
+      section -> string -> int -> (unit -> float) -> counter
+    type counterType = Float | Int
     type sectionRegisterFunc = sectionName:string -> unit
     type counterRegisterFunc =
         sectionName:string ->
-        name:string -> fractionalDigits:int -> id:int -> unit
+        name:string ->
+        fractionalDigits:int -> typ:counterType -> id:int -> unit
     val setImplementation :
       sectionRegisterFunc -> counterRegisterFunc -> unit
   end

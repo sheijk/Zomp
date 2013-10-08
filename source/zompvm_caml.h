@@ -11,7 +11,8 @@ bool isBound(char* name);
 int zompLookup(char* name);
 void* zompParse(char* source);
 
-int zompGetCamlCounterValue(int id);
+int zompGetCamlCounterValueInt(int id);
+float zompGetCamlCounterValueFloat(int id);
 
 } // extern "C"
 

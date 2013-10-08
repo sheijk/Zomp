@@ -6,10 +6,18 @@ open Lang
 include Machine
 
 module StatisticsBackend : sig end = struct
+  let registerCounter ~sectionName ~name ~fractionalDigits ~typ ~id =
+    let f =
+      match typ with
+        | Statistics.Int -> Stats.statsCreateCamlCounter
+        | Statistics.Float -> Stats.statsCreateCamlCounterFloat
+    in
+    f sectionName name fractionalDigits id
+    
   let () =
     Statistics.setImplementation
       Stats.statsCreateNamedSection
-      Stats.statsCreateCamlCounter
+      registerCounter
 end
 
 let zompvmSection = Statistics.createSection "zompvm"

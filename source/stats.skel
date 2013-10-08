@@ -7,6 +7,7 @@ http://sheijk.dword.org/zomp
 
     void statsCreateNamedSection (const char* sectionName)
     void statsCreateCamlCounter (const char* sectionName, const char* name, int fractionalDigits, int id)
+    void statsCreateCamlCounterFloat (const char* sectionName, const char* name, int fractionalDigits, int id)
     void statsPrintReport (int indent)
     bool statsPrintReportToFile (const char* fileName, int indent)
 

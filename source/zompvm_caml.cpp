@@ -21,14 +21,16 @@ extern "C"
 static value* isBoundCB = NULL;
 static value* lookupCB = NULL;
 static value* parseCB = NULL;
-static value* getCounterValue = NULL;
+static value* getCounterValueInt = NULL;
+static value* getCounterValueFloat = NULL;
 
 extern "C" {
     void zompInitCamlCallbacks() {
         isBoundCB = caml_named_value("isBound");
         lookupCB = caml_named_value("lookup");
         parseCB = caml_named_value("parse");
-        getCounterValue = caml_named_value("getCounterValue");
+        getCounterValueInt = caml_named_value("zompCommonGetCounterValueInt");
+        getCounterValueFloat = caml_named_value("zompCommonGetCounterValueFloat");
     }
 
     void zompShutdownCamlCallbacks() {
@@ -72,11 +74,18 @@ extern "C" {
         return (void*)(result);
     }
 
-    int zompGetCamlCounterValue(int id)
+    int zompGetCamlCounterValueInt(int id)
     {
-        ZMP_ASSERT(getCounterValue != NULL,);
-        value result = caml_callback(*getCounterValue, Val_int(id));
+        ZMP_ASSERT(getCounterValueInt != NULL,);
+        value result = caml_callback(*getCounterValueInt, Val_int(id));
         return Int_val(result);
+    }
+
+    float zompGetCamlCounterValueFloat(int id)
+    {
+        ZMP_ASSERT(getCounterValueFloat != NULL,);
+        value result = caml_callback(*getCounterValueFloat, Val_int(id));
+        return (float)Double_val(result);
     }
 
 } // extern "C"

@@ -47,25 +47,23 @@ extern "C"
 
 struct Counter
 {
-private:
+protected:
     std::vector<char> name_;
     void* userData_;
     u32 fractionalDigits_;
-    CounterQueryFunction query_;
     Section* parent_;
     Counter* next_;
 
-public:
-    Counter(Section* parent, const char* name, void* userData, u32 fractionalDigits, CounterQueryFunction query)
+    Counter(Section* parent, const char* name, u32 fractionalDigits, void* userData)
     {
         parent_ = parent;
         name_.assign(name, name + strnlen(name, MAX_COUNTER_NAME_LENGTH) + 1);
         userData_ = userData;
         fractionalDigits_ = fractionalDigits;
-        query_ = query;
         next_ = NULL;
     }
 
+public:
     Counter* next()
     {
         return next_;
@@ -86,9 +84,49 @@ public:
         return fractionalDigits_;
     }
 
-    i64 query()
+    virtual void printValue(FILE* out) = 0;
+};
+
+struct CounterInt : public Counter
+{
+    CounterQueryFunction query_;
+public:
+
+    CounterInt(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunction query)
+        : Counter(parent, name, fractionalDigits, userData)
     {
-        return query_(this, userData_);
+        query_ = query;
+    }
+
+    virtual void printValue(FILE* out)
+    {
+        i64 value = query_(this, userData_);
+        if(fractionalDigits_ == 0) {
+            fprintf(out, "%lld", value);
+        }
+        else {
+            double fraction = double(value) / double(1LL << fractionalDigits_);
+            // smallest value is 1/(2**fractionalDigits) so we need fractionalDigits
+            // number of digits precision.
+            fprintf(out, "%.*f", fractionalDigits_, fraction);
+        }
+    }
+};
+
+struct CounterFloat : public Counter
+{
+    CounterQueryFunctionFloat query_;
+public:
+
+    CounterFloat(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunctionFloat query)
+        : Counter(parent, name, fractionalDigits, userData)
+    {
+        query_ = query;
+    }
+
+    virtual void printValue(FILE* out)
+    {
+        fprintf(out, "%.*f", fractionalDigits_, query_(this, userData_));
     }
 };
 
@@ -142,15 +180,13 @@ public:
         return new Section(this, name);
     }
 
-    Counter* createCounter(const char* name, u32 fractionalDigits, void* userData, CounterQueryFunction query)
+    void addCounter(Counter* counter)
     {
-        Counter* counter = new Counter(this, name, userData, fractionalDigits, query);
         if(counters_.size() > 0)
         {
             counters_.back()->setNext(counter);
         }
         counters_.push_back(counter);
-        return counter;
     }
 
     Section* next()
@@ -200,18 +236,8 @@ public:
         for(Counter* counter = firstCounter(); counter != NULL; counter = counter->next())
         {
             printIndent(out, indent + 4);
-
-            i64 value = counter->query();
-            u32 fractionalDigits = counter->fractionalDigits();
-            if(fractionalDigits == 0) {
-                fprintf(out, "%lld - %s\n", value, counter->name());
-            }
-            else {
-                double fraction = double(value) / double(1LL << fractionalDigits);
-                // smallest value is 1/(2**fractionalDigits) so we need fractionalDigits
-                // number of digits precision.
-                fprintf(out, "%.*f - %s\n", fractionalDigits, fraction, counter->name());
-            }
+            counter->printValue(out);
+            fprintf(out, " - %s\n", counter->name());
         }
 
         for(Section* child = firstChildSection(); child != NULL; child = child->next())
@@ -238,9 +264,18 @@ Section* statsCreateSection(Section* parent, const char* name)
 //     section->Delete();
 // }
 
-Counter* statsCreateCounter(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunction query)
+Counter* statsCreateCounter(Section* parent, const char* name, u32 fractionalBits, void* userData, CounterQueryFunction query)
 {
-    return parent->createCounter(name, fractionalDigits, userData, query);
+    Counter* counter = new CounterInt(parent, name, fractionalBits, userData, query);
+    parent->addCounter(counter);
+    return counter;
+}
+
+Counter* statsCreateCounterFloat(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunctionFloat query)
+{
+    Counter* counter = new CounterFloat(parent, name, fractionalDigits, userData, query);
+    parent->addCounter(counter);
+    return counter;
 }
 
 static i64 ReturnIntValue(Counter*, void* userData)
@@ -251,7 +286,9 @@ static i64 ReturnIntValue(Counter*, void* userData)
 
 Counter* statsCreateCounterForValue(Section* parent, const char* name, u32 fractionalDigits, int* ptr)
 {
-    return parent->createCounter(name, fractionalDigits, ptr, ReturnIntValue);
+    Counter* counter = new CounterInt(parent, name, fractionalDigits, ptr, ReturnIntValue);
+    parent->addCounter(counter);
+    return counter;
 }
 
 void statsCreateNamedSection(const char* sectionName)
@@ -266,7 +303,7 @@ static i64 ReturnCamlCounterValue(Counter*, void* userData)
     ptrdiff_t id =(ptrdiff_t)userData;
     ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%d, %d\n", id, MAX_CAML_INT));
 
-    return zompGetCamlCounterValue(id);
+    return zompGetCamlCounterValueInt(id);
 }
 
 void statsCreateCamlCounter(const char* sectionName, const char* name, int fractionalDigits, int id)
@@ -277,6 +314,25 @@ void statsCreateCamlCounter(const char* sectionName, const char* name, int fract
     if(section != NULL)
     {
         statsCreateCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValue);
+    }
+}
+
+static float ReturnCamlCounterValueFloat(Counter*, void* userData)
+{
+    ptrdiff_t id =(ptrdiff_t)userData;
+    ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%d, %d\n", id, MAX_CAML_INT));
+
+    return zompGetCamlCounterValueFloat(id);
+}
+
+void statsCreateCamlCounterFloat(const char* sectionName, const char* name, int fractionalDigits, int id)
+{
+    Section* section = statsMainSection()->findNamedChild(sectionName);
+    ZMP_ASSERT(section,);
+
+    if(section != NULL)
+    {
+        statsCreateCounterFloat(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValueFloat);
     }
 }
 
@@ -308,11 +364,6 @@ Counter* statsNextCounter(Counter* counter)
 const char* statsCounterName(Counter* counter)
 {
     return counter->name();
-}
-
-i64 statsCounterQuery(Counter* counter)
-{
-    return counter->query();
 }
 
 i32 statsCounterFractionalDigits(Counter* counter)
