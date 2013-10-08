@@ -5,42 +5,11 @@ open Lang
 
 include Machine
 
-module Statistics : sig
-    type section
-    type counter
-
-    val createSection : string -> section
-    val createCounter : section -> string -> int -> (unit -> int) -> counter
-
-    (* val createCounterRef : section -> string -> int -> int ref -> counter *)
-
-end = struct
-
-    let counterGetters : (unit -> int) Vector.t = Vector.make()
-
-    type section = string
-    (** can't directly use unit here as it screws the type checker *)
-    (* type counter = { dummy : unit } *)
-    type counter = unit
-
-    let createSection name =
-      Stats.statsCreateNamedSection name;
-      name
-
-    let createCounter section name fractionalDigits getValue =
-      let id = Vector.append counterGetters getValue in
-      Stats.statsCreateCamlCounter section name fractionalDigits id;
-      ()
-
-    let createCounterRef section name fractionalDigits (r :int ref) =
-      createCounter section name fractionalDigits (fun _ -> !r)
-
-    let getCounterValue id : int =
-      let getValue = Vector.get counterGetters id in
-      getValue()
-
-    let () =
-      Callback.register "getCounterValue" getCounterValue
+module StatisticsBackend : sig end = struct
+  let () =
+    Statistics.setImplementation
+      Stats.statsCreateNamedSection
+      Stats.statsCreateCamlCounter
 end
 
 let zompvmSection = Statistics.createSection "zompvm"

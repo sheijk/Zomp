@@ -177,6 +177,19 @@ module Vector :
     val size : 'a t -> int
     val get : 'a t -> int -> 'a
   end
+module Statistics :
+  sig
+    type section
+    type counter
+    val createSection : string -> section
+    val createCounter : section -> string -> int -> (unit -> int) -> counter
+    type sectionRegisterFunc = sectionName:string -> unit
+    type counterRegisterFunc =
+        sectionName:string ->
+        name:string -> fractionalDigits:int -> id:int -> unit
+    val setImplementation :
+      sectionRegisterFunc -> counterRegisterFunc -> unit
+  end
 module Profiling :
   sig
     type timingInfo = {

@@ -586,6 +586,67 @@ end = struct
       failwith "Vector.set"
 end
 
+module Statistics : sig
+  type section
+  type counter
+
+  val createSection : string -> section
+  val createCounter : section -> string -> int -> (unit -> int) -> counter
+
+  type sectionRegisterFunc = sectionName:string -> unit
+  type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> id:int -> unit
+
+  val setImplementation : sectionRegisterFunc -> counterRegisterFunc -> unit
+
+end = struct
+  type section = string
+  type counter = unit
+
+  type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> id:int -> unit
+  type sectionRegisterFunc = sectionName:string -> unit
+
+  let delayedCounters = ref []
+  let delayedSections = ref []
+  let registerCounterDelayed ~sectionName ~name ~fractionalDigits ~id =
+    delayedCounters := (sectionName, name, fractionalDigits, id) :: !delayedCounters
+  let registerSectionDelayed ~sectionName =
+    delayedSections := sectionName :: !delayedSections
+
+  let registerSection = ref registerSectionDelayed
+  let registerCounter = ref registerCounterDelayed
+
+  let setImplementation section counter =
+    List.iter (fun sectionName -> section ~sectionName) !delayedSections;
+    delayedSections := [];
+    List.iter
+      (fun (sectionName, name, fractionalDigits, id) -> counter ~sectionName ~name ~fractionalDigits ~id)
+      !delayedCounters;
+    delayedCounters := [];
+    registerSection := section;
+    registerCounter := counter
+
+  let counterGetters : (unit -> int) Vector.t = Vector.make()
+
+  let createSection name =
+    !registerSection name;
+    name
+
+  let createCounter section name fractionalDigits getValue =
+    let id = Vector.append counterGetters getValue in
+    !registerCounter section name fractionalDigits id;
+    ()
+
+  let createCounterRef section name fractionalDigits (r :int ref) =
+    createCounter section name fractionalDigits (fun _ -> !r)
+
+  let getCounterValue id : int =
+    let getValue = Vector.get counterGetters id in
+    getValue()
+
+  let () =
+    Callback.register "getCounterValue" getCounterValue
+end
+
 module Profiling =
 struct
   type timingInfo = {
