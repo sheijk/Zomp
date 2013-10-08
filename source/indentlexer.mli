@@ -24,7 +24,6 @@ val printTokens : Newparser.token list -> unit
 val readChar : 'a lexerstate -> char
 
 val runInternalTests : unit -> unit
-val printStats : unit -> unit
 
 val locationOfLexstate : 'a lexerstate -> Basics.location
 

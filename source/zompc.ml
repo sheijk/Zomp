@@ -229,7 +229,6 @@ let () =
   if options.printTimings then begin
     let printTimingStats() =
       Profiling.printTimings();
-      Indentlexer.printStats();
       flush stdout;
       Zompvm.zompPrintStats();
     in

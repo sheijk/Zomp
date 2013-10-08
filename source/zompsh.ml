@@ -606,7 +606,6 @@ let () =
   at_exit (fun () ->
     if !showTimingStatsAtExit then (
       Profiling.printTimings();
-      Indentlexer.printStats();
       flush stdout;
       Zompvm.zompPrintStats());
 

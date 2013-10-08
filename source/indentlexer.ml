@@ -623,40 +623,20 @@ struct
   type stats = {
     ruleCount :int;
     foundTokens :int ref;
-    beginmatchCalcCount :int ref;
-    beginmatchMatchNums :int ref;
-    fullmatchCalcCount :int ref;
-    fullmatchMatchNums :int ref;
   }
 
   let stats = {
     ruleCount = List.length Rules.rules;
     foundTokens = ref 0;
-    beginmatchCalcCount = ref 0;
-    beginmatchMatchNums = ref 0;
-    fullmatchCalcCount = ref 0;
-    fullmatchMatchNums = ref 0;
   }
 
-  let printStats() =
-    if !(stats.beginmatchCalcCount) > 0 then begin
-      printf "----- lexer stats:\n";
-      printf "  %d rules\n" stats.ruleCount;
-      printf "  %d tokens found\n" !(stats.foundTokens);
-      printf "  %d times made begin match set\n" !(stats.beginmatchCalcCount);
-      printf "  %d total begin matches\n" !(stats.beginmatchMatchNums);
-      printf "  %d total matches calculated\n" !(stats.fullmatchMatchNums);
-      printf "  %d total full matches\n" !(stats.fullmatchMatchNums);
-      printf "  %f%% begin matches average\n"
-        (float !(stats.beginmatchMatchNums) /. float !(stats.beginmatchCalcCount));
-      printf "  %f%% full matches average\n"
-        (float !(stats.fullmatchMatchNums) /. float !(stats.fullmatchCalcCount));
-      printf "-----\n"
-    end
+  let () =
+    let section = Statistics.createSection "lexer" in
+    ignore (Statistics.createCounter section "rules" 0 (fun () -> stats.ruleCount));
+    ignore (Statistics.createCounter section "parsed tokens" 0 (Ref.getter stats.foundTokens));
+    ()
 end
 open Stats
-
-let printStats = Stats.printStats
 
 let token (lexbuf : token lexerstate) : token =
   let source, sourceLength = sourceAndSize lexbuf in
