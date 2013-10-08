@@ -93,7 +93,7 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
     expander.ml gen_c_bindings.ml genllvm.ml indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml stats.ml newparser_tests.ml parseutils.ml \
     compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
-    zompc.ml zompvm.ml basics.ml, source/$(file) source/$(file:.ml=.mli)) \
+    zompc.ml zompvm.ml basics.ml mltest.ml, source/$(file) source/$(file:.ml=.mli)) \
     $(foreach file, make_history_report.ml make_report.ml check_test.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
 
 -include $(AUTO_DEPENDENCY_FILE)
