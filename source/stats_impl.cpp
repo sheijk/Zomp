@@ -59,7 +59,7 @@ public:
     Counter(Section* parent, const char* name, void* userData, u32 fractionalDigits, CounterQueryFunction query)
     {
         parent_ = parent;
-        name_.assign(name, name + strnlen(name, MAX_COUNTER_NAME_LENGTH));
+        name_.assign(name, name + strnlen(name, MAX_COUNTER_NAME_LENGTH) + 1);
         userData_ = userData;
         fractionalDigits_ = fractionalDigits;
         query_ = query;
@@ -121,7 +121,7 @@ public:
         if(parent_ != NULL)
             parent_->add(this);
 
-        name_.assign(name, name + strnlen(name, MAX_COUNTER_NAME_LENGTH));
+        name_.assign(name, name + strnlen(name, MAX_COUNTER_NAME_LENGTH) + 1);
     }
 
     ~Section()
