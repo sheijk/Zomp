@@ -632,8 +632,8 @@ struct
 
   let () =
     let section = Statistics.createSection "lexer" in
-    ignore (Statistics.createIntCounter section "rules" 0 (fun () -> stats.ruleCount));
-    ignore (Statistics.createIntCounter section "parsed tokens" 0 (Ref.getter stats.foundTokens));
+    Statistics.createIntCounter section "rules" 0 (fun () -> stats.ruleCount);
+    Statistics.createIntCounter section "parsed tokens" 0 (Ref.getter stats.foundTokens);
     ()
 end
 open Stats

@@ -588,11 +588,10 @@ end
 
 module Statistics : sig
   type section
-  type counter
 
   val createSection : string -> section
-  val createIntCounter : section -> string -> int -> (unit -> int) -> counter
-  val createFloatCounter : section -> string -> int -> (unit -> float) -> counter
+  val createIntCounter : section -> string -> int -> (unit -> int) -> unit
+  val createFloatCounter : section -> string -> int -> (unit -> float) -> unit
 
   type counterType = Float | Int
   type sectionRegisterFunc = sectionName:string -> unit
@@ -602,7 +601,6 @@ module Statistics : sig
 
 end = struct
   type section = string
-  type counter = unit
 
   type counterType = Float | Int
   type counterRegisterFunc = sectionName:string -> name:string -> fractionalDigits:int -> typ:counterType -> id:int -> unit

@@ -180,12 +180,10 @@ module Vector :
 module Statistics :
   sig
     type section
-    type counter
     val createSection : string -> section
-    val createIntCounter :
-      section -> string -> int -> (unit -> int) -> counter
+    val createIntCounter : section -> string -> int -> (unit -> int) -> unit
     val createFloatCounter :
-      section -> string -> int -> (unit -> float) -> counter
+      section -> string -> int -> (unit -> float) -> unit
     type counterType = Float | Int
     type sectionRegisterFunc = sectionName:string -> unit
     type counterRegisterFunc =

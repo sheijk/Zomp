@@ -30,8 +30,7 @@ struct
 
   let () =
     let addCounter name f =
-      let counter = Statistics.createIntCounter zompvmSection name 0 f in
-      ignore counter
+      Statistics.createIntCounter zompvmSection name 0 f
     in
     addCounter "total ASTs created" (fun () -> !totalOCamlAstsCreated + !totalNativeAstsCreated);
     addCounter "OCaml ASTs from native created" (Ref.getter totalOCamlAstsCreated);
