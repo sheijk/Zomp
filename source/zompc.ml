@@ -217,7 +217,6 @@ let extractOptions args =
       InvalidArguments msg
 
 let () =
-  let s = Statistics.createSection "test" in
   Printexc.record_backtrace true;
   let options =
     match extractOptions Sys.argv with
