@@ -6,8 +6,8 @@ http://sheijk.dword.org/zomp
     include <caml/memory.h>
 
     void statsCreateNamedSection (const char* sectionName)
-    void statsCreateCamlCounter (const char* sectionName, const char* name, int fractionalDigits, int id)
-    void statsCreateCamlCounterFloat (const char* sectionName, const char* name, int fractionalDigits, int id)
+    void statsCreateCamlIntCounter (const char* sectionName, const char* name, int fractionalDigits, int id)
+    void statsCreateCamlFloatCounter (const char* sectionName, const char* name, int fractionalDigits, int id)
     void statsPrintReport (int indent)
     bool statsPrintReportToFile (const char* fileName, int indent)
 

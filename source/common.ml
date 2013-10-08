@@ -591,8 +591,8 @@ module Statistics : sig
   type counter
 
   val createSection : string -> section
-  val createCounter : section -> string -> int -> (unit -> int) -> counter
-  val createCounterFloat : section -> string -> int -> (unit -> float) -> counter
+  val createIntCounter : section -> string -> int -> (unit -> int) -> counter
+  val createFloatCounter : section -> string -> int -> (unit -> float) -> counter
 
   type counterType = Float | Int
   type sectionRegisterFunc = sectionName:string -> unit
@@ -635,18 +635,15 @@ end = struct
     !registerSection name;
     name
 
-  let createCounter section name fractionalDigits getValue =
+  let createIntCounter section name fractionalDigits getValue =
     let id = Vector.append counterGetters (GetInt getValue) in
     !registerCounter section name fractionalDigits Int id;
     ()
 
-  let createCounterFloat section name fractionalDigits getValue =
+  let createFloatCounter section name fractionalDigits getValue =
     let id = Vector.append counterGetters (GetFloat getValue) in
     !registerCounter section name fractionalDigits Float id;
     ()
-
-  let createCounterRef section name fractionalDigits (r :int ref) =
-    createCounter section name fractionalDigits (fun _ -> !r)
 
   let getCounterValueInt id : int =
     let getter = Vector.get counterGetters id in

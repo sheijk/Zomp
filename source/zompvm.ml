@@ -9,8 +9,8 @@ module StatisticsBackend : sig end = struct
   let registerCounter ~sectionName ~name ~fractionalDigits ~typ ~id =
     let f =
       match typ with
-        | Statistics.Int -> Stats.statsCreateCamlCounter
-        | Statistics.Float -> Stats.statsCreateCamlCounterFloat
+        | Statistics.Int -> Stats.statsCreateCamlIntCounter
+        | Statistics.Float -> Stats.statsCreateCamlFloatCounter
     in
     f sectionName name fractionalDigits id
     
@@ -30,7 +30,7 @@ struct
 
   let () =
     let addCounter name f =
-      let counter = Statistics.createCounter zompvmSection name 0 f in
+      let counter = Statistics.createIntCounter zompvmSection name 0 f in
       ignore counter
     in
     addCounter "total ASTs created" (fun () -> !totalOCamlAstsCreated + !totalNativeAstsCreated);

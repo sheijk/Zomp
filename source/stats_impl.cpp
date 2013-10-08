@@ -264,14 +264,14 @@ Section* statsCreateSection(Section* parent, const char* name)
 //     section->Delete();
 // }
 
-Counter* statsCreateCounter(Section* parent, const char* name, u32 fractionalBits, void* userData, CounterQueryFunction query)
+Counter* statsCreateIntCounter(Section* parent, const char* name, u32 fractionalBits, void* userData, CounterQueryFunction query)
 {
     Counter* counter = new CounterInt(parent, name, fractionalBits, userData, query);
     parent->addCounter(counter);
     return counter;
 }
 
-Counter* statsCreateCounterFloat(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunctionFloat query)
+Counter* statsCreateFloatCounter(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunctionFloat query)
 {
     Counter* counter = new CounterFloat(parent, name, fractionalDigits, userData, query);
     parent->addCounter(counter);
@@ -306,14 +306,14 @@ static i64 ReturnCamlCounterValue(Counter*, void* userData)
     return zompGetCamlCounterValueInt(id);
 }
 
-void statsCreateCamlCounter(const char* sectionName, const char* name, int fractionalDigits, int id)
+void statsCreateCamlIntCounter(const char* sectionName, const char* name, int fractionalDigits, int id)
 {
     Section* section = statsMainSection()->findNamedChild(sectionName);
     ZMP_ASSERT(section,);
 
     if(section != NULL)
     {
-        statsCreateCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValue);
+        statsCreateIntCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValue);
     }
 }
 
@@ -325,14 +325,14 @@ static float ReturnCamlCounterValueFloat(Counter*, void* userData)
     return zompGetCamlCounterValueFloat(id);
 }
 
-void statsCreateCamlCounterFloat(const char* sectionName, const char* name, int fractionalDigits, int id)
+void statsCreateCamlFloatCounter(const char* sectionName, const char* name, int fractionalDigits, int id)
 {
     Section* section = statsMainSection()->findNamedChild(sectionName);
     ZMP_ASSERT(section,);
 
     if(section != NULL)
     {
-        statsCreateCounterFloat(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValueFloat);
+        statsCreateFloatCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValueFloat);
     }
 }
 

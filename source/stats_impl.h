@@ -29,10 +29,10 @@ Section* statsCreateSection(Section* parent, const char* name);
 
 /// Add a counter to the given section. The query function will be called when
 /// @statsPrintReport gets called. userData will be passed to it.
-Counter* statsCreateCounter(Section* parent, const char* name, u32 fractionalBits, void* userData, CounterQueryFunction query);
+Counter* statsCreateIntCounter(Section* parent, const char* name, u32 fractionalBits, void* userData, CounterQueryFunction query);
 
 /// Same as @statsCreateCounter but for floats.
-Counter* statsCreateCounterFloat(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunctionFloat query);
+Counter* statsCreateFloatCounter(Section* parent, const char* name, u32 fractionalDigits, void* userData, CounterQueryFunctionFloat query);
 
 /// Creates a counter whose value is read by de-referencing ptr.
 Counter* statsCreateCounterForValue(Section* parent, const char* name, u32 fractionalDigits, int* ptr);
@@ -43,10 +43,10 @@ void statsCreateNamedSection(const char* sectionName);
 
 /// Will create a counter whose value is read by passing the given id to the
 /// OCaml function denoted by the named value getCounterValue.
-void statsCreateCamlCounter(const char* sectionName, const char* name, int fractionalDigits, int id);
+void statsCreateCamlIntCounter(const char* sectionName, const char* name, int fractionalDigits, int id);
 
 /// @see statsCreateCamlCounter
-void statsCreateCamlCounterFloat(const char* sectionName, const char* name, int fractionalDigits, int id);
+void statsCreateCamlFloatCounter(const char* sectionName, const char* name, int fractionalDigits, int id);
 
 // TODO: add functions to freeze counters/sections (so their query functions)
 // won't get called, again.

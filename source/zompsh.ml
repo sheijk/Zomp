@@ -717,6 +717,8 @@ let () =
 
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;
+  let section = Statistics.createSection "zompsh" in
+  ignore (Statistics.createFloatCounter section "prelude load time (s)" 3 (fun () -> preludeLoadTime));
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
   let `NoReturn = step initialBindings (Result []) in
