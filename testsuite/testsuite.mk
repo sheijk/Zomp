@@ -80,12 +80,12 @@ testsuite/libs/libcee_astmatch.ll: libs/libcee.zomp
 testsuite/libs/math.ll: libs/math.zomp
 
 .PRECIOUS: %.ll
-testsuite/%.ll: testsuite/%.zomp $(TESTREPORT_LIB_DEPS) $(ZOMPC) \
+testsuite/%.ll: testsuite/%.zomp $(TESTREPORT_LIB_DEPS) $(ZOMPC_FILE) \
   testsuite/prelude_is_valid testsuite/check_test_verify/all source/runtime.c \
   testsuite/testsuite.mk makefile
 
 # the same w/o dependency on itself
-testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOMPC)
+testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOMPC_FILE)
 
 ################################################################################
 # Rules

@@ -146,7 +146,7 @@ else
   ZOMPC = $(RUN_W_PROFILE) $(ZOMP_DIR)/$(ZOMPC_FILE)
 endif
 
-ZOMPSH = $(DEPLOY_DIR)/zompsh
+ZOMPSH = $(ZOMPSH_FILE)
 
 ################################################################################
 # Build flags
