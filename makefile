@@ -376,11 +376,11 @@ test: all $(TEST_SUB_TARGETS)
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $@
 
 %.ml: %.mll $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
-	@$(ECHO) Generating lexer $< ...
+	@$(ECHO) "Generating lexer $@ from $< ..."
 	$(OCAMLLEX) $<
 
 source/%_stubs.c source/%.ml: source/%.skel source/gen_c_bindings
-	@$(ECHO) Making OCaml bindings for $(<.skel=) ...
+	@$(ECHO) "Making OCaml bindings for $(<:.skel=) ..."
 	./source/gen_c_bindings $(<:.skel=)
 
 ifeq "$(CAML_BYTE_CODE)" "0"
@@ -394,7 +394,7 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -c $<
 
 source/%.mli: source/%.ml source/%.skel
-	@$(ECHO) "Generating $@ ..."
+	@$(ECHO) "Generating $@ from $< ..."
 	$(OCAMLOPT) $(CAML_NATIVE_FLAGS) -i $< > $@
 
 %: %.cmx $(CAML_DEPENDENCIES)
@@ -417,7 +417,7 @@ else
 	$(OCAMLC) $(CAML_FLAGS) -c $<
 
 source/%.mli: source/%.ml source/%.skel
-	@$(ECHO) "Generating $@ ..."
+	@$(ECHO) "Generating $@ from $< ..."
 	$(OCAMLC) $(CAML_FLAGS) -i $< > $@
 
 %: %.cmo $(CAML_DEPENDENCIES)
