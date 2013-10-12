@@ -666,6 +666,7 @@ source/machine.cmo: $(ZOMP_DLL_FILE)
 source/machine.cmx: $(ZOMP_DLL_FILE)
 source/stats.cmo: $(ZOMP_DLL_FILE)
 source/stats.cmx: $(ZOMP_DLL_FILE)
+source/zompvm.cmi: source/machine.cmi
 source/zompvm.cmo: source/machine.cmo
 source/zompvm.cmx: source/machine.cmx
 
