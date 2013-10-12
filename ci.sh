@@ -32,7 +32,7 @@ function run_action {
     rm -f ${LOGFILE}
     touch ${LOGFILE}
 
-    MSG="running ${ACTION_NAME} '${COMMAND}' at `date '+%Y-%m-%d %H:%M:%S'`"
+    MSG="running ${ACTION_NAME} '${COMMAND}' at `date '+%Y-%m-%d %H:%M:%S'`, logging to ${LOGFILE}"
     echo "${MSG}"
     echo "${MSG}" >> ${MAIN_LOG}
     echo "${MSG}" >> ${LOGFILE}
@@ -65,7 +65,7 @@ function copy_to_archive {
 function build {
     ./build.sh -j8 ${FLAGS} all
     if [ "$?" -ne 0 ]; then
-        echo "Build failed, trying clean build" >> ${MAIN_LOG}
+        echo "  Build failed, trying clean build" >> ${MAIN_LOG}
         echo "Build failed, trying clean build"
         ./build.sh ${FLAGS} clean_all
         ./build.sh -j8 ${FLAGS} all
