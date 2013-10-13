@@ -439,9 +439,9 @@ endif
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 .PRECIOUS: %.ll %.bc %.opt-bc
-%.ll: %.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
+%.ll %.compile_output: %.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
 	$(ECHO) Compiling $(<) to .ll...
-	$(ZOMPC) -c $< $(ZOMPCFLAGS) || (rm -f $@; exit 1)
+	($(ZOMPC) -c $< $(ZOMPCFLAGS) | tee $(<:.zomp=.compile_output)) || (rm -f $@; exit 1)
 
 %.bc: %.ll $(OUT_DIR)/has_llvm
 	@echo Compiling $< to $@
