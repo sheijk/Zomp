@@ -4,14 +4,21 @@
 
 ARCH=i386
 
+# Set defaults for known architectures
 ifeq "$(ARCH)" "i386"
-ARCHFLAG = -m32
-else
-  ifeq "$(ARCH)" "x86_64"
-    ARCHFLAG = -m64
-  else
-    $(error "Only i386 and x86_64 architectures supported")
-  endif
+  ARCHFLAG = -m32
+  LLVM_ARCH = x86
+else ifeq "$(ARCH)" "x86_64"
+  ARCHFLAG = -m64
+  LLVM_ARCH = x86-64
+endif
+
+ifeq "$(ARCHFLAG)" ""
+$(error "ARCHFLAG must be set")
+endif
+
+ifeq "$(LLVM_ARCH)" ""
+$(error "LLVM_ARCH must be set")
 endif
 
 ZOMP_TOOL_PATH_RELATIVE = ./tools/arch-$(ARCH)

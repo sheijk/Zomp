@@ -61,7 +61,7 @@ examples/tweakbar.ll: libs/libcee.zomp libs/glutils.zomp libs/opengl20.zomp libs
 
 examples/runtime.s: runtime.zomp
 	@$(ECHO) Making $@ ...
-	$(LLVM_LLC) -o $@ runtime.bc -f -march=x86
+	$(LLVM_LLC) -o $@ runtime.bc -f -march=$(LLVM_ARCH)
 
 examples/%.run: examples/%.exe
 	@$(ECHO) Running $@ ...

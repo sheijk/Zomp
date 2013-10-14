@@ -93,16 +93,16 @@ clean_tests:
 
 %.s: %.bc
 	@$(ECHO) Generating $(@) ...
-	$(LLVM_LLC) -o $@ $< -march=x86
+	$(LLVM_LLC) -o $@ $< -march=$(LLVM_ARCH)
 
 %.o: %.s
 	@$(ECHO) Assembling $@ ...
-	$(AS) -o $@ $< -arch i386
+	$(AS) -o $@ $< -arch $(ARCH)
 
 .PRECIOUS: %.exe
 %.exe: %.o ../source/runtime.o
 	@$(ECHO) Making $@ ...
-	$(CC) $(CFLAGS) -o $@ -L. $(LIBS) $< ../source/runtime.o -arch i386
+	$(CC) $(CFLAGS) -o $@ -L. $(LIBS) $< ../source/runtime.o -arch $(ARCH)
 
 .PHONY: %.run
 %.run: %.exe

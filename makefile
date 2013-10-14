@@ -457,15 +457,15 @@ else
 %.s: %.bc
 endif
 	@$(ECHO) LLVM code generating $@ ...
-	$(LLVM_LLC) -o $@ -march=x86 $<
+	$(LLVM_LLC) -o $@ -march=$(LLVM_ARCH) $<
 
 %.o: %.s
 	@$(ECHO) Assembling $@ ...
-	$(AS) -o $@ $< -arch i386
+	$(AS) -o $@ $< -arch $(ARCH)
 
 %.exe: %.o source/runtime.o $(LIBS)
 	@$(ECHO) Making $@ ...
-	$(CC) $(LDFLAGS) -o $@ -L. -L./examples -L./testsuite $(LIBS) $< -arch i386
+	$(CC) $(LDFLAGS) -o $@ -L. -L./examples -L./testsuite $(LIBS) $< -arch $(ARCH)
 
 %.svg: %.dot
 	@$(ECHO) "Generating $@ ..."
