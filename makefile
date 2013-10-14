@@ -823,6 +823,21 @@ clean_tags:
 
 clean_all: clean clean_tags
 
+################################################################################
+# More targets
+################################################################################
+
+# This will create a script to setup the environment as it is used for this build.
+# Use this for debugging or if you want to make sure you're using the same tools
+# as the make process when looking up help, etc.
+setenv: $(OUT_DIR)/env.sh
+
+$(OUT_DIR)/env.sh: makefile
+	@$(ECHO) "Creating $@ ..."
+	echo '#!/usr/bin/env sh' > $@
+	echo "# source this script to setup the environment for this build"
+	echo "PATH=$(PATH)" >> $@
+
 ALL_TARGETS += doc
 doc: $(DOC_TARGETS)
 
