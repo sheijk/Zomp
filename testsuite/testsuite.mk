@@ -91,6 +91,11 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOM
 # Rules
 ################################################################################
 
+# Do not pipe testsuite files through tee as this inserts random characters.
+testsuite/%.ll: testsuite/%.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
+	$(ECHO) Compiling $(<) to .ll...
+	$(ZOMPC) -c $< $(ZOMPCFLAGS)
+
 testsuite/*/test_%.ll: ZOMPCFLAGS += --stats $(@:.ll=.compile_stats)
 
 ZOMPCFLAGS_W_TESTSUITE_INCLUDE = --zomp-include-dir testsuite/include
