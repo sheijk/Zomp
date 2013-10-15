@@ -4,7 +4,7 @@
 
 CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
-	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o
+	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result
 
 EXAMPLES_SOURCES = $(wildcard examples/*.zomp)
 

@@ -20,5 +20,8 @@ CLEAN_SUB_TARGETS += libs/clean
 .PHONY: libs/clean
 # not using ZOMP_LIBS_SRC w/ repl. to avoid accidental deletion of source files if it fails
 libs/clean:
-	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.ll) $(GENERATED_LIBRARY_SOURCES)
+	$(DELETE_FILE) $(GENERATED_LIBRARY_SOURCES)
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.ll)
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.compile_output)
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.result)
 

@@ -786,7 +786,7 @@ source/clean:
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
 	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
 	$(DELETE_FILE) source/machine.{cmi,cmo,cmx,ml,mli} source/machine_stubs.{c,o}
-	$(DELETE_FILE) source/stats.{cmi,cmo,cmx,ml,mli} source/stats_stubs.{c,o}
+	$(DELETE_FILE) source/stats.{cmi,cmo,cmx,ml,mli} source/stats_stubs.{c,o} source/stats_impl.o
 	$(DELETE_FILE) $(ZOMP_DLL_FILE) source/libzompvm.a
 	$(DELETE_FILE) source/zompvm_impl.o source/zompvm_dummy.o
 	$(DELETE_FILE) source/zompvm_caml.o source/zompvm_caml_dummy.o
