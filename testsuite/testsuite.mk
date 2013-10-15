@@ -35,6 +35,7 @@ $(BUILD_DIR)/testsuite/summary.txt: $(BUILD_DIR)/report.html
 
 testsuite/%/all: $(CHECK_TEST)
 	@$(ECHO) "Running tests in $@ ..."
+	if [ ! -d $(@:all=) ]; then echo "$(@:all=):0: error: directory does not exist"; exit 1; fi
 	$(MAKE) $(foreach SOURCE, $(wildcard testsuite/$(*)/test_*.zomp), $(SOURCE:.zomp=.testreport))
 
 .PHONY: testsuite/success
