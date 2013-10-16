@@ -2749,19 +2749,17 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
     collectTimingInfo "translateAndEval"
       (fun () -> translateAndEval handleLLVMCodeF translateTL env exprs)
   in
-  collectTimingInfo "translateInclude"
-    (fun () ->
-      match expr with
-      | { id = id; args = [{ id = quotedFileName; args = []}] } when id = macroInclude ->
-        begin
-          let fileName =
-            let fileName = Common.removeQuotes quotedFileName in
-            if Common.endsWith fileName ".zomp" then fileName
-            else fileName ^ ".zomp"
-          in
-          try
-            importFile fileName
-          with
+  match expr with
+    | { id = id; args = [{ id = quotedFileName; args = []; location }] } when id = macroInclude ->
+      begin
+        let fileName =
+          let fileName = Common.removeQuotes quotedFileName in
+          if Common.endsWith fileName ".zomp" then fileName
+          else fileName ^ ".zomp"
+        in
+        try
+          importFile fileName
+        with
           | Indentlexer.UnknowToken(loc,token,reason) ->
             errorFromExpr expr
               (Indentlexer.unknownTokenToErrorMsg
@@ -2769,7 +2767,7 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
           | IllegalExpression (expr, errors) ->
             Error errors
           | Sys_error _ ->
-            Error [Serror.fromExpr expr
+            Error [Serror.fromMsg location
                       (Common.combine "\n  "
                          (sprintf "file '%s' could not be found" fileName
                           :: sprintf "pwd = %s" (Sys.getcwd())
@@ -2778,9 +2776,14 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
             let msg = Printexc.to_string error in
             errorFromExpr expr
               (sprintf "%s, while compiling included file %s" msg fileName)
-        end
-      | invalidExpr ->
-        errorFromExpr invalidExpr ("expecting 'include \"fileName.zomp\"'"))
+      end
+    | invalidExpr ->
+      errorFromExpr invalidExpr ("expecting 'include \"fileName.zomp\"'")
+
+let translateInclude includePath handleLLVMCodeF translateTL env expr =
+  collectTimingInfo "translateInclude"
+    (fun () -> translateInclude includePath handleLLVMCodeF translateTL env expr)
+
 
 let translateLinkCLib dllPath (env : toplevelEnv) expr =
   match expr with
