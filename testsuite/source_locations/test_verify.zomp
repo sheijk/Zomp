@@ -27,11 +27,11 @@ std:base:func void printLocalSourceLocationInfos():
   xxblock:
     var int ln std:env:line
     printString "local-regression-"
-    printInt ln //// print local-regression-31
+    printInt ln //// print local-regression-28
     printNewline()
   end
 
-  //// print test_verify.zomp:26
+  //// print test_verify.zomp:23
   //// print test_verify.zomp
   printString "hello from "
   printString std:env:file
@@ -53,7 +53,7 @@ std:base:func void printGlobalSourceLocationInfos():
   //// print in-nested-expr-7
   printlnSI "in-nested-expr-" lineInNestedExpr
 
-  //// print after-nested-23
+  //// print after-nested-20
   printlnSI "after-nested-" lineAfterNestedExpr
 end
 
