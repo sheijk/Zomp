@@ -97,48 +97,8 @@ let compile fileName inStream outStream =
 let includePath = ref []
 let addIncludePath path where = addToList includePath path where
 
-module CompilerInstructions =
-struct
-  open Expander
-  open Ast2
-
-  let clibPath = ref ["."; ".."; "./libs"; "./tools/external/lib"]
-  let addDllPath path where = addToList clibPath path where
-
-  let translateLinkCLib env expr =
-    collectTimingInfo "translateLinkCLib"
-      (fun () ->
-        let location = someOrDefault expr.location Basics.fakeLocation in
-         match expr with
-           | { args = [{id = fileName; args = []}] } ->
-               begin
-                 let fileName = Common.removeQuotes fileName in
-                 let dllExtensions = ["dylib"; "so"; "dll"] in
-                 let matches re string = Str.string_match (Str.regexp re) string 0 in
-                 let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
-                 if not (matches dllPattern fileName) then
-                   Expander.errorFromString location
-                     (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
-                            fileName (Common.combine ", " dllExtensions))
-                 else
-                   match Common.findFileIn fileName !clibPath with
-                     | None ->
-                         Expander.errorFromString location
-                           (sprintf "could not find library '%s' in paths %s"
-                              fileName
-                              (Common.combine ", " (List.map (sprintf "\"%s\"") !clibPath)))
-                     | Some absoluteFileName ->
-                         let handle = Zompvm.zompLoadLib absoluteFileName in
-                         if handle = 0 then
-                           Expander.errorFromStringDeprecated
-                             (sprintf "could not load C library '%s'\n" fileName)
-                         else
-                           Expander.tlReturnNoExprs env
-               end
-           | invalidExpr ->
-               Expander.errorFromString location
-                 (sprintf "expecting '%s fileName" invalidExpr.Ast2.id))
-end
+let dllPath = ref ["."; ".."; "./libs"; "./tools/external/lib"]
+let addDllPath path where = addToList dllPath path where
 
 type outputTarget = [`ToFile of string | `Stdout | `DoNotWrite]
 let outputTargetFromString = function
@@ -269,7 +229,7 @@ let () =
   addIncludePath compilerDir `Front;
   addIncludePath (Sys.getcwd()) `Front;
   List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
-  List.iter (fun dir -> CompilerInstructions.addDllPath dir `Front) options.dllPaths;
+  List.iter (fun dir -> addDllPath dir `Front) options.dllPaths;
 
   let handleLLVMCode code = output_string outStream code in
 
@@ -279,8 +239,7 @@ let () =
   in
   addToplevelInstr "include" "zompSourceFile" translateInclude;
   addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
-  addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
-    CompilerInstructions.translateLinkCLib;
+  addToplevelInstr "zmp:compiler:linkclib" "dllFileName" (Expander.translateLinkCLib dllPath);
 
   let exitCode =
     try

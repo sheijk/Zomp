@@ -496,43 +496,6 @@ let readExpr bindings =
   in
   read 0 ""
 
-module CompilerInstructions =
-struct
-  open Expander
-  open Ast2
-
-  let translateLinkCLib dllPath env = function
-    | { args = [{id = fileName; args = []}] } as expr ->
-        begin
-          let fileName = Common.removeQuotes fileName in
-          let dllExtensions = ["dylib"; "so"; "dll"] in
-          let matches re string = Str.string_match (Str.regexp re) string 0 in
-          let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
-          if not (matches dllPattern fileName) then
-            Expander.errorFromStringDeprecated
-              (sprintf "%s has invalid extension for a dll. Supported: %s"
-                 fileName (Common.combine ", " dllExtensions))
-          else
-            match findFileIn fileName !dllPath with
-              | Some fullName ->
-                let handle = Zompvm.zompLoadLib fullName in
-                if handle = 0 then
-                  Expander.errorFromExpr expr
-                    (sprintf "could not load C library '%s'\n" fullName)
-                else
-                  Expander.tlReturnNoExprs env
-              | None ->
-                Expander.errorFromExpr expr
-                  (Common.combine "\n  "
-                     (sprintf "could not load C library '%s'," fileName
-                      :: sprintf "pwd = %s" (Sys.getcwd())
-                      :: List.map (sprintf "zomp-include-dir %s") !dllPath))
-        end
-    | invalidExpr ->
-        Expander.errorFromStringDeprecated
-          (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
-end
-
 (** Parsing function which can be called from Zomp/native code. *)
 let parseNativeAst ~fileName str =
   let expr =
@@ -713,7 +676,7 @@ let () =
   addDllPath "./libs" `Back;
   addDllPath "./tools/external/lib" `Back;
   addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
-    (CompilerInstructions.translateLinkCLib dllPath);
+    (Expander.translateLinkCLib dllPath);
 
   let initialBindings, preludeLoadTime = recordTiming loadPrelude in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;

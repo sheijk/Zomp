@@ -2782,6 +2782,44 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
       | invalidExpr ->
         errorFromExpr invalidExpr ("expecting 'include \"fileName.zomp\"'"))
 
+let translateLinkCLib dllPath (env : toplevelEnv) expr =
+  match expr with
+    | { args = [{id = fileName; args = []; location}] } ->
+      begin
+        let location = someOrDefault location Basics.fakeLocation in
+        let fileName = Common.removeQuotes fileName in
+
+        let dllExtensions = ["dylib"; "so"; "dll"] in
+        let matches re string = Str.string_match (Str.regexp re) string 0 in
+        let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
+        if not (matches dllPattern fileName) then
+          errorFromString location
+            (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
+               fileName (Common.combine ", " dllExtensions))
+        else
+          match Common.findFileIn fileName !dllPath with
+            | Some absoluteFileName ->
+              let handle = Zompvm.zompLoadLib absoluteFileName in
+              if handle = 0 then
+                errorFromExpr expr
+                  (sprintf "could not load C library '%s'\n" absoluteFileName)
+              else
+                tlReturnNoExprs env
+            | None ->
+              errorFromString location
+                (Common.combine "\n  "
+                   (sprintf "could not load C library '%s'," fileName
+                    :: sprintf "pwd = %s" (Sys.getcwd())
+                    :: List.map (sprintf "zomp-include-dir %s") !dllPath))
+      end
+    | invalidExpr ->
+      errorFromExpr invalidExpr
+        (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
+
+let translateLinkCLib dllPath env expr =
+  collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
+
+
 let makeTranslateSeqFunction handleLLVMCodeF =
   translateSeqTL handleLLVMCodeF translateTLNoErr
 let makeTranslateIncludeFunction includePath handleLLVMCodeF =

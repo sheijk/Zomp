@@ -42,6 +42,7 @@ val makeTranslateSeqFunction :
   (string -> unit) -> toplevelTranslationFunction
 val makeTranslateIncludeFunction :
   string list ref -> (string -> unit) -> toplevelTranslationFunction
+val translateLinkCLib : string list ref -> toplevelTranslationFunction
 
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
 
