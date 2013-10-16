@@ -12,7 +12,7 @@
 
 #define ZMP_ASSERT(x,onFail)                                            \
     if( !(x) ) {                                                        \
-        printf("[" __FILE__ ":%d]: assertion failed: %s\n", __LINE__, #x); \
+        printf("%s:%d: error: assertion failed: %s\n", __FILE__, __LINE__, #x); \
         onFail;                                                         \
         fflush(stdout);                                                 \
         fflush(stderr);                                                 \
