@@ -303,6 +303,16 @@ windows displaying it"
   (interactive "MList bindings matching: ")
   (zomp-shell-do (concat "!bindings " regexps)))
 
+(defun zomp-shell-update-source-location (&optional pos)
+  (setq pos (or pos (region-beginning)))
+  (let* ((line (save-restriction
+                 (widen)
+                 (count-lines (point-min) pos)))
+         (file (or (buffer-file-name) "zompsh"))
+         (cmd (format "!setSourceLocation %s %s" file (- line 1))))
+    (message "cmd = %s" cmd)
+    (zomp-shell-do cmd)))
+
 (defun zomp-shell-eval-region ()
   (interactive)
   (when (called-interactively-p)
@@ -314,6 +324,7 @@ windows displaying it"
                       (region-end)
                       'zomp-highlight-after-eval-face
                       zomp-highlight-after-eval-seconds)))
+  (zomp-shell-update-source-location)
   (zomp-shell-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
 (defun zomp-shell-eval-current ()
@@ -352,6 +363,7 @@ windows displaying it"
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating buffer"))
+  (zomp-shell-update-source-location (buffer-end -1))
   (zomp-shell-do (buffer-substring (buffer-end -1) (buffer-end 1)) 'create "")
   (zomp-shell-move-point-to-end))
 
