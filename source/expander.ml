@@ -231,6 +231,11 @@ let extractErrors = function
   | Result _ -> []
   | Error errors -> errors
 
+let flattenResult = function
+  | Result (Result r) -> Result r
+  | Result (Error errors)
+  | Error errors -> Error errors
+
 exception MayfailError of Serror.t list
 
 let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
@@ -348,7 +353,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
           | None -> error (sprintf "could not look up type %s" name)
       end
     | _ ->
-      errorFromExpr typeExpr "don't know how to interprete as type"
+      errorFromExpr typeExpr "don't know how to interpret as type"
 
 (**
    This should actually return unit mayfail and only pass warnings/info to
