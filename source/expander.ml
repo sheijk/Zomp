@@ -1068,11 +1068,15 @@ struct
         end
       | _ ->
         errorFromExpr expr (sprintf "expecting '%s name paramName* lastParamVariadic...? seq" expr.id)
-      
+
+  let rec removeSourceLocations ast =
+    { id = ast.id; location = None; args = List.map removeSourceLocations ast.args }
+
   (* TODO: kick out all source location info *)
   let translateDefineMacro translateNestedF scope env expr =
     match decomposeMacroDefinition expr with
       | Result (macroName, paramNames, implExprs, isVariadic) ->
+        let implExprs = List.map removeSourceLocations implExprs in
         begin
           let isRedefinitionError =
             hasRedefinitionErrors `NewMacro scope macroName expr env.bindings reportDiagnostics
