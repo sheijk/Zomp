@@ -7,9 +7,9 @@ macro printLoc msg:
   ret $:
     printString #msg
     printString " is at "
-    printString std:env:file
+    printString std:env:fileOf(#msg)
     printString ":"
-    printInt std:env:line
+    printInt std:env:lineOf(#msg)
     printNewline()
   end
 end

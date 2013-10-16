@@ -11,24 +11,21 @@ end
 /// Verifying that correct source locations are maintained
 ///
 
-template __FILE__ std:env:file
-macro __LINE__ { ret(${std:env:line}) }
-
 func void printlnSI(cstring msg, int num):
   printString msg
   printInt num
   printNewline()  
 end
 
-var int lineAfterNestedExpr __LINE__
+var int lineAfterNestedExpr std:env:line
 
 std:base:func void printLocalSourceLocationInfos():
-  var int firstLine __LINE__
+  var int firstLine std:env:line
 
   alias xxblock seq blk
 
   xxblock:
-    var int ln __LINE__
+    var int ln std:env:line
     printString "local-regression-"
     printInt ln //// print local-regression-31
     printNewline()
@@ -37,7 +34,7 @@ std:base:func void printLocalSourceLocationInfos():
   //// print test_verify.zomp:26
   //// print test_verify.zomp
   printString "hello from "
-  printString __FILE__
+  printString std:env:file
   printString ":"
   printInt firstLine
   printNewline()

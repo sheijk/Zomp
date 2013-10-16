@@ -2034,9 +2034,29 @@ struct
   let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
 
+  let singleArgWithLoc = function
+    | { id = _; args = [{ location = Some loc } as arg]} ->
+      Result arg
+    | { id = _; args = [{ location = None } as arg]} ->
+      errorFromExpr arg "source location got lost"
+    | arg ->
+      errorFromExpr arg "expected single argument"
+
+  let translateFileNameOf env expr =
+    match singleArgWithLoc expr with
+      | Result expr -> translateFileName env expr
+      | Error errors -> Error errors
+
+  let translateLineNumberOf env expr =
+    match singleArgWithLoc expr with
+      | Result expr -> translateLineNumber env expr
+      | Error errors -> Error errors
+
   let register addF =
     addF "std:env:file" ("char*", translateFileName);
-    addF "std:env:line" ("int", translateLineNumber)
+    addF "std:env:fileOf" ("char*", translateFileNameOf);
+    addF "std:env:line" ("int", translateLineNumber);
+    addF "std:env:lineOf" ("int", translateLineNumberOf)
 
   let registerTL addF = ()
 end
