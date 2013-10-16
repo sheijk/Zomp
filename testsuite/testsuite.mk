@@ -109,7 +109,7 @@ TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
 testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
   "echo \"Skipping compilation of $(@:.testreport=.zomp), not needed for zompsh test\""
 # Run zompsh tests using zompsh instead of the executable
-testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="cat \"$<\" testsuite/zompsh/append.txt | $(ZOMPSH)"
+testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="(echo '!setSourceLocation $< 0'; cat \"$<\" testsuite/zompsh/append.txt) | $(ZOMPSH)"
 
 TESTREPORT_LIB_DEPS = source/prelude.zomp source/runtime.ll libs/unittest.zomp libs/libcee.zomp libs/basic_ops.zomp
 TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST) external_lib_links makefile testsuite/testsuite.mk $(TESTREPORT_LIB_DEPS)

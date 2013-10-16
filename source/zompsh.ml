@@ -275,7 +275,7 @@ end = struct
         begin try
           let line = int_of_string lineStr in
           let column = Some 0 in
-          printf "setSourceLocation %s %d\n" fileName line;
+          printf "source location set to %s %d\n" fileName line;
           currentLocation := Some { Basics.fileName; line; column }
         with (Failure _) ->
           eprintf "error: could not parse line."
