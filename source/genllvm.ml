@@ -244,13 +244,15 @@ let newUniqueName() =
 
 let sexpr2codeNoAntiquotes recursion expr =
   let astFromString id locationOpt =
-    let dummyLocation = Basics.location "builtins_ast:fromString" 0 None in
-    let loc = someOrDefault locationOpt dummyLocation in
-    simpleExpr "ast:fromStringLoc"
-      [id;
-       "\"" ^ loc.Basics.fileName ^ "\"";
-       sprintf "%d" loc.Basics.line;
-       sprintf "%d" (someOrDefault loc.Basics.column 0)]
+    match locationOpt with
+      | Some loc ->
+        simpleExpr "ast:fromStringLoc"
+          [id;
+           "\"" ^ loc.Basics.fileName ^ "\"";
+           sprintf "%d" loc.Basics.line;
+           sprintf "%d" (someOrDefault loc.Basics.column 0)]
+      | None ->
+        simpleExpr "ast:fromString" [id]
   in
   match expr with
   | { id = id; args = [] } ->
