@@ -566,6 +566,15 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
             | _ ->
               Ast2.idExpr "error")
     in
+    let getTraceMacroExpansionMacro =
+      macro "std:compiler:getTraceMacroExpansion" "bool"
+        (fun bindings expr ->
+          match expr.args with
+            | [] ->
+              Ast2.idExpr (if !(Zompvm.traceMacroExpansionOn) then "true" else "false")
+            | _ ->
+              Ast2.idExpr "error")
+    in
 
     [
       testMacro;
@@ -577,6 +586,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       isInteractiveMacro;
 
       setTraceMacroExpansionMacro;
+      getTraceMacroExpansionMacro;
 
       (** macros to support indent expressions *)
       opjuxMacro;
