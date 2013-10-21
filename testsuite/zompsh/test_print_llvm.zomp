@@ -1,0 +1,16 @@
+///
+/// Tests whether llvm code printing works.
+///
+
+!llvm true
+
+//// print define @"foobar" someParameter i32 float
+func int foobar(float someParameter):
+  ret 0
+end
+
+//// print define i32 @"main"
+func int main():
+  ret foobar(0.0) //// print call i32 (float)* @"foobar"
+end
+
