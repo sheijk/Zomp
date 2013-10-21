@@ -1,0 +1,12 @@
+///
+/// Checking whether variables defined in sub-expressions will be accessible
+/// outside of their scope.
+///
+
+func int main():
+  var int bar (seq (var int foo 1) (u32:add foo 1))
+  // TODO: add scope for seq or add a scope built-in
+
+  std:base:ret foo //// error foo
+end
+
