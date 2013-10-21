@@ -92,9 +92,14 @@ testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOM
 # Rules
 ################################################################################
 
+# Filter '!' commands and run through zompc for zompsh tests
+testsuite/zompsh/%.ll: testsuite/zompsh/%.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
+	$(ECHO) "Compiling $(<) to .ll (removing zompsh commands)..."
+	./testsuite/zompc_skip_zompsh_commands.sh $(ZOMPC) -c $< $(ZOMPCFLAGS)
+
 # Do not pipe testsuite files through tee as this inserts random characters.
 testsuite/%.ll: testsuite/%.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
-	$(ECHO) Compiling $(<) to .ll...
+	$(ECHO) "Compiling $(<) to .ll (testsuite) ..."
 	$(ZOMPC) -c $< $(ZOMPCFLAGS)
 
 testsuite/*/test_%.ll: ZOMPCFLAGS += --stats $(@:.ll=.compile_stats)
@@ -105,9 +110,6 @@ testsuite/include/test_%.ll: ZOMPCFLAGS += $(ZOMPCFLAGS_W_TESTSUITE_INCLUDE)
 TESTREPORT_COMPILE_CMD = "$(MAKE) SILENT=1 $(@:.testreport=.exe)"
 TESTREPORT_RUN_CMD = "./$(@:.testreport=.exe)"
 
-# Don't compile tests for zompsh (they have "!" commands in them and won't compile using zompc)
-testsuite/zompsh/%.testreport: TESTREPORT_COMPILE_CMD=\
-  "echo \"Skipping compilation of $(@:.testreport=.zomp), not needed for zompsh test\""
 # Run zompsh tests using zompsh instead of the executable
 testsuite/zompsh/%.testreport: TESTREPORT_RUN_CMD="(echo '!setSourceLocation $< 0'; cat \"$<\" testsuite/zompsh/append.txt) | $(ZOMPSH)"
 
