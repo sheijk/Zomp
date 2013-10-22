@@ -10,7 +10,7 @@ fi
 FILE_NAME=$3
 shift 3
 
-TEMP_FILE=${FILE_NAME%.zomp}.no_zompsh_commands.zomp
+TEMP_FILE=${FILE_NAME/test_/no_zompsh_test_}
 cat ${FILE_NAME} | sed -E 's#^(!.*)#// (removed) \1#' > ${TEMP_FILE}
 
 echo "running ${ZOMPC} -c ${TEMP_FILE} $*"
