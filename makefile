@@ -113,6 +113,7 @@ CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)
 
 OCAMLDOC_FLAGS = -I source/ -I testsuite/
+OCAMLDEP_FLAGS = $(OCAMLDOC_FLAGS) -dot-include-all -dot-reduce
 
 ifeq "$(DEBUG)" "1"
   OCAMLC += -g
@@ -697,6 +698,7 @@ source/vm_protocol.o: source/vm_protocol.h
 source/vm_client.o: source/vm_protocol.h
 source/vm_server.o: source/vm_protocol.h
 
+libs/quicktext.ll: libs/libquicktext.dylib
 
 ################################################################################
 # Tags
@@ -715,7 +717,7 @@ DOC_TARGETS += $(OUT_DIR)/caml-modules.svg
 
 $(OUT_DIR)/caml-modules.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
 	@$(ECHO) Generating dependency graph for graphviz ...
-	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -o $@ -dot -dot-include-all -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
+	$(OCAMLDOC) $(OCAMLDEP_FLAGS) -o $@ -dot $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
 	cat $@ | sed 's/rotate=90;/rotate=0;/' > $@.tmp
 	mv $@.tmp $@
 
