@@ -97,6 +97,9 @@ testsuite/zompsh/%.ll: testsuite/zompsh/%.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
 	$(ECHO) "Compiling $(<) to .ll (removing zompsh commands)..."
 	./testsuite/zompc_skip_zompsh_commands.sh $(ZOMPC) -c $< $(ZOMPCFLAGS)
 
+TESTREPORT_DO_NOT_COMPILE_CMD = "echo \"Skipping compilation of $(@:.testreport=.zomp), this file is expected to fail in zompc\""
+testsuite/zompsh/test_redefine_function.testreport: TESTREPORT_COMPILE_CMD=$(TESTREPORT_DO_NOT_COMPILE_CMD)
+
 # Do not pipe testsuite files through tee as this inserts random characters.
 testsuite/%.ll: testsuite/%.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
 	$(ECHO) "Compiling $(<) to .ll (testsuite) ..."
