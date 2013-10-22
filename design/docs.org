@@ -41,29 +41,34 @@ The macro system allows libraries and applications to define new macros and to p
 
 Let's look at an examples how this works out in practice:
 
-for i in 10 to 20
+#+begin_src zomp
+for i in 10 to 20:
   printInt(i)
   println()
 end
+#+end_src
 
 Macro expansion will turn this into:
 
+#+begin_src zomp
 var int i 10 
 label __158_for_start 
 var bool __161_for_testVar i <= 20 
 branch __161_for_testVar __159_for_continue __160_for_exit 
 label __159_for_continue
-seq
+seq:
   printInt(i)
   println()
 end
 i = i + 1
 branch __158_for_start
 label __160_for_exit 
+#+end_src
 
 The source of the 'for' macro:
 
-macro for2 counter in first to last body...
+#+begin_src zomp
+macro for2 counter in first to last body...:
   // generate some fresh, unused, unique identifiers
   uniqueIds "for" start continue exit testVar
 
@@ -72,7 +77,7 @@ macro for2 counter in first to last body...
 
   // $ is quotation syntax to create an AST representing the given source
   // # is antiquotation, inserting a variable's value into the source
-  ret ${
+  ret $:
     var int #counter #first
     label #start
     var bool #testVar #counter <= #last
@@ -82,8 +87,9 @@ macro for2 counter in first to last body...
     #counter = #counter + 1
     branch #start
     label #exit
-  end}
+  end
 end
+#+end_src
 
 Previously it was said that the base instruction set will be compiled into LLVM bytecode. This will be changed in the future: The base level instructions like label, branch etc. will be implemented as macros which will transform the instructions into calls to the LLVM API constructing the bytecode. Thus macro expansion will turn a module into a function which constructs the module's code and meta information. Thus it will even be possible to extend the base instruction set to use new LLVM functionality or replace it completely to use a different code generation backend - this can be done by library and application developers without touching the compiler.
 
@@ -97,16 +103,17 @@ Currently when one is using programmable graphics hardware using GLSL, Cg oder H
 
 Example:
 
-shader Phong
+#+begin_src zomp
+shader Phong:
   uniform float exponent
   uniform color diffuse
 
-  vertex(vec3 pos, vec3 normal)
+  vertex(vec3 pos, vec3 normal):
     out.pos = ...
     out.normal = ...
   end
 
-  fragment(vertout v)
+  fragment(vertout v):
     out.color = ...
   end
 end shader Phong
@@ -116,10 +123,12 @@ var Phong phongShader
 phongShader.bind()
 phongShader.setExponent( 50.0 )
 phongShader.setDifuse( 0.1, 0.1, 0.1, 1.0 ) <- Error: no member setDifuse, maybe you meant setDiffuse?
+#+end_src
 
 The shader will be expanded into:
 
-class Phong extends Shader
+#+begin_src zomp
+class Phong extends Shader:
 public:
   void setExponent(float)
   void setDiffuse(float, float, float, float)
@@ -134,6 +143,8 @@ public:
 private:
   string vertexSource, fragmentSource
 end
+#+end_src
+
 
 ** Message passing, Reflection
 
@@ -155,15 +166,18 @@ in Apples Core Data API). Implementing this in C++ can be done but is
 inconvenient and inefficient because methods have to be identified using strings
 instead of hashes and message dispatching has to be done manually.
 
-msgclass Foo
+#+begin_src zomp
+msgclass Foo:
   method printTo(Stream stream)
     ...
   end
 end
+#+end_src
 
 Will be converted into
 
-class Foo extends MessageReceiver
+#+begin_src zomp
+class Foo extends MessageReceiver:
   Map<MethodHash, Method*> methods
 
   void printTo(Stream stream)
@@ -171,20 +185,22 @@ class Foo extends MessageReceiver
   end
 end
 
-onModuleLoad
+onModuleLoad:
   Foo.methods.add( calcHash("printTo"), &Foo.printTo )
   ...
 end
 
-class MessageReceiver
-  void send(Message* msg)
+class MessageReceiver:
+  void send(Message* msg):
     Method* m = methods.lookup(msg.hash)
-    if m != NULL
+    if m != NULL:
       m->call(msg.args)
-    else
+    else:
       methodMissing(msg)
+    end
   end
 end
+#+end_src
 
 ** More
 
@@ -222,7 +238,7 @@ side of this is that the project promises to keep challenging for a while :)
 
 This is the source code of a simple OpenGl program showing what already is implemented.
 
-
+#+begin_src zomp
 include "opengl20.zomp"
 include "glfw.zomp"
 include "tests/glutils.zomp"
@@ -231,8 +247,8 @@ var int windowWidth 400
 var int windowHeight 300
 var bool initCalled false
 
-func void init()
-  if bool:not(initCalled) then
+func void init():
+  if bool:not(initCalled):
     glfwInit()
     glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
     glewInit()
@@ -242,7 +258,7 @@ func void init()
     println()
 
     initCalled = true
-  else
+  else:
     printString "Already initialized"
     println()
   end
@@ -252,10 +268,10 @@ var float angle 0.0
 
 // avoid writing it over and over, part of utils lib
 macro mainloop body...
-  ret ${
+  ret $:
     var float time 0.0
     var bool running true
-    while running
+    while running:
       time = double:toFloat(glfwGetTime())
       angle = time *_f 128.0
 
@@ -265,10 +281,10 @@ macro mainloop body...
       glfwPollEvents()
       running = bool:not( isPressed(GLFW_KEY_ESC) )
     end
-  end}
+  end
 end
 
-func int main()
+func int main():
   init()
 
   glMatrixMode( GL_PROJECTION )
@@ -276,7 +292,7 @@ func int main()
   const double aspect int:toDouble(windowWidth) /_d int:toDouble(windowHeight)
   gluPerspective( 90.0d, aspect, 1.0d, 100.0d )
 
-  mainloop
+  mainloop:
     glClearColor(0.0, 0.0, 0.0, 1.0)
     glClear int:or(GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT)
 
@@ -296,5 +312,6 @@ func int main()
 
   ret 0
 end
+#+end_src
 
 
