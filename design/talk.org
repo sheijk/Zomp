@@ -1,0 +1,64 @@
+
+* Overview
+
+- C + lisp macros as anti-thesis to C++
+- Goals
+  - Graphics + systems programming
+  - Powerful libraries
+  - Macro system
+  - Interactive development
+
+[[../readme.txt]]
+
+* Language
+
+** Syntax
+*** Primitives
+*** Operators
+*** opjux, opcall
+*** Significant indentation
+** Base language
+** Macro system
+*** AST, difference to lisp
+*** low level, higher level as libraries
+** libcee
+
+* Tools
+
+** Zomp shell
+** eldoc
+** Navigation
+** Html status viewer
+** C bindings
+*** bindgen
+*** gen_c_bindings
+
+* Examples
+  
+** pipeline experiment
+** build small demo scene
+** extend metaballs with anttweakbar?
+
+* Testing
+
+** Zomp unit tests
+** check_test
+** OCaml unit tests
+
+* Lessons / Next time (tm)
+
+** Do source location and error handling right in the beginning
+** Base is too close to compiler IR
+** Avoid seperate representation for base language forms
+** Primitive/simple base language makes boots-trapping hard
+** OCaml + native code tricky
+   (duplication, performance, mismatch between C and variant data types)
+** Reference type better than pointers everywhere
+** More light-weight syntax?
+** Hygienic macro system might be useful
+
+* Roadmap
+
+** 0.6 - Error handling, locations
+** 0.7 - Proper language
+

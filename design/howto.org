@@ -1,0 +1,10 @@
+
+* Zomp by example
+
+** Tracing macro expansion
+
+std:compiler:setTraceMacroExpansion
+std:compiler:getTraceMacroExpansion
+zompc --trace-macros
+'!traceMacros' in zompsh
+
