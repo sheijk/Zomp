@@ -308,6 +308,49 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "  <body>\n";
   ()
 
+let makeHtmlSourceWriter() =
+  let reversedSegments = ref [] in
+  let collectHtml typ source =
+    let cssClass = match typ with
+      | Source -> "source"
+      | Comment -> "source-comment"
+      | String -> "source-string"
+    in
+    let escapedSource = escapeHtmlText source in
+    let replacement = sprintf "</span></code></li>\n  <li><code><span class=\"%s\">" cssClass in
+    let sourceWithHtml = Str.global_replace (Str.regexp (Str.quote "&#10;")) replacement escapedSource in
+    let segment = sprintf "<span class=\"%s\">%s</span>" cssClass sourceWithHtml in
+    reversedSegments := segment :: !reversedSegments
+  in
+  collectHtml, reversedSegments
+
+let inElements outFile elements ?cssClass f =
+  let first = List.hd elements
+  and remaining = List.tl elements
+  in
+  fprintf outFile "<%s%s>"
+    first
+    (match cssClass with None -> "" | Some name -> sprintf " class=\"%s\"" name);
+  List.iter (fun element -> fprintf outFile "<%s>" element) remaining;
+  fprintf outFile "\n";
+  let closeElements() =
+    List.iter (fun element -> fprintf outFile "</%s>" element) (List.rev remaining);
+    fprintf outFile "</%s>\n" first;
+  in
+  try
+    f();
+    closeElements()
+  with exn ->
+    closeElements();
+    raise exn
+      
+let writeHeader outFile n header =
+  fprintf outFile "<h%d>%s</h%d>\n" n header n
+
+let writeHeaderWithLink outFile n header target =
+  fprintf outFile "<h%d>%s</h%d>\n" n header n;
+  fprintf outFile "<div class=\"file-link\"><a class=\"file-link\" href=\"%s\">Raw file</a></div>\n" target
+
 let addExpectation
     zompFileName expectedCompilationSuccess expectedErrorMessages expectedTestCaseExitCode
     kindStr args line =
@@ -372,29 +415,28 @@ let collectExpectations addExpectation (lineNum :int) line =
     addExpectation kindStr args lineNum
   end
 
-let makeHtmlSourceWriter() =
-  let reversedSegments = ref [] in
-  let collectHtml typ source =
-    let cssClass = match typ with
-      | Source -> "source"
-      | Comment -> "source-comment"
-      | String -> "source-string"
-    in
-    let escapedSource = escapeHtmlText source in
-    let replacement = sprintf "</span></code></li>\n  <li><code><span class=\"%s\">" cssClass in
-    let sourceWithHtml = Str.global_replace (Str.regexp (Str.quote "&#10;")) replacement escapedSource in
-    let segment = sprintf "<span class=\"%s\">%s</span>" cssClass sourceWithHtml in
-    reversedSegments := segment :: !reversedSegments
-  in
-  collectHtml, reversedSegments
-
-let () =
-  if false then begin
-    printf "Called %s\n" (String.concat " " (Array.to_list Sys.argv));
-    printf "From directory %s\n" (Sys.getcwd());
-    flush stdout;
+let reportError outFile zompFileName errorOccured tag ?line msg =
+  let line = match line with Some l -> l | _ -> 0 in
+  let msg = sprintf "%s:%d: error: %s" zompFileName line msg in
+  begin match tag with
+    | `Br ->
+      fprintf outFile "%s<br />\n" msg
+    | `Li ->
+      fprintf outFile "  <li>%s</li>\n" msg
   end;
+  fprintf stderr "%s\n" msg;
+  errorOccured := true
 
+let parseDiagnostics zompFileName line =
+  Common.applyIfSome
+    (fun (location, kind, message as result) ->
+      if location.fileName = zompFileName then
+        Some result
+      else
+        None)
+    (Basics.parseDiagnostics line)
+    
+let () =
   if Array.length Sys.argv != 4 then
     failWith InvalidArguments;
 
@@ -414,47 +456,11 @@ let () =
 
   withOpenFileOut outputFileName (fun outFile ->
     let errorOccured = ref false in
-    let reportError tag ?line msg =
-      let line = match line with Some l -> l | _ -> 0 in
-      let msg = sprintf "%s:%d: error: %s" zompFileName line msg in
-      begin match tag with
-        | `Br ->
-          fprintf outFile "%s<br />\n" msg
-        | `Li ->
-          fprintf outFile "  <li>%s</li>\n" msg
-      end;
-      fprintf stderr "%s\n" msg;
-      errorOccured := true;
-    in
+    let reportError = reportError outFile zompFileName errorOccured in
 
-    let writeHeader n header =
-      fprintf outFile "<h%d>%s</h%d>\n" n header n
-    in
-    let writeHeaderWithLink n header target =
-      fprintf outFile "<h%d>%s</h%d>\n" n header n;
-      fprintf outFile "<div class=\"file-link\"><a class=\"file-link\" href=\"%s\">Raw file</a></div>\n" target;
-    in
-
-    let inElements elements ?cssClass f =
-      let first = List.hd elements
-      and remaining = List.tl elements
-      in
-      fprintf outFile "<%s%s>"
-        first
-        (match cssClass with None -> "" | Some name -> sprintf " class=\"%s\"" name);
-      List.iter (fun element -> fprintf outFile "<%s>" element) remaining;
-      fprintf outFile "\n";
-      let closeElements() =
-        List.iter (fun element -> fprintf outFile "</%s>" element) (List.rev remaining);
-        fprintf outFile "</%s>\n" first;
-      in
-      try
-        f();
-        closeElements()
-      with exn ->
-        closeElements();
-        raise exn
-    in
+    let writeHeader = writeHeader outFile in
+    let writeHeaderWithLink = writeHeaderWithLink outFile in
+    let inElements = inElements outFile in
 
     let writeExpectation expectation =
       let { Expectation.kind; line = lineNum; words } = expectation in
@@ -510,20 +516,10 @@ let () =
           -> ()
     in
 
-    let parseDiagnostics line =
-      Common.applyIfSome
-        (fun (location, kind, message as result) ->
-          if location.fileName = zompFileName then
-            Some result
-          else
-            None)
-        (Basics.parseDiagnostics line)
-    in
-
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
-      match parseDiagnostics line with
+      match parseDiagnostics zompFileName line with
         | Some (loc, kind, message) ->
           List.iter (checkExpectation message (Some loc) kind) !expectedErrorMessages
         | None ->
