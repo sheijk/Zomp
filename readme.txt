@@ -26,8 +26,8 @@ TODO: C++ rant, dynamic languages, ocaml/haskell
 
 = Getting started
 
-At this time the is no proper process to get started. You will need to clone the
-Zomp repository and provide a few required tools and libraries.
+At this time there is no proper process to get started. You will need to clone
+the Zomp repository and provide a few required tools and libraries.
 
 External dependencies (list might be incomplete and out of date):
 - OS X 10.6 (should be straight forward to port)
