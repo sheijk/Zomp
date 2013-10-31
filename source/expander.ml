@@ -1148,13 +1148,19 @@ struct
     translateType bindings Translators_deprecated_style.reportWarning expr
 
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
-  let translateStructLiteralArgs fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
+  let translateStructLiteralArgs structName loc fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
     let rec handleFieldExprs errors fieldValues undefinedFields =
-      let continueWithErrors messages remArgs =
-        handleFieldExprs (messages@errors) fieldValues undefinedFields remArgs
+      let continueWithErrors newErrors remArgs =
+        handleFieldExprs (newErrors@errors) fieldValues undefinedFields remArgs
       in
       function
         | [] ->
+          let errors = match undefinedFields with
+            | [] -> errors
+            | missing ->
+              errors @
+                List.map (fun name -> Serror.fromMsg loc $ sprintf "field %s is missing" name) missing
+          in
           begin match errors with
             | [] -> Result (List.rev fieldValues)
             | _ -> Error errors
@@ -1166,7 +1172,10 @@ struct
           }
             as fieldValueExpr :: remArgs ->
           begin
-            match List.partition ((=) fieldName) undefinedFields with
+            if List.exists (fun (name, _) -> name = fieldName) fieldValues then
+              let newError = Serror.fromExpr fieldValueExpr $ sprintf "field %s has been defined multiple times" fieldName in
+              continueWithErrors [newError] remArgs
+            else match List.partition ((=) fieldName) undefinedFields with
               | [_], undefinedFields ->
                 begin match translateExprF rhs with
                   | Error rhsErrors ->
@@ -1178,24 +1187,24 @@ struct
                       undefinedFields
                       remArgs
                 end
-              | _, _ ->
-                continueWithErrors
-                  [Serror.fromExpr fieldValueExpr
-                      (if listContains fieldName fields then
-                          sprintf "field %s specified several times" fieldName
-                       else
-                          sprintf "field %s does not exist" fieldName)]
-                  remArgs
+              | [], _ ->
+                let newError =
+                  Serror.fromExpr fieldValueExpr
+                    (sprintf "field %s is not a member of struct %s" fieldName structName)
+                in
+                continueWithErrors [newError] remArgs
+              | (_ :: _ :: _), _ ->
+                let newError =
+                  Serror.fromExpr fieldValueExpr
+                    (sprintf "field %s specified multiple times" fieldName)
+                in
+                continueWithErrors [newError] remArgs
           end
         | unexpectedExpr :: remArgs ->
-          continueWithErrors
-            [Serror.fromExpr unexpectedExpr "expected expression of the form 'id = expr'"]
-            remArgs
+          let newError = Serror.fromExpr unexpectedExpr "expected expression of the form 'id = expr'" in
+          continueWithErrors [newError] remArgs
     in
-    if List.length fields <> List.length fieldExprs then
-      Error [Serror.fromMsg None "not all fields have been defined"]
-    else
-      handleFieldExprs [] [] fields fieldExprs
+    handleFieldExprs [] [] fields fieldExprs
 
   let translateConstantToValue env expr : value mayfail =
     match expr2VarOrConst env.bindings expr with
@@ -1887,7 +1896,7 @@ struct
         Result (tlforms, forms)
       in
       let fieldNames = List.map fst recordType.fields in
-      begin match translateStructLiteralArgs fieldNames argExprs translateField with
+      begin match translateStructLiteralArgs recordType.rname typeExpr.location fieldNames argExprs translateField with
         | Result fieldFormsTL ->
           let alltlformsLst, fieldForms = List.split
             (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)
