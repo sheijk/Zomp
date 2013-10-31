@@ -69,8 +69,11 @@ testsuite/clean:
 # Additional flags
 ################################################################################
 
-testsuite/std/test_std_compiler_link_lib.exe: override LIBS = $(ZOMP_STDLIBS) $(LINK_CPPSTDLIB) $(LINK_UTILS)
-testsuite/std/test_std_compiler_link_gl_lib.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS)
+testsuite/std/test_std_compiler_link_lib.exe: override LIBS += $(LINK_UTILS)
+testsuite/std/test_std_compiler_link_gl_lib.exe: override LIBS += $(GL_LIBS)
+
+testsuite/zompsh/test_link_lib.exe: override LIBS += $(LINK_UTILS)
+testsuite/zompsh/test_link_gl_lib.exe: override LIBS += $(GL_LIBS)
 
 ################################################################################
 # Additional dependencies
