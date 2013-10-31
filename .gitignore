@@ -141,3 +141,4 @@
 /source/stats.mli
 /source/stats_stubs.c
 /testsuite/zompsh/*.no_zompsh_commands.zomp
+/testsuite/zompsh/no_zompsh_test_*.zomp
