@@ -127,7 +127,7 @@ TESTREPORT_DEPS = $(ZOMPC_FILE) $(ZOMPSH_FILE) $(CHECK_TEST) external_lib_links 
 .PRECIOUS: %.compile_stats
 %.testreport %.result %.test_output %.compile_output %.compile_stats: %.zomp $(TESTREPORT_DEPS)
 	@$(ECHO) Running test suite case $< ...
-	-mv ${@:.testreport=.result} ${@:.testreport=.last_result}
+	-if [ -e "${@:.testreport=.result}" ]; then mv ${@:.testreport=.result} ${@:.testreport=.last_result}; fi
 	rm -f ${@:.testreport=.}{bc,opt-bc,ll,exe,test_output,compile_output,testreport}
 	$(CHECK_TEST) $@ $(TESTREPORT_COMPILE_CMD) $(TESTREPORT_RUN_CMD)
 ifeq "$(PRINT_TESTREPORT)" "1"
