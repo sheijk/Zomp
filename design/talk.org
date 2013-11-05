@@ -10,9 +10,17 @@
 
 [[../readme.txt]]
 
+* Quick demo
+
+shaderfun
+
 * Language
 
 ** Syntax
+*** Goals
+**** Keywords vs growable languages
+**** Close to "regular" keyword based languages
+**** Also mention design alternatives?
 *** Primitives
 *** Operators
 *** opjux, opcall
@@ -20,10 +28,26 @@
 ** Base language
 ** Macro system
 *** AST, difference to lisp
+    - id because most expressions don't have list as start, simpler handling, no
+      cases/match needed
+    - 
 *** low level, higher level as libraries
-** libcee
+** standard libraries
+*** libcee, stdio
+*** std
+*** std:compiler
+*** std:zompsh (?)
+*** unittest
+    unittest:assert (10 > 20) will print both sides
+*** math, ansicolors,
+*** opengl, glfw, glut, anttweakbar, glutil, spaceballcam
+*** mesh, assimp,
+*** utils, persistence, string
+*** native
 
 * Tools
+
+  metaballs
 
 ** Zomp shell
 ** eldoc
@@ -35,7 +59,7 @@
 
 * Examples
   
-** pipeline experiment
+** NOPE pipeline experiment
 ** build small demo scene
 ** extend metaballs with anttweakbar?
 
@@ -60,5 +84,23 @@
 * Roadmap
 
 ** 0.6 - Error handling, locations
+   - never loose source location info, again
+   - expose proper error handling to toplevel interfaces (Compileutils)
+
 ** 0.7 - Proper language
+   - modules
+   - seperate compilation
+   - generics + implicits
+   - new macro system
+   - user defined intrinsics(?)
+   - base language tweaks
+     - references
+     - common lisp style labels
+     - loop with break
+
+** 0.8 - Development experience
+   - Debugger
+   - Optimization in VM
+   - Redefine global types
+     proper update/recreation of globals
 

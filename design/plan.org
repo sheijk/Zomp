@@ -1801,7 +1801,7 @@ Minor tasks:
   basic blocks
 - find good error handling strategy?
   get inspired by go and common lisp restarts, maybe with a hint of monads
-  - errors must to be ignored explicitly
+  - errors must be ignored explicitly
   - allow it to automate reaction to errors and cleanup
 
 ** 0.2 - proper language
