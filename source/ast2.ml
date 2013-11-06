@@ -59,12 +59,12 @@ let exprInferLoc name exprs =
 let fileName ast =
   match ast.location with
     | Some { fileName = fileName } -> fileName
-    | None -> "?.zomp"
+    | None -> Basics.fakeLocation.fileName
 
 let lineNumber ast =
   match ast.location with
     | Some { line = line } -> line
-    | None -> 0
+    | None -> Basics.fakeLocation.line
 
 let column ast =
   match ast.location with

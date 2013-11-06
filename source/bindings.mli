@@ -23,7 +23,10 @@ val addMacro :
   (bindings -> Ast2.sexpr -> Ast2.sexpr) -> bindings
 val lookup : bindings -> string -> symbol
 val lookupInfo : bindings -> string -> symbolInfo
+val location : symbolInfo -> Basics.location option
+val symbol : symbolInfo -> symbol
 val isFunction : bindings -> string -> bool
 
 val iter : ((string * symbol) -> unit) -> bindings -> unit
+val iterInfo : ((string * symbolInfo) -> unit) -> bindings -> unit
 

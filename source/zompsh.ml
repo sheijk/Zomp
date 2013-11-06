@@ -132,6 +132,8 @@ end = struct
   let varStat = intCounter "vars"
   let functionDefStat = intCounter "functions"
   let functionDeclStat = intCounter "function declarations"
+  let macroStat = intCounter "macros"
+  let typeStat = intCounter "types"
 
   let update bindings =
     let fileNames = ref [] in
@@ -148,30 +150,35 @@ end = struct
           incr validLoc;
           fileNames := loc.Basics.fileName :: !fileNames
       end;
-      loc
     in
 
-    let countSymbol (name, symbol) =
-      let location =
-        match symbol with
-          | Bindings.VarSymbol var ->
-            count var.Lang.vlocation varStat
-          | Bindings.FuncSymbol ({ impl = Some _ } as func) ->
-            count func.Lang.flocation functionDefStat
-          | Bindings.FuncSymbol ( { impl = None } as func) ->
-            count func.Lang.flocation functionDeclStat
-          | Bindings.MacroSymbol macro ->
-            None
-          | Bindings.LabelSymbol label ->
-            None
-          | Bindings.TypedefSymbol typ ->
-            None
-          | Bindings.UndefinedSymbol ->
-            None
-      in
-      ignore (count location symbolStat);
+    let statForSymbolInfo info =
+      match Bindings.symbol info with
+        | Bindings.VarSymbol _ ->
+          Some varStat
+        | Bindings.FuncSymbol { impl = Some _ } ->
+          Some functionDefStat
+        | Bindings.FuncSymbol { impl = None } ->
+          Some functionDeclStat
+        | Bindings.MacroSymbol _ ->
+          Some macroStat
+        | Bindings.LabelSymbol _ ->
+          None
+        | Bindings.TypedefSymbol _ ->
+          Some typeStat
+        | Bindings.UndefinedSymbol ->
+          None
     in
-    Bindings.iter countSymbol bindings;
+
+    let countSymbol (name, info) =
+      let location = Bindings.location info in
+      begin match statForSymbolInfo info with
+        | Some stat -> count location stat
+        | None -> ()
+      end;
+      count location symbolStat;
+    in
+    Bindings.iterInfo countSymbol bindings;
 
     let module S = Set.Make(String) in
     let files = List.fold_right S.add !fileNames S.empty in

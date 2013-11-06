@@ -170,33 +170,29 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
 let writeSymbolsToStream bindings stream =
   fprintf stream "Symbol table\n";
 
-  let printSymbol (name, symbol) =
+  let printSymbol (name, info) =
     let module Typesystem = Typesystems.Zomp in
     fprintf stream "%s =" name;
-    let doc, location =
-      match symbol with
+    let location = Bindings.location info in
+    let doc =
+      match Bindings.symbol info with
         | Bindings.VarSymbol var ->
-          (sprintf "var of type %s"
-             (Typesystem.typeName var.Lang.typ)),
-          var.Lang.vlocation
+          sprintf "var of type %s" (Typesystem.typeName var.Lang.typ)
         | Bindings.FuncSymbol func ->
           let argToString (name, typ) =
             sprintf "%s %s" (Typesystem.typeName typ) name
           in
           let args = List.map argToString func.Lang.fargs in
           let argString = Common.combine ", " args in
-          (sprintf "%s(%s)"
-             (Typesystem.typeName func.Lang.rettype)
-             argString),
-          func.Lang.flocation
+          sprintf "%s(%s)" (Typesystem.typeName func.Lang.rettype) argString
         | Bindings.MacroSymbol macro ->
-          sprintf "%s" macro.Lang.mdocstring, None
+          sprintf "%s" macro.Lang.mdocstring
         | Bindings.LabelSymbol label ->
-          sprintf "label %s" label.Lang.lname, None
+          sprintf "label %s" label.Lang.lname
         | Bindings.TypedefSymbol typ ->
-          sprintf "type %s" (Typesystem.typeDescr typ), None
+          sprintf "type %s" (Typesystem.typeDescr typ)
         | Bindings.UndefinedSymbol ->
-          sprintf "undefined", None
+          sprintf "undefined"
     in
     begin match location with
       | Some location -> fprintf stream "%s @%s" doc (Basics.locationToString location)
@@ -204,7 +200,7 @@ let writeSymbolsToStream bindings stream =
     end;
     fprintf stream "\n"
   in
-  Bindings.iter printSymbol bindings;
+  Bindings.iterInfo printSymbol bindings;
 
   let printBuiltinDoc name params = fprintf stream "%s =%s\n" name params in
   Expander.foreachBaseInstructionDoc printBuiltinDoc;
