@@ -212,7 +212,8 @@ and the architecture like this: \"variant-architecture\"."
   (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name)
         (oldwin (selected-window)))
     (let ((default-directory zomp-basedir)
-          (explicit-shell-file-name (zomp-zompsh-command)))
+          (explicit-shell-file-name (zomp-zompsh-command))
+          (explicit-zompsh-args nil))
       (shell zomp-shell-buffer-name))
     ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
     ;; has the same value in the shell buffer as in the zomp buffer invoking

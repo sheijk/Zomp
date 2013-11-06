@@ -33,6 +33,7 @@ and llvmEvaluationOn = ref true
 and printForms = ref false
 and showStatsAtExit = ref false
 and showTimingStatsAtExit = ref false
+and statsAtExitFile = ref ""
 and traceMacroExpansion = ref false
 
 let parseFunc = ref Parseutils.parseIExpr
@@ -686,7 +687,24 @@ let loadPrelude() =
       List.iter report errors;
       exit (-2))
 
+let handleOptions args =
+  let onAnonArg str =
+    raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
+  in
+  try
+    Arg.parse_argv args
+      ["--stats", Arg.Set_string statsAtExitFile, "print statistics on exit"]
+      onAnonArg
+      "zompsh\n"
+  with
+    | Arg.Bad msg
+    | Arg.Help msg ->
+      reportError msg;
+      exit 1
+
 let () =
+  handleOptions Sys.argv;
+
   at_exit (fun () ->
     if !showTimingStatsAtExit then begin
       Profiling.printTimings();
@@ -695,7 +713,13 @@ let () =
     end;
 
     if !showStatsAtExit then
-      Stats.statsPrintReport 0);
+      Stats.statsPrintReport 0;
+
+    match !statsAtExitFile with
+      | "" -> ()
+      | file ->
+        if Stats.statsPrintReportToFile (Common.absolutePath file) 0 = false then
+          reportError $ sprintf "could not write stats to file '%s'" file);
 
   Zompvm.zompVerifyCode false;
 
