@@ -10,8 +10,13 @@ let zompShellDummyFileName = "zompsh"
 
 let reportError msg =
   eprintf "error: %s\n" msg
+
 let report error =
   eprintf "%s\n" (Serror.toString error)
+
+let message msg =
+  printf "%s\n" msg;
+  flush stdout
 
 let toplevelCommandChar = '!'
 let toplevelCommandString = String.make 1 toplevelCommandChar
@@ -28,11 +33,8 @@ and showStatsAtExit = ref false
 and showTimingStatsAtExit = ref false
 and traceMacroExpansion = ref false
 
-module StringMap = Map.Make(String)
-
-exception AbortExpr
-
 let parseFunc = ref Parseutils.parseIExpr
+let notifyTimeThreshold = ref 0.5
 
 let runFunction bindings funcname =
   printf "\n"; flush stdout;
@@ -56,8 +58,6 @@ let runFunction bindings funcname =
       end
     | _ ->
       eprintf "cannot run %s because no such function was found\n" funcname
-
-let notifyTimeThreshold = ref 0.5
 
 module Utils =
 struct
@@ -190,6 +190,8 @@ let currentLocation : Basics.location option ref = ref None
 module Commands : sig
   val handleCommand : string -> Bindings.bindings -> unit
 end = struct
+  module StringMap = Map.Make(String)
+
   type commandFunc = string list -> Bindings.bindings -> unit
 
   let arglistToString argL = Common.combine " " argL
@@ -659,93 +661,87 @@ let translateRun env expr =
     | _ ->
         Expander.errorFromStringDeprecated (sprintf "expected %s expr" expr.id)
 
+let rec step bindings parseState =
+  match parseState with
+    | Error errors ->
+      printf "Parser errors:\n";
+      List.iter (printf "%s\n") errors;
+      flush stdout;
+      step bindings (readExpr bindings)
+
+    | Result [] ->
+      step bindings (readExpr bindings)
+
+    | Result (expr :: remExprs) ->
+      Compileutils.catchingErrorsDo
+        (fun () ->
+          if !printAst then begin
+            let asString = Ast2.toString expr in
+            printf " => %s\n" asString;
+          end;
+
+          let newBindings, time = recordTiming
+            (fun () ->
+              Expander.setTraceMacroExpansion
+                (if !traceMacroExpansion then
+                    let trace s e =
+                      printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
+                    in
+                    Some trace
+                 else
+                    None);
+              let newBindings, simpleforms, llvmCode =
+                Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
+              in
+              onSuccess bindings newBindings simpleforms llvmCode;
+              newBindings)
+          in
+          if (time > !notifyTimeThreshold) then
+            printf "Compiling expression took %fs\n" time;
+          step newBindings (Result remExprs))
+        ~onErrors: (fun errors ->
+          List.iter report errors;
+          step bindings (Result remExprs))
+
+let init() =
+  Zompvm.setIsInteractive true;
+  Callback.register "parse" parseNativeAst;
+  if not (Machine.zompInit()) then begin
+    eprintf "Could not initialize ZompVM\n";
+    exit(-1);
+  end;
+  at_exit Machine.zompShutdown
+
+let loadPrelude() =
+  let defaultMainSrc =
+    "std:base:func int main():\n  printString\"error: no main method defined\\n\"\n  std:base:ret 1\nend\n"
+  in
+  let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
+  Compileutils.catchingErrorsDo
+    (fun () -> begin
+      let preludeBindings = Compileutils.loadPrelude
+        ~appendSource:defaultMainSrc
+        preludeDir
+      in
+      let initialBindings = preludeBindings in
+      initialBindings
+    end)
+    ~onErrors:(fun errors ->
+      List.iter report errors;
+      exit (-2))
+
 let () =
   at_exit (fun () ->
-    if !showTimingStatsAtExit then (
+    if !showTimingStatsAtExit then begin
       Profiling.printTimings();
       flush stdout;
-      Zompvm.zompPrintTimingStats());
+      Zompvm.zompPrintTimingStats();
+    end;
 
-    if !showStatsAtExit then (
-      Stats.statsPrintReport 0));
+    if !showStatsAtExit then
+      Stats.statsPrintReport 0);
 
   Zompvm.zompVerifyCode false;
-
-  let rec step bindings parseState =
-    match parseState with
-      | Error errors ->
-        printf "Parser errors:\n";
-        List.iter (printf "%s\n") errors;
-        flush stdout;
-        step bindings (readExpr bindings)
-
-      | Result [] ->
-        step bindings (readExpr bindings)
-
-      | Result (expr :: remExprs) ->
-        Compileutils.catchingErrorsDo
-          (fun () ->
-            if !printAst then begin
-              let asString = Ast2.toString expr in
-              printf " => %s\n" asString;
-            end;
-
-            let newBindings, time = recordTiming
-              (fun () ->
-                Expander.setTraceMacroExpansion
-                  (if !traceMacroExpansion then
-                      let trace s e =
-                        printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
-                      in
-                      Some trace
-                   else
-                      None);
-                let newBindings, simpleforms, llvmCode =
-                  Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
-                in
-                onSuccess bindings newBindings simpleforms llvmCode;
-                newBindings)
-            in
-            if (time > !notifyTimeThreshold) then
-              printf "Compiling expression took %fs\n" time;
-            step newBindings (Result remExprs))
-          ~onErrors: (fun errors ->
-            List.iter report errors;
-            step bindings (Result remExprs))
-  in
-
-  let addToplevelBindings bindings = bindings in
-
-  let init() =
-    Zompvm.setIsInteractive true;
-    Callback.register "parse" parseNativeAst;
-    if not (Machine.zompInit()) then begin
-      eprintf "Could not initialize ZompVM\n";
-      exit(-1);
-    end;
-    at_exit Machine.zompShutdown;
-  in
-
-  let loadPrelude() =
-    let defaultMainSrc =
-      "std:base:func int main():\n  printString\"error: no main method defined\\n\"\n  std:base:ret 1\nend\n"
-    in
-    let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
-    Compileutils.catchingErrorsDo
-      (fun () -> begin
-        let preludeBindings = Compileutils.loadPrelude
-          ~appendSource:defaultMainSrc
-          preludeDir
-        in
-        let initialBindings = addToplevelBindings preludeBindings in
-        initialBindings
-      end)
-      ~onErrors:(fun errors ->
-        List.iter report errors;
-        exit (-2))
-  in
-
-  let message msg = printf "%s\n" msg; flush stdout; in
 
   message (sprintf "Welcome to Zomp shell, version %s%s"
              version
