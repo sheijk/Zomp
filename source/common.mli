@@ -38,6 +38,7 @@ module CommonString :
   sig
     val combine : string -> string list -> string
     val commentOut : string -> ?stopDelim:string -> string -> string
+    val isWhitespaceString : string -> bool
     val lineCount : string -> int
     val indent : string -> string
     val removeQuotes : string -> string
@@ -47,8 +48,11 @@ module CommonString :
     val mapString : (char -> char) -> string -> string
     type sequenceAnchor = FromFront of int | FromBack of int
     val splitAt : string -> sequenceAnchor -> string * string
+    val nthChar : int -> string -> char option
     val lastChar : string -> char
     val splitLastChar : string -> string * char
+    val removeBeginning : string -> int -> string
+    val beginsWith : string -> string -> bool
     val endsWith : string -> string -> bool
     val splitup : string list -> string -> string list option
     val foldString : string -> ('a -> char -> 'a) -> 'a -> 'a
@@ -58,6 +62,7 @@ module CommonString :
   end
 val combine : string -> string list -> string
 val commentOut : string -> ?stopDelim:string -> string -> string
+val isWhitespaceString : string -> bool
 val lineCount : string -> int
 val indent : string -> string
 val removeQuotes : string -> string
@@ -70,8 +75,11 @@ type sequenceAnchor =
     FromFront of int
   | FromBack of int
 val splitAt : string -> sequenceAnchor -> string * string
+val nthChar : int -> string -> char option
 val lastChar : string -> char
 val splitLastChar : string -> string * char
+val removeBeginning : string -> int -> string
+val beginsWith : string -> string -> bool
 val endsWith : string -> string -> bool
 val splitup : string list -> string -> string list option
 val foldString : string -> ('a -> char -> 'a) -> 'a -> 'a
@@ -213,8 +221,10 @@ module Profiling :
     val pushTimingContext : string -> timingInfo * float
     val popTimingContext : timingInfo * float -> unit
     val collectTimingInfo : string -> (unit -> 'a) -> 'a
+    val recordTiming : (unit -> 'a) -> 'a * float
   end
 val collectTimingInfo : string -> (unit -> 'a) -> 'a
+val recordTiming : (unit -> 'a) -> 'a * float
 val sampleFunc1 : string -> ('a -> 'b) -> 'a -> 'b
 val sampleFunc2 : string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
 val sampleFunc3 : string -> ('a -> 'b -> 'c -> 'd) -> 'a -> 'b -> 'c -> 'd

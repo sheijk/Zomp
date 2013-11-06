@@ -2771,7 +2771,7 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
       begin
         let fileName =
           let fileName = Common.removeQuotes quotedFileName in
-          if Common.endsWith fileName ".zomp" then fileName
+          if Common.endsWith ".zomp" fileName then fileName
           else fileName ^ ".zomp"
         in
         try

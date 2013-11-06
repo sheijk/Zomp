@@ -59,52 +59,6 @@ let runFunction bindings funcname =
     | _ ->
       eprintf "cannot run %s because no such function was found\n" funcname
 
-module Utils =
-struct
-  let beginsWith word line =
-    let wordLength = String.length word
-    and lineLength = String.length line
-    in
-    lineLength >= wordLength &&
-      (String.sub line 0 (String.length word)) = word
-
-  let removeBeginning text count =
-    let textLength = String.length text in
-    let count = min textLength count in
-    String.sub text count (textLength - count)
-
-  let nthChar num string =
-    if String.length string > num then
-      Some string.[num]
-    else
-      None
-
-  let isWhitespaceString str =
-    let strLength = String.length str in
-    let rec worker n =
-      if n >= strLength then true
-      else
-        let c = str.[n] in
-        (c == ' ' || c == '\n') && worker (n+1)
-    in
-    worker 0
-
-  let matchAnyRegexp patterns =
-    match patterns with
-      | [] -> Str.regexp ".*"
-      | _ ->
-        let containsPatterns = List.map (String.lowercase ++ sprintf ".*%s.*") patterns in
-        Str.regexp ( "\\(" ^ combine "\\|" containsPatterns ^ "\\)" )
-
-  let recordTiming f =
-    let startTime = Sys.time() in
-    let result = f() in
-    let endTime = Sys.time() in
-    result, (endTime -. startTime)
-end
-
-open Utils
-
 module Symbol_stats : sig
   val update : Bindings.t -> unit
   val sourceFiles : unit -> string list

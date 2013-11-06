@@ -110,6 +110,16 @@ struct
     let commentedLines = List.map (fun line -> startDelim ^ line ^ stopDelim) lines in
     combine "\n" commentedLines
 
+  let isWhitespaceString str =
+    let strLength = String.length str in
+    let rec worker n =
+      if n >= strLength then true
+      else
+        let c = str.[n] in
+        (c == ' ' || c == '\n') && worker (n+1)
+    in
+    worker 0
+
   let lineCount source =
     let lines = Str.split (Str.regexp_string "\\n") source in
     List.length lines + 1
@@ -178,6 +188,12 @@ struct
     in
     front, back
 
+  let nthChar num string =
+    if String.length string > num then
+      Some string.[num]
+    else
+      None
+
   let lastChar str = str.[String.length str - 1]
 
   let splitLastChar str =
@@ -187,7 +203,19 @@ struct
     let front = Str.string_before str (strLength-1) in
     front, lastChar
 
-  let endsWith string ending =
+  let removeBeginning text count =
+    let textLength = String.length text in
+    let count = min textLength count in
+    String.sub text count (textLength - count)
+
+  let beginsWith word line =
+    let wordLength = String.length word
+    and lineLength = String.length line
+    in
+    lineLength >= wordLength &&
+      (String.sub line 0 (String.length word)) = word
+
+  let endsWith ending string =
     let stringLength = String.length string in
     let endingLength = String.length ending in
     stringLength >= endingLength &&
@@ -769,10 +797,16 @@ struct
     let currentTimingInfo, startTime = pushTimingContext name in
     guarded f
       ~finally:(fun () -> popTimingContext (currentTimingInfo, startTime) )
+
+  let recordTiming f =
+    let startTime = Sys.time() in
+    let result = f() in
+    let endTime = Sys.time() in
+    result, (endTime -. startTime)
 end
 
-(* let collectTimingInfo _ f = f() *)
 let collectTimingInfo = Profiling.collectTimingInfo
+let recordTiming = Profiling.recordTiming
 
 let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)
