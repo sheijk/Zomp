@@ -212,7 +212,7 @@ LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
 
-LDFLAGS += -Llibs -Ltools/arch-$(ARCH)/external/libs
+LDFLAGS += -Llibs
 
 LINK_QUICKTEXT = libs/libquicktext.$(DLL_EXTENSION)
 LINK_ANTTWEAKBAR = $(ZOMP_TOOL_PATH)/lib/libAntTweakBar.$(DLL_EXTENSION)
