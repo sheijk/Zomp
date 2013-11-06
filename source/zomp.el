@@ -770,9 +770,10 @@ editor to trigger recompilations etc. and possibly resume main()"
   (setq comment-start-skip "\\(?://+\\|/\\*+\\) *")
   (setq comment-end "")
 
-  (dolist (op (list ?: ?+ ?- ?= ?! ?? ?* ?/ ?& ?| ?^))
+  (dolist (op (list ?+ ?- ?= ?! ?? ?* ?/ ?& ?| ?^))
     (modify-syntax-entry op "."))
-  (modify-syntax-entry ?_ "w")
+  (dolist (op (list ?_ ?:))
+    (modify-syntax-entry op "w"))
 
   (setq indent-tabs-mode nil)
 
