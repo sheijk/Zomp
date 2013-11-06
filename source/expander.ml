@@ -2518,7 +2518,7 @@ let matchFunc =
           typeExpr;
           { id = opcall; args =
               { id = paramop; args =
-                  { id = name; args = [] }
+                  { id = name; args = []; location }
                   :: paramTypeExprs }
               :: paramExprs };
           { id = opseq; args = _ } as implExpr
@@ -2527,6 +2527,7 @@ let matchFunc =
           opcall = macroCallOp &&
           paramop = macroParamType &&
           opseq = macroSeqOp ->
+        let location = someOrDefault location Basics.fakeLocation in
         begin try
           let getParametricTypeName = function
             | { id = name; args = [] } -> name
@@ -2534,7 +2535,7 @@ let matchFunc =
           in
           let params, hasvararg = scanParams paramExprs in
           let parametricTypes = List.map getParametricTypeName paramTypeExprs in
-          `FuncDef (name, typeExpr, params, hasvararg, implExpr, parametricTypes)
+          `FuncDef (name, typeExpr, params, hasvararg, implExpr, parametricTypes, location)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -2542,12 +2543,13 @@ let matchFunc =
     (** func decl from iexpr with multiple/0 arguments **)
     | { id = id; args = [
           typeExpr;
-          { id = opcall; args = { id = name; args = [] } :: paramExprs }
+          { id = opcall; args = { id = name; args = []; location } :: paramExprs }
         ] } as expr
         when id = macroFunc && opcall = macroCallOp ->
+        let location = someOrDefault location Basics.fakeLocation in
         begin try
           let params, hasvararg = scanParams paramExprs in
-          `FuncDecl (name, typeExpr, params, hasvararg)
+          `FuncDecl (name, typeExpr, params, hasvararg, location)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -2556,14 +2558,15 @@ let matchFunc =
     | { id = id; args = [
           typeExpr;
           { id = opcall; args =
-              { id = name; args = [] }
+              { id = name; args = []; location }
               :: paramExprs };
           { id = opseq; args = _ } as implExpr
         ] } as expr
         when id = macroFunc && opcall = macroCallOp && opseq = macroSeqOp ->
+        let location = someOrDefault location Basics.fakeLocation in
         begin try
           let params, hasvararg = scanParams paramExprs in
-          `FuncDef (name, typeExpr, params, hasvararg, implExpr, [])
+          `FuncDef (name, typeExpr, params, hasvararg, implExpr, [], location)
         with Failure _ ->
           `NotAFunc expr
         end
@@ -2599,7 +2602,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
         (sprintf "function names must match the following regexp: %s" nameRE);
     ()
   in
-  let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption =
+  let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption location =
     let name = removeQuotes uncheckedName in
 
     let translateParam argExpr =
@@ -2649,7 +2652,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           nestedTLForms, Some (`Sequence implFormsWithFixedVars)
       | None -> [], None
     in
-    let f = (if hasvarargs then varargFunc else func) name typ params impl Basics.fakeLocation in
+    let f = (if hasvarargs then varargFunc else func) name typ params impl location in
     match Semantic.functionIsValid f with
       | `Ok ->
           let newBindings =
@@ -2663,7 +2666,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
                    msg :: messages))
   in
   match matchFunc expr with
-    | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr, parametricTypes) ->
+    | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr, parametricTypes, location) ->
         begin
           let bindingsWParametricTypes =
             List.fold_left
@@ -2680,11 +2683,11 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
 
               (** Add function declaration so it can be called in body *)
               let tempBindings, _, _ =
-                buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None
+                buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None location
               in
               (** Add function definition *)
               let newBindings, toplevelForms, funcDef =
-                buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr)
+                buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr) location
               in
 
               match typeCheckTL newBindings funcDef with
@@ -2700,7 +2703,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
             end
             | Error _ -> raiseInvalidType typeExpr
         end
-    | `FuncDecl (name, typeExpr, paramExprs, hasvarargs) ->
+    | `FuncDecl (name, typeExpr, paramExprs, hasvarargs, location) ->
         begin
           let isRedefinitionError =
             hasRedefinitionErrors `NewFuncDecl `Global name expr bindings reportDiagnostics
@@ -2708,7 +2711,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           match translateType bindings typeExpr with
             | Result typ ->
                 begin
-                  let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs hasvarargs None in
+                  let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs hasvarargs None location in
                   match isRedefinitionError with
                     | false ->
                       Some (newBindings, [funcDecl] )
