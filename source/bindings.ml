@@ -54,8 +54,8 @@ let addVar bindings var =
 let addFunc bindings func =
   addSymbol func.fname (FuncSymbol func) func.flocation bindings
 
-let addTypedef bindings name typ =
-  addSymbol name (TypedefSymbol typ) None bindings
+let addTypedef bindings name typ location =
+  addSymbol name (TypedefSymbol typ) (Some location) bindings
 
 let addLabel bindings name =
   addSymbol name (LabelSymbol { lname = name }) None bindings

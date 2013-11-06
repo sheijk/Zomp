@@ -16,7 +16,7 @@ val addVar :
   bindings -> Lang.composedType Lang.variable -> bindings
 val addFunc : bindings -> Lang.func -> bindings
 val addTypedef :
-  bindings -> string -> Lang.composedType -> bindings
+  bindings -> string -> Lang.composedType -> Basics.location -> bindings
 val addLabel : bindings -> string -> bindings
 val addMacro :
   bindings -> string -> string -> Basics.location ->

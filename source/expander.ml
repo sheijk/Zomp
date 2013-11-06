@@ -496,12 +496,12 @@ struct
       | None -> None
 
   let translateTypedef translateF (bindings :bindings) =
-    let translateRecordTypedef bindings typeName componentExprs expr =
+    let translateRecordTypedef bindings typeName location componentExprs expr =
       let isRedefinitionError =
         hasRedefinitionErrors `NewType `Global typeName expr bindings reportDiagnostics
       in
 
-      let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) in
+      let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) location in
       let expr2component =
         let translate name typeExpr =
           match translateType tempBindings typeExpr with
@@ -528,47 +528,50 @@ struct
       else
         Some recordType
     in
-    let returnRecordTypedef bindings name componentExprs expr =
-      match translateRecordTypedef bindings name componentExprs expr with
+    let returnRecordTypedef bindings name componentExprs location expr =
+      match translateRecordTypedef bindings name location componentExprs expr with
         | Some rt ->
-          Some (addTypedef bindings name rt, [`Typedef (name, rt)])
+          Some (addTypedef bindings name rt location, [`Typedef (name, rt)])
         | None ->
             None
     in
     function
       (** record with only one member *)
       | { id = id; args = [
-            { id = typeName; args = [] };
+            { id = typeName; args = []; location };
             { id = opseq; args = componentExprs }
           ] } as expr
           when id = macroTypedef && opseq = macroSeqOp ->
-          returnRecordTypedef bindings typeName componentExprs expr
+          let location = someOrDefault expr.location Basics.fakeLocation in
+          returnRecordTypedef bindings typeName componentExprs location expr
       (** parametric record *)
       | { id = id; args = [
             { id = opcall; args = [
-                { id = typeName; args = [] };
+                { id = typeName; args = []; location };
                 { id = "T"; args = [] } ] };
             { id = opseq; args = componentExprs }
           ] } as expr
           when id = macroTypedef && opcall = macroParamType && opseq = macroSeqOp ->
           begin
-            let paramBindings = addTypedef bindings "T" `TypeParam in
-            match translateRecordTypedef paramBindings typeName componentExprs expr with
+            let location = someOrDefault expr.location Basics.fakeLocation in
+            let paramBindings = addTypedef bindings "T" `TypeParam location in
+            match translateRecordTypedef paramBindings typeName location componentExprs expr with
               | Some recordType ->
                   let parametricType = `ParametricType recordType in
                   Some (
-                    addTypedef bindings typeName parametricType,
+                    addTypedef bindings typeName parametricType location,
                     [`Typedef (typeName, parametricType)])
               | None ->
                   None
           end
       (** type foo typeExpr *)
       | { id = id; args = [
-            { id = newTypeName; args = [] };
+            { id = newTypeName; args = []; location };
             targetTypeExpr;
           ] } as expr
           when id = macroTypedef ->
           begin
+            let location = someOrDefault expr.location Basics.fakeLocation in
             let isRedefinitionError =
               hasRedefinitionErrors `NewType `Global newTypeName expr bindings reportDiagnostics
             in
@@ -577,18 +580,19 @@ struct
               | Error _, _ ->
                 raiseInvalidType targetTypeExpr
               | Result t, false ->
-                Some (addTypedef bindings newTypeName t,
+                Some (addTypedef bindings newTypeName t location,
                       [`Typedef (newTypeName, t)] )
               | _, true ->
                 None
           end
       (** record typedef *)
       | { id = id; args =
-            { id = typeName; args = [] }
+            { id = typeName; args = []; location }
             :: componentExprs
         } as expr
           when id = macroTypedef ->
-          returnRecordTypedef bindings typeName componentExprs expr
+          let location = someOrDefault expr.location Basics.fakeLocation in
+          returnRecordTypedef bindings typeName componentExprs location expr
       | _ -> None
 
   (** TODO: check if this can be removed *)
@@ -2671,7 +2675,7 @@ let rec translateFunc (translateF : toplevelExprTranslateF) (bindings :bindings)
           let bindingsWParametricTypes =
             List.fold_left
               (fun bindings parametricTypeName ->
-                 addTypedef bindings parametricTypeName `TypeParam)
+                 addTypedef bindings parametricTypeName `TypeParam location)
               bindings
               parametricTypes
           in
