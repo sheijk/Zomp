@@ -9,10 +9,12 @@ let version = "0.?"
 let zompShellDummyFileName = "zompsh"
 
 let reportError msg =
-  eprintf "error: %s\n" msg
+  eprintf "error: %s\n" msg;
+  flush stderr
 
 let report error =
-  eprintf "%s\n" (Serror.toString error)
+  eprintf "%s\n" (Serror.toString error);
+  flush stderr
 
 let message msg =
   printf "%s\n" msg;
