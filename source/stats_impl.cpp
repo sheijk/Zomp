@@ -380,6 +380,7 @@ void statsPrintReportToStream(FILE* out, int indent)
 {
     fprintf(out, "Zomp statistics\n");
     statsMainSection()->printReport(out, indent);
+    fflush(out);
 }
 
 bool statsPrintReportToFile(const char* fileName, int indent)

@@ -105,6 +105,79 @@ end
 
 open Utils
 
+module Symbol_stats : sig
+  val update : Bindings.t -> unit
+  val sourceFiles : unit -> string list
+end = struct
+  let allSourceFiles = ref []
+  let sourceFiles () = !allSourceFiles
+
+  let section =
+    Statistics.createSection "zompsh symbols"
+
+  let intCounter name =
+    let stat postfix =
+      let r = ref 0 in
+      Statistics.createIntCounter section (name ^ postfix) 0 (Ref.getter r);
+      r
+    in
+    let total = stat ""
+    and valid = stat " w/ valid location"
+    and noloc = stat " w/o location"
+    and fake = stat " fake location"
+    and builtin = stat " built-in" in
+    total, valid, noloc, fake, builtin
+
+  let symbolStat = intCounter "symbols"
+  let varStat = intCounter "vars"
+  let functionDefStat = intCounter "functions"
+  let functionDeclStat = intCounter "function declarations"
+
+  let update bindings =
+    let fileNames = ref [] in
+    let count loc (total, validLoc, noLoc, fakeLoc, builtinLoc) =
+      incr total;
+      begin match loc with
+        | None ->
+          incr noLoc;
+        | Some loc when loc = Basics.fakeLocation ->
+          incr fakeLoc
+        | Some loc when loc = Basics.builtinLocation ->
+          incr builtinLoc
+        | Some loc ->
+          incr validLoc;
+          fileNames := loc.Basics.fileName :: !fileNames
+      end;
+      loc
+    in
+
+    let countSymbol (name, symbol) =
+      let location =
+        match symbol with
+          | Bindings.VarSymbol var ->
+            count var.Lang.vlocation varStat
+          | Bindings.FuncSymbol ({ impl = Some _ } as func) ->
+            count func.Lang.flocation functionDefStat
+          | Bindings.FuncSymbol ( { impl = None } as func) ->
+            count func.Lang.flocation functionDeclStat
+          | Bindings.MacroSymbol macro ->
+            None
+          | Bindings.LabelSymbol label ->
+            None
+          | Bindings.TypedefSymbol typ ->
+            None
+          | Bindings.UndefinedSymbol ->
+            None
+      in
+      ignore (count location symbolStat);
+    in
+    Bindings.iter countSymbol bindings;
+
+    let module S = Set.Make(String) in
+    let files = List.fold_right S.add !fileNames S.empty in
+    allSourceFiles := S.fold (fun file list -> file :: list) files []
+end
+
 let currentLocation : Basics.location option ref = ref None
 
 module Commands : sig
@@ -133,8 +206,8 @@ end = struct
   let makeOptionalArgCommand f =
     fun argL bindings ->
       match argL with
-        | [] -> f None
-        | [arg] -> f (Some arg)
+        | [] -> f bindings None
+        | [arg] -> f bindings (Some arg)
         | _ ->
           eprintf "error: expected one or zero arguments instead of %s" (arglistToString argL)
 
@@ -178,7 +251,9 @@ end = struct
         eprintf "expected 0-2 arguments instead of %s\n" (arglistToString args)
 
   let exitCommand = makeNoArgCommand
-    (fun _ ->
+    (fun bindings ->
+      Symbol_stats.update bindings;
+
       printf "Exiting.\n";
       exit 0)
 
@@ -195,12 +270,23 @@ end = struct
     makeToggleCommandForRef showStatsAtExit "Show stats at exit"
   let toggleShowTimingStatsAtExitCommand =
     makeToggleCommandForRef showTimingStatsAtExit "Shot timing stats at exit"
+
   let printStatsCommand =
-    makeOptionalArgCommand (function
-      | None -> Stats.statsPrintReport 0
+    makeOptionalArgCommand (fun bindings arg ->
+      Symbol_stats.update bindings;
+      match arg with
+      | None ->
+        flush stdout;
+        Stats.statsPrintReport 0
       | Some fileName ->
         if (not (Stats.statsPrintReportToFile fileName 0)) then
           eprintf "error: could not print statistics to file %s\n" fileName)
+
+  let printSourceFilesCommand =
+    makeNoArgCommand (fun bindings ->
+      Symbol_stats.update bindings;
+      printf "Source files of all symbols:\n";
+      List.iter (printf "  file %s\n") (Symbol_stats.sourceFiles()))
 
   let toggleTraceMacroExpansionCommand =
     makeToggleCommandForRef traceMacroExpansion "Trace macro expansion"
@@ -372,6 +458,7 @@ end = struct
       "printDecl", [], togglePrintDeclarationsCommand, "Toggle printing declarations";
       "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
       "printStats", [], printStatsCommand, "Print statistics";
+      "printSourceFiles", [], printSourceFilesCommand, "Print all source files of symbols";
       "prompt", [], changePromptCommand, "Set prompt";
       "run", [], runMainCommand, "Run a function of type void(void), default main";
       "setNotifyTimeThresholdCommand", [], setNotifyTimeThresholdCommand, "Set minimum compilation time to print timing information";
