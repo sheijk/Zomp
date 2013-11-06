@@ -1005,10 +1005,10 @@ editor to trigger recompilations etc. and possibly resume main()"
         (error "Symbol \"%s\" does not have location info" symbol))
       (setq file (match-string 1 doc-line))
       (setq line (string-to-int (match-string 2 doc-line)))
-      (message "Symbol is at file %s line %s" file line)
-      (find-file-existing file)
-      (goto-line line)
-      (recenter))))
+      (message "Symbol is at file %s line %s" file line))
+    (find-file-existing file)
+    (goto-line line)
+    (recenter)))
 
 (defun zomp-get-doc-line-for-symbol (symbol)
   (condition-case nil
