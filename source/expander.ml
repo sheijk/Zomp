@@ -2757,9 +2757,10 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
       collectTimingInfo "readFileContent"
         (fun () -> Common.readFile ~paths:!includePath fileName)
     in
+    let absolutefileName = Common.absolutePath fileName in
     let exprs =
       collectTimingInfo "parse"
-        (fun () -> Parseutils.parseIExprsNoCatch ~fileName source)
+        (fun () -> Parseutils.parseIExprsNoCatch ~fileName:absolutefileName source)
     in
     let exprs = List.map (Parseutils.fixFileName fileName) exprs in
     collectTimingInfo "translateAndEval"
@@ -2770,7 +2771,6 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
       begin
         let fileName =
           let fileName = Common.removeQuotes quotedFileName in
-          let fileName = Common.absolutePath fileName in
           if Common.endsWith fileName ".zomp" then fileName
           else fileName ^ ".zomp"
         in
