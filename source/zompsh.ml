@@ -142,7 +142,9 @@ end = struct
     allSourceFiles := S.fold (fun file list -> file :: list) files []
 end
 
-let currentLocation : Basics.location option ref = ref None
+let currentFile = ref "zompsh"
+(** Added to line of every parsed expression *)
+let firstLineDelta = ref 0
 
 module Commands : sig
   val handleCommand : string -> Bindings.bindings -> unit
@@ -326,9 +328,9 @@ end = struct
       | [fileName; lineStr] ->
         begin try
           let line = int_of_string lineStr in
-          let column = Some 0 in
           printf "source location set to %s %d\n" fileName line;
-          currentLocation := Some { Basics.fileName; line; column }
+          currentFile := fileName;
+          firstLineDelta := line - 1;
         with (Failure _) ->
           eprintf "error: could not parse line."
         end
@@ -479,38 +481,49 @@ let readExpr bindings =
   let silentPrefix = "!silent" in
 
   (** Reads one line of source code. Will interpret and run shell commands *)
-  let rec readSourceLine previousLines =
-    if String.length previousLines = 0 then
+  let rec readSource previousLinesRev =
+    let handleCommandAndContinue command =
+      Commands.handleCommand command bindings;
+      if command =~ "!setSourceLocation " then begin
+        if List.exists (fun str -> String.length str > 0) previousLinesRev then begin
+          reportError "!setSourceLocation must not be used after entering code"
+        end;
+        readSource []
+      end else
+        readSource ("" :: previousLinesRev)
+    in
+    if List.length previousLinesRev = 0 then
       printf "%s" !defaultPrompt
     else
       printf "%s" !continuedPrompt;
     flush stdout;
 
     let line = read_line() in
+    (* printf "read line %d %s\n" (1 + List.length previousLinesRev + !firstLineDelta) line; *)
+    (* flush stdout; *)
 
     if line |> beginsWith silentPrefix then begin
       let command = removeBeginning line (String.length silentPrefix + 1) in
-      Commands.handleCommand command bindings;
-      readSourceLine previousLines
+      handleCommandAndContinue command
 
     end else if line = toplevelCommandString then begin
-      printf "Aborted input, cleared \"%s\"\n" previousLines;
-      readSourceLine ""
+      printf "Aborted input, cleared \"%s\"\n"
+        (previousLinesRev |> List.rev |> Common.combine "\n");
+      readSource ("" :: List.map (fun _ -> "") previousLinesRev)
 
     end else if nthChar 0 line = Some toplevelCommandChar then begin
-      Commands.handleCommand line bindings;
-      readSourceLine previousLines
+      handleCommandAndContinue line
     end else begin
-      line, previousLines
+      line :: previousLinesRev
     end
   in
 
   let fixSourceLocation expr =
-    let rec fixit loc expr =
-      let args = List.map (fixit loc) expr.args in
+    let rec fixit expr =
+      let args = List.map fixit expr.args in
       let location = {
-        Basics.fileName = loc.Basics.fileName;
-        line = Ast2.lineNumber expr + loc.Basics.line;
+        Basics.fileName = !currentFile;
+        line = Ast2.lineNumber expr + !firstLineDelta;
         column = match expr.location with
           | Some { Basics.column } -> column
           | _ -> None
@@ -518,9 +531,7 @@ let readExpr bindings =
       in
       { expr with args = args; location = Some location }
     in
-    match !currentLocation with
-      | Some loc -> fixit loc expr
-      | None -> expr
+    fixit expr
   in
 
   let parse source =
@@ -528,26 +539,27 @@ let readExpr bindings =
     match Parseutils.parseIExprs ~fileName:zompShellDummyFileName source with
       | Parseutils.Exprs exprs ->
         let exprs = (List.map fixSourceLocation exprs) in
-        (match exprs with
-          | e :: _ ->
-            printf "parsed at %s:%d\n" (Ast2.fileName e) (Ast2.lineNumber e)
-          | [] -> ());
         Result exprs
       | Parseutils.Error e -> Error [Serror.toString e]
   in
 
-  let rec read wsLines previousLines =
+  let rec read wsLines previousLinesRev =
     if wsLines >= 2 then
-      parse previousLines
+      let source = Common.combine "\n" $ List.rev previousLinesRev in
+      let result = parse source in
+      firstLineDelta := !firstLineDelta + List.length previousLinesRev;
+      result
     else begin
-      let line, previousLines = readSourceLine previousLines in
-      if isWhitespaceString line then
-        read (wsLines + 1) previousLines
-      else
-        read 0 (previousLines ^ "\n" ^ line)
+      let linesRev = readSource previousLinesRev in
+      begin match linesRev with
+        | line :: _ when isWhitespaceString line ->
+          read (wsLines + 1) linesRev
+        | _ ->
+          read 0 linesRev
+      end
     end
   in
-  read 0 ""
+  read 0 []
 
 (** Parsing function which can be called from Zomp/native code. *)
 let parseNativeAst ~fileName str =
