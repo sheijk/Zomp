@@ -3,8 +3,8 @@
 /// This is one checks whether source locations are correect.
 ///
 
-!printDecl off
 
+!printDecl off
 
 
 // this needs to be line 10
@@ -20,6 +20,9 @@ end
 //// print testFuncForPrintSymbol002 12 @ test_print_symbols_locations.zomp
 //// print main 15 @ test_print_symbols_locations.zomp
 
+/// Make sure file names are not relative to Zomp main dir but absolute paths.
+requireLibs utils
+//// print StringMap @ /libs/utils.zomp
 
 
 
