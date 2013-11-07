@@ -532,7 +532,7 @@ editor to trigger recompilations etc. and possibly resume main()"
                       (current-column))
                   (error 0)))
 
-          (let ((w (zomp-symbol-at-point)))
+          (let ((w (zomp-function-before-point)))
             (cond ((looking-at "\\*")
                    (setq left (- left 1)))))
 
@@ -570,7 +570,7 @@ editor to trigger recompilations etc. and possibly resume main()"
         (setq left (- left 2)))
 
       ;; unindent keywords like elseif etc.
-      (when (member (zomp-symbol-at-point) zomp-unindent-keywords)
+      (when (member (zomp-function-before-point) zomp-unindent-keywords)
         (setq left (- left 2)))
 
       (delete-horizontal-space)
@@ -641,7 +641,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     (save-excursion
       (back-to-indentation)
-      (setq wordAtLineBeginning (zomp-symbol-at-point)))
+      (setq wordAtLineBeginning (zomp-function-before-point)))
 
     (unless (eobp)
       (save-excursion
@@ -964,7 +964,9 @@ editor to trigger recompilations etc. and possibly resume main()"
 (defconst zomp-identifier-chars "a-zA-Z0-9:*_")
 (defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*_]*")
 
-(defun zomp-symbol-at-point ()
+(defun zomp-function-before-point ()
+  "Returns the function of the current expression. When curser is at '|'
+f(10, |20) will return f, print 10| will return print, etc."
   (interactive)
   (let ((linestart 0) (parenopen 0) exprstart funcend linesym funcsym)
     (setq linesym
