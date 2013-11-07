@@ -16,9 +16,9 @@ std:base:func int main():
   std:base:ret 0
 end
 
-//// print testVarForPrintSymbol001 11 @test_print_symbols.zomp
-//// print testFuncForPrintSymbol002 12 @test_print_symbols.zomp
-//// print main 15 @test_print_symbols.zomp
+//// print testVarForPrintSymbol001 11 @ test_print_symbols_locations.zomp
+//// print testFuncForPrintSymbol002 12 @ test_print_symbols_locations.zomp
+//// print main 15 @ test_print_symbols_locations.zomp
 
 
 

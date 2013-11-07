@@ -2,19 +2,27 @@
 /// Checking whether !setSourceLocation works
 ///
 
-!echo hello there
-!printAst on
 
+std:base:func char* file():
+  ret std:env:file
+end
 
-
-
+/// this must be line 10
 var int line std:env:line
 
-func int main():
+
+
 !setSourceLocation foo.zomp 100
+func int main():
+  printString file()
+  printString "##"
+  printInt line //// print test_set_source_location.zomp##11
+  printNewline()
+
   printString std:env:file
   printString "##"
-  printInt line //// print foo.zomp##102
+  printInt std:env:line //// print foo.zomp##108
+  printNewline()
   ret 0
 end
 
