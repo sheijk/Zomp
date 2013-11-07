@@ -1005,10 +1005,14 @@ f(10, |20) will return f, print 10| will return print, etc."
       (setq funcsym nil))
     (or exprsym funcsym linesym "nothing found")))
 
+(defun zomp-symbol-at-point ()
+  (let ((w (word-at-point)))
+    (replace-regexp-in-string ":$" "" w)))
+
 (defun zomp-goto-definition ()
   (interactive)
   (let (symbol doc-line source-location file line)
-    (setq symbol (word-at-point))
+    (setq symbol (zomp-symbol-at-point))
     (unless symbol
       (error "No symbol at point"))
     (save-excursion
@@ -1021,9 +1025,11 @@ f(10, |20) will return f, print 10| will return print, etc."
       (setq file (match-string 1 doc-line))
       (setq line (string-to-int (match-string 2 doc-line)))
       (message "Symbol is at file %s line %s" file line))
-    (find-file-existing file)
-    (goto-line line)
-    (recenter)))
+    (if (equal "builtin" file)
+        (message "Symbol %s is a compiler built-in" symbol)
+      (find-file-existing file)
+      (goto-line line)
+      (recenter))))
 
 (defun zomp-get-doc-line-for-symbol (symbol)
   (condition-case nil
