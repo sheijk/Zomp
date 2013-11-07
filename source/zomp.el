@@ -1027,6 +1027,7 @@ f(10, |20) will return f, print 10| will return print, etc."
       (message "Symbol is at file %s line %s" file line))
     (if (equal "builtin" file)
         (message "Symbol %s is a compiler built-in" symbol)
+      (ring-insert find-tag-marker-ring (point-marker))
       (find-file-existing file)
       (goto-line line)
       (recenter))))
