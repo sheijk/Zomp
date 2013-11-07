@@ -492,15 +492,13 @@ let readExpr bindings =
       end else
         readSource ("" :: previousLinesRev)
     in
-    if List.length previousLinesRev = 0 then
+    if List.length previousLinesRev = 0 || not (List.exists (fun s -> String.length s > 0) previousLinesRev) then
       printf "%s" !defaultPrompt
     else
       printf "%s" !continuedPrompt;
     flush stdout;
 
     let line = read_line() in
-    (* printf "read line %d %s\n" (1 + List.length previousLinesRev + !firstLineDelta) line; *)
-    (* flush stdout; *)
 
     if line |> beginsWith silentPrefix then begin
       let command = removeBeginning line (String.length silentPrefix + 1) in
