@@ -84,14 +84,14 @@ end
 //------------------------------------------------------------------------------
 // Section main
 
+var float angle 0.0
+
 func int main():
   if isNull(app):
     app = new AppInfo
     app*.fsaaSamples = 4
   end
   init(app)
-
-  angle := 0.0
 
   glowShader := createShader /*varying*/"
   #version 120
@@ -193,12 +193,13 @@ func int main():
         glColor4f 1. 1. 1. 1.
         // glqtPrintfAt 0.0d 0.0d 0.0d (1.0d / 10.0d) "hello!"
       end
-
     end
 
     glUseProgram 0
-
   end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
 
   glDeleteShader glowShader
   glDeleteShader hemiShader
