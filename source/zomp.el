@@ -448,7 +448,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (interactive)
   (when (zomp-get-shell-buffer)
     (with-current-buffer zomp-shell-buffer-name
-      (comint-interrupt-subjob))))
+      (interrupt-process nil comint-ptyp))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -462,7 +462,13 @@ editor to trigger recompilations etc. and possibly resume main()"
            (zomp-shell-do ,command)))
     `(defun ,name () (interactive) (zomp-shell-do ,command))))
 
-(zomp-dofun zomp-shell-exit "!exit" "Really quit running shell? ")
+(defun zomp-shell-exit ()
+  "Will abort running program and kill Zomp shell."
+  (interactive)
+  (when (y-or-n-p "Really quit running shell? ")
+    (zomp-request-execution-abort)
+    (zomp-shell-do "!exit")))
+
 (zomp-dofun zomp-shell-list-all-bindings "!bindings")
 (zomp-dofun zomp-shell-help "!help")
 (zomp-dofun zomp-shell-toggle-llvm-printing "!llvm")
