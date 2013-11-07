@@ -182,7 +182,10 @@ use global one"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; shell interaction
 
-(defvar zomp-shell-buffer-name "*zomp-shell*"
+(defvar zomp-shell-buffer-name-base "zomp-shell"
+  "The base name of the buffer in which the zomp shell runs")
+
+(defvar zomp-shell-buffer-name (format "*%s*" zomp-shell-buffer-name-base)
   "The name of the buffer in which the zomp shell runs")
 
 (defvar zomp-build-architecture "i386"
@@ -210,18 +213,19 @@ and the architecture like this: \"variant-architecture\"."
 (defun zomp-shell ()
   (interactive)
   (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name)
-        (oldwin (selected-window)))
-    (let ((default-directory zomp-basedir)
-          (explicit-shell-file-name (zomp-zompsh-command))
-          (explicit-zompsh-args nil))
-      (shell zomp-shell-buffer-name))
-    ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
-    ;; has the same value in the shell buffer as in the zomp buffer invoking
-    ;; the shell
-    (zomp-shell-mode)
-    (set (make-local-variable 'zomp-shell-buffer-name) zomp-new-shell-buffer-name)
-    (message "Started zomp shell")
-    (select-window oldwin)))
+        (default-directory zomp-basedir))
+    (display-buffer
+     (save-window-excursion
+       (set-buffer (make-comint zomp-shell-buffer-name-base (zomp-zompsh-command)))
+       (unless (equal (buffer-name) zomp-new-shell-buffer-name)
+         (error (format "expected comint buffer to be named %s" zomp-shell-buffer-name)))
+       ;; in case zomp-shell-buffer-name is buffer local we need to be sure it
+       ;; has the same value in the shell buffer as in the zomp buffer invoking
+       ;; the shell
+       (zomp-shell-mode)
+       (set (make-local-variable 'zomp-shell-buffer-name) zomp-new-shell-buffer-name)
+       (current-buffer)))
+    (message "Started zomp shell")))
 
 (defun zomp-get-shell-buffer (&optional create-if-not-existing)
   "Get the zomp shell interaction buffer. If `create-if-not-existing' is equal
@@ -254,8 +258,10 @@ windows displaying it"
     (select-window original-window)))
 
 (defun zomp-make-buffer-local-shell ()
-  (make-variable-buffer-local 'zomp-shell-buffer-name)
-  (setq zomp-shell-buffer-name (format "*zomp-shell<%s>*" (buffer-name))))
+  (set (make-variable-buffer-local 'zomp-shell-buffer-name-base)
+       (format "zomp-shell<%s>" (buffer-name)))
+  (set (make-variable-buffer-local 'zomp-shell-buffer-name)
+       (format "*%s*" zomp-shell-buffer-name-base)))
 
 (defun zomp-start-or-show-shell (&optional prefix)
   "Shows the shell in a buffer and starts it if it wasn't
@@ -267,8 +273,7 @@ windows displaying it"
          (if (not (zomp-get-shell-buffer))
              (zomp-shell)
            (let ((oldwin (selected-window)))
-             (switch-to-buffer-other-window (get-buffer zomp-shell-buffer-name))
-             (select-window oldwin))))
+             (display-buffer (get-buffer zomp-shell-buffer-name)))))
         (t
          (zomp-make-buffer-local-shell)
          (unless (zomp-get-shell-buffer)
