@@ -1044,12 +1044,16 @@ f(10, |20) will return f, print 10| will return print, etc."
           (concat symbol ": " (buffer-substring startpos (point)))))
     (error nil)))
 
+(defun zomp-get-short-doc-for-symbol (symbol)
+  (let ((docline (zomp-get-doc-line-for-symbol symbol)))
+    (replace-regexp-in-string " @.*" "" docline)))
+
 (defun zomp-get-eldoc-string ()
   (let ((symbol "???"))
     (ignore-errors
       (save-excursion
         (zomp-build-symbol-buffer)
-        (zomp-get-doc-line-for-symbol (zomp-symbol-at-point))))))
+        (zomp-get-short-doc-for-symbol (zomp-symbol-at-point))))))
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
