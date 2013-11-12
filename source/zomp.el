@@ -795,6 +795,10 @@ editor to trigger recompilations etc. and possibly resume main()"
   ;; display documentation for methods/macros/... in status line
   (set (make-local-variable 'eldoc-documentation-function) 'zomp-get-eldoc-string)
   (eldoc-mode t)
+  (make-variable-buffer-local 'ac-sources)
+  (add-to-list 'ac-sources 'zomp-ac-source)
+  (ignore-errors
+    (auto-complete-mode 1))
 
   ;; auto indenting
   (setq indent-line-function 'zomp-indent-line)
@@ -1003,7 +1007,7 @@ f(10, |20) will return f, print 10| will return print, etc."
                 (buffer-substring (point) funcend)))))
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
-    (or exprsym funcsym linesym "nothing found")))
+    (replace-regexp-in-string ":$" "" (or exprsym funcsym linesym "nothing found"))))
 
 (defun zomp-symbol-at-point ()
   (let ((w (word-at-point)))
@@ -1011,49 +1015,86 @@ f(10, |20) will return f, print 10| will return print, etc."
 
 (defun zomp-goto-definition ()
   (interactive)
-  (let (symbol doc-line source-location file line)
+  (let (symbol info file line)
     (setq symbol (zomp-symbol-at-point))
     (unless symbol
       (error "No symbol at point"))
     (save-excursion
       (zomp-build-symbol-buffer)
-      (setq doc-line (zomp-get-doc-line-for-symbol symbol))
-      (unless doc-line
+      (setq info (zomp-symbol-info symbol))
+      (unless info
         (error "Symbol \"%s\" is not defined anywhere" symbol))
-      (unless (string-match ".* @\\([a-zA-Z_0-9\\./-]*\\):\\([0-9]+\\)" doc-line)
-        (error "Symbol \"%s\" does not have location info" symbol))
-      (setq file (match-string 1 doc-line))
-      (setq line (string-to-int (match-string 2 doc-line)))
+      (setq file (plist-get info :file))
+      (setq line (plist-get info :line))
       (message "Symbol is at file %s line %s" file line))
     (if (equal "builtin" file)
         (message "Symbol %s is a compiler built-in" symbol)
-      (ring-insert find-tag-marker-ring (point-marker))
+      (ignore-errors
+        (require 'etags)
+        (ring-insert find-tag-marker-ring (point-marker)))
       (find-file-existing file)
       (goto-line line)
       (recenter))))
 
 (defun zomp-get-doc-line-for-symbol (symbol)
-  (condition-case nil
-      (save-excursion
-        (set-buffer (get-buffer-create zomp-symbol-buffer))
-        (goto-char (point-max))
-        (search-backward-regexp (concat "^" symbol " ="))
-        (search-forward " =")
-        (let ((startpos (point)))
-          (end-of-line)
-          (concat symbol ": " (buffer-substring startpos (point)))))
-    (error nil)))
+  (and symbol
+       (ignore-errors
+         (save-excursion
+           (set-buffer (get-buffer-create zomp-symbol-buffer))
+           (goto-char (point-max))
+           (search-backward-regexp (format "^%s =" symbol))
+           (buffer-substring
+            (point)
+            (save-excursion
+              (end-of-line 1)
+              (point)))))))
 
-(defun zomp-get-short-doc-for-symbol (symbol)
-  (let ((docline (zomp-get-doc-line-for-symbol symbol)))
-    (replace-regexp-in-string " @.*" "" docline)))
+(defun zomp-split-doc-line (docline)
+  (when (and docline
+             (string-match "\\([a-zA-Z0-9_]+\\) =\\([^@]+\\) @\\(.*\\):\\([0-9]+\\):\\([0-9]+\\)" docline))
+    (list :name (match-string 1 docline)
+          :short-doc (match-string 2 docline)
+          :file (match-string 3 docline)
+          :line (string-to-number (match-string 4 docline))
+          :column (string-to-number (match-string 5 docline)))))
+
+(defun zomp-symbol-info (symbol)
+  (zomp-split-doc-line (zomp-get-doc-line-for-symbol symbol)))
 
 (defun zomp-get-eldoc-string ()
-  (let ((symbol "???"))
-    (ignore-errors
-      (save-excursion
-        (zomp-build-symbol-buffer)
-        (zomp-get-short-doc-for-symbol (zomp-symbol-at-point))))))
+  (ignore-errors
+    (zomp-build-symbol-buffer)
+    (let ((info (zomp-symbol-info (zomp-function-before-point))))
+      (when info
+        (format "%s: %s"
+                (plist-get info :name)
+                (plist-get info :short-doc))))))
+
+(defun zomp-ac-symbols-source ()
+  (ignore-errors
+    (save-excursion
+      (zomp-build-symbol-buffer)
+      (set-buffer (get-buffer-create zomp-symbol-buffer))
+      (let ((lines (split-string (buffer-string) "\n" t)))
+        (mapcar (lambda (line)
+                  (plist-get (zomp-split-doc-line line) :name))
+                lines)))))
+
+(defun zomp-ac-help (symbol)
+  (ignore-errors
+    (let ((info (zomp-symbol-info symbol)))
+      (if info
+          (format "%s\n%s\n\n%s:%s"
+                  (plist-get info :name)
+                  (plist-get info :short-doc)
+                  (plist-get info :file)
+                  (plist-get info :line))
+        (format "no help for %s" symbol)))))
+
+(defvar zomp-ac-source
+  '((candidates . zomp-ac-symbols-source)
+    (document . zomp-ac-help))
+  "auto-complete source for Zomp.")
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
