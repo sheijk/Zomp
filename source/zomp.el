@@ -1051,12 +1051,12 @@ f(10, |20) will return f, print 10| will return print, etc."
 
 (defun zomp-split-doc-line (docline)
   (when (and docline
-             (string-match "\\([a-zA-Z0-9_]+\\) =\\([^@]+\\) @\\(.*\\):\\([0-9]+\\):\\([0-9]+\\)" docline))
+             (string-match "\\([a-zA-Z0-9_:]+\\) =\\([^@\n]+\\)\\(?: @\\([^:]*\\):\\([0-9]+\\)\\(:[0-9]+\\)?\\)?$" docline))
     (list :name (match-string 1 docline)
           :short-doc (match-string 2 docline)
-          :file (match-string 3 docline)
-          :line (string-to-number (match-string 4 docline))
-          :column (string-to-number (match-string 5 docline)))))
+          :file (ignore-errors (match-string 3 docline))
+          :line (ignore-errors (string-to-number (match-string 4 docline)))
+          :column (ignore-errors (string-to-number (match-string 5 docline))))))
 
 (defun zomp-symbol-info (symbol)
   (zomp-split-doc-line (zomp-get-doc-line-for-symbol symbol)))
@@ -1087,8 +1087,8 @@ f(10, |20) will return f, print 10| will return print, etc."
           (format "%s\n%s\n\n%s:%s"
                   (plist-get info :name)
                   (plist-get info :short-doc)
-                  (plist-get info :file)
-                  (plist-get info :line))
+                  (or (plist-get info :file) "unknown")
+                  (or (plist-get info :line) 0))
         (format "no help for %s" symbol)))))
 
 (defvar zomp-ac-source
