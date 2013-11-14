@@ -452,8 +452,8 @@ editor to trigger recompilations etc. and possibly resume main()"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro zomp-add-seperator (seperator-id)
-  `(local-set-key [menu-bar zomp ,seperator-id] '("--")))
+(defmacro zomp-add-seperator ()
+  `(local-set-key [menu-bar zomp ,(gensym "zomp-seperator")] '("--")))
 
 (defmacro zomp-dofun (name command &optional confirm-msg)
   (if confirm-msg
@@ -843,7 +843,7 @@ editor to trigger recompilations etc. and possibly resume main()"
 
   (local-set-key [(control c) (?.) (?D)] 'zomp-toggle-variant)
 
-  (zomp-add-seperator zomp-sep-3)
+  (zomp-add-seperator)
   (zomp-add-action zomp-shell-run [(control c)(control d)] "Run function...")
   (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
   (zomp-add-action zomp-test-current-file [(control c)(control c)] "Test current file")
@@ -851,11 +851,11 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
   (zomp-add-action zomp-shell-help [(control c)(control ??)] "Show Zomp shell help")
 
-  (zomp-add-seperator zomp-sep4)
+  (zomp-add-seperator)
   (zomp-add-action zomp-indent-current-or-fill [(meta q)] "Indent current")
   (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
 
-  (zomp-add-seperator zomp-sep-2)
+  (zomp-add-seperator)
   (zomp-add-action zomp-shell-discard-input [(control c)(control l)] "Discard entered text")
   (zomp-add-action zomp-shell-eval-buffer [(control c)(control b)] "Eval buffer")
   (zomp-add-action zomp-shell-eval-region [(control c)(control r)] "Eval region")
@@ -865,7 +865,7 @@ editor to trigger recompilations etc. and possibly resume main()"
                    "Eval function at point and goto next")
   (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Enter code to run")
 
-  (zomp-add-seperator zomp-sep-1)
+  (zomp-add-seperator)
   (zomp-add-action zomp-start-or-show-shell
                    [(control c)(control s)]
                    "Start Zomp shell")
