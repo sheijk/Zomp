@@ -1777,29 +1777,30 @@ end
 Make error handling and tracking of source locations robust enough that Zomp
 could be tried by external users. Also fix all known bugs in the test suite.
 
-- all error messages must have correct source location
-- all error messages should be meaningful
-- all errors and warnings need to have an id and documentation
-- compiler can be used from outside project dir
-- don't prefix all .ll files with code from prelude
-- installation step
+- [ ] all error messages must have correct source location
+- [ ] all error messages should be meaningful
+- [ ] all errors and warnings need to have an id and documentation
+- [ ] compiler can be used from outside project dir
+- [ ] don't prefix all .ll files with code from prelude
+- [ ] installation step
 
 Next up:
 - [X] add column to source locations
 - [X] add source locations to native ast type
-- [ ] add source locations to macros and Bindings.TypedefSymbol and builtin macros/types
-- [ ] automatically generate source location for expressions created in macros
-- [ ] "no translator matched expression" must go away
-- [-] proper statistics module [[file:stats.org][Stats]]
+- [X] add source locations to macros and Bindings.TypedefSymbol and builtin macros/types
+- [X] automatically generate source location for expressions created in macros
+- [X] proper statistics module [[file:stats.org][Stats]]
   - [X] implement for c++, OCaml and Zomp
   - [X] add to test reports
-  - [ ] move all existing stats to new system
+  - [X] move all existing stats to new system
+- [ ] "no translator matched expression" must go away
+- [ ] report multiple errors
 
 Minor tasks:
-- useful handling of ret at end of function
+- [ ] useful handling of ret at end of function
   identify "terminating" basic blocks, do not require return at unreachable
   basic blocks
-- find good error handling strategy?
+- [ ] find good error handling strategy?
   get inspired by go and common lisp restarts, maybe with a hint of monads
   - errors must be ignored explicitly
   - allow it to automate reaction to errors and cleanup
@@ -1821,6 +1822,15 @@ Minor tasks:
 - de-optimization
 - allow debugging right from within VM
 - html based IDE?
+
+*** emacs plugin
+
+- [X] eldoc support
+- [X] code navigation
+- [X] completion
+- [ ] more uniform format for *zomp-symbols*
+  CSV file or or json?
+- [ ] doxygen style documentation
 
 * Use Cases                                                            :usecase:
 ** Examples
