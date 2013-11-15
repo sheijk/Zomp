@@ -78,7 +78,8 @@ evaluated.")
 //// error type
 The word \"error\" will be highlighted in this face.")
 
-(defvar zomp-mode-hook nil)
+(defvar zomp-mode-hook nil
+  "Hook that will be run after entering zomp-mode.")
 
 (defun zomp-goto-match-paren (arg)
   "Go to the matching parenthesis if on paranthesis. Else go to the
@@ -99,30 +100,38 @@ The word \"error\" will be highlighted in this face.")
                          (backward-char 1)))
                   ))))))
 
-(setq zomp-toplevel-expr-regexp "^[a-z(]")
+(defconst zomp-toplevel-expr-regexp "^[a-z(]"
+  "Regular expression to match the beginning of a toplevel expression.")
 
-(defvar zomp-imenu-generic-expression nil)
+(defconst zomp-identifier-chars "a-zA-Z0-9:*_"
+  "Valid characters in Zomp identifiers.")
+(defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*_]*"
+  "Regular expression to match a valid Zomp identifier.")
+
 (defun zomp-id (str)
+  "Helper function to produce imenu expressions. In the given string ID will be
+replaced with a regular expression matching a Zomp identifier. This is not using
+`zomp-identifier-regexp' because imenu is a bit more liberal about identifiers
+to also match op_, preop_, and postop_
+TODO: unify this"
   (replace-regexp-in-string "ID" "\\(?:[a-zA-Z0-9:*+-/!=><_|&^]\\|\\[\\|\\]\\)+" str t t))
-(setq zomp-imenu-generic-expression
-      `((nil ,(zomp-id "^(?macro +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?ofunc +ID +\\(ID(ID\\)") 1)
-        (nil ,(zomp-id "^(?std:base:func +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?var +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?const +ID +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?type +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?struct +\\(ID\\):") 1)
-        (nil ,(zomp-id "^(?template +\\(ID\\)") 1)
-        (nil ,(zomp-id "^(?alias +\\(ID\\)") 1)
-        (nil ,(zomp-id "^\\(/// *.* *///\\) *$") 1)
-        (nil ,(zomp-id "^\\(/// +Section: +.*\\)") 1)
-        (nil ,(zomp-id "^(?unittest:testCase +\\(ID\\)") 1)
-        (nil "^testf *$" 0)
-        ))
 
-(defun zomp-onkey-do (key code)
-  (local-set-key key `(lambda () (interactive) (zomp-shell-do ,code))))
+(defvar zomp-imenu-generic-expression
+  `((nil ,(zomp-id "^(?macro +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?ofunc +ID +\\(ID(ID\\)") 1)
+    (nil ,(zomp-id "^(?std:base:func +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?var +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?const +ID +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?type +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?struct +\\(ID\\):") 1)
+    (nil ,(zomp-id "^(?template +\\(ID\\)") 1)
+    (nil ,(zomp-id "^(?alias +\\(ID\\)") 1)
+    (nil ,(zomp-id "^\\(/// *.* *///\\) *$") 1)
+    (nil ,(zomp-id "^\\(/// +Section: +.*\\)") 1)
+    (nil ,(zomp-id "^(?unittest:testCase +\\(ID\\)") 1)
+    (nil "^testf *$" 0))
+  "A list of regular expressions that will be used to identify imenu items.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; support for find file at point (ffap)
@@ -144,6 +153,11 @@ invoked. Used by zomp-ff-extract-lib.")
                (progn (search-forward-regexp illegal-char) (backward-char 1) (point))))))))
 
 (defun zomp-ff-extract-lib ()
+  "Will produce the file name for the lib under point which is stored in
+`zomp-symbol-at-point-before-ff'.
+
+TODO: check if this will work with source files that are not inside the compiler
+source repository."
   (format "../libs/%s.zomp" zomp-symbol-at-point-before-ff))
 
 (defcustom zomp-ff-special-constructs
@@ -153,6 +167,7 @@ use global one"
   :group 'zomp)
 
 (defun zomp-ffap-init ()
+  "Initialize support for `find-file-at-point' support."
   (add-hook 'ff-pre-find-hook 'zomp-ff-pre-find-hook)
   (make-variable-buffer-local 'ff-special-constructs)
   (setq ff-special-constructs zomp-ff-special-constructs))
@@ -176,8 +191,7 @@ use global one"
         (backward-char)
         (if (looking-at "end")
             (forward-word)
-          (goto-char next-line-pos)))
-      )))
+          (goto-char next-line-pos))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; shell interaction
@@ -210,7 +224,9 @@ and the architecture like this: \"variant-architecture\"."
   (set (make-variable-buffer-local 'comint-prompt-regexp) "  # ")
   (compilation-shell-minor-mode))
 
-(defun zomp-shell ()
+(defun zomp-start-shell ()
+  "Will create a comint buffer in which zompsh will be started. Uses
+`zomps-zompsh-command' to determine executable and options."
   (interactive)
   (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name)
         (default-directory zomp-basedir))
@@ -233,7 +249,7 @@ and the architecture like this: \"variant-architecture\"."
   (or
    (get-buffer-process zomp-shell-buffer-name)
    (when (equal create-if-not-existing 'create)
-     (zomp-shell)
+     (zomp-start-shell)
      (get-buffer-process zomp-shell-buffer-name))))
 
 (defun zomp-toggle-variant ()
@@ -257,7 +273,8 @@ windows displaying it"
       (goto-char (point-max)))
     (select-window original-window)))
 
-(defun zomp-make-buffer-local-shell ()
+(defun zomp-prepare-use-buffer-local-shell ()
+  "Will setup local variables to use a buffer local shell buffer."
   (set (make-variable-buffer-local 'zomp-shell-buffer-name-base)
        (format "zomp-shell<%s>" (buffer-name)))
   (set (make-variable-buffer-local 'zomp-shell-buffer-name)
@@ -271,13 +288,13 @@ windows displaying it"
   (interactive "P")
   (cond ((null prefix)
          (if (not (zomp-get-shell-buffer))
-             (zomp-shell)
+             (zomp-start-shell)
            (let ((oldwin (selected-window)))
              (display-buffer (get-buffer zomp-shell-buffer-name)))))
         (t
-         (zomp-make-buffer-local-shell)
+         (zomp-prepare-use-buffer-local-shell)
          (unless (zomp-get-shell-buffer)
-           (zomp-shell)))))
+           (zomp-start-shell)))))
 
 (defun zomp-shell-do (code &optional create-if-not-existing append)
   "Send some text to the zomp shell. If
@@ -292,13 +309,15 @@ windows displaying it"
     (process-send-string (zomp-get-shell-buffer) "!prompt #")))
 
 (defun zomp-shell-run-immediate (&optional code)
+  "Will run the given Zomp code as if it was inside a function body."
   (interactive)
   (unless code
     (setq code (read-from-minibuffer "Code: ")))
   (let ((function-code (format "std:base:run:\n  %s\nend\n\n\n" code)))
-    (zomp-shell-do function-code)))
+    (zomp-shell-do function-code 'create)))
 
-(defun zomp-shell-run (funcname)
+(defun zomp-shell-run-function (funcname)
+  "Will execute the given function in the Zomp shell."
   (interactive "MName of function: ")
   (when (= 0 (length funcname))
     (setq funcname "main"))
@@ -306,10 +325,13 @@ windows displaying it"
   (zomp-shell-do (concat "!run " funcname)))
 
 (defun zomp-shell-list-bindings (regexps)
+  "Will list all known symbols (functions, variables, macros, types, etc.) in zompsh."
   (interactive "MList bindings matching: ")
   (zomp-shell-do (concat "!bindings " regexps)))
 
 (defun zomp-shell-update-source-location (&optional pos)
+  "Will set the source location of the running zompsh process. Code evaluated
+following this command will have source locations relative to pos."
   (setq pos (or pos (region-beginning)))
   (let* ((line (save-restriction
                  (widen)
@@ -320,10 +342,11 @@ windows displaying it"
     (zomp-shell-do cmd)))
 
 (defun zomp-shell-eval-region ()
+  "Will send the region between `mark' and `point' to the zompsh process."
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating region"))
-  (zomp-request-execution-abort)
+  (zomp-shell-request-execution-abort)
   (when (fboundp 'nav-flash-show)
     (save-window-excursion
       (nav-flash-show (region-beginning)
@@ -334,6 +357,7 @@ windows displaying it"
   (zomp-shell-do (buffer-substring (region-beginning) (region-end)) nil ""))
 
 (defun zomp-shell-eval-current ()
+  "Will send the current toplevel expression `point' is in to the Zomp shell."
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating function at point"))
@@ -343,11 +367,14 @@ windows displaying it"
   (zomp-shell-move-point-to-end))
 
 (defun zomp-shell-eval-current-and-goto-next ()
+  "Will call `zomp-shell-eval-current' and navigate to the beginning of the next
+toplevel expression."
   (interactive)
   (call-interactively 'zomp-shell-eval-current)
   (zomp-next-toplevel-expr))
 
 (defun zomp-next-toplevel-expr ()
+  "Will move `point' to the beginning of the next toplevel expression."
   (interactive)
   (forward-char)
   (search-forward-regexp zomp-toplevel-expr-regexp)
@@ -358,6 +385,7 @@ windows displaying it"
     (backward-char)))
 
 (defun zomp-prev-toplevel-expr ()
+  "Will move `point' to the beginning of the next toplevel expression."
   (interactive)
   (backward-char)
   (search-backward-regexp zomp-toplevel-expr-regexp)
@@ -366,6 +394,7 @@ windows displaying it"
     (search-backward-regexp zomp-toplevel-expr-regexp)))
 
 (defun zomp-shell-eval-buffer ()
+  "Will send the current buffer to the Zomp shell."
   (interactive)
   (when (called-interactively-p)
     (message "Evaluating buffer"))
@@ -374,10 +403,13 @@ windows displaying it"
   (zomp-shell-move-point-to-end))
 
 (defun zomp-shell-discard-input ()
+  "Will tell Zomp shell to discard all input submitted that has not been
+evaluated, yet."
   (interactive)
   (zomp-shell-do "!"))
 
 (defun zomp-shell-run-test ()
+  "Will run the function called test in the Zomp shell."
   (interactive)
   (when (called-interactively-p)
     (message "Running function test"))
@@ -429,16 +461,16 @@ so you can use this as a quick way to start working on a project.
 Run this with a prefix to start a shell specific to this buffer"
   (interactive "P")
   (when prefix
-    (zomp-make-buffer-local-shell))
+    (zomp-prepare-use-buffer-local-shell))
   (if (zomp-get-shell-buffer)
       (progn
-        (zomp-request-execution-abort)
+        (zomp-shell-request-execution-abort)
         (zomp-shell-eval-current))
     (zomp-start-or-show-shell prefix)
     (zomp-shell-eval-buffer))
   (zomp-shell-run-test))
 
-(defun zomp-request-execution-abort ()
+(defun zomp-shell-request-execution-abort ()
   "Send a signal to the shell to request it to abort the
 current main() execution.
 
@@ -452,10 +484,9 @@ editor to trigger recompilations etc. and possibly resume main()"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro zomp-add-seperator ()
-  `(local-set-key [menu-bar zomp ,(gensym "zomp-seperator")] '("--")))
-
 (defmacro zomp-dofun (name command &optional confirm-msg)
+  "Utility to define a method that will evaluate the given string in the Zomp
+shell. If `confirm-msg' is t the function will ask for confirmation."
   (if confirm-msg
       `(defun ,name () (interactive)
          (when (y-or-n-p ,confirm-msg)
@@ -466,7 +497,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   "Will abort running program and kill Zomp shell."
   (interactive)
   (when (y-or-n-p "Really quit running shell? ")
-    (zomp-request-execution-abort)
+    (zomp-shell-request-execution-abort)
     (zomp-shell-do "!exit")))
 
 (zomp-dofun zomp-shell-list-all-bindings "!bindings")
@@ -488,24 +519,22 @@ editor to trigger recompilations etc. and possibly resume main()"
   (zomp-shell-do "!")
   (zomp-shell-do "!syntax sexpr"))
 
+(defmacro zomp-add-seperator ()
+  "Will add a seperator line to the Zomp mode menu."
+  `(local-set-key [menu-bar zomp ,(gensym "zomp-seperator")] '("--")))
+
 (defmacro zomp-add-action (command key caption &rest path)
+  "Will add a command with a key binding to the Zomp menu."
   `(list (local-set-key ,key (quote ,command))
          (local-set-key [menu-bar zomp ,@path ,command] '(,caption . ,command))))
 
-(defun zomp-forward-sexp ()
-  (interactive)
-  (forward-sexp) )
-
-(defun zomp-backward-sexp ()
-  (interactive)
-  (backward-sexp) )
-
 (defun zomp-current-line ()
-  "Return number of current line in current buffer
-    (provided by `zomp.el` because it was not defined)"
+  "Helper function which returns number of current line in current buffer."
   (count-lines (point-min) (if (eobp) (point) (1+ (point)))))
 
 (defun zomp-indent-line ()
+  "Will indent the current line. Tries to be smart about various situation but
+still screws up sometimes. Please file bug reports!"
   (interactive)
   (let ((left 0) (oldindent 0))
     (save-excursion
@@ -578,16 +607,19 @@ editor to trigger recompilations etc. and possibly resume main()"
 
     ;; place cursor correctly on newline-and-indent
     (when (equal (current-column) 0)
-      (back-to-indentation))
-    ))
+      (back-to-indentation))))
 
 (defun zomp-point-is-in-comment (pt)
+  "Will return true if the `point' is in a comment based on font-lock text
+properties."
   (interactive "d")
   (let ((prop (get-char-property pt 'face)))
     (or (equal prop 'font-lock-comment-face)
         (equal prop 'font-lock-doc-face))))
 
 (defun zomp-indent-current-or-fill ()
+  "Inside comments this will call `fill-paragraph'. Everywhere else this will
+indent the current toplevel expression."
   (interactive)
   (if (zomp-point-is-in-comment (point))
       (fill-paragraph nil)
@@ -596,11 +628,14 @@ editor to trigger recompilations etc. and possibly resume main()"
       (indent-region (region-beginning) (region-end)))))
 
 (defun zomp-indent-buffer ()
+  "Will auto indent the whole buffer. Use this with great care!"
   (interactive)
   (save-excursion
     (indent-region 0 (buffer-end 1))))
 
 (defun zomp-current-line-indent ()
+  "Helper method which returns the number of spaces at the beginning of the
+current line."
   (let (lineBegin)
     (save-excursion
       (beginning-of-line)
@@ -609,6 +644,8 @@ editor to trigger recompilations etc. and possibly resume main()"
       (- (point) lineBegin))))
 
 (defun zomp-newline ()
+  "A smart newline function that will indent and insert various kinds of text
+depending on context."
   (interactive)
 
   (let ((isComment nil)
@@ -719,12 +756,6 @@ editor to trigger recompilations etc. and possibly resume main()"
   (save-excursion
     (let ((start (save-excursion (beginning-of-line) (point)))
           (column (save-excursion (back-to-indentation) (current-column))))
-      ;; (save-excursion
-      ;;   (while (progn (back-to-indentation)
-      ;;                 (>= (current-column) column))
-      ;;     (previous-line))
-      ;;   (beginning-of-line)
-      ;;   (setq start (point)))
       (next-line)
       (while (progn (back-to-indentation)
                     (or (eolp)
@@ -732,8 +763,7 @@ editor to trigger recompilations etc. and possibly resume main()"
         (next-line))
       (next-line)
       (beginning-of-line)
-      (comment-region start (point))
-      )))
+      (comment-region start (point)))))
 
 (defun zomp-move-up (count)
   "Move cursor up one indentation level"
@@ -759,6 +789,8 @@ editor to trigger recompilations etc. and possibly resume main()"
     (zomp-move-up (- count 1))))
 
 (defun zomp-move-until-same-or-less-indent (line-change-func)
+  "Helper method moving the `point' line until a line is reached whose
+indentation is the same or less than the line where we started."
   (let ((initial-indent (save-excursion
                            (back-to-indentation)
                            (current-column))))
@@ -770,14 +802,17 @@ editor to trigger recompilations etc. and possibly resume main()"
       (funcall line-change-func))))
 
 (defun zomp-next-block (arg)
+  "Will move `point' to the next line at the same indentation level."
   (interactive "P")
   (zomp-move-until-same-or-less-indent 'next-line))
 
 (defun zomp-prev-block (arg)
+  "Will move `point' to the previous line at the same indentation level."
   (interactive "P")
   (zomp-move-until-same-or-less-indent 'previous-line))
 
 (defun zomp-setup ()
+  "Setup function for `zomp-mode'."
   (setq comment-start "//")
   (setq comment-start-skip "\\(?://+\\|/\\*+\\) *")
   (setq comment-end "")
@@ -844,7 +879,7 @@ editor to trigger recompilations etc. and possibly resume main()"
   (local-set-key [(control c) (?.) (?D)] 'zomp-toggle-variant)
 
   (zomp-add-seperator)
-  (zomp-add-action zomp-shell-run [(control c)(control d)] "Run function...")
+  (zomp-add-action zomp-shell-run-function [(control c)(control d)] "Run function...")
   (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
   (zomp-add-action zomp-test-current-file [(control c)(control c)] "Test current file")
   (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
@@ -870,17 +905,18 @@ editor to trigger recompilations etc. and possibly resume main()"
                    [(control c)(control s)]
                    "Start Zomp shell")
   (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
-  (zomp-add-action zomp-request-execution-abort
+  (zomp-add-action zomp-shell-request-execution-abort
                    [(control c)(control k)]
                    "Request app to pause")
 
 
   ;; set additional keys on OS X
   (local-set-key [(alt r)]' zomp-run)
+  (local-set-key [(alt shift r)]' zomp-shell-run-test)
+  (local-set-key [(alt d)] 'zomp-shell-run-immediate)
+  (local-set-key [(alt shift d)] 'zomp-shell-run-function)
   (local-set-key [(alt e)] 'zomp-shell-eval-current)
   (local-set-key [(alt shift e)] 'zomp-shell-eval-current-and-goto-next)
-  (local-set-key [(alt d)] 'zomp-shell-run)
-  (local-set-key [(alt shift d)] 'zomp-shell-run-test)
 
   ;; (outline-minor-mode t)
   ;; (setq outline-regexp "\\([a-df-z]\\| *\\(if\\|else\\|while\\)\\)")
@@ -951,10 +987,14 @@ editor to trigger recompilations etc. and possibly resume main()"
   (list 'zomp-setup)
   "A simple mode for the zomp language")
 
-(defvar zomp-symbol-file "/tmp/zomp-symbols")
-(defvar zomp-symbol-buffer "*zomp-symbols*")
+(defvar zomp-symbol-file "/tmp/zomp-symbols"
+  "File into which Zomp shell is asked to write symbols.")
+(defvar zomp-symbol-buffer "*zomp-symbols*"
+  "Name of the buffer which contains symbols of the Zomp shell.")
 
 (defun zomp-build-symbol-buffer ()
+  "Will ask Zomp shell to write all symbols to a file `zomp-symbol-file' and
+load it into buffer `zomp-symbol-buffer'."
   (interactive)
   (save-excursion
     ;; TODO: why this order and not update file first?
@@ -964,9 +1004,6 @@ editor to trigger recompilations etc. and possibly resume main()"
     (process-send-string
      (zomp-get-shell-buffer)
      (concat "!silent !writeSymbols " zomp-symbol-file ""))))
-
-(defconst zomp-identifier-chars "a-zA-Z0-9:*_")
-(defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*_]*")
 
 (defun zomp-function-before-point ()
   "Returns the function of the current expression. When curser is at '|'
@@ -1010,10 +1047,14 @@ f(10, |20) will return f, print 10| will return print, etc."
     (replace-regexp-in-string ":$" "" (or exprsym funcsym linesym "nothing found"))))
 
 (defun zomp-symbol-at-point ()
+  "Return the Zomp identifier at point."
   (let ((w (word-at-point)))
     (replace-regexp-in-string ":$" "" w)))
 
 (defun zomp-goto-definition ()
+  "Navigate to the definition of symbol at point. This mimics `find-tag' but
+uses the feedback from the Zomp shell.
+TODO: feedback when Zomp shell is missing, fall back on imenu"
   (interactive)
   (let (symbol info file line)
     (setq symbol (zomp-symbol-at-point))
@@ -1037,6 +1078,8 @@ f(10, |20) will return f, print 10| will return print, etc."
       (recenter))))
 
 (defun zomp-get-doc-line-for-symbol (symbol)
+  "Returns the line containing information about symbol generated
+by the Zomp shell."
   (and symbol
        (ignore-errors
          (save-excursion
@@ -1050,6 +1093,8 @@ f(10, |20) will return f, print 10| will return print, etc."
               (point)))))))
 
 (defun zomp-split-doc-line (docline)
+  "Extracts fields with information about a symbol from a line produced by
+`zomp-get-doc-line-for-symbol'."
   (when (and docline
              (string-match "\\([a-zA-Z0-9_:]+\\) =\\([^@\n]+\\)\\(?: @\\([^:]*\\):\\([0-9]+\\)\\(:[0-9]+\\)?\\)?$" docline))
     (list :name (match-string 1 docline)
@@ -1059,9 +1104,11 @@ f(10, |20) will return f, print 10| will return print, etc."
           :column (ignore-errors (string-to-number (match-string 5 docline))))))
 
 (defun zomp-symbol-info (symbol)
+  "Returns information about the given symbol produced by Zomp shell."
   (zomp-split-doc-line (zomp-get-doc-line-for-symbol symbol)))
 
 (defun zomp-get-eldoc-string ()
+  "Gets a short documentation string for eldoc."
   (ignore-errors
     (zomp-build-symbol-buffer)
     (let ((info (zomp-symbol-info (zomp-function-before-point))))
@@ -1071,6 +1118,8 @@ f(10, |20) will return f, print 10| will return print, etc."
                 (plist-get info :short-doc))))))
 
 (defun zomp-ac-symbols-source ()
+  "Function to be used as source for `auto-complete' that returns all symbols
+known to the Zomp shell."
   (ignore-errors
     (save-excursion
       (zomp-build-symbol-buffer)
@@ -1081,6 +1130,7 @@ f(10, |20) will return f, print 10| will return print, etc."
                 lines)))))
 
 (defun zomp-ac-help (symbol)
+  "Produces help string to be displayed by `auto-complete'"
   (ignore-errors
     (let ((info (zomp-symbol-info symbol)))
       (if info
@@ -1094,7 +1144,7 @@ f(10, |20) will return f, print 10| will return print, etc."
 (defvar zomp-ac-source
   '((candidates . zomp-ac-symbols-source)
     (document . zomp-ac-help))
-  "auto-complete source for Zomp.")
+  "`auto-complete' source for Zomp.")
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
