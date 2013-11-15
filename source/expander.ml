@@ -2751,19 +2751,30 @@ let translateTL bindings expr = Result (translateTLNoErr bindings expr)
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
 
+let totalIncludeTime = ref 0.0
+let libsSection = Statistics.createSection "compiling included libraries (s)"
+let () = Statistics.createFloatCounter libsSection "total" 3 (Ref.getter totalIncludeTime)
+
 let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExprTranslateF env) expr =
   let importFile fileName =
     let source =
       collectTimingInfo "readFileContent"
         (fun () -> Common.readFile ~paths:!includePath fileName)
     in
+    let previousTotalTime = !totalIncludeTime in
     let absoluteFileName = Common.absolutePath fileName in
-    let exprs =
-      collectTimingInfo "parse"
-        (fun () -> Parseutils.parseIExprsNoCatch ~fileName:absoluteFileName source)
+    let result, time = recordTiming $ fun () ->
+      let exprs =
+        collectTimingInfo "parse"
+          (fun () -> Parseutils.parseIExprsNoCatch ~fileName:absoluteFileName source)
+      in
+      collectTimingInfo "translateAndEval"
+        (fun () -> translateAndEval handleLLVMCodeF translateTL env exprs)
     in
-    collectTimingInfo "translateAndEval"
-      (fun () -> translateAndEval handleLLVMCodeF translateTL env exprs)
+    let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
+    Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
+    totalIncludeTime := !totalIncludeTime +. nestedTime;
+    result
   in
   match expr with
     | { id = id; args = [{ id = quotedFileName; args = []; location }] } when id = macroInclude ->
