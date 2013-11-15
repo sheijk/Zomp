@@ -442,7 +442,7 @@ endif
 .PRECIOUS: %.ll %.bc %.opt-bc
 %.ll %.compile_output: %.zomp $(ZOMPC_FILE) $(OUT_DIR)/has_llvm
 	$(ECHO) Compiling $(<) to .ll...
-	($(ZOMPC) -c $< $(ZOMPCFLAGS); (echo $$? > $(@:.ll=.exit.tmp))) | tee $(<:.zomp=.compile_output)
+	($(ZOMPC) -c $< $(ZOMPCFLAGS) --stats $(@:.ll=.compile_stats); (echo $$? > $(@:.ll=.exit.tmp))) | tee $(<:.zomp=.compile_output)
 	result=`cat $(@:.ll=.exit.tmp)`; rm -f $(@:.ll=.exit.tmp); exit $$result
 
 %.bc: %.ll $(OUT_DIR)/has_llvm
