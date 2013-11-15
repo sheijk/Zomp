@@ -61,29 +61,41 @@ static i64 ReturnInt64Value(Counter*, void* userData)
   struct Stats {
     typedef uint64_t milliseconds;
 
-    milliseconds parsingTimeMS;
-    milliseconds verifyTimeMS;
-    milliseconds optimizingTimeMS;
+    milliseconds parsingTimeNS;
+    milliseconds verifyTimeNS;
+    milliseconds optimizingTimeNS;
+    // milliseconds evalLLVMCodeNS;
+    milliseconds callMacroNS;
+    uint64_t callMacroCount;
+    milliseconds runFunctionNS;
 
     Stats() {
-      parsingTimeMS = 0;
-      verifyTimeMS = 0;
-      optimizingTimeMS = 0;
+      parsingTimeNS = 0;
+      verifyTimeNS = 0;
+      optimizingTimeNS = 0;
+      // evalLLVMCodeNS = 0;
+      callMacroNS = 0;
+      callMacroCount = 0;
+      runFunctionNS = 0;
     }
 
     void registerStats()
     {
       Section* section = statsCreateSection(statsMainSection(), "ZompVM timings");
-      statsCreateIntCounter(section, "parsing LLVM byte code (ms)", 0, &parsingTimeMS, ReturnInt64Value);
-      statsCreateIntCounter(section, "verify LLVM byte code (ms)", 0, &verifyTimeMS, ReturnInt64Value);
-      statsCreateIntCounter(section, "optimize LLVM byte code (ms)", 0, &optimizingTimeMS, ReturnInt64Value);
+      statsCreateIntCounter(section, "parsing LLVM byte code (ns)", 0, &parsingTimeNS, ReturnInt64Value);
+      statsCreateIntCounter(section, "verify LLVM byte code (ns)", 0, &verifyTimeNS, ReturnInt64Value);
+      statsCreateIntCounter(section, "optimize LLVM byte code (ns)", 0, &optimizingTimeNS, ReturnInt64Value);
+      // statsCreateIntCounter(section, "evaluate LLVM byte code (ns)", 0, &evalLLVMCodeNS, ReturnInt64Value);
+      statsCreateIntCounter(section, "call macro (ns)", 0, &callMacroNS, ReturnInt64Value);
+      statsCreateIntCounter(section, "macro calls", 0, &callMacroCount, ReturnInt64Value);
+      statsCreateIntCounter(section, "run function (ns)", 0, &runFunctionNS, ReturnInt64Value);
     }
 
     void print() {
       printf("\nZompVM stats:\n");
-      log(parsingTimeMS, "Parsing");
-      log(verifyTimeMS, "Verifying");
-      log(optimizingTimeMS, "Optimizing");
+      log(parsingTimeNS, "Parsing");
+      log(verifyTimeNS, "Verifying");
+      log(optimizingTimeNS, "Optimizing");
       fflush(stdout);
     }
 
@@ -108,7 +120,7 @@ static i64 ReturnInt64Value(Counter*, void* userData)
 
     ~Scope_time_adder() {
       TimeValue endTime = TimeValue::now();
-      timeVar += (endTime - startTime).msec();
+      timeVar += (endTime - startTime).usec();
     }
   };
 }
@@ -367,6 +379,7 @@ llvm::GenericValue runFunctionWithArgs(
   const std::vector<const Type*>& argTypes,
   const std::vector<GenericValue>& args)
 {
+  Scope_time_adder profiler(stats.runFunctionNS);
   FunctionType* voidType = FunctionType::get(
     Type::getVoidTy(*context),
     argTypes,
@@ -394,6 +407,7 @@ llvm::GenericValue runFunctionWithArgs(
  * zompAdd*Arg previously
  */
 llvm::GenericValue runFunction(const char* name) {
+  Scope_time_adder profiler(stats.runFunctionNS);
   static std::vector<const Type*> noparams;
   static std::vector<GenericValue> noargs;
   return runFunctionWithArgs( name, noparams, noargs );
@@ -511,7 +525,7 @@ static void setupOptimizerPasses() {
 extern "C" {
 
   void zompOptimizeFunctions() {
-    Scope_time_adder profile(stats.optimizingTimeMS);
+    Scope_time_adder profile(stats.optimizingTimeNS);
     // run optimizations
     const llvm::Module::iterator funcsEnd = llvmModule->end();
 
@@ -694,7 +708,7 @@ extern "C" {
 
     Module* parsedModule = NULL;
     {
-      Scope_time_adder profile(stats.parsingTimeMS);
+      Scope_time_adder profile(stats.parsingTimeNS);
       parsedModule = ParseAssemblyString( code, targetModule, errorInfo, *context );
     }
 
@@ -707,7 +721,7 @@ extern "C" {
     }
     else {
       if( vmoptions::verifyCode ) {
-        Scope_time_adder prof(stats.verifyTimeMS);
+        Scope_time_adder prof(stats.verifyTimeNS);
         bool isValid = ! verifyModule(
             *targetModule, PrintMessageAction, &errorMessage);
 
@@ -753,7 +767,7 @@ extern "C" {
 
     if( func != NULL ) {
       if( vmoptions::optimizeFunctions ) {
-        Scope_time_adder profile(stats.optimizingTimeMS);
+        Scope_time_adder profile(stats.optimizingTimeNS);
 
         llvm::Module::iterator currentFunc = llvmModule->begin();
         const llvm::Module::iterator funcsEnd = llvmModule->end();
@@ -956,6 +970,9 @@ extern "C" {
   }
 
   void* zompCallMacro(void* macroAddress) {
+    Scope_time_adder profiler(stats.callMacroNS);
+    ++stats.callMacroCount;
+
     void* (*macroFunc)(void**) = (void* (*)(void**))macroAddress;
     void** macroArguments = &macroArgs[0];
     void* resultAst = macroFunc(macroArguments);

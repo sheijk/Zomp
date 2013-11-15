@@ -65,8 +65,6 @@ module StatisticsBackend : sig  end
 val zompvmSection : Common.Statistics.section
 module NativeAst :
   sig
-    val totalNativeAstsCreated : int ref
-    val totalOCamlAstsCreated : int ref
     val isValidId : string -> bool
     val extractSExprFromNativeAst : cptr -> Ast2.sexpr
     val applyLocation : cptr -> Ast2.sexpr -> cptr

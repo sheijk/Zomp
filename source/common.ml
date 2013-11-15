@@ -803,10 +803,16 @@ struct
     let result = f() in
     let endTime = Sys.time() in
     result, (endTime -. startTime)
+
+  let addTiming totalSeconds f =
+    let result, seconds = recordTiming f in
+    totalSeconds := !totalSeconds +. seconds;
+    result
 end
 
 let collectTimingInfo = Profiling.collectTimingInfo
 let recordTiming = Profiling.recordTiming
+let addTiming = Profiling.addTiming
 
 let sampleFunc1 name f arg0 = collectTimingInfo name (fun () -> f arg0)
 let sampleFunc2 name f arg0 arg1 = collectTimingInfo name (fun () -> f arg0 arg1)

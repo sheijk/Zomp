@@ -6,6 +6,8 @@ open Common
 open Parseutils
 open Compileutils
 
+let section = Statistics.createSection "zompc"
+
 type llvmCode = string
 
 type sourceloc = {
@@ -62,6 +64,13 @@ let compilation_result_to_int = function
   | Compilation_failed Compiler_did_not_return_result -> 2
   | Compilation_failed Failed_to_init_vm -> 4
 
+let preludeTime = ref 0.0
+let mainFileTime = ref 0.0
+
+let () =
+  Statistics.createFloatCounter section "compile prelude (s)" 3 (Ref.getter preludeTime);
+  Statistics.createFloatCounter section "compile main file (s)" 3 (Ref.getter mainFileTime);
+  ()
 
 let compile fileName inStream outStream =
   let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
@@ -77,11 +86,13 @@ let compile fileName inStream outStream =
       Compileutils.catchingErrorsDo
         (fun () -> begin
           let preludeBindings :Bindings.t =
-            Compileutils.loadPrelude
-              ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                output_string outStream llvmCode)
-              preludeDir
+            addTiming preludeTime $ fun () ->
+              Compileutils.loadPrelude
+                ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
+                  output_string outStream llvmCode)
+                preludeDir
           in
+          addTiming mainFileTime $ fun () ->
           match Compileutils.compileCode preludeBindings input outStream fileName with
             | Some finalBindings -> Compilation_succeeded finalBindings
             | None -> Compilation_failed Compiler_did_not_return_result
@@ -177,6 +188,8 @@ let extractOptions args =
       InvalidArguments msg
 
 let () =
+  let startTime = Sys.time() in
+
   Printexc.record_backtrace true;
   let options =
     match extractOptions Sys.argv with
@@ -276,6 +289,9 @@ let () =
         end;
       Sys.remove outputFileName;
   end;
+
+  let endTime = Sys.time() in
+  Statistics.createFloatCounter section "compilation time (s)" 3 (fun () -> endTime -. startTime);
 
   exit (compilation_result_to_int exitCode)
 

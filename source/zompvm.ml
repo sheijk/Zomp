@@ -21,27 +21,36 @@ module StatisticsBackend : sig end = struct
 end
 
 let zompvmSection = Statistics.createSection "zompvm"
-  
+
 (** Utilities to convert between Ast2.sexpr and Zomp native AST *)
 module NativeAst =
 struct
-  let totalNativeAstsCreated = ref 0
-  let totalOCamlAstsCreated = ref 0
+  let totalNativeAstsConverted = ref 0
+  let nativeAstsConvertedSeconds = ref 0.0
+  let totalOCamlAstsConverted = ref 0
+  let ocamlAstsConvertedSeconds = ref 0.0
 
   let () =
     let addCounter name f =
       Statistics.createIntCounter zompvmSection name 0 f
     in
-    addCounter "total ASTs created" (fun () -> !totalOCamlAstsCreated + !totalNativeAstsCreated);
-    addCounter "OCaml ASTs from native created" (Ref.getter totalOCamlAstsCreated);
-    addCounter "native ASTs from OCaml created" (Ref.getter totalNativeAstsCreated)
+    let addCounterF name f =
+      Statistics.createFloatCounter zompvmSection name 3 f
+    in
+    addCounter "total ASTs converted" (fun () -> !totalOCamlAstsConverted + !totalNativeAstsConverted);
+    addCounter "OCaml ASTs from native converted" (Ref.getter totalOCamlAstsConverted);
+    addCounter "native ASTs from OCaml converted" (Ref.getter totalNativeAstsConverted);
+    addCounterF "converting ASTs (s)" (fun () -> !nativeAstsConvertedSeconds +. !ocamlAstsConvertedSeconds);
+    addCounterF "converting native ASTs from OCaml (s)" (Ref.getter nativeAstsConvertedSeconds);
+    addCounterF "converting OCaml ASTs from native (s)" (Ref.getter ocamlAstsConvertedSeconds);
+    ()
 
   let isValidId name =
     foldString
       name (fun wasValid chr -> wasValid && Char.code chr < 128) true
 
   let rec extractSExprFromNativeAst astAddress =
-    incr totalOCamlAstsCreated;
+    incr totalOCamlAstsConverted;
     if zompAstIsNull astAddress then
       Ast2.idExpr "error, macro returned NULL"
     else
@@ -73,12 +82,15 @@ struct
       else
           exprNoLoc
 
+  let extractSExprFromNativeAst astAddress =
+    addTiming ocamlAstsConvertedSeconds (fun () -> extractSExprFromNativeAst astAddress)
+
   let applyLocation nativeId ast =
     zompSetAstLocation nativeId (Ast2.fileName ast) (Ast2.lineNumber ast) (Ast2.column ast);
     nativeId
 
   let rec buildNativeAst ast =
-    incr totalNativeAstsCreated;
+    incr totalNativeAstsConverted;
     match ast with
       | {Ast2.id = id; args = []} ->
         applyLocation (zompSimpleAst id) ast
@@ -87,9 +99,10 @@ struct
         let nativeAst = zompSimpleAst ast.Ast2.id in
         List.iter (fun child -> zompAddChild ~parent:nativeAst ~child) childs;
         applyLocation nativeAst ast
-end
 
-(* exception FailedToEvaluateLLVMCode of string * string *)
+  let buildNativeAst ast =
+    addTiming nativeAstsConvertedSeconds (fun () -> buildNativeAst ast)
+end
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 

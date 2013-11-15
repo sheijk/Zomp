@@ -222,9 +222,11 @@ module Profiling :
     val popTimingContext : timingInfo * float -> unit
     val collectTimingInfo : string -> (unit -> 'a) -> 'a
     val recordTiming : (unit -> 'a) -> 'a * float
+    val addTiming : float ref -> (unit -> 'd) -> 'd
   end
 val collectTimingInfo : string -> (unit -> 'a) -> 'a
 val recordTiming : (unit -> 'a) -> 'a * float
+val addTiming : float ref -> (unit -> 'd) -> 'd
 val sampleFunc1 : string -> ('a -> 'b) -> 'a -> 'b
 val sampleFunc2 : string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
 val sampleFunc3 : string -> ('a -> 'b -> 'c -> 'd) -> 'a -> 'b -> 'c -> 'd
