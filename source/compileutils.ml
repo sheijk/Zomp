@@ -29,14 +29,6 @@ let compileExpr translateF bindings sexpr =
   let llvmCode = combine "\n" llvmCodes in
   newBindings, simpleforms, llvmCode
 
-let rec parse parseF lexbuf bindings codeAccum =
-  try
-    let expr = parseF lexbuf in
-    let newBindings, simpleforms = translateTLNoError bindings expr in
-    parse parseF lexbuf newBindings (codeAccum @ simpleforms)
-  with
-    | Indentlexer.Eof -> bindings, codeAccum
-
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
   begin
@@ -120,54 +112,6 @@ let compileNew env input outStream fileName =
           (if !hadError then Result.Fail else Result.Success)
           ~diagnostics ~results
       end
-
-let compileCode bindings input outStream fileName =
-  (** TODO: return error(s) instead of printing them *)
-  let printError exn =
-    match exn with
-      | CouldNotParse error ->
-        eprintf "%s\n" $ Serror.toString error
-      | CatchedError errors ->
-        List.iter (fun error -> eprintf "%s\n" (Serror.toString error)) errors;
-        eprintf "  (via exception CatchedError)\n"
-      | unknownError ->
-        eprintf "error: unknown error: %s\n" (Printexc.to_string unknownError);
-        raise unknownError
-  in
-  let parseAndCompile parseF =
-    let exprs =
-      collectTimingInfo "parsing"
-        (fun () ->
-           match parseF ~fileName input with
-             | Parseutils.Exprs exprs ->
-               List.map (fixFileName fileName) exprs
-             | Parseutils.Error error ->
-               raise (CouldNotParse error))
-    in
-    let leftExprs = ref exprs in
-    let readExpr _ =
-      match !leftExprs with
-        | next :: rem ->
-            leftExprs := rem;
-            Some next
-        | [] -> None
-    in
-    collectTimingInfo "compiling"
-      (fun () ->
-         compile
-           ~readExpr
-           ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                         Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                         output_string outStream llvmCode)
-           ~onErrors:signalErrors
-           bindings)
-  in
-  tryAllCollectingErrors
-    [lazy (parseAndCompile Parseutils.parseIExprs)]
-    ~onSuccess:(fun finalBindings -> Some finalBindings)
-    ~ifAllFailed:(fun exceptions ->
-                    List.iter printError exceptions;
-                    None)
 
 let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :Bindings.t =
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
