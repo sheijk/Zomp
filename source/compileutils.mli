@@ -35,6 +35,8 @@ val loadPrelude :
 
 type env
 val createEnv : Bindings.t -> env
+val compileExprNew : env -> Ast2.t ->
+  Result.flag * Serror.t list * Lang.toplevelExpr list * string
 val compileNew : env -> string -> out_channel -> string -> Lang.toplevelExpr Result.t
 val bindings : env -> Bindings.t
 

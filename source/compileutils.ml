@@ -86,6 +86,11 @@ type env = Expander.tlenv
 let createEnv initialBindings = Expander.createEnv initialBindings
 let bindings env = Expander.bindings env
 
+let compileExprNew env expr =
+  let { Result.flag; diagnostics; results } = Expander.translate env expr in
+  let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL results in
+  flag, diagnostics, results, llvmCode
+
 let compileNew env input outStream fileName =
   match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName input with
     | Error error ->
@@ -98,12 +103,11 @@ let compileNew env input outStream fileName =
           catchingErrorsDo
             (fun () ->
               let oldBindings = bindings env in
-              let { Result.flag; diagnostics; results } = Expander.translate env expr in
-              if flag = Result.Fail then
-                hadError := true;
-              let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL results in
+              let flag, diagnostics, results, llvmCode = compileExprNew env expr in
               Zompvm.evalLLVMCode oldBindings results llvmCode;
               output_string outStream llvmCode;
+              if flag = Result.Fail then
+                hadError := true;
               results, diagnostics)
             ~onErrors:(fun errors ->
               hadError := true;

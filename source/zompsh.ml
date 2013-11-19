@@ -593,7 +593,7 @@ let onSuccess bindings newBindings simpleforms llvmCode =
   flush stdout
 
 (** Produce and run an immediate function from the given code. *)
-let translateRun env expr =
+let translateRun tlenv env expr =
   let immediateFuncName = "toplevel:immediate" in
 
   match expr with
@@ -610,13 +610,12 @@ let translateRun env expr =
           ]
         in
         try
-          let newBindings, simpleforms, llvmCode =
-            Compileutils.compileExpr
-              Compileutils.translateTLNoError
-              (Expander.envBindings env)
-              exprInFunc
+          let oldBindings = Compileutils.bindings tlenv in
+          let flag, diagnostics, simpleforms, llvmCode =
+            Compileutils.compileExprNew tlenv exprInFunc
           in
-          onSuccess (Expander.envBindings env) newBindings simpleforms llvmCode;
+          let newBindings = Compileutils.bindings tlenv in
+          onSuccess oldBindings newBindings simpleforms llvmCode;
           runFunction newBindings immediateFuncName;
           Expander.result (newBindings, [])
         with
@@ -628,16 +627,17 @@ let translateRun env expr =
     | _ ->
         Expander.errorFromStringDeprecated (sprintf "expected %s expr" expr.id)
 
-let rec step bindings parseState =
+let rec step env parseState =
+  let bindings = Compileutils.bindings env in
   match parseState with
     | Error errors ->
       printf "Parser errors:\n";
       List.iter (printf "%s\n") errors;
       flush stdout;
-      step bindings (readExpr bindings)
+      step env (readExpr bindings)
 
     | Result [] ->
-      step bindings (readExpr bindings)
+      step env (readExpr bindings)
 
     | Result (expr :: remExprs) ->
       Compileutils.catchingErrorsDo
@@ -657,18 +657,24 @@ let rec step bindings parseState =
                     Some trace
                  else
                     None);
-              let newBindings, simpleforms, llvmCode =
-                Compileutils.compileExpr Compileutils.translateTLNoError bindings expr
+              let flag, diagnostics, simpleforms, llvmCode =
+                Compileutils.compileExprNew env expr
               in
+              let newBindings = Compileutils.bindings env in
+              if flag = Result.Fail then begin
+                Compileutils.signalErrors diagnostics;
+              end;
+              List.iter report diagnostics;
               onSuccess bindings newBindings simpleforms llvmCode;
               newBindings)
           in
           if (time > !notifyTimeThreshold) then
             printf "Compiling expression took %fs\n" time;
-          step newBindings (Result remExprs))
+          step env (Result remExprs))
         ~onErrors: (fun errors ->
+          hadErrors := true;
           List.iter report errors;
-          step bindings (Result remExprs))
+          step env (Result remExprs))
 
 let init() =
   Zompvm.setIsInteractive true;
@@ -747,7 +753,6 @@ let () =
   let addToplevelInstr = Expander.addToplevelInstruction in
   addToplevelInstr "include" "zompSourceFile" translateInclude;
 
-  addToplevelInstr "std:base:run" "statement..." translateRun;
   addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
 
   let dllPath = ref [] in
@@ -764,7 +769,9 @@ let () =
   Statistics.createFloatCounter section "prelude load time (s)" 3 (fun () -> preludeLoadTime);
 
   message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-  let `NoReturn = step initialBindings (Result []) in
+  let env = Compileutils.createEnv initialBindings in
+  addToplevelInstr "std:base:run" "statement..." (translateRun env);
+  let `NoReturn = step env (Result []) in
   ()
 
 
