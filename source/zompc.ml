@@ -93,9 +93,17 @@ let compile fileName inStream outStream =
                 preludeDir
           in
           addTiming mainFileTime $ fun () ->
-          match Compileutils.compileCode preludeBindings input outStream fileName with
-            | Some finalBindings -> Compilation_succeeded finalBindings
-            | None -> Compilation_failed Compiler_did_not_return_result
+            let env = Compileutils.createEnv preludeBindings in
+            let { Result.flag; diagnostics; _ } = Compileutils.compileNew env input outStream fileName in
+            let reportDiagnostics diag =
+              eprintf "%s\n" $ Serror.toString diag;
+              flush stderr
+            in
+            List.iter reportDiagnostics diagnostics;
+            if flag = Result.Success then
+              Compilation_succeeded (Compileutils.bindings env)
+            else
+              Compilation_failed Compiler_did_not_return_result
         end)
         ~onErrors:(fun errors ->
           List.iter (printf "%s\n" ++ Serror.toString) errors;

@@ -1,0 +1,18 @@
+/// 
+/// Check if independent errors in different top-level forms all get reported.
+/// 
+
+std:base:func void funcOne():
+  foobar() //// error foobar
+  std:base:ret void
+end
+
+std:base:func void funcTwo():
+  buzzbar() //// error buzzbar
+  std:base:ret void
+end
+
+func int main():
+  ret 0
+end
+

@@ -82,6 +82,41 @@ let rec compile
       let () = onErrors errors in
       continue bindings)
 
+type env = Expander.tlenv
+let createEnv initialBindings = Expander.createEnv initialBindings
+let bindings env = Expander.bindings env
+
+let compileNew env input outStream fileName =
+  match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName input with
+    | Error error ->
+      Result.make Result.Fail ~diagnostics:[error] ~results:[]
+    | Exprs exprs ->
+      begin
+        let exprs = List.map (fixFileName fileName) exprs in
+        let hadError = ref false in
+        let translateExpr expr =
+          catchingErrorsDo
+            (fun () ->
+              let oldBindings = bindings env in
+              let { Result.flag; diagnostics; results } = Expander.translate env expr in
+              if flag = Result.Fail then
+                hadError := true;
+              let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL results in
+              Zompvm.evalLLVMCode oldBindings results llvmCode;
+              output_string outStream llvmCode;
+              results, diagnostics)
+            ~onErrors:(fun errors ->
+              hadError := true;
+              [], errors)
+        in
+        let formsNested, diagnosticsNested = List.split $ List.map translateExpr exprs in
+        let diagnostics = List.flatten diagnosticsNested in
+        let results = List.flatten formsNested in
+        Result.make
+          (if !hadError then Result.Fail else Result.Success)
+          ~diagnostics ~results
+      end
+
 let compileCode bindings input outStream fileName =
   (** TODO: return error(s) instead of printing them *)
   let printError exn =

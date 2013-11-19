@@ -32,5 +32,11 @@ val loadPrelude :
                 Bindings.t ->
                 Bindings.t -> Lang.toplevelExpr list -> string -> unit) ->
   ?appendSource:string -> string -> Bindings.t
+
+type env
+val createEnv : Bindings.t -> env
+val compileNew : env -> string -> out_channel -> string -> Lang.toplevelExpr Result.t
+val bindings : env -> Bindings.t
+
 val writeSymbolsToStream : Bindings.bindings -> out_channel -> unit
 val writeSymbols : Bindings.bindings -> string -> bool

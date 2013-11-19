@@ -2748,6 +2748,24 @@ let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
 let translateTL bindings expr = Result (translateTLNoErr bindings expr)
 
+type tlenv = {
+  mutable bindings :Bindings.t;
+}
+
+let createEnv (initialBindings :bindings) = {
+  bindings = initialBindings;
+}
+
+let translate env expr =
+  match translateTL env.bindings expr with
+    | Result (newBindings, forms) ->
+      env.bindings <- newBindings;
+      Result.make Result.Success ~diagnostics:[] ~results:forms
+    | Error errors ->
+      Result.make Result.Fail ~diagnostics:errors ~results:[]
+
+let bindings env = env.bindings
+
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
 

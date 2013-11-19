@@ -26,6 +26,10 @@ val translateTL :
   Ast2.sexpr ->
   (Bindings.t * Lang.toplevelExpr list) mayfail
 
+type tlenv
+val createEnv : Bindings.t -> tlenv
+val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t
+val bindings : tlenv -> Bindings.t
 
 (**
    Required to set include paths and add LLVM code evaluation. Should be
