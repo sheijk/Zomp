@@ -35,6 +35,7 @@ and showStatsAtExit = ref false
 and showTimingStatsAtExit = ref false
 and statsAtExitFile = ref ""
 and traceMacroExpansion = ref false
+and hadErrors = ref false
 
 let parseFunc = ref Parseutils.parseIExpr
 let notifyTimeThreshold = ref 0.5
@@ -223,7 +224,7 @@ end = struct
       Symbol_stats.update bindings;
 
       printf "Exiting.\n";
-      exit 0)
+      exit (if !hadErrors then 1 else 0))
 
   let toggleAstCommand = makeToggleCommandForRef printAst "Printing s-expressions"
   let toggleLLVMCommand = makeToggleCommandForRef printLLVMCode "Printing LLVM code"
