@@ -181,7 +181,8 @@ struct
       code but the given number will be expected. *)
   | TestCaseExitCode
 
-  (** variant, command name, description *)
+  (** variant, command name, description
+      When changing this, also update zomp-testsuite-directives in zomp.el *)
   let metadata = [
     CompilerError, "error", "compiler error";
     CompilerErrorNoLoc, "error-no-location", "compiler error w/o location";

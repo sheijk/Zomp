@@ -78,6 +78,22 @@ evaluated.")
 //// error type
 The word \"error\" will be highlighted in this face.")
 
+(defconst zomp-testsuite-directives
+  '(("error" . "Expect compiler error at this file and line.")
+    ("error-no-location" . "Expect compiler error on any location")
+    ("compiler-output" . "Expect compiler to print output matching arguments.")
+    ("not-compiler-output" . "Expect compiler to print output matching arguments NOT to happen.")
+    ("compilation-will-fail" . "Expect compilation to fail.")
+    ("warning" . "Expect compiler warning at this file and line.")
+    ("info" . "Expect compiler info message at this file and line.")
+    ("print" . "Expect program to print matching output when it is run.")
+    ("exit-code" . "Expect program to exit with given exit code."))
+  "A list of directives supported in Zomp test-suite")
+
+(defun zomp-testsuite-make-font-lock-pattern ()
+  "Will return a pattern that can be used by font-lock."
+  (format "//// +\\(%s\\) .*" (mapconcat 'car zomp-testsuite-directives "\\|")))
+
 (defvar zomp-mode-hook nil
   "Hook that will be run after entering zomp-mode.")
 
@@ -609,10 +625,11 @@ still screws up sometimes. Please file bug reports!"
     (when (equal (current-column) 0)
       (back-to-indentation))))
 
-(defun zomp-point-is-in-comment (pt)
+(defun zomp-point-is-in-comment (&optional pt)
   "Will return true if the `point' is in a comment based on font-lock text
 properties."
   (interactive "d")
+  (setq pt (or pt (point)))
   (let ((prop (get-char-property pt 'face)))
     (or (equal prop 'font-lock-comment-face)
         (equal prop 'font-lock-doc-face))))
@@ -832,6 +849,7 @@ indentation is the same or less than the line where we started."
   (eldoc-mode t)
   (make-variable-buffer-local 'ac-sources)
   (add-to-list 'ac-sources 'zomp-ac-source)
+  (add-to-list 'ac-sources 'zomp-ac-testsuite-directives-source)
   (ignore-errors
     (auto-complete-mode 1))
 
@@ -931,11 +949,9 @@ indentation is the same or less than the line where we started."
 (define-generic-mode zomp-mode
   '(("/*" . "*/"))
   '("{" "}")
-  '(
-    ("//.*" 0 font-lock-comment-face t t)
+  `(("//.*" 0 font-lock-comment-face t t)
     ("///.*" 0 font-lock-doc-face t t)
-    ("//// +\\(error\\|error-no-location\\|compiler-output\\|warning\\|info\\|print\\|exit-code\\) .*" 1 'zomp-testsuite-directive-face t t)
-    ("//// +\\(compilation-fails\\) *" 1 'zomp-testsuite-directive-face t t)
+    (,(zomp-testsuite-make-font-lock-pattern) 1 'zomp-testsuite-directive-face t t)
     ("/\\*\\*[^\\*]*\\*/" 0 font-lock-doc-face t t)
     ("'[^']'" 0 font-lock-string-face)
 
@@ -981,8 +997,7 @@ indentation is the same or less than the line where we started."
     ("[()]" 0 font-lock-keyword-face)
 
     ("@[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-variable-name-face)
-    (" :[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-type-face)
-    )
+    (" :[a-zA-Z][a-zA-Z0-9_]*\\b" 0 font-lock-type-face))
   '("\\.zomp")
   (list 'zomp-setup)
   "A simple mode for the zomp language")
@@ -1116,6 +1131,38 @@ by the Zomp shell."
         (format "%s: %s"
                 (plist-get info :name)
                 (plist-get info :short-doc))))))
+
+(defvar zomp-ac-testsuite-directives-source-on nil
+  "Flag whether testsuite directives should be offered.")
+
+(defun zomp-ac-testsuite-directives-init ()
+  "Checks whether testsuite directives should be offered for completion and
+stores result in `zomp-ac-testsuite-directives-source-on'. This is needed because
+the available flag could not be convinced to work."
+  (setq zomp-ac-testsuite-directives-source-on
+        (and (zomp-point-is-in-comment (- (point) 1))
+             (save-excursion
+               (backward-word 1)
+               (looking-back "//// +")))))
+
+(defun zomp-ac-testsuite-directives-source ()
+  "Function to be used as source for `auto-complete' that returns all testsuite
+directives"
+  (when zomp-ac-testsuite-directives-source-on
+    (mapcar 'car zomp-testsuite-directives)))
+
+(defun zomp-ac-testsuite-directives-help (directive)
+  "Produces help string for a testsuite directive."
+  (let ((item (assoc directive zomp-testsuite-directives)))
+    (and item (cdr item))))
+
+(defvar zomp-ac-testsuite-directives-source
+  '((candidates . zomp-ac-testsuite-directives-source)
+    (document . zomp-ac-testsuite-directives-help)
+    (init . zomp-ac-testsuite-directives-init)
+    (symbol . "T")
+    (action . (lambda () (insert " "))))
+  "`auto-complete' source for Zomp testsuite directives.")
 
 (defun zomp-ac-symbols-source ()
   "Function to be used as source for `auto-complete' that returns all symbols
