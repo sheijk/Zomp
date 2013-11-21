@@ -37,6 +37,8 @@ extern "C" {
         isBoundCB = NULL;
         lookupCB = NULL;
         parseCB = NULL;
+        getCounterValueInt = NULL;
+        getCounterValueFloat = NULL;
     }
 
     bool zompCamlCallbacksValid() {
