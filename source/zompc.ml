@@ -78,6 +78,10 @@ let compile fileName inStream outStream =
     collectTimingInfo "reading prelude file content" (fun () -> Common.readChannel inStream)
   in
 
+  let emitBackendCode source =
+    output_string outStream source
+  in
+
   if not( Zompvm.zompInit() ) then begin
     Compilation_failed Failed_to_init_vm
   end else begin
@@ -88,12 +92,14 @@ let compile fileName inStream outStream =
           let preludeBindings :Bindings.t =
             addTiming preludeTime $ fun () ->
               Compileutils.loadPrelude
-                ~processLlvmCode:(output_string outStream)
+                ~emitBackendCode
                 preludeDir
           in
           addTiming mainFileTime $ fun () ->
             let env = Compileutils.createEnv preludeBindings in
-            let { Result.flag; diagnostics; _ } = Compileutils.compileFromStream env input outStream fileName in
+            let { Result.flag; diagnostics; _ } =
+              Compileutils.compileFromStream env ~source:input ~emitBackendCode ~fileName
+            in
             let reportDiagnostics diag =
               eprintf "%s\n" $ Serror.toString diag;
               flush stderr

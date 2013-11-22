@@ -83,7 +83,7 @@ let compileExprNew env expr =
   let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL results in
   flag, diagnostics, results, llvmCode
 
-let compileNew env exprs outStream fileName =
+let compileNew env exprs emitBackendCode fileName =
   begin
     let exprs = List.map (fixFileName fileName) exprs in
     let hadError = ref false in
@@ -93,7 +93,7 @@ let compileNew env exprs outStream fileName =
           let oldBindings = bindings env in
           let flag, diagnostics, results, llvmCode = compileExprNew env expr in
           Zompvm.evalLLVMCode oldBindings results llvmCode;
-          output_string outStream llvmCode;
+          emitBackendCode llvmCode;
           if flag = Result.Fail then
             hadError := true;
           results, diagnostics)
@@ -109,14 +109,14 @@ let compileNew env exprs outStream fileName =
       ~diagnostics ~results
   end
 
-let compileFromStream env input outStream fileName =
-  match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName input with
+let compileFromStream env ~source ~emitBackendCode ~fileName =
+  match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName source with
     | Error error ->
       Result.make Result.Fail ~diagnostics:[error] ~results:[]
     | Exprs exprs ->
-      compileNew env exprs outStream fileName
+      compileNew env exprs emitBackendCode fileName
 
-let loadPrelude ?(processLlvmCode = fun _ -> ()) ?(appendSource = "") dir :Bindings.t =
+let loadPrelude ?(emitBackendCode = fun _ -> ()) ?(appendSource = "") dir :Bindings.t =
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let llvmRuntimeFile = dir ^ "runtime.ll" in
   (collectTimingInfo "loading .ll file"
@@ -147,7 +147,7 @@ let loadPrelude ?(processLlvmCode = fun _ -> ()) ?(appendSource = "") dir :Bindi
       ~readExpr
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                    processLlvmCode llvmCode)
+                    emitBackendCode llvmCode)
       ~onErrors:signalErrors
       Genllvm.defaultBindings
   in
