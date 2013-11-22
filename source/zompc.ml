@@ -88,13 +88,12 @@ let compile fileName inStream outStream =
           let preludeBindings :Bindings.t =
             addTiming preludeTime $ fun () ->
               Compileutils.loadPrelude
-                ~processExpr:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                  output_string outStream llvmCode)
+                ~processLlvmCode:(output_string outStream)
                 preludeDir
           in
           addTiming mainFileTime $ fun () ->
             let env = Compileutils.createEnv preludeBindings in
-            let { Result.flag; diagnostics; _ } = Compileutils.compileNew env input outStream fileName in
+            let { Result.flag; diagnostics; _ } = Compileutils.compileFromStream env input outStream fileName in
             let reportDiagnostics diag =
               eprintf "%s\n" $ Serror.toString diag;
               flush stderr

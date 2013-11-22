@@ -83,37 +83,40 @@ let compileExprNew env expr =
   let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL results in
   flag, diagnostics, results, llvmCode
 
-let compileNew env input outStream fileName =
+let compileNew env exprs outStream fileName =
+  begin
+    let exprs = List.map (fixFileName fileName) exprs in
+    let hadError = ref false in
+    let translateExpr expr =
+      catchingErrorsDo
+        (fun () ->
+          let oldBindings = bindings env in
+          let flag, diagnostics, results, llvmCode = compileExprNew env expr in
+          Zompvm.evalLLVMCode oldBindings results llvmCode;
+          output_string outStream llvmCode;
+          if flag = Result.Fail then
+            hadError := true;
+          results, diagnostics)
+        ~onErrors:(fun errors ->
+          hadError := true;
+          [], errors)
+    in
+    let formsNested, diagnosticsNested = List.split $ List.map translateExpr exprs in
+    let diagnostics = List.flatten diagnosticsNested in
+    let results = List.flatten formsNested in
+    Result.make
+      (if !hadError then Result.Fail else Result.Success)
+      ~diagnostics ~results
+  end
+
+let compileFromStream env input outStream fileName =
   match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName input with
     | Error error ->
       Result.make Result.Fail ~diagnostics:[error] ~results:[]
     | Exprs exprs ->
-      begin
-        let exprs = List.map (fixFileName fileName) exprs in
-        let hadError = ref false in
-        let translateExpr expr =
-          catchingErrorsDo
-            (fun () ->
-              let oldBindings = bindings env in
-              let flag, diagnostics, results, llvmCode = compileExprNew env expr in
-              Zompvm.evalLLVMCode oldBindings results llvmCode;
-              output_string outStream llvmCode;
-              if flag = Result.Fail then
-                hadError := true;
-              results, diagnostics)
-            ~onErrors:(fun errors ->
-              hadError := true;
-              [], errors)
-        in
-        let formsNested, diagnosticsNested = List.split $ List.map translateExpr exprs in
-        let diagnostics = List.flatten diagnosticsNested in
-        let results = List.flatten formsNested in
-        Result.make
-          (if !hadError then Result.Fail else Result.Success)
-          ~diagnostics ~results
-      end
+      compileNew env exprs outStream fileName
 
-let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :Bindings.t =
+let loadPrelude ?(processLlvmCode = fun _ -> ()) ?(appendSource = "") dir :Bindings.t =
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let llvmRuntimeFile = dir ^ "runtime.ll" in
   (collectTimingInfo "loading .ll file"
@@ -144,7 +147,7 @@ let loadPrelude ?(processExpr = fun _ _ _ _ _ -> ()) ?(appendSource = "") dir :B
       ~readExpr
       ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
                     Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                    processExpr expr oldBindings newBindings simpleforms llvmCode)
+                    processLlvmCode llvmCode)
       ~onErrors:signalErrors
       Genllvm.defaultBindings
   in
