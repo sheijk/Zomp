@@ -16,10 +16,7 @@ val result : 'a -> 'a mayfail
 type toplevelEnv
 val envBindings : toplevelEnv -> Bindings.t
 
-type toplevelTranslationResult =
-    (Bindings.t * Lang.toplevelExpr list) mayfail
-
-val tlReturnNoExprs : toplevelEnv -> toplevelTranslationResult
+type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) mayfail
 
 val translateTL :
   Bindings.t ->
