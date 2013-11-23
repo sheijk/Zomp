@@ -7,16 +7,6 @@ open Common
 open Basics
 open Parseutils
 
-exception CatchedError of Serror.t list
-let signalErrors errors = raise (CatchedError errors)
-
-exception CouldNotParse of Serror.t
-
-let translateTLNoError bindings expr =
-  match Expander.translateTL bindings expr with
-    | Expander.Result r -> r
-    | Expander.Error errors -> failwith "unexpected failure in Expander.translateTL"
-
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
   begin
@@ -33,38 +23,32 @@ let catchingErrorsDo f ~onErrors =
         onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
       | Failure msg ->
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
-      | CatchedError errors ->
-        onErrors errors
-      | CouldNotParse error ->
-        onErrors [error]
   end
 
 type env = Expander.tlenv
 let createEnv initialBindings = Expander.createEnv initialBindings
 let bindings env = Expander.bindings env
 
-let compileExprNew env expr =
-  let { Result.flag; diagnostics; results } = Expander.translate env expr in
-  let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL results in
-  flag, diagnostics, results, llvmCode
+let compileExpr env expr =
+  let result =
+    catchingErrorsDo (fun () -> Expander.translate env expr)
+      ~onErrors:(fun diagnostics -> Result.fail ~results:[] ~diagnostics)
+  in
+  let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
+  result, llvmCode
 
 let compileNew env exprs emitBackendCode fileName =
   begin
     let exprs = List.map (fixFileName fileName) exprs in
     let hadError = ref false in
     let translateExpr expr =
-      catchingErrorsDo
-        (fun () ->
-          let oldBindings = bindings env in
-          let flag, diagnostics, results, llvmCode = compileExprNew env expr in
-          Zompvm.evalLLVMCode oldBindings results llvmCode;
-          emitBackendCode llvmCode;
-          if flag = Result.Fail then
-            hadError := true;
-          results, diagnostics)
-        ~onErrors:(fun errors ->
-          hadError := true;
-          [], errors)
+      let oldBindings = bindings env in
+      let { Result.flag; diagnostics; results }, llvmCode = compileExpr env expr in
+      Zompvm.evalLLVMCode oldBindings results llvmCode;
+      emitBackendCode llvmCode;
+      if flag = Result.Fail then
+        hadError := true;
+      results, diagnostics
     in
     let formsNested, diagnosticsNested = List.split $ List.map translateExpr exprs in
     let diagnostics = List.flatten diagnosticsNested in

@@ -18,11 +18,6 @@ val envBindings : toplevelEnv -> Bindings.t
 
 type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) mayfail
 
-val translateTL :
-  Bindings.t ->
-  Ast2.sexpr ->
-  (Bindings.t * Lang.toplevelExpr list) mayfail
-
 type tlenv
 val createEnv : Bindings.t -> tlenv
 val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t

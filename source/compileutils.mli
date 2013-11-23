@@ -1,10 +1,4 @@
 
-(** Throws an exception which will be caught by catchingErrorsDo. Used for
-legacy code *)
-val signalErrors : Serror.t list -> 'a
-
-val catchingErrorsDo : (unit -> 'a) -> onErrors:(Serror.t list -> 'a) -> 'a
-
 (** Compilation environment carrying the compiler state *)
 type env
 val createEnv : Bindings.t -> env
@@ -18,8 +12,7 @@ val loadPrelude :
   (* Bindings.t *)
   unit Result.t
 
-val compileExprNew : env -> Ast2.t ->
-  Result.flag * Serror.t list * Lang.toplevelExpr list * string
+val compileExpr : env -> Ast2.t -> Lang.toplevelExpr Result.t * string
 
 val compileFromStream :
   env ->

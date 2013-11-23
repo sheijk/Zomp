@@ -612,8 +612,8 @@ let translateRun tlenv env expr =
         in
         try
           let oldBindings = Compileutils.bindings tlenv in
-          let flag, diagnostics, simpleforms, llvmCode =
-            Compileutils.compileExprNew tlenv exprInFunc
+          let { Result.flag; diagnostics; results = simpleforms }, llvmCode =
+            Compileutils.compileExpr tlenv exprInFunc
           in
           let newBindings = Compileutils.bindings tlenv in
           onSuccess oldBindings newBindings simpleforms llvmCode;
@@ -641,41 +641,34 @@ let rec step env parseState =
       step env (readExpr bindings)
 
     | Result (expr :: remExprs) ->
-      Compileutils.catchingErrorsDo
-        (fun () ->
-          if !printAst then begin
-            let asString = Ast2.toString expr in
-            printf " => %s\n" asString;
-          end;
+      if !printAst then begin
+        let asString = Ast2.toString expr in
+        printf " => %s\n" asString;
+      end;
 
-          let newBindings, time = recordTiming
-            (fun () ->
-              Expander.setTraceMacroExpansion
-                (if !traceMacroExpansion then
-                    let trace s e =
-                      printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
-                    in
-                    Some trace
-                 else
-                    None);
-              let flag, diagnostics, simpleforms, llvmCode =
-                Compileutils.compileExprNew env expr
-              in
-              let newBindings = Compileutils.bindings env in
-              if flag = Result.Fail then begin
-                Compileutils.signalErrors diagnostics;
-              end;
-              List.iter report diagnostics;
-              onSuccess bindings newBindings simpleforms llvmCode;
-              newBindings)
-          in
-          if (time > !notifyTimeThreshold) then
-            printf "Compiling expression took %fs\n" time;
-          step env (Result remExprs))
-        ~onErrors: (fun errors ->
+      Expander.setTraceMacroExpansion
+        (if !traceMacroExpansion then
+            let trace s e =
+              printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
+            in
+            Some trace
+         else
+            None);
+
+      let (), time = recordTiming (fun () ->
+        let { Result.flag; diagnostics; results = simpleforms }, llvmCode =
+          Compileutils.compileExpr env expr
+        in
+        List.iter report diagnostics;
+        let newBindings = Compileutils.bindings env in
+        if flag = Result.Fail then begin
           hadErrors := true;
-          List.iter report errors;
-          step env (Result remExprs))
+        end;
+        onSuccess bindings newBindings simpleforms llvmCode) 
+      in
+      if (time > !notifyTimeThreshold) then
+        printf "Compiling expression took %fs\n" time;
+      step env (Result remExprs)
 
 let init() =
   Zompvm.setIsInteractive true;
