@@ -92,11 +92,11 @@ let iter f bindings =
   let f' (key, info) = f (key, info.symbol) in
   iterInfo f' bindings
 
-let symbolTypeToString = function
-  | VarSymbol _ -> "VarSymbol"
-  | FuncSymbol _ -> "FuncSymbol"
-  | MacroSymbol _ -> "MacroSymbol"
-  | TypedefSymbol _ -> "TypedefSymbol"
-  | LabelSymbol _ -> "LabelSymbol"
-  | UndefinedSymbol -> "UndefinedSymbol"
+let kindToString = function
+  | VarSymbol _ -> "var"
+  | FuncSymbol _ -> "func"
+  | MacroSymbol _ -> "macro"
+  | TypedefSymbol _ -> "typedef"
+  | LabelSymbol _ -> "label"
+  | UndefinedSymbol -> "undefined"
 

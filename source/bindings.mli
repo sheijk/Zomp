@@ -26,6 +26,7 @@ val lookupInfo : bindings -> string -> symbolInfo
 val location : symbolInfo -> Basics.location option
 val symbol : symbolInfo -> symbol
 val isFunction : bindings -> string -> bool
+val kindToString : symbol -> string
 
 val iter : ((string * symbol) -> unit) -> bindings -> unit
 val iterInfo : ((string * symbolInfo) -> unit) -> bindings -> unit
