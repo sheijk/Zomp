@@ -94,7 +94,7 @@ let compile fileName inStream outStream =
     let exitCode =
       let preludeResult = addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir in
       List.iter reportDiagnostics preludeResult.Result.diagnostics;
-      if preludeResult.Result.flag = Result.Fail then
+      if Result.failed preludeResult then
         Compilation_failed (Compilation_failed_with_error "failed to compile prelude")
       else begin
         addTiming mainFileTime $ fun () ->

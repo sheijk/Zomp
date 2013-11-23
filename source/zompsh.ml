@@ -697,7 +697,7 @@ let loadPrelude env () =
       List.iter report diagnostics
     | _ -> ()
   end;
-  r.Result.flag = Result.Success
+  Result.succeeded r
 
 let handleOptions args =
   let onAnonArg str =
