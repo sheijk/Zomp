@@ -2471,16 +2471,7 @@ let () =
   addBaseInstruction macroMacro "name, args..., body"
     (Macros.translateDefineMacro translateNested `Local)
 
-let moreHandlers =
-  let moreHandlers = ref [] in
-  let addTL name (doc, f) =
-    moreHandlers := (name, f) :: !moreHandlers
-  in
-  addTL macroMacro ("name, args..., body", Macros.translateDefineMacro translateNested `Global);
-  Base.registerTL addTL;
-  moreHandlers
-
-let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
+let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
     Hashtbl.create 32
   in
@@ -2488,14 +2479,17 @@ let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstr
   let add name doc f =
     Hashtbl.add documentation name doc;
     Hashtbl.add table name f;
-    moreHandlers := (name, f) :: !moreHandlers;
   in
 
   add macroMacro "name, args..., body"
     (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested `Global));
   Base.registerTL (fun name (doc, f) -> add name doc f);
 
-  translateFromDict table, add, (fun f -> Hashtbl.iter f documentation)
+  let toList() =
+    List.rev $ Hashtbl.fold (fun name f list -> (name, f) :: list) table []
+  in
+
+  translateFromDict table, toList, add, (fun f -> Hashtbl.iter f documentation)
 
 let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
   | { id = "antiquote"; args = [quotedExpr] } ->
@@ -2851,7 +2845,8 @@ let rec translate tlenv expr =
     | UndefinedSymbol ->
       begin
         let handlers : (string * (tlenv -> Ast2.t -> unit)) list =
-          List.map (fun (name, handler) -> name, wrapNewTL handler) !moreHandlers @ [
+          let baseHandlers = tlInstructionList() in
+          List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
             macroFunc, wrapOldTL translateFunc;
             macroTypedef, wrapOldTL Translators_deprecated_style.translateTypedef;
             macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global);
