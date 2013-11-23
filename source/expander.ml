@@ -2291,6 +2291,17 @@ end
 let traceMacroExpansion = ref (Some (fun (_ :string) (_ :sexpr) -> ()))
 let setTraceMacroExpansion f = traceMacroExpansion := f
 
+let makeEnv bindings translateF translateExprOld = {
+  bindings = bindings;
+  translateF = translateF;
+  translateExprOld = translateExprOld;
+  translateExpr = (fun env expr ->
+    let newBindings, formsWTL = translateExprOld env.bindings expr in
+    Result (newBindings, formsWTL));
+  parseF = Parseutils.parseIExprsOpt;
+  reportError = reportError;
+}
+
 let translateFromDict
     baseInstructions
     translateExprOld
@@ -2304,16 +2315,7 @@ let translateFromDict
       | None -> ()
     end;
     let handler = Hashtbl.find baseInstructions expr.id in
-    let env = {
-      bindings = bindings;
-      translateF = translateF;
-      translateExprOld = translateExprOld;
-      translateExpr = (fun env expr ->
-        let newBindings, formsWTL = translateExprOld env.bindings expr in
-        Result (newBindings, formsWTL));
-      parseF = Parseutils.parseIExprsOpt;
-      reportError = reportError;
-    } in
+    let env = makeEnv bindings translateF translateExprOld in
     match handler env expr with
       | Error errors ->
         let printError error =
@@ -2469,6 +2471,15 @@ let () =
   addBaseInstruction macroMacro "name, args..., body"
     (Macros.translateDefineMacro translateNested `Local)
 
+let moreHandlers =
+  let moreHandlers = ref [] in
+  let addTL name (doc, f) =
+    moreHandlers := (name, f) :: !moreHandlers
+  in
+  addTL macroMacro ("name, args..., body", Macros.translateDefineMacro translateNested `Global);
+  Base.registerTL addTL;
+  moreHandlers
+
 let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
     Hashtbl.create 32
@@ -2476,7 +2487,8 @@ let translateBaseInstructionTL, addToplevelInstruction, foreachToplevelBaseInstr
   let documentation = Hashtbl.create 32 in
   let add name doc f =
     Hashtbl.add documentation name doc;
-    Hashtbl.add table name f
+    Hashtbl.add table name f;
+    moreHandlers := (name, f) :: !moreHandlers;
   in
 
   add macroMacro "name, args..., body"
@@ -2748,23 +2760,112 @@ let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
 let translateTL bindings expr = Result (translateTLNoErr bindings expr)
 
-type tlenv = {
-  mutable tlbindings :Bindings.t;
-}
+module EnvTL : sig
+  type t
+  val create : Bindings.t -> t
 
-let createEnv (initialBindings :bindings) = {
-  tlbindings = initialBindings;
-}
+  val env : t -> toplevelEnv
+  val bindings : t -> Bindings.t
+  val hasErrors : t -> bool
 
-let translate env expr =
-  match translateTL env.tlbindings expr with
+  val reset : t -> Serror.t list * toplevelExpr list
+  val setBindings : t -> Bindings.t -> unit
+
+  val emitError : t -> Serror.t -> unit
+  val emitForm : t -> toplevelExpr -> unit
+end = struct
+  type t = {
+    mutable tlbindings :Bindings.t;
+    mutable tlenv :toplevelEnv;
+    mutable tlerrorsRev :Serror.t list;
+    mutable tlexprsRev :toplevelExpr list;
+
+    tlEmitForm :toplevelExpr -> unit;
+    tlEmitError :Serror.t -> unit;
+  }
+
+  let env e = e.tlenv
+  let bindings e = e.tlbindings
+  let hasErrors e = e.tlerrorsRev <> []
+
+  let setBindings env bindings =
+    Zompvm.currentBindings := bindings;
+    env.tlbindings <- bindings;
+    env.tlenv <- { env.tlenv with bindings }
+
+  let emitError env error =
+    printf "emitError: %s\n" $ Serror.toString error;
+    env.tlEmitError error
+  let emitForm env form = env.tlEmitForm form
+
+  let reset tlenv =
+    let errors = List.rev tlenv.tlerrorsRev in
+    let forms = List.rev tlenv.tlexprsRev in
+    tlenv.tlerrorsRev <- [];
+    tlenv.tlexprsRev <- [];
+    errors, forms
+
+  let create (initialBindings :bindings) =
+    let rec env = {
+      tlbindings = initialBindings;
+      tlenv = makeEnv initialBindings translateTLNoErr translateNested;
+      tlerrorsRev = [];
+      tlexprsRev = [];
+      tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
+      tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
+  (* tltranslateOld = translateTL; *)
+  (* tltranslate = translate; *)
+    } in
+    env
+end
+
+type tlenv = EnvTL.t
+let createEnv = EnvTL.create
+let bindings = EnvTL.bindings
+
+let wrapNewTL f = fun tlenv expr ->
+  match f (EnvTL.env tlenv) expr with
     | Result (newBindings, forms) ->
-      env.tlbindings <- newBindings;
-      Result.make Result.Success ~diagnostics:[] ~results:forms
+      EnvTL.setBindings tlenv newBindings;
+      List.iter (EnvTL.emitForm tlenv) forms
     | Error errors ->
-      Result.make Result.Fail ~diagnostics:errors ~results:[]
+      List.iter (EnvTL.emitError tlenv) errors
 
-let bindings env = env.tlbindings
+let wrapOldTL (f :toplevelExprTranslateF -> Bindings.t -> Ast2.t -> (Bindings.t * toplevelExpr list) option) : tlenv -> Ast2.t -> unit =
+  fun tlenv expr ->
+    match f translateTLNoErr (EnvTL.bindings tlenv) expr with
+      | None ->
+        EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "failed to translate %s, ast malformed" expr.id)
+      | Some (bindings, forms) ->
+        EnvTL.setBindings tlenv bindings;
+        List.iter (EnvTL.emitForm tlenv) forms
+
+let rec translate tlenv expr =
+  match Bindings.lookup (EnvTL.bindings tlenv) expr.id with
+    | MacroSymbol macro ->
+      let newAst = macro.mtransformFunc (EnvTL.bindings tlenv) expr in
+      (* TODO: fix locations, see Old_macro_support.translateMacroCall *)
+      translate tlenv newAst
+    | VarSymbol _ | FuncSymbol _ | TypedefSymbol _ | LabelSymbol _ as sym ->
+      Result.fail ~diagnostics:[Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym)] ~results:[]
+    | UndefinedSymbol ->
+      begin
+        let handlers : (string * (tlenv -> Ast2.t -> unit)) list =
+          List.map (fun (name, handler) -> name, wrapNewTL handler) !moreHandlers @ [
+            macroFunc, wrapOldTL translateFunc;
+            macroTypedef, wrapOldTL Translators_deprecated_style.translateTypedef;
+            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global);
+            "antiquote", wrapOldTL translateCompileTimeVar;]
+        in
+        try
+          let handler = List.assoc expr.id handlers in
+          handler tlenv expr;
+          let errors, forms = EnvTL.reset tlenv in
+          let flag = if errors = [] then Result.Success else Result.Fail in
+          Result.make flag ~diagnostics:errors ~results:forms
+        with Not_found ->
+          Result.fail ~diagnostics:[Serror.fromExpr expr $ sprintf "%s is undefined" expr.id] ~results:[]
+      end
 
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
