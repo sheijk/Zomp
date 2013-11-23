@@ -81,38 +81,32 @@ let compile fileName inStream outStream =
   let emitBackendCode source =
     output_string outStream source
   in
+  let reportDiagnostics diag =
+    eprintf "%s\n" $ Serror.toString diag;
+    flush stderr
+  in
 
   if not( Zompvm.zompInit() ) then begin
     Compilation_failed Failed_to_init_vm
   end else begin
     Zompvm.zompVerifyCode false;
+    let env = Compileutils.createEnv Genllvm.defaultBindings in
     let exitCode =
-      Compileutils.catchingErrorsDo
-        (fun () -> begin
-          let preludeBindings :Bindings.t =
-            addTiming preludeTime $ fun () ->
-              Compileutils.loadPrelude
-                ~emitBackendCode
-                preludeDir
+      let preludeResult = addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir in
+      List.iter reportDiagnostics preludeResult.Result.diagnostics;
+      if preludeResult.Result.flag = Result.Fail then
+        Compilation_failed (Compilation_failed_with_error "failed to compile prelude")
+      else begin
+        addTiming mainFileTime $ fun () ->
+          let { Result.flag; diagnostics; _ } =
+            Compileutils.compileFromStream env ~source:input ~emitBackendCode ~fileName
           in
-          addTiming mainFileTime $ fun () ->
-            let env = Compileutils.createEnv preludeBindings in
-            let { Result.flag; diagnostics; _ } =
-              Compileutils.compileFromStream env ~source:input ~emitBackendCode ~fileName
-            in
-            let reportDiagnostics diag =
-              eprintf "%s\n" $ Serror.toString diag;
-              flush stderr
-            in
-            List.iter reportDiagnostics diagnostics;
-            if flag = Result.Success then
-              Compilation_succeeded (Compileutils.bindings env)
-            else
-              Compilation_failed Compiler_did_not_return_result
-        end)
-        ~onErrors:(fun errors ->
-          List.iter (printf "%s\n" ++ Serror.toString) errors;
-          Compilation_failed (Compilation_failed_with_error "oops"))
+          List.iter reportDiagnostics diagnostics;
+          if flag = Result.Success then
+            Compilation_succeeded (Compileutils.bindings env)
+          else
+            Compilation_failed Compiler_did_not_return_result
+      end
     in
     Zompvm.zompShutdown();
     exitCode

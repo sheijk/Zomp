@@ -5,14 +5,18 @@ val signalErrors : Serror.t list -> 'a
 
 val catchingErrorsDo : (unit -> 'a) -> onErrors:(Serror.t list -> 'a) -> 'a
 
-val loadPrelude :
-  ?emitBackendCode:(string -> unit) ->
-  ?appendSource:string -> string -> Bindings.t
-
 (** Compilation environment carrying the compiler state *)
 type env
 val createEnv : Bindings.t -> env
 val bindings : env -> Bindings.t
+
+val loadPrelude :
+  env ->
+  ?emitBackendCode:(string -> unit) ->
+  ?appendSource:string ->
+  string ->
+  (* Bindings.t *)
+  unit Result.t
 
 val compileExprNew : env -> Ast2.t ->
   Result.flag * Serror.t list * Lang.toplevelExpr list * string

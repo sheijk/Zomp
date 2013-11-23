@@ -17,18 +17,6 @@ let translateTLNoError bindings expr =
     | Expander.Result r -> r
     | Expander.Error errors -> failwith "unexpected failure in Expander.translateTL"
 
-let compileExpr translateF bindings sexpr =
-  let newBindings, simpleforms =
-    collectTimingInfo "generating ast"
-      (fun () -> translateF bindings sexpr)
-  in
-  let llvmCodes =
-    collectTimingInfo "codegen"
-      (fun () -> List.map Genllvm.gencodeTL simpleforms)
-  in
-  let llvmCode = combine "\n" llvmCodes in
-  newBindings, simpleforms, llvmCode
-
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
   begin
@@ -50,29 +38,6 @@ let catchingErrorsDo f ~onErrors =
       | CouldNotParse error ->
         onErrors [error]
   end
-
-let rec compile
-    ~readExpr
-    ?(beforeCompilingExpr = fun (_:Ast2.sexpr) -> ())
-    ~onSuccess
-    ~onErrors
-    bindings
-    =
-  let continue = compile ~readExpr ~beforeCompilingExpr ~onSuccess ~onErrors in
-  catchingErrorsDo
-    (fun () -> begin
-       match readExpr bindings with
-         | Some expr ->
-             let () = beforeCompilingExpr expr in
-             let newBindings, simpleforms, llvmCode = compileExpr translateTLNoError bindings expr in
-             let () = onSuccess expr bindings newBindings simpleforms llvmCode in
-             continue newBindings
-         | None ->
-             bindings
-     end)
-    ~onErrors:(fun errors ->
-      let () = onErrors errors in
-      continue bindings)
 
 type env = Expander.tlenv
 let createEnv initialBindings = Expander.createEnv initialBindings
@@ -116,42 +81,24 @@ let compileFromStream env ~source ~emitBackendCode ~fileName =
     | Exprs exprs ->
       compileNew env exprs emitBackendCode fileName
 
-let loadPrelude ?(emitBackendCode = fun _ -> ()) ?(appendSource = "") dir :Bindings.t =
+let loadPrelude env ?(emitBackendCode = fun _ -> ()) ?(appendSource = "") dir =
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let llvmRuntimeFile = dir ^ "runtime.ll" in
   (collectTimingInfo "loading .ll file"
      (fun () -> Zompvm.loadLLVMFile llvmRuntimeFile));
 
   let preludeBaseName = "prelude" in
-  let zompPreludeFile = Common.canonicalFileName
-    (Common.absolutePath (dir ^ preludeBaseName ^ ".zomp")) in
+  let zompPreludeFile =
+    Common.canonicalFileName $ Common.absolutePath (dir ^ preludeBaseName ^ ".zomp")
+  in
   let source = Common.readFile zompPreludeFile ^ appendSource in
-  let exprs =
-    collectTimingInfo "parsing"
-      (fun () ->
-        ref (match Parseutils.parseIExprs ~fileName:zompPreludeFile source with
-          | Exprs exprs ->
-            List.iter Ast2.assertHasLocation exprs;
-            exprs
-          | Error pe -> raise (CouldNotParse pe)))
-  in
-  let readExpr _ =
-    match !exprs with
-      | next :: rem ->
-          exprs := rem;
-          Some next
-      | [] -> None
-  in
-  let newBindings =
-    compile
-      ~readExpr
-      ~onSuccess:(fun expr oldBindings newBindings simpleforms llvmCode ->
-                    Zompvm.evalLLVMCode oldBindings simpleforms llvmCode;
-                    emitBackendCode llvmCode)
-      ~onErrors:signalErrors
-      Genllvm.defaultBindings
-  in
-  newBindings
+  match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName:zompPreludeFile source with
+    | Error error ->
+      Result.make Result.Fail ~diagnostics:[error] ~results:[]
+    | Exprs exprs ->
+      List.iter Ast2.assertHasLocation exprs;
+      let result = compileNew env exprs emitBackendCode zompPreludeFile in
+      Result.replaceResults result (fun _ -> [])
 
 let writeSymbolsToStream bindings stream =
   fprintf stream "Symbol table\n";

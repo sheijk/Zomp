@@ -686,23 +686,18 @@ let init() =
   end;
   at_exit Machine.zompShutdown
 
-let loadPrelude() =
+let loadPrelude env () =
   let defaultMainSrc =
     "std:base:func int main():\n  printString\"error: no main method defined\\n\"\n  std:base:ret 1\nend\n"
   in
   let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
-  Compileutils.catchingErrorsDo
-    (fun () -> begin
-      let preludeBindings = Compileutils.loadPrelude
-        ~appendSource:defaultMainSrc
-        preludeDir
-      in
-      let initialBindings = preludeBindings in
-      initialBindings
-    end)
-    ~onErrors:(fun errors ->
-      List.iter report errors;
-      exit (-2))
+  let r = Compileutils.loadPrelude env ~appendSource:defaultMainSrc preludeDir in
+  begin match r with
+    | { Result.flag = Result.Fail; diagnostics } ->
+      List.iter report diagnostics
+    | _ -> ()
+  end;
+  r.Result.flag = Result.Success
 
 let handleOptions args =
   let onAnonArg str =
@@ -764,15 +759,19 @@ let () =
   addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
     (Expander.translateLinkCLib dllPath);
 
-  let initialBindings, preludeLoadTime = recordTiming loadPrelude in
+  let env = Compileutils.createEnv Genllvm.defaultBindings in
+  let preludeOk, preludeLoadTime = recordTiming (loadPrelude env) in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;
   let section = Statistics.createSection "zompsh" in
   Statistics.createFloatCounter section "prelude load time (s)" 3 (fun () -> preludeLoadTime);
 
-  message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-  let env = Compileutils.createEnv initialBindings in
-  addToplevelInstr "std:base:run" "statement..." (translateRun env);
-  let `NoReturn = step env (Result []) in
-  ()
+  if preludeOk then begin
+    message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
+    addToplevelInstr "std:base:run" "statement..." (translateRun env);
+    let `NoReturn = step env (Result []) in ()
+  end else begin
+    reportError "failed to load prelude";
+    exit(-2);
+  end
 
 
