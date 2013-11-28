@@ -2678,7 +2678,7 @@ let checkRedefinitionErrors tlenv newDefinitionType scope name expr bindings =
     else
       reportDiagnostics kind error
   in
-  ignore (hasRedefinitionErrors newDefinitionType scope name expr bindings reportDiagnostics)
+  hasRedefinitionErrors newDefinitionType scope name expr bindings reportDiagnostics
 
 let translateTypeImp tlenv expr =
   match translateType (EnvTL.bindings tlenv) Translators_deprecated_style.reportWarning expr with
@@ -2687,6 +2687,12 @@ let translateTypeImp tlenv expr =
     | Error errors ->
       EnvTL.emitErrors tlenv errors;
       `ErrorType "translateTypeImp"
+
+let checkFunctionIsValid tlenv location f =
+  match Semantic.functionIsValid f with
+    | `Ok -> ()
+    | `Errors messages ->
+      List.iter (fun msg -> EnvTL.emitError tlenv $ Serror.fromMsg location msg) messages
 
 let rec translateFunc tlenv expr : unit =
   let bindings = EnvTL.bindings tlenv in
@@ -2700,7 +2706,7 @@ let rec translateFunc tlenv expr : unit =
         List.fold_left
           (fun prevNames (nextName, _) ->
             if StringSet.mem nextName prevNames then
-              raiseIllegalExpression expr
+              EnvTL.emitError tlenv $ Serror.fromExpr expr
                 (sprintf "each argument needs a distinct name. %s used more than once" nextName);
             StringSet.add nextName prevNames)
           StringSet.empty
@@ -2711,7 +2717,7 @@ let rec translateFunc tlenv expr : unit =
 
     let nameRE = "^[a-zA-Z0-9][^\"]*$" in
     if not (name =~ nameRE) then
-      raiseIllegalExpression expr
+      EnvTL.emitError tlenv $ Serror.fromExpr expr
         (sprintf "function names must match the following regexp: %s" nameRE);
     ()
   in
@@ -2725,15 +2731,18 @@ let rec translateFunc tlenv expr : unit =
             if name = "same" then
               printf "func arg '%s' : '%s (%s)'\n" varName (typeName typ) (Ast2.toString typeExpr);
             (varName, typ)
-          | Error _ -> raiseInvalidType typeExpr
+          | Error errors ->
+            EnvTL.emitErrors tlenv errors;
+            name, `ErrorType "arg"
       in
       match argExpr with
         | { id = "seq"; args = [typeExpr; { id = varName; args = []};] } ->
           translate varName typeExpr
         | { id = typeExpr; args = [{ id = varName; args = [] }] } ->
           translate varName (Ast2.idExpr typeExpr)
-        | _ as expr ->
-          raiseIllegalExpression expr "expected 'typeName varName' for param"
+        | expr ->
+          EnvTL.emitError tlenv $ Serror.fromExpr expr "expected 'typeName varName' for param";
+          "_", `ErrorType "invalid arg"
     in
 
     let rec bindingsWithParams bindings params =
@@ -2774,17 +2783,12 @@ let rec translateFunc tlenv expr : unit =
       | None -> None
     in
     let f = (if hasvarargs then varargFunc else func) name typ params impl location in
-    match Semantic.functionIsValid f with
-      | `Ok ->
-        let newBindings =
-          addFunc bindings f
-        in
-        let funcDef = `DefineFunc f in
-        newBindings, funcDef
-      | `Errors messages -> raiseIllegalExpression
-        expr (Common.combine "\n"
-                (let msg = sprintf "could not translate function %s:" name in
-                 msg :: messages))
+    checkFunctionIsValid tlenv expr.location f;
+    let newBindings =
+      addFunc bindings f
+    in
+    let funcDef = `DefineFunc f in
+    newBindings, funcDef
   in
   match matchFunc expr with
     | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr, parametricTypes, location) ->
@@ -2799,7 +2803,7 @@ let rec translateFunc tlenv expr : unit =
         match translateType bindings typeExpr with
           | Result typ -> begin
             let isRedefinitionError =
-              hasRedefinitionErrors `NewFuncDef `Global name expr bindings reportDiagnostics
+              checkRedefinitionErrors tlenv `NewFuncDef `Global name expr bindings
             in
 
             (** Add function declaration so it can be called in body *)
@@ -2818,13 +2822,13 @@ let rec translateFunc tlenv expr : unit =
               EnvTL.emitForm tlenv funcDef;
             end
           end
-          | Error _ ->
-            raiseInvalidType typeExpr
+          | Error errors ->
+            EnvTL.emitErrors tlenv errors
       end
     | `FuncDecl (name, typeExpr, paramExprs, hasvarargs, location) ->
       begin
         let isRedefinitionError =
-          hasRedefinitionErrors `NewFuncDecl `Global name expr bindings reportDiagnostics
+          checkRedefinitionErrors tlenv `NewFuncDecl `Global name expr bindings
         in
         let returnType = translateTypeImp tlenv typeExpr in
         let newBindings, funcDecl = buildFunction bindings returnType name paramExprs hasvarargs None location in
