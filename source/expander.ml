@@ -2441,7 +2441,9 @@ module EnvTL : sig
 
   val setBindings : t -> Bindings.t -> unit
   val emitError : t -> Serror.t -> unit
+  val emitErrors : t -> Serror.t list -> unit
   val emitForm : t -> toplevelExpr -> unit
+  val emitForms : t -> toplevelExpr list -> unit
   (** Used for legacy translator functions that fail without reporting any errors. *)
   val emitSilentError : t -> unit
 end = struct
@@ -2451,6 +2453,7 @@ end = struct
     mutable tlerrorsRev :Serror.t list;
     mutable tlexprsRev :toplevelExpr list;
     mutable tlHadSilentErrors :bool;
+    mutable tlCompilationFailed :bool;
 
     tlEmitForm :toplevelExpr -> unit;
     tlEmitError :Serror.t -> unit;
@@ -2466,10 +2469,15 @@ end = struct
     env.tlenv <- { env.tlenv with bindings }
 
   let emitError env error =
-    printf "emitError: %s\n" $ Serror.toString error;
+    env.tlCompilationFailed <- true;
     env.tlEmitError error
   let emitForm env form = env.tlEmitForm form
-  let emitSilentError env = env.tlHadSilentErrors <- true
+  let emitSilentError env =
+    env.tlHadSilentErrors <- true;
+    env.tlCompilationFailed <- true
+
+  let emitErrors env = List.iter (emitError env)
+  let emitForms env = List.iter (emitForm env)
 
   let reset tlenv =
     let errors = List.rev tlenv.tlerrorsRev in
@@ -2487,6 +2495,7 @@ end = struct
       tlerrorsRev = [];
       tlexprsRev = [];
       tlHadSilentErrors = false;
+      tlCompilationFailed = false;
       tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
     } in
@@ -2652,6 +2661,33 @@ let matchFunc =
     | expr ->
         `NotAFunc expr
 
+
+let typeCheckTLImp env location form =
+  match typeCheckTL (EnvTL.bindings env) form with
+    | TypeOf typ ->
+      typ
+    | TypeError (fe, msg, found, expected) ->
+      let msg = (typeErrorMessage (EnvTL.bindings env) (fe, msg, found, expected)) in
+      EnvTL.emitError env $ Serror.fromMsg location msg;
+      `ErrorType msg
+
+let checkRedefinitionErrors tlenv newDefinitionType scope name expr bindings =
+  let reportDiagnostics kind error =
+    if kind = DiagnosticKind.Error then
+      EnvTL.emitError tlenv error
+    else
+      reportDiagnostics kind error
+  in
+  ignore (hasRedefinitionErrors newDefinitionType scope name expr bindings reportDiagnostics)
+
+let translateTypeImp tlenv expr =
+  match translateType (EnvTL.bindings tlenv) Translators_deprecated_style.reportWarning expr with
+    | Result typ ->
+      typ
+    | Error errors ->
+      EnvTL.emitErrors tlenv errors;
+      `ErrorType "translateTypeImp"
+
 let rec translateFunc tlenv expr : unit =
   let bindings = EnvTL.bindings tlenv in
   let translateType bindings expr =
@@ -2720,14 +2756,22 @@ let rec translateFunc tlenv expr : unit =
     doSanityChecks typ name params;
 
     let innerBindings = bindingsWithParams bindings params in
-    let nestedTLForms, impl = match implExprOption with
+    let impl = match implExprOption with
       | Some implExpr ->
-        let nestedForms = snd (translateNested innerBindings implExpr) in
-        let nestedTLForms, implForms = extractToplevelForms nestedForms in
-        let nestedTLForms = List.map (fun (`ToplevelForm f) -> f) nestedTLForms in
-        let implFormsWithFixedVars = moveLocalVarsToEntryBlock (`Sequence implForms) in
-        nestedTLForms, Some (`Sequence implFormsWithFixedVars)
-      | None -> [], None
+        begin try
+          let nestedForms = snd (translateNested innerBindings implExpr) in
+          let nestedTLForms, implForms = extractToplevelForms nestedForms in
+          List.iter (fun (`ToplevelForm f) -> EnvTL.emitForm tlenv f) nestedTLForms;
+          let implFormsWithFixedVars = moveLocalVarsToEntryBlock (`Sequence implForms) in
+          Some (`Sequence implFormsWithFixedVars)
+        with
+          | IllegalExpression (expr, errors) ->
+            EnvTL.emitErrors tlenv errors;
+            if errors = [] then
+              EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "internal error: failed to compile function %s" name);
+            Some (`Sequence [`Return (`Constant (Typesystems.Zomp.defaultValue typ))])
+        end
+      | None -> None
     in
     let f = (if hasvarargs then varargFunc else func) name typ params impl location in
     match Semantic.functionIsValid f with
@@ -2736,7 +2780,7 @@ let rec translateFunc tlenv expr : unit =
           addFunc bindings f
         in
         let funcDef = `DefineFunc f in
-        newBindings, nestedTLForms, funcDef
+        newBindings, funcDef
       | `Errors messages -> raiseIllegalExpression
         expr (Common.combine "\n"
                 (let msg = sprintf "could not translate function %s:" name in
@@ -2758,27 +2802,21 @@ let rec translateFunc tlenv expr : unit =
               hasRedefinitionErrors `NewFuncDef `Global name expr bindings reportDiagnostics
             in
 
-              (** Add function declaration so it can be called in body *)
-            let tempBindings, _, _ =
+            (** Add function declaration so it can be called in body *)
+            let tempBindings, _ =
               buildFunction bindingsWParametricTypes typ name paramExprs hasvarargs None location
             in
-              (** Add function definition *)
-            let newBindings, toplevelForms, funcDef =
+            (** Add function definition *)
+            let newBindings, funcDef =
               buildFunction tempBindings typ name paramExprs hasvarargs (Some implExpr) location
             in
 
-            match typeCheckTL newBindings funcDef with
-              | TypeOf _ ->
-                if isRedefinitionError then
-                  raiseIllegalExpression expr "method was already defined"
-                else begin
-                  EnvTL.setBindings tlenv newBindings;
-                  List.iter (EnvTL.emitForm tlenv) (toplevelForms @ [funcDef])
-                end
-              | TypeError (fe, msg, declaredType, returnedType) ->
-                raiseIllegalExpression
-                  expr
-                  (typeErrorMessage bindings (fe, msg, returnedType, declaredType))
+            ignore (typeCheckTLImp tlenv expr.location funcDef);
+
+            if (not isRedefinitionError) then begin
+              EnvTL.setBindings tlenv newBindings;
+              EnvTL.emitForm tlenv funcDef;
+            end
           end
           | Error _ ->
             raiseInvalidType typeExpr
@@ -2788,35 +2826,34 @@ let rec translateFunc tlenv expr : unit =
         let isRedefinitionError =
           hasRedefinitionErrors `NewFuncDecl `Global name expr bindings reportDiagnostics
         in
-        match translateType bindings typeExpr with
-          | Result typ ->
-            begin
-              let newBindings, _, funcDecl = buildFunction bindings typ name paramExprs hasvarargs None location in
-              match isRedefinitionError with
-                | false ->
-                  EnvTL.setBindings tlenv newBindings;
-                  EnvTL.emitForm tlenv funcDecl;
-                | true ->
-                  raiseIllegalExpression expr "method was already defined"
-            end
-          | Error _ ->
-            raiseInvalidType typeExpr
+        let returnType = translateTypeImp tlenv typeExpr in
+        let newBindings, funcDecl = buildFunction bindings returnType name paramExprs hasvarargs None location in
+        if (not isRedefinitionError) then begin
+          EnvTL.setBindings tlenv newBindings;
+          EnvTL.emitForm tlenv funcDecl;
+        end
       end
     | `NotAFunc _ ->
       EnvTL.emitSilentError tlenv
     | `InvalidFunc msg ->
       EnvTL.emitError tlenv $ Serror.fromExpr expr msg
 
+let compilationSwallowedErrors = ref false
+
 let unwrapOldTL (f : EnvTL.t -> Ast2.t -> unit) =
   fun translateF bindings expr ->
     let env = EnvTL.create translateF bindings in
     f env expr;
     let flag, errors, forms = EnvTL.reset env in
+    if errors <> [] then
+      compilationSwallowedErrors := true;
     List.iter reportError errors;
-    if flag = Result.Success then
-      Some (EnvTL.bindings env, forms)
-    else
-      None
+    match flag, forms with
+      | Result.Success, _
+      | _, (_ :: _) ->
+        Some (EnvTL.bindings env, forms)
+      | Result.Fail, [] ->
+        None
 
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
@@ -2840,24 +2877,23 @@ let createEnv = EnvTL.create translateTLNoErr
 let bindings = EnvTL.bindings
 
 let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
-let translateTL bindings expr = Result (translateTLNoErr bindings expr)
 
 let wrapNewTL f = fun tlenv expr ->
   match f (EnvTL.env tlenv) expr with
     | Result (newBindings, forms) ->
       EnvTL.setBindings tlenv newBindings;
-      List.iter (EnvTL.emitForm tlenv) forms
+      EnvTL.emitForms tlenv forms
     | Error errors ->
-      List.iter (EnvTL.emitError tlenv) errors
+      EnvTL.emitErrors tlenv errors
 
-let wrapOldTL (f :toplevelExprTranslateF -> Bindings.t -> Ast2.t -> (Bindings.t * toplevelExpr list) option) : tlenv -> Ast2.t -> unit =
+let wrapOldTL f : tlenv -> Ast2.t -> unit =
   fun tlenv expr ->
     match f translateTLNoErr (EnvTL.bindings tlenv) expr with
       | None ->
         EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "failed to translate %s, ast malformed" expr.id)
       | Some (bindings, forms) ->
         EnvTL.setBindings tlenv bindings;
-        List.iter (EnvTL.emitForm tlenv) forms
+        EnvTL.emitForms tlenv forms
 
 let rec translate tlenv expr =
   match Bindings.lookup (EnvTL.bindings tlenv) expr.id with
@@ -2881,6 +2917,8 @@ let rec translate tlenv expr =
           let handler = List.assoc expr.id handlers in
           handler tlenv expr;
           let flag, errors, forms = EnvTL.reset tlenv in
+          let flag = if !compilationSwallowedErrors then Result.Fail else flag in
+          compilationSwallowedErrors := false;
           Result.make flag ~diagnostics:errors ~results:forms
         with Not_found ->
           Result.fail [Serror.fromExpr expr $ sprintf "%s is undefined" expr.id]
