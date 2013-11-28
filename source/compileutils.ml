@@ -32,7 +32,7 @@ let bindings env = Expander.bindings env
 let compileExpr env expr =
   let result =
     catchingErrorsDo (fun () -> Expander.translate env expr)
-      ~onErrors:(fun diagnostics -> Result.fail ~results:[] ~diagnostics)
+      ~onErrors:(fun diagnostics -> Result.fail diagnostics)
   in
   let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
   result, llvmCode

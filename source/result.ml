@@ -7,8 +7,8 @@ type 'a t = {
 }
 
 let make flag ~results ~diagnostics = { flag; results; diagnostics }
-let fail ~results ~diagnostics = make Fail ~results ~diagnostics
-let success ~results ~diagnostics = make Success ~results ~diagnostics
+let fail diagnostics = make Fail ~results:[] ~diagnostics
+let success results = make Success ~results ~diagnostics:[]
 
 let flag result = result.flag
 let succeeded result = result.flag = Success

@@ -6,8 +6,8 @@ type 'a t = private {
 }
 
 val make : flag -> results:'a list -> diagnostics:Serror.t list -> 'a t
-val fail : results:'a list -> diagnostics:Serror.t list -> 'a t
-val success : results:'a list -> diagnostics:Serror.t list -> 'a t
+val fail : Serror.t list -> 'a t
+val success : 'a list -> 'a t
 
 val flag : 'a t -> flag
 val succeeded : 'a t -> bool
