@@ -4,15 +4,39 @@
 
 std:base:func void funcOne():
   foobar() //// error foobar
-  std:base:ret void
+  std:base:ret
 end
 
 std:base:func void funcTwo():
   buzzbar() //// error buzzbar
-  std:base:ret void
+  std:base:ret
 end
 
+func bool isBound(char* name)
+
+macro checkSymbol name:
+  if isBound(getField name id):
+    printString(getField name id)
+    printString(" is bound")
+    printNewline()
+  else:
+    printString(getField name id)
+    printString(" is missing")
+    printNewline()
+  end
+
+  ret ${}
+end
+
+std:base:func void funcThree()
+
+checkSymbol funcOne //// compiler-output funcOne bound
+checkSymbol funcTwo //// compiler-output funcTwo bound
+checkSymbol funcThree //// compiler-output funcThree bound
+
 func int main():
+  funcOne() //// not-compiler-output funcOne undef
+  funcTwo() //// not-compiler-output funcTwo undef
   ret 0
 end
 
