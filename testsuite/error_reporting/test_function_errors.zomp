@@ -1,0 +1,28 @@
+///
+/// Testing reporting of various errors in function declarations and definitions.
+///
+
+std:base:func invalidTypXXX hello1() //// error type invalidTypXXX
+
+std:base:func void hello(int foo, int foo) //// error argument foo
+
+std:base:func void hello(int foo, int foo): //// error argument foo
+  std:base:ret
+end
+
+std:base:func void hello2(int) //// error argument
+
+std:base:func notype //// error notype
+    hello2(buzzbar, //// error buzzbar
+    int foo, int foo): //// error foo
+  std:base:ret
+end
+
+std:base:func int returnInvalid():
+  std:base:ret 10.0 //// error type int float
+end
+
+func int main():
+  ret 0
+end
+
