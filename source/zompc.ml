@@ -6,41 +6,88 @@ open Common
 open Parseutils
 open Compileutils
 
-let section = Statistics.createSection "zompc"
+module Options = struct
+  type outputTarget = [`ToFile of string | `Stdout | `DoNotWrite]
+  let outputTargetFromString = function
+    | "" -> `DoNotWrite
+    | "-" -> `Stdout
+    | file when file.[0] = '-' -> raise (Arg.Bad (sprintf "file name '%s' invalid, must not start with -" file))
+    | file -> `ToFile file
 
-type llvmCode = string
-
-type sourceloc = {
-  fileName :string;
-  line :int;
-  column :int;
-  charsFromBeginning: int;
-}
-
-let locationFromLexbuf lexbuf =
-  let {
-    Lexing.pos_fname = fileName;
-    pos_lnum = lineNum;
-    pos_bol = columNum;
-    pos_cnum = totalChars
-  } = lexbuf.Lexing.lex_curr_p
-  in
-  let fileName = if String.length fileName > 0 then fileName else "dummy.zomp" in
-  (* TODO: update pos_lnum (and pos_fname) in lexer *)
-  {
-    fileName = fileName;
-    line = lineNum;
-    column = columNum;
-    charsFromBeginning = totalChars;
+  type options = {
+    execNameAndPath :string;
+    fileName :string;
+    printTimings :bool;
+    printStats :outputTarget;
+    traceMacroExpansion :bool;
+    symbolTableDumpFile :string option;
+    zompIncludePaths :string list;
+    dllPaths :string list;
   }
 
-let printInstructions() =
-  printf "zompc -c fileName.zomp\n";
-  printf "to compile fileName.zomp into fileName.ll\n"
+  type optionResult = Options of options | InvalidArguments of string
+
+  let extract args =
+    let addRelativePath list commandName dir =
+      let absolutePath = Common.absolutePath dir in
+      list := absolutePath :: !list;
+      if not (Sys.file_exists absolutePath) then
+        eprintf "warning: directory '%s' does not exist (%s)\n" absolutePath commandName
+      else if not (Sys.is_directory absolutePath) then
+        eprintf "warning: '%s' is not a directory (%s)\n" absolutePath commandName;
+    in
+
+    let fileName = ref "" in
+    let printTimings = ref false in
+    let printStats = ref "" in
+    let traceMacroExpansion = ref false in
+    let symbolTableDumpFile = ref "" in
+    let zompIncludePaths = ref [] in
+    let dllPaths = ref [] in
+    let onAnonArg str =
+      raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
+    in
+    try
+      Arg.current := 0;
+      Arg.parse_argv
+        args
+        ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
+         "--stats", Arg.Set_string printStats, "print statistics on exit.";
+         "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
+         "-c", Arg.Set_string fileName, "The file to compile.";
+         "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
+         "--zomp-include-dir",
+         Arg.String (addRelativePath zompIncludePaths "--zomp-include-dir"),
+         "A directory to be searched by include and requireLib";
+         "--dll-dir",
+         Arg.String (addRelativePath dllPaths "--dll-dir"),
+         "A directory to be searched for dynamic libraries"]
+        onAnonArg
+        "zompc -c fileName.zomp\n";
+      if (String.length !symbolTableDumpFile) > 0 then begin
+        let absolutePath = Common.absolutePath !symbolTableDumpFile in
+        symbolTableDumpFile := absolutePath;
+      end;
+      Options {
+        execNameAndPath = args.(0);
+        fileName = !fileName;
+        printTimings = !printTimings;
+        printStats = outputTargetFromString !printStats;
+        traceMacroExpansion = !traceMacroExpansion;
+        symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
+        zompIncludePaths = !zompIncludePaths;
+        dllPaths = !dllPaths;
+      }
+    with
+      | Arg.Bad msg
+      | Arg.Help msg ->
+        InvalidArguments msg
+end
 
 let reportCommandLineArgumentError message =
   printf "error: %s\n" message;
-  printInstructions()
+  printf "zompc -c fileName.zomp\n";
+  printf "to compile fileName.zomp into fileName.ll\n"
 
 let getBasename filename =
   let zompFileRE = Str.regexp "\\(.+\\)\\.zomp" in
@@ -49,23 +96,22 @@ let getBasename filename =
   else
     None
 
-type compilation_failure_reason =
+type compilation_result =
+  | Compilation_succeeded of Bindings.t
   | Compiler_did_not_return_result
   | Compilation_failed_with_error of string
   | Failed_to_init_vm
 
-type compilation_result =
-  | Compilation_succeeded of Bindings.t
-  | Compilation_failed of compilation_failure_reason
-
 let compilation_result_to_int = function
   | Compilation_succeeded _ -> 0
-  | Compilation_failed (Compilation_failed_with_error _) -> 1
-  | Compilation_failed Compiler_did_not_return_result -> 2
-  | Compilation_failed Failed_to_init_vm -> 4
+  | Compilation_failed_with_error _ -> 1
+  | Compiler_did_not_return_result -> 2
+  | Failed_to_init_vm -> 4
 
 let preludeTime = ref 0.0
 let mainFileTime = ref 0.0
+
+let section = Statistics.createSection "zompc"
 
 let () =
   Statistics.createFloatCounter section "compile prelude (s)" 3 (Ref.getter preludeTime);
@@ -87,7 +133,7 @@ let compile fileName inStream outStream =
   in
 
   if not( Zompvm.zompInit() ) then begin
-    Compilation_failed Failed_to_init_vm
+    Failed_to_init_vm
   end else begin
     Zompvm.zompVerifyCode false;
     let env = Compileutils.createEnv Genllvm.defaultBindings in
@@ -95,7 +141,7 @@ let compile fileName inStream outStream =
       let preludeResult = addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir in
       List.iter reportDiagnostics preludeResult.Result.diagnostics;
       if Result.failed preludeResult then
-        Compilation_failed (Compilation_failed_with_error "failed to compile prelude")
+        Compilation_failed_with_error "failed to compile prelude"
       else begin
         addTiming mainFileTime $ fun () ->
           let { Result.flag; diagnostics; _ } =
@@ -105,101 +151,20 @@ let compile fileName inStream outStream =
           if flag = Result.Success then
             Compilation_succeeded (Compileutils.bindings env)
           else
-            Compilation_failed Compiler_did_not_return_result
+            Compiler_did_not_return_result
       end
     in
     Zompvm.zompShutdown();
     exitCode
   end
 
-let includePath = ref []
-let addIncludePath path where = addToList includePath path where
-
-let dllPath = ref ["."; ".."; "./libs"; "./tools/external/lib"]
-let addDllPath path where = addToList dllPath path where
-
-type outputTarget = [`ToFile of string | `Stdout | `DoNotWrite]
-let outputTargetFromString = function
-  | "" -> `DoNotWrite
-  | "-" -> `Stdout
-  | file when file.[0] = '-' -> raise (Arg.Bad (sprintf "file name '%s' invalid, must not start with -" file))
-  | file -> `ToFile file
-
-type options = {
-  execNameAndPath :string;
-  fileName :string;
-  printTimings :bool;
-  printStats :outputTarget;
-  traceMacroExpansion :bool;
-  symbolTableDumpFile :string option;
-  zompIncludePaths :string list;
-  dllPaths :string list;
-}
-
-type optionResult = Options of options | InvalidArguments of string
-
-let extractOptions args =
-  let addRelativePath list commandName dir =
-    let absolutePath = Common.absolutePath dir in
-    list := absolutePath :: !list;
-    if not (Sys.file_exists absolutePath) then
-      eprintf "warning: directory '%s' does not exist (%s)\n" absolutePath commandName
-    else if not (Sys.is_directory absolutePath) then
-      eprintf "warning: '%s' is not a directory (%s)\n" absolutePath commandName;
-  in
-
-  let fileName = ref "" in
-  let printTimings = ref false in
-  let printStats = ref "" in
-  let traceMacroExpansion = ref false in
-  let symbolTableDumpFile = ref "" in
-  let zompIncludePaths = ref [] in
-  let dllPaths = ref [] in
-  let onAnonArg str =
-    raise (Arg.Bad (sprintf "%s: anonymous arguments not supported" str))
-  in
-  try
-    Arg.current := 0;
-    Arg.parse_argv
-      args
-      ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
-       "--stats", Arg.Set_string printStats, "print statistics on exit.";
-       "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
-       "-c", Arg.Set_string fileName, "The file to compile.";
-       "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
-       "--zomp-include-dir",
-         Arg.String (addRelativePath zompIncludePaths "--zomp-include-dir"),
-         "A directory to be searched by include and requireLib";
-       "--dll-dir",
-         Arg.String (addRelativePath dllPaths "--dll-dir"),
-         "A directory to be searched for dynamic libraries"]
-      onAnonArg
-      "zompc -c fileName.zomp\n";
-    if (String.length !symbolTableDumpFile) > 0 then begin
-      let absolutePath = Common.absolutePath !symbolTableDumpFile in
-      symbolTableDumpFile := absolutePath;
-    end;
-    Options {
-      execNameAndPath = args.(0);
-      fileName = !fileName;
-      printTimings = !printTimings;
-      printStats = outputTargetFromString !printStats;
-      traceMacroExpansion = !traceMacroExpansion;
-      symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
-      zompIncludePaths = !zompIncludePaths;
-      dllPaths = !dllPaths;
-    }
-  with
-    | Arg.Bad msg
-    | Arg.Help msg ->
-      InvalidArguments msg
-
 let () =
   let startTime = Sys.time() in
 
   Printexc.record_backtrace true;
+  let open Options in
   let options =
-    match extractOptions Sys.argv with
+    match Options.extract Sys.argv with
       | InvalidArguments msg ->
         printf "%s\n" msg;
         exit 1
@@ -245,6 +210,12 @@ let () =
   and outStream = open_out outputFileName
   in
 
+  let includePath = ref [] in
+  let addIncludePath path where = addToList includePath path where in
+
+  let dllPath = ref ["."; ".."; "./libs"; "./tools/external/lib"] in
+  let addDllPath path where = addToList dllPath path where in
+
   let compilerDir = Filename.dirname options.execNameAndPath in
   addIncludePath compilerDir `Front;
   addIncludePath (Sys.getcwd()) `Front;
@@ -265,16 +236,20 @@ let () =
     try
       compile inputFileName inStream outStream
     with _ as e ->
-      Compilation_failed
-        (Compilation_failed_with_error
-           (sprintf "failed to compile due to unknown exception: %s\n%s\n"
-              (Printexc.to_string e)
-              (** returns backtrace of last thrown exception *)
-              (Printexc.get_backtrace())))
+      Compilation_failed_with_error
+        (sprintf "failed to compile due to unknown exception: %s\n%s\n"
+           (Printexc.to_string e)
+            (** returns backtrace of last thrown exception *)
+           (Printexc.get_backtrace()))
   in
 
   close_in inStream;
   close_out outStream;
+
+  let failWithErrorMessage msg =
+    eprintf "failed to compile: %s\n" msg;
+    Sys.remove outputFileName;
+  in
 
   begin match exitCode with
     | Compilation_succeeded globalBindings ->
@@ -284,17 +259,12 @@ let () =
             eprintf "error: could not write symbols to '%s'\n" absoluteFileName;
         | None -> ();
       end
-    | Compilation_failed reason ->
-      eprintf "failed to compile: %s\n"
-        begin match reason with
-          | Failed_to_init_vm ->
-            "could not init VM"
-          | Compiler_did_not_return_result ->
-            "compiler did not return a result"
-          | Compilation_failed_with_error msg ->
-            msg
-        end;
-      Sys.remove outputFileName;
+    | Failed_to_init_vm ->
+      failWithErrorMessage "could not init VM"
+    | Compiler_did_not_return_result ->
+      failWithErrorMessage "compiler did not return a result"
+    | Compilation_failed_with_error msg ->
+      failWithErrorMessage msg
   end;
 
   let endTime = Sys.time() in
