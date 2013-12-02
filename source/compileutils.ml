@@ -30,12 +30,11 @@ let createEnv initialBindings = Expander.createEnv initialBindings
 let bindings env = Expander.bindings env
 
 let compileExpr env expr =
-  let result =
-    catchingErrorsDo (fun () -> Expander.translate env expr)
-      ~onErrors:(fun diagnostics -> Result.fail diagnostics)
-  in
-  let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
-  result, llvmCode
+  catchingErrorsDo (fun () ->
+    let result = Expander.translate env expr in
+    let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
+    result, llvmCode)
+    ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
 
 let compileNew env exprs emitBackendCode fileName =
   begin
@@ -44,8 +43,14 @@ let compileNew env exprs emitBackendCode fileName =
     let translateExpr expr =
       let oldBindings = bindings env in
       let { Result.flag; diagnostics; results }, llvmCode = compileExpr env expr in
-      Zompvm.evalLLVMCode oldBindings results llvmCode;
-      emitBackendCode llvmCode;
+      let diagnostics =
+        try
+          Zompvm.evalLLVMCode oldBindings results llvmCode;
+          emitBackendCode llvmCode;
+          diagnostics
+        with Genllvm.CodeGenError msg | FailedToEvaluateLLVMCode (_, msg) ->
+          diagnostics @ [Serror.fromMsg None msg]
+      in
       if flag = Result.Fail then
         hadError := true;
       results, diagnostics
