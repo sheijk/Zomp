@@ -714,8 +714,7 @@ extern "C" {
 
     std::string errorMessage;
     if( parsedModule == NULL ) {
-      printf( "Parsed module is NULL\n" );
-      fflush( stdout );
+      fprintf( stderr, "Parsed module is NULL\n" );
 
       errorsOccurred = true;
     }
@@ -726,9 +725,7 @@ extern "C" {
             *targetModule, PrintMessageAction, &errorMessage);
 
         if( ! isValid ) {
-          printf( "Parsed module did not verify: %s\n", errorMessage.c_str() );
-          fflush( stdout );
-          fflush( stderr );
+          fprintf( stderr, "Parsed module did not verify: %s\n", errorMessage.c_str() );
 
           errorsOccurred = true;
         }
@@ -742,9 +739,14 @@ extern "C" {
                errorInfo.getFilename().c_str(),
                line,
                errorInfo.getMessage().c_str() );
-      fflush( stderr );
 
       errorsOccurred = true;
+    }
+
+    if( errorsOccurred ) {
+      fflush( stderr );
+      llvm::outs().flush();
+      llvm::errs().flush();
     }
 
     return !errorsOccurred;

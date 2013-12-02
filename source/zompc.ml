@@ -138,7 +138,9 @@ let compile fileName inStream outStream =
     Zompvm.zompVerifyCode false;
     let env = Compileutils.createEnv Genllvm.defaultBindings in
     let exitCode =
-      let preludeResult = addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir in
+      let preludeResult =
+        addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir
+      in
       List.iter reportDiagnostics preludeResult.Result.diagnostics;
       if Result.failed preludeResult then
         Compilation_failed_with_error "failed to compile prelude"
@@ -247,7 +249,7 @@ let () =
   close_out outStream;
 
   let failWithErrorMessage msg =
-    eprintf "failed to compile: %s\n" msg;
+    eprintf "%s:0: error: %s\n" inputFileName msg;
     Sys.remove outputFileName;
   in
 
