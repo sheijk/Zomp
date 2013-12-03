@@ -2614,9 +2614,14 @@ let matchFunc tlenv expr =
     loop StringSet.empty args, !varargs
   in
 
+  let isQuoted str =
+    let strLength = String.length str in
+    strLength >= 2 && str.[0] = '"' && str.[strLength-1] = '"'
+  in
+
   let validateName name =
     let nameRE = "^[a-zA-Z0-9][^\"]*$" in
-    if (name =~ nameRE) then
+    if isQuoted name || name =~ nameRE then
       name
     else begin
       EnvTL.emitError tlenv $ Serror.fromExpr expr
