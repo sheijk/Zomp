@@ -2453,7 +2453,6 @@ end = struct
     mutable tlerrorsRev :Serror.t list;
     mutable tlexprsRev :toplevelExpr list;
     mutable tlHadSilentErrors :bool;
-    mutable tlCompilationFailed :bool;
 
     tlEmitForm :toplevelExpr -> unit;
     tlEmitError :Serror.t -> unit;
@@ -2469,12 +2468,10 @@ end = struct
     env.tlenv <- { env.tlenv with bindings }
 
   let emitError env error =
-    env.tlCompilationFailed <- true;
     env.tlEmitError error
   let emitForm env form = env.tlEmitForm form
   let emitSilentError env =
-    env.tlHadSilentErrors <- true;
-    env.tlCompilationFailed <- true
+    env.tlHadSilentErrors <- true
 
   let emitErrors env = List.iter (emitError env)
   let emitForms env = List.iter (emitForm env)
@@ -2495,7 +2492,6 @@ end = struct
       tlerrorsRev = [];
       tlexprsRev = [];
       tlHadSilentErrors = false;
-      tlCompilationFailed = false;
       tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
     } in
