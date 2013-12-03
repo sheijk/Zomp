@@ -2592,11 +2592,11 @@ let matchFunc tlenv expr =
           []
         | [] ->
           []
-        | { id = opjux; args = [typeExpr; {id = name; args = []}] } :: remArgs
+        | { id = opjux; args = [typeExpr; {id = name; args = []; location}] } :: remArgs
             when opjux = macroJuxOp ->
           let name, names =
             if StringSet.mem name previousNames then begin
-              EnvTL.emitError tlenv $ Serror.fromExpr expr
+              EnvTL.emitError tlenv $ Serror.fromMsg location
                 (sprintf "redefinition of parameter %s" name);
               "_", previousNames
             end else
