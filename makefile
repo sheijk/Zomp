@@ -279,7 +279,7 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	cat testsuite/report_head.html > $@
 	echo "Report generated at `date \"+%Y-%m-%d %H:%M:%S\"`</br>" >> $@
 	echo "Build variant = $(BUILD_VARIANT) </br>" >> $@
-	$(MAKE_REPORT) "Unit tests" $(sort $(TESTSUITE_CASES:.testreport=)) >> $@
+	$(MAKE_REPORT) "Unit tests" $(filter-out testsuite/check_test_verify/%, $(sort $(TESTSUITE_CASES:.testreport=))) >> $@
 	./libs/make_libs_result_files.sh $(ZOMP_LIBS_SRC)
 	$(MAKE_REPORT) "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
 	./examples/make_examples_result_files.sh $(EXAMPLES_SOURCES)
