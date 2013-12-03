@@ -12,7 +12,7 @@ for src in $@; do
 	elif [ \! -e examples/$f.exe ]; then
 		echo "linking failed";
 	else
-		echo "succeeded";
+		echo "ok";
 	fi > examples/$f.result)
 done
 

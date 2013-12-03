@@ -83,10 +83,10 @@ let produceReport title files =
                     | "failed!" ->
                       logChangedTestResult `Broke;
                       "failed changed"
-                    | "succeeded" ->
+                    | "ok" ->
                       incr succeededTests;
                       "ok"
-                    | "succeeded!" ->
+                    | "ok!" ->
                       incr succeededTests;
                       logChangedTestResult `Fixed;
                       "ok changed"

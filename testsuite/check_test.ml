@@ -416,7 +416,7 @@ let collectExpectations addExpectation (lineNum :int) line =
     addExpectation kindStr args lineNum
   end
 
-let reportError outFile zompFileName errorOccured tag ?line msg =
+let reportError outFile zompFileName errorCount tag ?line msg =
   let line = match line with Some l -> l | _ -> 0 in
   let msg = sprintf "%s:%d: error: %s" zompFileName line msg in
   begin match tag with
@@ -426,7 +426,7 @@ let reportError outFile zompFileName errorOccured tag ?line msg =
       fprintf outFile "  <li>%s</li>\n" msg
   end;
   fprintf stderr "%s\n" msg;
-  errorOccured := true
+  incr errorCount
 
 let parseDiagnostics zompFileName line =
   Common.applyIfSome
@@ -456,8 +456,8 @@ let () =
   let collectExpectations = collectExpectations addExpectation in
 
   withOpenFileOut outputFileName (fun outFile ->
-    let errorOccured = ref false in
-    let reportError = reportError outFile zompFileName errorOccured in
+    let errorCount = ref 0 in
+    let reportError = reportError outFile zompFileName errorCount in
 
     let writeHeader = writeHeader outFile in
     let writeHeaderWithLink = writeHeaderWithLink outFile in
@@ -621,11 +621,15 @@ let () =
 
       List.iter reportIfMissing !expectedErrorMessages);
 
+    let formatQuantity count singular =
+      sprintf "%d %s" count (if count = 1 then singular else singular ^ "s")
+    in
+
     let cssClass, result =
-      if !errorOccured then
-        "failed", "failed"
+      if !errorCount > 0 then
+        "failed", formatQuantity !errorCount "error"
       else
-        "ok", "succeeded"
+        "ok", "ok"
     in
     fprintf outFile "Test case <span class=\"%s\">%s</span>\n<br />\n"
       cssClass result;
