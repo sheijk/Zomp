@@ -49,6 +49,7 @@ module CommonString :
     type sequenceAnchor = FromFront of int | FromBack of int
     val splitAt : string -> sequenceAnchor -> string * string
     val nthChar : int -> string -> char option
+    val formatNth : int -> string
     val lastChar : string -> char
     val splitLastChar : string -> string * char
     val removeBeginning : string -> int -> string
@@ -76,6 +77,7 @@ type sequenceAnchor =
   | FromBack of int
 val splitAt : string -> sequenceAnchor -> string * string
 val nthChar : int -> string -> char option
+val formatNth : int -> string
 val lastChar : string -> char
 val splitLastChar : string -> string * char
 val removeBeginning : string -> int -> string

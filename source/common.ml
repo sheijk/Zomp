@@ -194,6 +194,13 @@ struct
     else
       None
 
+  let formatNth n =
+    match n with
+      | 0 -> "0"
+      | 1 -> "1st"
+      | 2 -> "2nd"
+      | _ -> sprintf "%dth" n
+
   let lastChar str = str.[String.length str - 1]
 
   let splitLastChar str =
