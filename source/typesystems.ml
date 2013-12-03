@@ -275,7 +275,12 @@ struct
         | "bool" -> `Bool
         | "char" -> `Char
         | "void" -> `Void
-        | _ as name -> raise (CouldNotParseType name)
+        | "error_t" -> `ErrorType ""
+        | _ as name ->
+          if Str.string_match (Str.regexp "error_t(\"\\([^\"]*\\)\")") name 0 then
+            `ErrorType (Str.matched_group 1 name)
+          else
+            raise (CouldNotParseType name)
 
   (* val parseValue : typ -> string -> value *)
   let parseValue (typ :typ) str :value =
