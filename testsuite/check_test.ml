@@ -104,6 +104,9 @@ struct
     in
     loop [] 0
 
+  let formatQuantity count singular =
+    sprintf "%d %s" count (if count = 1 then singular else singular ^ "s")
+
   let addToList item refToList = refToList := item :: !refToList
 
   (** Returns a string enumerating all strings in last separated by strings. The
@@ -620,10 +623,6 @@ let () =
       end;
 
       List.iter reportIfMissing !expectedErrorMessages);
-
-    let formatQuantity count singular =
-      sprintf "%d %s" count (if count = 1 then singular else singular ^ "s")
-    in
 
     let cssClass, result =
       if !errorCount > 0 then
