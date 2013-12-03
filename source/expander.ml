@@ -2579,19 +2579,33 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
   | _ ->
       None
 
-let matchFunc =
-  let rec scanParams = function
-    | [{ id = "postop..."; args = [{ id = "cvarargs"; args = [] }] }] ->
-        [], true
-    | [] ->
-        [], false
-    | { id = opjux; args = [typeExpr; {id = paramName; args = []}] as param } :: remArgs
-        when opjux = macroJuxOp ->
-        let result, hasvarargs = scanParams remArgs in
-        { (Ast2.shiftLeft param) with location = typeExpr.location } :: result, hasvarargs
-    | _ -> failwith ""
+let matchFunc tlenv expr =
+  let scanParams args =
+    let varargs = ref `NoVarArgs in
+    let hadErrors = ref false in
+    let rec loop args =
+      match args with
+        | [{ id = "postop..."; args = [{ id = "cvarargs"; args = [] }] }] ->
+          varargs := `HasVarArgs;
+          []
+        | [] ->
+          []
+        | { id = opjux; args = [typeExpr; {id = name; args = []}] } :: remArgs
+            when opjux = macroJuxOp ->
+          let result = loop remArgs in
+          (name, typeExpr) :: result
+        | invalidExpr :: remArgs ->
+          EnvTL.emitError tlenv $ Serror.fromExpr invalidExpr "argument declaration must have form 'type id'";
+          hadErrors := true;
+          ("_", Ast2.idExpr (typeName $ `ErrorType "")) :: loop remArgs
+    in
+    let args = loop args in
+    if !hadErrors then
+      failwith ""
+    else
+      args, !varargs
   in
-  function
+  match expr with
     (** func def from iexpr for polymorphic function *)
     | { id = id; args = [
           typeExpr;
@@ -2601,7 +2615,7 @@ let matchFunc =
                   :: paramTypeExprs }
               :: paramExprs };
           { id = opseq; args = _ } as implExpr
-        ] } as expr
+        ] }
         when id = macroFunc &&
           opcall = macroCallOp &&
           paramop = macroParamType &&
@@ -2616,21 +2630,21 @@ let matchFunc =
           let parametricTypes = List.map getParametricTypeName paramTypeExprs in
           `FuncDef (name, typeExpr, params, hasvararg, implExpr, parametricTypes, location)
         with Failure _ ->
-          `NotAFunc expr
+          `NotAFunc
         end
 
     (** func decl from iexpr with multiple/0 arguments **)
     | { id = id; args = [
           typeExpr;
           { id = opcall; args = { id = name; args = []; location } :: paramExprs }
-        ] } as expr
+        ] }
         when id = macroFunc && opcall = macroCallOp ->
         let location = someOrDefault location Basics.fakeLocation in
         begin try
           let params, hasvararg = scanParams paramExprs in
           `FuncDecl (name, typeExpr, params, hasvararg, location)
         with Failure _ ->
-          `NotAFunc expr
+          `NotAFunc
         end
 
     (** func def from iexpr with multiple/0 arguments **)
@@ -2640,23 +2654,22 @@ let matchFunc =
               { id = name; args = []; location }
               :: paramExprs };
           { id = opseq; args = _ } as implExpr
-        ] } as expr
+        ] }
         when id = macroFunc && opcall = macroCallOp && opseq = macroSeqOp ->
         let location = someOrDefault location Basics.fakeLocation in
         begin try
           let params, hasvararg = scanParams paramExprs in
           `FuncDef (name, typeExpr, params, hasvararg, implExpr, [], location)
         with Failure _ ->
-          `NotAFunc expr
+          `NotAFunc
         end
 
-    | { id = "std:base:func"; args = _ } as expr ->
-        `NotAFunc expr
+    | { id = "std:base:func"; args = _ } ->
+        `NotAFunc
     | { id } when id = macroFunc ->
       `InvalidFunc "not a valid function"
-    | expr ->
-        `NotAFunc expr
-
+    | _ ->
+      `NotAFunc
 
 let typeCheckTLImp env location form =
   match typeCheckTL (EnvTL.bindings env) form with
@@ -2720,25 +2733,13 @@ let rec translateFunc tlenv expr : unit =
   let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption location =
     let name = removeQuotes uncheckedName in
 
-    let translateParam argExpr =
-      let translate varName typeExpr =
-        match translateType bindings typeExpr with
-          | Result typ ->
-            if name = "same" then
-              printf "func arg '%s' : '%s (%s)'\n" varName (typeName typ) (Ast2.toString typeExpr);
-            (varName, typ)
-          | Error errors ->
-            EnvTL.emitErrors tlenv errors;
-            name, `ErrorType "arg"
-      in
-      match argExpr with
-        | { id = "seq"; args = [typeExpr; { id = varName; args = []};] } ->
-          translate varName typeExpr
-        | { id = typeExpr; args = [{ id = varName; args = [] }] } ->
-          translate varName (Ast2.idExpr typeExpr)
-        | expr ->
-          EnvTL.emitError tlenv $ Serror.fromExpr expr "expected 'typeName varName' for param";
-          "_", `ErrorType "invalid arg"
+    let translateParam (varName, typeExpr) =
+      match translateType bindings typeExpr with
+        | Result typ ->
+          varName, typ
+        | Error errors ->
+          EnvTL.emitErrors tlenv errors;
+          name, `ErrorType "arg"
     in
 
     let rec bindingsWithParams bindings params =
@@ -2778,7 +2779,7 @@ let rec translateFunc tlenv expr : unit =
         end
       | None -> None
     in
-    let f = (if hasvarargs then varargFunc else func) name typ params impl location in
+    let f = (match hasvarargs with `HasVarArgs -> varargFunc | `NoVarArgs -> func) name typ params impl location in
     checkFunctionIsValid tlenv expr.location f;
     let newBindings =
       addFunc bindings f
@@ -2786,7 +2787,7 @@ let rec translateFunc tlenv expr : unit =
     let funcDef = `DefineFunc f in
     newBindings, funcDef
   in
-  match matchFunc expr with
+  match matchFunc tlenv expr with
     | `FuncDef (name, typeExpr, paramExprs, hasvarargs, implExpr, parametricTypes, location) ->
       begin
         let bindingsWParametricTypes =
@@ -2833,7 +2834,7 @@ let rec translateFunc tlenv expr : unit =
           EnvTL.emitForm tlenv funcDecl;
         end
       end
-    | `NotAFunc _ ->
+    | `NotAFunc ->
       EnvTL.emitSilentError tlenv
     | `InvalidFunc msg ->
       EnvTL.emitError tlenv $ Serror.fromExpr expr msg
