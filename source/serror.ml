@@ -41,8 +41,11 @@ let check funcName error =
   end;
   if String.length error.emsg = 0 then
     warn "empty error message"
-  else if (error.emsg.[0] = Char.uppercase error.emsg.[0]) then
-    warn "error message begins with upper case letter";
+  else begin
+    let firstChar = error.emsg.[0] in
+    if firstChar >= 'A' && firstChar <= 'Z' then
+      warn "error message begins with upper case letter";
+  end;
   error
 
 let checkAll funcName errors =
