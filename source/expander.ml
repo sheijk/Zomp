@@ -2581,9 +2581,11 @@ let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bind
 
 let matchFunc tlenv expr =
   let scanParams args =
+    let argCount = List.length args in
+    let module StringSet = Set.Make(String) in
     let varargs = ref `NoVarArgs in
-    let hadErrors = ref false in
-    let rec loop args =
+
+    let rec loop previousNames args =
       match args with
         | [{ id = "postop..."; args = [{ id = "cvarargs"; args = [] }] }] ->
           varargs := `HasVarArgs;
@@ -2592,19 +2594,37 @@ let matchFunc tlenv expr =
           []
         | { id = opjux; args = [typeExpr; {id = name; args = []}] } :: remArgs
             when opjux = macroJuxOp ->
-          let result = loop remArgs in
-          (name, typeExpr) :: result
+          let name, names =
+            if StringSet.mem name previousNames then begin
+              EnvTL.emitError tlenv $ Serror.fromExpr expr
+                (sprintf "redefinition of parameter %s" name);
+              "_", previousNames
+            end else
+              name, StringSet.add name previousNames
+          in
+          (name, typeExpr) :: loop names remArgs
         | invalidExpr :: remArgs ->
-          EnvTL.emitError tlenv $ Serror.fromExpr invalidExpr "argument declaration must have form 'type id'";
-          hadErrors := true;
-          ("_", Ast2.idExpr (typeName $ `ErrorType "")) :: loop remArgs
+          let argNum = argCount + 1 - List.length args in
+          let msg = sprintf "%s parameter needs to have shape 'typeExpr id'" $ formatNth argNum in
+          let error = Serror.fromExpr invalidExpr msg in
+          EnvTL.emitError tlenv error;
+          ("_", Ast2.idExpr (typeName $ `ErrorType "")) :: loop previousNames remArgs
     in
-    let args = loop args in
-    if !hadErrors then
-      failwith ""
-    else
-      args, !varargs
+
+    loop StringSet.empty args, !varargs
   in
+
+  let validateName name =
+    let nameRE = "^[a-zA-Z0-9][^\"]*$" in
+    if (name =~ nameRE) then
+      name
+    else begin
+      EnvTL.emitError tlenv $ Serror.fromExpr expr
+        (sprintf "function names must match the following regexp: %s" nameRE);
+      "_"
+    end
+  in
+
   match expr with
     (** func def from iexpr for polymorphic function *)
     | { id = id; args = [
@@ -2628,7 +2648,7 @@ let matchFunc tlenv expr =
           in
           let params, hasvararg = scanParams paramExprs in
           let parametricTypes = List.map getParametricTypeName paramTypeExprs in
-          `FuncDef (name, typeExpr, params, hasvararg, implExpr, parametricTypes, location)
+          `FuncDef (validateName name, typeExpr, params, hasvararg, implExpr, parametricTypes, location)
         with Failure _ ->
           `NotAFunc
         end
@@ -2642,7 +2662,7 @@ let matchFunc tlenv expr =
         let location = someOrDefault location Basics.fakeLocation in
         begin try
           let params, hasvararg = scanParams paramExprs in
-          `FuncDecl (name, typeExpr, params, hasvararg, location)
+          `FuncDecl (validateName name, typeExpr, params, hasvararg, location)
         with Failure _ ->
           `NotAFunc
         end
@@ -2659,7 +2679,7 @@ let matchFunc tlenv expr =
         let location = someOrDefault location Basics.fakeLocation in
         begin try
           let params, hasvararg = scanParams paramExprs in
-          `FuncDef (name, typeExpr, params, hasvararg, implExpr, [], location)
+          `FuncDef (validateName name, typeExpr, params, hasvararg, implExpr, [], location)
         with Failure _ ->
           `NotAFunc
         end
@@ -2708,28 +2728,6 @@ let rec translateFunc tlenv expr : unit =
   let translateType bindings expr =
     translateType bindings Translators_deprecated_style.reportWarning expr
   in
-  let doSanityChecks returnType name params =
-    let module StringSet = Set.Make(String) in
-    let checkForDuplicateParameterName() =
-      let _ =
-        List.fold_left
-          (fun prevNames (nextName, _) ->
-            if StringSet.mem nextName prevNames then
-              EnvTL.emitError tlenv $ Serror.fromExpr expr
-                (sprintf "each argument needs a distinct name. %s used more than once" nextName);
-            StringSet.add nextName prevNames)
-          StringSet.empty
-          params
-      in ()
-    in
-    checkForDuplicateParameterName();
-
-    let nameRE = "^[a-zA-Z0-9][^\"]*$" in
-    if not (name =~ nameRE) then
-      EnvTL.emitError tlenv $ Serror.fromExpr expr
-        (sprintf "function names must match the following regexp: %s" nameRE);
-    ()
-  in
   let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption location =
     let name = removeQuotes uncheckedName in
 
@@ -2759,7 +2757,6 @@ let rec translateFunc tlenv expr : unit =
     in
 
     let params = List.map translateParam paramExprs in
-    doSanityChecks typ name params;
 
     let innerBindings = bindingsWithParams bindings params in
     let impl = match implExprOption with
