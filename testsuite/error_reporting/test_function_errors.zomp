@@ -4,6 +4,9 @@
 
 std:base:func invalidTypXXX hello1() //// error type invalidTypXXX
 
+std:base:func invalidTypXXX hello1(): //// error type invalidTypXXX
+end
+
 std:base:func void hello(int foo, int foo) //// error parameter foo
 
 std:base:func void hello(int foo, int foo): //// error parameter foo
@@ -12,9 +15,20 @@ end
 
 std:base:func void hello2(int) //// error parameter
 
-std:base:func notype //// error notype
-    hello2(buzzbar, //// error parameter
-    int dupl, int dupl): //// error foo
+std:base:func void hello2(int): //// error parameter
+end
+
+std:base:func
+    notype //// error notype
+    hello2(
+    buzzbar, //// error parameter
+    int dupl, int dupl) //// error parameter dupl
+
+std:base:func
+    notype //// error notype
+    hello2(
+    buzzbar, //// error parameter
+    int dupl, int dupl): //// error parameter dupl
   std:base:ret
 end
 
