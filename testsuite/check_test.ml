@@ -272,23 +272,30 @@ let writeHtmlHeader outFile zompFileName =
       "list-style-type", "square"];
   ]
   in
-  let diagnosticBox background color = [
+  let inlineDiagnostic background color = [
     "color", "black";
     "background", background;
     "border", sprintf "1px solid %s" color;
     "border-radius", "3px";
+    "-moz-border-radius", "3px";
     "padding-left", "5px";
     "padding-right", "5px";
     "margin-left", "30px";
+  ] in
+  let diagnostic color = [
+    "color", color;
   ] in
   let cssElements = [
     "h1", ["margin-bottom", "0"];
     "h2", ["margin-bottom", "0"];
     ".ok", ["color", "green"];
     ".failed", ["color", "red"];
-    ".compiler-error", diagnosticBox "#ffe3e3" "#f00";
-    ".compiler-warning", diagnosticBox "#ffe4d9" "#f80";
-    ".compiler-info", diagnosticBox "#EAF6F0" "#080";
+    ".inline-error", inlineDiagnostic "#ffe3e3" "#f00";
+    ".compiler-error", diagnostic "#f00";
+    ".inline-warning", inlineDiagnostic "#ffe4d9" "#c50";
+    ".compiler-warning", diagnostic "#c50";
+    ".inline-info", inlineDiagnostic "#EAF6F0" "#080";
+    ".compiler-info", diagnostic "#080";
     ".console-output", monospace :: lightLineLeft;
     ".file-link", ["color", "gray"; "margin-bottom", "10px"; "font-size", "90%"];
     "a.file-link:link", ["color", "gray"];
@@ -461,6 +468,12 @@ let parseDiagnostics zompFileName line =
         None)
     (Basics.parseDiagnostics line)
 
+let cssClassForInlineDiagnosticsKind = function
+  | DiagnosticKind.Error -> "inline-error"
+  | DiagnosticKind.Warning -> "inline-warning"
+  | DiagnosticKind.Info
+  | DiagnosticKind.Other _ -> "inline-info"
+
 let cssClassForDiagnosticsKind = function
   | DiagnosticKind.Error -> "compiler-error"
   | DiagnosticKind.Warning -> "compiler-warning"
@@ -550,15 +563,21 @@ let () =
     let diagnostics = ref [] in
 
     let checkCompilerExpectationsAndPrintLine _ line =
-      fprintf outFile "%s<br />\n" (escapeHtmlText line);
-
       match parseDiagnostics zompFileName line with
         | Some (loc, kind, message) ->
           if loc.fileName = zompFileName then begin
             diagnostics := (loc, kind, message) :: !diagnostics;
           end;
+          let escapedText = sprintf "%s: <span class=\"%s\">%s</span>: %s</span><br />\n"
+            (locationToString loc)
+            (cssClassForDiagnosticsKind kind)
+            (DiagnosticKind.toString kind)
+            (escapeHtmlText message)
+          in
+          fprintf outFile "%s" escapedText;
           List.iter (checkExpectation message (Some loc) kind) !expectedErrorMessages
         | None ->
+          fprintf outFile "%s<br />\n" (escapeHtmlText line);
           List.iter (checkExpectation line None (DiagnosticKind.Other "")) !expectedErrorMessages
     in
 
@@ -710,7 +729,7 @@ let () =
         | (loc, kind, message) :: tail when loc.line <= lineNum ->
           remDiagnostics := tail;
           if loc.line != 0 then begin
-            let cssClass = cssClassForDiagnosticsKind kind in
+            let cssClass = cssClassForInlineDiagnosticsKind kind in
             let kindName = DiagnosticKind.toString kind in
             fprintf outFile "<br />\n    <span class=\"%s\">%s: %s</span>\n  " cssClass kindName message;
           end;
