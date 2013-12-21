@@ -151,6 +151,15 @@ struct
       Str.string_before line (lineLength-1)
     else
       line
+
+  let listIteri f start list =
+    let rec iterWithIndex index = function
+      | [] -> ()
+      | hd :: tl ->
+        let () = f index hd in
+        iterWithIndex (index+1) tl
+    in
+    iterWithIndex start list
 end
 
 open Utils
@@ -243,7 +252,7 @@ module Exit_code = struct
     | MustBe of int
     | MustNotBe of int
 
-  let conditionToString = function
+  let toString = function
     | MustBe exitCode -> sprintf "%d" exitCode
     | MustNotBe exitCode -> sprintf "anything other than %d" exitCode
 end
@@ -263,11 +272,23 @@ let writeHtmlHeader outFile zompFileName =
       "list-style-type", "square"];
   ]
   in
+  let diagnosticBox background color = [
+    "color", "black";
+    "background", background;
+    "border", sprintf "1px solid %s" color;
+    "border-radius", "3px";
+    "padding-left", "5px";
+    "padding-right", "5px";
+    "margin-left", "30px";
+  ] in
   let cssElements = [
     "h1", ["margin-bottom", "0"];
     "h2", ["margin-bottom", "0"];
     ".ok", ["color", "green"];
     ".failed", ["color", "red"];
+    ".compiler-error", diagnosticBox "#ffe3e3" "#f00";
+    ".compiler-warning", diagnosticBox "#ffe4d9" "#f80";
+    ".compiler-info", diagnosticBox "#EAF6F0" "#080";
     ".console-output", monospace :: lightLineLeft;
     ".file-link", ["color", "gray"; "margin-bottom", "10px"; "font-size", "90%"];
     "a.file-link:link", ["color", "gray"];
@@ -321,7 +342,7 @@ let makeHtmlSourceWriter() =
       | String -> "source-string"
     in
     let escapedSource = escapeHtmlText source in
-    let replacement = sprintf "</span></code></li>\n  <li><code><span class=\"%s\">" cssClass in
+    let replacement = sprintf "</span></code>\n<code><span class=\"%s\">" cssClass in
     let sourceWithHtml = Str.global_replace (Str.regexp (Str.quote "&#10;")) replacement escapedSource in
     let segment = sprintf "<span class=\"%s\">%s</span>" cssClass sourceWithHtml in
     reversedSegments := segment :: !reversedSegments
@@ -439,6 +460,12 @@ let parseDiagnostics zompFileName line =
       else
         None)
     (Basics.parseDiagnostics line)
+
+let cssClassForDiagnosticsKind = function
+  | DiagnosticKind.Error -> "compiler-error"
+  | DiagnosticKind.Warning -> "compiler-warning"
+  | DiagnosticKind.Info
+  | DiagnosticKind.Other _ -> "compiler-info"
     
 let () =
   if Array.length Sys.argv != 4 then
@@ -520,11 +547,16 @@ let () =
           -> ()
     in
 
+    let diagnostics = ref [] in
+
     let checkCompilerExpectationsAndPrintLine _ line =
       fprintf outFile "%s<br />\n" (escapeHtmlText line);
 
       match parseDiagnostics zompFileName line with
         | Some (loc, kind, message) ->
+          if loc.fileName = zompFileName then begin
+            diagnostics := (loc, kind, message) :: !diagnostics;
+          end;
           List.iter (checkExpectation message (Some loc) kind) !expectedErrorMessages
         | None ->
           List.iter (checkExpectation line None (DiagnosticKind.Other "")) !expectedErrorMessages
@@ -573,7 +605,7 @@ let () =
         (if !expectedCompilationSuccess then "succeed" else "fail");
       if !expectedCompilationSuccess then
         fprintf outFile "  <li>Expect test to exit with code %s.</li>\n"
-          (Exit_code.conditionToString !expectedTestCaseExitCode);
+          (Exit_code.toString !expectedTestCaseExitCode);
       List.iter writeExpectation !expectedErrorMessages);
 
     let compilerMessagesOutputFile = replaceExtension outputFileName compilationOutputExt in
@@ -666,14 +698,41 @@ let () =
     end;
 
     writeHeader 2 "Source";
+
+    let compareLine ({ line = lhsLine }, _, _) ({ line = rhsLine }, _, _) =
+      compare lhsLine rhsLine
+    in
+    diagnostics := List.sort compareLine !diagnostics;
+    let remDiagnostics = ref !diagnostics in
+
+    let rec emitDiagnosticsUntil lineNum =
+      begin match !remDiagnostics with
+        | (loc, kind, message) :: tail when loc.line <= lineNum ->
+          remDiagnostics := tail;
+          if loc.line != 0 then begin
+            let cssClass = cssClassForDiagnosticsKind kind in
+            let kindName = DiagnosticKind.toString kind in
+            fprintf outFile "<br />\n    <span class=\"%s\">%s: %s</span>\n  " cssClass kindName message;
+          end;
+          emitDiagnosticsUntil lineNum
+        | _ -> ()
+      end;
+    in
+
+    let printLineAndDiagnostics lineNum line =
+      fprintf outFile "  <li>%s" line;
+      emitDiagnosticsUntil lineNum;
+      fprintf outFile "</li>\n";
+    in
+
     inElements ["div"; "ol"] ~cssClass:"source" (fun () ->
       let source = readFile zompFileName in
       try
         let write, reversedSegments = makeHtmlSourceWriter() in
         parseCommentsAndStrings write zompFileName source;
-        fprintf outFile "  <li><code>";
-        List.iter (fprintf outFile "%s") (List.rev !reversedSegments);
-        fprintf outFile "</code></li>";
+        let annotatedSource = String.concat "" (List.rev !reversedSegments) in
+        let lines = Str.split (Str.regexp (Str.quote "\n")) annotatedSource in
+        listIteri printLineAndDiagnostics 1 lines;
       with Basics.CommentError (location, msg) ->
         let printLineToReport _ line =
           fprintf outFile "  <li><code>%s</code></li>\n" (escapeHtmlText line)
