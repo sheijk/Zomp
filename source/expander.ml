@@ -495,6 +495,7 @@ struct
           end
       | None -> None
 
+
   let translateTypedef translateF (bindings :bindings) =
     let translateRecordTypedef bindings typeName location componentExprs expr =
       let isRedefinitionError =
@@ -2558,25 +2559,6 @@ let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, forea
 
   translateFromDict table, toList, add, (fun f -> Hashtbl.iter f documentation)
 
-let translateCompileTimeVar (translateF :toplevelExprTranslateF) (bindings :bindings) = function
-  | { id = "antiquote"; args = [quotedExpr] } ->
-      begin
-        let newBindings, simpleforms = translateF bindings quotedExpr in
-        match Common.lastElement simpleforms with
-          | Some `GlobalVar var ->
-              begin
-                let llvmCodes = List.map Genllvm.gencodeTL simpleforms in
-                let llvmCode = Common.combine "\n" llvmCodes in
-                printf "sending code to zompvm\n"; flush stdout;
-                Zompvm.evalLLVMCode ~targetModule:Zompvm.Compiletime bindings simpleforms llvmCode;
-                Some( bindings, [] )
-              end
-          | _ ->
-              raiseIllegalExpression quotedExpr "did not evaluate to a variable declaration"
-      end
-  | _ ->
-      None
-
 let matchFunc tlenv expr =
   let scanParams args =
     let argCount = List.length args in
@@ -2869,7 +2851,6 @@ let translateTLNoErr bindings expr =
       sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
       sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested `Global);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
-      sampleFunc3 "translateCompileTimeVar" translateCompileTimeVar;
     ]
     bindings expr
 
@@ -2879,6 +2860,7 @@ let bindings = EnvTL.bindings
 
 let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
+(** TODO: remove EnvTL.env when this method goes away *)
 let wrapNewTL f = fun tlenv expr ->
   match f (EnvTL.env tlenv) expr with
     | Result (newBindings, forms) ->
@@ -2911,8 +2893,7 @@ let rec translate tlenv expr =
           List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
             macroFunc, translateFunc;
             macroTypedef, wrapOldTL Translators_deprecated_style.translateTypedef;
-            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global);
-            "antiquote", wrapOldTL translateCompileTimeVar;]
+            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global)]
         in
         try
           let handler = List.assoc expr.id handlers in
