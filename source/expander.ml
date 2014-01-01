@@ -904,7 +904,6 @@ end
 type 'translateF env = {
   bindings :Bindings.t;
   translateF :'translateF;
-  translateExprOld : bindings -> Ast2.t -> bindings * formWithTLsEmbedded list;
   translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
   parseF : fileName:string -> string -> Ast2.t list option;
   reportError : Serror.t -> unit;
@@ -2294,7 +2293,6 @@ let setTraceMacroExpansion f = traceMacroExpansion := f
 let makeEnv bindings translateF translateExprOld = {
   bindings = bindings;
   translateF = translateF;
-  translateExprOld = translateExprOld;
   translateExpr = (fun env expr ->
     let newBindings, formsWTL = translateExprOld env.bindings expr in
     Result (newBindings, formsWTL));
