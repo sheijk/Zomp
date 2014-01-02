@@ -1771,6 +1771,16 @@ end
    :PROPERTIES:
    :ID:       DDFAD85A-153D-460C-AC5E-323F09F5286F
    :END:
+** TODO [#A] add hooks to compiler
+   which get called when
+   - before/after a specific macro gets expanded
+   - for every kind of base instruction emitted
+   - every time a variable/function/type is referenced
+   - every time a new definition is added
+   - etc.
+     
+   Use this to implement find all references, finding unused functions,
+   variables, etc.
 * Mile stones
 ** 0.1 - error handling and source locations
 
