@@ -313,7 +313,9 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
       begin match translateFunction returnTypeExpr argTypeExprs with
         | Result typ ->
           let () = (* fix return type *)
-            emitWarning typeExpr (sprintf "fptr is deprecated. Use %s instead" (Typesystems.Zomp.typeName typ))
+            emitWarning (Serror.fromExpr typeExpr
+                           (sprintf "fptr is deprecated. Use %s instead"
+                              (Typesystems.Zomp.typeName typ)))
           in
           Result (`Pointer typ)
         | Error _ as errors ->
@@ -470,12 +472,6 @@ let reportInfo = reportDiagnostics Basics.DiagnosticKind.Info
 
 module Translators_deprecated_style =
 struct
-  let reportWarning expr msg =
-    eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Warning (Serror.fromExpr expr msg))
-
-  let translateType bindings expr =
-    translateType bindings reportWarning expr
-
   let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
     match expr2VarOrConst bindings expr with
       | Some varOrConst ->
@@ -495,106 +491,6 @@ struct
           end
       | None -> None
 
-
-  let translateTypedef translateF (bindings :bindings) =
-    let translateRecordTypedef bindings typeName location componentExprs expr =
-      let isRedefinitionError =
-        hasRedefinitionErrors `NewType `Global typeName expr bindings reportDiagnostics
-      in
-
-      let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) location in
-      let expr2component =
-        let translate name typeExpr =
-          match translateType tempBindings typeExpr with
-            | Result typ ->
-              name, typ
-            | Error errors ->
-              raiseIllegalExpressions typeExpr errors
-        in
-        function
-          | { id = typeName; args = [{ id = componentName; args = []}] } ->
-              translate componentName (Ast2.idExpr typeName)
-          | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
-              when seq = macroSequence || seq = macroJuxOp ->
-              translate componentName typeExpr
-          | _ ->
-            raiseIllegalExpression
-              expr
-              "(type typeName (typeExpression componentName)* ) expected"
-      in
-      let components = List.map expr2component componentExprs in
-      let recordType = `Record { rname = typeName; fields = components } in
-      if isRedefinitionError then
-        None
-      else
-        Some recordType
-    in
-    let returnRecordTypedef bindings name componentExprs location expr =
-      match translateRecordTypedef bindings name location componentExprs expr with
-        | Some rt ->
-          Some (addTypedef bindings name rt location, [`Typedef (name, rt)])
-        | None ->
-            None
-    in
-    function
-      (** record with only one member *)
-      | { id = id; args = [
-            { id = typeName; args = []; location };
-            { id = opseq; args = componentExprs }
-          ] } as expr
-          when id = macroTypedef && opseq = macroSeqOp ->
-          let location = someOrDefault expr.location Basics.fakeLocation in
-          returnRecordTypedef bindings typeName componentExprs location expr
-      (** parametric record *)
-      | { id = id; args = [
-            { id = opcall; args = [
-                { id = typeName; args = []; location };
-                { id = "T"; args = [] } ] };
-            { id = opseq; args = componentExprs }
-          ] } as expr
-          when id = macroTypedef && opcall = macroParamType && opseq = macroSeqOp ->
-          begin
-            let location = someOrDefault expr.location Basics.fakeLocation in
-            let paramBindings = addTypedef bindings "T" `TypeParam location in
-            match translateRecordTypedef paramBindings typeName location componentExprs expr with
-              | Some recordType ->
-                  let parametricType = `ParametricType recordType in
-                  Some (
-                    addTypedef bindings typeName parametricType location,
-                    [`Typedef (typeName, parametricType)])
-              | None ->
-                  None
-          end
-      (** type foo typeExpr *)
-      | { id = id; args = [
-            { id = newTypeName; args = []; location };
-            targetTypeExpr;
-          ] } as expr
-          when id = macroTypedef ->
-          begin
-            let location = someOrDefault expr.location Basics.fakeLocation in
-            let isRedefinitionError =
-              hasRedefinitionErrors `NewType `Global newTypeName expr bindings reportDiagnostics
-            in
-
-            match translateType bindings targetTypeExpr, isRedefinitionError with
-              | Error _, _ ->
-                raiseInvalidType targetTypeExpr
-              | Result t, false ->
-                Some (addTypedef bindings newTypeName t location,
-                      [`Typedef (newTypeName, t)] )
-              | _, true ->
-                None
-          end
-      (** record typedef *)
-      | { id = id; args =
-            { id = typeName; args = []; location }
-            :: componentExprs
-        } as expr
-          when id = macroTypedef ->
-          let location = someOrDefault expr.location Basics.fakeLocation in
-          returnRecordTypedef bindings typeName componentExprs location expr
-      | _ -> None
 
   (** TODO: check if this can be removed *)
   let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
@@ -1149,7 +1045,7 @@ struct
   let reportErrorM env messages = List.iter (fun msg -> env.reportError (Serror.fromMsg None msg)) messages
 
   let translateType bindings expr =
-    translateType bindings Translators_deprecated_style.reportWarning expr
+    translateType bindings reportWarning expr
 
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
   let translateStructLiteralArgs structName loc fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
@@ -2695,7 +2591,7 @@ let checkRedefinitionErrors tlenv newDefinitionType scope name expr bindings =
   hasRedefinitionErrors newDefinitionType scope name expr bindings reportDiagnostics
 
 let translateTypeImp tlenv expr =
-  match translateType (EnvTL.bindings tlenv) Translators_deprecated_style.reportWarning expr with
+  match translateType (EnvTL.bindings tlenv) reportWarning expr with
     | Result typ ->
       typ
     | Error errors ->
@@ -2711,7 +2607,7 @@ let checkFunctionIsValid tlenv location f =
 let rec translateFunc tlenv expr : unit =
   let bindings = EnvTL.bindings tlenv in
   let translateType bindings expr =
-    translateType bindings Translators_deprecated_style.reportWarning expr
+    translateType bindings reportWarning expr
   in
   let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption location =
     let name = removeQuotes uncheckedName in
@@ -2821,22 +2717,136 @@ let rec translateFunc tlenv expr : unit =
     | `InvalidFunc msg ->
       EnvTL.emitError tlenv $ Serror.fromExpr expr msg
 
+let translateTypedef tlenv expr : unit =
+  let bindings = EnvTL.bindings tlenv in
+
+  let translateType bindings expr =
+    translateType bindings reportWarning expr
+  in
+
+  let translateRecordTypedef bindings typeName location componentExprs expr =
+    let isRedefinitionError =
+      hasRedefinitionErrors `NewType `Global typeName expr bindings reportDiagnostics
+    in
+
+    let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) location in
+    let expr2component =
+      let translate name typeExpr =
+        match translateType tempBindings typeExpr with
+          | Result typ ->
+            name, typ
+          | Error errors ->
+            raiseIllegalExpressions typeExpr errors
+      in
+      function
+        | { id = typeName; args = [{ id = componentName; args = []}] } ->
+          translate componentName (Ast2.idExpr typeName)
+        | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
+            when seq = macroSequence || seq = macroJuxOp ->
+          translate componentName typeExpr
+        | _ ->
+          raiseIllegalExpression
+            expr
+            "(type typeName (typeExpression componentName)* ) expected"
+    in
+    let components = List.map expr2component componentExprs in
+    let recordType = `Record { rname = typeName; fields = components } in
+    if isRedefinitionError then
+      None
+    else
+      Some recordType
+  in
+  let returnRecordTypedef bindings name componentExprs location expr =
+    match translateRecordTypedef bindings name location componentExprs expr with
+      | Some rt ->
+        let newBindings = addTypedef bindings name rt location in
+        EnvTL.setBindings tlenv newBindings;
+        EnvTL.emitForm tlenv (`Typedef (name, rt));
+      | None ->
+        EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type")
+  in
+  match expr with
+    (** record with only one member *)
+    | { id = id; args = [
+      { id = typeName; args = []; location };
+      { id = opseq; args = componentExprs }
+    ] } as expr
+        when id = macroTypedef && opseq = macroSeqOp ->
+      let location = someOrDefault expr.location Basics.fakeLocation in
+      returnRecordTypedef bindings typeName componentExprs location expr
+
+    (** parametric record *)
+    | { id = id; args = [
+      { id = opcall; args = [
+        { id = typeName; args = []; location };
+        { id = "T"; args = [] } ] };
+      { id = opseq; args = componentExprs }
+    ] } as expr
+        when id = macroTypedef && opcall = macroParamType && opseq = macroSeqOp ->
+      begin
+        let location = someOrDefault expr.location Basics.fakeLocation in
+        let paramBindings = addTypedef bindings "T" `TypeParam location in
+        match translateRecordTypedef paramBindings typeName location componentExprs expr with
+          | Some recordType ->
+            let parametricType = `ParametricType recordType in
+            EnvTL.setBindings tlenv $ addTypedef bindings typeName parametricType location;
+            EnvTL.emitForm tlenv $ `Typedef (typeName, parametricType);
+          | None ->
+            EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type 3")
+      end
+
+    (** type foo typeExpr *)
+    | { id = id; args = [
+      { id = newTypeName; args = []; location };
+      targetTypeExpr;
+    ] } as expr
+        when id = macroTypedef ->
+      begin
+        let location = someOrDefault expr.location Basics.fakeLocation in
+        let isRedefinitionError =
+          hasRedefinitionErrors `NewType `Global newTypeName expr bindings reportDiagnostics
+        in
+
+        match translateType bindings targetTypeExpr, isRedefinitionError with
+          | Error _, _ ->
+            raiseInvalidType targetTypeExpr
+          | Result t, false ->
+            EnvTL.setBindings tlenv (addTypedef bindings newTypeName t location);
+            EnvTL.emitForm tlenv (`Typedef (newTypeName, t));
+          | _, true ->
+            EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type2")
+      end
+
+    (** record typedef *)
+    | { id = id; args =
+        { id = typeName; args = []; location }
+               :: componentExprs
+      } as expr
+        when id = macroTypedef ->
+      let location = someOrDefault expr.location Basics.fakeLocation in
+      returnRecordTypedef bindings typeName componentExprs location expr
+    | _ ->
+      EnvTL.emitError tlenv (Serror.fromExpr expr "failed to translate type3")
+
 let compilationSwallowedErrors = ref false
 
-let unwrapOldTL (f : EnvTL.t -> Ast2.t -> unit) =
+let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
   fun translateF bindings expr ->
-    let env = EnvTL.create translateF bindings in
-    f env expr;
-    let flag, errors, forms = EnvTL.reset env in
-    if errors <> [] then
-      compilationSwallowedErrors := true;
-    List.iter reportError errors;
-    match flag, forms with
-      | Result.Success, _
-      | _, (_ :: _) ->
-        Some (EnvTL.bindings env, forms)
-      | Result.Fail, [] ->
-        None
+    if expr.id = id then begin
+      let env = EnvTL.create translateF bindings in
+      f env expr;
+      let flag, errors, forms = EnvTL.reset env in
+      if errors <> [] then
+        compilationSwallowedErrors := true;
+      List.iter reportError errors;
+      match flag, forms with
+        | Result.Success, _
+        | _, (_ :: _) ->
+          Some (EnvTL.bindings env, forms)
+        | Result.Fail, [] ->
+          None
+    end else
+      None
 
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
@@ -2847,8 +2857,8 @@ let translateTLNoErr bindings expr =
   translate raiseIllegalExpression
     [
       sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
-      sampleFunc3 "translateFunc" (unwrapOldTL translateFunc);
-      sampleFunc3 "translateTypedef" Translators_deprecated_style.translateTypedef;
+      sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
+      sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
       sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested `Global);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
     ]
@@ -2892,7 +2902,7 @@ let rec translate tlenv expr =
           let baseHandlers = tlInstructionList() in
           List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
             macroFunc, translateFunc;
-            macroTypedef, wrapOldTL Translators_deprecated_style.translateTypedef;
+            macroTypedef, translateTypedef;
             macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global)]
         in
         try
