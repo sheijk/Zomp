@@ -324,8 +324,10 @@ let writeHtmlHeader outFile zompFileName =
     @ ulClass "results"
   in
 
-  fprintf outFile "<html>\n";
+  fprintf outFile "<!DOCTYPE html>\n";
+  fprintf outFile "<html lang=\"en-US\">\n";
   fprintf outFile "  <head>\n";
+  fprintf outFile "    <meta charset=\"utf-8\">\n";
   fprintf outFile "    <title>Report for %s</title>\n" zompFileName;
   fprintf outFile "    <style type=\"text/css\">\n";
   List.iter (fun ((path:string), attributes) ->
@@ -340,21 +342,68 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "  <body>\n";
   ()
 
+(**
+   Will return two closures, write and getLines. Use write to add preprocessed
+   source code which consists of segments of either comments, string literals,
+   or raw source code.
+   getLines() will return a list of strings. Each string corresponds to one line
+   of code that is valid and escaped HTML. It's source/string/comment segments
+   are wrapped inside <span class="source/source-comment/source-string>". All
+   span tags are closed at the end of each line.
+*)
 let makeHtmlSourceWriter() =
   let reversedSegments = ref [] in
+
   let collectHtml typ source =
-    let cssClass = match typ with
-      | Source -> "source"
-      | Comment -> "source-comment"
-      | String -> "source-string"
-    in
-    let escapedSource = escapeHtmlText source in
-    let replacement = sprintf "</span></code>\n<code><span class=\"%s\">" cssClass in
-    let sourceWithHtml = Str.global_replace (Str.regexp (Str.quote "&#10;")) replacement escapedSource in
-    let segment = sprintf "<span class=\"%s\">%s</span>" cssClass sourceWithHtml in
-    reversedSegments := segment :: !reversedSegments
+    reversedSegments := (typ, source) :: !reversedSegments
   in
-  collectHtml, reversedSegments
+
+  let getLines() =
+    (* each line is a list of fragments *)
+    let segmentsByLines =
+      let linesRev = ref ([] : ('a * string) list list) in
+      let currentLineRev = ref ([] : ('a * string) list) in
+      let addSegmentToLine (typ, source) =
+        addToList (typ, source) currentLineRev
+      in
+      let finishLine() =
+        addToList (List.rev !currentLineRev) linesRev;
+        currentLineRev := []
+      in
+
+      let addSegment (typ, source) =
+        match Str.split_delim (Str.regexp (Str.quote "\n")) source with
+          | [] -> ()
+          | [single] ->
+            addSegmentToLine (typ, single)
+          | firstLine :: remainingLines ->
+            addSegmentToLine (typ, firstLine);
+            List.iter (fun source ->
+              finishLine();
+              addSegmentToLine (typ, source))
+              remainingLines
+      in
+      List.iter addSegment (List.rev !reversedSegments);
+      finishLine();
+      List.rev (!linesRev)
+    in
+    let segmentsToHtml segments =
+      let escapeSegment (typ, source) =
+        let cssClass = match typ with
+          | Source -> "source"
+          | Comment -> "source-comment"
+          | String -> "source-string"
+        in
+        let escapedSource = escapeHtmlText source in
+        sprintf "<span class=\"%s\">%s</span>" cssClass escapedSource
+      in
+      let escaped = List.map escapeSegment segments in
+      String.concat "" escaped
+    in
+    List.map segmentsToHtml segmentsByLines
+  in
+
+  collectHtml, getLines
 
 let inElements outFile elements ?cssClass f =
   let first = List.hd elements
@@ -568,7 +617,7 @@ let () =
           if loc.fileName = zompFileName then begin
             diagnostics := (loc, kind, message) :: !diagnostics;
           end;
-          let escapedText = sprintf "%s: <span class=\"%s\">%s</span>: %s</span><br />\n"
+          let escapedText = sprintf "%s: <span class=\"%s\">%s</span>: %s<br />\n"
             (locationToString loc)
             (cssClassForDiagnosticsKind kind)
             (DiagnosticKind.toString kind)
@@ -612,7 +661,7 @@ let () =
 
     writeHtmlHeader outFile zompFileName;
     writeHeaderWithLink 1 (sprintf "Test report for %s" zompFileName) (Filename.basename zompFileName);
-    fprintf outFile "Executed at %s</br>\n"
+    fprintf outFile "Executed at %s<br />\n"
       (timeStr (Unix.localtime (Unix.gettimeofday())));
 
     forEachLineInFile zompFileName collectExpectations;
@@ -638,7 +687,7 @@ let () =
     writeHeaderWithLink 2 "Compiler output" (replaceExtension (Filename.basename zompFileName) "compile_output");
     inElements ["p"] ~cssClass:"console-output" (fun () ->
       forEachLineInFile compilerMessagesOutputFile checkCompilerExpectationsAndPrintLine);
-    fprintf outFile "Compiler exited with code %d</br>\n" compilerError;
+    fprintf outFile "Compiler exited with code %d<br />\n" compilerError;
 
     if compilerError == 0 then begin
       let testrunOutputFile = replaceExtension zompFileName testOutputExt in
@@ -739,7 +788,7 @@ let () =
     in
 
     let printLineAndDiagnostics lineNum line =
-      fprintf outFile "  <li>%s" line;
+      fprintf outFile "  <li><code>%s</code>" line;
       emitDiagnosticsUntil lineNum;
       fprintf outFile "</li>\n";
     in
@@ -747,11 +796,9 @@ let () =
     inElements ["div"; "ol"] ~cssClass:"source" (fun () ->
       let source = readFile zompFileName in
       try
-        let write, reversedSegments = makeHtmlSourceWriter() in
+        let write, getLines = makeHtmlSourceWriter() in
         parseCommentsAndStrings write zompFileName source;
-        let annotatedSource = String.concat "" (List.rev !reversedSegments) in
-        let lines = Str.split (Str.regexp (Str.quote "\n")) annotatedSource in
-        listIteri printLineAndDiagnostics 1 lines;
+        listIteri printLineAndDiagnostics 1 (getLines());
       with Basics.CommentError (location, msg) ->
         let printLineToReport _ line =
           fprintf outFile "  <li><code>%s</code></li>\n" (escapeHtmlText line)
