@@ -155,7 +155,7 @@ let produceReport title files =
         let total = List.length testResultRows in
         sprintf "<span class=\"short-summary\">(%d/%d)</span>" succeeded total
       in
-      printf "  <tr><th>%s %s</th><th></th><th></th><th></th></tr>\n"
+      printf "  <tr><th>%s %s</th><th></th><th></th></tr>\n"
         styledBaseDir styledSummary;
       List.iter printReportLine testResultRows)
     testResultRowsByDir;
