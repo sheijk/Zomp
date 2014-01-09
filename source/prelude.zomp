@@ -564,23 +564,11 @@ macro template name argsAndImpl...:
   ret t
 end
 
-macro compilerMessage text...:
-  printString "[message] "
-  forEachAstChild child text:
-    printString (getField child id)
-    printString " "
-  end
-  printNewline()
-  ret ${}
-end
-
 std:base:func void compiler:printWarning(cstring message):
   printString "Warning: "
   printString message
   printNewline()
 end
-
-template compiler:error message... (ret ${error #message})
 
 /// quickly define a test function to be run with C-c,t in emacs
 template testf impl...:
@@ -780,7 +768,6 @@ macro deprecatedNoVarArgs name replacementName warningCode args...:
   var astp impl ${}
   ast:addChild code impl
 
-  // ast:addChild impl ${compiler:printWarning #warning}
   ast:addChild impl warningCode
 
   var astp call (ast:fromString (getField replacementName id))
@@ -803,7 +790,6 @@ macro deprecatedVarArgs name replacementName warningCode:
   ast:addChild code impl
   ast:addChild impl $:
     #warningCode
-    // compiler:printWarning #warning
 
     var astp call (ast:fromString #replName)
     forEachAstChild child args:
@@ -961,7 +947,7 @@ var bool requireLibDebug false
 
 macro static:setRequireLibDebug value:
   unless zmp:prelude:setFromString(ptr requireLibDebug, getField value id):
-    ret ${error #value "Expecting 'true' or 'false'"}
+    ret ${std:base:error #value "Expecting 'true' or 'false'"}
   end
 
   ret ${}
@@ -1070,4 +1056,6 @@ macro func args...:
   end
   ret code
 end
+
+alias error std:base:error args...
 

@@ -464,6 +464,18 @@ let hasRedefinitionErrors
           false
       end
 
+let parseErrorExpr expr =
+  match expr.args with
+    | [ { id = message; args = []; location } ] ->
+      Serror.fromMsg location message
+
+    | [ { id = message; args = [] }; invalidExpr] ->
+      Serror.fromExpr invalidExpr message
+
+    | _ ->
+      Serror.fromExpr expr
+        "invalid error. expected 'std:base:error string-literal expr?'"
+
 let reportDiagnostics kind diagnostic =
   eprintf "%s\n" (Serror.diagnosticsToString kind diagnostic)
 let reportError = reportDiagnostics Basics.DiagnosticKind.Error
@@ -1901,6 +1913,10 @@ struct
       | { args = [] } ->
         errorFromExpr expr (sprintf "expected 'std:base:apply expr args?'")
 
+  let translateError (env :exprTranslateF env) expr =
+    Error [parseErrorExpr expr]
+  let translateErrorD = "string-literal expr?", translateError
+
   let register addF =
     addF "std:base:localVar" translateDefineLocalVarD;
     addF macroAssign translateAssignVarD;
@@ -1921,7 +1937,8 @@ struct
     addF macroVar translateDefineVarD;
     addF macroVar2 translateDefineVarD;
     addF macroFunCall translateFuncCallD;
-    addF macroApply ("ast...", translateApply translateRecordLiteral)
+    addF macroApply ("ast...", translateApply translateRecordLiteral);
+    addF macroError translateErrorD
 
   let registerTL addF =
     addF "var" translateGlobalVarD;
@@ -2828,6 +2845,9 @@ let translateTypedef tlenv expr : unit =
     | _ ->
       EnvTL.emitError tlenv (Serror.fromExpr expr "failed to translate type3")
 
+let translateError tlenv expr : unit =
+  EnvTL.emitError tlenv $ parseErrorExpr expr
+
 let compilationSwallowedErrors = ref false
 
 let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
@@ -2861,6 +2881,7 @@ let translateTLNoErr bindings expr =
       sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
       sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested `Global);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
+      sampleFunc3 "translateError" (unwrapOldTL macroError translateError);
     ]
     bindings expr
 
@@ -2903,7 +2924,8 @@ let rec translate tlenv expr =
           List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
             macroFunc, translateFunc;
             macroTypedef, translateTypedef;
-            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global)]
+            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global);
+            macroError, translateError]
         in
         try
           let handler = List.assoc expr.id handlers in

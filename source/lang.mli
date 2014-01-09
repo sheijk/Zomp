@@ -29,6 +29,8 @@ val macroCallOp : string
 val macroApply : string
 val macroFunCall : string
 val macroParamType : string
+val macroError : string
+
 val componentType : ('a * 'b) list -> 'a -> 'b option
 val componentNum : ('a * 'b) list -> 'a -> int
 type intType = [ `Int16 | `Int32 | `Int64 | `Int8 ]

@@ -1,0 +1,27 @@
+///
+/// Testing whether error reporting works.
+///
+
+error "toplevel-error" //// error toplevel-error
+
+std:base:func void checkNestedError():
+  error "nested-error" //// error nested-error
+end
+
+
+std:base:func void exit(int _)
+
+macro die here:
+  // printf("killing compiler, line = %d!\n", getField(here, line))
+  // exit(99)
+
+  ret ${}
+end
+
+die here
+
+func int main():
+  ret 0
+end
+
+
