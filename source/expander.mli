@@ -5,18 +5,20 @@
 *)
 exception IllegalExpression of Ast2.sexpr * Serror.t list
 
-type 'a mayfail = private Result of 'a | Error of Serror.t list
-val errorFromStringDeprecated : string -> 'a mayfail
-val errorFromString : Basics.location -> string -> 'a mayfail
-val errorFromExpr : Ast2.sexpr -> string -> 'a mayfail
-val singleError : Serror.t -> 'a mayfail
-val multipleErrors : Serror.t list -> 'a mayfail
-val result : 'a -> 'a mayfail
+module Mayfail : sig
+  type 'a mayfail = private Result of 'a | Error of Serror.t list
+  val errorFromStringDeprecated : string -> 'a mayfail
+  val errorFromString : Basics.location -> string -> 'a mayfail
+  val errorFromExpr : Ast2.sexpr -> string -> 'a mayfail
+  val singleError : Serror.t -> 'a mayfail
+  val multipleErrors : Serror.t list -> 'a mayfail
+  val result : 'a -> 'a mayfail
+end
 
 type toplevelEnv
 val envBindings : toplevelEnv -> Bindings.t
 
-type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) mayfail
+type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.mayfail
 
 type tlenv
 val createEnv : Bindings.t -> tlenv

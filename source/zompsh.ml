@@ -618,15 +618,15 @@ let translateRun tlenv env expr =
           let newBindings = Compileutils.bindings tlenv in
           onSuccess oldBindings newBindings simpleforms llvmCode;
           runFunction newBindings immediateFuncName;
-          Expander.result (newBindings, [])
+          Expander.Mayfail.result (newBindings, [])
         with
           | Expander.IllegalExpression (expr, errors) ->
-            Expander.multipleErrors errors
+            Expander.Mayfail.multipleErrors errors
           | exn ->
-            Expander.errorFromStringDeprecated (Printexc.to_string exn)
+            Expander.Mayfail.errorFromStringDeprecated (Printexc.to_string exn)
       end
     | _ ->
-        Expander.errorFromStringDeprecated (sprintf "expected %s expr" expr.id)
+        Expander.Mayfail.errorFromStringDeprecated (sprintf "expected %s expr" expr.id)
 
 let rec step env parseState =
   let bindings = Compileutils.bindings env in
