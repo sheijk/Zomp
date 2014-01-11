@@ -111,27 +111,27 @@ struct
         end
       | _ -> raiseIllegalExpression expr "unsupported value expression"
 
+  let tryGetFunctionAddress bindings name =
+    match lookup bindings name with
+      | FuncSymbol f ->
+        let name = f.fname in
+        let typ = `Function {
+          returnType = f.rettype;
+          argTypes = List.map snd f.Lang.fargs;
+        } in
+        let var = variable name (`Pointer typ) RegisterStorage true None in
+        Some (`Variable var)
+      | _ ->
+        None
+
   let expr2VarOrConst (bindings :bindings) =
-    let tryGetFunctionAddress name =
-      match lookup bindings name with
-        | FuncSymbol f ->
-            let name = f.fname in
-            let typ = `Function {
-              returnType = f.rettype;
-              argTypes = List.map snd f.Lang.fargs;
-            } in
-            let var = variable name (`Pointer typ) RegisterStorage true None in
-            Some (`Variable var)
-        | _ ->
-            None
-    in
     function
     | { id = name; args = [] } -> begin
         match lookup bindings name with
           | VarSymbol v ->
               Some (`Variable v)
           | FuncSymbol f ->
-              tryGetFunctionAddress name
+              tryGetFunctionAddress bindings name
           | _ ->
               match string2integralValue name with
                 | Some c -> Some (`Constant c)
@@ -139,7 +139,7 @@ struct
       end
     | { id = "preop&"; args = [{id = name; args = []}] } ->
         begin
-          tryGetFunctionAddress name
+          tryGetFunctionAddress bindings name
         end
     | _ -> None
 
@@ -1292,6 +1292,12 @@ struct
           begin
             match lookup env.bindings varName with
               | VarSymbol var -> Result (env.bindings, [`GetAddrIntrinsic var] )
+              | FuncSymbol _ ->
+                begin match tryGetFunctionAddress env.bindings varName with
+                  | Some form -> Result (env.bindings, [form])
+                  | None ->
+                    raiseIllegalExpression expr (sprintf "could not get address of function")
+                end
               | _ -> raiseIllegalExpression expr (sprintf "could not find variable %s" varName)
           end
       | { id = "ptr"; args = [] } ->
