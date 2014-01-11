@@ -515,48 +515,6 @@ struct
       | None -> None
 
 
-  (** TODO: check if this can be removed *)
-  let translateRecord (translateF :exprTranslateF) (bindings :bindings) = function
-    | { id = id; args =
-          { id = name; args = []; }
-          :: componentExprs
-      } as expr
-        when id = macroRecord ->
-        begin
-          match lookup bindings name with
-            | TypedefSymbol `Record record ->
-                begin
-                  let recordInitFunc name components = func (name ^ "_init") `Void components None Basics.fakeLocation in
-                  let initFunc = recordInitFunc name record.fields in
-                  let translate param compExpr = match (param, compExpr) with
-                    | ((argName, argType), ({ id = compName; args = [argExpr] }) ) ->
-                        begin
-                          if argName = compName then begin
-                            let _, form, toplevelForms = translateToForms translateF bindings argExpr in
-                            if List.length toplevelForms > 0 then
-                              raiseIllegalExpression expr "no nested toplevel forms allowed inside record";
-                            form
-                          end else
-                            raiseIllegalExpression compExpr (sprintf "expected %s as id" argName)
-                        end
-                    | _, invalidCompExpr ->
-                        raiseIllegalExpression invalidCompExpr "expected (componentName expr)"
-                  in
-                  let call = {
-                    fcname = initFunc.fname;
-                    fcrettype = initFunc.rettype;
-                    fcparams = List.map snd initFunc.fargs;
-                    fcargs = List.map2 translate initFunc.fargs componentExprs;
-                    fcptr = `NoFuncPtr;
-                    fcvarargs = initFunc.cvarargs
-                  } in
-                  Some( bindings, [`FuncCall call] )
-                end
-            | UndefinedSymbol -> raiseIllegalExpression expr (sprintf "%s is undefined" name)
-            | _ -> raiseIllegalExpression expr (sprintf "%s is not a record" name)
-        end
-    | _ -> None
-
   (** Support legacy macros which generate ASTs calling functions without using
    * opcall/opjux *)
   let translateRestrictedFunCall (translateF :exprTranslateF) (bindings :bindings) expr =
@@ -2303,7 +2261,6 @@ let rec translateNested (bindings :bindings) (expr :Ast2.sexpr) =
       Translators_deprecated_style.translateSimpleExpr;
       Old_macro_support.translateMacroCall;
       Old_macro_support.translateDefineMacro translateNested `Local;
-      Translators_deprecated_style.translateRecord;
     ]
   bindings expr
 

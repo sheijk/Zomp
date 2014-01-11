@@ -4,7 +4,6 @@ val macroFunc : string
 val macroAssign : string
 val macroSequence : string
 val macroTypedef : string
-val macroRecord : string
 val macroField : string
 val macroPtr : string
 val macroReturn : string
