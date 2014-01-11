@@ -582,145 +582,13 @@ struct
             end
           | _ -> None
 
-  let createNativeMacro translateF bindings macroName argNames impl =
-    let sexprImpl = impl in
-    let bindings =
-      List.fold_left
-        (fun bindings name ->
-           Bindings.addVar bindings
-             (Lang.variable
-                ~name
-                ~typ:astPtrType
-                ~storage:Lang.RegisterStorage
-                ~global:false
-                ~location:None) )
-        bindings argNames
-    in
-    let _, xforms = translateF bindings sexprImpl in
-    let initForms, implforms = extractToplevelForms xforms in
-    let initForms = flattenNestedTLForms initForms in
-    let macroFunc =
-      let fargs = List.map (fun name -> (name, astPtrType)) argNames
-      and impl = Some (toSingleForm implforms) in
-      func macroName astPtrType fargs impl Basics.fakeLocation
-    in
-    let tlforms = initForms @ [`DefineFunc macroFunc] in
-    let llvmCodes = List.map Genllvm.gencodeTL tlforms in
-    let llvmCode = Common.combine "\n" llvmCodes in
-    Zompvm.evalLLVMCodeB
-      ~targetModule:Zompvm.Runtime
-      (if listContains macroName !macroFuncs then
-         [macroName]
-       else begin
-         macroFuncs := macroName :: !macroFuncs;
-         []
-       end)
-      (tlforms @ [`DefineFunc macroFunc])
-      llvmCode
-
-  let translateFuncMacro (translateNestedF :exprTranslateF) name bindings argNames args impl =
-    let expectedArgCount = List.length argNames in
-    let foundArgCount = List.length args in
-    if expectedArgCount <> foundArgCount then
-      raiseIllegalExpression
-        (Ast2.expr name args)
-        (sprintf "could not invoke macro: expected %d arguments but found %d" expectedArgCount foundArgCount);
-
-    let rec repeatedList element count =
-      if count > 0 then element :: repeatedList element (count-1)
-      else []
-    in
-
-    let constructCallerFunction args =
-      log "building arg expr";
-      let argAstExprs = List.map Genllvm.sexpr2codeasis args in
-      List.iter (fun expr -> log (Ast2.expression2string expr)) argAstExprs;
-      log "translating to simpleform";
-      let tlforms, argAstForms = List.fold_left
-        (fun (prevTLForms, prevForms) expr ->
-           let _, xforms = translateNestedF bindings expr in
-           let tlforms, simpleforms = extractToplevelForms xforms in
-           prevTLForms @ tlforms, prevForms @ [(toSingleForm simpleforms)] )
-        ([], [])
-        argAstExprs
-      in
-      let resultVar =
-        Lang.variable
-          ~name:"result"
-          ~typ:astPtrType
-          ~storage:MemoryStorage
-          ~global:false
-          ~location:None
-      in
-      log "building function impl";
-      let implForms = [
-        `DefineVariable(resultVar,
-                        Some (`FuncCall { fcname = name;
-                                          fcrettype = astPtrType;
-                                          fcparams = repeatedList astPtrType (List.length argAstForms);
-                                          fcargs = argAstForms;
-                                          fcptr = `NoFuncPtr;
-                                          fcvarargs = false;
-                                        }) );
-        `CastIntrinsic (`Int32, `Variable resultVar);
-      ]
-      in
-      let func = `DefineFunc (func "macroExec" `Int32 [] (Some (`Sequence implForms)) Basics.fakeLocation) in
-      log "...";
-      let alltlforms = (flattenNestedTLForms tlforms) @ [func] in
-      let llvmCodeLines = List.map Genllvm.gencodeTL alltlforms in
-      let llvmCode = Common.combine "\n\n\n" llvmCodeLines in
-      Zompvm.evalLLVMCodeB
-        ~targetModule:Zompvm.Runtime
-        ["macroExec"]
-        alltlforms
-        llvmCode
-    in
-
-    if false then constructCallerFunction [];
-
-    let createArgs() =
-      List.map Zompvm.NativeAst.buildNativeAst args;
-    in
-
-    let callMacro args =
-      Zompvm.zompResetArgs();
-      List.iter (fun astAddr -> Zompvm.zompAddPointerArg astAddr) args;
-      Zompvm.zompRunFunctionPointerWithArgs name
-    in
-
-    log "Creating args";
-    let argsAddresses = createArgs() in
-    log "Calling macro";
-    let astAddress = callMacro argsAddresses in
-
-    (* log (sprintf "extracting result from address %d" astAddress); *)
-    let sexpr = Zompvm.NativeAst.extractSExprFromNativeAst astAddress in
-    (* log (sprintf "extracted:\n%s" (Ast2.toString sexpr)); *)
-    sexpr
-
-  let translateVariadicFuncMacro
-      (translateNestedF :exprTranslateF)
-      name
-      bindings
-      argNames
-      args
-      impl
-      =
-    let internalArgCount = List.length argNames in
-    let inflatedArgs =
-      let regularArgs, variadicArgs = Common.splitAfter (internalArgCount-1) args in
-      regularArgs @ [Ast2.seqExpr variadicArgs]
-    in
-    translateFuncMacro translateNestedF name bindings argNames inflatedArgs impl
-
   let translateDefineMacro translateNestedF scope translateF (bindings :bindings) expr =
     trace "translateDefineMacro" expr.location;
     match expr with
     | { id = id; args =
           { id = name; args = [] }
           :: paramImpl
-      } when id = macroMacro or id = macroReplacement ->
+      } when id = macroReplacement ->
         let isRedefinitionError =
           hasRedefinitionErrors `NewMacro scope name expr bindings reportDiagnostics
         in
@@ -751,26 +619,12 @@ struct
                   let docstring =
                     Common.combine " " argNames ^ if isVariadic then "..." else ""
                   in
-                  let macroF =
-                    if id = macroMacro then begin
-                      createNativeMacro translateNestedF bindings name argNames impl;
-                      if isVariadic then
-                        translateVariadicFuncMacro translateNestedF name
-                      else
-                        translateFuncMacro translateNestedF name
-                    end else
-                      (fun (_ :bindings) exprs -> Ast2.replaceParams exprs)
-                  in
                   let location = someOrDefault expr.location Basics.fakeLocation in
-                  let f = fun bindings expr -> macroF bindings argNames expr.args impl in
-                  Some( Bindings.addMacro bindings name docstring location f, [] )
+                  let replace = fun bindings expr -> Ast2.replaceParams argNames expr.args impl in
+                  Some( Bindings.addMacro bindings name docstring location replace, [] )
                 end
             end
           in
-          if not (id = macroReplacement) then begin
-            reportWarning (Serror.fromMsg expr.location
-                             (sprintf "invoked old translateDefineMacro for %s" name))
-          end;
           result
         end
     | _ ->
