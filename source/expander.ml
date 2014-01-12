@@ -2109,21 +2109,6 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
   in
   t translators
 
-let rec translateNestedOld (bindings :bindings) (expr :Ast2.sexpr) =
-  begin match !traceMacroExpansion with
-    | Some f -> f "nested/???" expr
-    | None -> ()
-  end;
-  translate raiseIllegalExpression
-    [
-      translateBaseInstruction translateNestedOld;
-      Translators_deprecated_style.translateRestrictedFunCall;
-      Translators_deprecated_style.translateSimpleExpr;
-      Old_macro_support.translateMacroCall;
-      Old_macro_support.translateDefineMacro translateNestedOld `Local;
-    ]
-  bindings expr
-
 let rec translateNestedNew
     (bindings :bindings)
     (expr :Ast2.sexpr)
