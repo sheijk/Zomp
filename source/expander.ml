@@ -2109,65 +2109,92 @@ let rec translate errorF translators bindings (expr :Ast2.t) =
   in
   t translators
 
-let rec translateNested (bindings :bindings) (expr :Ast2.sexpr) =
+let rec translateNestedOld (bindings :bindings) (expr :Ast2.sexpr) =
   begin match !traceMacroExpansion with
     | Some f -> f "nested/???" expr
     | None -> ()
   end;
   translate raiseIllegalExpression
     [
-      translateBaseInstruction translateNested;
+      translateBaseInstruction translateNestedOld;
       Translators_deprecated_style.translateRestrictedFunCall;
       Translators_deprecated_style.translateSimpleExpr;
       Old_macro_support.translateMacroCall;
-      Old_macro_support.translateDefineMacro translateNested `Local;
+      Old_macro_support.translateDefineMacro translateNestedOld `Local;
     ]
   bindings expr
 
-let translateNested = sampleFunc2 "translateNested" translateNested
+let rec translateNestedNew
+    (bindings :bindings)
+    (expr :Ast2.sexpr)
+    : (bindings * formWithTLsEmbedded list) mayfail
+    =
+  Zompvm.currentBindings := bindings;
+  match Bindings.lookup bindings expr.id with
+    | VarSymbol _
+            ->
+      begin match Translators_deprecated_style.translateSimpleExpr translateNestedNoErr bindings expr with
+        | Some (newBindings, forms) ->
+          Mayfail.result (newBindings, forms)
+        | None ->
+          Mayfail.singleError $ Serror.fromExpr expr (sprintf "internal error when accessing variable %s" expr.id)
+      end
 
-(* let translateNew bindings expr = *)
-(*   try *)
-(*     Result (translateNested bindings expr) *)
-(*   with IllegalExpression (expr, msg) -> *)
-(*     errorFromExpr expr "could not find handler for expression" *)
+    | FuncSymbol _ ->
+      begin match Translators_deprecated_style.translateRestrictedFunCall translateNestedNoErr bindings expr with
+        | Some (newBindings, forms) -> Mayfail.result (newBindings, forms)
+        | None ->
+          Mayfail.singleError $ Serror.fromExpr expr (sprintf "internal error when accessing function %s" expr.id)
+      end
 
-(* let translateDict *)
-(*     baseInstructions *)
-(*     translateF *)
-(*     (bindings :bindings) *)
-(*     (expr :Ast2.sexpr) *)
-(*     = *)
-(*   match Bindings.lookup bindings expr.id with *)
-(*     | VarSymbol var -> *)
-(*         None *)
-(*     | FuncSymbol func -> *)
-(*         None *)
-(*     | MacroSymbol macro -> *)
-(*         None *)
-(*     | TypedefSymbol typedef -> *)
-(*         None *)
-(*     | LabelSymbol label -> *)
-(*         None *)
-(*     | UndefinedSymbol -> *)
-(*         begin try *)
-(*           let handler = Hashtbl.find baseInstructions expr.id in *)
-(*           let env = { *)
-(*             bindings = bindings; *)
-(*             translateF = translateF; *)
-(*             parseF = Parseutils.parseIExprsOpt; *)
-(*           } in *)
-(*           match handler env expr with *)
-(*             | Error errors -> *)
-(*                 print_string (combineErrors "swallowed errors: " errors); *)
-(*                 print_newline(); *)
-(*                 flush stdout; *)
-(*                 None *)
-(*             | Result (bindings, tlexprs) -> *)
-(*                 Some (bindings, tlexprs) *)
-(*         with Not_found -> *)
-(*           None *)
-(*         end *)
+    | MacroSymbol macro ->
+      (match Old_macro_support.translateMacroCall translateNestedNoErr bindings expr with
+        | Some r -> Result r
+        | None ->
+          Mayfail.singleError $ Serror.fromExpr expr "failed after macro expansion")
+
+    | TypedefSymbol typedef ->
+      (* todo: use this to create a value *)
+      Mayfail.singleError $ Serror.fromExpr expr "found type name but expected expression"
+
+    | LabelSymbol label ->
+      Mayfail.singleError $ Serror.fromExpr expr "label can only be used as argument to control flow instructions"
+
+    | UndefinedSymbol ->
+      let rec tryEach functions fallback (bindings :Bindings.t) (expr :Ast2.t) =
+        match functions with
+          | f :: rem ->
+            begin
+              Zompvm.currentBindings := bindings;
+              match f translateNestedNoErr bindings expr with
+                | Some (newBindings, forms) ->
+                  Result (newBindings, forms)
+                | None ->
+                  tryEach rem fallback bindings expr
+            end
+          | [] ->
+            fallback bindings expr
+      in
+      let fallback bindings expr =
+        Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
+      in
+      tryEach
+        [
+          translateBaseInstruction translateNestedNoErr;
+          Translators_deprecated_style.translateRestrictedFunCall;
+          Translators_deprecated_style.translateSimpleExpr;
+          Old_macro_support.translateDefineMacro translateNestedNoErr `Local;
+          Old_macro_support.translateMacroCall;
+        ]
+        fallback bindings expr
+
+and translateNestedNoErr bindings expr =
+  match translateNestedNew bindings expr with
+    | Result (newBindings, forms) -> newBindings, forms
+    | Error errors ->
+      raiseIllegalExpressions expr errors
+
+let translateNested = sampleFunc2 "translateNested" translateNestedNoErr
 
 module EnvTL : sig
   type t
