@@ -1628,7 +1628,7 @@ func void renderTimeline(
 end
 
 func void scaleTo2dArea(float left, float bottom, float right, float top):
-  makeGLIdentityTransforms
+  makeGLIdentityTransforms()
   glMatrixMode GL_MODELVIEW
   glTranslatef -1. -1. 0.
   glScalef 2. 2. 1.

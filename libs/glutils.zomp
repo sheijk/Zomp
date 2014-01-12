@@ -672,7 +672,7 @@ func void showTexture(GLuint textureName):
   glClear (int:or GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT)
   saveTransforms:
     saveAttribs:
-      makeGLIdentityTransforms
+      makeGLIdentityTransforms()
       glScalef (float:add 0.5 0.25) 1.0 1.0
       glEnable GL_TEXTURE_2D
       glBindTexture2D textureName

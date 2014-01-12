@@ -1225,7 +1225,7 @@ func int main():
         assert (showTarget >= 0)
         assert (showTarget < glowSteps * 2)
         saveTransforms:
-          makeGLIdentityTransforms
+          makeGLIdentityTransforms()
           draw2dOrientationGrid()
           if (int:mod showTarget 2 == 1):
             showTextureAt renderTargetsB[debugNum / 2]*.colorTexture -1.0 -1.0 2.0 2.0
