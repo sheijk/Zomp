@@ -4,7 +4,7 @@
 ///
 
 std:base:func int main():
-  var (fptr void cstring) print &printString //// warning deprecated
+  var (fptr void cstring) print (ptr printString) //// warning deprecated
   print "using the bad syntax" //// print bad syntax
   printNewline()
 
