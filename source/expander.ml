@@ -98,19 +98,6 @@ struct
     in
     worker bindings expr
 
-  let rec expr2value typ expr =
-    match typ with
-      | #integralType -> begin
-          match expr with
-            | { id = value; args = [] } -> string2integralValue value
-            | _ -> raiseIllegalExpression expr
-                (Printf.sprintf "expected value of type %s" (Lang.typeName typ))
-        end
-      | `Record components -> begin
-          raiseIllegalExpression expr "records not supported"
-        end
-      | _ -> raiseIllegalExpression expr "unsupported value expression"
-
   let tryGetFunctionAddress bindings name =
     match lookup bindings name with
       | FuncSymbol f ->
@@ -123,25 +110,6 @@ struct
         Some (`Variable var)
       | _ ->
         None
-
-  let expr2VarOrConst (bindings :bindings) =
-    function
-    | { id = name; args = [] } -> begin
-        match lookup bindings name with
-          | VarSymbol v ->
-              Some (`Variable v)
-          | FuncSymbol f ->
-              tryGetFunctionAddress bindings name
-          | _ ->
-              match string2integralValue name with
-                | Some c -> Some (`Constant c)
-                | None -> None
-      end
-    | { id = "preop&"; args = [{id = name; args = []}] } ->
-        begin
-          tryGetFunctionAddress bindings name
-        end
-    | _ -> None
 
   let lastTempVarNum = ref 0
 
@@ -907,11 +875,6 @@ struct
           continueWithErrors [newError] remArgs
     in
     handleFieldExprs [] [] fields fieldExprs
-
-  let translateConstantToValue env expr : value mayfail =
-    match expr2VarOrConst env.bindings expr with
-      | Some `Constant value -> Result value
-      | _ -> errorFromExpr expr "must be a constant expression"
 
   (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
   let translateGlobalVar env expr =
