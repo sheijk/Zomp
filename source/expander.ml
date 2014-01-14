@@ -493,39 +493,6 @@ let reportError = reportDiagnostics Basics.DiagnosticKind.Error
 let reportWarning = reportDiagnostics Basics.DiagnosticKind.Warning
 let reportInfo = reportDiagnostics Basics.DiagnosticKind.Info
 
-module Translators_deprecated_style =
-struct
-  let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
-    match expr2VarOrConst bindings expr with
-      | Some varOrConst ->
-          begin match varOrConst with
-            | `Constant StringLiteral string ->
-                begin
-                  let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
-                  let value = StringLiteral string in
-                  let gvar = {
-                    gvVar = var;
-                    gvInitialValue = value;
-                    gvDefinitionLocation = expr.location;
-                  } in
-                  Some( newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var] )
-                end
-            | _ -> Some (bindings, [varOrConst] )
-          end
-      | None -> None
-
-
-  (** Support legacy macros which generate ASTs calling functions without using
-   * opcall/opjux *)
-  let translateRestrictedFunCall (translateF :exprTranslateF) (bindings :bindings) expr =
-    match lookup bindings expr.id with
-      | FuncSymbol _ when List.length expr.args >= 1 ->
-          Some( translateF bindings
-                  { expr with id = macroFunCall; args = idExpr expr.id :: expr.args } )
-      | _ ->
-          None
-end
-
 (** Also needs to be updated in zompvm_impl.cpp and prelude.zomp *)
 let astType = `Record {
   rname = "ast";
@@ -2114,23 +2081,55 @@ let rec translateNestedNew
     (expr :Ast2.sexpr)
     : (bindings * formWithTLsEmbedded list) mayfail
     =
+  let expr2VarOrConst (bindings :bindings) =
+    function
+      | { id = name; args = [] } -> begin
+        match lookup bindings name with
+          (* | VarSymbol v -> *)
+          (*   Some (`Variable v) *)
+          (* | FuncSymbol f -> *)
+            (* tryGetFunctionAddress bindings name *)
+          | _ ->
+            match string2integralValue name with
+              | Some c -> Some (`Constant c)
+              | None -> None
+      end
+      (* | { id = "preop&"; args = [{id = name; args = []}] } -> *)
+      (*   begin *)
+      (*     tryGetFunctionAddress bindings name *)
+      (*   end *)
+      | _ -> None
+  in
+  let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
+    match expr2VarOrConst bindings expr with
+      | Some varOrConst ->
+        begin match varOrConst with
+          | `Constant StringLiteral string ->
+            begin
+              let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
+              let value = StringLiteral string in
+              let gvar = {
+                gvVar = var;
+                gvInitialValue = value;
+                gvDefinitionLocation = expr.location;
+              } in
+              Some( newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var] )
+            end
+          | _ -> Some (bindings, [varOrConst] )
+        end
+      | None -> None
+
+  in
+
   Zompvm.currentBindings := bindings;
   match Bindings.lookup bindings expr.id with
-    | VarSymbol _
-            ->
-      begin match Translators_deprecated_style.translateSimpleExpr translateNestedNoErr bindings expr with
-        | Some (newBindings, forms) ->
-          Mayfail.result (newBindings, forms)
-        | None ->
-          Mayfail.singleError $ Serror.fromExpr expr (sprintf "internal error when accessing variable %s" expr.id)
-      end
+    | VarSymbol var ->
+      Mayfail.result (bindings, [`Variable var])
 
-    | FuncSymbol _ ->
-      begin match Translators_deprecated_style.translateRestrictedFunCall translateNestedNoErr bindings expr with
-        | Some (newBindings, forms) -> Mayfail.result (newBindings, forms)
-        | None ->
-          Mayfail.singleError $ Serror.fromExpr expr (sprintf "internal error when accessing function %s" expr.id)
-      end
+    | FuncSymbol func ->
+      (** TODO: reverse this. Turn opcall into a macro *)
+      translateNestedNew bindings
+        { expr with id = macroFunCall; args = idExpr expr.id :: expr.args }
 
     | MacroSymbol macro ->
       (match Old_macro_support.translateMacroCall translateNestedNoErr bindings expr with
@@ -2166,10 +2165,12 @@ let rec translateNestedNew
       tryEach
         [
           translateBaseInstruction translateNestedNoErr;
-          Translators_deprecated_style.translateRestrictedFunCall;
-          Translators_deprecated_style.translateSimpleExpr;
+          (* Translators_deprecated_style.translateRestrictedFunCall; *)
           Old_macro_support.translateDefineMacro translateNestedNoErr `Local;
+          (** TODO: try removing this **)
           Old_macro_support.translateMacroCall;
+          (** TODO: only translate constants here **)
+          translateSimpleExpr;
         ]
         fallback bindings expr
 
