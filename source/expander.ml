@@ -2081,46 +2081,6 @@ let rec translateNestedNew
     (expr :Ast2.sexpr)
     : (bindings * formWithTLsEmbedded list) mayfail
     =
-  let expr2VarOrConst (bindings :bindings) =
-    function
-      | { id = name; args = [] } -> begin
-        match lookup bindings name with
-          (* | VarSymbol v -> *)
-          (*   Some (`Variable v) *)
-          (* | FuncSymbol f -> *)
-            (* tryGetFunctionAddress bindings name *)
-          | _ ->
-            match string2integralValue name with
-              | Some c -> Some (`Constant c)
-              | None -> None
-      end
-      (* | { id = "preop&"; args = [{id = name; args = []}] } -> *)
-      (*   begin *)
-      (*     tryGetFunctionAddress bindings name *)
-      (*   end *)
-      | _ -> None
-  in
-  let translateSimpleExpr (_ :exprTranslateF) (bindings :bindings) expr =
-    match expr2VarOrConst bindings expr with
-      | Some varOrConst ->
-        begin match varOrConst with
-          | `Constant StringLiteral string ->
-            begin
-              let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
-              let value = StringLiteral string in
-              let gvar = {
-                gvVar = var;
-                gvInitialValue = value;
-                gvDefinitionLocation = expr.location;
-              } in
-              Some( newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var] )
-            end
-          | _ -> Some (bindings, [varOrConst] )
-        end
-      | None -> None
-
-  in
-
   Zompvm.currentBindings := bindings;
   match Bindings.lookup bindings expr.id with
     | VarSymbol var ->
@@ -2160,7 +2120,32 @@ let rec translateNestedNew
             fallback bindings expr
       in
       let fallback bindings expr =
-        Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
+        let failWithInvalidId() =
+          Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
+        in
+
+        (** try to parse this as a constant **)
+        match expr with
+          | { id = name; args = [] } ->
+            begin match string2integralValue name with
+              | Some StringLiteral string ->
+                begin
+                  let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
+                  let value = StringLiteral string in
+                  let gvar = {
+                    gvVar = var;
+                    gvInitialValue = value;
+                    gvDefinitionLocation = expr.location;
+                  } in
+                  Mayfail.result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
+                end
+              | Some const ->
+                Mayfail.result (bindings, [`Constant const])
+              | None ->
+                failWithInvalidId()
+            end
+          | _ ->
+            failWithInvalidId()
       in
       tryEach
         [
@@ -2169,8 +2154,6 @@ let rec translateNestedNew
           Old_macro_support.translateDefineMacro translateNestedNoErr `Local;
           (** TODO: try removing this **)
           Old_macro_support.translateMacroCall;
-          (** TODO: only translate constants here **)
-          translateSimpleExpr;
         ]
         fallback bindings expr
 
