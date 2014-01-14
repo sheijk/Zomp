@@ -2015,30 +2015,6 @@ let translateBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   let addBaseInstruction name doc f = add name (doc, f) in
   translateFromDict table, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
 
-let rec translate errorF translators bindings (expr :Ast2.t) =
-  (* let s = Ast2.toString expr in *)
-  (* let s = expr.id in *)
-  (* begin match expr.location with *)
-  (*   | Some loc -> *)
-  (*       printf "Translate @%s %s\n" (Ast2.locationToString loc) s; *)
-  (*       flush stdout; *)
-  (*   | None -> *)
-  (*       printf "Translate! %s\n" s; *)
-  (*       flush stdout; *)
-  (* end; *)
-  let rec t = function
-    | f :: remf ->
-      begin
-        Zompvm.currentBindings := bindings;
-        match f (translate errorF translators) bindings expr with
-          | Some ((newBindings : Bindings.t), result) -> (newBindings, result)
-          | None -> t remf
-      end
-    | [] ->
-      errorF expr (sprintf "no translator matched expression, id=%s" expr.id)
-  in
-  t translators
-
 let rec translateNestedNew
     (bindings :bindings)
     (expr :Ast2.sexpr)
@@ -2082,12 +2058,11 @@ let rec translateNestedNew
           | [] ->
             fallback bindings expr
       in
-      let fallback bindings expr =
+      let translateConstantOrFail bindings expr =
         let failWithInvalidId() =
           Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
         in
 
-        (** try to parse this as a constant **)
         match expr with
           | { id = name; args = [] } ->
             begin match string2integralValue name with
@@ -2118,7 +2093,7 @@ let rec translateNestedNew
           (** TODO: try removing this **)
           Old_macro_support.translateMacroCall;
         ]
-        fallback bindings expr
+        translateConstantOrFail bindings expr
 
 and translateNestedNoErr bindings expr =
   match translateNestedNew bindings expr with
@@ -2660,6 +2635,31 @@ let translateTLNoErr bindings expr =
     | Some f -> f "tl/???" expr
     | None -> ()
   end;
+
+  let rec translate errorF translators bindings (expr :Ast2.t) =
+  (* let s = Ast2.toString expr in *)
+  (* let s = expr.id in *)
+  (* begin match expr.location with *)
+  (*   | Some loc -> *)
+  (*       printf "Translate @%s %s\n" (Ast2.locationToString loc) s; *)
+  (*       flush stdout; *)
+  (*   | None -> *)
+  (*       printf "Translate! %s\n" s; *)
+  (*       flush stdout; *)
+  (* end; *)
+    let rec t = function
+      | f :: remf ->
+        begin
+          Zompvm.currentBindings := bindings;
+          match f (translate errorF translators) bindings expr with
+            | Some ((newBindings : Bindings.t), result) -> (newBindings, result)
+            | None -> t remf
+        end
+      | [] ->
+        errorF expr (sprintf "no translator matched expression, id=%s" expr.id)
+    in
+    t translators
+  in
 
   translate raiseIllegalExpression
     [
