@@ -273,11 +273,14 @@ ALL_TARGETS += $(MAKE_REPORT)
 FILES_TO_DELETE_ON_CLEAN += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
 $(MAKE_REPORT): CAML_LIBS += str
 
+MAKE_VERSION_STRING="git-`git rev-parse --short HEAD``if ! git diff-index --quiet HEAD; then echo \\-modified; fi`"
+
 .PHONY: $(BUILD_DIR)/report.html
 $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	@$(ECHO) Creating test report ...
 	cat testsuite/report_head.html > $@
 	echo "Report generated at `date \"+%Y-%m-%d %H:%M:%S\"`<br />" >> $@
+	-echo "Version $(MAKE_VERSION_STRING) <br />" >> $@
 	echo "Build variant = $(BUILD_VARIANT) <br />" >> $@
 	$(MAKE_REPORT) "Unit tests" $(filter-out testsuite/check_test_verify/%, $(sort $(TESTSUITE_CASES:.testreport=))) >> $@
 	./libs/make_libs_result_files.sh $(ZOMP_LIBS_SRC)
