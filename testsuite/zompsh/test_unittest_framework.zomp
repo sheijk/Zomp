@@ -1,0 +1,17 @@
+///
+/// Testing whether the unit test framework works inside zompsh. All tests
+/// should be run immediately.
+///
+
+requireLibs libcee unittest
+
+unittest:testCase Fail:
+  unittest:assertAll:
+    //// print left 12345
+    //// print right 999
+    12345 == 999
+  end
+end
+
+unittest:main
+

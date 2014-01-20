@@ -1,0 +1,17 @@
+///
+/// Testing whether the unit test framework works inside zompsh. All tests
+/// should be run immediately.
+///
+
+requireLibs libcee unittest
+
+unittest:testCase ZompshCheck:
+  println "ZompshCheck-running-test" //// print ZompshCheck-running-test
+end
+
+func int main():
+  println "Not running unit tests from main. They should have been run directly after getting defined."
+  ret 0
+end
+
+
