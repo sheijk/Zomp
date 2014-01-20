@@ -2001,7 +2001,7 @@ let translateFromDict
   with Not_found ->
     None
 
-let translateBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
+let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   let table = Hashtbl.create 32 in
   let documentation = Hashtbl.create 32 in
   let add name (doc, f) =
@@ -2013,7 +2013,13 @@ let translateBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   Overloaded_ops.register add;
   Compiler_environment.register add;
   let addBaseInstruction name doc f = add name (doc, f) in
-  translateFromDict table, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
+  let lookup name =
+    try
+      Some (Hashtbl.find table name)
+    with Not_found ->
+      None
+  in
+  lookup, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
 
 let rec translateNestedNew
     (bindings :bindings)
@@ -2044,20 +2050,6 @@ let rec translateNestedNew
       Mayfail.singleError $ Serror.fromExpr expr "label can only be used as argument to control flow instructions"
 
     | UndefinedSymbol ->
-      let rec tryEach functions fallback (bindings :Bindings.t) (expr :Ast2.t) =
-        match functions with
-          | f :: rem ->
-            begin
-              Zompvm.currentBindings := bindings;
-              match f translateNestedNoErr bindings expr with
-                | Some (newBindings, forms) ->
-                  Result (newBindings, forms)
-                | None ->
-                  tryEach rem fallback bindings expr
-            end
-          | [] ->
-            fallback bindings expr
-      in
       let translateConstantOrFail bindings expr =
         let failWithInvalidId() =
           Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
@@ -2085,15 +2077,15 @@ let rec translateNestedNew
           | _ ->
             failWithInvalidId()
       in
-      tryEach
-        [
-          translateBaseInstruction translateNestedNoErr;
-          (* Translators_deprecated_style.translateRestrictedFunCall; *)
-          Old_macro_support.translateDefineMacro translateNestedNoErr `Local;
-          (** TODO: try removing this **)
-          Old_macro_support.translateMacroCall;
-        ]
-        translateConstantOrFail bindings expr
+      match lookupBaseInstruction expr.id with
+        | Some f ->
+          begin
+            let env = makeEnv bindings translateNestedNoErr translateNestedNoErr in
+            Zompvm.currentBindings := bindings;
+            f env expr
+          end
+        | None ->
+          translateConstantOrFail bindings expr
 
 and translateNestedNoErr bindings expr =
   match translateNestedNew bindings expr with
