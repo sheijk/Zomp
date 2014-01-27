@@ -124,11 +124,12 @@ struct
     let lines = Str.split (Str.regexp_string "\\n") source in
     List.length lines + 1
 
-  let indent string =
+  let indent ?(count = 2) string =
+    let indentation = String.make count ' ' in
     let indentLine line =
       let len = String.length line in
       if len >= 1 && line.[len-1] = ':' then line
-      else "  " ^ line
+      else indentation ^ line
     in
     let lines = Str.split (Str.regexp "\n") string in
     let indentedLines = List.map indentLine lines in

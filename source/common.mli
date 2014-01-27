@@ -40,7 +40,7 @@ module CommonString :
     val commentOut : string -> ?stopDelim:string -> string -> string
     val isWhitespaceString : string -> bool
     val lineCount : string -> int
-    val indent : string -> string
+    val indent : ?count:int -> string -> string
     val removeQuotes : string -> string
     val dequoteString :
       char -> string -> [> `NotQuoted of string | `Quoted of string ]
@@ -65,7 +65,7 @@ val combine : string -> string list -> string
 val commentOut : string -> ?stopDelim:string -> string -> string
 val isWhitespaceString : string -> bool
 val lineCount : string -> int
-val indent : string -> string
+val indent : ?count:int -> string -> string
 val removeQuotes : string -> string
 val dequoteString :
   char -> string -> [> `NotQuoted of string | `Quoted of string ]
