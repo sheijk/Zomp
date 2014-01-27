@@ -620,10 +620,10 @@ let translateRun tlenv env expr =
           | Expander.IllegalExpression (expr, errors) ->
             Expander.Mayfail.multipleErrors errors
           | exn ->
-            Expander.Mayfail.errorFromStringDeprecated (Printexc.to_string exn)
+            Expander.Mayfail.errorFromExpr expr (Printexc.to_string exn)
       end
     | _ ->
-        Expander.Mayfail.errorFromStringDeprecated (sprintf "expected %s expr" expr.id)
+        Expander.Mayfail.errorFromExpr expr (sprintf "expected %s expr" expr.id)
 
 let rec step env parseState =
   let bindings = Compileutils.bindings env in
