@@ -561,7 +561,9 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
           match expr.args with
             | [{ Ast2.id = "true" | "false" as newState; args = [] }] ->
               Zompvm.traceMacroExpansionOn := (newState = "true");
-              printf "info: set traceMacroExpansion to %s\n" newState;
+              printf "%s\n" (Basics.formatInfo (Ast2.locationOr expr Basics.fakeLocation)
+                               (sprintf "set trace macro expansion to %s" newState));
+              flush stdout;
               Ast2.emptyExpr
             | _ ->
               Ast2.idExpr "error")

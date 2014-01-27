@@ -192,7 +192,7 @@ let () =
     let trace s e =
       if !Zompvm.traceMacroExpansionOn then begin
         let locString = sprintf "%s:%d" (Ast2.fileName e) (Ast2.lineNumber e) in
-        printf "%s: Expansion step %s:\n%s\n" locString s (Ast2.toString e)
+        printf "%s: Expansion step %s:\n%s\n" locString s (Common.indent ~count:4 $ Ast2.toString e)
       end
     in
     Expander.setTraceMacroExpansion (Some trace);

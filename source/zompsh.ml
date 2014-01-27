@@ -602,13 +602,10 @@ let translateRun tlenv env expr =
         let exprInFunc =
           Ast2.expr "func" [
             idExpr "void";
-            callExpr [
-              idExpr immediateFuncName;
-            ];
+            callExpr [idExpr immediateFuncName];
             opseqExpr [
               code;
-              Ast2.expr macroReturn []]
-          ]
+              Ast2.expr macroReturn []]]
         in
         try
           let oldBindings = Compileutils.bindings tlenv in
@@ -649,7 +646,7 @@ let rec step env parseState =
       Expander.setTraceMacroExpansion
         (if !traceMacroExpansion then
             let trace s e =
-              printf "Expansion step %s:\n%s\n" s (Ast2.toString e)
+              printf "Expansion step %s:\n%s\n" s (Common.indent ~count:4 $ Ast2.toString e)
             in
             Some trace
          else
