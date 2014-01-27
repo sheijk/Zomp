@@ -20,32 +20,33 @@
 //------------------------------------------------------------------------------
 //- printing to stdout
 
-void printInt( int i ) {
+void printInt(int i) {
   printf( "%d", i );
 }
 
-void printString( char* str ) {
-  printf( "%s", str );
+void printString(char* str) {
+  printf("%s", str);
 }
 
-void printFloat( float f ) {
-  printf( "%f", f );
+void printFloat(float f) {
+  printf("%f", f);
 }
 
-void printDouble( double d ) {
-  printf( "%f", d );
+void printDouble(double d) {
+  printf("%f", d);
 }
 
-void printChar( int8_t c ) {
-  printf( "%c", c );
+void printChar(int8_t c) {
+  printf("%c", c);
 }
 
-void printPtr( void* ptr ) {
-  printf( "%p", ptr );
+void printPtr(void* ptr) {
+  printf("%p", ptr);
 }
 
 void printNewline() {
-  printf( "\n" );
+  printf("\n");
+  fflush(stdout);
 }
 
 void flushStdout() {
