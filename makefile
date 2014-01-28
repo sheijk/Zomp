@@ -168,7 +168,7 @@ LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
 # When this is changed, LANG_CMOS and CAMLDEP_INPUT will need to be changed, too
 LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx result.cmx \
     typesystems.cmx lang.cmx semantic.cmx machine.cmx stats.cmx zompvm.cmx genllvm.cmx \
-     -cclib -lstdc++ $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx \
+     -cclib -lstdc++-static $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx \
     newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
 .PRECIOUS: source/machine_stubs.c source/machine.mli source/stats_stubs.c source/stats.mli
@@ -186,7 +186,7 @@ $(ZOMP_DLL_FILE): $(ZOMP_DLL_OBJS) source/runtime.ll $(OUT_DIR)/has_clang
 ifeq "$(BUILD_PLATFORM)" "Linux"
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o source/zompvm -DPIC -fPIC $(ZOMP_DLL_OBJS) -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 else # OS X
-	ocamlmklib -o source/zompvm -lcurl $(ZOMP_DLL_OBJS) -lstdc++ -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
+	ocamlmklib -o source/zompvm -lcurl $(ZOMP_DLL_OBJS) -lstdc++-static -L$(LLVM_LIB_DIR) $(LLVM_LIBS)
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
@@ -241,7 +241,7 @@ source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 ALL_TARGETS += $(DEPLOY_DIR)/vm_http_server
 $(DEPLOY_DIR)/vm_http_server: $(VM_HTTP_SERVER_OBJS) source/mongoose.h
 	@$(ECHO) Building $@ ...
-	$(CXX) $(LDFLAGS) -o $@ -lstdc++ -lcurl $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
+	$(CXX) $(LDFLAGS) -o $@ -lstdc++-static -lcurl $(LLVM_LIBS) $(VM_HTTP_SERVER_OBJS)
 
 vm_server: source/vm_server.o source/vm_protocol.o
 	@$(ECHO) Building $@ ...
