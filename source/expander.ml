@@ -161,7 +161,6 @@ open Translation_utils
 module Mayfail : sig
   type 'a mayfail = Result of 'a | Error of Serror.t list
 
-  val errorFromStringDeprecated : string -> 'a mayfail
   val errorFromString : Basics.location -> string -> 'a mayfail
   val errorFromExpr : Ast2.sexpr -> string -> 'a mayfail
   val singleError : Serror.t -> 'a mayfail
@@ -178,7 +177,6 @@ end = struct
     | Result of 'a
     | Error of Serror.t list
 
-  let errorFromStringDeprecated emsg = Error [Serror.fromMsg None emsg]
   let errorFromString location msg = Error [Serror.fromMsg (Some location) msg]
   let errorFromExpr expr msg = Error [Serror.fromExpr expr msg]
   let singleError error = Error [error]
