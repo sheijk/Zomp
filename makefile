@@ -590,14 +590,14 @@ tools/llvm-$(LLVM_VERSION).tgz:
 
 tools/llvm-$(LLVM_VERSION): tools/llvm-$(LLVM_VERSION).tgz tools/clang-$(LLVM_VERSION).tgz
 	@$(ECHO) Unpacking LLVM and clang ...
-	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tgz | tar -xf -
+	cd tools && gunzip --stdout llvm-$(LLVM_VERSION).tgz | tar -xf - -C $(dir $(LLVM_BASE_DIR))
 	cd tools && gunzip --stdout clang-$(LLVM_VERSION).tgz | tar -xf - -C $(LLVM_BASE_DIR)/tools
 	mv $(LLVM_BASE_DIR)/tools/clang-$(LLVM_VERSION) $(LLVM_BASE_DIR)/tools/clang
 	$(TOUCH) $@ # tar sets date from archive. avoid downloading the archive twice
 	@$(ECHO) Configuring LLVM $(LLVM_VERSION) and clang ...
-	cd tools/llvm-$(LLVM_VERSION) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
+	cd $(LLVM_BASE_DIR) && ./configure EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"
 	@$(ECHO) Building LLVM $(LLVM_VERSION) and clang ...
-	cd tools/llvm-$(LLVM_VERSION) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
+	cd $(LLVM_BASE_DIR) && (make EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)"; make ENABLE_OPTIMIZED=0 EXTRA_OPTIONS="$(LLVM_EXTRA_OPTIONS)")
 
 tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
