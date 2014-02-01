@@ -476,12 +476,6 @@ let macroFuncs = ref []
 
 module Old_macro_support =
 struct
-  (* make it easy to find places where this code is still used *)
-  let trace functionName location = ()
-    (* printf "[TRACE] Old_macro_support.%s @%s\n" *)
-    (*   functionName *)
-    (*   (applyOptOrDefault location locationToString "???") *)
-
   (** TODO: this can result in quadratic run time, fix source locations directly
    * after transferring from native code *)
   let rec withDefaultSourceLocation location expr =
@@ -493,7 +487,6 @@ struct
         { expr with location = Some location; args = fixedArgs }
 
   let translateMacroCall translateF (bindings :bindings) expr =
-    trace "translateMacroCall" expr.location;
     match expr with
       | { id = macroName; args = args; } ->
         match lookup bindings macroName with
@@ -515,52 +508,46 @@ struct
             end
           | _ -> None
 
-  let translateDefineMacro translateNestedF scope translateF (bindings :bindings) expr =
-    trace "translateDefineMacro" expr.location;
+  let translateDefineMacro translateNestedF translateF (bindings :bindings) expr =
     match expr with
-    | { id = id; args =
-          { id = name; args = [] }
-          :: paramImpl
-      } when id = macroReplacement ->
+      | { id = id; args =
+          { id = name; args = [] } :: paramImpl
+        } when id = macroReplacement ->
         let isRedefinitionError =
-          hasRedefinitionErrors `NewMacro scope name expr bindings reportDiagnostics
+          hasRedefinitionErrors `NewMacro `Global name expr bindings reportDiagnostics
         in
 
         if isRedefinitionError then
           None
         else begin
-          let result =
-            begin match List.rev paramImpl with
-              | [] -> None
-              | impl :: args ->
-                begin
-                  let args = List.rev args in
-                  let argNames, isVariadic =
-                    let rec worker accum = function
-                      | [] ->
-                        accum, false
-                      | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
-                        (name :: accum), true
-                      | { id = name; args = [] } :: rem ->
-                        worker (name :: accum) rem
-                      | (_ as arg) :: _ ->
-                        raiseIllegalExpression arg "only identifiers allowed as macro parameter"
-                    in
-                    let reversed, isVariadic = worker [] args in
-                    List.rev reversed, isVariadic
+          match List.rev paramImpl with
+            | [] -> None
+            | impl :: args ->
+              begin
+                let args = List.rev args in
+                let argNames, isVariadic =
+                  let rec worker accum = function
+                    | [] ->
+                      accum, false
+                    | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
+                      (name :: accum), true
+                    | { id = name; args = [] } :: rem ->
+                      worker (name :: accum) rem
+                    | (_ as arg) :: _ ->
+                      raiseIllegalExpression arg "only identifiers allowed as macro parameter"
                   in
-                  let docstring =
-                    Common.combine " " argNames ^ if isVariadic then "..." else ""
-                  in
-                  let location = someOrDefault expr.location Basics.fakeLocation in
-                  let replace = fun bindings expr -> Ast2.replaceParams argNames expr.args impl in
-                  Some( Bindings.addMacro bindings name docstring location replace, [] )
-                end
-            end
-          in
-          result
+                  let reversed, isVariadic = worker [] args in
+                  List.rev reversed, isVariadic
+                in
+                let docstring =
+                  Common.combine " " argNames ^ if isVariadic then "..." else ""
+                in
+                let location = someOrDefault expr.location Basics.fakeLocation in
+                let replace = fun bindings expr -> Ast2.replaceParams argNames expr.args impl in
+                Some( Bindings.addMacro bindings name docstring location replace, [] )
+              end
         end
-    | _ ->
+      | _ ->
         None
 end
 
@@ -2659,7 +2646,7 @@ let translateTLNoErr bindings expr =
       sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
       sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
       sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
-      sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested `Global);
+      sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
       sampleFunc3 "translateError" (unwrapOldTL macroError translateError);
     ]
@@ -2715,7 +2702,7 @@ let rec translate tlenv expr =
           List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
             macroFunc, translateFunc;
             macroTypedef, translateTypedef;
-            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested `Global);
+            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested);
             macroError, translateError]
         in
         try
