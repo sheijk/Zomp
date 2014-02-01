@@ -1,0 +1,44 @@
+///
+/// Test wheter std:base:seq works correctly
+///
+
+std:base:func bool isBound(char* name)
+
+macro assertDefined name:
+  if isBound(getField name id):
+    printString (getField name id)
+    printString "-defined"
+    printNewline()
+
+    ret ${}
+  end
+
+  ret ${error "identifier is not bound" #name}
+end
+
+seq:
+  func void foo():
+    printString "called-foo" //// print called-foo
+    printNewline()
+  end
+
+  assertDefined foo //// compiler-output foo-defined
+
+  func void bar():
+    foo()
+    printString "called-bar" //// print called-bar
+    printNewline()
+  end
+
+  assertDefined bar //// compiler-output bar-defined
+end
+
+assertDefined foo //// compiler-output foo-defined
+assertDefined bar //// compiler-output bar-defined
+
+func int main():
+  bar()
+
+  ret 0
+end
+
