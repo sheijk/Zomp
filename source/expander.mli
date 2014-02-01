@@ -18,19 +18,20 @@ end
 type toplevelEnv
 val envBindings : toplevelEnv -> Bindings.t
 
-type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.mayfail
-
 type tlenv
 val createEnv : Bindings.t -> tlenv
 val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t
 val bindings : tlenv -> Bindings.t
 
+type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.mayfail
+
 (**
    Required to set include paths and add LLVM code evaluation. Should be
    cleaned up
 *)
+type toplevelTranslationFunction
 
-type toplevelTranslationFunction = toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
+val makeToplevelInstruction : (toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult) -> toplevelTranslationFunction
 
 (** name, parameter doc, translation func *)
 val addToplevelInstruction :

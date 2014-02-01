@@ -2162,6 +2162,9 @@ end = struct
     env
 end
 
+(** this does not update the bindings in the tlenv
+    thus seq in zompvm is broken
+*)
 let translateAndEval handleLLVMCodeF translateTL env exprs =
   let genLLVMCode form =
     collectTimingInfo "gencode"
@@ -2203,6 +2206,26 @@ let translateSeqTL handleLLVMCodeF translateTL env expr =
 let () =
   addBaseInstruction macroMacro "name, args..., body"
     (Macros.translateDefineMacro translateNested `Local)
+
+let compilationSwallowedErrors = ref false
+
+let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
+  fun translateF bindings expr ->
+    if expr.id = id then begin
+      let env = EnvTL.create translateF bindings in
+      f env expr;
+      let flag, errors, forms = EnvTL.reset env in
+      if errors <> [] then
+        compilationSwallowedErrors := true;
+      List.iter reportError errors;
+      match flag, forms with
+        | Result.Success, _
+        | _, (_ :: _) ->
+          Some (EnvTL.bindings env, forms)
+        | Result.Fail, [] ->
+          None
+    end else
+      None
 
 let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
@@ -2600,29 +2623,9 @@ let translateTypedef tlenv expr : unit =
 let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
 
-let compilationSwallowedErrors = ref false
-
-let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
-  fun translateF bindings expr ->
-    if expr.id = id then begin
-      let env = EnvTL.create translateF bindings in
-      f env expr;
-      let flag, errors, forms = EnvTL.reset env in
-      if errors <> [] then
-        compilationSwallowedErrors := true;
-      List.iter reportError errors;
-      match flag, forms with
-        | Result.Success, _
-        | _, (_ :: _) ->
-          Some (EnvTL.bindings env, forms)
-        | Result.Fail, [] ->
-          None
-    end else
-      None
-
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
-    | Some f -> f "tl/???" expr
+    | Some f -> f "translateTLNoErr/???" expr
     | None -> ()
   end;
 
@@ -2668,8 +2671,11 @@ let bindings = EnvTL.bindings
 
 let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
+type toplevelTranslationFunction =
+    toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
+
 (** TODO: remove EnvTL.env when this method goes away *)
-let wrapNewTL f = fun tlenv expr ->
+let wrapNewTL (f : toplevelTranslationFunction) = fun tlenv expr ->
   match f (EnvTL.env tlenv) expr with
     | Result (newBindings, forms) ->
       EnvTL.setBindings tlenv newBindings;
@@ -2686,7 +2692,15 @@ let wrapOldTL f : tlenv -> Ast2.t -> unit =
         EnvTL.setBindings tlenv bindings;
         EnvTL.emitForms tlenv forms
 
+(* let makeToplevelInstruction f = wrapNewTL f *)
+let makeToplevelInstruction f = f
+
 let rec translate tlenv expr =
+  begin match !traceMacroExpansion with
+    | Some f -> f "translate/???" expr
+    | None -> ()
+  end;
+
   match Bindings.lookup (EnvTL.bindings tlenv) expr.id with
     | MacroSymbol macro ->
       let newAst = macro.mtransformFunc (EnvTL.bindings tlenv) expr in
@@ -2714,9 +2728,6 @@ let rec translate tlenv expr =
         with Not_found ->
           Result.fail [Serror.fromExpr expr $ sprintf "%s is undefined" expr.id]
       end
-
-type toplevelTranslationFunction =
-    toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
 
 let totalIncludeTime = ref 0.0
 let libsSection = Statistics.createSection "compiling included libraries (s)"

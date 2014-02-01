@@ -757,7 +757,7 @@ let () =
 
   if preludeOk then begin
     message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-    addToplevelInstr "std:base:run" "statement..." (translateRun env);
+    addToplevelInstr "std:base:run" "statement..." (Expander.makeToplevelInstruction (translateRun env));
     let `NoReturn = step env (Result []) in ()
   end else begin
     reportError "failed to load prelude";
