@@ -507,48 +507,6 @@ struct
                   raiseIllegalExpression expr ("could not expand macro: " ^ msg)
             end
           | _ -> None
-
-  let translateDefineMacro translateNestedF translateF (bindings :bindings) expr =
-    match expr with
-      | { id = id; args =
-          { id = name; args = [] } :: paramImpl
-        } when id = macroReplacement ->
-        let isRedefinitionError =
-          hasRedefinitionErrors `NewMacro `Global name expr bindings reportDiagnostics
-        in
-
-        if isRedefinitionError then
-          None
-        else begin
-          match List.rev paramImpl with
-            | [] -> None
-            | impl :: args ->
-              begin
-                let args = List.rev args in
-                let argNames, isVariadic =
-                  let rec worker accum = function
-                    | [] ->
-                      accum, false
-                    | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
-                      (name :: accum), true
-                    | { id = name; args = [] } :: rem ->
-                      worker (name :: accum) rem
-                    | (_ as arg) :: _ ->
-                      raiseIllegalExpression arg "only identifiers allowed as macro parameter"
-                  in
-                  let reversed, isVariadic = worker [] args in
-                  List.rev reversed, isVariadic
-                in
-                let docstring =
-                  Common.combine " " argNames ^ if isVariadic then "..." else ""
-                in
-                let location = someOrDefault expr.location Basics.fakeLocation in
-                let replace = fun bindings expr -> Ast2.replaceParams argNames expr.args impl in
-                Some( Bindings.addMacro bindings name docstring location replace, [] )
-              end
-        end
-      | _ ->
-        None
 end
 
 (** "new" compiler types *)
@@ -2610,6 +2568,49 @@ let translateTypedef tlenv expr : unit =
 let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
 
+let translateDefineReplacementMacro tlenv expr : unit =
+  match expr with
+    | { id = id; args =
+        { id = name; args = [] } :: paramImpl
+      } when id = macroReplacement ->
+      let isRedefinitionError =
+        hasRedefinitionErrors `NewMacro `Global name expr (EnvTL.bindings tlenv) reportDiagnostics
+      in
+
+      if isRedefinitionError then
+        assert (EnvTL.hasErrors tlenv)
+      else begin
+        match List.rev paramImpl with
+          | [] ->
+            EnvTL.emitError tlenv $ Serror.fromExpr expr "expected body"
+          | impl :: args ->
+            begin
+              let args = List.rev args in
+              let argNames, isVariadic =
+                let rec worker accum = function
+                  | [] ->
+                    accum, false
+                  | [{ id = id; args = [{ id = name; args = [] }] }] when id = macroRest ->
+                    (name :: accum), true
+                  | { id = name; args = [] } :: rem ->
+                    worker (name :: accum) rem
+                  | (_ as arg) :: _ ->
+                    raiseIllegalExpression arg "only identifiers allowed as macro parameter"
+                in
+                let reversed, isVariadic = worker [] args in
+                List.rev reversed, isVariadic
+              in
+              let docstring =
+                Common.combine " " argNames ^ if isVariadic then "..." else ""
+              in
+              let location = someOrDefault expr.location Basics.fakeLocation in
+              let replace = fun bindings expr -> Ast2.replaceParams argNames expr.args impl in
+              EnvTL.setBindings tlenv (Bindings.addMacro (EnvTL.bindings tlenv) name docstring location replace)
+            end
+      end
+    | _ ->
+      EnvTL.emitError tlenv (Serror.fromExpr expr (sprintf "invalid args"))
+
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
     | Some f -> f "translateTLNoErr/???" expr
@@ -2646,7 +2647,7 @@ let translateTLNoErr bindings expr =
       sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
       sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
       sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
-      sampleFunc3 "translateDefineMacro" (Old_macro_support.translateDefineMacro translateNested);
+      sampleFunc3 "translateDefineMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
       sampleFunc3 "translateError" (unwrapOldTL macroError translateError);
     ]
@@ -2702,7 +2703,7 @@ let rec translate tlenv expr =
           List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
             macroFunc, translateFunc;
             macroTypedef, translateTypedef;
-            macroMacro, wrapOldTL (Old_macro_support.translateDefineMacro translateNested);
+            macroReplacement, translateDefineReplacementMacro;
             macroError, translateError]
         in
         try
