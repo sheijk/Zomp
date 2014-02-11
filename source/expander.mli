@@ -28,22 +28,11 @@ val addIncludePath : tlenv -> string -> [`Front | `Back] -> unit
 
 type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.mayfail
 
-(**
-   Required to set include paths and add LLVM code evaluation. Should be
-   cleaned up
-*)
-type toplevelTranslationFunction
+val addTranslateFunction : string -> doc:string -> (toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult) -> unit
 
-val makeToplevelInstruction : (toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult) -> toplevelTranslationFunction
-
-(** name, parameter doc, translation func *)
-val addToplevelInstruction :
-  string -> string -> toplevelTranslationFunction -> unit
-
-val makeTranslateSeqFunction :
-  (string -> unit) -> toplevelTranslationFunction
-val makeTranslateIncludeFunction :
-  (string -> unit) -> toplevelTranslationFunction
+(** Argument is LLVM code handler *)
+val addTranslateSeqFunction : string -> doc:string -> (string -> unit) -> unit
+val addTranslateIncludeFunction : string -> doc:string -> (string -> unit) -> unit
 
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
 

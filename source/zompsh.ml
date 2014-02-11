@@ -732,13 +732,8 @@ let () =
   init();
 
   let handleLLVMCode code = () in
-  let translateInclude =
-    Expander.makeTranslateIncludeFunction handleLLVMCode
-  in
-  let addToplevelInstr = Expander.addToplevelInstruction in
-  addToplevelInstr "include" "zompSourceFile" translateInclude;
-
-  addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
+  Expander.addTranslateIncludeFunction "include" "zompSourceFile" handleLLVMCode;
+  Expander.addTranslateSeqFunction "seq" "ast..." handleLLVMCode;
 
   let env = Compileutils.createEnv Genllvm.defaultBindings in
   let expanderEnv = Compileutils.expanderEnv env in
@@ -755,7 +750,7 @@ let () =
 
   if preludeOk then begin
     message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-    addToplevelInstr "std:base:run" "statement..." (Expander.makeToplevelInstruction (translateRun env));
+    Expander.addTranslateFunction "std:base:run" "statement..." (translateRun env);
     let `NoReturn = step env (Result []) in ()
   end else begin
     reportError "failed to load prelude";

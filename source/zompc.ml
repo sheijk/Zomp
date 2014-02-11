@@ -215,12 +215,8 @@ let () =
 
   let handleLLVMCode code = output_string outStream code in
 
-  let addToplevelInstr = Expander.addToplevelInstruction in
-  let translateInclude =
-    Expander.makeTranslateIncludeFunction handleLLVMCode
-  in
-  addToplevelInstr "include" "zompSourceFile" translateInclude;
-  addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
+  Expander.addTranslateIncludeFunction "include" "zompSourceFile" handleLLVMCode;
+  Expander.addTranslateSeqFunction "seq" "ast..." handleLLVMCode;
 
   let initEnv cenv =
     let env = Compileutils.expanderEnv cenv in

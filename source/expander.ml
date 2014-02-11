@@ -2735,9 +2735,6 @@ let wrapOldTL f : tlenv -> Ast2.t -> unit =
         EnvTL.setBindings tlenv bindings;
         EnvTL.emitForms tlenv forms
 
-(* let makeToplevelInstruction f = wrapNewTL f *)
-let makeToplevelInstruction f = f
-
 let rec translate tlenv expr =
   begin match !traceMacroExpansion with
     | Some f -> f "translate/???" expr
@@ -2831,10 +2828,12 @@ let translateInclude handleLLVMCodeF translateTL env expr =
   collectTimingInfo "translateInclude"
     (fun () -> translateInclude includePath handleLLVMCodeF translateTL env expr)
 
-let makeTranslateSeqFunction handleLLVMCodeF =
-  translateSeqTL handleLLVMCodeF translateTLNoErr
-let makeTranslateIncludeFunction handleLLVMCodeF =
-  translateInclude handleLLVMCodeF translateTLNoErr
+let addTranslateIncludeFunction name ~doc handleLLVMCodeF =
+  addToplevelInstruction name doc $ translateInclude handleLLVMCodeF translateTLNoErr
 
+let addTranslateSeqFunction name ~doc handleLLVMCodeF =
+  addToplevelInstruction name doc $ translateSeqTL handleLLVMCodeF translateTLNoErr
 
+let addTranslateFunction name ~doc f =
+  addToplevelInstruction name doc f
 
