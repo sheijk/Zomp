@@ -8,7 +8,7 @@ FLYMAKE_BUILD=$(BUILD_DIR_BASE)/flymake-last-build.txt
 ml_check:
 	@echo Checking OCaml files $(CHK_SOURCES)
 	@rm -f $(FLYMAKE_BUILD)
-	@($(OCAMLC) $(CAML_FLAGS) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo 2>&1) > $(FLYMAKE_BUILD)
+	@($(OCAMLC) $(CAML_FLAGS) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo 2>&1) | tee $(FLYMAKE_BUILD)
 	@perl -pe "s/_flymake//g" < $(CHK_SOURCES:.ml=.annot) > $(CHK_SOURCES:_flymake.ml=.annot)
 	@cat $(FLYMAKE_BUILD)
 
