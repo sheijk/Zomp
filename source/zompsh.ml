@@ -731,10 +731,9 @@ let () =
 
   init();
 
-  let includePath = ref ["."] in
   let handleLLVMCode code = () in
   let translateInclude =
-    Expander.makeTranslateIncludeFunction includePath handleLLVMCode
+    Expander.makeTranslateIncludeFunction handleLLVMCode
   in
   let addToplevelInstr = Expander.addToplevelInstruction in
   addToplevelInstr "include" "zompSourceFile" translateInclude;

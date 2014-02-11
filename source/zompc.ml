@@ -213,19 +213,11 @@ let () =
   and outStream = open_out outputFileName
   in
 
-  let includePath = ref [] in
-  let addIncludePath path where = addToList includePath path where in
-
-  let compilerDir = Filename.dirname options.execNameAndPath in
-  addIncludePath compilerDir `Front;
-  addIncludePath (Sys.getcwd()) `Front;
-  List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
-
   let handleLLVMCode code = output_string outStream code in
 
   let addToplevelInstr = Expander.addToplevelInstruction in
   let translateInclude =
-    Expander.makeTranslateIncludeFunction includePath handleLLVMCode
+    Expander.makeTranslateIncludeFunction handleLLVMCode
   in
   addToplevelInstr "include" "zompSourceFile" translateInclude;
   addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
@@ -235,6 +227,12 @@ let () =
     List.iter (fun dir -> Expander.addDllPath env dir `Back)
       ["."; ".."; "./libs"; "./tools/external/lib"];
     List.iter (fun dir -> Expander.addDllPath env dir `Front) options.dllPaths;
+
+    let addIncludePath path where = Expander.addIncludePath env path where in
+    let compilerDir = Filename.dirname options.execNameAndPath in
+    addIncludePath compilerDir `Front;
+    addIncludePath (Sys.getcwd()) `Front;
+    List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
   in
 
   let exitCode =

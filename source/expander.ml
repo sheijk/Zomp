@@ -2824,14 +2824,17 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
     | invalidExpr ->
       errorFromExpr invalidExpr ("expecting 'include \"fileName.zomp\"'")
 
-let translateInclude includePath handleLLVMCodeF translateTL env expr =
+let includePath = ref ([] : string list)
+let addIncludePath (env :EnvTL.t) dir where = addToList includePath dir where
+
+let translateInclude handleLLVMCodeF translateTL env expr =
   collectTimingInfo "translateInclude"
     (fun () -> translateInclude includePath handleLLVMCodeF translateTL env expr)
 
 let makeTranslateSeqFunction handleLLVMCodeF =
   translateSeqTL handleLLVMCodeF translateTLNoErr
-let makeTranslateIncludeFunction includePath handleLLVMCodeF =
-  translateInclude includePath handleLLVMCodeF translateTLNoErr
+let makeTranslateIncludeFunction handleLLVMCodeF =
+  translateInclude handleLLVMCodeF translateTLNoErr
 
 
 
