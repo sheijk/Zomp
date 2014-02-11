@@ -910,15 +910,12 @@ end
 ///-----------------------------------------------------------------------------
 
 macro linkclib fileNames...:
-  // Work-around for lost location information
-  if (u32:equal getField(fileNames, childCount) 1):
-    var astp onlyChild ast:child(fileNames, 0)
-    ret ${zmp:compiler:linkclib #onlyChild}
-  end
-
   var astp code ${}
   forEachAstChild fileName fileNames:
-    ast:addChild code ${zmp:compiler:linkclib #fileName}
+    var astp child ${zmp:compiler:linkclib #fileName}
+    /// Work-around for bug where expr gets locations like ???.zomp in some cases.
+    ast:setLocation child ast:file(fileName) ast:line(fileName) ast:column(fileName)
+    ast:addChild code child
   end
 
   ret code
