@@ -2172,26 +2172,6 @@ let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
     end else
       None
 
-let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
-  let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
-    Hashtbl.create 32
-  in
-  let documentation = Hashtbl.create 32 in
-  let add name doc f =
-    Hashtbl.add documentation name doc;
-    Hashtbl.add table name f;
-  in
-
-  add macroMacro "name, args..., body"
-    (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested `Global));
-  Base.registerTL (fun name (doc, f) -> add name doc f);
-
-  let toList() =
-    List.rev $ Hashtbl.fold (fun name f list -> (name, f) :: list) table []
-  in
-
-  translateFromDict table, toList, add, (fun f -> Hashtbl.iter f documentation)
-
 let matchFunc tlenv expr =
   let scanParams args =
     let argCount = List.length args in
@@ -2611,6 +2591,39 @@ let translateDefineReplacementMacro tlenv expr : unit =
     | _ ->
       EnvTL.emitError tlenv (Serror.fromExpr expr (sprintf "invalid args"))
 
+let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
+  let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
+    Hashtbl.create 32
+  in
+  let documentation = Hashtbl.create 32 in
+  let add name doc f =
+    Hashtbl.add documentation name doc;
+    Hashtbl.add table name f;
+  in
+
+  add macroMacro "name, args..., body"
+    (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested `Global));
+  Base.registerTL (fun name (doc, f) -> add name doc f);
+
+  let toList() =
+    List.rev $ Hashtbl.fold (fun name f list -> (name, f) :: list) table []
+  in
+
+  translateFromDict table, toList, add, (fun f -> Hashtbl.iter f documentation)
+
+let tlNewInstructionList, addNewToplevelInstruction =
+  let handlers = ref [
+    macroFunc, translateFunc;
+    macroTypedef, translateTypedef;
+    macroReplacement, translateDefineReplacementMacro;
+    macroError, translateError
+  ] in
+  let add name instruction =
+    handlers := (name, instruction) :: !handlers
+  in
+  let get() = !handlers in
+  get, add
+
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
     | Some f -> f "translateTLNoErr/???" expr
@@ -2700,11 +2713,7 @@ let rec translate tlenv expr =
       begin
         let handlers : (string * (tlenv -> Ast2.t -> unit)) list =
           let baseHandlers = tlInstructionList() in
-          List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ [
-            macroFunc, translateFunc;
-            macroTypedef, translateTypedef;
-            macroReplacement, translateDefineReplacementMacro;
-            macroError, translateError]
+          List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ tlNewInstructionList()
         in
         try
           let handler = List.assoc expr.id handlers in
