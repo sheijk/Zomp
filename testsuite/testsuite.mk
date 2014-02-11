@@ -88,6 +88,9 @@ testsuite/%.ll: testsuite/%.zomp $(TESTREPORT_LIB_DEPS) $(ZOMPC_FILE) \
   testsuite/prelude_is_valid testsuite/check_test_verify/all source/runtime.c \
   testsuite/testsuite.mk makefile
 
+testsuite/std/test_std_compiler_link_lib.ll: libs/libutils.dylib
+testsuite/std/test_std_compiler_link_gl_lib.ll: libs/opengl20.zomp libs/glfw.zomp
+
 # the same w/o dependency on itself
 testsuite/preludevalid.ll: testsuite/preludevalid.zomp source/prelude.zomp $(ZOMPC_FILE)
 
