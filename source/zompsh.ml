@@ -743,6 +743,8 @@ let () =
   addDllPath "./libs" `Back;
   addDllPath "./tools/external/lib" `Back;
 
+  Expander.addIncludePath expanderEnv "." `Front;
+
   let preludeOk, preludeLoadTime = recordTiming (loadPrelude env) in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;
   let section = Statistics.createSection "zompsh" in
