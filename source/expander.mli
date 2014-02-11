@@ -23,6 +23,8 @@ val createEnv : Bindings.t -> tlenv
 val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t
 val bindings : tlenv -> Bindings.t
 
+val addDllPath : tlenv -> string -> [`Front | `Back] -> unit
+
 type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.mayfail
 
 (**
@@ -41,7 +43,6 @@ val makeTranslateSeqFunction :
   (string -> unit) -> toplevelTranslationFunction
 val makeTranslateIncludeFunction :
   string list ref -> (string -> unit) -> toplevelTranslationFunction
-val translateLinkCLib : string list ref -> toplevelTranslationFunction
 
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
 

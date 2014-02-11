@@ -33,6 +33,7 @@ and macroApply = "std:base:apply"
 and macroFunCall = "std:base:funcall"
 and macroParamType = "op!"
 and macroError = "std:base:error"
+and macroLinkCLib = "zmp:compiler:linkclib"
 
 let componentType components componentName =
   try Some( snd (List.find (fun (name, _) -> name = componentName) components) )

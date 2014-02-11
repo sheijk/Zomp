@@ -3,6 +3,7 @@
 type env
 val createEnv : Bindings.t -> env
 val bindings : env -> Bindings.t
+val expanderEnv : env -> Expander.tlenv
 
 val loadPrelude :
   env ->

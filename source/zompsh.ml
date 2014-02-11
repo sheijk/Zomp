@@ -741,15 +741,14 @@ let () =
 
   addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
 
-  let dllPath = ref [] in
-  let addDllPath path where = addToList dllPath path where in
+  let env = Compileutils.createEnv Genllvm.defaultBindings in
+  let expanderEnv = Compileutils.expanderEnv env in
+
+  let addDllPath path where = Expander.addDllPath expanderEnv path where in
   addDllPath "." `Back;
   addDllPath "./libs" `Back;
   addDllPath "./tools/external/lib" `Back;
-  addToplevelInstr "zmp:compiler:linkclib" "dllFileName"
-    (Expander.translateLinkCLib dllPath);
 
-  let env = Compileutils.createEnv Genllvm.defaultBindings in
   let preludeOk, preludeLoadTime = recordTiming (loadPrelude env) in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;
   let section = Statistics.createSection "zompsh" in

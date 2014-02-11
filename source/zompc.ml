@@ -118,7 +118,7 @@ let () =
   Statistics.createFloatCounter section "compile main file (s)" 3 (Ref.getter mainFileTime);
   ()
 
-let compile fileName inStream outStream =
+let compile initEnv fileName inStream outStream =
   let preludeDir = Filename.dirname Sys.executable_name ^ "/../../../source" in
   let input =
     collectTimingInfo "reading prelude file content" (fun () -> Common.readChannel inStream)
@@ -137,6 +137,7 @@ let compile fileName inStream outStream =
   end else begin
     Zompvm.zompVerifyCode false;
     let env = Compileutils.createEnv Genllvm.defaultBindings in
+    initEnv env;
     let exitCode =
       let preludeResult =
         addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir
@@ -215,14 +216,10 @@ let () =
   let includePath = ref [] in
   let addIncludePath path where = addToList includePath path where in
 
-  let dllPath = ref ["."; ".."; "./libs"; "./tools/external/lib"] in
-  let addDllPath path where = addToList dllPath path where in
-
   let compilerDir = Filename.dirname options.execNameAndPath in
   addIncludePath compilerDir `Front;
   addIncludePath (Sys.getcwd()) `Front;
   List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
-  List.iter (fun dir -> addDllPath dir `Front) options.dllPaths;
 
   let handleLLVMCode code = output_string outStream code in
 
@@ -232,11 +229,17 @@ let () =
   in
   addToplevelInstr "include" "zompSourceFile" translateInclude;
   addToplevelInstr "seq" "ast..." (Expander.makeTranslateSeqFunction handleLLVMCode);
-  addToplevelInstr "zmp:compiler:linkclib" "dllFileName" (Expander.translateLinkCLib dllPath);
+
+  let initEnv cenv =
+    let env = Compileutils.expanderEnv cenv in
+    List.iter (fun dir -> Expander.addDllPath env dir `Back)
+      ["."; ".."; "./libs"; "./tools/external/lib"];
+    List.iter (fun dir -> Expander.addDllPath env dir `Front) options.dllPaths;
+  in
 
   let exitCode =
     try
-      compile inputFileName inStream outStream
+      compile initEnv inputFileName inStream outStream
     with _ as e ->
       Compilation_failed_with_error
         (sprintf "failed to compile due to unknown exception: %s\n%s\n"

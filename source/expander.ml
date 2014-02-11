@@ -2591,6 +2591,46 @@ let translateDefineReplacementMacro tlenv expr : unit =
     | _ ->
       EnvTL.emitError tlenv (Serror.fromExpr expr (sprintf "invalid args"))
 
+let translateLinkCLib dllPath (env : EnvTL.t) expr : unit =
+  match expr with
+    | { args = [{id = fileName; args = []; location}] } ->
+      begin
+        let location = someOrDefault location $ someOrDefault expr.location Basics.fakeLocation in
+        let fileName = Common.removeQuotes fileName in
+
+        let dllExtensions = ["dylib"; "so"; "dll"] in
+        let matches re string = Str.string_match (Str.regexp re) string 0 in
+        let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
+        if not (matches dllPattern fileName) then
+          EnvTL.emitError env $ Serror.fromMsg (Some location)
+            (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
+               fileName (Common.combine ", " dllExtensions))
+        else
+          match Common.findFileIn fileName !dllPath with
+            | Some absoluteFileName ->
+              let handle = Zompvm.zompLoadLib absoluteFileName in
+              if handle = 0 then
+                EnvTL.emitError env $ Serror.fromMsg (Some location)
+                  (sprintf "could not load C library '%s'\n" absoluteFileName)
+              else
+                ()
+            | None ->
+              EnvTL.emitError env $ Serror.fromMsg (Some location)
+                (Common.combine "\n  "
+                   (sprintf "could not find C library '%s'," fileName
+                    :: sprintf "pwd = %s" (Sys.getcwd())
+                    :: List.map (sprintf "zomp-include-dir %s") !dllPath))
+      end
+    | invalidExpr ->
+      EnvTL.emitError env $ Serror.fromExpr invalidExpr
+        (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
+
+let dllPath = ref ([] :string list)
+let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
+
+let translateLinkCLib env expr =
+  collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
+
 let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
     Hashtbl.create 32
@@ -2616,7 +2656,8 @@ let tlNewInstructionList, addNewToplevelInstruction =
     macroFunc, translateFunc;
     macroTypedef, translateTypedef;
     macroReplacement, translateDefineReplacementMacro;
-    macroError, translateError
+    macroError, translateError;
+    macroLinkCLib, translateLinkCLib;
   ] in
   let add name instruction =
     handlers := (name, instruction) :: !handlers
@@ -2663,6 +2704,7 @@ let translateTLNoErr bindings expr =
       sampleFunc3 "translateDefineMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
       sampleFunc3 "translateError" (unwrapOldTL macroError translateError);
+      sampleFunc3 "translateLinkCLib" (unwrapOldTL macroLinkCLib translateLinkCLib);
     ]
     bindings expr
 
@@ -2785,45 +2827,6 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
 let translateInclude includePath handleLLVMCodeF translateTL env expr =
   collectTimingInfo "translateInclude"
     (fun () -> translateInclude includePath handleLLVMCodeF translateTL env expr)
-
-
-let translateLinkCLib dllPath (env : toplevelEnv) expr =
-  match expr with
-    | { args = [{id = fileName; args = []; location}] } ->
-      begin
-        let location = someOrDefault location Basics.fakeLocation in
-        let fileName = Common.removeQuotes fileName in
-
-        let dllExtensions = ["dylib"; "so"; "dll"] in
-        let matches re string = Str.string_match (Str.regexp re) string 0 in
-        let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
-        if not (matches dllPattern fileName) then
-          errorFromString location
-            (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
-               fileName (Common.combine ", " dllExtensions))
-        else
-          match Common.findFileIn fileName !dllPath with
-            | Some absoluteFileName ->
-              let handle = Zompvm.zompLoadLib absoluteFileName in
-              if handle = 0 then
-                errorFromExpr expr
-                  (sprintf "could not load C library '%s'\n" absoluteFileName)
-              else
-                tlReturnNoExprs env
-            | None ->
-              errorFromString location
-                (Common.combine "\n  "
-                   (sprintf "could not load C library '%s'," fileName
-                    :: sprintf "pwd = %s" (Sys.getcwd())
-                    :: List.map (sprintf "zomp-include-dir %s") !dllPath))
-      end
-    | invalidExpr ->
-      errorFromExpr invalidExpr
-        (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
-
-let translateLinkCLib dllPath env expr =
-  collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
-
 
 let makeTranslateSeqFunction handleLLVMCodeF =
   translateSeqTL handleLLVMCodeF translateTLNoErr

@@ -29,6 +29,7 @@ val macroApply : string
 val macroFunCall : string
 val macroParamType : string
 val macroError : string
+val macroLinkCLib : string
 
 val componentType : ('a * 'b) list -> 'a -> 'b option
 val componentNum : ('a * 'b) list -> 'a -> int

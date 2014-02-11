@@ -28,6 +28,7 @@ let catchingErrorsDo f ~onErrors =
 type env = Expander.tlenv
 let createEnv initialBindings = Expander.createEnv initialBindings
 let bindings env = Expander.bindings env
+let expanderEnv env = env
 
 let compileExpr env expr =
   catchingErrorsDo (fun () ->
