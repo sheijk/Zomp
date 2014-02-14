@@ -45,11 +45,11 @@ examples/image_loading.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_AN
 ################################################################################
 
 examples/cee.ll: libs/libcee.zomp
-examples/metaballs.zomp: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glut.zomp libs/quicktext.zomp libs/glutils.zomp
-examples/metaball2d.zomp: libs/libcee.zomp libs/opengl20.zomp libs/opengl20print.zomp libs/glfw.zomp libs/glut.zomp libs/quicktext.zomp libs/glutils.zomp
+examples/metaballs.ll: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glut.zomp libs/quicktext.zomp libs/glutils.zomp
+examples/metaball2d.ll: libs/libcee.zomp libs/opengl20.zomp libs/opengl20print.zomp libs/glfw.zomp libs/glut.zomp libs/quicktext.zomp libs/glutils.zomp
 examples/opengl.ll: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
 examples/shaderfun.ll: libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp libs/glut.zomp libs/quicktext.zomp libs/libcee.zomp
-examples/using_assimp.zomp: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
+examples/using_assimp.ll: libs/libcee.zomp libs/opengl20.zomp libs/glfw.zomp libs/glutils.zomp
 examples/tweakbar.ll: libs/libcee.zomp libs/glutils.zomp libs/opengl20.zomp libs/glfw.zomp libs/anttweakbar.zomp
 
 ################################################################################

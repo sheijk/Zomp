@@ -131,8 +131,6 @@ endif
 # Combined/main targets
 ################################################################################
 
-.PHONY: all
-
 .PHONY: libbindings
 ALL_TARGETS += libbindings
 libbindings: source/gen_c_bindings $(GENERATED_LIBRARY_SOURCES) \
@@ -435,6 +433,7 @@ $(OUT_DIR)/%: %.cmo
 
 endif
 
+.PRECIOUS: %.o
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
 
@@ -456,6 +455,7 @@ endif
 	@$(ECHO) Optimizing $< to $@ ...
 	$(LLVM_OPT) $< -o $@ -O3
 
+.PRECIOUS: %.s
 ifeq "$(OPT)" "1"
 %.s: %.opt-bc
 else
@@ -847,5 +847,6 @@ $(OUT_DIR)/env.sh: makefile
 ALL_TARGETS += doc
 doc: $(DOC_TARGETS)
 
+.PHONY: all
 all: $(ALL_TARGETS)
 
