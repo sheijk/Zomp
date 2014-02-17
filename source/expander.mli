@@ -30,9 +30,7 @@ type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.m
 
 val addTranslateFunction : string -> doc:string -> (toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult) -> unit
 
-(** Argument is LLVM code handler *)
-val addTranslateSeqFunction : string -> doc:string -> (string -> unit) -> unit
-val addTranslateIncludeFunction : string -> doc:string -> (string -> unit) -> unit
+val setEmitbackendCode : (string -> unit) -> unit
 
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
 

@@ -732,8 +732,7 @@ let () =
   init();
 
   let handleLLVMCode code = () in
-  Expander.addTranslateIncludeFunction "include" "zompSourceFile" handleLLVMCode;
-  Expander.addTranslateSeqFunction "seq" "ast..." handleLLVMCode;
+  Expander.setEmitbackendCode handleLLVMCode;
 
   let env = Compileutils.createEnv Genllvm.defaultBindings in
   let expanderEnv = Compileutils.expanderEnv env in

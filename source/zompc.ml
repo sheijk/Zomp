@@ -215,8 +215,7 @@ let () =
 
   let handleLLVMCode code = output_string outStream code in
 
-  Expander.addTranslateIncludeFunction "include" "zompSourceFile" handleLLVMCode;
-  Expander.addTranslateSeqFunction "seq" "ast..." handleLLVMCode;
+  Expander.setEmitbackendCode handleLLVMCode;
 
   let initEnv cenv =
     let env = Compileutils.expanderEnv cenv in

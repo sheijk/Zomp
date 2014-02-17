@@ -2726,7 +2726,7 @@ let wrapNewTL (f : toplevelTranslationFunction) = fun tlenv expr ->
     | Error errors ->
       EnvTL.emitErrors tlenv errors
 
-let wrapOldTL f : tlenv -> Ast2.t -> unit =
+let wrapOldTL f : EnvTL.t -> Ast2.t -> unit =
   fun tlenv expr ->
     match f translateTLNoErr (EnvTL.bindings tlenv) expr with
       | None ->
@@ -2836,4 +2836,17 @@ let addTranslateSeqFunction name ~doc handleLLVMCodeF =
 
 let addTranslateFunction name ~doc f =
   addToplevelInstruction name doc f
+
+let emitBackendCodeFunc = ref (None : (string -> unit) option)
+let setEmitbackendCode f = emitBackendCodeFunc := Some f
+let emitBackendCode code =
+  match !emitBackendCodeFunc with
+    | Some f ->
+      f code
+    | None ->
+      failwith "did not call Expander.setEmitbackendCode"
+
+let () =
+  addTranslateIncludeFunction "include" ~doc:"zompSourceFile" emitBackendCode;
+  addTranslateSeqFunction "seq" ~doc:"ast..." emitBackendCode
 
