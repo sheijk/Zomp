@@ -25,11 +25,6 @@ let catchingErrorsDo f ~onErrors =
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
   end
 
-type env = Expander.tlenv
-let createEnv initialBindings = Expander.createEnv initialBindings
-let bindings env = Expander.bindings env
-let expanderEnv env = env
-
 let compileExpr env expr =
   catchingErrorsDo (fun () ->
     let result = Expander.translate env expr in
@@ -42,7 +37,7 @@ let compileNew env exprs emitBackendCode fileName =
     let exprs = List.map (fixFileName fileName) exprs in
     let hadError = ref false in
     let translateExpr expr =
-      let oldBindings = bindings env in
+      let oldBindings = Expander.bindings env in
       let { Result.flag; diagnostics; results }, llvmCode = compileExpr env expr in
       let diagnostics =
         try

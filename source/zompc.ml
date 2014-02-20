@@ -136,7 +136,7 @@ let compile initEnv fileName inStream outStream =
     Failed_to_init_vm
   end else begin
     Zompvm.zompVerifyCode false;
-    let env = Compileutils.createEnv Genllvm.defaultBindings in
+    let env = Expander.createEnv Genllvm.defaultBindings in
     initEnv env;
     let exitCode =
       let preludeResult =
@@ -152,7 +152,7 @@ let compile initEnv fileName inStream outStream =
           in
           List.iter reportDiagnostics diagnostics;
           if flag = Result.Success then
-            Compilation_succeeded (Compileutils.bindings env)
+            Compilation_succeeded (Expander.bindings env)
           else
             Compiler_did_not_return_result
       end
@@ -217,8 +217,7 @@ let () =
 
   Expander.setEmitbackendCode handleLLVMCode;
 
-  let initEnv cenv =
-    let env = Compileutils.expanderEnv cenv in
+  let initEnv env =
     List.iter (fun dir -> Expander.addDllPath env dir `Back)
       ["."; ".."; "./libs"; "./tools/external/lib"];
     List.iter (fun dir -> Expander.addDllPath env dir `Front) options.dllPaths;

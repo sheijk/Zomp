@@ -15,20 +15,19 @@ module Mayfail : sig
   val result : 'a -> 'a mayfail
 end
 
-type toplevelEnv
-val envBindings : toplevelEnv -> Bindings.t
-
 type tlenv
 val createEnv : Bindings.t -> tlenv
 val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t
 val bindings : tlenv -> Bindings.t
+val setBindings : tlenv -> Bindings.t -> unit
+val emitError : tlenv -> Serror.t -> unit
 
 val addDllPath : tlenv -> string -> [`Front | `Back] -> unit
 val addIncludePath : tlenv -> string -> [`Front | `Back] -> unit
 
 type toplevelTranslationResult = (Bindings.t * Lang.toplevelExpr list) Mayfail.mayfail
 
-val addTranslateFunction : string -> doc:string -> (toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult) -> unit
+val addTranslateFunction : string -> doc:string -> (tlenv -> Ast2.sexpr -> unit) -> unit
 
 val setEmitbackendCode : (string -> unit) -> unit
 

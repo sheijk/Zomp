@@ -2721,6 +2721,8 @@ let translateTLNoErr bindings expr =
 type tlenv = EnvTL.t
 let createEnv = EnvTL.create translateTLNoErr
 let bindings = EnvTL.bindings
+let setBindings = EnvTL.setBindings
+let emitError = EnvTL.emitError
 
 let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
@@ -2851,7 +2853,7 @@ let addTranslateSeqFunction name ~doc handleLLVMCodeF =
   addToplevelInstruction name doc $ translateSeqTL handleLLVMCodeF translateTLNoErr
 
 let addTranslateFunction name ~doc f =
-  addToplevelInstruction name doc f
+  addNewToplevelInstruction name doc f
 
 let emitBackendCodeFunc = ref (None : (string -> unit) option)
 let setEmitbackendCode f = emitBackendCodeFunc := Some f

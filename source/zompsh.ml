@@ -594,7 +594,7 @@ let onSuccess bindings newBindings simpleforms llvmCode =
   flush stdout
 
 (** Produce and run an immediate function from the given code. *)
-let translateRun tlenv env expr =
+let translateRun env expr =
   let immediateFuncName = "toplevel:immediate" in
 
   match expr with
@@ -608,25 +608,25 @@ let translateRun tlenv env expr =
               Ast2.expr macroReturn []]]
         in
         try
-          let oldBindings = Compileutils.bindings tlenv in
+          let oldBindings = Expander.bindings env in
           let { Result.flag; diagnostics; results = simpleforms }, llvmCode =
-            Compileutils.compileExpr tlenv exprInFunc
+            Compileutils.compileExpr env exprInFunc
           in
-          let newBindings = Compileutils.bindings tlenv in
+          let newBindings = Expander.bindings env in
           onSuccess oldBindings newBindings simpleforms llvmCode;
           runFunction newBindings immediateFuncName;
-          Expander.Mayfail.result (newBindings, [])
+          Expander.setBindings env newBindings
         with
-          | Expander.IllegalExpression (expr, errors) ->
-            Expander.Mayfail.multipleErrors errors
+          | Expander.IllegalExpression (_, errors) ->
+            List.iter (Expander.emitError env) errors;
           | exn ->
-            Expander.Mayfail.errorFromExpr expr (Printexc.to_string exn)
+            Expander.emitError env $ Serror.fromExpr expr (Printexc.to_string exn)
       end
     | _ ->
-        Expander.Mayfail.errorFromExpr expr (sprintf "expected %s expr" expr.id)
+      Expander.emitError env $ Serror.fromExpr expr (sprintf "expected %s expr" expr.id)
 
 let rec step env parseState =
-  let bindings = Compileutils.bindings env in
+  let bindings = Expander.bindings env in
   match parseState with
     | Error errors ->
       printf "Parser errors:\n";
@@ -657,7 +657,7 @@ let rec step env parseState =
           Compileutils.compileExpr env expr
         in
         List.iter report diagnostics;
-        let newBindings = Compileutils.bindings env in
+        let newBindings = Expander.bindings env in
         if flag = Result.Fail then begin
           hadErrors := true;
         end;
@@ -734,15 +734,14 @@ let () =
   let handleLLVMCode code = () in
   Expander.setEmitbackendCode handleLLVMCode;
 
-  let env = Compileutils.createEnv Genllvm.defaultBindings in
-  let expanderEnv = Compileutils.expanderEnv env in
+  let env = Expander.createEnv Genllvm.defaultBindings in
 
-  let addDllPath path where = Expander.addDllPath expanderEnv path where in
+  let addDllPath path where = Expander.addDllPath env path where in
   addDllPath "." `Back;
   addDllPath "./libs" `Back;
   addDllPath "./tools/external/lib" `Back;
 
-  Expander.addIncludePath expanderEnv "." `Front;
+  Expander.addIncludePath env "." `Front;
 
   let preludeOk, preludeLoadTime = recordTiming (loadPrelude env) in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;
@@ -751,7 +750,7 @@ let () =
 
   if preludeOk then begin
     message (sprintf "%cx - exit, %chelp - help.\n" toplevelCommandChar toplevelCommandChar);
-    Expander.addTranslateFunction "std:base:run" "statement..." (translateRun env);
+    Expander.addTranslateFunction "std:base:run" "statement..." translateRun;
     let `NoReturn = step env (Result []) in ()
   end else begin
     reportError "failed to load prelude";
