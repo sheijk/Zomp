@@ -4,6 +4,12 @@
 # commands in buildlog.txt for inspection on errors. Just run it with the same
 # arguments as make. Make will always be invoked from the Zomp root dir
 
+if [[ -z ${MAKE} ]]; then
+    MAKE=make
+else
+    echo "Using make command '${MAKE}'"
+fi
+
 BUILDLOG=build/buildlog.txt
 BUILDLOG_REPORT=build/buildlog_report.txt
 
@@ -40,14 +46,14 @@ echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = 
 if [ "${CLEAN_TARGET}" != "0" ]
 then
     echo "Cleaning ${CLEAN_TARGET} before build ..."
-    make --print-directory -s ${OPTIONS} ${CLEAN_TARGET} || exit 1
+    ${MAKE} --print-directory -s ${OPTIONS} ${CLEAN_TARGET} || exit 1
 fi
 
-make --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}"
+${MAKE} --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}"
 RETVAL=$?
 
 echo "Auto update test report ..." >> ${BUILDLOG}
-(make SILENT=1 "${OPTIONS[@]}" debug report 2>&1) > ${BUILDLOG_REPORT}
+(${MAKE} SILENT=1 "${OPTIONS[@]}" debug report 2>&1) > ${BUILDLOG_REPORT}
 if [ $? -eq 0 ];
 then
     cat ${BUILDLOG_REPORT} >> ${BUILDLOG}
