@@ -24,3 +24,9 @@ libs/clean:
 	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.compile_output)
 	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.result)
 
+################################################################################
+# Dependencies
+################################################################################
+
+libs/quicktext.ll: libs/libquicktext.dylib
+
