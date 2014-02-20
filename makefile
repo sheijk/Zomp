@@ -838,6 +838,7 @@ clean_all: clean clean_tags
 # as the make process when looking up help, etc.
 setenv: $(OUT_DIR)/env.sh
 
+ALL_TARGETS += $(OUT_DIR)/env.sh
 $(OUT_DIR)/env.sh: makefile
 	@$(ECHO) "Creating $@ ..."
 	echo '#!/usr/bin/env sh' > $@
