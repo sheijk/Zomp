@@ -819,100 +819,6 @@ struct
     in
     handleFieldExprs [] [] fields fieldExprs
 
-  (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
-  let translateGlobalVar env expr =
-    match expr with
-      | { id = _; args = [
-        typeExpr;
-        { id = name; args = [] };
-        valueExpr
-      ] } ->
-        begin
-          let isRedefinitionError =
-            hasRedefinitionErrors `NewVar `Global name expr env.bindings reportDiagnostics
-          in
-          let typ =
-            match translateType env.bindings typeExpr with
-              | Result (#integralType as typ)
-              | Result (`Pointer _ as typ)
-              | Result (`Array (_, _) as typ)
-              | Result (`Record _ as typ) ->
-                typ
-              | Result `ErrorType _
-              | Result `Function _
-              | Result `ParametricType _
-              | Result `TypeParam
-              | Result `TypeRef _ ->
-                reportErrorE env typeExpr "type not supported for global variables";
-                `ErrorType "translateGlobalVar"
-              | Error errors ->
-                List.iter env.reportError errors;
-                `ErrorType "translateGlobalVar"
-          in
-          let newBindings, tlforms, value =
-            match typ, valueExpr with
-              (** env.translateExpr always introduces temporary for string literals *)
-              | `Pointer `Char, { id = stringlit; args = [] } ->
-                env.bindings, [], parseValue (`Pointer `Char) stringlit
-              (** legacy special case *)
-              | `Pointer _, { id = "null"; args = [] } ->
-                env.bindings, [], NullpointerVal typ
-              (** legacy special case *)
-              | `Record recordT, { id = "0"; args = [] } ->
-                env.bindings, [], RecordVal (recordT.rname, [])
-              (** legacy special case *)
-              | `Array _, { id = "0"; args = [] } ->
-                env.bindings, [], ArrayVal (typ, [])
-              (** TODO: remove special cases above *)
-              | _ ->
-                match env.translateExpr env valueExpr with
-                  | Result( newBindings, formsWTL ) ->
-                    begin
-                      let tlforms, forms = extractToplevelForms formsWTL in
-                      match forms with
-                        | [`Constant value] ->
-                          newBindings, tlforms, value
-                        | _ ->
-                          reportErrorE env expr "expecting a constant expression";
-                          List.iter (fun f -> eprintf "  %s\n" $ Lang.formToString f) forms;
-                          newBindings, tlforms, ErrorVal "translateGlobalVar"
-                    end
-                  | Error messages ->
-                    List.iter env.reportError messages;
-                    env.bindings, [], ErrorVal "translateGlobalVar"
-          in
-          let typeEquivalent lt rt =
-            match lt, rt with
-              | `Record { rname = rname; fields = [] }, `Record { rname = lname; fields = _ }
-              | `Record { rname = rname; fields = _ }, `Record { rname = lname; fields = [] } ->
-                (lname :string) = rname
-              | _, _ ->
-                lt = rt
-          in
-          if typeEquivalent typ (typeOf value) then begin
-            let tlforms = List.map (fun (`ToplevelForm f) -> f) tlforms in
-            let var = globalVar name typ expr.location in
-            let newBindings = addVar newBindings var in
-            let gvar = {
-              gvVar = var;
-              gvInitialValue = value;
-              gvDefinitionLocation = expr.location;
-            }
-            in
-            if isRedefinitionError then
-              Error []
-            else
-              Result( newBindings, tlforms @ [ (`GlobalVar gvar :> toplevelExpr) ] )
-          end else
-            Error
-              [Serror.fromExpr expr
-                  (sprintf "expected initial value to have type %s but found %s"
-                     (typeDescr typ) (typeDescr (typeOf value)))]
-        end
-      | _ ->
-        errorFromExpr expr "expected 'var typeExpr name initExpr'"
-  let translateGlobalVarD = "type, name, value", translateGlobalVar
-
   let translateDefineLocalVar env expr =
     let transform id name typeExpr valueExpr =
       let declaredType = match typeExpr with
@@ -1643,7 +1549,6 @@ struct
     addF macroError translateErrorD
 
   let registerTL addF =
-    addF "var" translateGlobalVarD;
     addF macroApply ("ast...", translateApply alwaysFail)
 end
 
@@ -2434,6 +2339,95 @@ let rec translateFunc tlenv expr : unit =
     | `InvalidFunc msg ->
       EnvTL.emitError tlenv $ Serror.fromExpr expr msg
 
+let translateGlobalVar (env :EnvTL.t) expr : unit =
+  match expr with
+    | { id = _; args = [
+      typeExpr;
+      { id = name; args = [] };
+      valueExpr
+    ] } ->
+      begin
+        let isRedefinitionError =
+          checkRedefinitionErrors env `NewVar `Global name expr (EnvTL.bindings env)
+        in
+        let typ =
+          match translateTypeImp env typeExpr with
+            | #integralType
+            | `Pointer _
+            | `Array (_, _)
+            | `Record _ as typ ->
+              typ
+            | `Function _
+            | `ParametricType _
+            | `TypeParam
+            | `TypeRef _ ->
+              (* reportErrorE env typeExpr "type not supported for global variables"; *)
+              EnvTL.emitError env $ Serror.fromExpr typeExpr "type not allowed for global variables";
+              `ErrorType "translateGlobalVar"
+            | `ErrorType _ as e ->
+              e
+        in
+        let initialValue =
+          match typ, valueExpr with
+              (** env.translateExpr always introduces temporary for string literals *)
+            | `Pointer `Char, { id = stringlit; args = [] } ->
+              parseValue (`Pointer `Char) stringlit
+              (** legacy special case *)
+            | `Pointer _, { id = "null"; args = [] } ->
+              NullpointerVal typ
+              (** legacy special case *)
+            | `Record recordT, { id = "0"; args = [] } ->
+              RecordVal (recordT.rname, [])
+              (** legacy special case *)
+            | `Array _, { id = "0"; args = [] } ->
+              ArrayVal (typ, [])
+              (** TODO: remove special cases above *)
+            | _ ->
+              match translateNestedNew (EnvTL.bindings env) valueExpr with
+                | Result( newBindings, formsWTL ) ->
+                  begin
+                    let tlforms, forms = extractToplevelForms formsWTL in
+                    List.iter (fun (`ToplevelForm form) -> EnvTL.emitForm env form) tlforms;
+                    EnvTL.setBindings env newBindings;
+                    match forms with
+                      | [`Constant value] ->
+                        value
+                      | _ ->
+                        EnvTL.emitError env $ Serror.fromExpr expr "expecting a constant expression";
+                        ErrorVal "translateGlobalVar"
+                  end
+                | Error errors ->
+                  EnvTL.emitErrors env errors;
+                  ErrorVal "translateGlobalVar"
+        in
+        let typeEquivalent lt rt =
+          match lt, rt with
+            | `Record { rname = rname; fields = [] }, `Record { rname = lname; fields = _ }
+            | `Record { rname = rname; fields = _ }, `Record { rname = lname; fields = [] } ->
+              (lname :string) = rname
+            | _, _ ->
+              lt = rt
+        in
+        if typeEquivalent typ (typeOf initialValue) then begin
+          let var = globalVar name typ expr.location in
+          let gvar = {
+            gvVar = var;
+            gvInitialValue = initialValue;
+            gvDefinitionLocation = expr.location;
+          } in
+          EnvTL.setBindings env (addVar (EnvTL.bindings env) var);
+          if (not isRedefinitionError) then begin
+            EnvTL.emitForm env (`GlobalVar gvar :> toplevelExpr)
+          end
+        end else
+          EnvTL.emitError env
+            (Serror.fromExpr expr
+               (sprintf "expected initial value to have type %s but found %s"
+                  (typeDescr typ) (typeDescr (typeOf initialValue))))
+      end
+    | _ ->
+      EnvTL.emitError env $ Serror.fromExpr expr "expected 'var typeExpr name initExpr'"
+
 let translateTypedef tlenv expr : unit =
   let bindings = EnvTL.bindings tlenv in
 
@@ -2652,16 +2646,16 @@ let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, forea
   translateFromDict table, toList, add, (fun f -> Hashtbl.iter f documentation)
 
 let tlNewInstructionList, addNewToplevelInstruction =
-  let handlers = ref [
-    macroFunc, translateFunc;
-    macroTypedef, translateTypedef;
-    macroReplacement, translateDefineReplacementMacro;
-    macroError, translateError;
-    macroLinkCLib, translateLinkCLib;
-  ] in
-  let add name instruction =
+  let handlers = ref [] in
+  let add (name:string) (doc:string) instruction =
     handlers := (name, instruction) :: !handlers
   in
+  add macroFunc "typeExpr, name(typeExpr id, ...) expr" translateFunc;
+  add macroTypedef "name, typeExpr" translateTypedef;
+  add macroReplacement "" translateDefineReplacementMacro;
+  add macroError "string, expr?" translateError;
+  add macroLinkCLib "dll-name" translateLinkCLib;
+  add macroVar "type, name, value" translateGlobalVar;
   let get() = !handlers in
   get, add
 
@@ -2699,6 +2693,7 @@ let translateTLNoErr bindings expr =
   translate raiseIllegalExpression
     [
       sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
+      sampleFunc3 "translateGlobalVar" (unwrapOldTL macroVar translateGlobalVar);
       sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
       sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
       sampleFunc3 "translateDefineMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
