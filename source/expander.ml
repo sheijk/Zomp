@@ -749,7 +749,6 @@ module type Zomp_transformer =
 sig
   (** name, doc, translateFunc *)
   val register : (string -> (string * (exprTranslateF env -> Ast2.t -> translationResult)) -> unit) -> unit
-  val registerTL : (string -> (string * (toplevelExprTranslateF env -> Ast2.t -> toplevelTranslationResult)) -> unit) -> unit
 end
 
 module Base : Zomp_transformer =
@@ -1547,9 +1546,6 @@ struct
     addF macroFunCall translateFuncCallD;
     addF macroApply ("ast...", translateApply translateRecordLiteral);
     addF macroError translateErrorD
-
-  let registerTL addF =
-    addF macroApply ("ast...", translateApply alwaysFail)
 end
 
 module Compiler_environment : Zomp_transformer =
@@ -1590,8 +1586,6 @@ struct
     addF "std:env:fileOf" ("char*", translateFileNameOf);
     addF "std:env:line" ("int", translateLineNumber);
     addF "std:env:lineOf" ("int", translateLineNumberOf)
-
-  let registerTL addF = ()
 end
 
 module Array : Zomp_transformer =
@@ -1647,8 +1641,6 @@ struct
   let register addF =
     addF "zmp:array:size" arraySizeD;
     addF "zmp:array:addr" arrayAddrD
-
-  let registerTL addF = ()
 end
 
 module Overloaded_ops : Zomp_transformer =
@@ -1804,8 +1796,6 @@ struct
       ["print"; "write";
        "toInt"; "toFloat"; "toDouble"; "toBool"; "toChar"; "toCString";
        "neg"; "not"]
-
-  let registerTL addF = ()
 end
 
 let traceMacroExpansion = ref (Some (fun (_ :string) (_ :sexpr) -> ()))
@@ -1953,6 +1943,9 @@ module EnvTL : sig
 
   val reset : t -> Result.flag * Serror.t list * toplevelExpr list
 
+  val emitExpr : t -> Ast2.t -> unit
+  val setEmitExprTodo : (t -> Ast2.t -> unit) -> unit
+
   val setBindings : t -> Bindings.t -> unit
   val emitError : t -> Serror.t -> unit
   val emitErrors : t -> Serror.t list -> unit
@@ -1986,6 +1979,11 @@ end = struct
   let emitForm env form = env.tlEmitForm form
   let emitSilentError env =
     env.tlHadSilentErrors <- true
+
+
+  let emitExprFunc = ref (fun _ _ -> failwith "did not call EnvTL.setEmitExprTodo")
+  let emitExpr env expr = !emitExprFunc env expr
+  let setEmitExprTodo f = emitExprFunc := f
 
   let emitErrors env = List.iter (emitError env)
   let emitForms env = List.iter (emitForm env)
@@ -2428,6 +2426,13 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
     | _ ->
       EnvTL.emitError env $ Serror.fromExpr expr "expected 'var typeExpr name initExpr'"
 
+let translateApplyTL (env :EnvTL.t) expr : unit =
+  try
+    let argExpr = Ast2.shiftId expr.args in
+    EnvTL.emitExpr env argExpr
+  with Failure "shiftId" ->
+      EnvTL.emitError env $ Serror.fromExpr expr "expected first argument to be an id expression"
+
 let translateTypedef tlenv expr : unit =
   let bindings = EnvTL.bindings tlenv in
 
@@ -2637,7 +2642,6 @@ let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, forea
 
   add macroMacro "name, args..., body"
     (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested `Global));
-  Base.registerTL (fun name (doc, f) -> add name doc f);
 
   let toList() =
     List.rev $ Hashtbl.fold (fun name f list -> (name, f) :: list) table []
@@ -2656,6 +2660,7 @@ let tlNewInstructionList, addNewToplevelInstruction =
   add macroError "string, expr?" translateError;
   add macroLinkCLib "dll-name" translateLinkCLib;
   add macroVar "type, name, value" translateGlobalVar;
+  add macroApply "expr..." translateApplyTL;
   let get() = !handlers in
   get, add
 
@@ -2694,6 +2699,7 @@ let translateTLNoErr bindings expr =
     [
       sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
       sampleFunc3 "translateGlobalVar" (unwrapOldTL macroVar translateGlobalVar);
+      sampleFunc3 "translateApplyTL" (unwrapOldTL macroApply translateApplyTL);
       sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
       sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
       sampleFunc3 "translateDefineMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
@@ -2730,7 +2736,7 @@ let wrapOldTL f : EnvTL.t -> Ast2.t -> unit =
         EnvTL.setBindings tlenv bindings;
         EnvTL.emitForms tlenv forms
 
-let rec translate tlenv expr =
+let rec emitExpr tlenv expr : unit =
   begin match !traceMacroExpansion with
     | Some f -> f "translate/???" expr
     | None -> ()
@@ -2740,9 +2746,9 @@ let rec translate tlenv expr =
     | MacroSymbol macro ->
       let newAst = macro.mtransformFunc (EnvTL.bindings tlenv) expr in
       (* TODO: fix locations, see Old_macro_support.translateMacroCall *)
-      translate tlenv newAst
+      emitExpr tlenv newAst
     | VarSymbol _ | FuncSymbol _ | TypedefSymbol _ | LabelSymbol _ as sym ->
-      Result.fail [Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym)]
+      EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym))
     | UndefinedSymbol ->
       begin
         let handlers : (string * (tlenv -> Ast2.t -> unit)) list =
@@ -2752,13 +2758,19 @@ let rec translate tlenv expr =
         try
           let handler = List.assoc expr.id handlers in
           handler tlenv expr;
-          let flag, errors, forms = EnvTL.reset tlenv in
-          let flag = if !compilationSwallowedErrors then Result.Fail else flag in
-          compilationSwallowedErrors := false;
-          Result.make flag ~diagnostics:errors ~results:forms
         with Not_found ->
-          Result.fail [Serror.fromExpr expr $ sprintf "%s is undefined" expr.id]
+          EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
       end
+
+let translate env expr =
+  emitExpr env expr;
+  let flag, errors, forms = EnvTL.reset env in
+  let flag = if !compilationSwallowedErrors then Result.Fail else flag in
+  compilationSwallowedErrors := false;
+  Result.make flag ~diagnostics:errors ~results:forms
+
+let () =
+  EnvTL.setEmitExprTodo emitExpr
 
 let totalIncludeTime = ref 0.0
 let libsSection = Statistics.createSection "compiling included libraries (s)"
