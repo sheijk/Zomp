@@ -686,13 +686,13 @@ struct
     { id = ast.id; location = None; args = List.map removeSourceLocations ast.args }
 
   (* TODO: kick out all source location info *)
-  let translateDefineMacro translateNestedF scope env expr =
+  let translateDefineMacroHelper translateNestedF scope bindings expr =
     match decomposeMacroDefinition expr with
       | Result (macroName, paramNames, implExprs, isVariadic) ->
         let implExprs = List.map removeSourceLocations implExprs in
         begin
           let isRedefinitionError =
-            hasRedefinitionErrors `NewMacro scope macroName expr env.bindings reportDiagnostics
+            hasRedefinitionErrors `NewMacro scope macroName expr bindings reportDiagnostics
           in
 
           if isRedefinitionError then
@@ -707,7 +707,7 @@ struct
             in
             let tlexprs, func =
               buildNativeMacroFunc
-                translateNestedF env.bindings
+                translateNestedF bindings
                 (`MacroFuncName macroFuncName) paramNames implExprs isVariadic
             in
 
@@ -732,16 +732,20 @@ struct
             in
 
             let location = someOrDefault expr.location Basics.fakeLocation in
-            let newBindings = Bindings.addMacro env.bindings macroName docstring location
+            let newBindings = Bindings.addMacro bindings macroName docstring location
               (translateMacroCall macroName (`MacroFuncName macroFuncName) (List.length paramNames) isVariadic)
             in
 
-            Result (newBindings, [])
+            Result newBindings
           end
         end
       | Error reasons ->
           Error reasons
 
+  let translateDefineNestedMacro translateNestedF env expr =
+    match translateDefineMacroHelper translateNestedF `Local env.bindings expr with
+      | Result newBindings -> Result (newBindings, [])
+      | Error (_ as errors) -> Error errors
 end
 
 (** A module defining various zomp transformations *)
@@ -2053,7 +2057,7 @@ let translateSeqTL handleLLVMCodeF translateTL env expr =
 
 let () =
   addBaseInstruction macroMacro "name, args..., body"
-    (Macros.translateDefineMacro translateNested `Local)
+    (Macros.translateDefineNestedMacro translateNested)
 
 let compilationSwallowedErrors = ref false
 
@@ -2547,6 +2551,13 @@ let translateTypedef tlenv expr : unit =
 let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
 
+let translateDefineTLMacro env expr =
+  match Macros.translateDefineMacroHelper translateNested `Global (EnvTL.bindings env) expr with
+    | Result newBindings ->
+      EnvTL.setBindings env newBindings
+    | Error errors ->
+      EnvTL.emitErrors env errors
+
 let translateDefineReplacementMacro tlenv expr : unit =
   match expr with
     | { id = id; args =
@@ -2640,9 +2651,6 @@ let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, forea
     Hashtbl.add table name f;
   in
 
-  add macroMacro "name, args..., body"
-    (sampleFunc2 "macro(dict)" (Macros.translateDefineMacro translateNested `Global));
-
   let toList() =
     List.rev $ Hashtbl.fold (fun name f list -> (name, f) :: list) table []
   in
@@ -2661,6 +2669,7 @@ let tlNewInstructionList, addNewToplevelInstruction =
   add macroLinkCLib "dll-name" translateLinkCLib;
   add macroVar "type, name, value" translateGlobalVar;
   add macroApply "expr..." translateApplyTL;
+  add macroMacro "name, args..., body" translateDefineTLMacro;
   let get() = !handlers in
   get, add
 
@@ -2702,7 +2711,7 @@ let translateTLNoErr bindings expr =
       sampleFunc3 "translateApplyTL" (unwrapOldTL macroApply translateApplyTL);
       sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
       sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
-      sampleFunc3 "translateDefineMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
+      sampleFunc3 "translateDefineReplacementMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
       sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
       sampleFunc3 "translateError" (unwrapOldTL macroError translateError);
       sampleFunc3 "translateLinkCLib" (unwrapOldTL macroLinkCLib translateLinkCLib);
