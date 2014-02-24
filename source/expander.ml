@@ -2585,10 +2585,10 @@ let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
 let translateLinkCLib env expr =
   collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
 
-let tlNewInstructionList, addNewToplevelInstruction, foreachToplevelBaseInstructionDoc =
+let lookupTLInstruction, addNewToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let handlers = ref [] in
   let add (name:string) (doc:string) instruction =
-    handlers := (name, instruction) :: !handlers
+    handlers := (name, (doc, instruction)) :: !handlers
   in
   add macroFunc "typeExpr, name(typeExpr id, ...) expr" translateFunc;
   add macroTypedef "name, typeExpr" translateTypedef;
@@ -2598,9 +2598,17 @@ let tlNewInstructionList, addNewToplevelInstruction, foreachToplevelBaseInstruct
   add macroVar "type, name, value" translateGlobalVar;
   add macroApply "expr..." translateApplyTL;
   add macroMacro "name, args..., body" translateDefineTLMacro;
-  let get() = !handlers in
-  let foreachDoc (f : string -> string -> unit) = () in
-  get, add, foreachDoc
+  let lookup name =
+    try
+      let _, handler = List.assoc name (!handlers) in
+      Some handler
+    with Not_found ->
+      None
+  in
+  let foreachDoc (f : string -> string -> unit) =
+    List.iter (fun (name, (doc, _)) -> f name doc) !handlers
+  in
+  lookup, add, foreachDoc
 
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
@@ -2668,11 +2676,11 @@ let rec emitExpr tlenv expr : unit =
       EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym))
     | UndefinedSymbol ->
       begin
-        try
-          let handler = List.assoc expr.id (tlNewInstructionList()) in
-          handler tlenv expr;
-        with Not_found ->
-          EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
+        match lookupTLInstruction expr.id with
+          | Some handler ->
+            handler tlenv expr;
+          | None ->
+            EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
       end
 
 let extractResultFromEnv env =
