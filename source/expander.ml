@@ -1932,6 +1932,7 @@ module EnvTL : sig
   val reset : t -> Result.flag * Serror.t list * toplevelExpr list
 
   val emitExpr : t -> Ast2.t -> unit
+  val emitExprs : t -> Ast2.t list -> unit
   val setEmitExprTodo : (t -> Ast2.t -> unit) -> unit
 
   val setBindings : t -> Bindings.t -> unit
@@ -1971,6 +1972,7 @@ end = struct
 
   let emitExprFunc = ref (fun _ _ -> failwith "did not call EnvTL.setEmitExprTodo")
   let emitExpr env expr = !emitExprFunc env expr
+  let emitExprs env exprs = List.iter (emitExpr env) exprs
   let setEmitExprTodo f = emitExprFunc := f
 
   let emitErrors env = List.iter (emitError env)
@@ -2585,6 +2587,30 @@ let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
 let translateLinkCLib env expr =
   collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
 
+let catchingErrorsDo f ~onErrors =
+  let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
+  begin
+    try
+      f()
+    with
+      | IllegalExpression (expr, errors) ->
+        onErrors errors
+      | Lang.CouldNotParseType descr ->
+        onErrorMsg $ sprintf "unknown type: %s\n" descr
+      | Genllvm.CodeGenError msg ->
+        onErrorMsg $ sprintf "codegen failed: %s\n" msg
+      | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
+        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
+      | Failure msg ->
+        onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
+  end
+
+let extractResultFromEnv env =
+  let flag, errors, forms = EnvTL.reset env in
+  let flag = if !compilationSwallowedErrors then Result.Fail else flag in
+  compilationSwallowedErrors := false;
+  Result.make flag ~diagnostics:errors ~results:forms
+
 let lookupTLInstruction, addNewToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let handlers = ref [] in
   let add (name:string) (doc:string) instruction =
@@ -2634,36 +2660,17 @@ let rec emitExpr tlenv expr : unit =
             EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
       end
 
-let extractResultFromEnv env =
-  let flag, errors, forms = EnvTL.reset env in
-  let flag = if !compilationSwallowedErrors then Result.Fail else flag in
-  compilationSwallowedErrors := false;
-  Result.make flag ~diagnostics:errors ~results:forms
+let emitExprGuarded env expr =
+  catchingErrorsDo (fun () ->
+    emitExpr env expr)
+    ~onErrors:(List.iter (EnvTL.emitError env))
+
+let () =
+  EnvTL.setEmitExprTodo emitExprGuarded
 
 let translate env expr =
   emitExpr env expr;
   extractResultFromEnv env
-
-let () =
-  EnvTL.setEmitExprTodo emitExpr
-
-let catchingErrorsDo f ~onErrors =
-  let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
-  begin
-    try
-      f()
-    with
-      | IllegalExpression (expr, errors) ->
-        onErrors errors
-      | Lang.CouldNotParseType descr ->
-        onErrorMsg $ sprintf "unknown type: %s\n" descr
-      | Genllvm.CodeGenError msg ->
-        onErrorMsg $ sprintf "codegen failed: %s\n" msg
-      | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
-      | Failure msg ->
-        onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
-  end
 
 let compileExpr env expr =
   catchingErrorsDo (fun () ->
@@ -2671,11 +2678,6 @@ let compileExpr env expr =
     let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
     result, llvmCode)
     ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
-
-let emitExprGuarded env expr =
-  catchingErrorsDo (fun () ->
-    emitExpr env expr)
-    ~onErrors:(List.iter (EnvTL.emitError env))
 
 let translateMulti emitBackendCode env exprs =
   let rec translateExprs = function
@@ -2689,7 +2691,7 @@ let translateMulti emitBackendCode env exprs =
   extractResultFromEnv env
 
 let translateSeqTL env expr =
-  List.iter (emitExprGuarded env) expr.args
+  EnvTL.emitExprs env expr.args
 
 let totalIncludeTime = ref 0.0
 let libsSection = Statistics.createSection "compiling included libraries (s)"
@@ -2708,7 +2710,7 @@ let translateInclude includePath (env : EnvTL.t) expr : unit =
         | Parseutils.Error error ->
           EnvTL.emitError env error
         | Parseutils.Exprs exprs ->
-          List.iter (emitExprGuarded env) exprs
+          EnvTL.emitExprs env exprs
     in
     let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
     Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
