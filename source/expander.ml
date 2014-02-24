@@ -1924,9 +1924,8 @@ let translateNested = sampleFunc2 "translateNested" translateNestedNoErr
 
 module EnvTL : sig
   type t
-  val create : (Bindings.t -> Lang.toplevelExpr -> unit) -> Translation_utils.toplevelExprTranslateF -> Bindings.t -> t
+  val create : (Bindings.t -> Lang.toplevelExpr -> unit) -> Bindings.t -> t
 
-  val env : t -> toplevelEnv
   val bindings : t -> Bindings.t
   val hasErrors : t -> bool
 
@@ -1945,7 +1944,6 @@ module EnvTL : sig
 end = struct
   type t = {
     mutable tlbindings :Bindings.t;
-    mutable tlenv :toplevelEnv;
     mutable tlerrorsRev :Serror.t list;
     mutable tlexprsRev :toplevelExpr list;
     mutable tlHadSilentErrors :bool;
@@ -1955,14 +1953,12 @@ end = struct
     tlEmitBackendCode : Bindings.t -> Lang.toplevelExpr -> unit;
   }
 
-  let env e = e.tlenv
   let bindings e = e.tlbindings
   let hasErrors e = e.tlHadSilentErrors || (e.tlerrorsRev <> [])
 
   let setBindings env bindings =
     Zompvm.currentBindings := bindings;
-    env.tlbindings <- bindings;
-    env.tlenv <- { env.tlenv with bindings }
+    env.tlbindings <- bindings
 
   let emitError env error =
     env.tlEmitError error
@@ -1989,10 +1985,9 @@ end = struct
     tlenv.tlHadSilentErrors <- false;
     flag, errors, forms
 
-  let create emitBackendCode translateTLNoErr (initialBindings :bindings) =
+  let create emitBackendCode (initialBindings :bindings) =
     let rec env = {
       tlbindings = initialBindings;
-      tlenv = makeEnv initialBindings translateTLNoErr translateNested;
       tlerrorsRev = [];
       tlexprsRev = [];
       tlHadSilentErrors = false;
@@ -2013,7 +2008,7 @@ let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
   let ignoreForm _ _ = () in
   fun translateF bindings expr ->
     if expr.id = id then begin
-      let env = EnvTL.create ignoreForm translateF bindings in
+      let env = EnvTL.create ignoreForm bindings in
       f env expr;
       let flag, errors, forms = EnvTL.reset env in
       if errors <> [] then
@@ -2590,23 +2585,7 @@ let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
 let translateLinkCLib env expr =
   collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
 
-let translateBaseInstructionTL, tlInstructionList, addToplevelInstruction, foreachToplevelBaseInstructionDoc =
-  let table : (string, toplevelExprTranslateF env -> Ast2.sexpr -> toplevelTranslationResult) Hashtbl.t =
-    Hashtbl.create 32
-  in
-  let documentation = Hashtbl.create 32 in
-  let add name doc f =
-    Hashtbl.add documentation name doc;
-    Hashtbl.add table name f;
-  in
-
-  let toList() =
-    List.rev $ Hashtbl.fold (fun name f list -> (name, f) :: list) table []
-  in
-
-  translateFromDict table, toList, add, (fun f -> Hashtbl.iter f documentation)
-
-let tlNewInstructionList, addNewToplevelInstruction =
+let tlNewInstructionList, addNewToplevelInstruction, foreachToplevelBaseInstructionDoc =
   let handlers = ref [] in
   let add (name:string) (doc:string) instruction =
     handlers := (name, instruction) :: !handlers
@@ -2620,7 +2599,8 @@ let tlNewInstructionList, addNewToplevelInstruction =
   add macroApply "expr..." translateApplyTL;
   add macroMacro "name, args..., body" translateDefineTLMacro;
   let get() = !handlers in
-  get, add
+  let foreachDoc (f : string -> string -> unit) = () in
+  get, add, foreachDoc
 
 let translateTLNoErr bindings expr =
   begin match !traceMacroExpansion with
@@ -2655,7 +2635,6 @@ let translateTLNoErr bindings expr =
 
   translate raiseIllegalExpression
     [
-      sampleFunc3 "translateBaseInstructionTL" (translateBaseInstructionTL translateNested);
       sampleFunc3 "translateGlobalVar" (unwrapOldTL macroVar translateGlobalVar);
       sampleFunc3 "translateApplyTL" (unwrapOldTL macroApply translateApplyTL);
       sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
@@ -2674,24 +2653,6 @@ type tlenv = EnvTL.t
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
 
-(** TODO: remove EnvTL.env when this method goes away *)
-let wrapNewTL (f : toplevelTranslationFunction) = fun tlenv expr ->
-  match f (EnvTL.env tlenv) expr with
-    | Result (newBindings, forms) ->
-      EnvTL.setBindings tlenv newBindings;
-      EnvTL.emitForms tlenv forms
-    | Error errors ->
-      EnvTL.emitErrors tlenv errors
-
-let wrapOldTL f : EnvTL.t -> Ast2.t -> unit =
-  fun tlenv expr ->
-    match f translateTLNoErr (EnvTL.bindings tlenv) expr with
-      | None ->
-        EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "failed to translate %s, ast malformed" expr.id)
-      | Some (bindings, forms) ->
-        EnvTL.setBindings tlenv bindings;
-        EnvTL.emitForms tlenv forms
-
 let rec emitExpr tlenv expr : unit =
   begin match !traceMacroExpansion with
     | Some f -> f "translate/???" expr
@@ -2707,12 +2668,8 @@ let rec emitExpr tlenv expr : unit =
       EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym))
     | UndefinedSymbol ->
       begin
-        let handlers : (string * (tlenv -> Ast2.t -> unit)) list =
-          let baseHandlers = tlInstructionList() in
-          List.map (fun (name, handler) -> name, wrapNewTL handler) baseHandlers @ tlNewInstructionList()
-        in
         try
-          let handler = List.assoc expr.id handlers in
+          let handler = List.assoc expr.id (tlNewInstructionList()) in
           handler tlenv expr;
         with Not_found ->
           EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
@@ -2771,44 +2728,6 @@ let translateMulti emitBackendCode env exprs =
   in
   translateExprs exprs;
   extractResultFromEnv env
-
-(** this does not update the bindings in the tlenv
-    thus seq in zompvm is broken
-*)
-let translateAndEval handleLLVMCodeF translateTL env exprs =
-  let genLLVMCode form =
-    collectTimingInfo "gencode"
-      (fun () ->
-        Genllvm.gencodeTL form)
-  in
-  let evalLLVMCode bindings forms llvmCode =
-    collectTimingInfo "Zompvm.evalLLVMCode"
-      (fun () ->
-        Zompvm.evalLLVMCode bindings forms llvmCode)
-  in
-  let llvmCodeCallback llvmCode =
-    collectTimingInfo "handleLLVMCodeF"
-      (fun () ->
-        handleLLVMCodeF llvmCode)
-  in
-  let impl() =
-    let newBindings, tlexprsFromFile =
-      List.fold_left
-        (fun (bindings,prevExprs) sexpr ->
-          let newBindings, newExprs = translateTL bindings sexpr in
-          List.iter
-            (fun form ->
-              let llvmCode = genLLVMCode form in
-              evalLLVMCode bindings [form] llvmCode;
-              llvmCodeCallback llvmCode)
-            newExprs;
-          newBindings, prevExprs @ newExprs )
-        (env.bindings, [])
-        exprs
-    in
-    Result (newBindings, [])
-  in
-  collectTimingInfo "translateAndEval" impl
 
 let translateSeqTL env expr =
   List.iter (emitExprGuarded env) expr.args
@@ -2893,7 +2812,7 @@ let emitBackendCodeForForm oldBindings form =
   Zompvm.evalLLVMCode oldBindings [form] llvmCode;
   emitBackendCode llvmCode
 
-let createEnv = EnvTL.create emitBackendCodeForForm translateTLNoErr
+let createEnv = EnvTL.create emitBackendCodeForForm
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
 let emitError = EnvTL.emitError
