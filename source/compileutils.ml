@@ -9,11 +9,11 @@ open Parseutils
 
 let compileExpr = Expander.compileExpr
 
-let compileNew env exprs emitBackendCode fileName =
+let compileNew env exprs fileName =
   let exprs = List.map (fixFileName fileName) exprs in
-  Expander.translateMulti emitBackendCode env exprs
+  Expander.translateMulti env exprs
 
-let compileFromStream env ~source ~emitBackendCode ~fileName =
+let compileFromStream env ~source ~fileName =
   let parse ~fileName source = collectTimingInfo "parsing" $ 
     fun () -> Parseutils.parseIExprs ~fileName source
   in
@@ -21,9 +21,9 @@ let compileFromStream env ~source ~emitBackendCode ~fileName =
     | Error error ->
       Result.make Result.Fail ~diagnostics:[error] ~results:[]
     | Exprs exprs ->
-      compileNew env exprs emitBackendCode fileName
+      compileNew env exprs fileName
 
-let loadPrelude env ?(emitBackendCode = fun _ -> ()) ?(appendSource = "") dir =
+let loadPrelude env ?(appendSource = "") dir =
   let dir = if dir.[String.length dir - 1] = '/' then dir else dir ^ "/" in
   let llvmRuntimeFile = dir ^ "runtime.ll" in
   (collectTimingInfo "loading .ll file"
@@ -39,7 +39,7 @@ let loadPrelude env ?(emitBackendCode = fun _ -> ()) ?(appendSource = "") dir =
       Result.make Result.Fail ~diagnostics:[error] ~results:[]
     | Exprs exprs ->
       List.iter Ast2.assertHasLocation exprs;
-      let result = compileNew env exprs emitBackendCode zompPreludeFile in
+      let result = compileNew env exprs zompPreludeFile in
       Result.replaceResults result (fun _ -> [])
 
 let writeSymbolsToStream bindings stream =

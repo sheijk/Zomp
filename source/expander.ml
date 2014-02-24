@@ -2749,7 +2749,7 @@ let compileExpr env expr =
     result, llvmCode)
     ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
 
-let translateMulti emitBackendCode env exprs =
+let translateMulti env exprs =
   EnvTL.emitExprs env exprs;
   extractResultFromEnv env
 

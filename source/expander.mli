@@ -9,7 +9,7 @@ type tlenv
 val createEnv : Bindings.t -> tlenv
 val compileExpr : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t * string
 val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t
-val translateMulti : (string -> unit) -> tlenv -> Ast2.t list -> Lang.toplevelExpr Result.t
+val translateMulti : tlenv -> Ast2.t list -> Lang.toplevelExpr Result.t
 val bindings : tlenv -> Bindings.t
 val setBindings : tlenv -> Bindings.t -> unit
 val emitExpr : tlenv -> Ast2.t -> unit

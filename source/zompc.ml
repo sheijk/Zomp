@@ -124,9 +124,6 @@ let compile initEnv fileName inStream outStream =
     collectTimingInfo "reading prelude file content" (fun () -> Common.readChannel inStream)
   in
 
-  let emitBackendCode source =
-    output_string outStream source
-  in
   let reportDiagnostics diag =
     eprintf "%s\n" $ Serror.toString diag;
     flush stderr
@@ -140,7 +137,7 @@ let compile initEnv fileName inStream outStream =
     initEnv env;
     let exitCode =
       let preludeResult =
-        addTiming preludeTime $ fun () -> Compileutils.loadPrelude env ~emitBackendCode preludeDir
+        addTiming preludeTime $ fun () -> Compileutils.loadPrelude env preludeDir
       in
       List.iter reportDiagnostics preludeResult.Result.diagnostics;
       if Result.failed preludeResult then
@@ -148,7 +145,7 @@ let compile initEnv fileName inStream outStream =
       else begin
         addTiming mainFileTime $ fun () ->
           let { Result.flag; diagnostics; _ } =
-            Compileutils.compileFromStream env ~source:input ~emitBackendCode ~fileName
+            Compileutils.compileFromStream env ~source:input ~fileName
           in
           List.iter reportDiagnostics diagnostics;
           if flag = Result.Success then
@@ -214,7 +211,6 @@ let () =
   in
 
   let handleLLVMCode code = output_string outStream code in
-
   Expander.setEmitbackendCode handleLLVMCode;
 
   let initEnv env =

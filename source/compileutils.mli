@@ -1,7 +1,6 @@
 
 val loadPrelude :
   Expander.tlenv ->
-  ?emitBackendCode:(string -> unit) ->
   ?appendSource:string ->
   string ->
   (* Bindings.t *)
@@ -12,7 +11,6 @@ val compileExpr : Expander.tlenv -> Ast2.t -> Lang.toplevelExpr Result.t * strin
 val compileFromStream :
   Expander.tlenv ->
   source:string ->
-  emitBackendCode:(string -> unit) ->
   fileName:string ->
   Lang.toplevelExpr Result.t
 
