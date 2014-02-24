@@ -2810,8 +2810,8 @@ let translateAndEval handleLLVMCodeF translateTL env exprs =
   in
   collectTimingInfo "translateAndEval" impl
 
-let translateSeqTL emitBackendCode translateTL env expr =
-  translateAndEval emitBackendCode translateTL env expr.args
+let translateSeqTL env expr =
+  List.iter (emitExprGuarded env) expr.args
 
 let totalIncludeTime = ref 0.0
 let libsSection = Statistics.createSection "compiling included libraries (s)"
@@ -2879,8 +2879,8 @@ let translateInclude handleLLVMCodeF translateTL env expr =
 let addTranslateIncludeFunction name ~doc handleLLVMCodeF =
   addToplevelInstruction name doc $ translateInclude handleLLVMCodeF translateTLNoErr
 
-let addTranslateSeqFunction name ~doc handleLLVMCodeF =
-  addToplevelInstruction name doc $ translateSeqTL handleLLVMCodeF translateTLNoErr
+let addTranslateSeqFunction name ~doc =
+  addNewToplevelInstruction name doc translateSeqTL
 
 let addTranslateFunction name ~doc f =
   addNewToplevelInstruction name doc f
@@ -2907,5 +2907,5 @@ let emitError = EnvTL.emitError
 
 let () =
   addTranslateIncludeFunction "include" ~doc:"zompSourceFile" emitBackendCode;
-  addTranslateSeqFunction "seq" ~doc:"ast..." emitBackendCode
+  addTranslateSeqFunction "seq" ~doc:"ast..."
 
