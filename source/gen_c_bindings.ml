@@ -1,6 +1,10 @@
 open Str
 open Printf
 
+(** Set this to true to insert tracing code into all stub functions in the ML
+    back-end. *)
+let mlTraceFunctions = false
+
 exception Type_not_found of string
 exception Compile_error of int * string
 
@@ -662,14 +666,23 @@ struct
             func.fname
         else "\n/* function may be called between glBegin/glEnd, thus no error check */\n\n"
       in
+      let traceEnter, traceExit =
+        if mlTraceFunctions then
+          sprintf "  printf(\"-> %s\\n\");\n" func.fname,
+          sprintf "  printf(\"<- %s\\n\");\n" func.fname
+        else
+          "", ""
+      in
       signatureLine
       ^ "{\n"
+      ^ traceEnter
       ^ localVarCreation
       ^ "\n"
       ^ functionCall
       ^ "\n"
       ^ localVarCleanup
       ^ errorCheck
+      ^ traceExit
       ^ return
       ^ "}\n"
     and bytecodeWrapperFunction =
