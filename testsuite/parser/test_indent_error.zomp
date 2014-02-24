@@ -1,0 +1,16 @@
+///
+/// Testing reporting of indentation errors.
+///
+
+func void foo():
+  seq:
+ end //// error indent
+end
+
+func void bar():
+  end //// error indent
+
+func int main():
+  ret 0
+end
+

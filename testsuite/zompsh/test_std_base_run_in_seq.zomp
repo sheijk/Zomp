@@ -1,0 +1,43 @@
+///
+/// Testing whether the unit test framework works inside zompsh. All tests
+/// should be run immediately.
+///
+/// This reproduces an issue with std:base:run
+/// Inside seq, the tlenv bindings will not be updated until after the seq
+///
+
+requireLibs libcee unittest
+
+func bool isBound(char* name)
+
+macro checkit name:
+  println "Name " name.id " bound = " isBound(name.id)
+  ret ${}
+end
+
+macro runcode code:
+  println "running init macro"
+
+  if std:vm:isInteractive:
+    ret ${std:base:run #code}
+  end
+
+  println ast:file(code) ":" ast:line(code) ": warning: ignoring code when compiling"
+  ret ${func void dummy() #code}
+end
+
+seq:
+  func void foo():
+    println "foo()"
+  end
+
+  checkit foo //// print bound foo true
+
+  runcode:
+    println "omg, running!" //// print omg running
+    foo()
+  end
+end
+
+unittest:main
+

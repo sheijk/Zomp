@@ -1,0 +1,7 @@
+
+std:base:func int main():
+  printString "hello, zomp"
+  printNewline()
+  std:base:ret 0
+end
+
