@@ -83,4 +83,5 @@ val isInteractiveFlag : bool ref
 val isInteractive : unit -> bool
 val setIsInteractive : bool -> unit
 val traceMacroExpansionOn : bool ref
+val flushStreams : unit -> unit
 module Callbacks : sig  end

@@ -372,6 +372,15 @@ extern "C" {
   void zompPrintTimingStats() {
     stats.print();
   }
+
+  void zompFlushStreams() {
+    fflush(stdout);
+    fflush(stderr);
+    std::cout.flush();
+    std::cerr.flush();
+    llvm::outs().flush();
+    llvm::errs().flush();
+  }
 } // extern C
 
 llvm::GenericValue runFunctionWithArgs(
@@ -712,13 +721,13 @@ extern "C" {
       parsedModule = ParseAssemblyString( code, targetModule, errorInfo, *context );
     }
 
-    std::string errorMessage;
     if( parsedModule == NULL ) {
       fprintf( stderr, "Parsed module is NULL\n" );
 
       errorsOccurred = true;
     }
     else {
+      std::string errorMessage;
       if( vmoptions::verifyCode ) {
         Scope_time_adder prof(stats.verifyTimeNS);
         bool isValid = ! verifyModule(
@@ -744,9 +753,7 @@ extern "C" {
     }
 
     if( errorsOccurred ) {
-      fflush( stderr );
-      llvm::outs().flush();
-      llvm::errs().flush();
+      zompFlushStreams();
     }
 
     return !errorsOccurred;

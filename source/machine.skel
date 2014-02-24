@@ -63,6 +63,7 @@ http://sheijk.dword.org/zomp
 
     const char* float2string (double f)
     void zompPrintTimingStats ()
+    void zompFlushStreams ()
 
     bool zompAstIsNull (void* ptr)
 

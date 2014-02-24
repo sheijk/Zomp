@@ -5,6 +5,11 @@ open Lang
 
 include Machine
 
+let flushStreams() =
+  flush stdout;
+  flush stderr;
+  Machine.zompFlushStreams()
+
 module StatisticsBackend : sig end = struct
   let registerCounter ~sectionName ~name ~fractionalDigits ~typ ~id =
     let f =
