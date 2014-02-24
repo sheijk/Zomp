@@ -7,60 +7,17 @@ open Common
 open Basics
 open Parseutils
 
-let catchingErrorsDo f ~onErrors =
-  let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
-  begin
-    try
-      f()
-    with
-      | Expander.IllegalExpression (expr, errors) ->
-        onErrors errors
-      | Lang.CouldNotParseType descr ->
-        onErrorMsg $ sprintf "unknown type: %s\n" descr
-      | Genllvm.CodeGenError msg ->
-        onErrorMsg $ sprintf "codegen failed: %s\n" msg
-      | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
-      | Failure msg ->
-        onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
-  end
-
-let compileExpr env expr =
-  catchingErrorsDo (fun () ->
-    let result = Expander.translate env expr in
-    let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
-    result, llvmCode)
-    ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
+let compileExpr = Expander.compileExpr
 
 let compileNew env exprs emitBackendCode fileName =
-  begin
-    let exprs = List.map (fixFileName fileName) exprs in
-    let hadError = ref false in
-    let translateExpr expr =
-      let oldBindings = Expander.bindings env in
-      let { Result.flag; diagnostics; results }, llvmCode = compileExpr env expr in
-      let diagnostics =
-        try
-          Zompvm.evalLLVMCode oldBindings results llvmCode;
-          emitBackendCode llvmCode;
-          diagnostics
-        with Genllvm.CodeGenError msg | FailedToEvaluateLLVMCode (_, msg) ->
-          diagnostics @ [Serror.fromMsg None msg]
-      in
-      if flag = Result.Fail then
-        hadError := true;
-      results, diagnostics
-    in
-    let formsNested, diagnosticsNested = List.split $ List.map translateExpr exprs in
-    let diagnostics = List.flatten diagnosticsNested in
-    let results = List.flatten formsNested in
-    Result.make
-      (if !hadError then Result.Fail else Result.Success)
-      ~diagnostics ~results
-  end
+  let exprs = List.map (fixFileName fileName) exprs in
+  Expander.translateMulti emitBackendCode env exprs
 
 let compileFromStream env ~source ~emitBackendCode ~fileName =
-  match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName source with
+  let parse ~fileName source = collectTimingInfo "parsing" $ 
+    fun () -> Parseutils.parseIExprs ~fileName source
+  in
+  match parse ~fileName source with
     | Error error ->
       Result.make Result.Fail ~diagnostics:[error] ~results:[]
     | Exprs exprs ->
