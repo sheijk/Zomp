@@ -2680,9 +2680,9 @@ let extractResultFromEnv env =
   compilationSwallowedErrors := false;
   Result.make flag ~diagnostics:errors ~results:forms
 
-let lookupTLInstruction, addNewToplevelInstruction, foreachToplevelBaseInstructionDoc =
+let lookupTLInstruction, addTranslateFunction, foreachToplevelBaseInstructionDoc =
   let handlers = ref [] in
-  let add (name:string) (doc:string) instruction =
+  let add name ~doc instruction =
     handlers := (name, (doc, instruction)) :: !handlers
   in
   add macroFunc "typeExpr, name(typeExpr id, ...) expr" translateFunc;
@@ -2707,8 +2707,6 @@ let lookupTLInstruction, addNewToplevelInstruction, foreachToplevelBaseInstructi
     List.iter (fun (name, (doc, _)) -> f name doc) !handlers
   in
   lookup, add, foreachDoc
-
-type tlenv = EnvTL.t
 
 let rec emitExpr tlenv expr : unit =
   begin match !traceMacroExpansion with
@@ -2758,9 +2756,6 @@ let translateMulti emitBackendCode env exprs =
 let addIncludePath = Include.addIncludePath
 let addDllPath = Link_clib.addDllPath
 
-let addTranslateFunction name ~doc f =
-  addNewToplevelInstruction name doc f
-
 let emitBackendCodeFunc = ref (None : (string -> unit) option)
 let setEmitbackendCode f = emitBackendCodeFunc := Some f
 let emitBackendCode code =
@@ -2776,6 +2771,7 @@ let emitBackendCodeForForm oldBindings form =
   Zompvm.evalLLVMCode oldBindings [form] llvmCode;
   emitBackendCode llvmCode
 
+type tlenv = EnvTL.t
 let createEnv = EnvTL.create emitBackendCodeForForm
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
