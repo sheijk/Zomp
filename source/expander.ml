@@ -2817,7 +2817,7 @@ let totalIncludeTime = ref 0.0
 let libsSection = Statistics.createSection "compiling included libraries (s)"
 let () = Statistics.createFloatCounter libsSection "total" 3 (Ref.getter totalIncludeTime)
 
-let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExprTranslateF env) expr =
+let translateInclude includePath (env : EnvTL.t) expr : unit =
   let importFile fileName =
     let source =
       collectTimingInfo "readFileContent"
@@ -2826,12 +2826,11 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
     let previousTotalTime = !totalIncludeTime in
     let absoluteFileName = Common.absolutePath fileName in
     let result, time = recordTiming $ fun () ->
-      let exprs =
-        collectTimingInfo "parse"
-          (fun () -> Parseutils.parseIExprsNoCatch ~fileName:absoluteFileName source)
-      in
-      collectTimingInfo "translateAndEval"
-        (fun () -> translateAndEval handleLLVMCodeF translateTL env exprs)
+      match Parseutils.parseIExprs ~fileName:absoluteFileName source with
+        | Parseutils.Error error ->
+          EnvTL.emitError env error
+        | Parseutils.Exprs exprs ->
+          List.iter (emitExprGuarded env) exprs
     in
     let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
     Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
@@ -2849,35 +2848,29 @@ let translateInclude includePath handleLLVMCodeF translateTL (env : toplevelExpr
         try
           importFile fileName
         with
-          | Indentlexer.UnknowToken(loc,token,reason) ->
-            errorFromExpr expr
-              (Indentlexer.unknownTokenToErrorMsg
-                 (Some {loc with fileName = fileName}, token, reason))
-          | IllegalExpression (expr, errors) ->
-            Error errors
           | Sys_error _ ->
-            Error [Serror.fromMsg location
-                      (Common.combine "\n  "
-                         (sprintf "file '%s' could not be found" fileName
-                          :: sprintf "pwd = %s" (Sys.getcwd())
-                          :: List.map (sprintf "zomp-include-dir %s") !includePath))]
+            EnvTL.emitError env $ Serror.fromMsg location
+              (Common.combine "\n  "
+                 (sprintf "file '%s' could not be found" fileName
+                  :: sprintf "pwd = %s" (Sys.getcwd())
+                  :: List.map (sprintf "zomp-include-dir %s") !includePath))
           | error ->
             let msg = Printexc.to_string error in
-            errorFromExpr expr
+            EnvTL.emitError env $ Serror.fromExpr expr
               (sprintf "%s, while compiling included file %s" msg fileName)
       end
     | invalidExpr ->
-      errorFromExpr invalidExpr ("expecting 'include \"fileName.zomp\"'")
+      EnvTL.emitError env $ Serror.fromExpr invalidExpr "expecting 'include \"fileName.zomp\"'"
 
 let includePath = ref ([] : string list)
 let addIncludePath (env :EnvTL.t) dir where = addToList includePath dir where
 
-let translateInclude handleLLVMCodeF translateTL env expr =
+let translateInclude env expr =
   collectTimingInfo "translateInclude"
-    (fun () -> translateInclude includePath handleLLVMCodeF translateTL env expr)
+    (fun () -> translateInclude includePath env expr)
 
 let addTranslateIncludeFunction name ~doc handleLLVMCodeF =
-  addToplevelInstruction name doc $ translateInclude handleLLVMCodeF translateTLNoErr
+  addNewToplevelInstruction name doc translateInclude
 
 let addTranslateSeqFunction name ~doc =
   addNewToplevelInstruction name doc translateSeqTL
