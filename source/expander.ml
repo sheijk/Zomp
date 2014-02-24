@@ -2610,56 +2610,7 @@ let lookupTLInstruction, addNewToplevelInstruction, foreachToplevelBaseInstructi
   in
   lookup, add, foreachDoc
 
-let translateTLNoErr bindings expr =
-  begin match !traceMacroExpansion with
-    | Some f -> f "translateTLNoErr/???" expr
-    | None -> ()
-  end;
-
-  let rec translate errorF translators bindings (expr :Ast2.t) =
-  (* let s = Ast2.toString expr in *)
-  (* let s = expr.id in *)
-  (* begin match expr.location with *)
-  (*   | Some loc -> *)
-  (*       printf "Translate @%s %s\n" (Ast2.locationToString loc) s; *)
-  (*       flush stdout; *)
-  (*   | None -> *)
-  (*       printf "Translate! %s\n" s; *)
-  (*       flush stdout; *)
-  (* end; *)
-    let rec t = function
-      | f :: remf ->
-        begin
-          Zompvm.currentBindings := bindings;
-          match f (translate errorF translators) bindings expr with
-            | Some ((newBindings : Bindings.t), result) -> (newBindings, result)
-            | None -> t remf
-        end
-      | [] ->
-        errorF expr (sprintf "no translator matched expression, id=%s" expr.id)
-    in
-    t translators
-  in
-
-  translate raiseIllegalExpression
-    [
-      sampleFunc3 "translateGlobalVar" (unwrapOldTL macroVar translateGlobalVar);
-      sampleFunc3 "translateApplyTL" (unwrapOldTL macroApply translateApplyTL);
-      sampleFunc3 "translateFunc" (unwrapOldTL macroFunc translateFunc);
-      sampleFunc3 "translateTypedef" (unwrapOldTL macroTypedef translateTypedef);
-      sampleFunc3 "translateDefineReplacementMacro" (unwrapOldTL macroReplacement translateDefineReplacementMacro);
-      sampleFunc3 "translateMacroCall" Old_macro_support.translateMacroCall;
-      sampleFunc3 "translateError" (unwrapOldTL macroError translateError);
-      sampleFunc3 "translateLinkCLib" (unwrapOldTL macroLinkCLib translateLinkCLib);
-    ]
-    bindings expr
-
-let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
-
 type tlenv = EnvTL.t
-
-type toplevelTranslationFunction =
-    toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
 
 let rec emitExpr tlenv expr : unit =
   begin match !traceMacroExpansion with
