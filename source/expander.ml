@@ -2547,6 +2547,9 @@ let translateDefineReplacementMacro tlenv expr : unit =
     | _ ->
       EnvTL.emitError tlenv (Serror.fromExpr expr (sprintf "invalid args"))
 
+let translateSeqTL env expr =
+  EnvTL.emitExprs env expr.args
+
 let translateLinkCLib dllPath (env : EnvTL.t) expr : unit =
   match expr with
     | { args = [{id = fileName; args = []; location}] } ->
@@ -2586,6 +2589,62 @@ let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
 
 let translateLinkCLib env expr =
   collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
+
+let totalIncludeTime = ref 0.0
+let libsSection = Statistics.createSection "compiling included libraries (s)"
+let () = Statistics.createFloatCounter libsSection "total" 3 (Ref.getter totalIncludeTime)
+
+let translateInclude includePath (env : EnvTL.t) expr : unit =
+  let importFile fileName =
+    let source =
+      collectTimingInfo "readFileContent"
+        (fun () -> Common.readFile ~paths:!includePath fileName)
+    in
+    let previousTotalTime = !totalIncludeTime in
+    let absoluteFileName = Common.absolutePath fileName in
+    let result, time = recordTiming $ fun () ->
+      match Parseutils.parseIExprs ~fileName:absoluteFileName source with
+        | Parseutils.Error error ->
+          EnvTL.emitError env error
+        | Parseutils.Exprs exprs ->
+          EnvTL.emitExprs env exprs
+    in
+    let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
+    Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
+    totalIncludeTime := !totalIncludeTime +. nestedTime;
+    result
+  in
+  match expr with
+    | { id = id; args = [{ id = quotedFileName; args = []; location }] } when id = macroInclude ->
+      begin
+        let fileName =
+          let fileName = Common.removeQuotes quotedFileName in
+          if Common.endsWith ".zomp" fileName then fileName
+          else fileName ^ ".zomp"
+        in
+        try
+          importFile fileName
+        with
+          | Sys_error _ ->
+            EnvTL.emitError env $ Serror.fromMsg location
+              (Common.combine "\n  "
+                 (sprintf "file '%s' could not be found" fileName
+                  :: sprintf "pwd = %s" (Sys.getcwd())
+                  :: List.map (sprintf "zomp-include-dir %s") !includePath))
+          | error ->
+            let msg = Printexc.to_string error in
+            EnvTL.emitError env $ Serror.fromExpr expr
+              (sprintf "%s, while compiling included file %s" msg fileName)
+      end
+    | invalidExpr ->
+      EnvTL.emitError env $ Serror.fromExpr invalidExpr "expecting 'include \"fileName.zomp\"'"
+
+let includePath = ref ([] : string list)
+let addIncludePath (env :EnvTL.t) dir where = addToList includePath dir where
+
+let translateInclude env expr =
+  collectTimingInfo "translateInclude"
+    (fun () -> translateInclude includePath env expr)
 
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
@@ -2689,65 +2748,6 @@ let translateMulti emitBackendCode env exprs =
   in
   translateExprs exprs;
   extractResultFromEnv env
-
-let translateSeqTL env expr =
-  EnvTL.emitExprs env expr.args
-
-let totalIncludeTime = ref 0.0
-let libsSection = Statistics.createSection "compiling included libraries (s)"
-let () = Statistics.createFloatCounter libsSection "total" 3 (Ref.getter totalIncludeTime)
-
-let translateInclude includePath (env : EnvTL.t) expr : unit =
-  let importFile fileName =
-    let source =
-      collectTimingInfo "readFileContent"
-        (fun () -> Common.readFile ~paths:!includePath fileName)
-    in
-    let previousTotalTime = !totalIncludeTime in
-    let absoluteFileName = Common.absolutePath fileName in
-    let result, time = recordTiming $ fun () ->
-      match Parseutils.parseIExprs ~fileName:absoluteFileName source with
-        | Parseutils.Error error ->
-          EnvTL.emitError env error
-        | Parseutils.Exprs exprs ->
-          EnvTL.emitExprs env exprs
-    in
-    let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
-    Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
-    totalIncludeTime := !totalIncludeTime +. nestedTime;
-    result
-  in
-  match expr with
-    | { id = id; args = [{ id = quotedFileName; args = []; location }] } when id = macroInclude ->
-      begin
-        let fileName =
-          let fileName = Common.removeQuotes quotedFileName in
-          if Common.endsWith ".zomp" fileName then fileName
-          else fileName ^ ".zomp"
-        in
-        try
-          importFile fileName
-        with
-          | Sys_error _ ->
-            EnvTL.emitError env $ Serror.fromMsg location
-              (Common.combine "\n  "
-                 (sprintf "file '%s' could not be found" fileName
-                  :: sprintf "pwd = %s" (Sys.getcwd())
-                  :: List.map (sprintf "zomp-include-dir %s") !includePath))
-          | error ->
-            let msg = Printexc.to_string error in
-            EnvTL.emitError env $ Serror.fromExpr expr
-              (sprintf "%s, while compiling included file %s" msg fileName)
-      end
-    | invalidExpr ->
-      EnvTL.emitError env $ Serror.fromExpr invalidExpr "expecting 'include \"fileName.zomp\"'"
-
-let includePath = ref ([] : string list)
-let addIncludePath (env :EnvTL.t) dir where = addToList includePath dir where
-
-let translateInclude env expr =
-  collectTimingInfo "translateInclude"
-    (fun () -> translateInclude includePath env expr)
 
 let addTranslateIncludeFunction name ~doc handleLLVMCodeF =
   addNewToplevelInstruction name doc translateInclude
