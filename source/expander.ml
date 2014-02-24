@@ -2550,101 +2550,111 @@ let translateDefineReplacementMacro tlenv expr : unit =
 let translateSeqTL env expr =
   EnvTL.emitExprs env expr.args
 
-let translateLinkCLib dllPath (env : EnvTL.t) expr : unit =
-  match expr with
-    | { args = [{id = fileName; args = []; location}] } ->
-      begin
-        let location = someOrDefault location $ someOrDefault expr.location Basics.fakeLocation in
-        let fileName = Common.removeQuotes fileName in
+module Link_clib : sig
+  val translateLinkCLib : EnvTL.t -> Ast2.t -> unit
+  val addDllPath : EnvTL.t -> string -> [`Front | `Back] -> unit
+end = struct
+  let translateLinkCLib dllPath (env : EnvTL.t) expr : unit =
+    match expr with
+      | { args = [{id = fileName; args = []; location}] } ->
+        begin
+          let location = someOrDefault location $ someOrDefault expr.location Basics.fakeLocation in
+          let fileName = Common.removeQuotes fileName in
 
-        let dllExtensions = ["dylib"; "so"; "dll"] in
-        let matches re string = Str.string_match (Str.regexp re) string 0 in
-        let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
-        if not (matches dllPattern fileName) then
-          EnvTL.emitError env $ Serror.fromMsg (Some location)
-            (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
-               fileName (Common.combine ", " dllExtensions))
-        else
-          match Common.findFileIn fileName !dllPath with
-            | Some absoluteFileName ->
-              let handle = Zompvm.zompLoadLib absoluteFileName in
-              if handle = 0 then
+          let dllExtensions = ["dylib"; "so"; "dll"] in
+          let matches re string = Str.string_match (Str.regexp re) string 0 in
+          let dllPattern = sprintf ".*\\.\\(%s\\)" (Common.combine "\\|" dllExtensions) in
+          if not (matches dllPattern fileName) then
+            EnvTL.emitError env $ Serror.fromMsg (Some location)
+              (sprintf "%s has invalid extension for a dynamic library. Supported: %s"
+                 fileName (Common.combine ", " dllExtensions))
+          else
+            match Common.findFileIn fileName !dllPath with
+              | Some absoluteFileName ->
+                let handle = Zompvm.zompLoadLib absoluteFileName in
+                if handle = 0 then
+                  EnvTL.emitError env $ Serror.fromMsg (Some location)
+                    (sprintf "could not load C library '%s'\n" absoluteFileName)
+                else
+                  ()
+              | None ->
                 EnvTL.emitError env $ Serror.fromMsg (Some location)
-                  (sprintf "could not load C library '%s'\n" absoluteFileName)
-              else
-                ()
-            | None ->
-              EnvTL.emitError env $ Serror.fromMsg (Some location)
+                  (Common.combine "\n  "
+                     (sprintf "could not find C library '%s'," fileName
+                      :: sprintf "pwd = %s" (Sys.getcwd())
+                      :: List.map (sprintf "zomp-include-dir %s") !dllPath))
+        end
+      | invalidExpr ->
+        EnvTL.emitError env $ Serror.fromExpr invalidExpr
+          (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
+
+  let dllPath = ref ([] :string list)
+  let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
+
+  let translateLinkCLib env expr =
+    collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
+end
+
+module Include : sig
+  val translateInclude : EnvTL.t -> Ast2.t -> unit
+  val addIncludePath : EnvTL.t -> string -> [< `Back | `Front ] -> unit
+end = struct
+  let totalIncludeTime = ref 0.0
+  let libsSection = Statistics.createSection "compiling included libraries (s)"
+  let () = Statistics.createFloatCounter libsSection "total" 3 (Ref.getter totalIncludeTime)
+
+  let translateInclude includePath (env : EnvTL.t) expr : unit =
+    let importFile fileName =
+      let source =
+        collectTimingInfo "readFileContent"
+          (fun () -> Common.readFile ~paths:!includePath fileName)
+      in
+      let previousTotalTime = !totalIncludeTime in
+      let absoluteFileName = Common.absolutePath fileName in
+      let result, time = recordTiming $ fun () ->
+        match Parseutils.parseIExprs ~fileName:absoluteFileName source with
+          | Parseutils.Error error ->
+            EnvTL.emitError env error
+          | Parseutils.Exprs exprs ->
+            EnvTL.emitExprs env exprs
+      in
+      let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
+      Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
+      totalIncludeTime := !totalIncludeTime +. nestedTime;
+      result
+    in
+    match expr with
+      | { id = id; args = [{ id = quotedFileName; args = []; location }] } when id = macroInclude ->
+        begin
+          let fileName =
+            let fileName = Common.removeQuotes quotedFileName in
+            if Common.endsWith ".zomp" fileName then fileName
+            else fileName ^ ".zomp"
+          in
+          try
+            importFile fileName
+          with
+            | Sys_error _ ->
+              EnvTL.emitError env $ Serror.fromMsg location
                 (Common.combine "\n  "
-                   (sprintf "could not find C library '%s'," fileName
+                   (sprintf "file '%s' could not be found" fileName
                     :: sprintf "pwd = %s" (Sys.getcwd())
-                    :: List.map (sprintf "zomp-include-dir %s") !dllPath))
-      end
-    | invalidExpr ->
-      EnvTL.emitError env $ Serror.fromExpr invalidExpr
-        (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
+                    :: List.map (sprintf "zomp-include-dir %s") !includePath))
+            | error ->
+              let msg = Printexc.to_string error in
+              EnvTL.emitError env $ Serror.fromExpr expr
+                (sprintf "%s, while compiling included file %s" msg fileName)
+        end
+      | invalidExpr ->
+        EnvTL.emitError env $ Serror.fromExpr invalidExpr "expecting 'include \"fileName.zomp\"'"
 
-let dllPath = ref ([] :string list)
-let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
+  let includePath = ref ([] : string list)
+  let addIncludePath (env :EnvTL.t) dir where = addToList includePath dir where
 
-let translateLinkCLib env expr =
-  collectTimingInfo "translateLinkCLib" (fun () -> translateLinkCLib dllPath env expr)
-
-let totalIncludeTime = ref 0.0
-let libsSection = Statistics.createSection "compiling included libraries (s)"
-let () = Statistics.createFloatCounter libsSection "total" 3 (Ref.getter totalIncludeTime)
-
-let translateInclude includePath (env : EnvTL.t) expr : unit =
-  let importFile fileName =
-    let source =
-      collectTimingInfo "readFileContent"
-        (fun () -> Common.readFile ~paths:!includePath fileName)
-    in
-    let previousTotalTime = !totalIncludeTime in
-    let absoluteFileName = Common.absolutePath fileName in
-    let result, time = recordTiming $ fun () ->
-      match Parseutils.parseIExprs ~fileName:absoluteFileName source with
-        | Parseutils.Error error ->
-          EnvTL.emitError env error
-        | Parseutils.Exprs exprs ->
-          EnvTL.emitExprs env exprs
-    in
-    let nestedTime = time -. (!totalIncludeTime -. previousTotalTime) in
-    Statistics.createFloatCounter libsSection absoluteFileName 3 (fun () -> nestedTime);
-    totalIncludeTime := !totalIncludeTime +. nestedTime;
-    result
-  in
-  match expr with
-    | { id = id; args = [{ id = quotedFileName; args = []; location }] } when id = macroInclude ->
-      begin
-        let fileName =
-          let fileName = Common.removeQuotes quotedFileName in
-          if Common.endsWith ".zomp" fileName then fileName
-          else fileName ^ ".zomp"
-        in
-        try
-          importFile fileName
-        with
-          | Sys_error _ ->
-            EnvTL.emitError env $ Serror.fromMsg location
-              (Common.combine "\n  "
-                 (sprintf "file '%s' could not be found" fileName
-                  :: sprintf "pwd = %s" (Sys.getcwd())
-                  :: List.map (sprintf "zomp-include-dir %s") !includePath))
-          | error ->
-            let msg = Printexc.to_string error in
-            EnvTL.emitError env $ Serror.fromExpr expr
-              (sprintf "%s, while compiling included file %s" msg fileName)
-      end
-    | invalidExpr ->
-      EnvTL.emitError env $ Serror.fromExpr invalidExpr "expecting 'include \"fileName.zomp\"'"
-
-let includePath = ref ([] : string list)
-let addIncludePath (env :EnvTL.t) dir where = addToList includePath dir where
-
-let translateInclude env expr =
-  collectTimingInfo "translateInclude"
-    (fun () -> translateInclude includePath env expr)
+  let translateInclude env expr =
+    collectTimingInfo "translateInclude"
+      (fun () -> translateInclude includePath env expr)
+end
 
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
@@ -2679,10 +2689,13 @@ let lookupTLInstruction, addNewToplevelInstruction, foreachToplevelBaseInstructi
   add macroTypedef "name, typeExpr" translateTypedef;
   add macroReplacement "" translateDefineReplacementMacro;
   add macroError "string, expr?" translateError;
-  add macroLinkCLib "dll-name" translateLinkCLib;
+  add macroLinkCLib "dll-name" Link_clib.translateLinkCLib;
   add macroVar "type, name, value" translateGlobalVar;
   add macroApply "expr..." translateApplyTL;
   add macroMacro "name, args..., body" translateDefineTLMacro;
+  add "include" "zompSourceFile" Include.translateInclude;
+  add "seq" "ast..." translateSeqTL;
+
   let lookup name =
     try
       let _, handler = List.assoc name (!handlers) in
@@ -2749,11 +2762,8 @@ let translateMulti emitBackendCode env exprs =
   translateExprs exprs;
   extractResultFromEnv env
 
-let addTranslateIncludeFunction name ~doc handleLLVMCodeF =
-  addNewToplevelInstruction name doc translateInclude
-
-let addTranslateSeqFunction name ~doc =
-  addNewToplevelInstruction name doc translateSeqTL
+let addIncludePath = Include.addIncludePath
+let addDllPath = Link_clib.addDllPath
 
 let addTranslateFunction name ~doc f =
   addNewToplevelInstruction name doc f
@@ -2777,8 +2787,4 @@ let createEnv = EnvTL.create emitBackendCodeForForm
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
 let emitError = EnvTL.emitError
-
-let () =
-  addTranslateIncludeFunction "include" ~doc:"zompSourceFile" emitBackendCode;
-  addTranslateSeqFunction "seq" ~doc:"ast..."
 
