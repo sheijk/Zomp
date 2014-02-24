@@ -2752,14 +2752,7 @@ let compileExpr env expr =
     ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
 
 let translateMulti emitBackendCode env exprs =
-  let rec translateExprs = function
-    | [] -> ()
-    | e :: rem ->
-      emitExprGuarded env e;
-      if (not (EnvTL.hasErrors env)) then
-        translateExprs rem
-  in
-  translateExprs exprs;
+  EnvTL.emitExprs env exprs;
   extractResultFromEnv env
 
 let addIncludePath = Include.addIncludePath
