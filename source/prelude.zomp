@@ -201,8 +201,6 @@ std:base:func void ast:printStatistics():
   printNewline()
 end
 
-std:base:func cstring cstrings:append(cstring l, cstring r)
-
 std:base:func void ast:init(ast* a):
   store (fieldptr a id) ""
   store (fieldptr a childCount) 0
@@ -240,7 +238,7 @@ std:base:func ast* ast:fromString(cstring name):
 
   ast:init(a)
   assign ast:totalCreatedAsts (u32:add ast:totalCreatedAsts 1)
-  store (fieldptr a id) (cstrings:append name "")
+  store (fieldptr a id) strdup(name)
 
   std:base:ret a
 end
