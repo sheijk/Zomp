@@ -122,16 +122,9 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
       (fun obj -> if not( f obj ) then onError obj)
       list
   in
-  let removeFunctionBody name = Machine.zompRemoveFunctionBody name in
+  let removeFunctionBody name = ignore (Machine.zompRemoveFunctionBody name) in
   let recompileAndRelinkFunction name = Machine.zompRecompileAndRelinkFunction name in
-  (* let removeFunctionBody = sampleFunc1 "removeFunctionBody" removeFunctionBody in *)
-  (* let recompileAndRelinkFunction = sampleFunc1 "recompileAndRelinkFunction" recompileAndRelinkFunction in *)
-  collectTimingInfo "removeFunctionBodies"
-    (fun () ->
-       tryApplyToAll
-         removeFunctionBody
-         redefinedFunctions
-         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("could not remove function body: " ^ msg)));
+  List.iter removeFunctionBody redefinedFunctions;
   collectTimingInfo "send code"
     (fun () ->
        if not (Machine.zompSendCode llvmCode targetModuleName) then
@@ -144,13 +137,12 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
          ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("could not recompile and relink function: " ^ msg)))
 
 let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
+  flushStreams();
   let isDefinedFunction func =
     match func.impl with
       | None -> false
       | Some _ ->
-          match Bindings.lookup bindings func.fname with
-            | Bindings.FuncSymbol _ -> true
-            | _ -> false
+        Machine.zompRemoveFunctionBody func.fname
   in
   let redefinedFunctions =
     List.fold_left

@@ -6,21 +6,6 @@ open Bindings
 open Printf
 open Basics
 
-module Utilities =
-struct
-  let log message =
-    eprintf "%s\n" message;
-    flush stderr
-
-  let trace message f =
-    log ("-> " ^ message);
-    let result = f() in
-    log ("<- " ^ message);
-    result
-end
-
-open Utilities
-
 let typeErrorMessage bindings (fe, msg, foundType, expectedType) =
   let typeName = function
     | `Any description -> description
@@ -1939,7 +1924,7 @@ let translateNested = sampleFunc2 "translateNested" translateNestedNoErr
 
 module EnvTL : sig
   type t
-  val create : Translation_utils.toplevelExprTranslateF -> Bindings.t -> t
+  val create : (Bindings.t -> Lang.toplevelExpr -> unit) -> Translation_utils.toplevelExprTranslateF -> Bindings.t -> t
 
   val env : t -> toplevelEnv
   val bindings : t -> Bindings.t
@@ -1967,6 +1952,7 @@ end = struct
 
     tlEmitForm :toplevelExpr -> unit;
     tlEmitError :Serror.t -> unit;
+    tlEmitBackendCode : Bindings.t -> Lang.toplevelExpr -> unit;
   }
 
   let env e = e.tlenv
@@ -1980,10 +1966,12 @@ end = struct
 
   let emitError env error =
     env.tlEmitError error
-  let emitForm env form = env.tlEmitForm form
+  let emitForm env form =
+    env.tlEmitBackendCode env.tlbindings form;
+    env.tlEmitForm form
+
   let emitSilentError env =
     env.tlHadSilentErrors <- true
-
 
   let emitExprFunc = ref (fun _ _ -> failwith "did not call EnvTL.setEmitExprTodo")
   let emitExpr env expr = !emitExprFunc env expr
@@ -2001,7 +1989,7 @@ end = struct
     tlenv.tlHadSilentErrors <- false;
     flag, errors, forms
 
-  let create translateTLNoErr (initialBindings :bindings) =
+  let create emitBackendCode translateTLNoErr (initialBindings :bindings) =
     let rec env = {
       tlbindings = initialBindings;
       tlenv = makeEnv initialBindings translateTLNoErr translateNested;
@@ -2010,50 +1998,10 @@ end = struct
       tlHadSilentErrors = false;
       tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
+      tlEmitBackendCode = emitBackendCode;
     } in
     env
 end
-
-(** this does not update the bindings in the tlenv
-    thus seq in zompvm is broken
-*)
-let translateAndEval handleLLVMCodeF translateTL env exprs =
-  let genLLVMCode form =
-    collectTimingInfo "gencode"
-      (fun () ->
-         Genllvm.gencodeTL form)
-  in
-  let evalLLVMCode bindings forms llvmCode =
-    collectTimingInfo "Zompvm.evalLLVMCode"
-      (fun () ->
-         Zompvm.evalLLVMCode bindings forms llvmCode)
-  in
-  let llvmCodeCallback llvmCode =
-    collectTimingInfo "handleLLVMCodeF"
-      (fun () ->
-         handleLLVMCodeF llvmCode)
-  in
-  let impl() =
-    let newBindings, tlexprsFromFile =
-      List.fold_left
-        (fun (bindings,prevExprs) sexpr ->
-           let newBindings, newExprs = translateTL bindings sexpr in
-           List.iter
-             (fun form ->
-                let llvmCode = genLLVMCode form in
-                evalLLVMCode bindings [form] llvmCode;
-                llvmCodeCallback llvmCode)
-             newExprs;
-           newBindings, prevExprs @ newExprs )
-        (env.bindings, [])
-        exprs
-    in
-    Result (newBindings, [])
-  in
-  collectTimingInfo "translateAndEval" impl
-
-let translateSeqTL handleLLVMCodeF translateTL env expr =
-  translateAndEval handleLLVMCodeF translateTL env expr.args
 
 let () =
   addBaseInstruction macroMacro "name, args..., body"
@@ -2062,9 +2010,10 @@ let () =
 let compilationSwallowedErrors = ref false
 
 let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
+  let ignoreForm _ _ = () in
   fun translateF bindings expr ->
     if expr.id = id then begin
-      let env = EnvTL.create translateF bindings in
+      let env = EnvTL.create ignoreForm translateF bindings in
       f env expr;
       let flag, errors, forms = EnvTL.reset env in
       if errors <> [] then
@@ -2721,10 +2670,6 @@ let translateTLNoErr bindings expr =
 let translateTLNoErr = Common.sampleFunc2 "translateTL" translateTLNoErr
 
 type tlenv = EnvTL.t
-let createEnv = EnvTL.create translateTLNoErr
-let bindings = EnvTL.bindings
-let setBindings = EnvTL.setBindings
-let emitError = EnvTL.emitError
 
 type toplevelTranslationFunction =
     toplevelEnv -> Ast2.sexpr -> toplevelTranslationResult
@@ -2773,12 +2718,15 @@ let rec emitExpr tlenv expr : unit =
           EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
       end
 
-let translate env expr =
-  emitExpr env expr;
+let extractResultFromEnv env =
   let flag, errors, forms = EnvTL.reset env in
   let flag = if !compilationSwallowedErrors then Result.Fail else flag in
   compilationSwallowedErrors := false;
   Result.make flag ~diagnostics:errors ~results:forms
+
+let translate env expr =
+  emitExpr env expr;
+  extractResultFromEnv env
 
 let () =
   EnvTL.setEmitExprTodo emitExpr
@@ -2808,31 +2756,62 @@ let compileExpr env expr =
     result, llvmCode)
     ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
 
+let emitExprGuarded env expr =
+  catchingErrorsDo (fun () ->
+    emitExpr env expr)
+    ~onErrors:(List.iter (EnvTL.emitError env))
+
 let translateMulti emitBackendCode env exprs =
-  begin
-    let hadError = ref false in
-    let translateExpr expr =
-      let oldBindings = EnvTL.bindings env in
-      let { Result.flag; diagnostics; results }, llvmCode = compileExpr env expr in
-      let diagnostics =
-        try
-          Zompvm.evalLLVMCode oldBindings results llvmCode;
-          emitBackendCode llvmCode;
-          diagnostics
-        with Genllvm.CodeGenError msg | FailedToEvaluateLLVMCode (_, msg) ->
-          diagnostics @ [Serror.fromMsg None msg]
-      in
-      if flag = Result.Fail then
-        hadError := true;
-      results, diagnostics
+  let rec translateExprs = function
+    | [] -> ()
+    | e :: rem ->
+      emitExprGuarded env e;
+      if (not (EnvTL.hasErrors env)) then
+        translateExprs rem
+  in
+  translateExprs exprs;
+  extractResultFromEnv env
+
+(** this does not update the bindings in the tlenv
+    thus seq in zompvm is broken
+*)
+let translateAndEval handleLLVMCodeF translateTL env exprs =
+  let genLLVMCode form =
+    collectTimingInfo "gencode"
+      (fun () ->
+        Genllvm.gencodeTL form)
+  in
+  let evalLLVMCode bindings forms llvmCode =
+    collectTimingInfo "Zompvm.evalLLVMCode"
+      (fun () ->
+        Zompvm.evalLLVMCode bindings forms llvmCode)
+  in
+  let llvmCodeCallback llvmCode =
+    collectTimingInfo "handleLLVMCodeF"
+      (fun () ->
+        handleLLVMCodeF llvmCode)
+  in
+  let impl() =
+    let newBindings, tlexprsFromFile =
+      List.fold_left
+        (fun (bindings,prevExprs) sexpr ->
+          let newBindings, newExprs = translateTL bindings sexpr in
+          List.iter
+            (fun form ->
+              let llvmCode = genLLVMCode form in
+              evalLLVMCode bindings [form] llvmCode;
+              llvmCodeCallback llvmCode)
+            newExprs;
+          newBindings, prevExprs @ newExprs )
+        (env.bindings, [])
+        exprs
     in
-    let formsNested, diagnosticsNested = List.split $ List.map translateExpr exprs in
-    let diagnostics = List.flatten diagnosticsNested in
-    let results = List.flatten formsNested in
-    Result.make
-      (if !hadError then Result.Fail else Result.Success)
-      ~diagnostics ~results
-  end
+    Result (newBindings, [])
+  in
+  collectTimingInfo "translateAndEval" impl
+
+let translateSeqTL emitBackendCode translateTL env expr =
+  translateAndEval emitBackendCode translateTL env expr.args
 
 let totalIncludeTime = ref 0.0
 let libsSection = Statistics.createSection "compiling included libraries (s)"
@@ -2914,6 +2893,17 @@ let emitBackendCode code =
       f code
     | None ->
       failwith "did not call Expander.setEmitbackendCode"
+
+let emitBackendCodeForForm oldBindings form =
+  Zompvm.flushStreams();
+  let llvmCode = Genllvm.gencodeTL form in
+  Zompvm.evalLLVMCode oldBindings [form] llvmCode;
+  emitBackendCode llvmCode
+
+let createEnv = EnvTL.create emitBackendCodeForForm translateTLNoErr
+let bindings = EnvTL.bindings
+let setBindings = EnvTL.setBindings
+let emitError = EnvTL.emitError
 
 let () =
   addTranslateIncludeFunction "include" ~doc:"zompSourceFile" emitBackendCode;
