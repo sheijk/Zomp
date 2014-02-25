@@ -1920,9 +1920,31 @@ and translateNestedNoErr bindings expr =
 
 let translateNested = sampleFunc2 "translateNested" translateNestedNoErr
 
+let catchingErrorsDo f ~onErrors =
+  let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
+  begin
+    try
+      f()
+    with
+      | IllegalExpression (expr, errors) ->
+        onErrors errors
+      | Lang.CouldNotParseType descr ->
+        onErrorMsg $ sprintf "unknown type: %s\n" descr
+      | Genllvm.CodeGenError msg ->
+        onErrorMsg $ sprintf "codegen failed: %s\n" msg
+      | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
+        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
+      | Failure msg ->
+        onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
+  end
+
 module EnvTL : sig
   type t
-  val create : emitBackendCodeForForm:(Lang.toplevelExpr -> unit) -> Bindings.t -> t
+  val create : 
+    emitBackendCodeForForm:(Lang.toplevelExpr -> unit) ->
+    lookupTLInstruction:(string -> (t -> Ast2.t -> unit) option) ->
+    Bindings.t -> 
+    t
 
   val bindings : t -> Bindings.t
   val hasErrors : t -> bool
@@ -1931,7 +1953,6 @@ module EnvTL : sig
 
   val emitExpr : t -> Ast2.t -> unit
   val emitExprs : t -> Ast2.t list -> unit
-  val setEmitExprTodo : (t -> Ast2.t -> unit) -> unit
 
   val setBindings : t -> Bindings.t -> unit
   val emitError : t -> Serror.t -> unit
@@ -1950,6 +1971,7 @@ end = struct
     tlEmitForm :toplevelExpr -> unit;
     tlEmitError :Serror.t -> unit;
     tlEmitBackendCode : Lang.toplevelExpr -> unit;
+    tlLookupInstruction : string -> (t -> Ast2.t -> unit) option;
   }
 
   let bindings e = e.tlbindings
@@ -1968,13 +1990,36 @@ end = struct
   let emitSilentError env =
     env.tlHadSilentErrors <- true
 
-  let emitExprFunc = ref (fun _ _ -> failwith "did not call EnvTL.setEmitExprTodo")
-  let emitExpr env expr = !emitExprFunc env expr
-  let emitExprs env exprs = List.iter (emitExpr env) exprs
-  let setEmitExprTodo f = emitExprFunc := f
+  let rec emitExprUnsafe tlenv expr : unit =
+    begin match !traceMacroExpansion with
+      | Some f -> f "translate/???" expr
+      | None -> ()
+    end;
+
+    match Bindings.lookup (bindings tlenv) expr.id with
+      | MacroSymbol macro ->
+        let newAst = macro.mtransformFunc (bindings tlenv) expr in
+          (* TODO: fix locations, see Old_macro_support.translateMacroCall *)
+        emitExprUnsafe tlenv newAst
+      | VarSymbol _ | FuncSymbol _ | TypedefSymbol _ | LabelSymbol _ as sym ->
+        emitError tlenv (Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym))
+      | UndefinedSymbol ->
+        begin
+          match tlenv.tlLookupInstruction expr.id with
+            | Some handler ->
+              handler tlenv expr;
+            | None ->
+              emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
+        end
+
+  let emitExpr env expr =
+    catchingErrorsDo (fun () ->
+      emitExprUnsafe env expr)
+      ~onErrors:(List.iter (emitError env))
 
   let emitErrors env = List.iter (emitError env)
   let emitForms env = List.iter (emitForm env)
+  let emitExprs env exprs = List.iter (emitExpr env) exprs
 
   let reset tlenv =
     let errors = List.rev tlenv.tlerrorsRev in
@@ -1985,7 +2030,7 @@ end = struct
     tlenv.tlHadSilentErrors <- false;
     flag, errors, forms
 
-  let create ~emitBackendCodeForForm (initialBindings :bindings) =
+  let create ~emitBackendCodeForForm ~lookupTLInstruction (initialBindings :bindings) =
     let rec env = {
       tlbindings = initialBindings;
       tlerrorsRev = [];
@@ -1994,6 +2039,7 @@ end = struct
       tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
       tlEmitBackendCode = emitBackendCodeForForm;
+      tlLookupInstruction = lookupTLInstruction;
     } in
     env
 end
@@ -2003,24 +2049,6 @@ let () =
     (Macros.translateDefineNestedMacro translateNested)
 
 let compilationSwallowedErrors = ref false
-
-let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
-  fun translateF bindings expr ->
-    if expr.id = id then begin
-      let env = EnvTL.create ~emitBackendCodeForForm:ignore bindings in
-      f env expr;
-      let flag, errors, forms = EnvTL.reset env in
-      if errors <> [] then
-        compilationSwallowedErrors := true;
-      List.iter reportError errors;
-      match flag, forms with
-        | Result.Success, _
-        | _, (_ :: _) ->
-          Some (EnvTL.bindings env, forms)
-        | Result.Fail, [] ->
-          None
-    end else
-      None
 
 let matchFunc tlenv expr =
   let scanParams args =
@@ -2653,24 +2681,6 @@ end = struct
       (fun () -> translateInclude includePath env expr)
 end
 
-let catchingErrorsDo f ~onErrors =
-  let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
-  begin
-    try
-      f()
-    with
-      | IllegalExpression (expr, errors) ->
-        onErrors errors
-      | Lang.CouldNotParseType descr ->
-        onErrorMsg $ sprintf "unknown type: %s\n" descr
-      | Genllvm.CodeGenError msg ->
-        onErrorMsg $ sprintf "codegen failed: %s\n" msg
-      | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
-      | Failure msg ->
-        onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
-  end
-
 let extractResultFromEnv env =
   let flag, errors, forms = EnvTL.reset env in
   let flag = if !compilationSwallowedErrors then Result.Fail else flag in
@@ -2705,38 +2715,8 @@ let lookupTLInstruction, addTranslateFunction, foreachToplevelBaseInstructionDoc
   in
   lookup, add, foreachDoc
 
-let rec emitExpr tlenv expr : unit =
-  begin match !traceMacroExpansion with
-    | Some f -> f "translate/???" expr
-    | None -> ()
-  end;
-
-  match Bindings.lookup (EnvTL.bindings tlenv) expr.id with
-    | MacroSymbol macro ->
-      let newAst = macro.mtransformFunc (EnvTL.bindings tlenv) expr in
-      (* TODO: fix locations, see Old_macro_support.translateMacroCall *)
-      emitExpr tlenv newAst
-    | VarSymbol _ | FuncSymbol _ | TypedefSymbol _ | LabelSymbol _ as sym ->
-      EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym))
-    | UndefinedSymbol ->
-      begin
-        match lookupTLInstruction expr.id with
-          | Some handler ->
-            handler tlenv expr;
-          | None ->
-            EnvTL.emitError tlenv (Serror.fromExpr expr $ sprintf "%s is undefined" expr.id)
-      end
-
-let emitExprGuarded env expr =
-  catchingErrorsDo (fun () ->
-    emitExpr env expr)
-    ~onErrors:(List.iter (EnvTL.emitError env))
-
-let () =
-  EnvTL.setEmitExprTodo emitExprGuarded
-
 let translate env expr =
-  emitExpr env expr;
+  EnvTL.emitExpr env expr;
   extractResultFromEnv env
 
 let compileExpr env expr =
@@ -2769,8 +2749,9 @@ let emitBackendCodeForForm form =
   emitBackendCode llvmCode
 
 type tlenv = EnvTL.t
-let createEnv = EnvTL.create ~emitBackendCodeForForm
+let createEnv = EnvTL.create ~emitBackendCodeForForm ~lookupTLInstruction
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
 let emitError = EnvTL.emitError
+let emitExpr = EnvTL.emitExpr
 
