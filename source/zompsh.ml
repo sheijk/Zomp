@@ -579,7 +579,7 @@ let onSuccess bindings newBindings simpleforms llvmCode =
   end;
 
   if !llvmEvaluationOn then
-    Zompvm.evalLLVMCode bindings simpleforms llvmCode;
+    Zompvm.evalLLVMCode simpleforms llvmCode;
 
   if !printDeclarations then begin
     List.iter (fun form ->

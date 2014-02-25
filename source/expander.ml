@@ -699,14 +699,12 @@ struct
             let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
 
             Zompvm.evalLLVMCodeB
-              ~targetModule:Zompvm.Runtime
               (if listContains macroFuncName !macroFuncs then
                   [macroFuncName]
                else begin
                  macroFuncs := macroFuncName :: !macroFuncs;
                  []
                end)
-              []
               (Common.combine "\n" llvmCodeFragments);
 
             flush stdout;
@@ -1924,7 +1922,7 @@ let translateNested = sampleFunc2 "translateNested" translateNestedNoErr
 
 module EnvTL : sig
   type t
-  val create : (Bindings.t -> Lang.toplevelExpr -> unit) -> Bindings.t -> t
+  val create : emitBackendCodeForForm:(Lang.toplevelExpr -> unit) -> Bindings.t -> t
 
   val bindings : t -> Bindings.t
   val hasErrors : t -> bool
@@ -1951,7 +1949,7 @@ end = struct
 
     tlEmitForm :toplevelExpr -> unit;
     tlEmitError :Serror.t -> unit;
-    tlEmitBackendCode : Bindings.t -> Lang.toplevelExpr -> unit;
+    tlEmitBackendCode : Lang.toplevelExpr -> unit;
   }
 
   let bindings e = e.tlbindings
@@ -1964,7 +1962,7 @@ end = struct
   let emitError env error =
     env.tlEmitError error
   let emitForm env form =
-    env.tlEmitBackendCode env.tlbindings form;
+    env.tlEmitBackendCode form;
     env.tlEmitForm form
 
   let emitSilentError env =
@@ -1987,7 +1985,7 @@ end = struct
     tlenv.tlHadSilentErrors <- false;
     flag, errors, forms
 
-  let create emitBackendCode (initialBindings :bindings) =
+  let create ~emitBackendCodeForForm (initialBindings :bindings) =
     let rec env = {
       tlbindings = initialBindings;
       tlerrorsRev = [];
@@ -1995,7 +1993,7 @@ end = struct
       tlHadSilentErrors = false;
       tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
-      tlEmitBackendCode = emitBackendCode;
+      tlEmitBackendCode = emitBackendCodeForForm;
     } in
     env
 end
@@ -2007,10 +2005,9 @@ let () =
 let compilationSwallowedErrors = ref false
 
 let unwrapOldTL id (f : EnvTL.t -> Ast2.t -> unit) =
-  let ignoreForm _ _ = () in
   fun translateF bindings expr ->
     if expr.id = id then begin
-      let env = EnvTL.create ignoreForm bindings in
+      let env = EnvTL.create ~emitBackendCodeForForm:ignore bindings in
       f env expr;
       let flag, errors, forms = EnvTL.reset env in
       if errors <> [] then
@@ -2765,14 +2762,14 @@ let emitBackendCode code =
     | None ->
       failwith "did not call Expander.setEmitbackendCode"
 
-let emitBackendCodeForForm oldBindings form =
+let emitBackendCodeForForm form =
   Zompvm.flushStreams();
   let llvmCode = Genllvm.gencodeTL form in
-  Zompvm.evalLLVMCode oldBindings [form] llvmCode;
+  Zompvm.evalLLVMCode [form] llvmCode;
   emitBackendCode llvmCode
 
 type tlenv = EnvTL.t
-let createEnv = EnvTL.create emitBackendCodeForForm
+let createEnv = EnvTL.create ~emitBackendCodeForForm
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
 let emitError = EnvTL.emitError

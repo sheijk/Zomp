@@ -115,8 +115,7 @@ let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluat
 type targetModule = Runtime | Compiletime
 
 
-let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmCode :unit =
-  let targetModuleName = match targetModule with Runtime -> "" | Compiletime -> "compiletime" in
+let evalLLVMCodeB redefinedFunctions llvmCode :unit =
   let tryApplyToAll ~onError f list =
     List.iter
       (fun obj -> if not( f obj ) then onError obj)
@@ -127,7 +126,7 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
   List.iter removeFunctionBody redefinedFunctions;
   collectTimingInfo "send code"
     (fun () ->
-       if not (Machine.zompSendCode llvmCode targetModuleName) then
+       if not (Machine.zompSendCode llvmCode "") then
          raiseFailedToEvaluateLLVMCode llvmCode "could not evaluate");
   collectTimingInfo "recompile and relink functions"
     (fun () ->
@@ -136,7 +135,7 @@ let evalLLVMCodeB ?(targetModule = Runtime) redefinedFunctions simpleforms llvmC
          redefinedFunctions
          ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("could not recompile and relink function: " ^ msg)))
 
-let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
+let evalLLVMCode simpleforms llvmCode :unit =
   flushStreams();
   let isDefinedFunction func =
     match func.impl with
@@ -144,16 +143,11 @@ let evalLLVMCode ?(targetModule = Runtime) bindings simpleforms llvmCode :unit =
       | Some _ ->
         Machine.zompRemoveFunctionBody func.fname
   in
-  let redefinedFunctions =
-    List.fold_left
-    (fun redefinedFunctions toplevelForm ->
-       match toplevelForm with
-         | `DefineFunc func when isDefinedFunction func -> func.fname :: redefinedFunctions
-         | _ -> redefinedFunctions )
-    []
-    simpleforms
+  let redefinedFunctions = Common.mapFilter (function
+    | `DefineFunc func when isDefinedFunction func -> Some func.fname
+    | _ -> None) simpleforms
   in
-  evalLLVMCodeB ~targetModule redefinedFunctions simpleforms llvmCode
+  evalLLVMCodeB redefinedFunctions llvmCode
 
 let loadLLVMFile filename =
   try
