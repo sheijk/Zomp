@@ -11,7 +11,7 @@ requireLibs libcee unittest
 func bool isBound(char* name)
 
 macro checkit name:
-  println "Name " name.id " bound = " isBound(name.id)
+  println "Name " name.id " bound=" isBound(name.id)
   ret ${}
 end
 
@@ -31,7 +31,7 @@ seq:
     println "foo()"
   end
 
-  checkit foo //// print bound foo true
+  checkit foo //// print foo bound=t
 
   runcode:
     println "omg, running!" //// print omg running
