@@ -948,8 +948,8 @@ macro static:setRequireLibDebug value:
   ret ${}
 end
 
-/// Load the given lib. Expects a quoated relative path name. Libs already
-/// loaded will not be loaded again
+/// Load the given lib. Expects a quoted relative path name. Libraries already
+/// loaded will not be loaded again.
 macro zmpx:lib:requireLib lib:
   var cstring libName getField(lib, id)
 
@@ -971,7 +971,7 @@ macro zmpx:lib:requireLib lib:
     setField newlist name libName
     setField newlist next zmpx:lib:includedLibs
     assign zmpx:lib:includedLibs newlist
-    assign code ${include #libName}
+    assign code ${include #lib}
   end
 
   when requireLibDebug:
