@@ -158,19 +158,19 @@ macro unittest:testCase name code:
       #code
     end
   end
-  // if std:vm:isInteractive:
-  //   quotedFuncName := cstring:quote funcName
-  //   ret $:
-  //     func void test():
-  //       println "Last compilation of unit test failed!"
-  //     end
-  //     #funcDef
-  //     std:base:run:
-  //       println "Interactive, running unit test function " #quotedFuncName
-  //       #funcName()
-  //     end
-  //   end
-  // end
+  if std:vm:isInteractive:
+    quotedFuncName := cstring:quote funcName
+    ret $:
+      func void test():
+        println "Last compilation of unit test failed!"
+      end
+      #funcDef
+      std:base:run:
+        println "Interactive, running unit test function " #quotedFuncName
+        #funcName()
+      end
+    end
+  end
   ret funcDef
 end
 
