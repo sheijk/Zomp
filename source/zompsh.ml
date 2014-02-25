@@ -28,8 +28,7 @@ and continuedPrompt = ref "..# "
 
 let printLLVMCode = ref false
 and printAst = ref false
-and printDeclarations = ref true
-and llvmEvaluationOn = ref true
+and printDeclarations = ref false
 and printForms = ref false
 and showStatsAtExit = ref false
 and showTimingStatsAtExit = ref false
@@ -230,8 +229,6 @@ end = struct
   let toggleLLVMCommand = makeToggleCommandForRef printLLVMCode "Printing LLVM code"
   let togglePrintDeclarationsCommand =
     makeToggleCommandForRef printDeclarations "Printing declarations"
-  let toggleEvalCommand =
-    makeToggleCommandForRef llvmEvaluationOn "Evaluating LLVM code"
   let togglePrintFormsCommand =
     makeToggleCommandForRef printForms "Print translated forms"
 
@@ -415,7 +412,6 @@ end = struct
     let rec internalCommands = [
       "bindings", ["b"], printBindingsCommand, "Print a list of defined symbols";
       "echo", [], echoCommand, "Echo all given parameters";
-      "eval", [], toggleEvalCommand, "Toggle evaluation of llvm code";
       "exit", ["x"; "q"], exitCommand, "Exit";
       "help", ["h"], printHelpCommand, "List all toplevel commands";
       "llvm", [], toggleLLVMCommand, "Toggle printing of llvm code";

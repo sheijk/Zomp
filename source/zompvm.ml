@@ -111,10 +111,6 @@ end
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 
-
-type targetModule = Runtime | Compiletime
-
-
 let evalLLVMCodeB redefinedFunctions llvmCode :unit =
   let tryApplyToAll ~onError f list =
     List.iter
