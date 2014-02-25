@@ -72,7 +72,7 @@ module NativeAst :
   end
 val raiseFailedToEvaluateLLVMCode : string -> string -> 'a
 val evalLLVMCodeB : string list -> string -> unit
-val evalLLVMCode : [> `DefineFunc of Lang.func ] list -> string -> unit
+val evalLLVMCode : Lang.toplevelExpr list -> string -> unit
 val loadLLVMFile : string -> unit
 val currentBindings : Bindings.t ref
 val isInteractiveFlag : bool ref

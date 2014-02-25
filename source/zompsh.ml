@@ -572,14 +572,11 @@ let parseNativeAst ~fileName str =
   in
   Zompvm.NativeAst.buildNativeAst expr
 
-let onSuccess bindings newBindings simpleforms llvmCode =
+let onSuccess simpleforms llvmCode =
   if !printLLVMCode then begin
     printf "LLVM code:\n%s\n" llvmCode;
     flush stdout;
   end;
-
-  if !llvmEvaluationOn then
-    Zompvm.evalLLVMCode simpleforms llvmCode;
 
   if !printDeclarations then begin
     List.iter (fun form ->
@@ -608,12 +605,11 @@ let translateRun env expr =
               Ast2.expr macroReturn []]]
         in
         try
-          let oldBindings = Expander.bindings env in
           let { Result.flag; diagnostics; results = simpleforms }, llvmCode =
             Compileutils.compileExpr env exprInFunc
           in
           let newBindings = Expander.bindings env in
-          onSuccess oldBindings newBindings simpleforms llvmCode;
+          onSuccess simpleforms llvmCode;
           runFunction newBindings immediateFuncName;
           Expander.setBindings env newBindings
         with
@@ -657,11 +653,10 @@ let rec step env parseState =
           Compileutils.compileExpr env expr
         in
         List.iter report diagnostics;
-        let newBindings = Expander.bindings env in
         if flag = Result.Fail then begin
           hadErrors := true;
         end;
-        onSuccess bindings newBindings simpleforms llvmCode) 
+        onSuccess simpleforms llvmCode)
       in
       if (time > !notifyTimeThreshold) then
         printf "Compiling expression took %fs\n" time;
