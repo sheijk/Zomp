@@ -1,17 +1,34 @@
 ///
-/// Testing whether programs using forward declarations can be compiled
+/// Testing whether programs using forward declarations can be compiled. Testing
+/// for regressions - forward declaring a function and then defining it caused
+/// an LLVM error if the function called another forward declared function.
 ///
 
+/// The issue with new functions.
+func void callerFunc()
+func void callee()
+
+func void callerFunc():
+  callee()
+end
+
+func void callee():
+  printlnString "callee-called" //// print callee-called
+end
+
+
+/// The same with main (which used to always be forward declared in prelude).
 func void printHello()
 
 func int main():
-  //// print hello
   printHello()
+  callerFunc()
   ret 0
 end
 
 func void printHello():
-  printString "hello"
+  printString "hello" //// print hello
   printNewline()
 end
+
 

@@ -678,27 +678,6 @@ float:aliasNoQNAN greater
 float:aliasNoQNAN lessEqual
 float:aliasNoQNAN greaterEqual
 
-std:base:func int main()
-
-std:base:func void runMain():
-  const int retval main()
-  printNewline()
-  printString "main() returned "
-  printlnInt retval
-end
-
-macro ifInteractive code:
-  if std:vm:isInteractive():
-    ret code
-  end
-
-  ret ${}
-end
-
-ifInteractive:
-  testf runMain()
-end
-
 template float:neg x (float:sub 0. #x)
 
 ///-----------------------------------------------------------------------------
@@ -1010,6 +989,31 @@ macro requireLibs names...:
     ast:addChild code ast:fromString(qualifiedName)
   end
   ret code
+end
+
+///-----------------------------------------------------------------------------
+/// Section: Interactive zomp shell
+///-----------------------------------------------------------------------------
+
+macro ifInteractive code:
+  if std:vm:isInteractive():
+    ret code
+  end
+
+  ret ${}
+end
+
+ifInteractive:
+  std:base:func int main()
+
+  std:base:func void runMain():
+    const int retval main()
+    printNewline()
+    printString "main() returned "
+    printlnInt retval
+  end
+
+  testf runMain()
 end
 
 ///-----------------------------------------------------------------------------

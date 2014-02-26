@@ -762,13 +762,14 @@ extern "C" {
   bool zompRemoveFunctionBody(const char* functionName) {
     Function* func = llvmModule->getFunction( functionName );
 
-    if( func != NULL ) {
+    if( func != NULL && !func->empty() ) {
       func->deleteBody();
 
       return true;
     }
-
-    return false;
+    else {
+      return false;
+    }
   }
 
   bool zompRecompileAndRelinkFunction(const char* funcName) {
