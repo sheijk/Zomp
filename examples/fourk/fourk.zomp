@@ -7,27 +7,7 @@
 
 requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
 
-var int windowWidth 400
-var int windowHeight 400
-var bool initCalled false
-
-func void init():
-  if bool:not(initCalled):
-    glfwInit()
-    glfwOpenWindowHint GLFW_FSAA_SAMPLES 4
-    glfwOpenWindow windowWidth windowHeight 8 8 8 8 16 0 GLFW_WINDOW
-    glewInit()
-    times 2 glfwPollEvents()
-
-    printString "Initialized"
-    println()
-
-    initCalled = true
-  else:
-    printString "Already initialized"
-    println()
-  end
-end
+var AppInfo* app nullptr(AppInfo)
 
 func void onWindowResize(int newWidth, int newHeight):
   maxValueStringLength := 5
@@ -37,8 +17,8 @@ func void onWindowResize(int newWidth, int newHeight):
     return
   end
 
-  windowWidth = newWidth
-  windowHeight = newHeight
+  app*.windowWidth = newWidth
+  app*.windowHeight = newHeight
 
   maxLength := 1 + 2 * maxValueStringLength + 1
   buffer := malloc char maxLength
@@ -143,7 +123,15 @@ func void renderSubdivQuad(float size, int steps):
 end
 
 func int main():
-  init()
+  if isNull(app):
+    app = new AppInfo
+    app.windowWidth = 400
+    app.windowHeight = 400
+    app.fsaaSamples = 4
+    app.windowTitle = "fourk"
+  end
+  init(app)
+
   glfwSetWindowSizeCallback(cast void* &onWindowResize)
 
   angle := 0.0
