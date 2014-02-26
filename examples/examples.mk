@@ -5,10 +5,9 @@
 CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
 	cd examples && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result
+	cd examples/fourk && rm -f *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result
 
-EXAMPLES_SOURCES = $(wildcard examples/*.zomp)
-
-NOT_WORKING_EXAMPLES = static.zomp
+EXAMPLES_SOURCES = $(wildcard examples/*.zomp) examples/fourk/fourk.zomp
 
 .PHONY: examples/all
 ALL_TARGETS += examples/all
@@ -39,6 +38,8 @@ examples/lighting.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEA
 examples/pipeline_experiment.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEAKBAR) $(LINK_CPPSTDLIB) $(LINK_ASSIMP) $(LINK_UTILS)
 examples/utilsdemo.exe: override LIBS = $(ZOMP_STDLIBS) $(LINK_CPPSTDLIB) $(LINK_UTILS)
 examples/image_loading.exe: override LIBS = $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEAKBAR)
+
+examples/fourk/fourk.exe: override LIBS= $(ZOMP_STDLIBS) $(GL_LIBS) $(LINK_ANTTWEAKBAR) $(LINK_QUICKTEXT)
 
 ################################################################################
 # Dependencies
