@@ -4,15 +4,15 @@
 #
 
 for src in $@; do
-	f=`basename $src .zomp`;
-	(if [ \! -e examples/$f.ll ]; then
+	f="${src%.*}";
+	(if [ \! -e $f.ll ]; then
 		echo "compilation failed";
-	elif [ \! -e examples/$f.bc ]; then
+	elif [ \! -e $f.bc ]; then
 		echo "llvm-as failed";
-	elif [ \! -e examples/$f.exe ]; then
+	elif [ \! -e $f.exe ]; then
 		echo "linking failed";
 	else
 		echo "ok";
-	fi > examples/$f.result)
+	fi > $f.result)
 done
 

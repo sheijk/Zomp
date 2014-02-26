@@ -4,11 +4,11 @@
 # 
 
 for src in $@; do
-	f=`basename $src .zomp`;
-	(if [ -e libs/$f.ll ]; then
+    f="${src%.*}";
+	(if [ -e $f.ll ]; then
 		echo "ok";
 	else
 		echo "compilation failed";
-	fi > libs/$f.result)
+	fi > $f.result)
 done
 
