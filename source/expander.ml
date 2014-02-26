@@ -1798,34 +1798,6 @@ let makeEnv bindings translateF translateExprOld = {
   reportError = reportError;
 }
 
-let translateFromDict
-    baseInstructions
-    translateExprOld
-    translateF
-    (bindings :bindings)
-    (expr :Ast2.sexpr)
-    =
-  try
-    begin match !traceMacroExpansion with
-      | Some f -> f (sprintf "dict/%s" expr.id) expr
-      | None -> ()
-    end;
-    let handler = Hashtbl.find baseInstructions expr.id in
-    let env = makeEnv bindings translateF translateExprOld in
-    match handler env expr with
-      | Error errors ->
-        let printError error =
-          printf "%s\n" (Serror.toString error)
-        in
-        List.iter printError errors;
-        print_newline();
-        flush stdout;
-        None
-      | Result (bindings, tlexprs) ->
-        Some (bindings, tlexprs)
-  with Not_found ->
-    None
-
 let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   let table = Hashtbl.create 32 in
   let documentation = Hashtbl.create 32 in
