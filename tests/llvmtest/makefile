@@ -1,8 +1,10 @@
 
-LLVM_DIR=../../tools/llvm-$(LLVM_VERSION)
+ARCH=i386
+
+LLVM_DIR=../../tools/arch-$(ARCH)/sources/llvm-$(LLVM_VERSION)
 
 LLVM_VERSION=2.9
-LLVM_GCC=../../tools/llvm-gcc/bin/llvm-gcc
+# LLVM_GCC=../../tools/llvm-gcc/bin/llvm-gcc
 LLVM_DIS=$(LLVM_DIR)/Release/bin/llvm-dis
 LLVM_AS=$(LLVM_DIR)/Release/bin/llvm-as
 LLI=$(LLVM_DIR)/Release/bin/lli
@@ -37,7 +39,7 @@ q%.clang.exe: %.c makefile
 
 # C File nach Bytecode
 %.ll: %.c makefile
-	$(LLVM_GCC) -c --emit-llvm -O0 -g $< -o ${@:.ll=.bc}
+	$(CLANG) -emit-llvm -O0 -g -c $< -o ${@:.ll=.bc}
 	$(LLVM_DIS) -f ${@:.ll=.bc}
 
 # misc.ll: misc.bc
@@ -47,7 +49,7 @@ ll2bc:
 	$(LLVM_AS) -f -o $(FILE).bc < $(FILE).ll
 
 loopopt.bc: loopopt.c
-	$(LLVM_GCC) -c --emit-llvm -O3 $< -o $@
+	$(CLANG) -c -emit-llvm -O3 $< -o $@
 	$(LLVM_DIS) -f $@
 
 # Faketarget, "make foo.run" fuehrt Bytecodedatei foo.bc aus
