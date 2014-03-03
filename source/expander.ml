@@ -1044,7 +1044,7 @@ struct
     match expr.args with
       | [typeExpr] ->
           begin match translateType env.bindings typeExpr with
-            | Result typ -> Result (env.bindings, [`Constant (NullpointerVal (`Pointer typ))] )
+            | Result typ -> Result (env.bindings, [`Constant (NullpointerVal typ)] )
             | Error msgs -> Error msgs
           end
       | _ ->
@@ -2318,8 +2318,8 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
             | `Pointer `Char, { id = stringlit; args = [] } ->
               parseValue (`Pointer `Char) stringlit
               (** legacy special case *)
-            | `Pointer _, { id = "null"; args = [] } ->
-              NullpointerVal typ
+            | `Pointer targetType, { id = "null"; args = [] } ->
+              NullpointerVal targetType
               (** legacy special case *)
             | `Record recordT, { id = "0"; args = [] } ->
               RecordVal (recordT.rname, [])
