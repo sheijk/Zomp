@@ -174,7 +174,7 @@ struct
     | StringLiteral _ -> (`Pointer `Char)
     | BoolVal _ -> `Bool
     | CharVal _ -> `Char
-    | NullpointerVal t -> t
+    | NullpointerVal t -> `Pointer t
     | ArrayVal (typ, values) ->
         assert (List.for_all (fun value -> typ = typeOf value) values);
         typ
@@ -246,7 +246,7 @@ struct
       | StringLiteral s -> "\"" ^ s ^ "\""
       | BoolVal b -> string_of_bool b
       | CharVal c -> string_of_int (int_of_char c)
-      | NullpointerVal _ -> "nullptr"
+      | NullpointerVal t -> sprintf "nullptr(%s)" (typeName t)
       | ArrayVal (_, values) ->
           sprintf "[%s]" (Common.combine ", " (List.map valueString values))
       | RecordVal (_, components) ->
