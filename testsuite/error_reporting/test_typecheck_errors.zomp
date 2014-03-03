@@ -1,0 +1,32 @@
+///
+/// Testing various type errors.
+///
+
+std:base:func void ptrAddErrors():
+  var int* foo ptradd(nullptr int, 1.0) //// error u32 float
+end
+
+std:base:func void mallocErrors1():
+  var void* foo1 malloc(int, 1.0) //// error type float
+end
+
+std:base:func void mallocErrors2():
+  var void* foo2 malloc(int, true) //// error type bool
+end
+
+std:base:func void seqErrors():
+  var int foo seq(10 + false, 20) //// error type u32
+end
+
+std:base:func void branchErrors():
+  branch 10 a b //// error bool
+  label a
+  label b
+end
+
+std:base:func void castErrors():
+  var int foo (cast float (u32:add 1 false)) //// error type bool u32
+end
+
+
+

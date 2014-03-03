@@ -191,7 +191,9 @@ let rec typeCheck bindings form : typecheckResult =
       | `Label _ -> TypeOf `Void
       | `Jump _ -> TypeOf `Void
       | `Branch _ -> TypeOf `Void
-      | `MallocIntrinsic (typ, _) -> TypeOf (`Pointer typ)
+      | `MallocIntrinsic (typ, sizeExpr) ->
+        expectType sizeExpr `Int32 >>
+          TypeOf (`Pointer typ)
       | `GetAddrIntrinsic var as getaddrForm ->
           begin
             match var.vstorage with
