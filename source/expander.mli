@@ -21,7 +21,7 @@ val addIncludePath : tlenv -> string -> [`Front | `Back] -> unit
 val addTranslateFunction : string -> doc:string -> (tlenv -> Ast2.sexpr -> unit) -> unit
 
 val setEmitbackendCode : (string -> unit) -> unit
-
+val setTraceToplevelForm : (Lang.toplevelExpr -> unit) option -> unit
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
 
 val foreachToplevelBaseInstructionDoc : (string -> string -> unit) -> unit

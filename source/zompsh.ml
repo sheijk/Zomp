@@ -568,23 +568,24 @@ let parseNativeAst ~fileName str =
   in
   Zompvm.NativeAst.buildNativeAst expr
 
-let onSuccess simpleforms llvmCode =
-  if !printLLVMCode then begin
-    printf "LLVM code:\n%s\n" llvmCode;
-    flush stdout;
-  end;
-
+let onToplevelForm form =
   if !printDeclarations then begin
-    List.iter (fun form ->
-                 let text = Lang.toplevelFormDeclToString form in
-                 printf "%s\n" text)
-      simpleforms;
+    let reportInfo diagnostic =
+      eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Info diagnostic)
+    in
+    reportInfo $ Serror.fromMsg (Some (Lang.toplevelFormLocation form)) (Lang.toplevelFormDeclToString form)
   end;
 
   if !printForms then begin
-    List.iter (fun form -> printf "%s\n" (toplevelFormToString form)) simpleforms;
+    printf "%s\n" $ toplevelFormToString form;
   end;
   flush stdout
+
+let onLlvmCode llvmCode =
+  if !printLLVMCode then begin
+    printf "LLVM code:\n%s\n" llvmCode;
+    flush stdout;
+  end
 
 (** Produce and run an immediate function from the given code. *)
 let translateRun env expr =
@@ -601,13 +602,11 @@ let translateRun env expr =
               Ast2.expr macroReturn []]]
         in
         try
-          let { Result.flag; diagnostics; results = simpleforms }, llvmCode =
+          let { Result.flag; diagnostics; results = _ }, _ =
             Compileutils.compileExpr env exprInFunc
           in
-          let newBindings = Expander.bindings env in
-          onSuccess simpleforms llvmCode;
-          runFunction newBindings immediateFuncName;
-          Expander.setBindings env newBindings
+          List.iter report diagnostics;
+          runFunction (Expander.bindings env) immediateFuncName;
         with
           | Expander.IllegalExpression (_, errors) ->
             List.iter (Expander.emitError env) errors;
@@ -645,14 +644,13 @@ let rec step env parseState =
             None);
 
       let (), time = recordTiming (fun () ->
-        let { Result.flag; diagnostics; results = simpleforms }, llvmCode =
+        let { Result.flag; diagnostics; results = _ }, _ =
           Compileutils.compileExpr env expr
         in
         List.iter report diagnostics;
         if flag = Result.Fail then begin
           hadErrors := true;
-        end;
-        onSuccess simpleforms llvmCode)
+        end)
       in
       if (time > !notifyTimeThreshold) then
         printf "Compiling expression took %fs\n" time;
@@ -722,8 +720,8 @@ let () =
 
   init();
 
-  let handleLLVMCode code = () in
-  Expander.setEmitbackendCode handleLLVMCode;
+  Expander.setEmitbackendCode onLlvmCode;
+  Expander.setTraceToplevelForm (Some onToplevelForm);
 
   let env = Expander.createEnv Genllvm.defaultBindings in
 

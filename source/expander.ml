@@ -1788,6 +1788,9 @@ end
 let traceMacroExpansion = ref (Some (fun (_ :string) (_ :sexpr) -> ()))
 let setTraceMacroExpansion f = traceMacroExpansion := f
 
+let traceToplevelFrom = ref None
+let setTraceToplevelForm f = traceToplevelFrom := f
+
 let makeEnv bindings translateF translateExprOld = {
   bindings = bindings;
   translateF = translateF;
@@ -2716,9 +2719,12 @@ let emitBackendCode code =
 
 let emitBackendCodeForForm form =
   Zompvm.flushStreams();
+  begin match !traceToplevelFrom with
+    | Some f -> f form | None -> ();
+  end;
   let llvmCode = Genllvm.gencodeTL form in
-  Zompvm.evalLLVMCode [form] llvmCode;
-  emitBackendCode llvmCode
+  emitBackendCode llvmCode;
+  Zompvm.evalLLVMCode [form] llvmCode
 
 type tlenv = EnvTL.t
 let createEnv = EnvTL.create ~emitBackendCodeForForm ~lookupTLInstruction

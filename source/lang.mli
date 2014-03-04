@@ -208,6 +208,7 @@ val toplevelFormToSExpr :
   Ast2.sexpr
 val toplevelFormDeclToString : toplevelExpr -> string
 val toplevelFormToString : toplevelExpr -> string
+val toplevelFormLocation : toplevelExpr -> Basics.location
 val toSingleForm : form list -> form
 val isFuncParametric : ('a * typ) list -> bool
 val func :

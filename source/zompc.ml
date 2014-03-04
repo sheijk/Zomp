@@ -20,6 +20,8 @@ module Options = struct
     printTimings :bool;
     printStats :outputTarget;
     traceMacroExpansion :bool;
+    traceBaseForms :bool;
+    traceLlvmCode :bool;
     symbolTableDumpFile :string option;
     zompIncludePaths :string list;
     dllPaths :string list;
@@ -41,6 +43,8 @@ module Options = struct
     let printTimings = ref false in
     let printStats = ref "" in
     let traceMacroExpansion = ref false in
+    let traceBaseForms = ref false in
+    let traceLlvmCode = ref false in
     let symbolTableDumpFile = ref "" in
     let zompIncludePaths = ref [] in
     let dllPaths = ref [] in
@@ -54,6 +58,8 @@ module Options = struct
         ["--print-timings", Arg.Set printTimings, "print timing info on exit.";
          "--stats", Arg.Set_string printStats, "print statistics on exit.";
          "--trace-macros", Arg.Set traceMacroExpansion, "Print trace information while expanding macros.";
+         "--trace-definitions", Arg.Set traceBaseForms, "Print every toplevel definition.";
+         "--trace-llvm-code", Arg.Set traceLlvmCode, "Trace emitted LLVM code.";
          "-c", Arg.Set_string fileName, "The file to compile.";
          "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
          "--zomp-include-dir",
@@ -74,6 +80,8 @@ module Options = struct
         printTimings = !printTimings;
         printStats = outputTargetFromString !printStats;
         traceMacroExpansion = !traceMacroExpansion;
+        traceBaseForms = !traceBaseForms;
+        traceLlvmCode = !traceLlvmCode;
         symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
         zompIncludePaths = !zompIncludePaths;
         dllPaths = !dllPaths;
@@ -190,10 +198,21 @@ let () =
     let trace s e =
       if !Zompvm.traceMacroExpansionOn then begin
         let locString = sprintf "%s:%d" (Ast2.fileName e) (Ast2.lineNumber e) in
-        printf "%s: Expansion step %s:\n%s\n" locString s (Common.indent ~count:4 $ Ast2.toString e)
+        printf "%s: Expansion step %s:\n%s\n" locString s (Common.indent ~count:4 $ Ast2.toString e);
+        flush stdout;
       end
     in
     Expander.setTraceMacroExpansion (Some trace);
+    Zompvm.traceMacroExpansionOn := true;
+  end;
+  if options.traceBaseForms then begin
+    let reportInfo diagnostic =
+      eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Info diagnostic)
+    in
+    let trace form =
+      reportInfo $ Serror.fromMsg (Some (Lang.toplevelFormLocation form)) (Lang.toplevelFormDeclToString form)
+    in
+    Expander.setTraceToplevelForm (Some trace);
   end;
 
   let baseName = match getBasename options.fileName with
@@ -210,7 +229,13 @@ let () =
   and outStream = open_out outputFileName
   in
 
-  let handleLLVMCode code = output_string outStream code in
+  let handleLLVMCode code =
+    if options.traceLlvmCode then begin
+      printf "llvm code:\n%s\n---\n" code;
+      flush stdout;
+    end;
+    output_string outStream code
+  in
   Expander.setEmitbackendCode handleLLVMCode;
 
   let initEnv env =

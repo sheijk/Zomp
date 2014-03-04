@@ -371,6 +371,15 @@ let toplevelFormToString : toplevelExpr -> string = function
   | `Typedef (name, typ) ->
       sprintf "type %s = %s" name (typeName typ)
 
+let toplevelFormLocation : toplevelExpr -> Basics.location = function
+  | `GlobalVar { gvDefinitionLocation = Some location }
+  | `DefineFunc { flocation = Some location } ->
+    location
+  | `GlobalVar { gvDefinitionLocation = None }
+  | `DefineFunc { flocation = None }
+  | `Typedef _ ->
+    Basics.fakeLocation
+
 let toSingleForm formlist =
   match formlist with
     | [(singleForm :form)] -> singleForm
