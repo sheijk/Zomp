@@ -301,7 +301,7 @@ void statsCreateNamedSection(const char* sectionName)
 static i64 ReturnCamlCounterValue(Counter*, void* userData)
 {
     ptrdiff_t id =(ptrdiff_t)userData;
-    ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%d, %d\n", id, MAX_CAML_INT));
+    ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%lld, %lld\n", (long long int)id, (long long int)MAX_CAML_INT));
 
     return zompGetCamlCounterValueInt(id);
 }
@@ -320,7 +320,7 @@ void statsCreateCamlIntCounter(const char* sectionName, const char* name, int fr
 static float ReturnCamlCounterValueFloat(Counter*, void* userData)
 {
     ptrdiff_t id =(ptrdiff_t)userData;
-    ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%d, %d\n", id, MAX_CAML_INT));
+    ZMP_ASSERT(id >= 0 && id <= MAX_CAML_INT, printf("%lld, %lld\n", (long long int)id, (long long int)MAX_CAML_INT));
 
     return zompGetCamlCounterValueFloat(id);
 }
