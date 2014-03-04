@@ -8,14 +8,10 @@ requireLibs basic_ops
 /// Section: C functions
 ///-----------------------------------------------------------------------------
 
-// attention, might not work on 64-bit.. :\
-type size_t int
-type int_t int
-
-dfunc void* memset(void* ptr, int_t value, size_t bytes)
+dfunc void* memset(void* ptr, int value, size_t bytes)
 dfunc void* memcpy(void* destination, void* source, size_t bytes)
 dfunc void* memmove(void* destination, void* source, size_t bytes)
-dfunc int_t memcmp(void* ptr1, void* ptr2, size_t bytes)
+dfunc size_t memcmp(void* ptr1, void* ptr2, size_t bytes)
 
 func void free(void* ptr)
 template dealloc ptr free(cast void* #ptr)

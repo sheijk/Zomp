@@ -136,11 +136,11 @@ end
 
 type cstring (ptr char)
 
-std:base:func int strcmp(cstring l, cstring r)
-std:base:func int strncmp(cstring l, cstring r, int maxChars)
+std:base:func size_t strcmp(cstring l, cstring r)
+std:base:func size_t strncmp(cstring l, cstring r, size_t maxChars)
 std:base:func cstring strcpy(cstring dest, cstring source)
 std:base:func cstring strdup(cstring src)
-std:base:func int strlen(cstring str)
+std:base:func size_t strlen(cstring str)
 
 std:base:func cstring u32:toCString(int x):
   int2cstring x
@@ -160,21 +160,20 @@ std:base:func void printIndent(int count):
 end
 
 std:base:func bool cstring:equal(cstring l, cstring r):
-  std:base:ret (u32:equal 0 (strcmp l r))
+  std:base:ret size_t:equal(cast size_t 0, strcmp l r)
 end
 
 std:base:func cstring cstring:quote(cstring unquoted):
-  var int unquotedLength (strlen unquoted)
-  var cstring quoted (malloc char (u32:add unquotedLength 3))
+  var size_t unquotedLength strlen(unquoted)
+  var cstring quoted (malloc char (cast u32 (size_t:add unquotedLength (cast size_t 3))))
 
   strcpy (ptradd quoted 1) unquoted
   store quoted '"' // "
-  store (ptradd quoted (u32:add unquotedLength 1)) '"' // "
-  store (ptradd quoted (u32:add unquotedLength 2)) '\0'
+  store (ptradd quoted (cast u32 (size_t:add unquotedLength (cast size_t 1)))) '"' // "
+  store (ptradd quoted (cast u32 (size_t:add unquotedLength (cast size_t 2)))) '\0'
 
   std:base:ret quoted
 end
-
 
 ///-----------------------------------------------------------------------------
 /// Section: Abstract syntax tree representation
@@ -378,11 +377,11 @@ std:base:func int newUniqueId():
 end
 
 std:base:func cstring cstrings:append(cstring l, cstring r):
-  var int lLength strlen(l)
-  var int rLength strlen(r)
-  var cstring appended (malloc char (u32:add 1 (u32:add lLength rLength)))
+  var size_t lLength strlen(l)
+  var size_t rLength strlen(r)
+  var cstring appended (malloc char (cast u32 size_t:add(1, size_t:add lLength rLength)))
   strcpy appended l
-  strcpy (ptradd appended lLength) r
+  strcpy (ptradd appended (cast u32 lLength)) r
   std:base:ret appended
 end
 

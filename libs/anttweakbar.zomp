@@ -70,8 +70,6 @@ type TwEnumVal:
   cstring label
 end
 
-type size_t u32
-
 type TwStructMember:
   cstring name
   TwType type

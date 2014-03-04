@@ -313,6 +313,14 @@ let insertAstConstructors bindings =
       | _ -> default
 
 let defaultBindings, externalFuncDecls, findIntrinsic =
+  let sizeTName, sizeT =
+    "size_t",
+    match Sys.word_size with
+      | 32 -> `Int32
+      | 64 -> `Int64
+      | wordSize -> failwith (sprintf "invalid word size %d" wordSize)
+  in
+
   let callIntr intrName typ argVarNames =
     sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
   in
@@ -338,7 +346,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                 twoArgIntrinsic (sprintf "%s:%s" namespace name) llvmName typ) namePairs
   in
 
-  let compareIntrinsics typ typeName =
+  let intCompareIntrinsics typ typeName =
     let functionMapping =
       [
         "equal", "eq";
@@ -361,6 +369,18 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     List.map (fun (zompName, llvmName) ->
                 compareIntrinsic typ (typeName ^ ":" ^ zompName) llvmName)
       functionMapping
+  in
+
+  let intIntrinsics ?name typ =
+    let intBinOps =
+      ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    in
+    let name =
+      someOrDefault name $ typeName typ
+    in
+
+    simpleTwoArgIntrinsincs typ name intBinOps
+    @ intCompareIntrinsics typ name
   in
 
   let floatIntrinsics typ =
@@ -414,9 +434,6 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     name, `Intrinsic func, toType, ["v", fromType]
   in
 
-  let intBinOps =
-    ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
-  in
   let intrinsicFuncs =
     [
       twoArgIntrinsic "u32:shl" "shl" `Int32;
@@ -439,18 +456,19 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       truncIntIntr `Int64 `Int32;
       zextIntr `Int32 `Int64;
     ]
-    @ simpleTwoArgIntrinsincs `Int8 "u8" intBinOps
-    @ simpleTwoArgIntrinsincs `Int16 "u16" intBinOps
-    @ simpleTwoArgIntrinsincs `Int32 "u32" intBinOps
-    @ simpleTwoArgIntrinsincs `Int64 "u64" intBinOps
+
+    @ intIntrinsics `Int8
+    @ intIntrinsics `Int16
+    @ intIntrinsics `Int32
+    @ intIntrinsics `Int64
+    @ intIntrinsics sizeT ~name:sizeTName
+
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
+
     @ floatIntrinsics `Float
     @ floatIntrinsics `Double
-    @ compareIntrinsics `Int8 "u8"
-    @ compareIntrinsics `Int16 "u16"
-    @ compareIntrinsics `Int32 "u32"
-    @ compareIntrinsics `Int64 "u64"
-    @ compareIntrinsics `Char (typeName `Char)
+
+    @ intCompareIntrinsics `Char (typeName `Char)
   in
 
   let builtinMacros =
@@ -601,7 +619,8 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       name, FuncSymbol (funcDecl name typ args Basics.builtinLocation)
     in
     Bindings.fromSymbolList
-      ((List.map toFunc intrinsicFuncs)
+      ([sizeTName, TypedefSymbol sizeT]
+       @ List.map toFunc intrinsicFuncs
        @ builtinMacros)
   in
   let externalFuncDecls =
