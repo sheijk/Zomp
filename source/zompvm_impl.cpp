@@ -744,7 +744,7 @@ extern "C" {
     if( !errorInfo.getMessage().empty() ) {
       int line = errorInfo.getLineNo();
       // int column = errorInfo.getColumnNo();
-      fprintf( stderr, "%s:%d: error [LLVM]  %s\n",
+      fprintf( stderr, "%s:%d: LLVM error: %s\n",
                errorInfo.getFilename().c_str(),
                line,
                errorInfo.getMessage().c_str() );
@@ -753,6 +753,7 @@ extern "C" {
     }
 
     if( errorsOccurred ) {
+      fprintf( stderr, "--- llvm code:\n%s\n---\n", code );
       zompFlushStreams();
     }
 
