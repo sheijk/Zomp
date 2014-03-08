@@ -747,7 +747,7 @@ struct
     translateType bindings reportWarning expr
 
   (** translates expressions of the form x = xExpr, y = yExpr etc. *)
-  let translateStructLiteralArgs structName loc fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
+  let translateStructLiteralArgs bindings structName loc fields fieldExprs (translateExprF : Ast2.t -> 'a mayfail) =
     let rec handleFieldExprs errors fieldValues undefinedFields =
       let continueWithErrors newErrors remArgs =
         handleFieldExprs (newErrors@errors) fieldValues undefinedFields remArgs
@@ -758,7 +758,7 @@ struct
             | [] -> errors
             | missing ->
               errors @
-                List.map (fun name -> Serror.fromMsg loc $ sprintf "field %s is missing" name) missing
+                List.map (fun (name, _) -> Serror.fromMsg loc $ sprintf "field %s is missing" name) missing
           in
           begin match errors with
             | [] -> Result (List.rev fieldValues)
@@ -774,17 +774,30 @@ struct
             if List.exists (fun (name, _) -> name = fieldName) fieldValues then
               let newError = Serror.fromExpr fieldValueExpr $ sprintf "field %s has been defined multiple times" fieldName in
               continueWithErrors [newError] remArgs
-            else match List.partition ((=) fieldName) undefinedFields with
-              | [_], undefinedFields ->
+            else match List.partition (fun (name, _) -> name = fieldName) undefinedFields with
+              | [_, fieldType], undefinedFields ->
                 begin match translateExprF rhs with
                   | Error rhsErrors ->
                     continueWithErrors rhsErrors remArgs
-                  | Result value ->
-                    handleFieldExprs
-                      errors
-                      ((fieldName, value) :: fieldValues)
-                      undefinedFields
-                      remArgs
+                  | Result (tlforms, valueForms) ->
+                    begin
+                      let errors, fieldValues =
+                        match typeCheck bindings (`Sequence valueForms) with
+                          | TypeOf valueType when equalTypes bindings valueType fieldType ->
+                            errors, ((fieldName, (tlforms, valueForms)) :: fieldValues)
+                          | TypeOf invalidValueType ->
+                            (Serror.fromExpr fieldValueExpr
+                               (sprintf "value for field %s has type %s but expected type %s" fieldName
+                                  (typeName invalidValueType)
+                                  (typeName fieldType)))
+                            :: errors,
+                            fieldValues
+                          | TypeError (form,msg,found,expected) ->
+                            Serror.fromExpr fieldValueExpr (typeErrorMessage bindings (form,msg,found,expected)) :: errors,
+                            fieldValues
+                      in
+                      handleFieldExprs errors fieldValues undefinedFields remArgs
+                    end
                 end
               | [], _ ->
                 let newError =
@@ -795,7 +808,7 @@ struct
               | (_ :: _ :: _), _ ->
                 let newError =
                   Serror.fromExpr fieldValueExpr
-                    (sprintf "field %s specified multiple times" fieldName)
+                    (sprintf "internal error, field %s contained multiple times in struct" fieldName)
                 in
                 continueWithErrors [newError] remArgs
           end
@@ -1401,8 +1414,7 @@ struct
         let tlforms, forms = extractToplevelForms formsWTL in
         Result (tlforms, forms)
       in
-      let fieldNames = List.map fst recordType.fields in
-      begin match translateStructLiteralArgs recordType.rname typeExpr.location fieldNames argExprs translateField with
+      begin match translateStructLiteralArgs env.bindings recordType.rname typeExpr.location recordType.fields argExprs translateField with
         | Result fieldFormsTL ->
           let alltlformsLst, fieldForms = List.split
             (List.map (fun (name, (tl, f)) -> tl, (name, f)) fieldFormsTL)

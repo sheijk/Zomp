@@ -28,5 +28,14 @@ std:base:func void castErrors():
   var int foo (cast float (u32:add 1 false)) //// error type bool u32
 end
 
+type Pair:
+  int fieldOne
+  int fieldTwo
+end
 
+std:base:func void recordLiteralErrors():
+  Pair(fieldOne = 1, fieldTwo = 1)
+  Pair(fieldOne = 1, fieldTwo = 1.0) //// error type u32 float
+  std:base:ret
+end
 
