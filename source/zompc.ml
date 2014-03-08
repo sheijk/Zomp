@@ -169,7 +169,10 @@ let compile initEnv fileName inStream outStream =
 let () =
   let startTime = Sys.time() in
 
-  Printexc.record_backtrace true;
+  (** causes crashes in 64-bit OCaml 3.12 *)
+  if Sys.word_size = 32 then
+    Printexc.record_backtrace true;
+
   let open Options in
   let options =
     match Options.extract Sys.argv with
