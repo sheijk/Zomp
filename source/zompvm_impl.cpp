@@ -753,7 +753,6 @@ extern "C" {
     }
 
     if( errorsOccurred ) {
-      fprintf( stderr, "--- llvm code:\n%s\n---\n", code );
       zompFlushStreams();
     }
 
