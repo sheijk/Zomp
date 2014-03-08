@@ -260,7 +260,7 @@ end
 dfunc size_t fwrite(void* ptr, size_t size, size_t count, FILE* file)
 
 func void fwrite_cstring(FILE* file, cstring str):
-  fwrite(cast void* str, 1, strlen str, file)
+  fwrite(cast void* str, cast size_t 1, strlen str, file)
   return
 end
 
@@ -271,7 +271,7 @@ func void fwrite_int(FILE* file, int num):
 end
 
 func void fwrite_newline(FILE* file):
-  fwrite(cast void* "\n", 1, 1, file)
+  fwrite(cast void* "\n", cast size_t 1, cast size_t 1, file)
   return
 end
 
