@@ -434,7 +434,7 @@ end
 
 unittest:testCase OverloadedFuncs:
   onefString := toCString(1.0)
-  unless (strncmp(onefString, "1.0", 3) == 0):
+  unless (strncmp(onefString, "1.0", cast size_t 3) == 0):
     println "Assertion failed"
     printHLine '-' 40
     println "left = " onefString
@@ -443,7 +443,7 @@ unittest:testCase OverloadedFuncs:
   end
 
   fivedString := toCString(5.0d)
-  unless (strncmp(fivedString, "5.0", 3) == 0):
+  unless (strncmp(fivedString, "5.0", cast size_t 3) == 0):
     println "Assertion failed"
     printHLine '-' 40
     println "left = " fivedString
