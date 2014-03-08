@@ -37,15 +37,23 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 # Rules
 ################################################################################
 
+.PRECIOUS: tools/arch-$(ARCH)/sources/%/.exists
+
 tools/%.tgz: tools/%.tar.gz
 	cp $< $@
 
 tools/arch-$(ARCH)/sources/%/.exists: tools/%.tgz
 	@$(ECHO) "Extracting $< ..."
-	rm -rf $@
+	rm -rf $(dir $@)
 	mkdir -p "$(dir $@)"
 	gunzip --stdout "$(<)" | tar -xf - -C "$(dir $@)"/..
 	touch $@
+
+tools/arch-$(ARCH)/sources/%/.exists: tools/%.zip
+	@$(ECHO) "Extracting $< ..."
+	rm -rf $(dir $@)
+	mkdir -p "$(dir $@)"
+	unzip -q $< -d "$(dir $@)"
 
 tools/arch-$(ARCH)/sources/%/.built: tools/arch-$(ARCH)/sources/%/.exists
 	@$(ECHO) "Building $(dir $@) ..."
@@ -61,6 +69,9 @@ EXTERNAL_TOOLS += tools/arch-$(ARCH)/sources/$(GLEW_VERSION)/.built
 
 GLFW_VERSION = glfw-legacy-2.7.9
 EXTERNAL_TOOLS += tools/arch-$(ARCH)/sources/$(GLFW_VERSION)/.built
+
+ANTTWEAKBAR_VERSION = AntTweakBar_116
+EXTERNAL_TOOLS += tools/arch-$(ARCH)/sources/$(ANTTWEAKBAR_VERSION)/.built
 
 external_tools: $(EXTERNAL_TOOLS)
 
