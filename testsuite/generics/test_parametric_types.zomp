@@ -30,10 +30,10 @@ unittest:testCase SimpleParamType:
 end
 
 unittest:testCase ParamTypeLiteral:
-  v1 := NotUsingParamType!int(a = 99, b = 77)
+  v1 := NotUsingParamType!int(a = 99, b = 77.0)
   unittest:assertAll:
     v1.a == 99
-    v1.b == 77
+    v1.b == 77.0
   end
 end
 
