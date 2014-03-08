@@ -52,7 +52,7 @@ ZMP_CONST char* float2string(double d);
 void zompPrintTimingStats();
 
 // from runtime.c
-int zompLoadLib(ZMP_CONST char* name);
+void* zompLoadLib(ZMP_CONST char* name);
 
 #ifdef __cplusplus
 } // extern "C"

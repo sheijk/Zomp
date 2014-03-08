@@ -179,7 +179,7 @@ void stdlibHello() {
 
 typedef int bool;
 
-int zompLoadLib(const char* name) {
+void* zompLoadLib(const char* name) {
   // TODO
   return 0;
 }
@@ -191,7 +191,7 @@ bool zompCheckNativeSymbol(const char* name) {
 
 #else
 
-int zompLoadLib(const char* name) {
+void* zompLoadLib(const char* name) {
   void* handle = dlopen( name, RTLD_LAZY );
 
   if( handle == NULL ) {
@@ -199,7 +199,7 @@ int zompLoadLib(const char* name) {
     fflush( stdout );
   }
 
-  return ptrToInt(handle);
+  return handle;
 }
 
 bool zompCheckNativeSymbol(const char* name) {

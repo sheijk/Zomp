@@ -44,7 +44,7 @@ http://sheijk.dword.org/zomp
     const char* zompRunFunctionStringWithArgs (const char* name)
     bool zompRunFunctionBool (const char* name)
 
-    int zompLoadLib (const char* name)
+    void* zompLoadLib (const char* name)
 
     void* zompSimpleAst (const char* name)
     void zompAddChild (void* parent, void* child)

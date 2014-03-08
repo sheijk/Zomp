@@ -39,7 +39,7 @@ external zompRunFunctionString : name:string -> string
 external zompRunFunctionStringWithArgs : name:string -> string
   = "ml_zompRunFunctionStringWithArgs"
 external zompRunFunctionBool : name:string -> bool = "ml_zompRunFunctionBool"
-external zompLoadLib : name:string -> int = "ml_zompLoadLib"
+external zompLoadLib : name:string -> cptr = "ml_zompLoadLib"
 external zompSimpleAst : name:string -> cptr = "ml_zompSimpleAst"
 external zompAddChild : parent:cptr -> child:cptr -> unit = "ml_zompAddChild"
 external zompAstId : ast:cptr -> string = "ml_zompAstId"

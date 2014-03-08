@@ -209,5 +209,5 @@ end = struct
 
 end
 
-
+let isNullPtr handle = zompAstIsNull handle
 

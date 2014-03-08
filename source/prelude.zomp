@@ -49,7 +49,7 @@ std:base:func char* copyString(char* str)
 /// Section: ZompVM
 ///-----------------------------------------------------------------------------
 
-std:base:func int zompLoadLib(char* libname)
+std:base:func void* zompLoadLib(char* libname)
 std:base:func bool zompRequestedPause()
 std:base:func void zompSetRequestPause(bool request)
 
