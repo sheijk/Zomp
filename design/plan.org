@@ -1781,6 +1781,8 @@ end
      
    Use this to implement find all references, finding unused functions,
    variables, etc.
+** TODO [#A] consider static pattern rules
+   https://www.gnu.org/software/make/manual/html_node/Static-Pattern.html
 * Mile stones
 ** 0.1 - error handling and source locations
 
