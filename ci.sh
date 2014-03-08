@@ -8,7 +8,7 @@ ERROR_ZOMP_WORKING_DIR_BROKEN=3
 
 TESTED_BRANCH=master
 
-FLAGS=$@
+FLAGS="$@"
 START_TIME=`date '+%Y/%m/%d/%H_%M_%S'`
 
 if [ ! -e .git ]; then
