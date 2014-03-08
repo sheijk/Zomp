@@ -8,22 +8,22 @@ struct StringBuffer:
   /// Pointer to 0-terminated string, or nullptr if length == 0
   char* buffer
   /// Number of bytes allocated
-  int allocatedBytes
+  size_t allocatedBytes
   /// Length of the string stored in buffer without terminating 0 byte
-  int length
+  size_t length
 end
 
 func void StringBuffer:init(StringBuffer* this):
   this.buffer = nullptr char
-  this.allocatedBytes = 0
-  this.length = 0
+  this.allocatedBytes = cast size_t 0
+  this.length = cast size_t 0
 end
 
 func void StringBuffer:delete(StringBuffer* this):
   free (cast void* this.buffer)
   this.buffer = nullptr char
-  this.allocatedBytes = 0
-  this.length = 0
+  this.allocatedBytes = cast size_t 0
+  this.length = cast size_t 0
 end
 
 func void StringBuffer:print(StringBuffer* this):
@@ -35,11 +35,11 @@ end
 
 
 /// @param bytes Number of bytes including terminating 0 byte
-func void StringBuffer:reserve(StringBuffer* this, int bytes):
+func void StringBuffer:reserve(StringBuffer* this, size_t bytes):
   if (bytes > this.allocatedBytes):
-    newBuffer := malloc char bytes
+    newBuffer := malloc char fixSizet(bytes)
     unless isNull(this.buffer):
-      memcpy(cast void* newBuffer, cast void* this.buffer, this.length + 1)
+      memcpy(cast void* newBuffer, cast void* this.buffer, this.length + cast size_t 1)
     end
     this.buffer = newBuffer
     this.allocatedBytes = bytes
@@ -49,11 +49,11 @@ end
 unittest:testCase StringBuffer_Reserve:
   buf := local StringBuffer
 
-  StringBuffer:reserve buf 100
+  StringBuffer:reserve buf (cast size_t 100)
 
   unittest:assertAll:
-    buf.allocatedBytes == 100
-    buf.length == 0
+    buf.allocatedBytes == cast size_t 100
+    buf.length == cast size_t 0
     isNotNull buf.buffer
   end
 end
@@ -61,25 +61,25 @@ end
 unittest:testCase StringBuffer_MultiReserve:
   buf := local StringBuffer
 
-  StringBuffer:reserve(buf, 100)
+  StringBuffer:reserve(buf, cast size_t 100)
   sprintf(buf.buffer, "foo%s", "bar")
   buf.length = strlen(buf.buffer)
-  StringBuffer:reserve(buf, 200)
+  StringBuffer:reserve(buf, cast size_t 200)
 
   unittest:assertAll:
-    buf.allocatedBytes == 200
-    buf.length == 6
+    buf.allocatedBytes == cast size_t 200
+    buf.length == cast size_t 6
     buf.buffer ==_str "foobar"
   end
 end
 
 func void StringBuffer:append(StringBuffer* this, char* str):
   strLength := strlen(str)
-  requiredBytes := strLength + this.length + 1
+  requiredBytes := strLength + this.length + cast size_t 1
   StringBuffer:reserve(this, requiredBytes)
-  memcpy(cast void* (this.buffer + this.length), cast void* str, strLength)
+  memcpy(cast void* (this.buffer + fixSizet this.length), cast void* str, strLength)
   this.length += strLength
-  (this.buffer + this.length)* = '\0'
+  (this.buffer + fixSizet this.length)* = '\0'
 end
 
 unittest:testCase StringBuffer_AppendSingle:
@@ -88,8 +88,8 @@ unittest:testCase StringBuffer_AppendSingle:
   StringBuffer:append(buf, "foobar")
 
   unittest:assertAll:
-    buf.allocatedBytes == 7
-    buf.length == 6
+    buf.allocatedBytes == cast size_t 7
+    buf.length == cast size_t 6
     buf.buffer ==_str "foobar"
   end
 end
@@ -101,8 +101,8 @@ unittest:testCase StringBuffer_AppendMulti:
   StringBuffer:append(buf, "bar")
 
   unittest:assertAll:
-    buf.length == 6
-    buf.allocatedBytes == 7
+    buf.length == cast size_t 6
+    buf.allocatedBytes == cast size_t 7
     buf.buffer ==_str "foobar"
   end
 end

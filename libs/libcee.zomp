@@ -11,7 +11,7 @@ requireLibs basic_ops
 dfunc void* memset(void* ptr, int value, size_t bytes)
 dfunc void* memcpy(void* destination, void* source, size_t bytes)
 dfunc void* memmove(void* destination, void* source, size_t bytes)
-dfunc size_t memcmp(void* ptr1, void* ptr2, size_t bytes)
+dfunc int memcmp(void* ptr1, void* ptr2, size_t bytes)
 
 func void free(void* ptr)
 template dealloc ptr free(cast void* #ptr)

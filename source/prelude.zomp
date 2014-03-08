@@ -136,8 +136,8 @@ end
 
 type cstring (ptr char)
 
-std:base:func size_t strcmp(cstring l, cstring r)
-std:base:func size_t strncmp(cstring l, cstring r, size_t maxChars)
+std:base:func int strcmp(cstring l, cstring r)
+std:base:func int strncmp(cstring l, cstring r, size_t maxChars)
 std:base:func cstring strcpy(cstring dest, cstring source)
 std:base:func cstring strdup(cstring src)
 std:base:func size_t strlen(cstring str)
@@ -160,7 +160,7 @@ std:base:func void printIndent(int count):
 end
 
 std:base:func bool cstring:equal(cstring l, cstring r):
-  std:base:ret size_t:equal(cast size_t 0, strcmp l r)
+  std:base:ret u32:equal(0, strcmp l r)
 end
 
 std:base:func cstring cstring:quote(cstring unquoted):
@@ -379,7 +379,7 @@ end
 std:base:func cstring cstrings:append(cstring l, cstring r):
   var size_t lLength strlen(l)
   var size_t rLength strlen(r)
-  var cstring appended (malloc char (cast u32 size_t:add(1, size_t:add lLength rLength)))
+  var cstring appended (malloc char (cast u32 size_t:add(cast size_t 1, size_t:add lLength rLength)))
   strcpy appended l
   strcpy (ptradd appended (cast u32 lLength)) r
   std:base:ret appended
@@ -730,6 +730,11 @@ macro addMappedChilds parent mapf childs...:
 end
 
 template op= l r (assign #l #r)
+
+/// Work-around for malloc, ptradd, etc. only accepting u32 for now.
+template fixSizet num:
+  cast u32 #num
+end
 
 ///-----------------------------------------------------------------------------
 /// Section: Deprecation
