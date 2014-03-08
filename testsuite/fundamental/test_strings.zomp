@@ -12,7 +12,7 @@ var char* multiline "line0\nline1\n"
 
 struct String:
   char* content
-  int length
+  size_t length
 end
 
 func String makeString(char* str):
