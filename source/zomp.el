@@ -62,6 +62,16 @@ indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type 'float)
 
+(defcustom zomp-build-architectures (list "i386" "x86_64")
+  "List of supported architectures."
+  :group 'zomp
+  :type '(repeat string))
+
+(defcustom zomp-build-variants (list "debug" "release")
+  "List of supported build variants."
+  :group 'zomp
+  :type '(repeat string))
+
 (defface zomp-highlight-after-eval-face
   '((t (:inherit highlight)))
   "A face used to highlight expression for a brief time after they have been
@@ -224,6 +234,28 @@ use global one"
 (defvar zomp-build-variant "release"
   "Whether to use the Zomp \"debug\" or \"release\" build.")
 
+(defun zomp-select-architecture ()
+  "Select which architecture to use for build commands."
+  (interactive)
+  (setq zomp-build-architecture (completing-read "Select architecture for builds: " zomp-build-architectures)))
+
+(defun zomp-select-variant ()
+  "Select which variant to use for build commands."
+  (interactive)
+  (setq zomp-build-variant (completing-read "Select variant for builds: " zomp-build-variants)))
+
+(defun zomp-toggle-variant ()
+  "Toggle between using Zomp variants. See `zomp-build-variant'."
+  (interactive)
+  (setq zomp-build-variant
+        (if (string= "release" zomp-build-variant)
+            "debug"
+          "release"))
+  (minibuffer-message "Now using Zomp build %s%s" (zomp-build-name)
+                      (if (zomp-get-shell-buffer nil)
+                          ", need to restart zompsh to take effect"
+                        "")))
+
 (defun zomp-build-name ()
   "Returns the variant of Zomp used. This value is composed of the build variant
 and the architecture like this: \"variant-architecture\"."
@@ -267,18 +299,6 @@ and the architecture like this: \"variant-architecture\"."
    (when (equal create-if-not-existing 'create)
      (zomp-start-shell)
      (get-buffer-process zomp-shell-buffer-name))))
-
-(defun zomp-toggle-variant ()
-  "Toggle between using Zomp variants. See `zomp-build-variant'."
-  (interactive)
-  (setq zomp-build-variant
-        (if (string= "release" zomp-build-variant)
-            "debug"
-          "release"))
-  (minibuffer-message "Now using Zomp build %s%s" (zomp-build-name)
-                      (if (zomp-get-shell-buffer nil)
-                        ", need to restart zompsh to take effect"
-                        "")))
 
 (defun zomp-shell-move-point-to-end ()
   "Will move the point to the end of the shell buffer for all
@@ -890,6 +910,8 @@ indentation is the same or less than the line where we started."
                    [(control c) (?.) (m)] "Tracing of macro expansion" toggle)
   ;; (zomp-add-action zomp-shell-toggle-verify
   ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
+  (zomp-add-action zomp-select-architecture [(control c) (?.) (?a)] toggle)
+  (zomp-add-action zomp-select-variant [(control c) (?.) (?v)] toggle)
 
   (local-set-key [(control c) (?.) (?s)] 'zomp-shell-sexpr-syntax)
   (local-set-key [(control c) (?.) (?i)] 'zomp-shell-indent-syntax)
