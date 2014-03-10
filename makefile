@@ -442,15 +442,17 @@ endif
 	@$(ECHO) "Compiling $< ..."
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-.PRECIOUS: %.ll %.bc %.opt-bc
+.PRECIOUS: %.ll
 %.ll %.compile_output: %.zomp $(ZOMPC_FILE) source/prelude.zomp $(OUT_DIR)/has_llvm
 	$(ECHO) Compiling $(<) to .ll...
 	$(RUN_AND_LOG) $(<:.zomp=.compile_output) $(ZOMPC) -c $< $(ZOMPCFLAGS) --stats $(@:.ll=.compile_stats)
 
+.PRECIOUS: %.bc
 %.bc: %.ll $(OUT_DIR)/has_llvm
 	@echo Compiling $< to $@
 	$(LLVM_AS) -f $< -o $@
 
+.PRECIOUS: %.opt-bc
 %.opt-bc: %.bc $(OUT_DIR)/has_llvm
 	@$(ECHO) Optimizing $< to $@ ...
 	$(LLVM_OPT) $< -o $@ -O3
