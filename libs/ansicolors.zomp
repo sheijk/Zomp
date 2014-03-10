@@ -6,7 +6,7 @@
 requireLibs libcee
 
 func bool isStringLiteral(char* str):
-  len := strlen(str)
+  len := fixSizet strlen(str)
   if (len < 2) ret(false)
   if (str* != '"') ret(false)
   if ((str+len-1)* != '"') ret(false)
