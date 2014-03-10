@@ -70,7 +70,7 @@ func char* copyStringRange(char* start, char* end_):
   end
 
   buffer := malloc char (count+1)
-  strncpy(buffer, start, count)
+  strncpy(buffer, start, cast size_t count)
   buffer[count] = '\0'
   return buffer
 end
@@ -89,8 +89,8 @@ func void Section:loadFromAst(Section* this, ast* tree):
       if (item.id ==_str "op="):
         name := getField ast:child(item, 0) id
         value := getField ast:child(item, 1) id
-        valueLength := strlen(value)
-        if (*(value+0) == '"' && *(value + valueLength - 1) == '"'):
+        valueLength := fixSizet strlen(value)
+        if (*(value + 0) == '"' && *(value + valueLength - 1) == '"'):
           (value + valueLength - 1)* = '\0'
           value += 1
         end

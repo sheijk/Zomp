@@ -203,7 +203,7 @@ func void Mesh:setupDefaultStreams(Mesh* this):
       this.normals = stream
     elseif (stream.name ==_str "gl_Color"):
       this.colors = stream
-    elseif (strncmp stream.name "gl_TexCoords" 12 == 0):
+    elseif (strncmp stream.name "gl_TexCoords" (cast size_t 12) == 0):
       print "warning: ignoring tex coords stream '" stream.name "'"
       print " (not implemented, yet)"
       println()
