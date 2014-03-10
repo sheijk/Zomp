@@ -445,8 +445,7 @@ endif
 .PRECIOUS: %.ll %.bc %.opt-bc
 %.ll %.compile_output: %.zomp $(ZOMPC_FILE) source/prelude.zomp $(OUT_DIR)/has_llvm
 	$(ECHO) Compiling $(<) to .ll...
-	($(ZOMPC) -c $< $(ZOMPCFLAGS) --stats $(@:.ll=.compile_stats); (echo $$? > $(@:.ll=.exit.tmp))) | tee $(<:.zomp=.compile_output)
-	result=`cat $(@:.ll=.exit.tmp)`; rm -f $(@:.ll=.exit.tmp); exit $$result
+	$(RUN_AND_LOG) $(<:.zomp=.compile_output) $(ZOMPC) -c $< $(ZOMPCFLAGS) --stats $(@:.ll=.compile_stats)
 
 %.bc: %.ll $(OUT_DIR)/has_llvm
 	@echo Compiling $< to $@
