@@ -23,6 +23,12 @@ let serrorFromTypeError bindings expr (fe,m,f,e) =
   let msg = typeErrorMessage bindings (fe,m,f,e) in
   Serror.fromExpr expr msg
 
+let formatFileNotFoundInPathError fileName directories =
+  Common.combine "\n  "
+    (sprintf "file '%s' could not be found" fileName
+     :: sprintf "pwd = %s" (Sys.getcwd())
+     :: List.map (sprintf "or in dir %s") directories)
+
 exception IllegalExpression of sexpr * Serror.t list
 
 module Translation_utils =
@@ -1587,7 +1593,7 @@ struct
     addF "std:env:lineOf" ("int", translateLineNumberOf)
 end
 
-module Array : Zomp_transformer =
+module Arrays : Zomp_transformer =
 struct
   let arraySize (env: exprTranslateF env) expr =
     match expr with
@@ -1821,7 +1827,7 @@ let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
     Hashtbl.add table name f
   in
   Base.register add;
-  Array.register add;
+  Arrays.register add;
   Overloaded_ops.register add;
   Compiler_environment.register add;
   let addBaseInstruction name doc f = add name (doc, f) in
@@ -2591,14 +2597,11 @@ end = struct
                   ()
               | None ->
                 EnvTL.emitError env $ Serror.fromMsg (Some location)
-                  (Common.combine "\n  "
-                     (sprintf "could not find C library '%s'," fileName
-                      :: sprintf "pwd = %s" (Sys.getcwd())
-                      :: List.map (sprintf "zomp-include-dir %s") !dllPath))
+                  (formatFileNotFoundInPathError fileName !dllPath)
         end
       | invalidExpr ->
         EnvTL.emitError env $ Serror.fromExpr invalidExpr
-          (sprintf "expecting '%s fileName" invalidExpr.Ast2.id)
+          (sprintf "expecting '%s fileName'" invalidExpr.Ast2.id)
 
   let dllPath = ref ([] :string list)
   let addDllPath (env :EnvTL.t) dir where = addToList dllPath dir where
@@ -2648,10 +2651,7 @@ end = struct
           with
             | Sys_error _ ->
               EnvTL.emitError env $ Serror.fromMsg location
-                (Common.combine "\n  "
-                   (sprintf "file '%s' could not be found" fileName
-                    :: sprintf "pwd = %s" (Sys.getcwd())
-                    :: List.map (sprintf "zomp-include-dir %s") !includePath))
+                (formatFileNotFoundInPathError fileName !includePath)
             | error ->
               let msg = Printexc.to_string error in
               EnvTL.emitError env $ Serror.fromExpr expr
@@ -2717,8 +2717,12 @@ let translateMulti env exprs =
   EnvTL.emitExprs env exprs;
   extractResultFromEnv env
 
-let addIncludePath = Include.addIncludePath
 let addDllPath = Link_clib.addDllPath
+let recommendedDllPath =
+  ["."; ".."; "./libs"; "./tools/external/lib"]
+let addIncludePath = Include.addIncludePath
+let recommendedIncludePath =
+  [Sys.getcwd(); Filename.dirname $ Sys.argv.(0)]
 
 let emitBackendCodeFunc = ref (None : (string -> unit) option)
 let setEmitbackendCode f = emitBackendCodeFunc := Some f

@@ -242,15 +242,13 @@ let () =
   Expander.setEmitbackendCode handleLLVMCode;
 
   let initEnv env =
-    List.iter (fun dir -> Expander.addDllPath env dir `Back)
-      ["."; ".."; "./libs"; "./tools/external/lib"];
-    List.iter (fun dir -> Expander.addDllPath env dir `Front) options.dllPaths;
+    let addDllPath where dir = Expander.addDllPath env dir where in
+    List.iter (addDllPath `Back) Expander.recommendedDllPath;
+    List.iter (addDllPath `Front) options.dllPaths;
 
-    let addIncludePath path where = Expander.addIncludePath env path where in
-    let compilerDir = Filename.dirname options.execNameAndPath in
-    addIncludePath compilerDir `Front;
-    addIncludePath (Sys.getcwd()) `Front;
-    List.iter (fun dir -> addIncludePath dir `Front) options.zompIncludePaths;
+    let addIncludePath where dir = Expander.addIncludePath env dir where in
+    List.iter (addIncludePath `Back) Expander.recommendedIncludePath;
+    List.iter (addIncludePath `Front) options.zompIncludePaths;
   in
 
   let exitCode =

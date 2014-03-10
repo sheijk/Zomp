@@ -725,12 +725,11 @@ let () =
 
   let env = Expander.createEnv Genllvm.defaultBindings in
 
-  let addDllPath path where = Expander.addDllPath env path where in
-  addDllPath "." `Back;
-  addDllPath "./libs" `Back;
-  addDllPath "./tools/external/lib" `Back;
+  let addDllPath where path = Expander.addDllPath env path where in
+  List.iter (addDllPath `Back) Expander.recommendedDllPath;
 
-  Expander.addIncludePath env "." `Front;
+  let addIncludePath where path = Expander.addIncludePath env path where in
+  List.iter (addIncludePath `Back) Expander.recommendedIncludePath;
 
   let preludeOk, preludeLoadTime = recordTiming (loadPrelude env) in
   printf "Loading prelude took %.2fs\n" preludeLoadTime;

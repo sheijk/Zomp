@@ -16,7 +16,9 @@ val emitExpr : tlenv -> Ast2.t -> unit
 val emitError : tlenv -> Serror.t -> unit
 
 val addDllPath : tlenv -> string -> [`Front | `Back] -> unit
+val recommendedDllPath : string list
 val addIncludePath : tlenv -> string -> [`Front | `Back] -> unit
+val recommendedIncludePath : string list
 
 val addTranslateFunction : string -> doc:string -> (tlenv -> Ast2.sexpr -> unit) -> unit
 
