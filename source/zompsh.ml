@@ -727,6 +727,8 @@ let () =
 
   let addDllPath where path = Expander.addDllPath env path where in
   List.iter (addDllPath `Back) Expander.recommendedDllPath;
+  addDllPath `Back "/usr/lib";
+  addDllPath `Back "/usr/local/lib";
 
   let addIncludePath where path = Expander.addIncludePath env path where in
   List.iter (addIncludePath `Back) Expander.recommendedIncludePath;
