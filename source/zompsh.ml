@@ -326,7 +326,6 @@ end = struct
       | [fileName; lineStr] ->
         begin try
           let line = int_of_string lineStr in
-          printf "source location set to %s %d\n" fileName line;
           currentFile := fileName;
           firstLineDelta := line - 1;
         with (Failure _) ->
@@ -714,8 +713,9 @@ let () =
 
   Zompvm.zompVerifyCode false;
 
-  message (sprintf "Welcome to Zomp shell, version %s%s"
+  message (sprintf "Welcome to Zomp shell, version %s, %d-bit, %s"
              version
+             Sys.word_size
              (if Zompvm.zompIsDebugBuild() then ", Debug build" else ""));
 
   init();

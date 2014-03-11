@@ -374,7 +374,6 @@ following this command will have source locations relative to pos."
                  (count-lines (point-min) pos)))
          (file (or (buffer-file-name) "zompsh"))
          (cmd (format "!setSourceLocation %s %s" file (- line 1))))
-    (message "cmd = %s" cmd)
     (zomp-shell-do cmd)))
 
 (defun zomp-shell-eval-region ()
