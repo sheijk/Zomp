@@ -2,7 +2,7 @@
 /// Bindings for assimp library to import 3d models from various file formats.
 ///
 
-linkclib "assimp.dylib"
+linkclib "libassimp.dylib"
 
 requireLibs libcee mesh
 

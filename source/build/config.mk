@@ -203,6 +203,9 @@ MENHIR_FLAGS += --stdlib $(ZOMP_TOOL_PATH)/share/menhir
 ZOMPCFLAGS += --dll-dir /usr/lib
 ZOMPCFLAGS += --dll-dir /usr/local/lib
 
+ZOMPCFLAGS += --dll-dir ./libs
+LDFLAGS += -Llibs
+
 ################################################################################
 # Libraries
 ################################################################################
@@ -217,13 +220,11 @@ LINK_GLUT = -framework GLUT
 LINK_GL = -framework OpenGL
 endif
 
-LDFLAGS += -Llibs
-
-LINK_QUICKTEXT = libs/libquicktext.$(DLL_EXTENSION)
-LINK_ANTTWEAKBAR = $(ZOMP_TOOL_PATH)/lib/libAntTweakBar.$(DLL_EXTENSION)
-LINK_ASSIMP = $(ZOMP_TOOL_PATH)/lib/libassimp.a
+LINK_QUICKTEXT = -lquicktext
+LINK_ANTTWEAKBAR = -lAntTweakBar
+LINK_ASSIMP = -lassimp
 LINK_CPPSTDLIB = -lstdc++
-LINK_GLEW = $(ZOMP_TOOL_PATH)/lib/libGLEW.$(DLL_EXTENSION)
-LINK_GLFW = $(ZOMP_TOOL_PATH)/lib/libglfw.$(DLL_EXTENSION)
-LINK_UTILS = libs/libutils.$(DLL_EXTENSION)
+LINK_GLEW = -lGLEW
+LINK_GLFW = -lglfw
+LINK_UTILS = -lutils
 
