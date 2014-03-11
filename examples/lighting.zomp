@@ -8,20 +8,20 @@ requireLibs assimp math mathvis spaceballcam anttweakbar
 
 func bool isQuoted(cstring text):
   len := strlen text
-  if (len < 2):
+  if (len < cast size_t 2):
     ret false
   end
 
-  ret ((load text == '"') && (load (text+len-1) == '"'))
+  ret ((load text == '"') && (load (text + fixSizet(len) - 1) == '"'))
 end
 
 func cstring unquote(cstring quoted):
   if isQuoted(quoted):
-    len := strlen quoted
+    len := fixSizet (strlen quoted)
     unquotedLen := len - 2 + 1
-    unquoted := malloc char unquotedLen
-    for pos 0 (unquotedLen-1):
-      store (unquoted+pos) load(quoted+pos+1)
+    unquoted := malloc char fixSizet(unquotedLen)
+    for pos 0 (unquotedLen - 1):
+      store (unquoted + pos) load(quoted + pos + 1)
     end
     store (unquoted + unquotedLen - 1) '\0'
 

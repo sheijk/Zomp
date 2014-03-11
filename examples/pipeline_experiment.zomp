@@ -2171,11 +2171,11 @@ func void ShaderManager:addMaterial(ShaderManager* this, Material* material):
     instanceName := shaderNameEnd + 2
     instanceNameLength := strlen(instanceName)
     // TODO: allow to take the difference between two pointers
-    shaderNameLength := strlen(material.name) - strlen(instanceName) - 2
+    shaderNameLength := strlen(material.name) - strlen(instanceName) - cast size_t 2
     // TODO: release memory
-    shaderName := malloc char (shaderNameLength + 1)
+    shaderName := malloc char (fixSizet shaderNameLength + 1)
     memcpy(cast void* shaderName, cast void* material.name, shaderNameLength)
-    shaderName[shaderNameLength] = '\0'
+    shaderName[fixSizet shaderNameLength] = '\0'
 
     shader := cast Shader* StringMap_find(this.shadersByName, shaderName)
 
@@ -2430,10 +2430,10 @@ func void Material:initFromAI(Material* this, aiMaterial* aimat):
       instanceName := shaderNameEnd + 2
       instanceNameLength := strlen(instanceName)
       // TODO: allow to take the difference between two pointers
-      shaderNameLength := strlen(this.name) - strlen(instanceName) - 2
-      shaderName := malloc char (shaderNameLength + 1)
+      shaderNameLength := strlen(this.name) - strlen(instanceName) - cast size_t 2
+      shaderName := malloc char (fixSizet shaderNameLength + 1)
       memcpy(cast void* shaderName, cast void* this.name, shaderNameLength)
-      shaderName[shaderNameLength] = '\0'
+      shaderName[fixSizet shaderNameLength] = '\0'
 
       // println "shader = '" shaderName "', instance '" instanceName "'"
       dealloc shaderName
@@ -3133,7 +3133,7 @@ func int ast:printLimited(ast* tree, int maxLength):
     ret 0
   end
 
-  count := strlen tree.id
+  count := fixSizet strlen(tree.id)
   if (tree.childCount > 0):
     print "("
     remaining--

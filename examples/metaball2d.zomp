@@ -252,7 +252,7 @@ func int main():
   gridHeight := 300
   values := malloc float (gridWidth * gridHeight)
   onReturn (dealloc values)
-  memset (cast void* values) 0 (gridWidth * gridHeight * sizeof float)
+  memset(cast void* values, 0, cast size_t (gridWidth * gridHeight * sizeof float))
 
   ballCount := 20
   balls := malloc v3f ballCount
