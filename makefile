@@ -444,12 +444,12 @@ endif
 
 .PRECIOUS: %.ll
 %.ll %.compile_output: %.zomp $(ZOMPC_FILE) source/prelude.zomp $(OUT_DIR)/has_llvm
-	$(ECHO) Compiling $(<) to .ll...
+	@$(ECHO) Compiling $(<) to .ll...
 	$(RUN_AND_LOG) $(<:.zomp=.compile_output) $(ZOMPC) -c $< $(ZOMPCFLAGS) --stats $(@:.ll=.compile_stats)
 
 .PRECIOUS: %.bc
 %.bc: %.ll $(OUT_DIR)/has_llvm
-	@echo Compiling $< to $@
+	@$(ECHO) Compiling $< to $@
 	$(LLVM_AS) -f $< -o $@
 
 .PRECIOUS: %.opt-bc
@@ -518,7 +518,7 @@ SCONSFLAGS += "debug=1"
 endif
 
 extlib_assimp:
-	@echo Building assimp library ...
+	@$(ECHO) Building assimp library ...
 	cd $(ASSIMP_DIR)/workspaces/SCons; $(SCONS) $(SCONSFLAGS)
 
 libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
@@ -526,7 +526,7 @@ libassimp.a: $(ASSIMP_DIR)/workspaces/SCons/libassimp.a makefile
 	ln -s $< $@
 
 assimp.dylib: libassimp.a makefile libs/forcelinkassimp.c
-	@echo Building $@ ...
+	@$(ECHO) Building $@ ...
 	$(CXX) $(DLL_FLAG) $(LDFLAGS) -o $@ -I $(ASSIMP_DIR)/include -L. -lassimp libs/forcelinkassimp.c
 
 %.zomp: %.skel source/gen_c_bindings
