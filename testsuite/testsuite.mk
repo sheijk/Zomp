@@ -64,6 +64,8 @@ testsuite/clean:
 	rm -f $(TESTSUITE_CASES:.testreport=.o)
 	rm -f $(TESTSUITE_CASES:.testreport=.exe)
 	rm -f testsuite/prelude_is_valid
+	rm -f testsuite/zompsh/no_zompsh_test_*.zomp
+	rm -f testsuite/check_test_verify/test_check_test_error_report.testreport.tmp
 
 ################################################################################
 # Additional flags

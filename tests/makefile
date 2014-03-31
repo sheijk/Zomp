@@ -66,6 +66,8 @@ clean_tests:
 	@$(ECHO) Cleaning tests ...
 	$(RM) -f *.ll *.bc *.exe
 	$(RM) -f compileperf.*
+	cd llvmtest && make clean
+	$(RM) -rf build buildlog.txt
 
 %.cbe.c: %.bc
 	@$(ECHO) Generating $@ ...

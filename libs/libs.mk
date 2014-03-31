@@ -21,6 +21,8 @@ CLEAN_SUB_TARGETS += libs/clean
 libs/clean:
 	$(DELETE_FILE) $(GENERATED_LIBRARY_SOURCES)
 	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.ll)
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.bc)
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.opt-bc)
 	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.compile_output)
 	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.result)
 

@@ -796,6 +796,7 @@ clean: $(CLEAN_SUB_TARGETS)
 clean_tags:
 	$(DELETE_FILE) source/*.annot
 	$(DELETE_FILE) source/*.conflicts
+	$(DELETE_FILE) testsuite/*.annot
 	$(DELETE_FILE) TAGS
 	$(DELETE_FILE) $(FLYMAKE_LOG)
 
