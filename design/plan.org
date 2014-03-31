@@ -1805,8 +1805,11 @@ Next up:
   - [X] implement for c++, OCaml and Zomp
   - [X] add to test reports
   - [X] move all existing stats to new system
-- [ ] "no translator matched expression" must go away
-- [ ] report multiple errors
+- [X] "no translator matched expression" must go away
+- [-] report multiple errors
+  - [X] for toplevel expressions
+  - [ ] for seq
+  - [ ] more?
 
 Minor tasks:
 - [ ] useful handling of ret at end of function
@@ -1819,11 +1822,12 @@ Minor tasks:
 
 ** 0.2 - proper language
 
-- user defined llvm intrinsics
+- function overloading
 - generics
 - modules
 - new macro system
 - finish definition of base language
+- user defined llvm intrinsics
 
 ** development experience
 
