@@ -123,8 +123,7 @@ The word \"error\" will be highlighted in this face.")
                   (cond ((looking-at "\\s\)")
                          (forward-char 1)
                          (backward-list 1)
-                         (backward-char 1)))
-                  ))))))
+                         (backward-char 1)))))))))
 
 (defconst zomp-toplevel-expr-regexp "^[a-z(]"
   "Regular expression to match the beginning of a toplevel expression.")
