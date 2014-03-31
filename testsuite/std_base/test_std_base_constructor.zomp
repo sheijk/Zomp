@@ -1,0 +1,56 @@
+///
+/// Test handling of expressions whose head is a type name.
+///
+
+requireLibs libcee unittest
+
+macro std:base:constructorCall type args...:
+  name := type.id ++ ":constructor"
+
+  code := ${#name()}
+  forEachAstChild child args:
+    ast:addChild code child
+  end
+
+  ret code
+end
+
+std:base:func u32 u32:constructor(float f):
+  std:base:ret cast(u32, f)
+end
+
+std:base:func float float:constructor(u32 i):
+  std:base:ret cast(float, i)
+end
+
+struct Point:
+  int x
+  int y
+end
+
+func Point Point:constructor(int x, int y):
+  return Point(x = x, y = y)
+end
+
+unittest:testCase PrimitiveConstructorCalls:
+  unittest:assertAll:
+    u32 1.0 == 1
+    float 8 == 8.0
+  end
+end
+
+unittest:testCase StructConstructorCalls:
+  pointFromConstructor := Point 10 20
+  pointFromLiteral := Point(x = 30, y = 40)
+
+  unittest:assertAll:
+    pointFromConstructor.x == 10
+    pointFromConstructor.y == 20
+
+    pointFromLiteral.x == 30
+    pointFromLiteral.y == 40
+  end
+end
+
+unittest:main
+

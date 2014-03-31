@@ -1494,34 +1494,59 @@ struct
       | _ ->
         fail()
 
-  let alwaysFail env typeExpr argExprs = errorFromExpr
-    (Ast2.expr "(record literal)" (typeExpr :: argExprs)) "not supported"
-
   let translateApply translateRecordF (env :('a someTranslateF) env) expr =
+    let allAreFieldAssignments exprs =
+      let isFieldAssignment = function
+        | { id = "op="; args = [{ args = [] }; _] } ->
+          true
+        | _ ->
+          false
+      in
+      List.for_all isFieldAssignment exprs
+    in
+
     match expr with
-      | { args = firstArg :: remArgs } -> begin
-        match firstArg.args, lookup env.bindings firstArg.id with
-          | [], FuncSymbol _
-          | [], VarSymbol { typ = `Pointer `Function _ } ->
-            Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+      | { args = firstArg :: remArgs } ->
+        let translateConstructorCall() =
+          let toConstructorExpr expr =
+            { expr with
+              Ast2.id = macroConstructor;
+              args = { firstArg with args = []} :: remArgs }
+          in
+          Result (env.translateF env.bindings $ toConstructorExpr expr)
+        in
 
-          (** Can't combine bodies due to pattern guard *)
-          | [], TypedefSymbol _ ->
+        let translateNonConstructorCall() =
+          match firstArg.args, lookup env.bindings firstArg.id with
+            | [], FuncSymbol _
+            | [], VarSymbol { typ = `Pointer `Function _ } ->
+              Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+
+            | [], TypedefSymbol _ ->
+              Error [Serror.fromExpr expr "internal error"]
+
+            | [], _ ->
+              let r = env.translateF env.bindings { (Ast2.shiftLeft expr.args) with location = expr.location } in
+              Result r
+
+            | (_::_), _ ->
+              let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
+              let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
+              let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
+              let r = env.translateF env.bindings { (Ast2.seqExpr [tempVar; callExpr]) with location = expr.location } in
+              Result r
+        in
+        begin match translateType env.bindings firstArg with
+          | Result `Record _ when allAreFieldAssignments remArgs ->
             translateRecordF env firstArg remArgs
-          | _, UndefinedSymbol when firstArg.id = "op!" ->
-            translateRecordF env firstArg remArgs
 
-          | [], _ ->
-            let r = env.translateF env.bindings { (Ast2.shiftLeft expr.args) with location = expr.location } in
-            Result r
+          | Result _ ->
+            translateConstructorCall()
 
-          | (_::_), _ ->
-            let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
-            let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
-            let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
-            let r = env.translateF env.bindings { (Ast2.seqExpr [tempVar; callExpr]) with location = expr.location } in
-            Result r
-      end
+          | _ ->
+            translateNonConstructorCall()
+        end
+
       | { args = [] } ->
         errorFromExpr expr (sprintf "expected 'std:base:apply expr args?'")
 
@@ -1844,6 +1869,13 @@ let rec translateNestedNew
     (expr :Ast2.sexpr)
     : (bindings * formWithTLsEmbedded list) mayfail
     =
+
+  let toConstructorExpr expr =
+    { expr with
+      Ast2.id = macroConstructor;
+      args = { expr with args = []} :: expr.args }
+  in
+
   Zompvm.currentBindings := bindings;
   match Bindings.lookup bindings expr.id with
     | VarSymbol var ->
@@ -1861,8 +1893,7 @@ let rec translateNestedNew
           Mayfail.singleError $ Serror.fromExpr expr "failed after macro expansion")
 
     | TypedefSymbol typedef ->
-      (* todo: use this to create a value *)
-      Mayfail.singleError $ Serror.fromExpr expr "found type name but expected expression"
+      translateNestedNew bindings $ toConstructorExpr expr
 
     | LabelSymbol label ->
       Mayfail.singleError $ Serror.fromExpr expr "label can only be used as argument to control flow instructions"
