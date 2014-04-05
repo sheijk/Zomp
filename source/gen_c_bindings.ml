@@ -612,9 +612,9 @@ struct
       "glBegin"
     ] in
     (Str.string_match (Str.regexp "gl[A-Z].*") funcName 0)
-    & not
+    && not
       (List.fold_left
-         (fun l r -> l or (Str.string_match (Str.regexp r) funcName 0))
+         (fun l r -> l || (Str.string_match (Str.regexp r) funcName 0))
          false
          nonChecked)
 

@@ -781,7 +781,7 @@ let token (lexbuf : token lexerstate) : token =
   let rec worker () =
     let currentChar = readOneChar lexbuf (source, sourceLength) in
 
-    if currentChar = beginIndentBlockChar or isNewline currentChar then begin
+    if currentChar = beginIndentBlockChar || isNewline currentChar then begin
       collectTimingInfo "newline"
         (fun () ->
            interpreteNewline currentChar worker)

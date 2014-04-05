@@ -33,7 +33,7 @@ let symbolLocation = function
     -> loc
   | TypedefSymbol _
   | LabelSymbol _
-  | UndefinedSymbol _
+  | UndefinedSymbol
     -> None
 
 let addSymbol name symbol location bindings =
