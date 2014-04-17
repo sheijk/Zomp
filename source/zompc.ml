@@ -137,10 +137,10 @@ let compile initEnv fileName inStream outStream =
     flush stderr
   in
 
-  if not( Zompvm.zompInit() ) then begin
+  if not( Machine.zompInit() ) then begin
     Failed_to_init_vm
   end else begin
-    Zompvm.zompVerifyCode false;
+    Machine.zompVerifyCode false;
     let env = Expander.createEnv Genllvm.defaultBindings in
     initEnv env;
     let exitCode =
@@ -162,7 +162,7 @@ let compile initEnv fileName inStream outStream =
             Compiler_did_not_return_result
       end
     in
-    Zompvm.zompShutdown();
+    Machine.zompShutdown();
     exitCode
   end
 
@@ -186,7 +186,7 @@ let () =
     let printTimingStats() =
       Profiling.printTimings();
       flush stdout;
-      Zompvm.zompPrintTimingStats();
+      Machine.zompPrintTimingStats();
     in
     at_exit printTimingStats;
   end;

@@ -2620,7 +2620,7 @@ end = struct
           else
             match Common.findFileIn fileName !dllPath with
               | Some absoluteFileName ->
-                let handle = Zompvm.zompLoadLib absoluteFileName in
+                let handle = Machine.zompLoadLib absoluteFileName in
                 if Zompvm.isNullPtr handle then
                   EnvTL.emitError env $ Serror.fromMsg (Some location)
                     (sprintf "could not load C library '%s'\n" absoluteFileName)

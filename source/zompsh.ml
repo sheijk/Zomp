@@ -266,13 +266,13 @@ end = struct
   let toggleVerifyCommand =
     makeToggleCommandFromGetSet
       "Verifying LLVM code"
-      Zompvm.zompDoesVerifyCode
-      (fun b -> Zompvm.zompVerifyCode b)
+      Machine.zompDoesVerifyCode
+      (fun b -> Machine.zompVerifyCode b)
   let toggleOptimizeFunctionCommand =
     makeToggleCommandFromGetSet
       "Optimize LLVM code"
-      Zompvm.zompOptimizeFunction
-      (fun b -> Zompvm.zompSetOptimizeFunction b)
+      Machine.zompOptimizeFunction
+      (fun b -> Machine.zompSetOptimizeFunction b)
 
   let setNotifyTimeThresholdCommand = makeSingleArgCommand
     (fun timeStr _ ->
@@ -404,7 +404,7 @@ end = struct
 
   let printVersionInfoCommand = makeNoArgCommand
     (fun _ ->
-      printf "Version %s, build %s\n" version (Zompvm.zompBuildInfo());
+      printf "Version %s, build %s\n" version (Machine.zompBuildInfo());
       flush stdout)
 
   let commands =
@@ -699,7 +699,7 @@ let () =
     if !showTimingStatsAtExit then begin
       Profiling.printTimings();
       flush stdout;
-      Zompvm.zompPrintTimingStats();
+      Machine.zompPrintTimingStats();
     end;
 
     if !showStatsAtExit then
@@ -711,12 +711,12 @@ let () =
         if Stats.statsPrintReportToFile (Common.absolutePath file) 0 = false then
           reportError $ sprintf "could not write stats to file '%s'" file);
 
-  Zompvm.zompVerifyCode false;
+  Machine.zompVerifyCode false;
 
   message (sprintf "Welcome to Zomp shell, version %s, %d-bit, %s"
              version
              Sys.word_size
-             (if Zompvm.zompIsDebugBuild() then ", Debug build" else ""));
+             (if Machine.zompIsDebugBuild() then ", Debug build" else ""));
 
   init();
 

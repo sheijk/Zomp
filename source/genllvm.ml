@@ -530,22 +530,20 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     let testMacro =
       let calls1i functionName arg =
-        Zompvm.zompResetArgs();
-        Zompvm.zompAddPointerArg arg;
-        Zompvm.zompRunFunctionStringWithArgs functionName
+        Machine.zompResetArgs();
+        Machine.zompAddPointerArg arg;
+        Machine.zompRunFunctionStringWithArgs functionName
       in
       let calli1i functionName arg =
-        Zompvm.zompResetArgs();
-        Zompvm.zompAddPointerArg arg;
-        Zompvm.zompRunFunctionIntWithArgs functionName
+        Machine.zompResetArgs();
+        Machine.zompAddPointerArg arg;
+        Machine.zompRunFunctionIntWithArgs functionName
       in
       macro "std:test" "()"
         (fun bindings args ->
-           let sexprAddress = Zompvm.zompSimpleAst "foobar" in
-           (* printf "ast has address %d\n" sexprAddress; *)
-           (* flush stdout; *)
-           if Zompvm.zompAstIsNull sexprAddress then begin
-             Zompvm.zompAddChild sexprAddress (Zompvm.zompSimpleAst "child");
+           let sexprAddress = Machine.zompSimpleAst "foobar" in
+           if Machine.zompAstIsNull sexprAddress then begin
+             Machine.zompAddChild sexprAddress (Machine.zompSimpleAst "child");
              let name = calls1i "macroAstId" sexprAddress in
              let childCount = calli1i "macroAstChildCount" sexprAddress in
              Ast2.simpleExpr "was" [name; string_of_int childCount]
