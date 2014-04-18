@@ -1,10 +1,15 @@
+(** Basic AST type **)
+
 type sexpr = {
   id : string;
   args : sexpr list;
   location : Basics.location option;
 }
+
 type t = sexpr
-val withLoc : sexpr -> Basics.location -> sexpr
+
+(** Constructors. Variants w/o source location are deprecated. *)
+
 val idExpr : string -> sexpr
 val idExprLoc : Basics.location -> string -> sexpr
 val simpleExpr : string -> string list -> sexpr
@@ -21,21 +26,29 @@ val juxExpr : sexpr list -> sexpr
 val juxExprLoc : Basics.location -> sexpr list -> sexpr
 val callExpr : sexpr list -> sexpr
 val callExprLoc : Basics.location -> sexpr list -> sexpr
-val combineLocations : sexpr list -> Basics.location option
+
 val juxExprInferLoc : sexpr list -> sexpr
 val callExprInferLoc : sexpr list -> sexpr
 val seqExprInferLoc : sexpr list -> sexpr
 val exprInferLoc : string -> sexpr list -> sexpr
+
+(** Source location handling. *)
+
 val fileName : sexpr -> string
 val lineNumber : sexpr -> int
 val column : sexpr -> int
+
 val locationOr : sexpr -> Basics.location -> Basics.location
 val assertHasLocation : sexpr -> unit
-val toSingleExpr : sexpr list -> sexpr
+val withLoc : sexpr -> Basics.location -> sexpr
+
+(** Utility functions. *)
+
 type stringTree = STLeaf of string | STBranch of stringTree list
 val toStringTree : sexpr -> stringTree
 val stToString : maxLength:int -> ?indent:int -> stringTree -> string
 val expression2string : sexpr -> string
+
 val toString : sexpr -> string
 val equals : sexpr -> sexpr -> bool
 val replaceParams : string list -> sexpr list -> sexpr -> sexpr

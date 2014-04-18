@@ -1,3 +1,4 @@
+(** A single error or diagnostic. **)
 
 type t = private {
   emsg: string;

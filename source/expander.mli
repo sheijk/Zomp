@@ -1,3 +1,4 @@
+(** Expand macros and recognize std:base language. **)
 
 (**
    Signalled by old code which cannot report errors properly. Will be replaced

@@ -286,6 +286,8 @@ end = struct
         printf "error: could not parse '%s' as float\n" timeStr)
 
   let printBindingsCommand args (bindings :bindings) =
+    let typeName = Typesystems.Zomp.typeName in
+    let typeDescr = Typesystems.Zomp.typeDescr in
     let regexps = List.map
       (fun restr -> Str.regexp (sprintf ".*%s.*" (String.lowercase restr)))
       args
@@ -294,15 +296,15 @@ end = struct
       if List.for_all (fun re -> Str.string_match re (String.lowercase name) 0) regexps then
         match symbol with
           | VarSymbol var ->
-            printf "var %s %s\n" (Lang.typeName var.typ) var.vname
+            printf "var %s %s\n" (typeName var.typ) var.vname
           | FuncSymbol f ->
             let funcSigString f =
-              let arg2string (name, typ) = Lang.typeName typ ^ " " ^ name in
+              let arg2string (name, typ) = typeName typ ^ " " ^ name in
               let args = List.map arg2string f.fargs in
               let argString = combine ", " args in
               let typeParams = if f.fparametric then "!T" else "" in
               sprintf "func %s %s%s(%s)\n"
-                (Lang.typeName f.rettype)
+                (typeName f.rettype)
                 f.fname
                 typeParams
                 argString

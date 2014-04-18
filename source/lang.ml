@@ -2,6 +2,8 @@
 open Printf
 open Common
 
+open Typesystems.Zomp
+
 let macroVar = "var"
 and macroVar2 = "var2"
 and macroFunc = "std:base:func"
@@ -36,10 +38,12 @@ and macroError = "std:base:error"
 and macroLinkCLib = "zmp:compiler:linkclib"
 and macroConstructor = "std:base:constructorCall"
 
+(* TODO: move into Typesystems *)
 let componentType components componentName =
   try Some( snd (List.find (fun (name, _) -> name = componentName) components) )
   with Not_found -> None
 
+(* TODO: move into Typesystems *)
 let componentNum components componentName =
   let rec find n = function
     | [] -> raise Not_found
@@ -48,10 +52,10 @@ let componentNum components componentName =
   in
   find 0 components
 
-include Typesystems.Zomp
-
-type composedType = typ
-type integralValue = value
+type typ = Typesystems.Zomp.typ
+type 'a recordType = 'a Typesystems.Zomp.recordType
+type functionType = Typesystems.Zomp.functionType
+type 'a parameterizableType = 'a Typesystems.Zomp.parameterizableType
 
 let dequoteEscapeSequence str =
   let numRE = Str.regexp "^\\\\[0-9]\\([0-9][0-9]\\)?$"
@@ -171,8 +175,8 @@ let globalVar = variable ~storage:MemoryStorage ~global:true
 
 type 'argument funcCall = {
   fcname :string;
-  fcrettype :composedType;
-  fcparams :composedType list;
+  fcrettype :typ;
+  fcparams :typ list;
   fcargs :'argument list;
   fcptr : [`FuncPtr | `NoFuncPtr];
   fcvarargs :bool;
@@ -198,32 +202,32 @@ let branchToString b =
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
 | `Variable of 'typ variable
-| `Constant of integralValue
+| `Constant of Typesystems.Zomp.value
 ]
 
 type 'form genericIntrinsic = [
-| `MallocIntrinsic of composedType * 'form
-| `GetAddrIntrinsic of composedType variable
+| `MallocIntrinsic of typ * 'form
+| `GetAddrIntrinsic of typ variable
 | `StoreIntrinsic of 'form * 'form
 | `LoadIntrinsic of 'form
 | `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
 | `PtrDiffIntrinsic of 'form * 'form (* pointer, pointer *)
 | `GetFieldPointerIntrinsic of 'form * string
-| `CastIntrinsic of composedType * 'form
+| `CastIntrinsic of typ * 'form
 ]
 
 type globalVar = {
-  gvVar :composedType variable;
+  gvVar :typ variable;
   gvInitialValue :value;
   gvDefinitionLocation :Basics.location option;
 }
 
 type form = [
-| composedType flatArgForm
+| typ flatArgForm
 | `Sequence of form list
-| `DefineVariable of composedType variable * form option
+| `DefineVariable of typ variable * form option
 | `FuncCall of form funcCall
-| `AssignVar of composedType variable * form
+| `AssignVar of typ variable * form
 | `Return of form
 | `Jump of label
 | `Branch of branch
@@ -233,8 +237,8 @@ type form = [
 ]
 and func = {
   fname :string;
-  rettype :composedType;
-  fargs :(string * composedType) list;
+  rettype :typ;
+  fargs :(string * typ) list;
   impl :form option;
   cvarargs :bool;
   flocation :Basics.location option;

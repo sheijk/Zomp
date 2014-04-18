@@ -1,4 +1,8 @@
+(** Result of compilation. Supports partial results and diagnostics while still
+returning result. **)
+
 type flag = Success | Fail
+
 type 'a t = private {
   flag :flag;
   diagnostics :Serror.t list;

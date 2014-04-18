@@ -1,3 +1,5 @@
+(** The layout based lexer. *)
+
 exception Eof
 type token = Newparser.token
 type 'a lexerstate

@@ -1,6 +1,7 @@
 
 open Ast2
 open Lang
+open Typesystems.Zomp
 open Printf
 open Bindings
 open Common
@@ -335,7 +336,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
   in
-  let twoArgIntrinsic name instruction (typ :composedType) =
+  let twoArgIntrinsic name instruction (typ :typ) =
     name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
   in
   let simpleTwoArgIntrinsincs typ namespace names =
@@ -518,7 +519,7 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
                  {id = "notFound"; args = onNotFound}] ->
                  begin match lookup bindings name with
                    | VarSymbol var ->
-                       replaceParams [typeVar] [idExpr (Lang.typeName var.typ)]
+                       replaceParams [typeVar] [idExpr (typeName var.typ)]
                          (seqExpr onFound)
                    | _ ->
                        seqExpr onNotFound
@@ -669,7 +670,7 @@ let gencodeDefineVariable gencode var default =
           in
           let comment = sprintf "; allocating var %s : %s/%s on stack\n\n"
             var.vname
-            (Lang.typeName var.typ)
+            (typeName var.typ)
             typename
           in
           let init =
@@ -702,13 +703,13 @@ let gencodeDefineVariable gencode var default =
             | `Record _ | `TypeRef _ | `Array _ -> None
             | `TypeParam | `ParametricType _ -> None
             | `ErrorType _ -> None
-            | #integralType as t -> Some (Lang.valueString (defaultValue t))
+            | #integralType as t -> Some (valueString (defaultValue t))
           in
           let initInstr = function
             | `Int8 | `Int16 | `Int32 | `Int64 | `Float | `Pointer _ -> "add"
             | `Bool -> "or"
             | _ as t -> raiseCodeGenError
-                ~msg:(sprintf "no init instruction implemented for %s" (Lang.typeName t))
+                ~msg:(sprintf "no init instruction implemented for %s" (typeName t))
           in
           let name = llvmName var.vname
           and typ = llvmTypeName var.typ
@@ -757,7 +758,7 @@ let gencodeVariable v =
 let rec llvmValue c =
   match c with
     | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _ | BoolVal _ | CharVal _ ->
-      Lang.valueString c
+      valueString c
     | FloatVal f | DoubleVal f ->
       Machine.float2string f
     | RecordVal (name, fields) ->
@@ -776,7 +777,7 @@ let gencodeConstant c =
   returnVarCode (
     {
       rvname = llvmValue c;
-      rvtypename = llvmTypeName (Lang.typeOf c);
+      rvtypename = llvmTypeName (typeOf c);
     },
     "")
 
@@ -885,7 +886,7 @@ let offsetStringAndCode gencode countForm =
     | `Constant Int32Val count ->
         Int32.to_string count, ""
     | `Variable var ->
-        let valueVar, valueAccessCode = gencode (`Variable (var :> composedType variable)) in
+        let valueVar, valueAccessCode = gencode (`Variable (var :> typ variable)) in
         valueVar.rvname, valueAccessCode
     | _ -> raiseCodeGenError ~msg:"invalid expression for count"
 
@@ -1184,7 +1185,7 @@ let gencodeGlobalVar gvar =
         sprintf "@%s = global %s %s\n"
           varname
           (llvmTypeName var.typ)
-          (Lang.valueString initialValue)
+          (valueString initialValue)
     | FloatVal f | DoubleVal f ->
         sprintf "@%s = global %s %s\n"
           varname

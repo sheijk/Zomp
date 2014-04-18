@@ -81,9 +81,6 @@ end
 
 open Util
 
-(** Characters that are valid as escape sequences *)
-let validEscapeChars = ['\''; '"'; '\\'; '0'; 'n'; 'r'; 't'; 'v'; 'a'; 'b'; 'f'; '?']
-
 let stripComments fileName source =
   let sourceLength = String.length source in
   let strippedSource = String.make (sourceLength) ' ' in

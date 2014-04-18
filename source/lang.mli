@@ -1,3 +1,6 @@
+(** The AST for std:base language. **)
+
+(** The id for std:base constructs. *)
 val macroVar : string
 val macroVar2 : string
 val macroFunc : string
@@ -34,85 +37,14 @@ val macroConstructor : string
 
 val componentType : ('a * 'b) list -> 'a -> 'b option
 val componentNum : ('a * 'b) list -> 'a -> int
-type intType = [ `Int16 | `Int32 | `Int64 | `Int8 ]
-type integralType =
-    [ `Bool
-    | `Char
-    | `Double
-    | `Float
-    | `Int16
-    | `Int32
-    | `Int64
-    | `Int8
-    | `Void ]
-type 'a parameterizableType = [ `Pointer of 'a | `Record of 'a recordType ]
-and 'a recordType =
-  'a Typesystems.Zomp.recordType = {
-  rname : string;
-  fields : (string * 'a) list;
-}
-type typ =
-    [ `Array of typ * int
-    | `Bool
-    | `Char
-    | `Double
-    | `ErrorType of string
-    | `Float
-    | `Function of functionType
-    | `Int16
-    | `Int32
-    | `Int64
-    | `Int8
-    | `ParametricType of typ parameterizableType
-    | `Pointer of typ
-    | `Record of typ recordType
-    | `TypeParam
-    | `TypeRef of string
-    | `Void ]
-and functionType =
-  Typesystems.Zomp.functionType = {
-  returnType : typ;
-  argTypes : typ list;
-}
-val bitcount : intType -> int
-val isTypeParametric : typ -> bool
-type value =
-  Typesystems.Zomp.value =
-    VoidVal
-  | Int8Val of Int32.t
-  | Int16Val of Int32.t
-  | Int32Val of Int32.t
-  | Int64Val of Int64.t
-  | FloatVal of float
-  | DoubleVal of float
-  | StringLiteral of string
-  | BoolVal of bool
-  | CharVal of char
-  | NullpointerVal of typ
-  | ArrayVal of typ * value list
-  | RecordVal of string * (string * value) list
-  | ErrorVal of string
-exception CouldNotParseType of string
-val canonicType :
-  ('a ->
-   [< `Found of
-        [> `Pointer of 'b | `Record of 'b recordType | `TypeRef of 'a ] as 'b
-    | `NotFound ]) ->
-  'b -> 'b
-val typeOf : value -> typ
-val recordDescr : ('a -> string) -> 'a recordType -> string
-val typeNameRec : (typ -> string) -> typ -> string
-val typeName : typ -> string
-val typeDescr : typ -> string
-val typeNameExplicit : typ -> string
-val valueString : value -> string
-val parseType : string -> typ
-val parseValue : typ -> string -> value
-val defaultValue : typ -> value
-type composedType = typ
-type integralValue = value
+
+type typ = Typesystems.Zomp.typ
+type 'a recordType = 'a Typesystems.Zomp.recordType
+type functionType = Typesystems.Zomp.functionType
+type 'a parameterizableType = 'a Typesystems.Zomp.parameterizableType
+
 val dequoteEscapeSequence : string -> char
-val string2integralValue : string -> value option
+val string2integralValue : string -> Typesystems.Zomp.value option
 type varStorage = RegisterStorage | MemoryStorage
 type 'a variable = {
   vname : string;
@@ -122,20 +54,20 @@ type 'a variable = {
   vglobal : bool;
   vlocation : Basics.location option;
 }
-val validateValue : value -> value
+val validateValue : Typesystems.Zomp.value -> Typesystems.Zomp.value
 val variable :
   name:string ->
   typ:'a ->
   storage:varStorage ->
   global:bool -> location:Basics.location option -> 'a variable
-val varToStringShort : typ variable -> string
-val varToString : typ variable -> string
+val varToStringShort : Typesystems.Zomp.typ variable -> string
+val varToString : Typesystems.Zomp.typ variable -> string
 val globalVar :
   name:string -> typ:'a -> location:Basics.location option -> 'a variable
 type 'a funcCall = {
   fcname : string;
-  fcrettype : composedType;
-  fcparams : composedType list;
+  fcrettype : typ;
+  fcparams : typ list;
   fcargs : 'a list;
   fcptr : [ `FuncPtr | `NoFuncPtr ];
   fcvarargs : bool;
@@ -150,45 +82,45 @@ val funcCallToString : ('a -> string) -> 'a funcCall -> string
 val labelToString : label -> string
 val branchToString : branch -> string
 type 'a flatArgForm =
-    [ `Constant of integralValue | `Variable of 'a variable ]
+    [ `Constant of Typesystems.Zomp.value | `Variable of 'a variable ]
 type 'a genericIntrinsic =
-    [ `CastIntrinsic of composedType * 'a
-    | `GetAddrIntrinsic of composedType variable
+    [ `CastIntrinsic of typ * 'a
+    | `GetAddrIntrinsic of typ variable
     | `GetFieldPointerIntrinsic of 'a * string
     | `LoadIntrinsic of 'a
-    | `MallocIntrinsic of composedType * 'a
+    | `MallocIntrinsic of typ * 'a
     | `PtrAddIntrinsic of 'a * 'a
     | `PtrDiffIntrinsic of 'a * 'a
     | `StoreIntrinsic of 'a * 'a ]
 type globalVar = {
-  gvVar : composedType variable;
-  gvInitialValue : value;
+  gvVar : typ variable;
+  gvInitialValue : Typesystems.Zomp.value;
   gvDefinitionLocation : Basics.location option;
 }
 type form =
-    [ `AssignVar of composedType variable * form
+    [ `AssignVar of typ variable * form
     | `Branch of branch
-    | `CastIntrinsic of composedType * form
-    | `Constant of integralValue
-    | `DefineVariable of composedType variable * form option
+    | `CastIntrinsic of typ * form
+    | `Constant of Typesystems.Zomp.value
+    | `DefineVariable of typ variable * form option
     | `EmbeddedComment of string list
     | `FuncCall of form funcCall
-    | `GetAddrIntrinsic of composedType variable
+    | `GetAddrIntrinsic of typ variable
     | `GetFieldPointerIntrinsic of form * string
     | `Jump of label
     | `Label of label
     | `LoadIntrinsic of form
-    | `MallocIntrinsic of composedType * form
+    | `MallocIntrinsic of typ * form
     | `PtrAddIntrinsic of form * form
     | `PtrDiffIntrinsic of form * form
     | `Return of form
     | `Sequence of form list
     | `StoreIntrinsic of form * form
-    | `Variable of composedType variable ]
+    | `Variable of typ variable ]
 and func = {
   fname : string;
-  rettype : composedType;
-  fargs : (string * composedType) list;
+  rettype : typ;
+  fargs : (string * typ) list;
   impl : form option;
   cvarargs : bool;
   flocation : Basics.location option;
@@ -197,35 +129,40 @@ and func = {
 and toplevelExpr =
     [ `DefineFunc of func
     | `GlobalVar of globalVar
-    | `Typedef of string * typ ]
+    | `Typedef of string * Typesystems.Zomp.typ ]
 val formToSExpr : form -> Ast2.t
 val formToString : form -> string
 val funcDeclToString : func -> string
 val funcToString : func -> string
 val toplevelFormToSExpr :
   [< `DefineFunc of func
-   | `GlobalVar of typ variable * value
-   | `Typedef of string * typ ] ->
+   | `GlobalVar of Typesystems.Zomp.typ variable * Typesystems.Zomp.value
+   | `Typedef of string * Typesystems.Zomp.typ ] ->
   Ast2.sexpr
 val toplevelFormDeclToString : toplevelExpr -> string
 val toplevelFormToString : toplevelExpr -> string
 val toplevelFormLocation : toplevelExpr -> Basics.location
 val toSingleForm : form list -> form
-val isFuncParametric : ('a * typ) list -> bool
+val isFuncParametric : ('a * Typesystems.Zomp.typ) list -> bool
 val func :
   string ->
-  composedType ->
-  (string * typ) list -> form option -> Basics.location -> func
+  typ ->
+  (string * Typesystems.Zomp.typ) list ->
+  form option -> Basics.location -> func
 val varargFunc :
   string ->
-  composedType ->
-  (string * typ) list -> form option -> Basics.location -> func
+  typ ->
+  (string * Typesystems.Zomp.typ) list ->
+  form option -> Basics.location -> func
 val funcDecl :
-  string -> composedType -> (string * typ) list -> Basics.location -> func
+  string ->
+  typ ->
+  (string * Typesystems.Zomp.typ) list -> Basics.location -> func
 val funcDef :
   string ->
-  composedType ->
-  (string * typ) list -> form -> Basics.location option -> func
+  typ ->
+  (string * Typesystems.Zomp.typ) list ->
+  form -> Basics.location option -> func
 type 'a macro = {
   mname : string;
   mtransformFunc : 'a -> Ast2.sexpr -> Ast2.sexpr;

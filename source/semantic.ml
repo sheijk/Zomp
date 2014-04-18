@@ -1,21 +1,22 @@
 
 open Printf
 open Lang
+open Typesystems.Zomp
 open Common
 
 type formOrAst = Form of Lang.form | Ast of Ast2.t
 type typeRequirement = [
 | `Any of string
-| composedType ]
+| typ ]
 
 let typeRequirementToString = function
   | `Any description -> sprintf "<%s>" description
-  | #composedType as t -> Lang.typeName t
+  | #typ as t -> typeName t
 
 type typecheckResult =
-  | TypeOf of composedType
+  | TypeOf of typ
       (** faulty expression, error message, found type, expected type *)
-  | TypeError of formOrAst * string * composedType * typeRequirement
+  | TypeError of formOrAst * string * typ * typeRequirement
 
 let rec equalTypes bindings ltype rtype =
   let rec lookupType name =
@@ -441,7 +442,7 @@ let lookupTypeInBindings bindings typeName =
 
 let typesEquivalent bindings type1 type2 =
   try
-    let canonicType = Lang.canonicType (lookupTypeInBindings bindings) in
+    let canonicType = canonicType (lookupTypeInBindings bindings) in
     let canonic1, canonic2 = canonicType type1, canonicType type2 in
     canonic1 = canonic2
   with

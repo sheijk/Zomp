@@ -1,3 +1,5 @@
+(** Interface to the virtual machine (LLVM). **)
+
 type cptr = Machine.cptr
 val isNullPtr : cptr -> bool
 

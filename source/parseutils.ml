@@ -46,10 +46,6 @@ let createLexState ~fileName source =
   let lexstate = Indentlexer.lexbufFromString ~fileName source in
   lexbuf, lexstate
 
-let parseIExprsNoCatch ~fileName source : Ast2.t list =
-  let lexbuf, lexstate = createLexState ~fileName source in
-  parseIExprsFromLexbuf lexbuf lexstate (lineCount source)
-
 let parseIExprs ~fileName source : parsingResult =
   let lexbuf, lexstate = createLexState ~fileName source in
   try

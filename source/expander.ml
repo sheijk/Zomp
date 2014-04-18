@@ -1,4 +1,5 @@
 open Lang
+open Typesystems.Zomp
 open Semantic
 open Ast2
 open Common
@@ -42,7 +43,7 @@ struct
   let lookupType bindings name =
     try
       (** TODO: bug, this prevents built-in types to be shadowed *)
-      Some (Lang.parseType name)
+      Some (parseType name)
     with
       | Typesystems.Zomp.CouldNotParseType _ ->
           match lookup bindings name with
@@ -1952,7 +1953,7 @@ let catchingErrorsDo f ~onErrors =
     with
       | IllegalExpression (expr, errors) ->
         onErrors errors
-      | Lang.CouldNotParseType descr ->
+      | CouldNotParseType descr ->
         onErrorMsg $ sprintf "unknown type: %s\n" descr
       | Genllvm.CodeGenError msg ->
         onErrorMsg $ sprintf "codegen failed: %s\n" msg

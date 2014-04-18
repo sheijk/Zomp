@@ -81,10 +81,6 @@ let assertHasLocation expr =
 
 (** transformations **)
 
-let toSingleExpr = function
-  | [single] -> single
-  | multiOrNone -> seqExpr multiOrNone
-
 type stringTree =
   | STLeaf of string
   | STBranch of stringTree list

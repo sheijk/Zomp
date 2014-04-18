@@ -3,10 +3,10 @@ open Lang
 module StringMap = Map.Make(String)
 
 type symbol =
-  | VarSymbol of composedType variable
+  | VarSymbol of typ variable
   | FuncSymbol of func
   | MacroSymbol of bindings macro
-  | TypedefSymbol of composedType
+  | TypedefSymbol of typ
   | LabelSymbol of label
   | UndefinedSymbol
 and symbolInfo = {
