@@ -243,8 +243,7 @@ let newUniqueId() =
 let newUniqueName() =
   "__temp_" ^ string_of_int (newUniqueId())
 
-let sizeTName, sizeT =
-  "size_t",
+let sizeT =
   match Sys.word_size with
     | 32 -> `Int32
     | 64 -> `Int64
@@ -396,7 +395,7 @@ let findIntrinsic =
     @ intIntrinsics `Int16
     @ intIntrinsics `Int32
     @ intIntrinsics `Int64
-    @ intIntrinsics sizeT ~name:sizeTName
+    @ intIntrinsics sizeT ~name:Typesystems.Zomp.sizeTName
 
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
 

@@ -66,6 +66,7 @@ sig
   val typeName : typ -> string
   val typeDescr : typ -> string
   val typeNameExplicit : typ -> string
+  val sizeTName : string
   val valueString : value -> string
   val parseType : string -> typ
   val parseValue : typ -> string -> value

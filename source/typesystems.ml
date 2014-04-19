@@ -234,6 +234,8 @@ struct
     | `Record record -> recordDescr typeNameExplicit record
     | other -> typeNameRec typeNameExplicit other
 
+  let sizeTName = "size_t"
+
   let rec valueString : value -> string =
     function
       | VoidVal -> raise (Failure "no values of void allowed")
