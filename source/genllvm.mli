@@ -3,8 +3,7 @@
 exception CodeGenError of string
 val raiseCodeGenError : msg:string -> 'a
 
-(** The default symbols. 
-   TODO: move this out of the backend. *)
+(** The default symbols. *)
 val defaultBindings : Bindings.bindings
 
 (** Generate code for the given expressions. *)
