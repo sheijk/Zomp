@@ -313,165 +313,14 @@ let insertAstConstructors bindings =
           end
       | _ -> default
 
-let defaultBindings, externalFuncDecls, findIntrinsic =
-  let sizeTName, sizeT =
-    "size_t",
-    match Sys.word_size with
-      | 32 -> `Int32
-      | 64 -> `Int64
-      | wordSize -> failwith (sprintf "invalid word size %d" wordSize)
-  in
+let sizeTName, sizeT =
+  "size_t",
+  match Sys.word_size with
+    | 32 -> `Int32
+    | 64 -> `Int64
+    | wordSize -> failwith (sprintf "invalid word size %d" wordSize)
 
-  let callIntr intrName typ argVarNames =
-    sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
-  in
-  let compareIntrinsic typ name cond =
-    let instruction =
-      match typ with
-        | `Float | `Double -> "fcmp"
-        | _ -> "icmp"
-    in
-    let f argVarNames =
-      sprintf "%s %s %s %s\n" instruction cond (llvmTypeName typ) (combine ", " argVarNames)
-    in
-    (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
-  in
-  let twoArgIntrinsic name instruction (typ :typ) =
-    name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
-  in
-  let simpleTwoArgIntrinsincs typ namespace names =
-    List.map (fun name -> twoArgIntrinsic (sprintf "%s:%s" namespace name) name typ) names
-  in
-  let mappedTwoArgIntrinsincs typ namespace namePairs =
-    List.map (fun (name, llvmName) ->
-                twoArgIntrinsic (sprintf "%s:%s" namespace name) llvmName typ) namePairs
-  in
-
-  let intCompareIntrinsics typ typeName =
-    let functionMapping =
-      [
-        "equal", "eq";
-        "notEqual", "ne";
-        "ugreater", "ugt";
-        "ugreaterEqual", "uge";
-        "uless", "ult";
-        "ulessEqual", "ule";
-        "sgreater", "sgt";
-        "sgreaterEqual", "sge";
-        "sless", "slt";
-        "slessEqual", "sle";
-
-        "greater", "ugt";
-        "greaterEqual", "uge";
-        "less", "ult";
-        "lessEqual", "ule";
-      ]
-    in
-    List.map (fun (zompName, llvmName) ->
-                compareIntrinsic typ (typeName ^ ":" ^ zompName) llvmName)
-      functionMapping
-  in
-
-  let intIntrinsics ?name typ =
-    let intBinOps =
-      ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
-    in
-    let name =
-      someOrDefault name $ typeName typ
-    in
-
-    simpleTwoArgIntrinsincs typ name intBinOps
-    @ intCompareIntrinsics typ name
-  in
-
-  let floatIntrinsics typ =
-    let typeName = typeName typ in
-    let functionMappings = [
-      "equal", "eq";
-      "notEqual", "ne";
-      "greater", "gt";
-      "greaterEqual", "ge";
-      "less", "lt";
-      "lessEqual", "le";
-    ]
-    in
-    let makeIntrinsic prefix (zompName, llvmName) =
-      compareIntrinsic typ (typeName ^ ":" ^ prefix ^ zompName) (prefix ^ llvmName)
-    in
-    List.map (makeIntrinsic "o") functionMappings
-    @ mappedTwoArgIntrinsincs typ typeName
-      ["add", "fadd"; "sub", "fsub"; "mul", "fmul"; "fdiv", "fdiv"; "frem", "frem"];
-    (* TODO: rename fdiv, fmul, frem *)
-  in
-
-  let oneArgFunc name f = function
-    | [arg] -> f arg
-    | _ -> raiseCodeGenError ~msg:(sprintf "only one argument expected by %s" name)
-  in
-
-  let convertIntr funcName intrName fromType toType =
-    let convertIntrF intrName = oneArgFunc intrName
-      (fun arg ->
-         sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType))
-    in
-    funcName, `Intrinsic (convertIntrF intrName), toType, ["v", fromType]
-  in
-
-  let truncIntIntr fromType toType =
-    let name = sprintf "%s:to%s" (typeName fromType) (String.capitalize (typeName toType)) in
-    let func = oneArgFunc name
-      (fun arg -> sprintf "trunc %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
-    name, `Intrinsic func, toType, ["v", fromType]
-  in
-
-  let zextIntr fromType toType =
-    let name = sprintf "%s:zextTo%s"
-      (typeName fromType)
-      (String.capitalize (typeName toType))
-    in
-    let func = oneArgFunc name
-      (fun arg -> sprintf "zext %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType))
-    in
-    name, `Intrinsic func, toType, ["v", fromType]
-  in
-
-  let intrinsicFuncs =
-    [
-      twoArgIntrinsic "u32:shl" "shl" `Int32;
-      twoArgIntrinsic "u32:lshr" "lshr" `Int32;
-      twoArgIntrinsic "u32:ashr" "ashr" `Int32;
-
-      (** deprecated *)
-      convertIntr "float:toInt" "fptosi" `Float `Int32;
-      convertIntr "int:toFloat" "sitofp" `Int32 `Float;
-      convertIntr "int:toDouble" "sitofp" `Int32 `Double;
-      convertIntr "double:toInt" "fptosi" `Double `Int32;
-      convertIntr "float:toDouble" "fpext" `Float `Double;
-      convertIntr "double:toFloat" "fptrunc" `Double `Float;
-
-      (** deprecated *)
-      truncIntIntr `Int32 `Char;
-      zextIntr `Char `Int32;
-
-      (** deprecated *)
-      truncIntIntr `Int64 `Int32;
-      zextIntr `Int32 `Int64;
-    ]
-
-    @ intIntrinsics `Int8
-    @ intIntrinsics `Int16
-    @ intIntrinsics `Int32
-    @ intIntrinsics `Int64
-    @ intIntrinsics sizeT ~name:sizeTName
-
-    @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
-
-    @ floatIntrinsics `Float
-    @ floatIntrinsics `Double
-
-    @ intCompareIntrinsics `Char (typeName `Char)
-  in
-
+let builtinMacros =
   let builtinMacros =
     let macro name doc f =
       (name, MacroSymbol (Lang.macro name doc Basics.builtinLocation f))
@@ -613,30 +462,275 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
       opseqMacro;
     ]
   in
-  let defaultBindings =
-    let toFunc (name, _, typ, args) =
-      name, FuncSymbol (funcDecl name typ args Basics.builtinLocation)
-    in
-    Bindings.fromSymbolList
-      ([sizeTName, TypedefSymbol sizeT]
-       @ List.map toFunc intrinsicFuncs
-       @ builtinMacros)
+
+  builtinMacros
+
+let builtinIntrinsics : Lang.func list =
+  let func name typ args =
+    funcDecl name typ args Basics.builtinLocation
   in
-  let externalFuncDecls =
-    let rec defs = function
-      | [] -> []
-      | (name, `ExternalFunc, rettype, args) :: tail ->
-          let decl =
-            sprintf "declare %s @%s(%s)"
-              (llvmTypeName rettype)
-              name
-              (paramString args)
-          in
-          decl :: defs tail
-      | _ :: tail -> defs tail
-    in
-    combine "\n" (defs intrinsicFuncs)
+
+  let comparison typ name =
+    func name `Bool ["l", typ; "r", typ]
   in
+
+  let binaryOp name instruction (typ :typ) =
+    func name typ ["l", typ; "r", typ]
+  in
+
+  let binaryOps typ namespace names =
+    List.map (fun name -> binaryOp (sprintf "%s:%s" namespace name) name typ) names
+  in
+  
+  let intCompareIntrinsics typ typeName =
+    let comparisons =
+      [
+        "equal";
+        "notEqual";
+        "ugreater";
+        "ugreaterEqual";
+        "uless";
+        "ulessEqual";
+        "sgreater";
+        "sgreaterEqual";
+        "sless";
+        "slessEqual";
+  
+        "greater";
+        "greaterEqual";
+        "less";
+        "lessEqual";
+      ]
+    in
+    List.map (fun zompName ->
+      comparison typ (typeName ^ ":" ^ zompName))
+      comparisons
+  in
+
+  let intIntrinsics ?name typ =
+    let intBinaryOps =
+      ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    in
+    let name = someOrDefault name $ typeName typ in
+  
+    binaryOps typ name intBinaryOps
+    @ intCompareIntrinsics typ name
+  in
+  
+  let floatIntrinsics typ =
+    let typeName = typeName typ in
+    let comparisons = [
+      "equal";
+      "notEqual";
+      "greater";
+      "greaterEqual";
+      "less";
+      "lessEqual";
+    ] in
+
+    let ops = ["add"; "sub"; "mul"; "fdiv"; "frem"] in
+
+    List.map (fun op -> comparison typ (sprintf "%s:o%s" typeName op)) comparisons
+    @ List.map (fun op -> binaryOp (sprintf "%s:%s" typeName op) "" typ) ops
+  (* TODO: rename fdiv, fmul, frem *)
+  in
+
+  let intrinsicFuncs =
+    [
+      binaryOp "u32:shl" "shl" `Int32;
+      binaryOp "u32:lshr" "lshr" `Int32;
+      binaryOp "u32:ashr" "ashr" `Int32;
+
+      (** deprecated *)
+      func "float:toInt" `Float ["v", `Int32];
+      func "int:toFloat" `Int32 ["v", `Float];
+      func "int:toDouble" `Int32 ["v", `Double];
+      func "double:toInt" `Double ["v", `Int32];
+      func "float:toDouble" `Float ["v", `Double];
+      func "double:toFloat" `Double ["v", `Float];
+
+      (** deprecated *)
+      func "u32:toChar" `Char ["v", `Int32];
+      func "char:zextToU32" `Int32 ["v", `Char];
+
+      (** deprecated *)
+      func "u64:toU32" `Int32 ["v", `Int64];
+      func "u32:zextToU64" `Int64 ["v", `Int32];
+    ]
+
+    @ intIntrinsics `Int8
+    @ intIntrinsics `Int16
+    @ intIntrinsics `Int32
+    @ intIntrinsics `Int64
+    @ intIntrinsics sizeT ~name:sizeTName
+
+    @ binaryOps `Bool "bool" ["and"; "or"; "xor"]
+
+    @ floatIntrinsics `Float
+    @ floatIntrinsics `Double
+
+    @ intCompareIntrinsics `Char (typeName `Char)
+  in
+  intrinsicFuncs
+
+let defaultBindings =
+  Bindings.fromSymbolList
+    ([sizeTName, TypedefSymbol sizeT]
+     @ List.map (fun func -> func.fname, FuncSymbol func) builtinIntrinsics
+     @ builtinMacros)
+
+let findIntrinsic =
+  let callIntr intrName typ argVarNames =
+    sprintf "%s %s %s\n" intrName (llvmTypeName typ) (combine ", " argVarNames)
+  in
+  let compareIntrinsic typ name cond =
+    let instruction =
+      match typ with
+        | `Float | `Double -> "fcmp"
+        | _ -> "icmp"
+    in
+    let f argVarNames =
+      sprintf "%s %s %s %s\n" instruction cond (llvmTypeName typ) (combine ", " argVarNames)
+    in
+    (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
+  in
+
+  let twoArgIntrinsic name instruction (typ :typ) =
+    name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
+  in
+  let simpleTwoArgIntrinsincs typ namespace names =
+    List.map (fun name -> twoArgIntrinsic (sprintf "%s:%s" namespace name) name typ) names
+  in
+  let mappedTwoArgIntrinsincs typ namespace namePairs =
+    List.map (fun (name, llvmName) ->
+      twoArgIntrinsic (sprintf "%s:%s" namespace name) llvmName typ) namePairs
+  in
+
+  let intCompareIntrinsics typ typeName =
+    let functionMapping =
+      [
+        "equal", "eq";
+        "notEqual", "ne";
+        "ugreater", "ugt";
+        "ugreaterEqual", "uge";
+        "uless", "ult";
+        "ulessEqual", "ule";
+        "sgreater", "sgt";
+        "sgreaterEqual", "sge";
+        "sless", "slt";
+        "slessEqual", "sle";
+
+        "greater", "ugt";
+        "greaterEqual", "uge";
+        "less", "ult";
+        "lessEqual", "ule";
+      ]
+    in
+    List.map (fun (zompName, llvmName) ->
+      compareIntrinsic typ (typeName ^ ":" ^ zompName) llvmName)
+      functionMapping
+  in
+
+  let intIntrinsics ?name typ =
+    let intBinOps =
+      ["add"; "sub"; "mul"; "sdiv"; "udiv"; "urem"; "srem"; "and"; "or"; "xor"]
+    in
+    let name =
+      someOrDefault name $ typeName typ
+    in
+
+    simpleTwoArgIntrinsincs typ name intBinOps
+    @ intCompareIntrinsics typ name
+  in
+
+  let floatIntrinsics typ =
+    let typeName = typeName typ in
+    let functionMappings = [
+      "equal", "eq";
+      "notEqual", "ne";
+      "greater", "gt";
+      "greaterEqual", "ge";
+      "less", "lt";
+      "lessEqual", "le";
+    ]
+    in
+    let makeIntrinsic prefix (zompName, llvmName) =
+      compareIntrinsic typ (typeName ^ ":" ^ prefix ^ zompName) (prefix ^ llvmName)
+    in
+    List.map (makeIntrinsic "o") functionMappings
+    @ mappedTwoArgIntrinsincs typ typeName
+      ["add", "fadd"; "sub", "fsub"; "mul", "fmul"; "fdiv", "fdiv"; "frem", "frem"];
+  (* TODO: rename fdiv, fmul, frem *)
+  in
+
+  let oneArgFunc name f = function
+    | [arg] -> f arg
+    | _ -> raiseCodeGenError ~msg:(sprintf "only one argument expected by %s" name)
+  in
+
+  let convertIntr funcName intrName fromType toType =
+    let convertIntrF intrName = oneArgFunc intrName
+      (fun arg ->
+        sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType))
+    in
+    funcName, `Intrinsic (convertIntrF intrName), toType, ["v", fromType]
+  in
+
+  let truncIntIntr fromType toType =
+    let name = sprintf "%s:to%s" (typeName fromType) (String.capitalize (typeName toType)) in
+    let func = oneArgFunc name
+      (fun arg -> sprintf "trunc %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
+    name, `Intrinsic func, toType, ["v", fromType]
+  in
+
+  let zextIntr fromType toType =
+    let name = sprintf "%s:zextTo%s"
+      (typeName fromType)
+      (String.capitalize (typeName toType))
+    in
+    let func = oneArgFunc name
+      (fun arg -> sprintf "zext %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType))
+    in
+    name, `Intrinsic func, toType, ["v", fromType]
+  in
+
+  let intrinsicFuncs =
+    [
+      twoArgIntrinsic "u32:shl" "shl" `Int32;
+      twoArgIntrinsic "u32:lshr" "lshr" `Int32;
+      twoArgIntrinsic "u32:ashr" "ashr" `Int32;
+
+      (** deprecated *)
+      convertIntr "float:toInt" "fptosi" `Float `Int32;
+      convertIntr "int:toFloat" "sitofp" `Int32 `Float;
+      convertIntr "int:toDouble" "sitofp" `Int32 `Double;
+      convertIntr "double:toInt" "fptosi" `Double `Int32;
+      convertIntr "float:toDouble" "fpext" `Float `Double;
+      convertIntr "double:toFloat" "fptrunc" `Double `Float;
+
+      (** deprecated *)
+      truncIntIntr `Int32 `Char;
+      zextIntr `Char `Int32;
+
+      (** deprecated *)
+      truncIntIntr `Int64 `Int32;
+      zextIntr `Int32 `Int64;
+    ]
+
+    @ intIntrinsics `Int8
+    @ intIntrinsics `Int16
+    @ intIntrinsics `Int32
+    @ intIntrinsics `Int64
+    @ intIntrinsics sizeT ~name:sizeTName
+
+    @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
+
+    @ floatIntrinsics `Float
+    @ floatIntrinsics `Double
+
+    @ intCompareIntrinsics `Char (typeName `Char)
+  in
+
   let findIntrinsic name =
     let rec find = function
       | [] -> None
@@ -645,7 +739,29 @@ let defaultBindings, externalFuncDecls, findIntrinsic =
     in
     find intrinsicFuncs
   in
-  defaultBindings, externalFuncDecls, findIntrinsic
+
+  (** Testing whether all built-in functions have intrinsics *)
+  let checkIfAllBuiltinFunctionsAreSupported() =
+    let checkForIntrinsic func =
+      match findIntrinsic func.fname with
+        | Some _ -> None
+        | None -> Some func.fname
+    in
+    let missingFunctions = mapFilter checkForIntrinsic builtinIntrinsics in
+    if missingFunctions <> [] then begin
+      List.iter 
+        (printf "error: built-in function %s is not supported by LLVM backend\n")
+        missingFunctions;
+
+      printf "Supported intrinsics:\n";
+      List.iter (fun (name, _, _, _) -> printf "  %s\n" name) intrinsicFuncs;
+
+      failwith "internal error"
+    end
+  in
+  checkIfAllBuiltinFunctionsAreSupported();
+
+  findIntrinsic
 
 let gencodeSequence gencode exprs =
   let rec lastVarAndCode var code firstBBCode = function
@@ -870,11 +986,11 @@ let gencodeFuncCall (gencode : Lang.form -> gencodeResult) call =
         returnCombi (resultVar,
                      comment ^ argevalCode ^ funccallCode,
                      firstBBCode @ [assignResultCodeFirstBB])
-    | Some gencallCodeF ->
+    | Some generateCodeForCall ->
         assert( call.fcptr = `NoFuncPtr );
         let comment = sprintf "; calling intrinsic %s\n\n" call.fcname in
         let intrinsicCallCode =
-          assignResultCode ^ (gencallCodeF (List.map fst vars))
+          assignResultCode ^ (generateCodeForCall (List.map fst vars))
         in
         returnCombi (
           resultVar,
@@ -1322,39 +1438,4 @@ let gencodeTL = function
   | `GlobalVar var -> gencodeGlobalVar var
   | `DefineFunc func -> gencodeDefineFunc func
   | `Typedef (name, typ) -> gencodeTypedef name typ
-
-let genmodule (toplevelExprs :Lang.toplevelExpr list) :string =
-  let rec seperateVarsAndFuncs = function
-    | [] -> ([], [], [])
-    | expr :: tail ->
-        let typedefs, vars, funcs = seperateVarsAndFuncs tail in
-        match expr with
-          | `Typedef _ as typedef -> (typedef :: typedefs, vars, funcs)
-          | `GlobalVar _ as var -> (typedefs, var :: vars, funcs)
-          | `DefineFunc _ as func -> (typedefs, vars, func :: funcs)
-  in
-  let globalTypedefs, globalVars, globalFuncs =
-    collectTimingInfo "seperating types, globals, funcs"
-      (fun () -> seperateVarsAndFuncs toplevelExprs)
-  in
-  let headerCode = ""
-  and typedefCode =
-    collectTimingInfo "typedefs" (fun () -> List.map gencodeTL globalTypedefs )
-  and varCode =
-    collectTimingInfo "vars" (fun () -> List.map gencodeTL globalVars)
-  and funcCode =
-    collectTimingInfo "funcs" (fun () -> List.map gencodeTL globalFuncs)
-  in
-  collectTimingInfo "concatenating text"
-    (fun () ->
-       combine "" [
-         "\n\n\n\n;;; header ;;;\n\n\n\n";
-         headerCode; "\n\n";
-         (combine "\n\n" typedefCode);
-         "\n\n\n\n;;; variables ;;;\n\n\n\n";
-         (combine "\n\n" varCode);
-         "\n\n\n\n;;; implementation ;;;\n\n\n\n";
-         (combine "\n\n" funcCode);
-         "\n\n" ^ externalFuncDecls;
-       ])
 
