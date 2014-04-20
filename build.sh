@@ -54,13 +54,14 @@ RETVAL=$?
 
 echo "Auto update test report ..." >> ${BUILDLOG}
 (${MAKE} SILENT=1 "${OPTIONS[@]}" debug report 2>&1) > ${BUILDLOG_REPORT}
-if [ $? -eq 0 ];
+REPORT_EXIT_CODE=$?
+if [ ${REPORT_EXIT_CODE} -eq 0 ];
 then
     cat ${BUILDLOG_REPORT} >> ${BUILDLOG}
 else
-    echo "Failed to build test report"
+    echo "Failed to build test report with exit code ${REPORT_EXIT_CODE}"
     cat ${BUILDLOG_REPORT}
-    exit 1
+    exit ${REPORT_EXIT_CODE}
 fi
 
 date "+Finishing build at %Y-%m-%d %H:%M:%S with ${RETVAL}" >> ${BUILDLOG}
