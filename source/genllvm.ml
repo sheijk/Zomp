@@ -1,7 +1,7 @@
 
 open Ast2
 open Lang
-open Typesystems.Zomp
+open Types
 open Printf
 open Bindings
 open Common
@@ -16,7 +16,7 @@ let typeOfForm = Semantic.typeOfForm
               raiseCodeGenError ~msg:(sprintf "%s: expected %s but found %s"
                                    msg
                                    (Semantic.typeRequirementToString expected)
-                                   (Typesystems.Zomp.typeName found) ) )
+                                   (Types.typeName found) ) )
 
 let escapeName name = "\"" ^ name ^ "\""
 
@@ -395,7 +395,7 @@ let findIntrinsic =
     @ intIntrinsics `Int16
     @ intIntrinsics `Int32
     @ intIntrinsics `Int64
-    @ intIntrinsics sizeT ~name:Typesystems.Zomp.sizeTName
+    @ intIntrinsics sizeT ~name:Types.sizeTName
 
     @ simpleTwoArgIntrinsincs `Bool "bool" ["and"; "or"; "xor"]
 
@@ -1008,9 +1008,9 @@ let gencodeGlobalVar gvar =
     | RecordVal (_, fields) ->
       let valueStrings = List.map
         (fun (_, value) ->
-          llvmTypeName (Typesystems.Zomp.typeOf value)
+          llvmTypeName (Types.typeOf value)
           ^ " "
-          ^ Typesystems.Zomp.valueString value)
+          ^ Types.valueString value)
         fields
       in
       sprintf "@%s = global %s { %s }\n" varname (llvmTypeName var.typ)
@@ -1020,7 +1020,7 @@ let gencodeGlobalVar gvar =
           if values = [] then
             "zeroinitializer"
           else
-            let valueStrings = List.map Typesystems.Zomp.valueString values in
+            let valueStrings = List.map Types.valueString values in
             "[" ^ Common.combine ", " valueStrings ^ "]"
         in
         sprintf "@%s = global %s %s\n" varname (llvmTypeName var.typ) valueStr

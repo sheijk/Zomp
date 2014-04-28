@@ -2,7 +2,7 @@
 open Printf
 open Common
 
-open Typesystems.Zomp
+open Types
 
 let macroVar = "var"
 and macroVar2 = "var2"
@@ -38,24 +38,10 @@ and macroError = "std:base:error"
 and macroLinkCLib = "zmp:compiler:linkclib"
 and macroConstructor = "std:base:constructorCall"
 
-(* TODO: move into Typesystems *)
-let componentType components componentName =
-  try Some( snd (List.find (fun (name, _) -> name = componentName) components) )
-  with Not_found -> None
-
-(* TODO: move into Typesystems *)
-let componentNum components componentName =
-  let rec find n = function
-    | [] -> raise Not_found
-    | (name, _) :: tail when name = componentName -> n
-    | _ :: tail -> find (n+1) tail
-  in
-  find 0 components
-
-type typ = Typesystems.Zomp.typ
-type 'a recordType = 'a Typesystems.Zomp.recordType
-type functionType = Typesystems.Zomp.functionType
-type 'a parameterizableType = 'a Typesystems.Zomp.parameterizableType
+type typ = Types.typ
+type 'a recordType = 'a Types.recordType
+type functionType = Types.functionType
+type 'a parameterizableType = 'a Types.parameterizableType
 
 let dequoteEscapeSequence str =
   let numRE = Str.regexp "^\\\\[0-9]\\([0-9][0-9]\\)?$"
@@ -138,8 +124,8 @@ let rec validateValue = function
   | StringLiteral _ as value ->
       value
   | FloatVal _ | DoubleVal _ as value ->
-      let valueString = Typesystems.Zomp.valueString value in
-      Typesystems.Zomp.parseValue (Typesystems.Zomp.typeOf value) valueString
+      let valueString = Types.valueString value in
+      Types.parseValue (Types.typeOf value) valueString
   | ArrayVal (memberType, values) as arrayValue ->
       let validateMemberVal value =
         if (typeOf value <> memberType) then
@@ -202,7 +188,7 @@ let branchToString b =
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
 | `Variable of 'typ variable
-| `Constant of Typesystems.Zomp.value
+| `Constant of Types.value
 ]
 
 type 'form genericIntrinsic = [

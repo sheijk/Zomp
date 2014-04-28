@@ -93,7 +93,7 @@ $(AUTO_DEPENDENCY_FILE): $(BUILD_DIR)/.exists $(CAMLDEP_INPUT) makefile
 CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
     result.ml expander.ml gen_c_bindings.ml builtins.ml genllvm.ml indentlexer.ml \
     indentlexer_tests.ml lang.ml machine.ml stats.ml newparser_tests.ml parseutils.ml \
-    compileutils.ml semantic.ml zompsh.ml testing.ml typesystems.ml \
+    compileutils.ml semantic.ml zompsh.ml testing.ml types.ml \
     zompc.ml zompvm.ml basics.ml mltest.ml, source/$(file) source/$(file:.ml=.mli)) \
     $(foreach file, make_history_report.ml make_report.ml check_test.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
 
@@ -158,7 +158,7 @@ endif
 CAML_COMPILER_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
 LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
-  source/typesystems.cmo source/bindings.cmo source/ast2.cmo source/serror.cmo source/result.cmo \
+  source/types.cmo source/bindings.cmo source/ast2.cmo source/serror.cmo source/result.cmo \
   source/lang.cmo source/semantic.cmo source/machine.cmo source/stats.cmo source/zompvm.cmo \
   source/builtins.cmo source/genllvm.cmo $(ZOMP_DLL_FILE) source/indentlexer.cmo \
   source/newparser.cmo source/parseutils.cmo source/expander.cmo \
@@ -166,7 +166,7 @@ LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
 
 # When this is changed, LANG_CMOS and CAMLDEP_INPUT will need to be changed, too
 LANG_CMXS= common.cmx basics.cmx ast2.cmx bindings.cmx serror.cmx result.cmx \
-    typesystems.cmx lang.cmx semantic.cmx machine.cmx stats.cmx zompvm.cmx builtins.cmx genllvm.cmx \
+    types.cmx lang.cmx semantic.cmx machine.cmx stats.cmx zompvm.cmx builtins.cmx genllvm.cmx \
      -cclib -lstdc++-static $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx \
     newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 

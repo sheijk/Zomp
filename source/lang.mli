@@ -35,16 +35,13 @@ val macroError : string
 val macroLinkCLib : string
 val macroConstructor : string
 
-val componentType : ('a * 'b) list -> 'a -> 'b option
-val componentNum : ('a * 'b) list -> 'a -> int
-
-type typ = Typesystems.Zomp.typ
-type 'a recordType = 'a Typesystems.Zomp.recordType
-type functionType = Typesystems.Zomp.functionType
-type 'a parameterizableType = 'a Typesystems.Zomp.parameterizableType
+type typ = Types.typ
+type 'a recordType = 'a Types.recordType
+type functionType = Types.functionType
+type 'a parameterizableType = 'a Types.parameterizableType
 
 val dequoteEscapeSequence : string -> char
-val string2integralValue : string -> Typesystems.Zomp.value option
+val string2integralValue : string -> Types.value option
 type varStorage = RegisterStorage | MemoryStorage
 type 'a variable = {
   vname : string;
@@ -54,14 +51,14 @@ type 'a variable = {
   vglobal : bool;
   vlocation : Basics.location option;
 }
-val validateValue : Typesystems.Zomp.value -> Typesystems.Zomp.value
+val validateValue : Types.value -> Types.value
 val variable :
   name:string ->
   typ:'a ->
   storage:varStorage ->
   global:bool -> location:Basics.location option -> 'a variable
-val varToStringShort : Typesystems.Zomp.typ variable -> string
-val varToString : Typesystems.Zomp.typ variable -> string
+val varToStringShort : Types.typ variable -> string
+val varToString : Types.typ variable -> string
 val globalVar :
   name:string -> typ:'a -> location:Basics.location option -> 'a variable
 type 'a funcCall = {
@@ -82,7 +79,7 @@ val funcCallToString : ('a -> string) -> 'a funcCall -> string
 val labelToString : label -> string
 val branchToString : branch -> string
 type 'a flatArgForm =
-    [ `Constant of Typesystems.Zomp.value | `Variable of 'a variable ]
+    [ `Constant of Types.value | `Variable of 'a variable ]
 type 'a genericIntrinsic =
     [ `CastIntrinsic of typ * 'a
     | `GetAddrIntrinsic of typ variable
@@ -94,14 +91,14 @@ type 'a genericIntrinsic =
     | `StoreIntrinsic of 'a * 'a ]
 type globalVar = {
   gvVar : typ variable;
-  gvInitialValue : Typesystems.Zomp.value;
+  gvInitialValue : Types.value;
   gvDefinitionLocation : Basics.location option;
 }
 type form =
     [ `AssignVar of typ variable * form
     | `Branch of branch
     | `CastIntrinsic of typ * form
-    | `Constant of Typesystems.Zomp.value
+    | `Constant of Types.value
     | `DefineVariable of typ variable * form option
     | `EmbeddedComment of string list
     | `FuncCall of form funcCall
@@ -129,39 +126,39 @@ and func = {
 and toplevelExpr =
     [ `DefineFunc of func
     | `GlobalVar of globalVar
-    | `Typedef of string * Typesystems.Zomp.typ ]
+    | `Typedef of string * Types.typ ]
 val formToSExpr : form -> Ast2.t
 val formToString : form -> string
 val funcDeclToString : func -> string
 val funcToString : func -> string
 val toplevelFormToSExpr :
   [< `DefineFunc of func
-   | `GlobalVar of Typesystems.Zomp.typ variable * Typesystems.Zomp.value
-   | `Typedef of string * Typesystems.Zomp.typ ] ->
+   | `GlobalVar of Types.typ variable * Types.value
+   | `Typedef of string * Types.typ ] ->
   Ast2.sexpr
 val toplevelFormDeclToString : toplevelExpr -> string
 val toplevelFormToString : toplevelExpr -> string
 val toplevelFormLocation : toplevelExpr -> Basics.location
 val toSingleForm : form list -> form
-val isFuncParametric : ('a * Typesystems.Zomp.typ) list -> bool
+val isFuncParametric : ('a * Types.typ) list -> bool
 val func :
   string ->
   typ ->
-  (string * Typesystems.Zomp.typ) list ->
+  (string * Types.typ) list ->
   form option -> Basics.location -> func
 val varargFunc :
   string ->
   typ ->
-  (string * Typesystems.Zomp.typ) list ->
+  (string * Types.typ) list ->
   form option -> Basics.location -> func
 val funcDecl :
   string ->
   typ ->
-  (string * Typesystems.Zomp.typ) list -> Basics.location -> func
+  (string * Types.typ) list -> Basics.location -> func
 val funcDef :
   string ->
   typ ->
-  (string * Typesystems.Zomp.typ) list ->
+  (string * Types.typ) list ->
   form -> Basics.location option -> func
 type 'a macro = {
   mname : string;

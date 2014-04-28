@@ -46,26 +46,25 @@ let writeSymbolsToStream bindings stream =
   fprintf stream "Symbol table\n";
 
   let printSymbol (name, info) =
-    let module Typesystem = Typesystems.Zomp in
     fprintf stream "%s =" name;
     let location = Bindings.location info in
     let doc =
       match Bindings.symbol info with
         | Bindings.VarSymbol var ->
-          sprintf "var of type %s" (Typesystem.typeName var.Lang.typ)
+          sprintf "var of type %s" (Types.typeName var.Lang.typ)
         | Bindings.FuncSymbol func ->
           let argToString (name, typ) =
-            sprintf "%s %s" (Typesystem.typeName typ) name
+            sprintf "%s %s" (Types.typeName typ) name
           in
           let args = List.map argToString func.Lang.fargs in
           let argString = Common.combine ", " args in
-          sprintf "%s(%s)" (Typesystem.typeName func.Lang.rettype) argString
+          sprintf "%s(%s)" (Types.typeName func.Lang.rettype) argString
         | Bindings.MacroSymbol macro ->
           sprintf "%s" macro.Lang.mdocstring
         | Bindings.LabelSymbol label ->
           sprintf "label %s" label.Lang.lname
         | Bindings.TypedefSymbol typ ->
-          sprintf "type %s" (Typesystem.typeDescr typ)
+          sprintf "type %s" (Types.typeDescr typ)
         | Bindings.UndefinedSymbol ->
           sprintf "undefined"
     in

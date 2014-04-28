@@ -1,3 +1,44 @@
+
+module New_type_system =
+struct
+  type intTypeSize = Bits8 | Bits16 | Bits32 | Bits64 | BitsArbitrary of int
+
+  type typ = [
+  | `Void
+  | `Bool
+  | `UnsignedInt of intTypeSize
+  | `SignedInt of intTypeSize
+  | `Floating of Int64.t
+  | `Record of (string * typ) list
+  | `Array of typ * int
+  | `Pointer of typ
+  | `FunctionType of functionType
+  | `NamedType of namedType
+  | `TypeParamType of typ
+  | `TypeParamInt of int
+  | `ParametricType of typ * typeParam list
+  ]
+  and namedType = {
+    tname :string;
+    tparams :typeParam list;
+    trepr :typ
+  }
+  and functionType = {
+    returnType :typ;
+    argTypes :typ list;
+  }
+  and typeParam =
+    (* | ParamTypeParam of kind *)
+    | TypeParam
+    | IntParam
+(* | BoolParam of bool *)
+(* | FloatParam of float *)
+(* ... *)
+
+(** Char = `NamedType ("char", `UnsignedInt of Bits8) *)
+end
+
+
 module Errors =
 struct
   (** public abstract *)

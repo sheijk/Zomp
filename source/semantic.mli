@@ -4,7 +4,7 @@ type formOrAst = Form of Lang.form | Ast of Ast2.t
 
 type typeRequirement = 
   [ `Any of string
-  | Typesystems.Zomp.typ ]
+  | Types.typ ]
 val typeRequirementToString : typeRequirement -> string
 
 type typecheckResult =

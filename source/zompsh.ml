@@ -57,7 +57,7 @@ let runFunction bindings funcname =
             let retval = Machine.zompRunFunctionString funcname in
             printf " => %s\n" retval
           | otherRetType ->
-            printf "cannot call a function which returns %s\n" (Typesystems.Zomp.typeName otherRetType)
+            printf "cannot call a function which returns %s\n" (Types.typeName otherRetType)
       end
     | _ ->
       eprintf "cannot run %s because no such function was found\n" funcname
@@ -286,8 +286,8 @@ end = struct
         printf "error: could not parse '%s' as float\n" timeStr)
 
   let printBindingsCommand args (bindings :bindings) =
-    let typeName = Typesystems.Zomp.typeName in
-    let typeDescr = Typesystems.Zomp.typeDescr in
+    let typeName = Types.typeName in
+    let typeDescr = Types.typeDescr in
     let regexps = List.map
       (fun restr -> Str.regexp (sprintf ".*%s.*" (String.lowercase restr)))
       args

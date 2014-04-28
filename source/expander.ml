@@ -1,5 +1,5 @@
 open Lang
-open Typesystems.Zomp
+open Types
 open Semantic
 open Ast2
 open Common
@@ -45,7 +45,7 @@ struct
       (** TODO: bug, this prevents built-in types to be shadowed *)
       Some (parseType name)
     with
-      | Typesystems.Zomp.CouldNotParseType _ ->
+      | Types.CouldNotParseType _ ->
           match lookup bindings name with
             | TypedefSymbol t -> Some t
             | _ -> None
@@ -58,7 +58,7 @@ struct
       (typeErrorMessage Bindings.defaultBindings (formOrExpr, msg,found,expected))
 
   let raiseInvalidType typeExpr =
-    raise (Typesystems.Zomp.CouldNotParseType (Ast2.expression2string typeExpr))
+    raise (Types.CouldNotParseType (Ast2.expression2string typeExpr))
 
   type formWithTLsEmbedded = [`ToplevelForm of toplevelExpr | form]
 
@@ -284,7 +284,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
           let () = (* fix return type *)
             emitWarning (Serror.fromExpr typeExpr
                            (sprintf "fptr is deprecated. Use %s instead"
-                              (Typesystems.Zomp.typeName typ)))
+                              (Types.typeName typ)))
           in
           Result (`Pointer typ)
         | Error _ as errors ->
@@ -2273,7 +2273,7 @@ let rec translateFunc tlenv expr : unit =
             EnvTL.emitErrors tlenv errors;
             if errors = [] then
               EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "internal error: failed to compile function %s" name);
-            Some (`Sequence [`Return (`Constant (Typesystems.Zomp.defaultValue typ))])
+            Some (`Sequence [`Return (`Constant (Types.defaultValue typ))])
         end
       | None -> None
     in

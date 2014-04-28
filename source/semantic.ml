@@ -1,7 +1,7 @@
 
 open Printf
 open Lang
-open Typesystems.Zomp
+open Types
 open Common
 
 type formOrAst = Form of Lang.form | Ast of Ast2.t

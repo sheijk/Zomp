@@ -1,13 +1,13 @@
 
 open Ast2
 open Lang
-open Typesystems.Zomp
+open Types
 open Printf
 open Bindings
 open Common
 
 type backendInfo = {
-  sizeT :Typesystems.Zomp.typ;
+  sizeT :Types.typ;
 }
 
 (** TODO: raise proper exception *)
@@ -332,7 +332,7 @@ let builtinIntrinsics backend : Lang.func list =
     @ intIntrinsics `Int16
     @ intIntrinsics `Int32
     @ intIntrinsics `Int64
-    @ intIntrinsics backend.sizeT ~name:Typesystems.Zomp.sizeTName
+    @ intIntrinsics backend.sizeT ~name:Types.sizeTName
 
     @ binaryOps `Bool "bool" ["and"; "or"; "xor"]
 
@@ -345,7 +345,7 @@ let builtinIntrinsics backend : Lang.func list =
 
 let defaultBindings backend =
   Bindings.fromSymbolList
-    ([Typesystems.Zomp.sizeTName, TypedefSymbol backend.sizeT]
+    ([Types.sizeTName, TypedefSymbol backend.sizeT]
      @ List.map (fun func -> func.fname, FuncSymbol func) (builtinIntrinsics backend)
      @ builtinMacros)
 

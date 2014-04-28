@@ -1,7 +1,7 @@
 (** Definition of built-in macros, functions, etc. *)
 
 type backendInfo = {
-  sizeT :Typesystems.Zomp.typ;
+  sizeT :Types.typ;
 }
 
 (** The default symbols. *)
