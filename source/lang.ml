@@ -61,6 +61,7 @@ let dequoteEscapeSequence str =
   with Not_found ->
     failwith (sprintf "cannot dequote escape sequence %s" str)
 
+(** TODO: check if this function is sane or it's usage sites should be changed *)
 let string2integralValue str =
   let dequoteString quoteChar str =
     match Common.dequoteString quoteChar str with
@@ -151,6 +152,8 @@ let variable ~name ~typ ~storage ~global ~location = {
   vlocation = location;
 }
 
+let varWithType var newType = { var with typ = newType }
+
 let varToStringShort var =
   sprintf "%s : %s" var.vname (typeName var.typ)
 
@@ -167,23 +170,40 @@ type 'argument funcCall = {
   fcptr : [`FuncPtr | `NoFuncPtr];
   fcvarargs :bool;
 }
-and label = {
-  lname :string;
-}
-and branch = {
-  bcondition :[`Bool] variable;
-  trueLabel :label;
-  falseLabel :label;
-}
+
+let funcCall ~name ~rettype ~params ~args ~ptr ~varargs =
+  {
+    fcname = name;
+    fcrettype = rettype;
+    fcparams = params;
+    fcargs = args;
+    fcptr = ptr;
+    fcvarargs = varargs;
+  }
+
+let changeFuncCallArgs call newArgs = { call with fcargs = newArgs }
 
 let funcCallToString argToString fc =
   let argStrings : string list = List.map argToString fc.fcargs in
   sprintf "%s %s" fc.fcname (Common.combine ", " argStrings)
 
+type label = {
+  lname :string;
+}
+
+let label lname = { lname }
 let labelToString l = l.lname
 
+type branch = {
+  bcondition :[`Bool] variable;
+  trueLabel :label;
+  falseLabel :label;
+}
+
+let branch bcondition trueLabel falseLabel = { bcondition; trueLabel; falseLabel; }
 let branchToString b =
   sprintf "%s ? %s : %s" b.bcondition.vname (labelToString b.trueLabel) (labelToString b.falseLabel)
+
 
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
@@ -207,6 +227,12 @@ type globalVar = {
   gvInitialValue :value;
   gvDefinitionLocation :Basics.location option;
 }
+let globalVarDef ~var ~initial ~location = 
+  {
+    gvVar = var;
+    gvInitialValue = initial;
+    gvDefinitionLocation = location;
+  }
 
 type form = [
 | typ flatArgForm

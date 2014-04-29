@@ -1,6 +1,7 @@
 (** The AST for std:base language. **)
 
 (** The id for std:base constructs. *)
+
 val macroVar : string
 val macroVar2 : string
 val macroFunc : string
@@ -35,51 +36,67 @@ val macroError : string
 val macroLinkCLib : string
 val macroConstructor : string
 
-type typ = Types.typ
-type 'a recordType = 'a Types.recordType
-type functionType = Types.functionType
-type 'a parameterizableType = 'a Types.parameterizableType
+(** (Nested) Expressions *)
 
-val dequoteEscapeSequence : string -> char
+type typ = Types.typ
 val string2integralValue : string -> Types.value option
+
 type varStorage = RegisterStorage | MemoryStorage
-type 'a variable = {
+type +'typ variable = private {
   vname : string;
-  typ : 'a;
+  typ : 'typ;
   vstorage : varStorage;
   vmutable : bool;
   vglobal : bool;
   vlocation : Basics.location option;
 }
-val validateValue : Types.value -> Types.value
+
 val variable :
   name:string ->
   typ:'a ->
   storage:varStorage ->
   global:bool -> location:Basics.location option -> 'a variable
+
+val varWithType : 'typA variable -> 'typB -> 'typB variable
+
 val varToStringShort : Types.typ variable -> string
 val varToString : Types.typ variable -> string
-val globalVar :
-  name:string -> typ:'a -> location:Basics.location option -> 'a variable
-type 'a funcCall = {
+
+val globalVar : name:string -> typ:'a -> location:Basics.location option -> 'a variable
+
+type +'arg funcCall = private {
   fcname : string;
   fcrettype : typ;
   fcparams : typ list;
-  fcargs : 'a list;
+  fcargs : 'arg list;
   fcptr : [ `FuncPtr | `NoFuncPtr ];
   fcvarargs : bool;
 }
-and label = { lname : string; }
-and branch = {
+
+val funcCall :
+  name:string ->
+  rettype:typ ->
+  params:typ list ->
+  args:'arg list ->
+  ptr:[`FuncPtr | `NoFuncPtr] ->
+  varargs:bool ->
+  'arg funcCall
+
+val funcCallToString : ('a -> string) -> 'a funcCall -> string
+val changeFuncCallArgs : 'a funcCall -> 'b list -> 'b funcCall
+
+type label = private { lname : string; }
+val label : string -> label
+val labelToString : label -> string
+
+type branch = private {
   bcondition : [ `Bool ] variable;
   trueLabel : label;
   falseLabel : label;
 }
-val funcCallToString : ('a -> string) -> 'a funcCall -> string
-val labelToString : label -> string
+val branch : [`Bool] variable -> label -> label -> branch
 val branchToString : branch -> string
-type 'a flatArgForm =
-    [ `Constant of Types.value | `Variable of 'a variable ]
+
 type 'a genericIntrinsic =
     [ `CastIntrinsic of typ * 'a
     | `GetAddrIntrinsic of typ variable
@@ -89,11 +106,7 @@ type 'a genericIntrinsic =
     | `PtrAddIntrinsic of 'a * 'a
     | `PtrDiffIntrinsic of 'a * 'a
     | `StoreIntrinsic of 'a * 'a ]
-type globalVar = {
-  gvVar : typ variable;
-  gvInitialValue : Types.value;
-  gvDefinitionLocation : Basics.location option;
-}
+
 type form =
     [ `AssignVar of typ variable * form
     | `Branch of branch
@@ -114,7 +127,17 @@ type form =
     | `Sequence of form list
     | `StoreIntrinsic of form * form
     | `Variable of typ variable ]
-and func = {
+
+(** Global forms *)
+
+type globalVar = private {
+  gvVar : typ variable;
+  gvInitialValue : Types.value;
+  gvDefinitionLocation : Basics.location option;
+}
+val globalVarDef : var:typ variable -> initial:Types.value -> location:Basics.location option -> globalVar
+
+type func = private {
   fname : string;
   rettype : typ;
   fargs : (string * typ) list;
@@ -127,6 +150,7 @@ and toplevelExpr =
     [ `DefineFunc of func
     | `GlobalVar of globalVar
     | `Typedef of string * Types.typ ]
+
 val formToSExpr : form -> Ast2.t
 val formToString : form -> string
 val funcDeclToString : func -> string
@@ -139,8 +163,9 @@ val toplevelFormToSExpr :
 val toplevelFormDeclToString : toplevelExpr -> string
 val toplevelFormToString : toplevelExpr -> string
 val toplevelFormLocation : toplevelExpr -> Basics.location
+
 val toSingleForm : form list -> form
-val isFuncParametric : ('a * Types.typ) list -> bool
+
 val func :
   string ->
   typ ->

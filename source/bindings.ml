@@ -58,7 +58,7 @@ let addTypedef bindings name typ location =
   addSymbol name (TypedefSymbol typ) (Some location) bindings
 
 let addLabel bindings name =
-  addSymbol name (LabelSymbol { lname = name }) None bindings
+  addSymbol name (LabelSymbol (Lang.label name)) None bindings
 
 let addMacro bindings name doc location implF =
   let macro = { mname = name; mdocstring = doc; mtransformFunc = implF; mlocation = Some location } in

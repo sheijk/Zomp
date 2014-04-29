@@ -966,7 +966,7 @@ struct
   let translateLabel (env :exprTranslateF env) expr =
     match expr.args with
       | [ {id = name; args = [] }] ->
-          Result( addLabel env.bindings name, [`Label { lname = name; }] )
+          Result( addLabel env.bindings name, [`Label (Lang.label name)] )
       | _ ->
         errorFromExpr expr ("expecting one argument which is an identifier")
   let translateLabelD = "name", translateLabel
@@ -975,7 +975,7 @@ struct
     match expr.args with
       | [{ id = labelName; args = [] }] ->
           begin
-            Result( env.bindings, [`Jump { lname = labelName; }] )
+            Result( env.bindings, [`Jump (Lang.label labelName)] )
           end
       | [invalidBranchTarget] ->
           errorFromExpr expr
@@ -989,10 +989,10 @@ struct
             match lookup env.bindings condVarName with
               | VarSymbol var when var.typ = `Bool ->
                   begin
-                    Result( env.bindings, [`Branch {
-                                             bcondition = { var with typ = `Bool };
-                                             trueLabel = { lname = trueLabelName};
-                                             falseLabel = { lname = falseLabelName}; }] )
+                    Result( env.bindings, [`Branch (Lang.branch
+                                                      (varWithType var `Bool)
+                                                      (Lang.label trueLabelName)
+                                                      (Lang.label falseLabelName))])
                   end
               | _ ->
                 errorFromExpr expr
@@ -1361,14 +1361,14 @@ struct
       else
         let x = evalArgs args argTypes in
         let toplevelForms, argForms = flattenLeft x in
-        let funccall = `FuncCall {
-          fcname = name;
-          fcrettype = rettype;
-          fcparams = argTypes;
-          fcargs = argForms;
-          fcptr = isPointer;
-          fcvarargs = hasVarArgs
-        }
+        let funccall = `FuncCall 
+          (Lang.funcCall
+             ~name
+             ~rettype
+             ~params:argTypes
+             ~args:argForms
+             ~ptr:isPointer
+             ~varargs:hasVarArgs)
         in
         match typeCheck bindings funccall with
           | TypeOf _ ->
@@ -1584,11 +1584,7 @@ struct
   let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
     let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
     let value = StringLiteral (Ast2.fileName expr) in
-    let gvar = {
-      gvVar = var;
-      gvInitialValue = value;
-      gvDefinitionLocation = expr.location;
-    } in
+    let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
     Result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
 
   let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
@@ -1700,13 +1696,15 @@ struct
                 begin
                   Result(env.bindings,
                          toplevelFormsLeft @ toplevelFormsRight @
-                           [`PtrAddIntrinsic (leftForm,
-                                              `FuncCall { fcname = "u32:neg";
-                                                          fcrettype = `Int32;
-                                                          fcparams = [`Int32];
-                                                          fcargs = [rightForm];
-                                                          fcptr = `NoFuncPtr;
-                                                          fcvarargs = false })])
+                           [`PtrAddIntrinsic 
+                               (leftForm,
+                                `FuncCall (Lang.funcCall 
+                                             ~name:"u32:neg"
+                                             ~rettype:`Int32
+                                             ~params:[`Int32]
+                                             ~args:[rightForm]
+                                             ~ptr:`NoFuncPtr
+                                             ~varargs:false))])
                 end
             | "op-", TypeOf `Pointer _, TypeOf `Pointer _ ->
               begin
@@ -1729,12 +1727,13 @@ struct
                     | FuncSymbol func -> begin
                         Result(env.bindings,
                                toplevelFormsLeft @ toplevelFormsRight @
-                                 [`FuncCall { fcname = func.fname;
-                                              fcrettype = func.rettype;
-                                              fcparams = List.map snd func.fargs;
-                                              fcargs = [castFormL; castFormR];
-                                              fcptr = `NoFuncPtr;
-                                              fcvarargs = false }])
+                                 [`FuncCall (Lang.funcCall
+                                              ~name:func.fname
+                                              ~rettype:func.rettype
+                                              ~params:(List.map snd func.fargs)
+                                              ~args:[castFormL; castFormR]
+                                              ~ptr:`NoFuncPtr
+                                              ~varargs:false)])
                       end
                     | _ -> begin
                       errorFromExpr expr
@@ -1769,25 +1768,26 @@ struct
                   | FuncSymbol func ->
                     Result(env.bindings,
                            toplevelForms @
-                             [`FuncCall { fcname = func.fname;
-                                          fcrettype = func.rettype;
-                                          fcparams = List.map snd func.fargs;
-                                          fcargs = [argForm];
-                                          fcptr = `NoFuncPtr;
-                                          fcvarargs = false }])
+                             [`FuncCall (Lang.funcCall
+                                          ~name:func.fname
+                                          ~rettype:func.rettype
+                                          ~params:(List.map snd func.fargs)
+                                          ~args:[argForm]
+                                          ~ptr:`NoFuncPtr
+                                          ~varargs:false)])
                   | _ ->
                     let genericFuncName = baseName ^ "_ptr" in
                     match Bindings.lookup env.bindings genericFuncName with
                       | FuncSymbol func ->
                         Result(env.bindings,
                                toplevelForms @
-                                 [`FuncCall { fcname = func.fname;
-                                              fcrettype = func.rettype;
-                                              fcparams = List.map snd func.fargs;
-                                              fcargs = [`CastIntrinsic
-                                                           (`Pointer `Void, argForm)];
-                                              fcptr = `NoFuncPtr;
-                                              fcvarargs = false }])
+                                 [`FuncCall (Lang.funcCall
+                                              ~name:func.fname
+                                              ~rettype:func.rettype
+                                              ~params:(List.map snd func.fargs)
+                                              ~args:[`CastIntrinsic (`Pointer `Void, argForm)]
+                                              ~ptr:`NoFuncPtr
+                                              ~varargs:false)])
                       | _ ->
                         errorFromExpr expr
                           (sprintf
@@ -1912,11 +1912,7 @@ let rec translateNestedNew
                 begin
                   let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
                   let value = StringLiteral string in
-                  let gvar = {
-                    gvVar = var;
-                    gvInitialValue = value;
-                    gvDefinitionLocation = expr.location;
-                  } in
+                  let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
                   Mayfail.result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
                 end
               | Some const ->
@@ -2408,11 +2404,7 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
         in
         if typeEquivalent typ (typeOf initialValue) then begin
           let var = globalVar name typ expr.location in
-          let gvar = {
-            gvVar = var;
-            gvInitialValue = initialValue;
-            gvDefinitionLocation = expr.location;
-          } in
+          let gvar = Lang.globalVarDef ~var ~initial:initialValue ~location:expr.location in
           EnvTL.setBindings env (addVar (EnvTL.bindings env) var);
           if (not isRedefinitionError) then begin
             EnvTL.emitForm env (`GlobalVar gvar :> toplevelExpr)

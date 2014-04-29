@@ -373,7 +373,7 @@ let rec collectVars (form :Lang.form) =
     | `FuncCall call ->
         let argFormsAndVars = List.map collectVars call.fcargs in
         let argForms, vars = List.split argFormsAndVars in
-        `FuncCall { call with fcargs = argForms }, List.flatten vars
+        `FuncCall (Lang.changeFuncCallArgs call argForms), List.flatten vars
 
     | `AssignVar (var, valueForm) ->
         returnTransformed valueForm (fun f -> `AssignVar(var, f))

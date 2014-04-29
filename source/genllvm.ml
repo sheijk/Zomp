@@ -716,7 +716,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
       begin
         match var.vstorage with
           | MemoryStorage -> returnVarCode (
-              resultVar {var with typ = `Pointer var.typ},
+              resultVar (Lang.varWithType var (`Pointer var.typ)),
               sprintf "; addrOf %s\n" (typeName var.typ))
           | RegisterStorage ->
               raiseCodeGenError ~msg:"getting address of register storage var not possible"
@@ -1058,14 +1058,13 @@ let gencodeDefineFunc func =
           (paramTypeName typ) ^ " " ^ (llvmName (argumentName name))
         in
         let paramString = combine ", " (List.map param2string func.fargs) in
-        let retvalVar = {
-          vname = "$retval";
-          typ = `Pointer func.rettype;
-          vstorage = RegisterStorage;
-          vmutable = false;
-          vglobal = false;
-          vlocation = None;
-        } in
+        let retvalVar = Lang.variable
+          ~name:"$retval"
+          ~typ:(`Pointer func.rettype)
+          ~storage:RegisterStorage
+          ~global:false
+          ~location:None
+        in
         let decl = makeSignature retvalVar.vname paramString in
         let initStructCode =
           Common.combine "\n"
