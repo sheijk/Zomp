@@ -603,9 +603,7 @@ let translateRun env expr =
               Ast2.expr macroReturn []]]
         in
         try
-          let { Result.flag; diagnostics; results = _ }, _ =
-            Compileutils.compileExpr env exprInFunc
-          in
+          let { Result.flag; diagnostics; results = _ } = Expander.translate env exprInFunc in
           List.iter report diagnostics;
           runFunction (Expander.bindings env) immediateFuncName;
         with
@@ -645,9 +643,7 @@ let rec step env parseState =
             None);
 
       let (), time = recordTiming (fun () ->
-        let { Result.flag; diagnostics; results = _ }, _ =
-          Compileutils.compileExpr env expr
-        in
+        let { Result.flag; diagnostics; results = _ } = Expander.translate env expr in
         List.iter report diagnostics;
         if flag = Result.Fail then begin
           hadErrors := true;

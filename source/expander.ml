@@ -2730,13 +2730,6 @@ let translate env expr =
   EnvTL.emitExpr env expr;
   extractResultFromEnv env
 
-let compileExpr env expr =
-  catchingErrorsDo (fun () ->
-    let result = translate env expr in
-    let llvmCode = Common.combine "\n" $ List.map Genllvm.gencodeTL result.Result.results in
-    result, llvmCode)
-    ~onErrors:(fun diagnostics -> Result.fail diagnostics, "")
-
 let translateMulti env exprs =
   EnvTL.emitExprs env exprs;
   extractResultFromEnv env

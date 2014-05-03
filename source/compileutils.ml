@@ -7,8 +7,6 @@ open Common
 open Basics
 open Parseutils
 
-let compileExpr = Expander.compileExpr
-
 let compileNew env exprs fileName =
   let exprs = List.map (fixFileName fileName) exprs in
   Expander.translateMulti env exprs

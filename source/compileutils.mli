@@ -6,8 +6,6 @@ val loadPrelude :
   (* source *) string ->
   unit Result.t
 
-val compileExpr : Expander.tlenv -> Ast2.t -> Lang.toplevelExpr Result.t * string
-
 val compileFromStream :
   Expander.tlenv ->
   source:string ->
