@@ -451,6 +451,20 @@ let reportError = reportDiagnostics Basics.DiagnosticKind.Error
 let reportWarning = reportDiagnostics Basics.DiagnosticKind.Warning
 let reportInfo = reportDiagnostics Basics.DiagnosticKind.Info
 
+(** "new" compiler types *)
+
+type 'translateF env = {
+  bindings :Bindings.t;
+  translateF :'translateF;
+  translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
+  parseF : fileName:string -> string -> Ast2.t list option;
+  reportError : Serror.t -> unit;
+}
+
+type nestedEnv = exprTranslateF env
+
+type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
+
 (** Also needs to be updated in zompvm_impl.cpp and prelude.zomp *)
 let astType = `Record {
   rname = "ast";
@@ -478,42 +492,29 @@ struct
       | None ->
         { expr with location = Some location; args = fixedArgs }
 
-  let translateMacroCall translateF (bindings :bindings) expr =
+  (* todo: use env *)
+  let translateMacroCall (env :exprTranslateF env) expr =
     match expr with
       | { id = macroName; args = args; } ->
-        match lookup bindings macroName with
+        match lookup env.bindings macroName with
           | MacroSymbol macro ->
             begin
               try
                 let transformedExpr =
-                  let withBrokenLocations = macro.mtransformFunc bindings expr in
+                  let withBrokenLocations = macro.mtransformFunc env.bindings expr in
                   match expr.location with
                     | Some location ->
                       withDefaultSourceLocation location withBrokenLocations
                     | None ->
                       withBrokenLocations
                 in
-                Some (translateF bindings transformedExpr)
+                Some (env.translateF env.bindings transformedExpr)
               with
                 | Failure msg ->
                   raiseIllegalExpression expr ("could not expand macro: " ^ msg)
             end
           | _ -> None
 end
-
-(** "new" compiler types *)
-
-type 'translateF env = {
-  bindings :Bindings.t;
-  translateF :'translateF;
-  translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
-  parseF : fileName:string -> string -> Ast2.t list option;
-  reportError : Serror.t -> unit;
-}
-
-(* type nestedEnv = exprTranslateF env *)
-
-type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 
 module Macros : sig
   val translateDefineMacroHelper :
@@ -1887,7 +1888,7 @@ let rec translateNested
         { expr with id = macroFunCall; args = idExpr expr.id :: expr.args }
 
     | MacroSymbol macro ->
-      (match Old_macro_support.translateMacroCall translateNestedNoErr env.bindings expr with
+      (match Old_macro_support.translateMacroCall env expr with
         | Some r -> Result r
         | None ->
           Mayfail.singleError $ Serror.fromExpr expr "failed after macro expansion")
