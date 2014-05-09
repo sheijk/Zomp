@@ -144,8 +144,6 @@ struct
         (list @ remList, x :: remX)
 
   let flattenNestedTLForms = List.map (fun (`ToplevelForm tlform) -> tlform)
-
-  type toplevelExprTranslateF = toplevelExpr someTranslateF
 end
 
 open Translation_utils
@@ -453,17 +451,15 @@ let reportInfo = reportDiagnostics Basics.DiagnosticKind.Info
 
 (** "new" compiler types *)
 
-type 'translateF env = {
+type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
+
+type nestedEnv = {
   bindings :Bindings.t;
   translateF :exprTranslateF;
-  translateExpr : exprTranslateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
+  translateExpr : nestedEnv -> Ast2.t -> translationResult;
   parseF : fileName:string -> string -> Ast2.t list option;
   reportError : Serror.t -> unit;
 }
-
-type nestedEnv = exprTranslateF env
-
-type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 
 (** Also needs to be updated in zompvm_impl.cpp and prelude.zomp *)
 let astType = `Record {
@@ -493,7 +489,7 @@ struct
         { expr with location = Some location; args = fixedArgs }
 
   (* todo: use env *)
-  let translateMacroCall (env :exprTranslateF env) expr =
+  let translateMacroCall (env :nestedEnv) expr =
     match expr with
       | { id = macroName; args = args; } ->
         match lookup env.bindings macroName with
@@ -519,14 +515,14 @@ end
 module Macros : sig
   val translateDefineMacroHelper :
       [ `Global | `Local ] ->
-      Translation_utils.exprTranslateF env ->
+      nestedEnv ->
       Ast2.t -> Bindings.bindings Mayfail.mayfail
 
   val translateDefineNestedMacro :
-    Translation_utils.exprTranslateF env -> Ast2.t -> (Bindings.bindings * 'form list) Mayfail.mayfail
+    nestedEnv -> Ast2.t -> (Bindings.bindings * 'form list) Mayfail.mayfail
 end = struct
   let buildNativeMacroFunc
-      (env :exprTranslateF env)
+      (env :nestedEnv)
       (`MacroFuncName macroFuncName)
       argNames
       implExprs
@@ -680,7 +676,7 @@ end = struct
     { id = ast.id; location = None; args = List.map removeSourceLocations ast.args }
 
   (* TODO: kick out all source location info *)
-  let translateDefineMacroHelper scope (env :exprTranslateF env) expr =
+  let translateDefineMacroHelper scope (env :nestedEnv) expr =
     match decomposeMacroDefinition expr with
       | Result (macroName, paramNames, implExprs, isVariadic) ->
         let implExprs = List.map removeSourceLocations implExprs in
@@ -732,7 +728,7 @@ end = struct
       | Error reasons ->
           Error reasons
 
-  let translateDefineNestedMacro (env :exprTranslateF env) expr =
+  let translateDefineNestedMacro (env :nestedEnv) expr =
     match translateDefineMacroHelper `Local env expr with
       | Result newBindings -> Result (newBindings, [])
       | Error (_ as errors) -> Error errors
@@ -742,7 +738,7 @@ end
 module type Zomp_transformer =
 sig
   (** name, doc, translateFunc *)
-  val register : (string -> (string * (exprTranslateF env -> Ast2.t -> translationResult)) -> unit) -> unit
+  val register : (string -> (string * (nestedEnv -> Ast2.t -> translationResult)) -> unit) -> unit
 end
 
 module Base : Zomp_transformer =
@@ -910,8 +906,8 @@ struct
           errorFromExpr expr (sprintf "expecting '%s name valueExpr'" expr.id)
   let translateDefineLocalVarD = "name, value", translateDefineLocalVar
 
-  (** exprTranslateF env -> Ast2.sexpr -> translationResult *)
-  let translateAssignVar (env :exprTranslateF env) expr =
+  (** nestedEnv -> Ast2.sexpr -> translationResult *)
+  let translateAssignVar (env :nestedEnv) expr =
     let doTranslation id varName rightHandExpr =
       let _, rightHandForm, toplevelForms =
         translateToForms env.translateF env.bindings rightHandExpr
@@ -944,11 +940,11 @@ struct
         errorFromExpr expr "expected 'assign varName valueExpr'"
   let translateAssignVarD = "var, value", translateAssignVar
 
-  let translateSeq (env :exprTranslateF env) expr =
+  let translateSeq (env :nestedEnv) expr =
     Result (translatelst env.translateF env.bindings expr.args)
   let translateSeqD = "ast...", translateSeq
 
-  let translateReturn (env :exprTranslateF env) = function
+  let translateReturn (env :nestedEnv) = function
     | { id = id; args = [expr] } ->
         begin
           let _, form, toplevelExprs = translateToForms env.translateF env.bindings expr in
@@ -963,7 +959,7 @@ struct
         (sprintf "expected zero or one argument instead of %d" (List.length expr.args))
   let translateReturnD = "[value]", translateReturn
 
-  let translateLabel (env :exprTranslateF env) expr =
+  let translateLabel (env :nestedEnv) expr =
     match expr.args with
       | [ {id = name; args = [] }] ->
           Result( addLabel env.bindings name, [`Label (Lang.label name)] )
@@ -971,7 +967,7 @@ struct
         errorFromExpr expr ("expecting one argument which is an identifier")
   let translateLabelD = "name", translateLabel
 
-  let translateBranch (env :exprTranslateF env) expr =
+  let translateBranch (env :nestedEnv) expr =
     match expr.args with
       | [{ id = labelName; args = [] }] ->
           begin
@@ -1003,7 +999,7 @@ struct
           "expected either 'branch labelName' or 'branch boolVar labelOnTrue labelOnFalse'"
   let translateBranchD = "label | boolValue labelOnTrue labelOnFalse", translateBranch
 
-  let translateLoad (env :exprTranslateF env) expr =
+  let translateLoad (env :nestedEnv) expr =
     match expr.args with
       | [ptrExpr] ->
           begin
@@ -1019,7 +1015,7 @@ struct
           errorFromExpr expr "expecting only one argument"
   let translateLoadD = "pointer", translateLoad
 
-  let translateStore (env :exprTranslateF env) expr =
+  let translateStore (env :nestedEnv) expr =
     match expr.args with
       | [ptrExpr; rightHandExpr]->
           begin
@@ -1036,7 +1032,7 @@ struct
           errorFromExpr expr "expected two arguments: 'store ptrExpr valueExpr'"
   let translateStoreD = "pointer, value", translateStore
 
-  let translateMalloc (env :exprTranslateF env) expr =
+  let translateMalloc (env :nestedEnv) expr =
     let buildMallocInstruction typeExpr countExpr =
       match translateType env.bindings typeExpr with
         | Error _ as err ->
@@ -1060,7 +1056,7 @@ struct
           errorFromExpr expr "expected 'malloc typeExpr countExpr', countExpr being optional"
   let translateMallocD = "type count?", translateMalloc
 
-  let translateNullptr (env :exprTranslateF env) expr =
+  let translateNullptr (env :nestedEnv) expr =
     match expr.args with
       | [typeExpr] ->
           begin match translateType env.bindings typeExpr with
@@ -1071,7 +1067,7 @@ struct
           errorFromExpr expr "expected one argument denoting a type: 'nullptr typeExpr'"
   let translateNullptrD = "type", translateNullptr
 
-  let translateGetaddr (env :exprTranslateF env) expr =
+  let translateGetaddr (env :nestedEnv) expr =
     match expr with
       | { args = [{ id = varName; args = [] }] } ->
           begin
@@ -1095,7 +1091,7 @@ struct
           errorFromExpr expr "expected one argument denoting an lvalue: 'ptr lvalueExpr'"
   let translateGetaddrD = "lvalue", translateGetaddr
 
-  let translatePtradd (env :exprTranslateF env) expr =
+  let translatePtradd (env :nestedEnv) expr =
     match expr.args with
       | [ptrExpr; indexExpr] ->
           begin
@@ -1111,7 +1107,7 @@ struct
           errorFromExpr expr "expected two arguments: 'ptradd ptrExpr intExpr'"
   let translatePtraddD = "ptr, intExpr", translatePtradd
 
-  let translatePtrDiff (env :exprTranslateF env) expr =
+  let translatePtrDiff (env :nestedEnv) expr =
     match expr.args with
       | [lhsExpr; rhsExpr] ->
         begin
@@ -1131,7 +1127,7 @@ struct
         errorFromExpr expr "expected two pointers as arguments"
   let translatePtrDiffD = "ptrExpr, ptrExpr", translatePtrDiff
 
-  let translateGetfieldptr (env :exprTranslateF env) expr =
+  let translateGetfieldptr (env :nestedEnv) expr =
     match expr.args with
       | [
           recordExpr;
@@ -1171,7 +1167,7 @@ struct
           errorFromExpr expr "expected two arguments: 'fieldptr structExpr id'"
   let translateGetfieldptrD = "structExpr, fieldName", translateGetfieldptr
 
-  let translateCast (env :exprTranslateF env) expr =
+  let translateCast (env :nestedEnv) expr =
     match expr.args with
       | [targetTypeExpr; valueExpr] ->
           begin
@@ -1196,7 +1192,7 @@ struct
           errorFromExpr expr "expected 'cast typeExpr valueExpr'"
   let translateCastD = "typeExpr, valueExpr", translateCast
 
-  let translateDefineVar (env :exprTranslateF env) expr :translationResult =
+  let translateDefineVar (env :nestedEnv) expr :translationResult =
     let transformUnsafe id name typeExpr valueExpr :translationResult =
       let declaredType = match typeExpr with
         | Some e ->
@@ -1320,7 +1316,7 @@ struct
                  expr.id macroVar macroVar2)
   let translateDefineVarD = "type, name, [value] | var2 name, value", translateDefineVar
 
-  let translateFuncCall (env : 'a env)  expr :translationResult =
+  let translateFuncCall (env :nestedEnv) expr :translationResult =
     let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
       let evalArg (argExpr :Ast2.sexpr) paramType =
         let _, xforms = env.translateF bindings argExpr in
@@ -1414,7 +1410,7 @@ struct
   let translateFuncCallD = "name, args...", translateFuncCall
 
   (** called by translateApply, not registered under any name *)
-  let translateRecordLiteral (env :exprTranslateF env) typeExpr argExprs :translationResult =
+  let translateRecordLiteral (env :nestedEnv) typeExpr argExprs :translationResult =
     let translate recordType =
       let translateField expr : 'a mayfail =
         let bindings, formsWTL = env.translateF env.bindings expr in
@@ -1495,7 +1491,7 @@ struct
       | _ ->
         fail()
 
-  let translateApply translateRecordF (env :('a someTranslateF) env) expr =
+  let translateApply translateRecordF (env :nestedEnv) expr =
     let allAreFieldAssignments exprs =
       let isFieldAssignment = function
         | { id = "op="; args = [{ args = [] }; _] } ->
@@ -1551,7 +1547,7 @@ struct
       | { args = [] } ->
         errorFromExpr expr (sprintf "expected 'std:base:apply expr args?'")
 
-  let translateError (env :exprTranslateF env) expr =
+  let translateError (env :nestedEnv) expr =
     Error [parseErrorExpr expr]
   let translateErrorD = "string-literal expr?", translateError
 
@@ -1581,13 +1577,13 @@ end
 
 module Compiler_environment : Zomp_transformer =
 struct
-  let translateFileName (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
+  let translateFileName (env :nestedEnv) (expr :Ast2.sexpr)  :translationResult =
     let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
     let value = StringLiteral (Ast2.fileName expr) in
     let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
     Result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
 
-  let translateLineNumber (env :exprTranslateF env) (expr :Ast2.sexpr)  :translationResult =
+  let translateLineNumber (env :nestedEnv) (expr :Ast2.sexpr)  :translationResult =
     Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
 
   let singleArgWithLoc = function
@@ -1617,7 +1613,7 @@ end
 
 module Arrays : Zomp_transformer =
 struct
-  let arraySize (env: exprTranslateF env) expr =
+  let arraySize (env :nestedEnv) expr =
     match expr with
       | { id = _; args = [arrayExpr] } ->
         let _, rightHandForm, toplevelForms =
@@ -1641,7 +1637,7 @@ struct
         errorFromExpr expr "expected 'zmp:array:size arrayExpr'"
   let arraySizeD = "array", arraySize
 
-  let arrayAddr (env: exprTranslateF env) = function
+  let arrayAddr (env :nestedEnv) = function
     | {args = [arrayPtrExpr]} as expr ->
       let _, arrayPtrForm, tlforms =
         translateToForms env.translateF env.bindings arrayPtrExpr
@@ -1675,7 +1671,7 @@ struct
   (** creates a macro which turns baseName(l,r) into
     * baseName_ltype_rtype(l,r). Has special handling for op+/op- and pointer
     * arguments *)
-  let overloadedOperator baseName (env :exprTranslateF env) = function
+  let overloadedOperator baseName (env :nestedEnv) = function
     | {args = [leftExpr; rightExpr]} as expr ->
         begin
           let _, leftForm, toplevelFormsLeft =
@@ -1754,7 +1750,7 @@ struct
     | invalidExpr ->
       errorFromExpr invalidExpr "expected two arguments"
 
-  let overloadedFunction baseName (env :exprTranslateF env) = function
+  let overloadedFunction baseName (env :nestedEnv) = function
     | {args = [argExpr]} as expr ->
         begin
           let _, argForm, toplevelForms =
@@ -1855,11 +1851,7 @@ let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   in
   lookup, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
 
-let rec translateNested
-    (env :exprTranslateF env)
-    (expr :Ast2.sexpr)
-    : (bindings * formWithTLsEmbedded list) mayfail
-    =
+let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult =
 
   let toConstructorExpr expr =
     { expr with
