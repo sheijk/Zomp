@@ -511,27 +511,28 @@ type 'translateF env = {
   reportError : Serror.t -> unit;
 }
 
-let envBindings env = env.bindings
+(* type nestedEnv = exprTranslateF env *)
 
-type toplevelEnv = Translation_utils.toplevelExprTranslateF env
-let tlReturnNoExprs env = Result (env.bindings, [])
+type translationResult = (bindings * (formWithTLsEmbedded list)) mayfail
 
-type 'a translationResultV = (bindings * ('a list)) mayfail
-type translationResult = formWithTLsEmbedded translationResultV
-type toplevelTranslationResult = toplevelExpr translationResultV
+module Macros : sig
+  val translateDefineMacroHelper :
+      [ `Global | `Local ] ->
+      Translation_utils.exprTranslateF env ->
+      Ast2.t -> Bindings.bindings Mayfail.mayfail
 
-module Macros =
-struct
+  val translateDefineNestedMacro :
+    Translation_utils.exprTranslateF env -> Ast2.t -> (Bindings.bindings * 'form list) Mayfail.mayfail
+end = struct
   let buildNativeMacroFunc
-      translateF
-      bindings
+      (env :exprTranslateF env)
       (`MacroFuncName macroFuncName)
       argNames
       implExprs
       (isVariadic : [`IsVariadic | `IsNotVariadic])
       =
     let argParamName = "macro_args" in
-    let bindings = Bindings.addVar bindings
+    let bindings = Bindings.addVar env.bindings
       (Lang.variable
          ~name:argParamName
          ~typ:(`Pointer astPtrType)
@@ -549,7 +550,7 @@ struct
     in
     let fetchParamExprs = Common.listMapi buildParamFetchExpr argNames in
     let sexprImpl = Ast2.seqExpr (fetchParamExprs @ implExprs) in
-    let _, xforms = translateF bindings sexprImpl in
+    let _, xforms = env.translateF bindings sexprImpl in
     let initForms, implforms = extractToplevelForms xforms in
     let initForms = flattenNestedTLForms initForms in
     let astType =
@@ -678,13 +679,13 @@ struct
     { id = ast.id; location = None; args = List.map removeSourceLocations ast.args }
 
   (* TODO: kick out all source location info *)
-  let translateDefineMacroHelper translateNestedF scope bindings expr =
+  let translateDefineMacroHelper scope (env :exprTranslateF env) expr =
     match decomposeMacroDefinition expr with
       | Result (macroName, paramNames, implExprs, isVariadic) ->
         let implExprs = List.map removeSourceLocations implExprs in
         begin
           let isRedefinitionError =
-            hasRedefinitionErrors `NewMacro scope macroName expr bindings reportDiagnostics
+            hasRedefinitionErrors `NewMacro scope macroName expr env.bindings reportDiagnostics
           in
 
           if isRedefinitionError then
@@ -698,9 +699,7 @@ struct
               prefix ^ macroName
             in
             let tlexprs, func =
-              buildNativeMacroFunc
-                translateNestedF bindings
-                (`MacroFuncName macroFuncName) paramNames implExprs isVariadic
+              buildNativeMacroFunc env (`MacroFuncName macroFuncName) paramNames implExprs isVariadic
             in
 
             let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
@@ -722,7 +721,7 @@ struct
             in
 
             let location = someOrDefault expr.location Basics.fakeLocation in
-            let newBindings = Bindings.addMacro bindings macroName docstring location
+            let newBindings = Bindings.addMacro env.bindings macroName docstring location
               (translateMacroCall macroName (`MacroFuncName macroFuncName) (List.length paramNames) isVariadic)
             in
 
@@ -732,8 +731,8 @@ struct
       | Error reasons ->
           Error reasons
 
-  let translateDefineNestedMacro translateNestedF env expr =
-    match translateDefineMacroHelper translateNestedF `Local env.bindings expr with
+  let translateDefineNestedMacro (env :exprTranslateF env) expr =
+    match translateDefineMacroHelper `Local env expr with
       | Result newBindings -> Result (newBindings, [])
       | Error (_ as errors) -> Error errors
 end
@@ -1939,8 +1938,6 @@ and translateNestedNoErr bindings expr =
     | Error errors ->
       raiseIllegalExpressions expr errors
 
-let translateNested = sampleFunc2 "translateNested" translateNestedNoErr
-
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
   begin
@@ -2066,8 +2063,7 @@ end = struct
 end
 
 let () =
-  addBaseInstruction macroMacro "name, args..., body"
-    (Macros.translateDefineNestedMacro translateNested)
+  addBaseInstruction macroMacro "name, args..., body" Macros.translateDefineNestedMacro
 
 let compilationSwallowedErrors = ref false
 
@@ -2258,14 +2254,13 @@ let rec translateFunc tlenv expr : unit =
     let innerBindings = bindingsWithParams bindings params in
     let impl = match implExprOption with
       | Some implExpr ->
-        begin try
-          let nestedForms = snd (translateNested innerBindings implExpr) in
-          let nestedTLForms, implForms = extractToplevelForms nestedForms in
-          List.iter (fun (`ToplevelForm f) -> EnvTL.emitForm tlenv f) nestedTLForms;
-          let implFormsWithFixedVars = moveLocalVarsToEntryBlock (`Sequence implForms) in
-          Some (`Sequence implFormsWithFixedVars)
-        with
-          | IllegalExpression (expr, errors) ->
+        begin match translateNestedNew innerBindings implExpr with
+          | Result (_, nestedForms) ->
+            let nestedTLForms, implForms = extractToplevelForms nestedForms in
+            List.iter (fun (`ToplevelForm f) -> EnvTL.emitForm tlenv f) nestedTLForms;
+            let implFormsWithFixedVars = moveLocalVarsToEntryBlock (`Sequence implForms) in
+            Some (`Sequence implFormsWithFixedVars)
+          | Error errors ->
             EnvTL.emitErrors tlenv errors;
             if errors = [] then
               EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "internal error: failed to compile function %s" name);
@@ -2540,7 +2535,8 @@ let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
 
 let translateDefineTLMacro env expr =
-  match Macros.translateDefineMacroHelper translateNested `Global (EnvTL.bindings env) expr with
+  let nestedEnv = makeEnv (EnvTL.bindings env) translateNestedNoErr translateNestedNoErr in
+  match Macros.translateDefineMacroHelper `Global nestedEnv expr with
     | Result newBindings ->
       EnvTL.setBindings env newBindings
     | Error errors ->
