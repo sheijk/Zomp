@@ -455,8 +455,8 @@ let reportInfo = reportDiagnostics Basics.DiagnosticKind.Info
 
 type 'translateF env = {
   bindings :Bindings.t;
-  translateF :'translateF;
-  translateExpr : 'translateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
+  translateF :exprTranslateF;
+  translateExpr : exprTranslateF env -> Ast2.t -> (bindings * formWithTLsEmbedded list) mayfail;
   parseF : fileName:string -> string -> Ast2.t list option;
   reportError : Serror.t -> unit;
 }
@@ -1835,16 +1835,6 @@ let setTraceMacroExpansion f = traceMacroExpansion := f
 let traceToplevelFrom = ref None
 let setTraceToplevelForm f = traceToplevelFrom := f
 
-let makeEnv bindings translateF translateExprOld = {
-  bindings = bindings;
-  translateF = translateF;
-  translateExpr = (fun env expr ->
-    let newBindings, formsWTL = translateExprOld env.bindings expr in
-    Result (newBindings, formsWTL));
-  parseF = Parseutils.parseIExprsOpt;
-  reportError = reportError;
-}
-
 let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   let table = Hashtbl.create 32 in
   let documentation = Hashtbl.create 32 in
@@ -1933,11 +1923,19 @@ let rec translateNested
           translateConstantOrFail env.bindings expr
 
 and translateNestedNoErr bindings expr =
-  let env = makeEnv bindings translateNestedNoErr translateNestedNoErr in
+  let env = makeEnv bindings in
   match translateNested env expr with
     | Result (newBindings, forms) -> newBindings, forms
     | Error errors ->
       raiseIllegalExpressions expr errors
+
+and makeEnv bindings = {
+  bindings = bindings;
+  translateF = translateNestedNoErr;
+  translateExpr = translateNested;
+  parseF = Parseutils.parseIExprsOpt;
+  reportError = reportError;
+}
 
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
@@ -2255,7 +2253,7 @@ let rec translateFunc tlenv expr : unit =
     let innerBindings = bindingsWithParams bindings params in
     let impl = match implExprOption with
       | Some implExpr ->
-        let innerEnv = makeEnv innerBindings translateNestedNoErr translateNestedNoErr in
+        let innerEnv = makeEnv innerBindings in
         begin match translateNested innerEnv implExpr with
           | Result (_, nestedForms) ->
             let nestedTLForms, implForms = extractToplevelForms nestedForms in
@@ -2374,7 +2372,7 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
               ArrayVal (typ, [])
               (** TODO: remove special cases above *)
             | _ ->
-              let innerEnv = makeEnv (EnvTL.bindings env) translateNestedNoErr translateNestedNoErr in
+              let innerEnv = makeEnv (EnvTL.bindings env) in
               match translateNested innerEnv valueExpr with
                 | Result( newBindings, formsWTL ) ->
                   begin
@@ -2538,7 +2536,7 @@ let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
 
 let translateDefineTLMacro env expr =
-  let nestedEnv = makeEnv (EnvTL.bindings env) translateNestedNoErr translateNestedNoErr in
+  let nestedEnv = makeEnv (EnvTL.bindings env) in
   match Macros.translateDefineMacroHelper `Global nestedEnv expr with
     | Result newBindings ->
       EnvTL.setBindings env newBindings
