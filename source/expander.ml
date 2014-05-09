@@ -1864,8 +1864,8 @@ let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   in
   lookup, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
 
-let rec translateNestedNew
-    (bindings :bindings)
+let rec translateNested
+    (env :exprTranslateF env)
     (expr :Ast2.sexpr)
     : (bindings * formWithTLsEmbedded list) mayfail
     =
@@ -1876,24 +1876,24 @@ let rec translateNestedNew
       args = { expr with args = []} :: expr.args }
   in
 
-  Zompvm.currentBindings := bindings;
-  match Bindings.lookup bindings expr.id with
+  Zompvm.currentBindings := env.bindings;
+  match Bindings.lookup env.bindings expr.id with
     | VarSymbol var ->
-      Mayfail.result (bindings, [`Variable var])
+      Mayfail.result (env.bindings, [`Variable var])
 
     | FuncSymbol func ->
       (** TODO: reverse this. Turn opcall into a macro *)
-      translateNestedNew bindings
+      translateNested env
         { expr with id = macroFunCall; args = idExpr expr.id :: expr.args }
 
     | MacroSymbol macro ->
-      (match Old_macro_support.translateMacroCall translateNestedNoErr bindings expr with
+      (match Old_macro_support.translateMacroCall translateNestedNoErr env.bindings expr with
         | Some r -> Result r
         | None ->
           Mayfail.singleError $ Serror.fromExpr expr "failed after macro expansion")
 
     | TypedefSymbol typedef ->
-      translateNestedNew bindings $ toConstructorExpr expr
+      translateNested env $ toConstructorExpr expr
 
     | LabelSymbol label ->
       Mayfail.singleError $ Serror.fromExpr expr "label can only be used as argument to control flow instructions"
@@ -1925,15 +1925,15 @@ let rec translateNestedNew
       match lookupBaseInstruction expr.id with
         | Some f ->
           begin
-            let env = makeEnv bindings translateNestedNoErr translateNestedNoErr in
-            Zompvm.currentBindings := bindings;
+            Zompvm.currentBindings := env.bindings;
             f env expr
           end
         | None ->
-          translateConstantOrFail bindings expr
+          translateConstantOrFail env.bindings expr
 
 and translateNestedNoErr bindings expr =
-  match translateNestedNew bindings expr with
+  let env = makeEnv bindings translateNestedNoErr translateNestedNoErr in
+  match translateNested env expr with
     | Result (newBindings, forms) -> newBindings, forms
     | Error errors ->
       raiseIllegalExpressions expr errors
@@ -2254,7 +2254,8 @@ let rec translateFunc tlenv expr : unit =
     let innerBindings = bindingsWithParams bindings params in
     let impl = match implExprOption with
       | Some implExpr ->
-        begin match translateNestedNew innerBindings implExpr with
+        let innerEnv = makeEnv innerBindings translateNestedNoErr translateNestedNoErr in
+        begin match translateNested innerEnv implExpr with
           | Result (_, nestedForms) ->
             let nestedTLForms, implForms = extractToplevelForms nestedForms in
             List.iter (fun (`ToplevelForm f) -> EnvTL.emitForm tlenv f) nestedTLForms;
@@ -2372,7 +2373,8 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
               ArrayVal (typ, [])
               (** TODO: remove special cases above *)
             | _ ->
-              match translateNestedNew (EnvTL.bindings env) valueExpr with
+              let innerEnv = makeEnv (EnvTL.bindings env) translateNestedNoErr translateNestedNoErr in
+              match translateNested innerEnv valueExpr with
                 | Result( newBindings, formsWTL ) ->
                   begin
                     let tlforms, forms = extractToplevelForms formsWTL in
