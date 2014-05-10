@@ -1851,84 +1851,6 @@ let lookupBaseInstruction, addBaseInstruction, foreachBaseInstructionDoc =
   in
   lookup, addBaseInstruction, (fun f -> Hashtbl.iter f documentation)
 
-let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult =
-
-  let toConstructorExpr expr =
-    { expr with
-      Ast2.id = macroConstructor;
-      args = { expr with args = []} :: expr.args }
-  in
-
-  Zompvm.currentBindings := env.bindings;
-  match Bindings.lookup env.bindings expr.id with
-    | VarSymbol var ->
-      Mayfail.result (env.bindings, [`Variable var])
-
-    | FuncSymbol func ->
-      (** TODO: reverse this. Turn opcall into a macro *)
-      translateNested env
-        { expr with id = macroFunCall; args = idExpr expr.id :: expr.args }
-
-    | MacroSymbol macro ->
-      (match Old_macro_support.translateMacroCall env expr with
-        | Some r -> Result r
-        | None ->
-          Mayfail.singleError $ Serror.fromExpr expr "failed after macro expansion")
-
-    | TypedefSymbol typedef ->
-      translateNested env $ toConstructorExpr expr
-
-    | LabelSymbol label ->
-      Mayfail.singleError $ Serror.fromExpr expr "label can only be used as argument to control flow instructions"
-
-    | UndefinedSymbol ->
-      let translateConstantOrFail bindings expr =
-        let failWithInvalidId() =
-          Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
-        in
-
-        match expr with
-          | { id = name; args = [] } ->
-            begin match string2integralValue name with
-              | Some StringLiteral string ->
-                begin
-                  let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
-                  let value = StringLiteral string in
-                  let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
-                  Mayfail.result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
-                end
-              | Some const ->
-                Mayfail.result (bindings, [`Constant const])
-              | None ->
-                failWithInvalidId()
-            end
-          | _ ->
-            failWithInvalidId()
-      in
-      match lookupBaseInstruction expr.id with
-        | Some f ->
-          begin
-            Zompvm.currentBindings := env.bindings;
-            f env expr
-          end
-        | None ->
-          translateConstantOrFail env.bindings expr
-
-and translateNestedNoErr bindings expr =
-  let env = makeEnv bindings in
-  match translateNested env expr with
-    | Result (newBindings, forms) -> newBindings, forms
-    | Error errors ->
-      raiseIllegalExpressions expr errors
-
-and makeEnv bindings = {
-  bindings = bindings;
-  translateF = translateNestedNoErr;
-  translateExpr = translateNested;
-  parseF = Parseutils.parseIExprsOpt;
-  reportError = reportError;
-}
-
 let catchingErrorsDo f ~onErrors =
   let onErrorMsg msg = onErrors [Serror.fromMsg None msg] in
   begin
@@ -1946,6 +1868,87 @@ let catchingErrorsDo f ~onErrors =
       | Failure msg ->
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
   end
+
+let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult =
+  let translateUnguarded() =
+    let toConstructorExpr expr =
+      { expr with
+        Ast2.id = macroConstructor;
+        args = { expr with args = []} :: expr.args }
+    in
+
+    Zompvm.currentBindings := env.bindings;
+    match Bindings.lookup env.bindings expr.id with
+      | VarSymbol var ->
+        Mayfail.result (env.bindings, [`Variable var])
+
+      | FuncSymbol func ->
+      (** TODO: reverse this. Turn opcall into a macro *)
+        translateNested env
+          { expr with id = macroFunCall; args = idExpr expr.id :: expr.args }
+
+      | MacroSymbol macro ->
+        (match Old_macro_support.translateMacroCall env expr with
+          | Some r -> Result r
+          | None ->
+            Mayfail.singleError $ Serror.fromExpr expr "failed after macro expansion")
+
+      | TypedefSymbol typedef ->
+        translateNested env $ toConstructorExpr expr
+
+      | LabelSymbol label ->
+        Mayfail.singleError $ Serror.fromExpr expr "label can only be used as argument to control flow instructions"
+
+      | UndefinedSymbol ->
+        let translateConstantOrFail bindings expr =
+          let failWithInvalidId() =
+            Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
+          in
+
+          match expr with
+            | { id = name; args = [] } ->
+              begin match string2integralValue name with
+                | Some StringLiteral string ->
+                  begin
+                    let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
+                    let value = StringLiteral string in
+                    let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
+                    Mayfail.result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
+                  end
+                | Some const ->
+                  Mayfail.result (bindings, [`Constant const])
+                | None ->
+                  failWithInvalidId()
+              end
+            | _ ->
+              failWithInvalidId()
+        in
+        match lookupBaseInstruction expr.id with
+          | Some f ->
+            begin
+              Zompvm.currentBindings := env.bindings;
+              f env expr
+            end
+          | None ->
+            translateConstantOrFail env.bindings expr
+  in
+  catchingErrorsDo translateUnguarded
+    ~onErrors:(fun errors -> Error errors)
+
+and translateNestedNoErr bindings expr =
+  let env = makeEnv bindings in
+  match translateNested env expr with
+    | Result (newBindings, forms) -> newBindings, forms
+    | Error errors ->
+      raiseIllegalExpressions expr errors
+
+and makeEnv bindings = {
+  bindings = bindings;
+  translateF = translateNestedNoErr;
+  translateExpr = translateNested;
+  parseF = Parseutils.parseIExprsOpt;
+  reportError = reportError;
+}
 
 module EnvTL : sig
   type t
