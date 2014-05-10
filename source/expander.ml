@@ -459,6 +459,7 @@ type nestedEnv = {
   translateExpr : nestedEnv -> Ast2.t -> translationResult;
   parseF : fileName:string -> string -> Ast2.t list option;
   reportError : Serror.t -> unit;
+  backend : Genllvm.t;
 }
 
 (** Also needs to be updated in zompvm_impl.cpp and prelude.zomp *)
@@ -514,9 +515,7 @@ end
 
 module Macros : sig
   val translateDefineMacroHelper :
-      [ `Global | `Local ] ->
-      nestedEnv ->
-      Ast2.t -> Bindings.bindings Mayfail.mayfail
+    [ `Global | `Local ] -> nestedEnv -> Ast2.t -> Bindings.bindings Mayfail.mayfail
 
   val translateDefineNestedMacro :
     nestedEnv -> Ast2.t -> (Bindings.bindings * 'form list) Mayfail.mayfail
@@ -699,7 +698,7 @@ end = struct
               buildNativeMacroFunc env (`MacroFuncName macroFuncName) paramNames implExprs isVariadic
             in
 
-            let llvmCodeFragments = List.map Genllvm.gencodeTL tlexprs in
+            let llvmCodeFragments = List.map (Genllvm.gencodeTL env.backend) tlexprs in
 
             Zompvm.evalLLVMCodeB
               (if listContains macroFuncName !macroFuncs then
@@ -1935,30 +1934,33 @@ let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult 
   catchingErrorsDo translateUnguarded
     ~onErrors:(fun errors -> Error errors)
 
-and translateNestedNoErr bindings expr =
-  let env = makeEnv bindings in
+and translateNestedNoErr backend bindings expr =
+  let env = makeEnv backend bindings in
   match translateNested env expr with
     | Result (newBindings, forms) -> newBindings, forms
     | Error errors ->
       raiseIllegalExpressions expr errors
 
-and makeEnv bindings = {
+and makeEnv backend bindings = {
   bindings = bindings;
-  translateF = translateNestedNoErr;
+  translateF = translateNestedNoErr backend;
   translateExpr = translateNested;
   parseF = Parseutils.parseIExprsOpt;
   reportError = reportError;
+  backend = backend;
 }
 
 module EnvTL : sig
   type t
-  val create : 
+  val create :
+    backend:Genllvm.t ->
     emitBackendCodeForForm:(Lang.toplevelExpr -> unit) ->
     lookupTLInstruction:(string -> (t -> Ast2.t -> unit) option) ->
     Bindings.t -> 
     t
 
   val bindings : t -> Bindings.t
+  val backend : t -> Genllvm.t
   val hasErrors : t -> bool
 
   val reset : t -> Result.flag * Serror.t list * toplevelExpr list
@@ -1984,9 +1986,11 @@ end = struct
     tlEmitError :Serror.t -> unit;
     tlEmitBackendCode : Lang.toplevelExpr -> unit;
     tlLookupInstruction : string -> (t -> Ast2.t -> unit) option;
+    tlBackend : Genllvm.t;
   }
 
   let bindings e = e.tlbindings
+  let backend e = e.tlBackend
   let hasErrors e = e.tlHadSilentErrors || (e.tlerrorsRev <> [])
 
   let setBindings env bindings =
@@ -2042,7 +2046,7 @@ end = struct
     tlenv.tlHadSilentErrors <- false;
     flag, errors, forms
 
-  let create ~emitBackendCodeForForm ~lookupTLInstruction (initialBindings :bindings) =
+  let create ~backend ~emitBackendCodeForForm ~lookupTLInstruction (initialBindings :bindings) =
     let rec env = {
       tlbindings = initialBindings;
       tlerrorsRev = [];
@@ -2052,6 +2056,7 @@ end = struct
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
       tlEmitBackendCode = emitBackendCodeForForm;
       tlLookupInstruction = lookupTLInstruction;
+      tlBackend = backend;
     } in
     env
 end
@@ -2248,7 +2253,7 @@ let rec translateFunc tlenv expr : unit =
     let innerBindings = bindingsWithParams bindings params in
     let impl = match implExprOption with
       | Some implExpr ->
-        let innerEnv = makeEnv innerBindings in
+        let innerEnv = makeEnv (EnvTL.backend tlenv) innerBindings in
         begin match translateNested innerEnv implExpr with
           | Result (_, nestedForms) ->
             let nestedTLForms, implForms = extractToplevelForms nestedForms in
@@ -2367,7 +2372,7 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
               ArrayVal (typ, [])
               (** TODO: remove special cases above *)
             | _ ->
-              let innerEnv = makeEnv (EnvTL.bindings env) in
+              let innerEnv = makeEnv (EnvTL.backend env) (EnvTL.bindings env) in
               match translateNested innerEnv valueExpr with
                 | Result( newBindings, formsWTL ) ->
                   begin
@@ -2531,7 +2536,7 @@ let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
 
 let translateDefineTLMacro env expr =
-  let nestedEnv = makeEnv (EnvTL.bindings env) in
+  let nestedEnv = makeEnv (EnvTL.backend env) (EnvTL.bindings env) in
   match Macros.translateDefineMacroHelper `Global nestedEnv expr with
     | Result newBindings ->
       EnvTL.setBindings env newBindings
@@ -2742,17 +2747,20 @@ let emitBackendCode code =
     | None ->
       failwith "did not call Expander.setEmitbackendCode"
 
-let emitBackendCodeForForm form =
+let emitBackendCodeForForm backend form =
   Zompvm.flushStreams();
   begin match !traceToplevelFrom with
     | Some f -> f form | None -> ();
   end;
-  let llvmCode = Genllvm.gencodeTL form in
+  let llvmCode = Genllvm.gencodeTL backend form in
   emitBackendCode llvmCode;
   Zompvm.evalLLVMCode [form] llvmCode
 
 type tlenv = EnvTL.t
-let createEnv = EnvTL.create ~emitBackendCodeForForm ~lookupTLInstruction
+let createEnv bindings =
+  let backend = Genllvm.create() in
+  let emitBackendCodeForForm = emitBackendCodeForForm $ Genllvm.create() in
+  EnvTL.create ~backend ~emitBackendCodeForForm ~lookupTLInstruction bindings
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
 let emitError = EnvTL.emitError

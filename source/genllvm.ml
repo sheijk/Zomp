@@ -11,6 +11,9 @@ let combine = Common.combine
 exception CodeGenError of string
 let raiseCodeGenError ~msg = raise (CodeGenError msg)
 
+type t = unit
+let create () = ()
+
 let typeOfForm = Semantic.typeOfForm
   ~onError:(fun ~msg ~found ~expected ->
               raiseCodeGenError ~msg:(sprintf "%s: expected %s but found %s"
@@ -960,7 +963,7 @@ let llvmStringLength str =
   let length = String.length str in
   length - 2 * countChar str '\\'
 
-let gencodeGlobalVar gvar =
+let gencodeGlobalVar (_ :t) gvar =
   let var = gvar.gvVar
   and initialValue = gvar.gvInitialValue
   in
@@ -1028,7 +1031,7 @@ let gencodeGlobalVar gvar =
       raiseCodeGenError ~msg:(sprintf "cannot generate global var of type %s"
                                 (typeName (typeOf value)))
 
-let gencodeDefineFunc func =
+let gencodeDefineFunc (_ :t) func =
   let makeSignature retvalName paramString =
     match func.rettype with
       | `Record _ ->
@@ -1117,14 +1120,15 @@ let gencodeDefineFunc func =
              | Some s -> ";; firstBBCode\n" ^ s
              | None -> "") ^ "\n" ^ impl ^ "\n}\n"
 
-let gencodeTypedef name = function
+let gencodeTypedef (_:t) name = function
   | `ParametricType _ ->
       ""
   | typ ->
       sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
-let gencodeTL = function
-  | `GlobalVar var -> gencodeGlobalVar var
-  | `DefineFunc func -> gencodeDefineFunc func
-  | `Typedef (name, typ) -> gencodeTypedef name typ
+let gencodeTL backend form =
+  match form with
+    | `GlobalVar var -> gencodeGlobalVar backend var
+    | `DefineFunc func -> gencodeDefineFunc backend func
+    | `Typedef (name, typ) -> gencodeTypedef backend name typ
 
