@@ -1,0 +1,49 @@
+
+* Goals
+
+- emit debug info
+- LLVM 3.4+
+- solve existing issues
+  - conflicts with types from the runtime in LLVM (FILE, etc.)
+  - same for functions which clang creates with different attributes
+- allow to re-define types
+- allow to re-define functions with a different type
+- be prepared for new zompsh mode (compile whole module and patch instead of
+  re-evaluating a single function at a time)
+
+* DSL
+
+  write it using a DSL defined in zomp?
+
+  how to best resolve circular dependency?
+  might be pre-cursor for macro system revamp
+
+  for each instruction:
+    - type
+    - parsing function
+
+#+begin_src zomp
+struct Label:
+  String name
+end
+
+struct Branch:
+  Label* target
+end
+
+instruction label(String name)
+instruction goto(Symbol!Label target)
+#+end_src
+
+* C API
+
+1:1 mapping of subset of llvm api?
+include zompvm or only code generation?
+
+Function makeFunction(name, args)
+GlobalVar makeVar(name, type, initialValue)
+
+class Function:
+  void addLabel(id)
+  void addJump(label)
+

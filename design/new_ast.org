@@ -1,0 +1,90 @@
+
+* Goals
+
+- allow static typing
+- AST is not only used for communication between parser and macro expander but
+  also between different stages of the compiler
+- want to produce AST and handle it in different places (multiple backends,
+  optimizers, etc.) without parsing it from a dynamically typed or string based
+  representation each time
+- also don't rely on strings everywhere
+
+- still support annotations
+
+* clojure style
+
+  type Ast =
+    Atom
+    List!Ast
+    Map!(string, Ast)
+
+  - a bit more statically typed
+  - but still only partially typed
+  - might allow to integrate any struct as a map
+
+* any struct as AST?
+
+  Allow arbitrary structs (or data types?) as AST
+  Type is 'head'
+  Disadvantage: positional parameters are awkward
+
+* richer ast
+
+  Each Ast node has
+  - any number of positional arguments
+  - any number of named arguments
+  - (any number of properties?)
+
+** variant a
+
+ast Constant
+  int
+
+ast AddOp:
+  Expr, Expr
+
+ast MulOp:
+  Expr, Expr
+
+ast Expr = Constant | AddOp | MulOp
+
+ast Function:
+  string name
+  Expr body
+
+Generate (de-)serialization to/from 'dynamic' ast from type decl.
+
+** variant b
+
+ast Constant:
+  int value @0
+
+ast AddOp:
+  Expr lhs @0
+  Expr rhs @1
+
+ast MulOp:
+  Expr lhs @0
+  Expr rhs @1
+
+ast Expr = Constant | AddOp | MulOp
+
+ast Function:
+  string name @0
+  Expr body @1
+
+* split ast types and parser/macro?
+
+Code that walks the AST will handle explicit types. Parse trees will be
+converted by macros (which will also change the environment). This is similar to
+how it already works (Ast2.t vs Lang.form).
+  
+type Loop:
+  Expr!Bool condition
+  Statement body
+
+macro Loop while(Expr!Bool condition, Statement body):
+  loop := Loop(condition, body)
+  env.register("loop", loop)
+  return loop
+
