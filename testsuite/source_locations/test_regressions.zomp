@@ -1,0 +1,15 @@
+///
+/// Testing various cases where source locations got lost in the past.
+///
+
+requireLibs libcee unittest
+
+func void invalidReturnType():
+  return 10 //// error type void int
+end
+
+func int main():
+  ret 0
+end
+
+
