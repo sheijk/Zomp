@@ -2,7 +2,7 @@
 # Setting up paths and options for most tools
 #
 
-ARCH=i386
+ARCH := $(shell uname -m)
 
 # Set defaults for known architectures
 ifeq "$(ARCH)" "i386"
@@ -11,6 +11,8 @@ ifeq "$(ARCH)" "i386"
 else ifeq "$(ARCH)" "x86_64"
   ARCHFLAG = -m64
   LLVM_ARCH = x86-64
+else
+  $(error "Value of ARCH flag '$(ARCH) is invalid")
 endif
 
 ifeq "$(ARCHFLAG)" ""
