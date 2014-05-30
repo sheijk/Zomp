@@ -9,7 +9,12 @@ type sexpr = {
 
 type t = sexpr
 
-let withLoc ast loc = { ast with location = Some loc }
+let withLoc loc ast = { ast with location = Some loc }
+let withId id ast = { ast with id }
+let withArgs args ast = { ast with args }
+
+let rec removeSourceLocations ast =
+  { id = ast.id; location = None; args = List.map removeSourceLocations ast.args }
 
 (** construction functions **)
 
@@ -75,6 +80,8 @@ let locationOr ast defaultLocation =
   match ast.location with
     | Some loc -> loc
     | None -> defaultLocation
+
+let location ast = locationOr ast Basics.fakeLocation
 
 let assertHasLocation expr =
   assert (expr.location != None)

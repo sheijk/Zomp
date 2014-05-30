@@ -20,7 +20,7 @@
       line = loc.Lexing.pos_lnum;
       column = Some loc.Lexing.pos_cnum; }
 
-  let withLoc expr lbloc = { expr with location = Some (getLocation lbloc) }
+  let withLoc expr lbloc = Ast2.withLoc (getLocation lbloc) expr
 
   let raiseParseError loc str = raise (ParseError (loc, str))
   let raiseParseErrorLex lexloc str = raiseParseError (getLocation lexloc) str
@@ -50,7 +50,7 @@
   let idExprLoc id loc =
     let l = getLocation loc in
     let e = idExpr id in
-    { e with location = Some l }
+    Ast2.withLoc l e
 
   let quoteId = function
     | "`" -> "quote"
@@ -221,7 +221,7 @@ closedExpr:
 
 | q = QUOTE; OPEN_CURLY; CLOSE_CURLY;
   { let e = exprInferLoc (quoteId q) [withLoc (seqExprInferLoc []) $startpos] in
-    { e with location = Some (getLocation $startpos) } }
+    Ast2.withLoc (getLocation $startpos) e }
 | q = QUOTE; OPEN_CURLY; e = expr; CLOSE_CURLY;
   { exprInferLoc (quoteId q) [e] }
 | q = QUOTE; e = closedExpr;

@@ -1,6 +1,6 @@
 (** Basic AST type **)
 
-type sexpr = {
+type sexpr = private {
   id : string;
   args : sexpr list;
   location : Basics.location option;
@@ -32,6 +32,10 @@ val callExprInferLoc : sexpr list -> sexpr
 val seqExprInferLoc : sexpr list -> sexpr
 val exprInferLoc : string -> sexpr list -> sexpr
 
+val withLoc : Basics.location -> t -> t
+val withId : string -> t -> t
+val withArgs : t list -> t -> t
+
 (** Source location handling. *)
 
 val fileName : sexpr -> string
@@ -39,8 +43,10 @@ val lineNumber : sexpr -> int
 val column : sexpr -> int
 
 val locationOr : sexpr -> Basics.location -> Basics.location
+val location : t -> Basics.location
 val assertHasLocation : sexpr -> unit
-val withLoc : sexpr -> Basics.location -> sexpr
+
+val removeSourceLocations : t -> t
 
 (** Utility functions. *)
 

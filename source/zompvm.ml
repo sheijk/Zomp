@@ -83,7 +83,7 @@ struct
       in
       let exprNoLoc = Ast2.expr name childs in
       if Basics.locationValid location then
-          Ast2.withLoc exprNoLoc location
+          Ast2.withLoc location exprNoLoc
       else
           exprNoLoc
 

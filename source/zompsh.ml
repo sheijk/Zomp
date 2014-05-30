@@ -525,7 +525,9 @@ let readExpr bindings =
           | _ -> None
       }
       in
-      { expr with args = args; location = Some location }
+      expr >>=
+        Ast2.withLoc location >>=
+        Ast2.withArgs args
     in
     fixit expr
   in

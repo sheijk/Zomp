@@ -61,20 +61,20 @@ let sexpr2codeNoAntiquotes recursion expr =
     | sexprWithArgs ->
       let tempVarName = newUniqueName() in
       let defVarExpr =
-        { id = "var";
-          args = [
-            simpleExpr "ptr" ["ast"];
+        Ast2.exprLoc
+          (Ast2.location expr)
+          "var"
+          [simpleExpr "ptr" ["ast"];
             idExpr tempVarName;
-            astFromString ("\"" ^ sexprWithArgs.id ^ "\"") expr.location];
-          location = expr.location }
+            astFromString ("\"" ^ sexprWithArgs.id ^ "\"") expr.location]
       in
       let returnExpr = idExpr tempVarName in
       let addChildExpr childExpr =
-        { id = "ast:addChild";
-          args = [
-            idExpr tempVarName;
-            childExpr;];
-          location = None }
+        Ast2.exprLoc
+          Basics.fakeLocation
+          "ast:addChild"
+          [idExpr tempVarName;
+           childExpr;]
       in
       let argExprs = List.map recursion sexprWithArgs.args in
       let argAddExprs = List.map addChildExpr argExprs in
@@ -174,11 +174,11 @@ let builtinMacros =
 
     let opjuxMacro =
       macro "opjux" "opjux id args..."
-        (fun bindings expr -> { expr with id = Lang.macroApply })
+        (fun bindings expr -> expr >>= Ast2.withId Lang.macroApply)
     in
     let opcallMacro =
       macro "opcall" "opcall id args..."
-        (fun bindings expr -> { expr with id = Lang.macroApply })
+        (fun bindings expr -> expr >>= Ast2.withId Lang.macroApply)
     in
     let opseqMacro =
       macro "opseq" "opseq args..."

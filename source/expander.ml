@@ -485,9 +485,11 @@ struct
     let fixedArgs = List.map (withDefaultSourceLocation location) expr.args in
     match expr.location with
       | Some _ ->
-        { expr with args = fixedArgs }
+        expr >>= Ast2.withArgs fixedArgs
       | None ->
-        { expr with location = Some location; args = fixedArgs }
+        expr >>=
+          Ast2.withLoc location >>=
+          Ast2.withArgs fixedArgs
 
   (* todo: use env *)
   let translateMacroCall (env :nestedEnv) expr =
@@ -602,7 +604,7 @@ end = struct
        in
        match expr.location, result.location with
          | Some loc, None ->
-             { result with Ast2.location = Some loc }
+             result >>= Ast2.withLoc loc
          | Some _, Some _
          | None, _ ->
              result : bindings -> Ast2.sexpr -> Ast2.sexpr)
@@ -670,9 +672,6 @@ end = struct
         end
       | _ ->
         errorFromExpr expr (sprintf "expecting '%s name paramName* lastParamVariadic...? seq" expr.id)
-
-  let rec removeSourceLocations ast =
-    { id = ast.id; location = None; args = List.map removeSourceLocations ast.args }
 
   (* TODO: kick out all source location info *)
   let translateDefineMacroHelper scope (env :nestedEnv) expr =
@@ -1505,9 +1504,9 @@ struct
       | { args = firstArg :: remArgs } ->
         let translateConstructorCall() =
           let toConstructorExpr expr =
-            { expr with
-              Ast2.id = macroConstructor;
-              args = { firstArg with args = []} :: remArgs }
+            expr >>=
+              Ast2.withId macroConstructor >>=
+              Ast2.withArgs ((firstArg >>= Ast2.withArgs []) :: remArgs)
           in
           Result (env.translateF env.bindings $ toConstructorExpr expr)
         in
@@ -1516,20 +1515,20 @@ struct
           match firstArg.args, lookup env.bindings firstArg.id with
             | [], FuncSymbol _
             | [], VarSymbol { typ = `Pointer `Function _ } ->
-              Result( env.translateF env.bindings { expr with id = Lang.macroFunCall } )
+              Result( env.translateF env.bindings (expr >>= Ast2.withId Lang.macroFunCall) )
 
             | [], TypedefSymbol _ ->
               Error [Serror.fromExpr expr "internal error"]
 
             | [], _ ->
-              let r = env.translateF env.bindings { (Ast2.shiftLeft expr.args) with location = expr.location } in
+              let r = env.translateF env.bindings ((Ast2.shiftLeft expr.args) >>= Ast2.withLoc (Ast2.location expr)) in
               Result r
 
             | (_::_), _ ->
               let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
               let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
               let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
-              let r = env.translateF env.bindings { (Ast2.seqExpr [tempVar; callExpr]) with location = expr.location } in
+              let r = env.translateF env.bindings ((Ast2.seqExpr [tempVar; callExpr]) >>= Ast2.withLoc (Ast2.location expr)) in
               Result r
         in
         begin match translateType env.bindings firstArg with
@@ -1871,9 +1870,9 @@ let catchingErrorsDo f ~onErrors =
 let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult =
   let translateUnguarded() =
     let toConstructorExpr expr =
-      { expr with
-        Ast2.id = macroConstructor;
-        args = { expr with args = []} :: expr.args }
+      expr >>=
+        Ast2.withId macroConstructor >>=
+        Ast2.withArgs ((expr >>= Ast2.withArgs []) :: expr.args)
     in
 
     Zompvm.currentBindings := env.bindings;
@@ -1884,7 +1883,9 @@ let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult 
       | FuncSymbol func ->
       (** TODO: reverse this. Turn opcall into a macro *)
         translateNested env
-          { expr with id = macroFunCall; args = idExpr expr.id :: expr.args }
+          (expr >>=
+             Ast2.withId macroFunCall >>=
+             Ast2.withArgs (idExpr expr.id ::expr.args))
 
       | MacroSymbol macro ->
         (match Old_macro_support.translateMacroCall env expr with

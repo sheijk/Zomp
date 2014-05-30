@@ -7,11 +7,11 @@ let rec fixFileName fileName expr =
   let fixedArgs = List.map (fixFileName fileName) expr.Ast2.args in
   match expr.Ast2.location with
     | None ->
-      { expr with Ast2.args = fixedArgs }
+      expr >>= Ast2.withArgs fixedArgs
     | Some loc ->
-      { expr with
-        Ast2.location = Some { loc with fileName = fileName };
-        Ast2.args = fixedArgs }
+      expr >>=
+        Ast2.withLoc { loc with fileName = fileName } >>=
+        Ast2.withArgs fixedArgs
 
 type parsingResult =
   | Exprs of Ast2.sexpr list
