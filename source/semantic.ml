@@ -126,7 +126,7 @@ let typeCheckFuncCall typeCheck bindings funcallForm call =
             found,
             expected)
 
-let rec typeCheck bindings form : typecheckResult =
+let rec typeCheck bindings (form :Lang.form) : typecheckResult =
   let result =
     let expectPointerType form =
       match typeCheck bindings form with
@@ -153,10 +153,10 @@ let rec typeCheck bindings form : typecheckResult =
         | TypeOf _ -> r
     in
     match form with
-      | `Sequence [] -> TypeOf `Void
-      | `Sequence [expr] -> typeCheck bindings expr
-      | `Sequence (_ :: tail) -> typeCheck bindings (`Sequence tail)
-      | `DefineVariable (var, maybeForm) -> begin
+      | `Sequence (_, []) -> TypeOf `Void
+      | `Sequence (_, [expr]) -> typeCheck bindings expr
+      | `Sequence (_, (_ :: tail)) -> typeCheck bindings (Lang.sequence tail)
+      | `DefineVariable (_, var, maybeForm) -> begin
           match maybeForm with
             | Some form ->
                 begin
@@ -174,11 +174,11 @@ let rec typeCheck bindings form : typecheckResult =
                 end
             | None -> TypeOf `Void
         end
-      | `Variable var -> TypeOf var.typ
-      | `Constant value -> TypeOf (typeOf value)
-      | `FuncCall call as funcallForm ->
+      | `Variable (_, var) -> TypeOf var.typ
+      | `Constant (_, value) -> TypeOf (typeOf value)
+      | `FuncCall (_, call) as funcallForm ->
           typeCheckFuncCall typeCheck bindings funcallForm call
-      | `AssignVar (v, expr) as assignVarForm -> begin
+      | `AssignVar (_, v, expr) as assignVarForm -> begin
           match typeCheck bindings expr with
             | TypeOf exprType when equalTypes bindings exprType v.typ -> TypeOf `Void
             | TypeOf exprType -> TypeError (
@@ -188,14 +188,14 @@ let rec typeCheck bindings form : typecheckResult =
                 (v.typ :> typeRequirement))
             | _ as typeError -> typeError
         end
-      | `Return expr -> typeCheck bindings expr
+      | `Return (_, expr) -> typeCheck bindings expr
       | `Label _ -> TypeOf `Void
       | `Jump _ -> TypeOf `Void
       | `Branch _ -> TypeOf `Void
-      | `MallocIntrinsic (typ, sizeExpr) ->
+      | `MallocIntrinsic (_, typ, sizeExpr) ->
         expectType sizeExpr `Int32 >>
           TypeOf (`Pointer typ)
-      | `GetAddrIntrinsic var as getaddrForm ->
+      | `GetAddrIntrinsic (_, var) as getaddrForm ->
           begin
             match var.vstorage with
               | MemoryStorage ->
@@ -207,7 +207,7 @@ let rec typeCheck bindings form : typecheckResult =
                     var.typ,
                     `Any "pointer")
           end
-      | `StoreIntrinsic (ptrExpr, valueExpr) as storeForm ->
+      | `StoreIntrinsic (_, ptrExpr, valueExpr) as storeForm ->
           begin
             match typeCheck bindings ptrExpr, typeCheck bindings valueExpr with
               | TypeOf `Pointer ptrTargetType, TypeOf valueType
@@ -222,7 +222,7 @@ let rec typeCheck bindings form : typecheckResult =
               | (_ as l), (_ as r) ->
                   l >> r
           end
-      | `LoadIntrinsic expr as loadform ->
+      | `LoadIntrinsic (_, expr) as loadform ->
           begin
             match typeCheck bindings expr with
               | TypeOf `Pointer targetType ->
@@ -232,7 +232,7 @@ let rec typeCheck bindings form : typecheckResult =
                     Form loadform, "expected pointer", invalid, `Any "pointer")
               | TypeError _ as t -> t
           end
-      | `GetFieldPointerIntrinsic (recordForm, fieldName) as getfieldForm ->
+      | `GetFieldPointerIntrinsic (_, recordForm, fieldName) as getfieldForm ->
           begin
             match typeCheck bindings recordForm with
               | TypeOf `Pointer `Record record ->
@@ -254,12 +254,12 @@ let rec typeCheck bindings form : typecheckResult =
               | _ as typeError ->
                   typeError
           end
-      | `PtrAddIntrinsic (ptrExpr, offsetExpr) ->
+      | `PtrAddIntrinsic (_, ptrExpr, offsetExpr) ->
           begin
             expectType offsetExpr `Int32
             >> expectPointerType ptrExpr
           end
-      | `PtrDiffIntrinsic (lhsExpr, rhsExpr) ->
+      | `PtrDiffIntrinsic (_, lhsExpr, rhsExpr) ->
         begin
           let lhsTypeR = typeCheck bindings lhsExpr in
           let rhsTypeR = typeCheck bindings rhsExpr in
@@ -272,7 +272,7 @@ let rec typeCheck bindings form : typecheckResult =
             | _, _ ->
               TypeError (Form form, "expected two pointers", `Void, `Void)
         end
-      | `CastIntrinsic (targetType, valueExpr) ->
+      | `CastIntrinsic (_, targetType, valueExpr) ->
           TypeOf targetType
       | `EmbeddedComment _ ->
           TypeOf `Void
@@ -331,80 +331,82 @@ let rec collectVars (form :Lang.form) =
         as simple ->
         simple, []
 
-    | `MallocIntrinsic (typ, countForm) ->
-        returnTransformed countForm (fun f -> `MallocIntrinsic(typ, f))
+    | `MallocIntrinsic (info, typ, countForm) ->
+        returnTransformed countForm (fun f -> `MallocIntrinsic(info, typ, f))
 
-    | `StoreIntrinsic (ptrForm, valueForm) ->
+    | `StoreIntrinsic (info, ptrForm, valueForm) ->
         returnTransformed2 ptrForm valueForm
-          (fun newPtrForm newValueForm -> `StoreIntrinsic (newPtrForm, newValueForm))
+          (fun newPtrForm newValueForm -> `StoreIntrinsic (info, newPtrForm, newValueForm))
 
-    | `LoadIntrinsic ptrForm ->
-        returnTransformed ptrForm (fun f -> `LoadIntrinsic f)
+    | `LoadIntrinsic (info, ptrForm) ->
+        returnTransformed ptrForm (fun f -> `LoadIntrinsic (info, f))
 
-    | `PtrAddIntrinsic (ptrForm, offsetForm) ->
-        returnTransformed2 ptrForm offsetForm (fun p o -> `PtrAddIntrinsic(p, o))
+    | `PtrAddIntrinsic (info, ptrForm, offsetForm) ->
+        returnTransformed2 ptrForm offsetForm (fun p o -> `PtrAddIntrinsic (info, p, o))
 
-    | `PtrDiffIntrinsic (lhsForm, rhsForm) ->
-      returnTransformed2 lhsForm rhsForm (fun l r -> `PtrDiffIntrinsic(l, r) )
+    | `PtrDiffIntrinsic (info, lhsForm, rhsForm) ->
+      returnTransformed2 lhsForm rhsForm (fun l r -> `PtrDiffIntrinsic (info, l, r) )
 
-    | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
-        returnTransformed recordForm (fun r -> `GetFieldPointerIntrinsic(r, fieldName))
+    | `GetFieldPointerIntrinsic (info, recordForm, fieldName) ->
+        returnTransformed recordForm (fun r -> `GetFieldPointerIntrinsic (info, r, fieldName))
 
-    | `CastIntrinsic (targetType, valueForm) ->
-        returnTransformed valueForm (fun v -> `CastIntrinsic(targetType, v))
+    | `CastIntrinsic (info, targetType, valueForm) ->
+        returnTransformed valueForm (fun v -> `CastIntrinsic (info, targetType, v))
 
-    | `Sequence forms ->
+    | `Sequence (info, forms) ->
         let formsAndVars = List.map collectVars forms in
         let forms, vars = List.split formsAndVars in
-        `Sequence forms, List.flatten vars
+        `Sequence (info, forms), List.flatten vars
 
-    | `DefineVariable (var, valueFormOption) ->
+    | `DefineVariable (info, var, valueFormOption) ->
         begin match var.typ with
-          | `Void -> `Sequence [], []
+          | `Void -> `Sequence (info, []), []
           | _ ->
               let assignForm =
                 match valueFormOption with
-                  | Some valueForm -> `AssignVar (var, valueForm)
-                  | None -> `Sequence []
+                  | Some valueForm -> `AssignVar (info, var, valueForm)
+                  | None -> `Sequence (info, [])
               in
               assignForm, [var]
         end
 
-    | `FuncCall call ->
+    | `FuncCall (info, call) ->
         let argFormsAndVars = List.map collectVars call.fcargs in
         let argForms, vars = List.split argFormsAndVars in
-        `FuncCall (Lang.changeFuncCallArgs call argForms), List.flatten vars
+        `FuncCall (info, Lang.changeFuncCallArgs call argForms), List.flatten vars
 
-    | `AssignVar (var, valueForm) ->
-        returnTransformed valueForm (fun f -> `AssignVar(var, f))
+    | `AssignVar (info, var, valueForm) ->
+        returnTransformed valueForm (fun f -> `AssignVar(info, var, f))
 
-    | `Return form ->
-        returnTransformed form (fun f -> `Return f)
+    | `Return (info, form) ->
+        returnTransformed form (fun f -> `Return (info, f))
 
-    | `Branch branch ->
+    | `Branch (info, branch) ->
         (* when branch.bcondition is changed to a form, this needs to be updated! *)
         let (_ : [`Bool] variable) = branch.bcondition in
-        `Branch branch, []
+        `Branch (info, branch), []
 
 let moveLocalVarsToEntryBlock implForm =
+  let info = Lang.info implForm in
   let formWithoutVars, vars = collectVars implForm in
-  let varDefs = List.map (fun var -> `DefineVariable (var, None)) vars
+  let varDefs = List.map (fun var -> `DefineVariable (info, var, None)) vars
   in
   let forms =
     match formWithoutVars with
-      | `Sequence forms -> forms
+      | `Sequence (_, forms) -> forms
       | other -> [other]
   in
   varDefs @ forms
 
 let test_moveLocalVarsToEntryBlock () =
-  let identityTestCases = [
-    `Sequence [`Return (`Constant VoidVal)];
-    `Sequence [`Return (`Constant (Int32Val 100l))];
-    `Sequence [
-      `Constant (Int32Val 4l);
-      `Return (`Constant (Int32Val 1000l))
-    ];
+  let fakeInfo = Lang.formInfo Basics.fakeLocation in
+  let identityTestCases : form list = [
+    `Sequence (fakeInfo, [`Return (fakeInfo, `Constant (fakeInfo, VoidVal))]);
+    `Sequence (fakeInfo, [`Return (fakeInfo, `Constant (fakeInfo, Int32Val 100l))]);
+    `Sequence (fakeInfo, [
+      `Constant (fakeInfo, Int32Val 4l);
+      `Return (fakeInfo, `Constant (fakeInfo, Int32Val 1000l))
+    ]);
   ] in
   let testCases =
     List.map (fun form -> (form, [form])) identityTestCases
@@ -477,15 +479,15 @@ let functionIsValid func =
   match func.impl with
     | Some funcImpl ->
         begin
-          let rec collectLabels form =
+          let rec collectLabels (form :form) =
             match form with
-              | `Sequence forms ->
+              | `Sequence (_, forms) ->
                   let labelsAndTargets = List.map collectLabels forms in
                   let labels, targets = List.split labelsAndTargets in
                   List.flatten labels, List.flatten targets
-              | `Label l -> [l.lname], []
-              | `Jump label -> [], [label.lname]
-              | `Branch { trueLabel = t; falseLabel = f } -> [], [t.lname; f.lname]
+              | `Label (_, l) -> [l.lname], []
+              | `Jump (_, label) -> [], [label.lname]
+              | `Branch (_, { trueLabel = t; falseLabel = f }) -> [], [t.lname; f.lname]
               | _ -> [], []
           in
           let labels, targets = collectLabels funcImpl in

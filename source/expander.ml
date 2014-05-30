@@ -90,7 +90,7 @@ struct
     in
     worker bindings expr
 
-  let tryGetFunctionAddress bindings name =
+  let tryGetFunctionAddress bindings (info :Lang.formInfo) name :form option =
     match lookup bindings name with
       | FuncSymbol f ->
         let name = f.fname in
@@ -99,7 +99,7 @@ struct
           argTypes = List.map snd f.Lang.fargs;
         } in
         let var = variable name (`Pointer typ) RegisterStorage true None in
-        Some (`Variable var)
+        Some (`Variable (info, var))
       | _ ->
         None
 
@@ -785,7 +785,7 @@ struct
                   | Result (tlforms, valueForms) ->
                     begin
                       let errors, fieldValues =
-                        match typeCheck bindings (`Sequence valueForms) with
+                        match typeCheck bindings (Lang.sequence valueForms) with
                           | TypeOf valueType when equalTypes bindings valueType fieldType ->
                             errors, ((fieldName, (tlforms, valueForms)) :: fieldValues)
                           | TypeOf invalidValueType ->
@@ -838,7 +838,7 @@ struct
               begin
                 let _, simpleform = env.translateF env.bindings valueExpr in
                 let toplevelForms, implForms = extractToplevelForms simpleform in
-                match typeCheck env.bindings (`Sequence implForms) with
+                match typeCheck env.bindings (Lang.sequence implForms) with
                   | TypeOf t ->
                       Some t, toplevelForms, implForms
                   | TypeError (fe,m,f,e) ->
@@ -866,112 +866,118 @@ struct
         | #integralType | `Pointer _ | `Function _ as typ ->
             begin
               let var = variable name typ MemoryStorage false expr.location in
-              let defvar = `DefineVariable (var, Some (`Sequence implForms))
+              let defvar = (Lang.defineVariable var (Some (Lang.sequence implForms)))
               in
               match typeCheck env.bindings defvar with
-                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [(defvar :> formWithTLsEmbedded)] )
                 | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe, m,f,e)
             end
         | (`Record _ as typ) ->
-            begin
-              match valueExpr with
-                | None ->
-                    let var = variable name typ MemoryStorage false expr.location in
-                    Result( addVar env.bindings var, [ `DefineVariable (var, None) ] )
-                | Some valueExpr ->
-                  raiseIllegalExpression
-                    valueExpr
-                    "record type var must not have a default value"
-            end
+          begin
+            match valueExpr with
+              | None ->
+                let var = variable name typ MemoryStorage false expr.location in
+                Result( addVar env.bindings var, [(Lang.defineVariable var None :> formWithTLsEmbedded)] )
+              | Some valueExpr ->
+                raiseIllegalExpression
+                  valueExpr
+                  "record type var must not have a default value"
+          end
         | `TypeRef _ ->
-            raiseIllegalExpression expr "internal error: received unexpected type ref"
+          raiseIllegalExpression expr "internal error: received unexpected type ref"
         | `Array _ ->
-            raiseIllegalExpression expr "array vars not supported, yet"
+          raiseIllegalExpression expr "array vars not supported, yet"
         | `TypeParam ->
-            raiseIllegalExpression expr "cannot define local variable of type parameter type"
+          raiseIllegalExpression expr "cannot define local variable of type parameter type"
         | `ParametricType _ ->
-            raiseIllegalExpression expr "cannot define local variable of parametric type"
+          raiseIllegalExpression expr "cannot define local variable of parametric type"
         | `ErrorType _ as t ->
           raiseIllegalExpression expr (sprintf "cannot define local variable of %s"
                                          (typeName t))
     in
     match expr with
       | { args = [
-            { id = name; args = [] };
-            valueExpr
-          ] } ->
-          transform id name None (Some valueExpr)
+        { id = name; args = [] };
+        valueExpr
+      ] } ->
+        transform id name None (Some valueExpr)
 
       | _ ->
-          errorFromExpr expr (sprintf "expecting '%s name valueExpr'" expr.id)
+        errorFromExpr expr (sprintf "expecting '%s name valueExpr'" expr.id)
   let translateDefineLocalVarD = "name, value", translateDefineLocalVar
 
   (** nestedEnv -> Ast2.sexpr -> translationResult *)
-  let translateAssignVar (env :nestedEnv) expr =
+  let translateAssignVar (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     let doTranslation id varName rightHandExpr =
       let _, rightHandForm, toplevelForms =
         translateToForms env.translateF env.bindings rightHandExpr
       in
       match lookup env.bindings varName with
         | VarSymbol lhsVar ->
-            begin
-              match typeCheck env.bindings rightHandForm with
-                | TypeOf rhsType when rhsType = lhsVar.typ ->
-                    Result (env.bindings,
-                            toplevelForms @ [`AssignVar (lhsVar, rightHandForm)] )
-                | TypeOf invalidRhsType ->
-                    errorFromExpr rightHandExpr
-                      (sprintf "type error: cannot assign %s to %s"
-                         (typeName invalidRhsType) (typeName lhsVar.typ))
-                | TypeError (fe,m,f,e) ->
-                    errorFromTypeError env.bindings rightHandExpr (fe,m,f,e)
-            end
+          begin
+            match typeCheck env.bindings rightHandForm with
+              | TypeOf rhsType when rhsType = lhsVar.typ ->
+                Result (env.bindings,
+                        toplevelForms @ [`AssignVar (info, lhsVar, rightHandForm)] )
+              | TypeOf invalidRhsType ->
+                errorFromExpr rightHandExpr
+                  (sprintf "type error: cannot assign %s to %s"
+                     (typeName invalidRhsType) (typeName lhsVar.typ))
+              | TypeError (fe,m,f,e) ->
+                errorFromTypeError env.bindings rightHandExpr (fe,m,f,e)
+          end
         | _ ->
-            errorFromExpr expr (sprintf "could not find variable %s" varName)
+          errorFromExpr expr (sprintf "could not find variable %s" varName)
     in
-
+    
     match expr with
       | { id = id; args = [
-            { id = varName; args = [] };
-            rightHandExpr;
-          ] } when id = macroAssign ->
-          doTranslation id varName rightHandExpr
+        { id = varName; args = [] };
+        rightHandExpr;
+      ] } when id = macroAssign ->
+        doTranslation id varName rightHandExpr
       | _ ->
         errorFromExpr expr "expected 'assign varName valueExpr'"
   let translateAssignVarD = "var, value", translateAssignVar
 
-  let translateSeq (env :nestedEnv) expr =
+  let translateSeq (env :nestedEnv) expr :translationResult =
     Result (translatelst env.translateF env.bindings expr.args)
   let translateSeqD = "ast...", translateSeq
 
-  let translateReturn (env :nestedEnv) = function
+  let translateReturn (env :nestedEnv) expr :translationResult =
+    match expr with
     | { id = id; args = [expr] } ->
         begin
+          let info = Lang.formInfo $ Ast2.location expr in
           let _, form, toplevelExprs = translateToForms env.translateF env.bindings expr in
-          Result (env.bindings, toplevelExprs @ [`Return form])
+          Result (env.bindings, toplevelExprs @ [`Return (info, form)])
         end
-    | { args = [] } ->
+    | { args = [] } as expr ->
       begin
-        Result (env.bindings, [`Return (`Constant VoidVal)])
+        let info = Lang.formInfo $ Ast2.location expr in
+        Result (env.bindings, [`Return (info, `Constant (info, VoidVal))])
       end
     | expr ->
       errorFromExpr expr
         (sprintf "expected zero or one argument instead of %d" (List.length expr.args))
   let translateReturnD = "[value]", translateReturn
 
-  let translateLabel (env :nestedEnv) expr =
+  let translateLabel (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     match expr.args with
       | [ {id = name; args = [] }] ->
-          Result( addLabel env.bindings name, [`Label (Lang.label name)] )
+          Result( addLabel env.bindings name, [`Label (info, Lang.label name)] )
       | _ ->
         errorFromExpr expr ("expecting one argument which is an identifier")
   let translateLabelD = "name", translateLabel
 
-  let translateBranch (env :nestedEnv) expr =
+  let translateBranch (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     match expr.args with
       | [{ id = labelName; args = [] }] ->
           begin
-            Result( env.bindings, [`Jump (Lang.label labelName)] )
+            Result( env.bindings, [`Jump (info, Lang.label labelName)] )
           end
       | [invalidBranchTarget] ->
           errorFromExpr expr
@@ -985,7 +991,7 @@ struct
             match lookup env.bindings condVarName with
               | VarSymbol var when var.typ = `Bool ->
                   begin
-                    Result( env.bindings, [`Branch (Lang.branch
+                    Result( env.bindings, [`Branch (info, Lang.branch
                                                       (varWithType var `Bool)
                                                       (Lang.label trueLabelName)
                                                       (Lang.label falseLabelName))])
@@ -999,12 +1005,13 @@ struct
           "expected either 'branch labelName' or 'branch boolVar labelOnTrue labelOnFalse'"
   let translateBranchD = "label | boolValue labelOnTrue labelOnFalse", translateBranch
 
-  let translateLoad (env :nestedEnv) expr =
+  let translateLoad (env :nestedEnv) expr :translationResult =
     match expr.args with
       | [ptrExpr] ->
           begin
+            let info = Lang.formInfo $ Ast2.location ptrExpr in
             let _, ptrForm, toplevelForms = translateToForms env.translateF env.bindings ptrExpr in
-            let loadForm = `LoadIntrinsic ptrForm in
+            let loadForm = `LoadIntrinsic (info, ptrForm) in
             match typeCheck env.bindings loadForm with
               | TypeOf _ ->
                   Result( env.bindings, toplevelForms @ [loadForm] )
@@ -1015,13 +1022,14 @@ struct
           errorFromExpr expr "expecting only one argument"
   let translateLoadD = "pointer", translateLoad
 
-  let translateStore (env :nestedEnv) expr =
+  let translateStore (env :nestedEnv) expr :translationResult =
     match expr.args with
       | [ptrExpr; rightHandExpr]->
           begin
+            let info = formInfoFromExpr expr in
             let _, ptrForm, toplevelForms = translateToForms env.translateF env.bindings ptrExpr in
             let _, rightHandForm, toplevelForms2 = translateToForms env.translateF env.bindings rightHandExpr in
-            let storeInstruction = `StoreIntrinsic (ptrForm, rightHandForm) in
+            let storeInstruction = `StoreIntrinsic (info, ptrForm, rightHandForm) in
             match typeCheck env.bindings storeInstruction with
               | TypeOf _ ->
                   Result( env.bindings, toplevelForms @ toplevelForms2 @ [storeInstruction] )
@@ -1032,15 +1040,16 @@ struct
           errorFromExpr expr "expected two arguments: 'store ptrExpr valueExpr'"
   let translateStoreD = "pointer, value", translateStore
 
-  let translateMalloc (env :nestedEnv) expr =
+  let translateMalloc (env :nestedEnv) expr :translationResult =
     let buildMallocInstruction typeExpr countExpr =
       match translateType env.bindings typeExpr with
         | Error _ as err ->
           err
         | Result typ ->
             begin
+              let info = formInfoFromExpr expr in
               let _, rightHandForm, toplevelForms = translateToForms env.translateF env.bindings countExpr in
-              let mallocForm = `MallocIntrinsic (typ, rightHandForm) in
+              let mallocForm = `MallocIntrinsic (info, typ, rightHandForm) in
               match typeCheck env.bindings mallocForm with
                 | TypeOf _ -> Result( env.bindings, toplevelForms @ [mallocForm] )
                 | TypeError (fe,m,f,e) ->
@@ -1056,26 +1065,28 @@ struct
           errorFromExpr expr "expected 'malloc typeExpr countExpr', countExpr being optional"
   let translateMallocD = "type count?", translateMalloc
 
-  let translateNullptr (env :nestedEnv) expr =
+  let translateNullptr (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     match expr.args with
       | [typeExpr] ->
           begin match translateType env.bindings typeExpr with
-            | Result typ -> Result (env.bindings, [`Constant (NullpointerVal typ)] )
+            | Result typ -> Result (env.bindings, [`Constant (info, NullpointerVal typ)] )
             | Error msgs -> Error msgs
           end
       | _ ->
           errorFromExpr expr "expected one argument denoting a type: 'nullptr typeExpr'"
   let translateNullptrD = "type", translateNullptr
 
-  let translateGetaddr (env :nestedEnv) expr =
+  let translateGetaddr (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     match expr with
       | { args = [{ id = varName; args = [] }] } ->
           begin
             match lookup env.bindings varName with
-              | VarSymbol var -> Result (env.bindings, [`GetAddrIntrinsic var] )
+              | VarSymbol var -> Result (env.bindings, [`GetAddrIntrinsic (info, var)] )
               | FuncSymbol _ ->
-                begin match tryGetFunctionAddress env.bindings varName with
-                  | Some form -> Result (env.bindings, [form])
+                begin match tryGetFunctionAddress env.bindings info varName with
+                  | Some form -> Result (env.bindings, [(form :> formWithTLsEmbedded)])
                   | None ->
                     raiseIllegalExpression expr (sprintf "could not get address of function")
                 end
@@ -1083,31 +1094,32 @@ struct
           end
       | { id = "ptr"; args = [] } ->
           (** could actually be a variable called 'ptr', handle this for backwards compatibility *)
-          begin match lookup env.bindings "ptr" with
-            | VarSymbol v -> Result (env.bindings, [`Variable v])
-            | _ -> errorFromExpr expr "meh. ptr is not a variable"
-          end
+        begin match lookup env.bindings "ptr" with
+          | VarSymbol v -> Result (env.bindings, [(`Variable (info, v) :> formWithTLsEmbedded)])
+          | _ -> errorFromExpr expr "meh. ptr is not a variable"
+        end
       | _ ->
-          errorFromExpr expr "expected one argument denoting an lvalue: 'ptr lvalueExpr'"
+        errorFromExpr expr "expected one argument denoting an lvalue: 'ptr lvalueExpr'"
   let translateGetaddrD = "lvalue", translateGetaddr
 
-  let translatePtradd (env :nestedEnv) expr =
+  let translatePtradd (env :nestedEnv) expr :translationResult =
     match expr.args with
       | [ptrExpr; indexExpr] ->
-          begin
-            let _, ptrForm, toplevelForms = translateToForms env.translateF env.bindings ptrExpr in
-            let _, indexForm, toplevelForms2 = translateToForms env.translateF env.bindings indexExpr in
-            let ptradd = `PtrAddIntrinsic (ptrForm, indexForm) in
-            match typeCheck env.bindings ptradd with
-              | TypeOf _ -> Result( env.bindings, toplevelForms @ toplevelForms2 @ [ptradd] )
-              | TypeError (fe,m,f,e) ->
-                  errorFromTypeError env.bindings expr (fe,m,f,e)
-          end
+        begin
+          let info = formInfoFromExpr expr in
+          let _, ptrForm, toplevelForms = translateToForms env.translateF env.bindings ptrExpr in
+          let _, indexForm, toplevelForms2 = translateToForms env.translateF env.bindings indexExpr in
+          let ptradd = `PtrAddIntrinsic (info, ptrForm, indexForm) in
+          match typeCheck env.bindings ptradd with
+            | TypeOf _ -> Result( env.bindings, toplevelForms @ toplevelForms2 @ [ptradd] )
+            | TypeError (fe,m,f,e) ->
+              errorFromTypeError env.bindings expr (fe,m,f,e)
+        end
       | _ ->
-          errorFromExpr expr "expected two arguments: 'ptradd ptrExpr intExpr'"
+        errorFromExpr expr "expected two arguments: 'ptradd ptrExpr intExpr'"
   let translatePtraddD = "ptr, intExpr", translatePtradd
 
-  let translatePtrDiff (env :nestedEnv) expr =
+  let translatePtrDiff (env :nestedEnv) expr :translationResult =
     match expr.args with
       | [lhsExpr; rhsExpr] ->
         begin
@@ -1117,7 +1129,8 @@ struct
           let _, rhsForm, rhsTLForms =
             translateToForms env.translateF env.bindings rhsExpr
           in
-          let ptrdiff = `PtrDiffIntrinsic (lhsForm, rhsForm) in
+          let info = formInfoFromExpr expr in
+          let ptrdiff = `PtrDiffIntrinsic (info, lhsForm, rhsForm) in
           match typeCheck env.bindings ptrdiff with
             | TypeOf _ -> Result( env.bindings, lhsTLForms @ rhsTLForms @ [ptrdiff] )
             | TypeError (fe,m,f,e) ->
@@ -1127,142 +1140,145 @@ struct
         errorFromExpr expr "expected two pointers as arguments"
   let translatePtrDiffD = "ptrExpr, ptrExpr", translatePtrDiff
 
-  let translateGetfieldptr (env :nestedEnv) expr =
+  let translateGetfieldptr (env :nestedEnv) expr :translationResult =
     match expr.args with
       | [
-          recordExpr;
-          { id = fieldName; args = [ ] };
-        ] ->
-          begin
-            let _, recordForm, toplevelForms = translateToForms env.translateF env.bindings recordExpr in
-            let (moreForms : formWithTLsEmbedded list), (recordForm' :Lang.form) =
-              match recordForm with
-                | `Variable ({ typ = `Record _; } as recordVar) ->
-                    [], `GetAddrIntrinsic recordVar
-                | _ ->
-                    begin match typeCheck env.bindings recordForm with
-                      | TypeOf (`Record _ as typ) ->
-                          let newBindings, tempVar = getNewLocalVar env.bindings typ in
-                          [((`DefineVariable (tempVar, Some recordForm)) :> formWithTLsEmbedded)],
-                          `GetAddrIntrinsic tempVar
-                      | TypeOf `Pointer `Record _ -> [], recordForm
-                      | TypeOf invalidType ->
-                          raiseIllegalExpression expr
-                            (sprintf "%s but found %s"
-                               ("can only access struct members from a var of [pointer to] record type")
-                               (typeName invalidType))
-                      | TypeError (fe,m,f,e) ->
-                          raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-                    end
-            in
-            let fieldptr = `GetFieldPointerIntrinsic (recordForm', fieldName) in
-            match typeCheck env.bindings fieldptr with
-              | TypeOf _ -> Result( env.bindings, toplevelForms @ moreForms @ [fieldptr] )
-              | TypeError (fe,m,f,e) ->
-                  begin
+        recordExpr;
+        { id = fieldName; args = [ ] };
+      ] ->
+        begin
+          let info = formInfoFromExpr expr in
+          let _, recordForm, toplevelForms = translateToForms env.translateF env.bindings recordExpr in
+          let (moreForms : formWithTLsEmbedded list), (recordForm' :Lang.form) =
+            match recordForm with
+              | `Variable (_, { typ = `Record _; } as recordVar) ->
+                [], `GetAddrIntrinsic recordVar
+              | _ ->
+                begin match typeCheck env.bindings recordForm with
+                  | TypeOf (`Record _ as typ) ->
+                    let newBindings, tempVar = getNewLocalVar env.bindings typ in
+                    [((`DefineVariable (info, tempVar, Some recordForm)) :> formWithTLsEmbedded)],
+                    `GetAddrIntrinsic (info, tempVar)
+                  | TypeOf `Pointer `Record _ -> [], recordForm
+                  | TypeOf invalidType ->
+                    raiseIllegalExpression expr
+                      (sprintf "%s but found %s"
+                         ("can only access struct members from a var of [pointer to] record type")
+                         (typeName invalidType))
+                  | TypeError (fe,m,f,e) ->
                     raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-                  end
-          end
+                end
+          in
+          let fieldptr = `GetFieldPointerIntrinsic (info, recordForm', fieldName) in
+          match typeCheck env.bindings fieldptr with
+            | TypeOf _ -> Result( env.bindings, toplevelForms @ moreForms @ [fieldptr] )
+            | TypeError (fe,m,f,e) ->
+              begin
+                raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+              end
+        end
       | _ ->
-          errorFromExpr expr "expected two arguments: 'fieldptr structExpr id'"
+        errorFromExpr expr "expected two arguments: 'fieldptr structExpr id'"
   let translateGetfieldptrD = "structExpr, fieldName", translateGetfieldptr
 
-  let translateCast (env :nestedEnv) expr =
+  let translateCast (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     match expr.args with
       | [targetTypeExpr; valueExpr] ->
-          begin
-            match translateType env.bindings targetTypeExpr with
-              | Result targetType ->
-                begin
-                  let _, valueForm, toplevelForms = translateToForms env.translateF env.bindings valueExpr in
-                  match typeCheck env.bindings valueForm with
-                    | TypeOf valueType ->
-                      if Semantic.equalTypes env.bindings targetType valueType then
-                        Result( env.bindings, toplevelForms @ [(valueForm :> formWithTLsEmbedded)] )
-                      else
-                        let castForm = `CastIntrinsic( targetType, valueForm ) in
-                        Result( env.bindings, toplevelForms @ [castForm] )
-                    | TypeError (fe,m,f,e) ->
-                      errorFromTypeError env.bindings valueExpr (fe,m,f,e)
-                end
-              | Error msgs ->
-                Error msgs
-          end
+        begin
+          match translateType env.bindings targetTypeExpr with
+            | Result targetType ->
+              begin
+                let _, valueForm, toplevelForms = translateToForms env.translateF env.bindings valueExpr in
+                match typeCheck env.bindings valueForm with
+                  | TypeOf valueType ->
+                    if Semantic.equalTypes env.bindings targetType valueType then
+                      Result( env.bindings, toplevelForms @ [(valueForm :> formWithTLsEmbedded)] )
+                    else
+                      let castForm = `CastIntrinsic( info, targetType, valueForm ) in
+                      Result( env.bindings, toplevelForms @ [castForm] )
+                  | TypeError (fe,m,f,e) ->
+                    errorFromTypeError env.bindings valueExpr (fe,m,f,e)
+              end
+            | Error msgs ->
+              Error msgs
+        end
       | _ ->
-          errorFromExpr expr "expected 'cast typeExpr valueExpr'"
+        errorFromExpr expr "expected 'cast typeExpr valueExpr'"
   let translateCastD = "typeExpr, valueExpr", translateCast
 
   let translateDefineVar (env :nestedEnv) expr :translationResult =
     let transformUnsafe id name typeExpr valueExpr :translationResult =
       let declaredType = match typeExpr with
         | Some e ->
-            begin
-              match translateType env.bindings e with
-                | Result t -> Some t
-                | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
-            end
+          begin
+            match translateType env.bindings e with
+              | Result t -> Some t
+              | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
+          end
         | None ->
           None
       in
       let valueType, toplevelForms, implForms =
         match valueExpr with
           | Some valueExpr ->
-              begin
-                let _, simpleform = env.translateF env.bindings valueExpr in
-                let toplevelForms, implForms = extractToplevelForms simpleform in
-                match typeCheck env.bindings (`Sequence implForms) with
-                  | TypeOf t -> Some t, toplevelForms, implForms
-                  | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
-              end
+            begin
+              let _, simpleform = env.translateF env.bindings valueExpr in
+              let toplevelForms, implForms = extractToplevelForms simpleform in
+              match typeCheck env.bindings (Lang.sequence implForms) with
+                | TypeOf t -> Some t, toplevelForms, implForms
+                | TypeError (fe, m,f,e) -> raiseIllegalExpressionFromTypeError valueExpr (fe,m,f,e)
+            end
           | None -> None, [], []
       in
       let varType =
         match declaredType, valueType with
           | Some declaredType, Some valueType
             when equalTypes env.bindings declaredType valueType ->
-              declaredType
+            declaredType
           | Some declaredType, Some valueType ->
-              raiseIllegalExpressionFromTypeError expr
-                (Semantic.Ast expr, "types do not match",declaredType,valueType)
+            raiseIllegalExpressionFromTypeError expr
+              (Semantic.Ast expr, "types do not match",declaredType,valueType)
           | None, Some valueType -> valueType
           | Some declaredType, None -> declaredType
           | None, None ->
-              raiseIllegalExpression expr "var needs either a default value or declare a type"
+            raiseIllegalExpression expr "var needs either a default value or declare a type"
       in
+      let info = formInfoFromExpr expr in
       match varType with
         | #integralType | `Pointer _ | `Function _ as typ ->
-            begin
-              let var = variable name typ MemoryStorage false expr.location in
-              let defvar = `DefineVariable (var, Some (`Sequence implForms))
-              in
-              match typeCheck env.bindings defvar with
-                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
-                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-            end
+          begin
+            let var = variable name typ MemoryStorage false expr.location in
+            let defvar = `DefineVariable (info, var, Some (Lang.sequence implForms))
+            in
+            match typeCheck env.bindings defvar with
+              | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+              | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+          end
         | `Array(memberType, size) as typ ->
-            begin
-              let var = variable name typ MemoryStorage false expr.location in
-              let defvar = `DefineVariable (var, match implForms with [] -> None | _ -> Some (`Sequence implForms)) in
-              match typeCheck env.bindings defvar with
-                | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
-                | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
-            end
+          begin
+            let var = variable name typ MemoryStorage false expr.location in
+            let defvar = `DefineVariable (info, var, match implForms with [] -> None | _ -> Some (Lang.sequence implForms)) in
+            match typeCheck env.bindings defvar with
+              | TypeOf _ -> Result( addVar env.bindings var, toplevelForms @ [defvar] )
+              | TypeError (fe,m,f,e) -> raiseIllegalExpressionFromTypeError expr (fe,m,f,e)
+          end
         | (`Record _ as typ) ->
-            begin
-              let value =
-                match valueExpr with
-                  | None -> None
-                  | Some valueExpr -> Some (`Sequence implForms)
-              in
-              let var = variable name typ MemoryStorage false expr.location in
-              Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (var, value)] )
-            end
+          begin
+            let value =
+              match valueExpr with
+                | None -> None
+                | Some valueExpr -> Some (Lang.sequence implForms)
+            in
+            let var = variable name typ MemoryStorage false expr.location in
+            Result( addVar env.bindings var, toplevelForms @ [`DefineVariable (info, var, value)] )
+          end
         | `TypeRef _ ->
-            raiseIllegalExpression expr "internal error: received unexpected type ref"
+          raiseIllegalExpression expr "internal error: received unexpected type ref"
         | `TypeParam ->
-            raiseIllegalExpression expr "cannot define local variable of type parameter type"
+          raiseIllegalExpression expr "cannot define local variable of type parameter type"
         | `ParametricType _ ->
-            raiseIllegalExpression expr "cannot define local variable of parametric type"
+          raiseIllegalExpression expr "cannot define local variable of parametric type"
         | `ErrorType _ as t ->
           raiseIllegalExpression expr (sprintf "cannot define local variable of %s"
                                          (typeName t))
@@ -1283,40 +1299,41 @@ struct
     in
     match expr with
       | { id = id; args = [
-            typeExpr;
-            { id = name; args = [] };
-            valueExpr
-          ] }
+        typeExpr;
+        { id = name; args = [] };
+        valueExpr
+      ] }
           when (id = macroVar) ->
-          transform id name (Some typeExpr) (Some valueExpr)
+        transform id name (Some typeExpr) (Some valueExpr)
 
       | { id = id; args = [
-            typeExpr;
-            { id = name; args = [] };
-          ] }
+        typeExpr;
+        { id = name; args = [] };
+      ] }
           when (id = macroVar) ->
-          transform id name (Some typeExpr) None
+        transform id name (Some typeExpr) None
 
       | { id = id; args = [
-            { id = name; args = [] };
-            valueExpr
-          ] }
+        { id = name; args = [] };
+        valueExpr
+      ] }
           when id = "var2" ->
-          transform id name None (Some valueExpr)
+        transform id name None (Some valueExpr)
 
       | _ ->
-          if expr.id == "var" then
-            errorFromExpr expr "expected var typeExpr nameId valueExpr"
-          else if expr.id == "var2" then
-            errorFromExpr expr "expected var2 nameId valueExpr"
-          else
-            errorFromExpr expr
-              (sprintf "%s, invoked handler for '%s' but can only handle %s and %s"
-                 "internal compiler error"
-                 expr.id macroVar macroVar2)
+        if expr.id == "var" then
+          errorFromExpr expr "expected var typeExpr nameId valueExpr"
+        else if expr.id == "var2" then
+          errorFromExpr expr "expected var2 nameId valueExpr"
+        else
+          errorFromExpr expr
+            (sprintf "%s, invoked handler for '%s' but can only handle %s and %s"
+               "internal compiler error"
+               expr.id macroVar macroVar2)
   let translateDefineVarD = "type, name, [value] | var2 name, value", translateDefineVar
 
   let translateFuncCall (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     let buildCall name rettype argTypes isPointer hasVarArgs bindings args =
       let evalArg (argExpr :Ast2.sexpr) paramType =
         let _, xforms = env.translateF bindings argExpr in
@@ -1324,9 +1341,9 @@ struct
         let argForm =
           match paramType with
             | Some t when isTypeParametric t ->
-                (* | Some ((`ParametricType _) as t) -> *)
+              (* | Some ((`ParametricType _) as t) -> *)
               printf "parametric type param %s\n" (typeDescr (t :> typ));
-              `CastIntrinsic (t, toSingleForm forms)
+              `CastIntrinsic (info, t, toSingleForm forms)
             | _ ->
               toSingleForm forms
         in
@@ -1358,7 +1375,8 @@ struct
         let x = evalArgs args argTypes in
         let toplevelForms, argForms = flattenLeft x in
         let funccall = `FuncCall 
-          (Lang.funcCall
+          (info,
+           Lang.funcCall
              ~name
              ~rettype
              ~params:argTypes
@@ -1411,6 +1429,7 @@ struct
 
   (** called by translateApply, not registered under any name *)
   let translateRecordLiteral (env :nestedEnv) typeExpr argExprs :translationResult =
+    let info = formInfoFromExpr typeExpr in
     let translate recordType =
       let translateField expr : 'a mayfail =
         let bindings, formsWTL = env.translateF env.bindings expr in
@@ -1429,11 +1448,11 @@ struct
               match nameAndFormList with
                 | [] ->
                   `AllConstant (List.rev accum)
-                | (name, [`Constant value]) :: rem ->
+                | (name, [`Constant (_, value)]) :: rem ->
                   onlyConstantsSoFar rem ((name, value) :: accum)
                 | _ ->
                   let valueToFormList (name, value) =
-                    name, [(`Constant value :> Lang.form)]
+                    name, [(`Constant (info, value) :> Lang.form)]
                   in
                   hadComplexExprs nameAndFormList (List.map valueToFormList accum)
             and hadComplexExprs nameAndFormList accum =
@@ -1449,7 +1468,12 @@ struct
           begin match translate fieldForms with
             | `AllConstant nameAndValueList ->
               let c : formWithTLsEmbedded =
-                `Constant (RecordVal (typeName (`Record recordType), nameAndValueList))
+                `Constant
+                  (info,
+                   RecordVal
+                     (typeName
+                        (`Record recordType),
+                      nameAndValueList))
               in
               Result (env.bindings, alltlforms @ [c])
 
@@ -1457,17 +1481,17 @@ struct
               let newBindings, recordVar =
                 getNewLocalVar env.bindings (`Record recordType)
               in
-              let recordVarAddress = `GetAddrIntrinsic recordVar in
-              let makeFieldAssignment (name, forms) =
-                let ptr = `GetFieldPointerIntrinsic (recordVarAddress, name) in
-                `StoreIntrinsic (ptr, toSingleForm forms)
+              let recordVarAddress = `GetAddrIntrinsic (info, recordVar) in
+              let makeFieldAssignment (name, forms) :formWithTLsEmbedded =
+                let ptr = `GetFieldPointerIntrinsic (info, recordVarAddress, name) in
+                `StoreIntrinsic (info, ptr, toSingleForm forms)
               in
-              let assignments = List.map makeFieldAssignment fieldsAndExprs in
+              let assignments :formWithTLsEmbedded list = List.map makeFieldAssignment fieldsAndExprs in
               Result (newBindings,
                       alltlforms
-                      @ [`DefineVariable (recordVar, None)]
+                      @ [`DefineVariable (info, recordVar, None)]
                       @ assignments
-                      @ [`Variable recordVar])
+                      @ [`Variable (info, recordVar)])
           end
         | Error msgs ->
           Error msgs
@@ -1491,7 +1515,7 @@ struct
       | _ ->
         fail()
 
-  let translateApply translateRecordF (env :nestedEnv) expr =
+  let translateApply translateRecordF (env :nestedEnv) expr :translationResult =
     let allAreFieldAssignments exprs =
       let isFieldAssignment = function
         | { id = "op="; args = [{ args = [] }; _] } ->
@@ -1548,7 +1572,7 @@ struct
       | { args = [] } ->
         errorFromExpr expr (sprintf "expected 'std:base:apply expr args?'")
 
-  let translateError (env :nestedEnv) expr =
+  let translateError (env :nestedEnv) expr :translationResult =
     Error [parseErrorExpr expr]
   let translateErrorD = "string-literal expr?", translateError
 
@@ -1579,13 +1603,15 @@ end
 module Compiler_environment : Zomp_transformer =
 struct
   let translateFileName (env :nestedEnv) (expr :Ast2.sexpr)  :translationResult =
+    let info = formInfoFromExpr expr in
     let newBindings, var = getNewGlobalVar env.bindings (`Pointer `Char) in
     let value = StringLiteral (Ast2.fileName expr) in
     let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
-    Result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
+    Result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable (info, var)])
 
   let translateLineNumber (env :nestedEnv) (expr :Ast2.sexpr)  :translationResult =
-    Result (env.bindings, [`Constant (Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
+    let info = formInfoFromExpr expr in
+    Result (env.bindings, [`Constant (info, Int32Val (Int32.of_int (Ast2.lineNumber expr)))])
 
   let singleArgWithLoc = function
     | { id = _; args = [{ location = Some loc } as arg]} ->
@@ -1614,7 +1640,8 @@ end
 
 module Arrays : Zomp_transformer =
 struct
-  let arraySize (env :nestedEnv) expr =
+  let arraySize (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
     match expr with
       | { id = _; args = [arrayExpr] } ->
         let _, rightHandForm, toplevelForms =
@@ -1624,7 +1651,7 @@ struct
           | TypeOf `Array(_, size) ->
             Result (env.bindings,
                     toplevelForms @ [(rightHandForm :> formWithTLsEmbedded);
-                                     `Constant (Int32Val (Int32.of_int size))])
+                                     `Constant (info, Int32Val (Int32.of_int size))])
           | TypeOf invalidType ->
             errorFromTypeError env.bindings arrayExpr
               (Semantic.Ast expr,
@@ -1638,7 +1665,9 @@ struct
         errorFromExpr expr "expected 'zmp:array:size arrayExpr'"
   let arraySizeD = "array", arraySize
 
-  let arrayAddr (env :nestedEnv) = function
+  let arrayAddr (env :nestedEnv) expr :translationResult =
+    let info = formInfoFromExpr expr in
+    match expr with
     | {args = [arrayPtrExpr]} as expr ->
       let _, arrayPtrForm, tlforms =
         translateToForms env.translateF env.bindings arrayPtrExpr
@@ -1648,7 +1677,7 @@ struct
           begin
             Result(
               env.bindings, tlforms @ [
-                `CastIntrinsic(`Pointer memberType, arrayPtrForm)])
+                `CastIntrinsic(info, `Pointer memberType, arrayPtrForm)])
           end
         | TypeOf invalidType ->
           errorFromTypeError env.bindings arrayPtrExpr
@@ -1672,9 +1701,11 @@ struct
   (** creates a macro which turns baseName(l,r) into
     * baseName_ltype_rtype(l,r). Has special handling for op+/op- and pointer
     * arguments *)
-  let overloadedOperator baseName (env :nestedEnv) = function
+  let overloadedOperator baseName (env :nestedEnv) expr :translationResult =
+    match expr with
     | {args = [leftExpr; rightExpr]} as expr ->
         begin
+          let info = formInfoFromExpr expr in
           let _, leftForm, toplevelFormsLeft =
             translateToForms env.translateF env.bindings leftExpr
           in
@@ -1687,15 +1718,17 @@ struct
                 begin
                   Result(env.bindings,
                          toplevelFormsLeft @ toplevelFormsRight @
-                         [`PtrAddIntrinsic (leftForm, rightForm)])
+                         [`PtrAddIntrinsic (info, leftForm, rightForm)])
                 end
             | "op-", TypeOf `Pointer _, TypeOf `Int32 ->
                 begin
                   Result(env.bindings,
                          toplevelFormsLeft @ toplevelFormsRight @
                            [`PtrAddIntrinsic 
-                               (leftForm,
-                                `FuncCall (Lang.funcCall 
+                               (info,
+                                leftForm,
+                                `FuncCall (info,
+                                           Lang.funcCall 
                                              ~name:"u32:neg"
                                              ~rettype:`Int32
                                              ~params:[`Int32]
@@ -1707,13 +1740,13 @@ struct
               begin
                 Result(env.bindings,
                        toplevelFormsLeft @ toplevelFormsRight @
-                       [`PtrDiffIntrinsic (leftForm, rightForm)])
+                       [`PtrDiffIntrinsic (info, leftForm, rightForm)])
               end
             | _, TypeOf leftType, TypeOf rightType ->
                 begin
                   let postfixAndImplConv form = function
                     | `Pointer _ ->
-                        "ptr", `CastIntrinsic(`Pointer `Void, form)
+                        "ptr", `CastIntrinsic(info, `Pointer `Void, form)
                     | typ ->
                         typeName typ, form
                   in
@@ -1724,7 +1757,8 @@ struct
                     | FuncSymbol func -> begin
                         Result(env.bindings,
                                toplevelFormsLeft @ toplevelFormsRight @
-                                 [`FuncCall (Lang.funcCall
+                                 [`FuncCall (info,
+                                             Lang.funcCall
                                               ~name:func.fname
                                               ~rettype:func.rettype
                                               ~params:(List.map snd func.fargs)
@@ -1751,9 +1785,11 @@ struct
     | invalidExpr ->
       errorFromExpr invalidExpr "expected two arguments"
 
-  let overloadedFunction baseName (env :nestedEnv) = function
-    | {args = [argExpr]} as expr ->
+  let overloadedFunction baseName (env :nestedEnv) expr :translationResult =
+    match expr with
+    | {args = [argExpr]} ->
         begin
+          let info = formInfoFromExpr expr in
           let _, argForm, toplevelForms =
             translateToForms env.translateF env.bindings argExpr
           in
@@ -1765,7 +1801,8 @@ struct
                   | FuncSymbol func ->
                     Result(env.bindings,
                            toplevelForms @
-                             [`FuncCall (Lang.funcCall
+                             [`FuncCall (info,
+                                         Lang.funcCall
                                           ~name:func.fname
                                           ~rettype:func.rettype
                                           ~params:(List.map snd func.fargs)
@@ -1778,11 +1815,12 @@ struct
                       | FuncSymbol func ->
                         Result(env.bindings,
                                toplevelForms @
-                                 [`FuncCall (Lang.funcCall
+                                 [`FuncCall (info,
+                                             Lang.funcCall
                                               ~name:func.fname
                                               ~rettype:func.rettype
                                               ~params:(List.map snd func.fargs)
-                                              ~args:[`CastIntrinsic (`Pointer `Void, argForm)]
+                                              ~args:[`CastIntrinsic (info, `Pointer `Void, argForm)]
                                               ~ptr:`NoFuncPtr
                                               ~varargs:false)])
                       | _ ->
@@ -1871,6 +1909,7 @@ let catchingErrorsDo f ~onErrors =
   end
 
 let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult =
+  let info = formInfoFromExpr expr in
   let translateUnguarded() =
     let toConstructorExpr expr =
       expr >>=
@@ -1881,7 +1920,7 @@ let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult 
     Zompvm.currentBindings := env.bindings;
     match Bindings.lookup env.bindings expr.id with
       | VarSymbol var ->
-        Mayfail.result (env.bindings, [`Variable var])
+        Mayfail.result (env.bindings, [`Variable (info, var)])
 
       | FuncSymbol func ->
       (** TODO: reverse this. Turn opcall into a macro *)
@@ -1904,6 +1943,8 @@ let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult 
 
       | UndefinedSymbol ->
         let translateConstantOrFail bindings expr =
+          let info = formInfoFromExpr expr in
+
           let failWithInvalidId() =
             Mayfail.singleError $ Serror.fromExpr expr (sprintf "unknown identifier %s" expr.id)
           in
@@ -1916,10 +1957,10 @@ let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult 
                     let newBindings, var = getNewGlobalVar bindings (`Pointer `Char) in
                     let value = StringLiteral string in
                     let gvar = Lang.globalVarDef ~var ~initial:value ~location:expr.location in
-                    Mayfail.result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable var])
+                    Mayfail.result (newBindings, [`ToplevelForm (`GlobalVar gvar); `Variable (info, var)])
                   end
                 | Some const ->
-                  Mayfail.result (bindings, [`Constant const])
+                  Mayfail.result (bindings, [`Constant (info, const)])
                 | None ->
                   failWithInvalidId()
               end
@@ -2257,18 +2298,19 @@ let rec translateFunc tlenv expr : unit =
     let innerBindings = bindingsWithParams bindings params in
     let impl = match implExprOption with
       | Some implExpr ->
+        let info = formInfoFromExpr implExpr in
         let innerEnv = makeEnv (EnvTL.backend tlenv) innerBindings in
         begin match translateNested innerEnv implExpr with
           | Result (_, nestedForms) ->
             let nestedTLForms, implForms = extractToplevelForms nestedForms in
             List.iter (fun (`ToplevelForm f) -> EnvTL.emitForm tlenv f) nestedTLForms;
-            let implFormsWithFixedVars = moveLocalVarsToEntryBlock (`Sequence implForms) in
-            Some (`Sequence implFormsWithFixedVars)
+            let implFormsWithFixedVars = moveLocalVarsToEntryBlock (Lang.sequence implForms) in
+            Some (Lang.sequence implFormsWithFixedVars)
           | Error errors ->
             EnvTL.emitErrors tlenv errors;
             if errors = [] then
               EnvTL.emitError tlenv $ Serror.fromExpr expr (sprintf "internal error: failed to compile function %s" name);
-            Some (`Sequence [`Return (`Constant (Types.defaultValue typ))])
+            Some (Lang.sequence [`Return (info, `Constant (info, Types.defaultValue typ))])
         end
       | None -> None
     in
@@ -2384,7 +2426,7 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
                     List.iter (fun (`ToplevelForm form) -> EnvTL.emitForm env form) tlforms;
                     EnvTL.setBindings env newBindings;
                     match forms with
-                      | [`Constant value] ->
+                      | [`Constant (_, value)] ->
                         value
                       | _ ->
                         EnvTL.emitError env $ Serror.fromExpr expr "expecting a constant expression";

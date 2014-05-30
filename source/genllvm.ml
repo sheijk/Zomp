@@ -707,7 +707,7 @@ let checkType resultVar typ =
 let todoBindings = defaultBindings
 
 let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
-  | `MallocIntrinsic (typ, countForm) ->
+  | `MallocIntrinsic (_, typ, countForm) ->
       begin
         let count = gencode countForm in
         checkType count.gcrVar `Int32;
@@ -715,7 +715,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
         let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) count.gcrVar.rvname in
         returnVarCode (var, count.gcrCode ^ code)
       end
-  | `GetAddrIntrinsic var ->
+  | `GetAddrIntrinsic (_, var) ->
       begin
         match var.vstorage with
           | MemoryStorage -> returnVarCode (
@@ -724,7 +724,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           | RegisterStorage ->
               raiseCodeGenError ~msg:"getting address of register storage var not possible"
       end
-  | `StoreIntrinsic (ptrForm, valueForm) ->
+  | `StoreIntrinsic (_, ptrForm, valueForm) ->
       begin
         let ptr = gencode ptrForm in
         let value = gencode valueForm in
@@ -734,7 +734,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
         in
         returnCombi (noVar, ptr.gcrCode ^ value.gcrCode ^ code, [ptr.gcrFirstBBCode; value.gcrFirstBBCode])
       end
-  | `LoadIntrinsic expr ->
+  | `LoadIntrinsic (_, expr) ->
       begin
         let targetType =
           match typeOfForm todoBindings expr with
@@ -751,7 +751,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
         in
         returnCombi (resultVar, comment ^ ptr.gcrCode ^ "\n\n" ^ code, [ptr.gcrFirstBBCode])
       end
-  | `GetFieldPointerIntrinsic (recordForm, fieldName) ->
+  | `GetFieldPointerIntrinsic (_, recordForm, fieldName) ->
       begin
         let fieldType, fieldIndex =
           match typeOfForm todoBindings recordForm with
@@ -779,7 +779,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
         in
         returnCombi (ptrVar, comment ^ record.gcrCode ^ code, [record.gcrFirstBBCode])
       end
-  | `PtrAddIntrinsic (ptrForm, offsetForm) ->
+  | `PtrAddIntrinsic (_, ptrForm, offsetForm) ->
       begin
         let ptrType = typeOfForm todoBindings ptrForm in
         let resultVar = newLocalTempVar ptrType in
@@ -795,7 +795,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
           comment ^ ptr.gcrCode ^ offset.gcrCode ^ code,
           [ptr.gcrFirstBBCode; offset.gcrFirstBBCode])
       end
-  | `PtrDiffIntrinsic (lhsForm, rhsForm) ->
+  | `PtrDiffIntrinsic (_, lhsForm, rhsForm) ->
     begin
       let llvmCodeRev = ref ([] :string list) in
       let emitCode str =
@@ -842,7 +842,7 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
         Common.combine "\n" (getCode()),
         [lhsPtrCode.gcrFirstBBCode; rhsPtrCode.gcrFirstBBCode] )
     end
-  | `CastIntrinsic (targetType, valueForm) ->
+  | `CastIntrinsic (_, targetType, valueForm) ->
       let value = gencode valueForm in
       let valueType = typeOfForm todoBindings valueForm in
       let resultVar = newLocalTempVar targetType in
@@ -898,7 +898,7 @@ let gencodeAssignVar gencode var expr =
 
 let gencodeReturn gencode (expr :Lang.form) =
   match expr with
-    | `Constant VoidVal ->
+    | `Constant (_, VoidVal) ->
       returnCombi (noVar, sprintf "ret void\n\n", [])
     | _ ->
       let expr = gencode expr in
@@ -923,8 +923,8 @@ let gencodeLabel label =
   let code = sprintf "%s:\n\n" label.lname in
   returnCombi (noVar, jumpCode.gcrCode ^ code, [jumpCode.gcrFirstBBCode])
 
-let gencodeBranch gencode branch =
-  let cond = gencode (`Variable (branch.bcondition :> Lang.typ Lang.variable)) in
+let gencodeBranch gencode info branch =
+  let cond = gencode (`Variable (info, (branch.bcondition :> Lang.typ Lang.variable))) in
   let code =
     sprintf "br %s %s, label %%%s, label %%%s"
       (llvmTypeName `Bool)
@@ -939,18 +939,18 @@ let gencodeEmbeddedComment comments =
   returnVarCode (noVar, Common.combine "\n" commentLines)
 
 let rec gencode : Lang.form -> gencodeResult = function
-  | `Sequence exprs -> (gencodeSequence gencode exprs : gencodeResult)
-  | `DefineVariable (var, expr) -> gencodeDefineVariable gencode var expr
-  | `Variable var -> gencodeVariable var
-  | `Constant c -> gencodeConstant c
-  | `FuncCall call -> gencodeFuncCall gencode call
-  | `Return e -> gencodeReturn gencode e
-  | `Label l -> gencodeLabel l
-  | `Jump l -> gencodeJump l
-  | `Branch b -> gencodeBranch gencode b
-  | `AssignVar (var, expr) -> gencodeAssignVar gencode var expr
+  | `Sequence (_, exprs) -> (gencodeSequence gencode exprs : gencodeResult)
+  | `DefineVariable (_, var, expr) -> gencodeDefineVariable gencode var expr
+  | `Variable (_, var) -> gencodeVariable var
+  | `Constant (_, c) -> gencodeConstant c
+  | `FuncCall (_, call) -> gencodeFuncCall gencode call
+  | `Return (_, e) -> gencodeReturn gencode e
+  | `Label (_, l) -> gencodeLabel l
+  | `Jump (_, l) -> gencodeJump l
+  | `Branch (info, b) -> gencodeBranch gencode info b
+  | `AssignVar (_, var, expr) -> gencodeAssignVar gencode var expr
   | #genericIntrinsic as intr -> gencodeGenericIntr gencode intr
-  | `EmbeddedComment comments -> gencodeEmbeddedComment comments
+  | `EmbeddedComment (_, comments) -> gencodeEmbeddedComment comments
 
 let countChar str c =
   let count = ref 0 in
@@ -1081,15 +1081,15 @@ let gencodeDefineFunc (_ :t) func =
         in
         let lastOrDefault list default = List.fold_left (fun _ r -> r) default list in
         let lastExpr = function
-          | `Sequence exprs as seq -> lastOrDefault exprs seq
+          | `Sequence (_, exprs) as seq -> lastOrDefault exprs seq
           | _ as expr -> expr
         in
         let rec replaceReturns = function
-          | `Sequence forms -> `Sequence (List.map replaceReturns forms)
-          | `Return form ->
-              `Sequence [
-                `StoreIntrinsic (`Variable retvalVar, form);
-                `Return (`Constant VoidVal)]
+          | `Sequence (_, forms) -> sequence (List.map replaceReturns forms)
+          | `Return (info, form) ->
+              sequence [
+                `StoreIntrinsic (info, `Variable (info, retvalVar), form);
+                `Return (info, `Constant (info, VoidVal))]
           | other -> other (** TODO: correctly transform everything *)
         in
         let impl =

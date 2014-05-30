@@ -117,6 +117,8 @@ type 'typ variable = {
   vlocation :Basics.location option;
 }
 
+let varLoc var = someOrDefault var.vlocation Basics.fakeLocation
+
 let rec validateValue = function
   | VoidVal | CharVal _ | BoolVal _
   | Int8Val _ | Int16Val _ | Int32Val _ | Int64Val _
@@ -204,6 +206,9 @@ let branch bcondition trueLabel falseLabel = { bcondition; trueLabel; falseLabel
 let branchToString b =
   sprintf "%s ? %s : %s" b.bcondition.vname (labelToString b.trueLabel) (labelToString b.falseLabel)
 
+type formInfo = {
+  formLoc : Basics.location;
+}
 
 (* TODO: make `Constant + integralValue polymorphic *)
 type 'typ flatArgForm = [
@@ -211,16 +216,15 @@ type 'typ flatArgForm = [
 | `Constant of Types.value
 ]
 
-type 'form genericIntrinsic = [
-| `MallocIntrinsic of typ * 'form
-| `GetAddrIntrinsic of typ variable
-| `StoreIntrinsic of 'form * 'form
-| `LoadIntrinsic of 'form
-| `PtrAddIntrinsic of 'form * 'form (* pointer, int *)
-| `PtrDiffIntrinsic of 'form * 'form (* pointer, pointer *)
-| `GetFieldPointerIntrinsic of 'form * string
-| `CastIntrinsic of typ * 'form
-]
+type 'a genericIntrinsic =
+  [ `CastIntrinsic of formInfo * typ * 'a
+  | `GetAddrIntrinsic of formInfo * typ variable
+  | `GetFieldPointerIntrinsic of formInfo * 'a * string
+  | `LoadIntrinsic of formInfo * 'a
+  | `MallocIntrinsic of formInfo * typ * 'a
+  | `PtrAddIntrinsic of formInfo * 'a * 'a
+  | `PtrDiffIntrinsic of formInfo * 'a * 'a
+  | `StoreIntrinsic of formInfo * 'a * 'a ]
 
 type globalVar = {
   gvVar :typ variable;
@@ -234,19 +238,19 @@ let globalVarDef ~var ~initial ~location =
     gvDefinitionLocation = location;
   }
 
-type form = [
-| typ flatArgForm
-| `Sequence of form list
-| `DefineVariable of typ variable * form option
-| `FuncCall of form funcCall
-| `AssignVar of typ variable * form
-| `Return of form
-| `Jump of label
-| `Branch of branch
-| `Label of label
-| form genericIntrinsic
-| `EmbeddedComment of string list
-]
+type form =
+  [ `AssignVar of formInfo * typ variable * form
+  | `Branch of formInfo * branch
+  | `Constant of formInfo * Types.value
+  | `DefineVariable of formInfo * typ variable * form option
+  | `EmbeddedComment of formInfo * string list
+  | `FuncCall of formInfo * form funcCall
+  | `Jump of formInfo * label
+  | `Label of formInfo * label
+  | `Return of formInfo * form
+  | `Sequence of formInfo * (form list)
+  | `Variable of formInfo * (typ variable)
+  | form genericIntrinsic]
 and func = {
   fname :string;
   rettype :typ;
@@ -262,36 +266,64 @@ and toplevelExpr = [
 | `Typedef of string * typ
 ]
 
+let info : form -> formInfo = function
+  | `CastIntrinsic (info, _, _)
+  | `GetAddrIntrinsic (info, _)
+  | `GetFieldPointerIntrinsic (info, _, _)
+  | `LoadIntrinsic (info, _)
+  | `MallocIntrinsic (info, _, _)
+  | `PtrAddIntrinsic (info, _, _)
+  | `PtrDiffIntrinsic (info, _, _)
+  | `StoreIntrinsic (info, _, _)
+    -> info
+  | _ ->
+    { formLoc = Basics.fakeLocation }
+
+let formInfo formLoc = { formLoc }
+let formInfoFromExpr expr = formInfo $ Ast2.location expr
+
+let flocation form =
+  let info = info form in
+  info.formLoc
+
+let inferFormInfo : form list -> formInfo = function
+  | [] -> { formLoc = Basics.fakeLocation }
+  | hd :: _ -> info hd
+
+let sequence forms = `Sequence (inferFormInfo forms, forms)
+let defineVariable var initForm =
+  `DefineVariable (formInfo (varLoc var), var, initForm)
+
 let rec formToString : form -> string = function
-  | `Variable var -> sprintf "Variable %s" (varToString var)
-  | `Constant c -> sprintf "Constant %s" (valueString c)
-  | `Sequence s ->
+  | `Variable (_, var) -> sprintf "Variable %s" (varToString var)
+  | `Constant (_, c) -> sprintf "Constant %s" (valueString c)
+  | `Sequence (_, s) ->
       let strings = List.map formToString s in
       sprintf "Sequence(\n%s\n)" (Common.combine "\n  " strings)
-  | `DefineVariable (var, form) ->
+  | `DefineVariable (_, var, form) ->
       sprintf "DefineVar(%s = %s)" (varToStringShort var) (match form with Some form -> formToString form | None -> "undef")
-  | `FuncCall fc ->
+  | `FuncCall (_, fc) ->
       sprintf "FuncCall(%s)" (funcCallToString formToString fc)
-  | `AssignVar (var, form) ->
+  | `AssignVar (_, var, form) ->
       sprintf "AssignVar(%s, %s)" (varToStringShort var) (formToString form)
-  | `Return form ->
+  | `Return (_, form) ->
       sprintf "Return( %s )" (formToString form)
-  | `Jump label ->
+  | `Jump (_, label) ->
       sprintf "Jump( %s )" (labelToString label)
-  | `Branch b ->
+  | `Branch (_, b) ->
       sprintf "Branch( %s )" (branchToString b)
-  | `Label l ->
+  | `Label (_, l) ->
       labelToString l
-  | `MallocIntrinsic (typ, form) -> sprintf "malloc %s x %s" (typeName typ) (formToString form)
-  | `GetAddrIntrinsic var -> sprintf "GetAddr (%s)" (varToString var)
-  | `StoreIntrinsic (ptr, value) -> sprintf "Store (%s, %s)" (formToString ptr) (formToString value)
-  | `LoadIntrinsic (ptr) -> sprintf "Load (%s)" (formToString ptr)
-  | `PtrAddIntrinsic (ptr, offset) -> sprintf "PtrAdd (%s, %s)" (formToString ptr) (formToString offset)
-  | `PtrDiffIntrinsic (lhs, rhs) ->
+  | `MallocIntrinsic (_, typ, form) -> sprintf "malloc %s x %s" (typeName typ) (formToString form)
+  | `GetAddrIntrinsic (_, var) -> sprintf "GetAddr (%s)" (varToString var)
+  | `StoreIntrinsic (_, ptr, value) -> sprintf "Store (%s, %s)" (formToString ptr) (formToString value)
+  | `LoadIntrinsic (_, ptr) -> sprintf "Load (%s)" (formToString ptr)
+  | `PtrAddIntrinsic (_, ptr, offset) -> sprintf "PtrAdd (%s, %s)" (formToString ptr) (formToString offset)
+  | `PtrDiffIntrinsic (_, lhs, rhs) ->
     sprintf "PtrDiff (%s, %s)" (formToString lhs) (formToString rhs)
-  | `GetFieldPointerIntrinsic (record, fieldName) -> sprintf "GetField (%s, %s)" (formToString record) fieldName
-  | `CastIntrinsic (typ, expr) -> sprintf "Cast (%s, %s)" (typeName typ) (formToString expr)
-  | `EmbeddedComment strings ->
+  | `GetFieldPointerIntrinsic (_, record, fieldName) -> sprintf "GetField (%s, %s)" (formToString record) fieldName
+  | `CastIntrinsic (_, typ, expr) -> sprintf "Cast (%s, %s)" (typeName typ) (formToString expr)
+  | `EmbeddedComment (_, strings) ->
       sprintf "Comments ('%s')" (Common.combine "', '" strings)
 
 let funcDeclToString func =
@@ -335,7 +367,7 @@ let toplevelFormLocation : toplevelExpr -> Basics.location = function
 let toSingleForm formlist =
   match formlist with
     | [(singleForm :form)] -> singleForm
-    | sequence -> `Sequence sequence
+    | forms -> sequence forms
 
 let isFuncParametric args =
   List.exists (isTypeParametric ++ snd) args

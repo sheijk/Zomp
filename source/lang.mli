@@ -97,36 +97,40 @@ type branch = private {
 val branch : [`Bool] variable -> label -> label -> branch
 val branchToString : branch -> string
 
+type formInfo
+val formInfo : Basics.location -> formInfo
+val formInfoFromExpr : Ast2.t -> formInfo
+
+
 type 'a genericIntrinsic =
-    [ `CastIntrinsic of typ * 'a
-    | `GetAddrIntrinsic of typ variable
-    | `GetFieldPointerIntrinsic of 'a * string
-    | `LoadIntrinsic of 'a
-    | `MallocIntrinsic of typ * 'a
-    | `PtrAddIntrinsic of 'a * 'a
-    | `PtrDiffIntrinsic of 'a * 'a
-    | `StoreIntrinsic of 'a * 'a ]
+    [ `CastIntrinsic of formInfo * typ * 'a
+    | `GetAddrIntrinsic of formInfo * typ variable
+    | `GetFieldPointerIntrinsic of formInfo * 'a * string
+    | `LoadIntrinsic of formInfo * 'a
+    | `MallocIntrinsic of formInfo * typ * 'a
+    | `PtrAddIntrinsic of formInfo * 'a * 'a
+    | `PtrDiffIntrinsic of formInfo * 'a * 'a
+    | `StoreIntrinsic of formInfo * 'a * 'a ]
 
 type form =
-    [ `AssignVar of typ variable * form
-    | `Branch of branch
-    | `CastIntrinsic of typ * form
-    | `Constant of Types.value
-    | `DefineVariable of typ variable * form option
-    | `EmbeddedComment of string list
-    | `FuncCall of form funcCall
-    | `GetAddrIntrinsic of typ variable
-    | `GetFieldPointerIntrinsic of form * string
-    | `Jump of label
-    | `Label of label
-    | `LoadIntrinsic of form
-    | `MallocIntrinsic of typ * form
-    | `PtrAddIntrinsic of form * form
-    | `PtrDiffIntrinsic of form * form
-    | `Return of form
-    | `Sequence of form list
-    | `StoreIntrinsic of form * form
-    | `Variable of typ variable ]
+    [ `AssignVar of formInfo * typ variable * form
+    | `Branch of formInfo * branch
+    | `Constant of formInfo * Types.value
+    | `DefineVariable of formInfo * typ variable * form option
+    | `EmbeddedComment of formInfo * string list
+    | `FuncCall of formInfo * form funcCall
+    | `Jump of formInfo * label
+    | `Label of formInfo * label
+    | `Return of formInfo * form
+    | `Sequence of formInfo * (form list)
+    | `Variable of formInfo * (typ variable)
+    | form genericIntrinsic]
+
+val flocation : form -> Basics.location
+val info : form -> formInfo
+
+val sequence : form list -> form
+val defineVariable : typ variable -> form option -> form
 
 (** Global forms *)
 
