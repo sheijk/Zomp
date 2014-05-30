@@ -8,29 +8,35 @@ type sexpr = private {
 
 type t = sexpr
 
-(** Constructors. Variants w/o source location are deprecated. *)
+(** Constructors. *)
 
-val idExpr : string -> sexpr
 val idExprLoc : Basics.location -> string -> sexpr
-val simpleExpr : string -> string list -> sexpr
 val simpleExprLoc : Basics.location -> string -> string list -> sexpr
-val emptyExpr : sexpr
 val emptyExprLoc : Basics.location -> sexpr
-val seqExpr : sexpr list -> sexpr
 val seqExprLoc : Basics.location -> sexpr list -> sexpr
-val opseqExpr : sexpr list -> sexpr
 val opseqExprLoc : Basics.location -> sexpr list -> sexpr
-val expr : string -> sexpr list -> sexpr
 val exprLoc : Basics.location -> string -> sexpr list -> sexpr
-val juxExpr : sexpr list -> sexpr
+val exprNoLoc : string -> sexpr list -> sexpr
 val juxExprLoc : Basics.location -> sexpr list -> sexpr
-val callExpr : sexpr list -> sexpr
 val callExprLoc : Basics.location -> sexpr list -> sexpr
+
+(** Inferring location from childs. This will take the location of any of the
+expressions passed as arguments. Which one is unspecified. Use this when you
+just want to create an AST where all/most arguments should have the same
+location. *)
 
 val juxExprInferLoc : sexpr list -> sexpr
 val callExprInferLoc : sexpr list -> sexpr
 val seqExprInferLoc : sexpr list -> sexpr
 val exprInferLoc : string -> sexpr list -> sexpr
+
+(** Change some fields. You can use this together with the pipe operator >>= in
+Common like this
+
+    [idExpr loc "foo" >>=
+      withId "foobar" >>=
+      withArgs newArgs]
+*)
 
 val withLoc : Basics.location -> t -> t
 val withId : string -> t -> t

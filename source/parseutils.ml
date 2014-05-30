@@ -81,7 +81,7 @@ let parseIExpr ~fileName source : Ast2.t option =
       | Exprs [singleExpr] ->
           Some singleExpr
       | Exprs multipleExprs ->
-          Some (Ast2.seqExpr multipleExprs)
+          Some (Ast2.seqExprInferLoc multipleExprs)
       | Error _ ->
           None
   else

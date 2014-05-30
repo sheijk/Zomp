@@ -151,15 +151,9 @@ and toplevelExpr =
     | `GlobalVar of globalVar
     | `Typedef of string * Types.typ ]
 
-val formToSExpr : form -> Ast2.t
 val formToString : form -> string
 val funcDeclToString : func -> string
 val funcToString : func -> string
-val toplevelFormToSExpr :
-  [< `DefineFunc of func
-   | `GlobalVar of Types.typ variable * Types.value
-   | `Typedef of string * Types.typ ] ->
-  Ast2.sexpr
 val toplevelFormDeclToString : toplevelExpr -> string
 val toplevelFormToString : toplevelExpr -> string
 val toplevelFormLocation : toplevelExpr -> Basics.location

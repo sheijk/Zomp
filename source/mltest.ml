@@ -195,6 +195,10 @@ module Ast2Test = struct
     ^ "  (opseq\n"
     ^ "    (opcall @:5 abort)))"
 
+  let loc = Basics.location "mltest" 0 None
+
+  let idExpr id = Ast2.idExprLoc loc id
+
   let run() =
     let testWithMaxLength maxLength =
       let seperatorString = "\n" ^ String.make maxLength '-' ^ "\n" in

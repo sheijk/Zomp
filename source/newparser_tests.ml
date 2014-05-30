@@ -50,14 +50,15 @@ struct
       raise (ParsingFailure(error, "Tokens: " ^ str ^ "; caused error: " ^ Printexc.to_string error))
 
   let testCases : (input * result) list =
-    let intVar name = Ast2.simpleExpr "opjux" ["var"; "int"; name] in
-    let se = Ast2.simpleExpr
-    and jux args = Ast2.juxExpr (List.map Ast2.idExpr args)
-    and call args = Ast2.callExpr (List.map Ast2.idExpr args)
-    and seqExpr args = Ast2.opseqExpr args
-    and se2 f l r = Ast2.simpleExpr f [l; r]
-    and se1 f arg = Ast2.simpleExpr f [arg]
-    and id = Ast2.idExpr
+    let loc = Basics.location "newparser_tests" 0 None in
+    let intVar name = Ast2.simpleExprLoc loc "opjux" ["var"; "int"; name] in
+    let se = Ast2.simpleExprLoc loc in
+    let id = Ast2.idExprLoc loc in
+    let jux args = Ast2.juxExprInferLoc (List.map id args)
+    and call args = Ast2.callExprInferLoc (List.map id args)
+    and seqExpr args = Ast2.exprInferLoc "opseq" args
+    and se2 f l r = Ast2.simpleExprLoc loc f [l; r]
+    and se1 f arg = Ast2.simpleExprLoc loc f [arg]
     in
 
     ignore(se1 "" "");
@@ -68,7 +69,7 @@ struct
     ignore(se "" []);
     ignore(jux []);
 
-    let expr id args = Ast2.expr id args in
+    let expr id args = Ast2.exprLoc loc id args in
     let juxExpr = expr "opjux" in
     let callExpr = expr "opcall" in
     ignore(juxExpr []);
@@ -93,7 +94,7 @@ struct
 
       (** s-expressions *)
       "foo (nested bar)",
-      `Return [Ast2.expr "opjux" [
+      `Return [expr "opjux" [
                  id "foo";
                  jux ["nested"; "bar"];
                ]];
@@ -333,7 +334,7 @@ struct
       \  int y\n\
       end",
       `Return [
-        Ast2.juxExpr [
+        juxExpr [
           id "type";
           id "point";
           seqExpr [jux ["int"; "x"]; jux ["int"; "y"]];

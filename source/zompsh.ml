@@ -564,10 +564,11 @@ let parseNativeAst ~fileName str =
   let expr =
     match Parseutils.parseIExprs ~fileName str with
       | Parseutils.Exprs [expr] -> expr
-      | Parseutils.Exprs exprs -> Ast2.seqExpr exprs
+      | Parseutils.Exprs exprs -> Ast2.seqExprInferLoc exprs
       | Parseutils.Error error ->
           let msg = Serror.toString error in
-          Ast2.juxExpr [Ast2.idExpr "error"; Ast2.idExpr msg]
+          let loc = someOrDefault error.Serror.eloc Basics.fakeLocation in
+          Ast2.juxExprInferLoc [Ast2.idExprLoc loc "error"; Ast2.idExprLoc loc msg]
   in
   Zompvm.NativeAst.buildNativeAst expr
 
@@ -596,13 +597,14 @@ let translateRun env expr =
 
   match expr with
     | { args = [code] } -> begin
+        let loc = Ast2.location expr in
         let exprInFunc =
-          Ast2.expr "func" [
-            idExpr "void";
-            callExpr [idExpr immediateFuncName];
-            opseqExpr [
+          Ast2.exprInferLoc "func" [
+            idExprLoc loc "void";
+            callExprInferLoc [idExprLoc loc immediateFuncName];
+            opseqExprLoc loc [
               code;
-              Ast2.expr macroReturn []]]
+              Ast2.exprLoc loc macroReturn []]]
         in
         try
           let { Result.flag; diagnostics; results = _ } = Expander.translate env exprInFunc in

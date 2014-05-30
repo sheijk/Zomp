@@ -529,6 +529,7 @@ end = struct
       implExprs
       (isVariadic : [`IsVariadic | `IsNotVariadic])
       =
+    let loc = Basics.fakeLocation in
     let argParamName = "macro_args" in
     let bindings = Bindings.addVar env.bindings
       (Lang.variable
@@ -539,22 +540,22 @@ end = struct
          ~location:None)
     in
     let buildParamFetchExpr num name =
-      Ast2.expr "std:base:localVar" [Ast2.idExpr name;
-                                     Ast2.expr "load" [
-                                       Ast2.expr "ptradd" [
-                                         Ast2.idExpr argParamName;
-                                         Ast2.idExpr (sprintf "%d" num)]
+      Ast2.exprInferLoc "std:base:localVar" [Ast2.idExprLoc loc name;
+                                     Ast2.exprInferLoc "load" [
+                                       Ast2.exprInferLoc "ptradd" [
+                                         Ast2.idExprLoc loc argParamName;
+                                         Ast2.idExprLoc loc (sprintf "%d" num)]
                                      ]]
     in
     let fetchParamExprs = Common.listMapi buildParamFetchExpr argNames in
-    let sexprImpl = Ast2.seqExpr (fetchParamExprs @ implExprs) in
+    let sexprImpl = Ast2.seqExprLoc loc (fetchParamExprs @ implExprs) in
     let _, xforms = env.translateF bindings sexprImpl in
     let initForms, implforms = extractToplevelForms xforms in
     let initForms = flattenNestedTLForms initForms in
     let astType =
       match lookupType bindings "ast" with
         | Some t -> t
-        | None -> raiseIllegalExpression (Ast2.idExpr "ast") "could not find prelude type 'ast'"
+        | None -> raiseIllegalExpression (Ast2.idExprLoc loc "ast") "could not find prelude type 'ast'"
     in
     let macroFunc =
       let fargs = [argParamName, `Pointer (`Pointer astType)]
@@ -567,6 +568,7 @@ end = struct
   let translateMacroCall macroName (`MacroFuncName macroFuncName) paramCount isVariadic =
     let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name:macroFuncName in
     (fun bindings expr ->
+       let loc = Ast2.location expr in
        let result =
          let args = expr.args in
          begin
@@ -583,7 +585,7 @@ end = struct
              | `IsNotVariadic -> begin
                  if argCount <> paramCount then begin
                    raiseIllegalExpression
-                     (Ast2.expr macroName args)
+                     (Ast2.exprLoc loc macroName args)
                      (sprintf "expected %d args but found %d" paramCount argCount);
                  end else begin
                    invokeMacro args
@@ -592,12 +594,12 @@ end = struct
              | `IsVariadic -> begin
                  if argCount < paramCount-1 then begin
                    raiseIllegalExpression
-                     (Ast2.expr macroName args)
+                     (Ast2.exprLoc loc macroName args)
                      (sprintf "expected at least %d args but found only %d"
                         (paramCount-1) argCount)
                  end;
                  let declaredArgs, variadicArgs = Common.splitAfter (paramCount-1) args in
-                 let inflatedArgs = declaredArgs @ [Ast2.seqExpr variadicArgs] in
+                 let inflatedArgs = declaredArgs @ [Ast2.seqExprLoc loc variadicArgs] in
                  invokeMacro inflatedArgs
                end
          end
@@ -1047,7 +1049,7 @@ struct
     in
     match expr with
       | { id = id; args = [typeExpr] } when id = macroMalloc ->
-          buildMallocInstruction typeExpr (Ast2.idExpr "1")
+          buildMallocInstruction typeExpr (Ast2.idExprLoc (Ast2.location expr) "1")
       | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
           buildMallocInstruction typeExpr countExpr
       | _ ->
@@ -1473,7 +1475,7 @@ struct
     in
     let fail () =
       errorFromExpr
-        (Ast2.expr "(record literal)" (typeExpr :: argExprs))
+        (Ast2.exprInferLoc "(record literal)" (typeExpr :: argExprs))
         (sprintf "%s is not a struct" (Ast2.toString typeExpr))
     in
     match lookup env.bindings typeExpr.id with
@@ -1526,9 +1528,10 @@ struct
 
             | (_::_), _ ->
               let tmpName = getUnusedName ~prefix:"opcall_func" env.bindings in
-              let tempVar = Ast2.expr "std:base:localVar" [Ast2.idExpr tmpName; firstArg] in
-              let callExpr = Ast2.expr "std:base:apply" (Ast2.idExpr tmpName :: remArgs) in
-              let r = env.translateF env.bindings ((Ast2.seqExpr [tempVar; callExpr]) >>= Ast2.withLoc (Ast2.location expr)) in
+              let loc = Ast2.location expr in
+              let tempVar = Ast2.exprLoc loc "std:base:localVar" [Ast2.idExprLoc loc tmpName; firstArg] in
+              let callExpr = Ast2.exprLoc loc "std:base:apply" (Ast2.idExprLoc loc tmpName :: remArgs) in
+              let r = env.translateF env.bindings (Ast2.seqExprLoc loc [tempVar; callExpr]) in
               Result r
         in
         begin match translateType env.bindings firstArg with
@@ -1885,7 +1888,7 @@ let rec translateNested (env :nestedEnv) (expr :Ast2.sexpr) : translationResult 
         translateNested env
           (expr >>=
              Ast2.withId macroFunCall >>=
-             Ast2.withArgs (idExpr expr.id ::expr.args))
+             Ast2.withArgs (Ast2.withArgs [] expr :: expr.args))
 
       | MacroSymbol macro ->
         (match Old_macro_support.translateMacroCall env expr with
@@ -2096,7 +2099,7 @@ let matchFunc tlenv expr =
           let msg = sprintf "%s parameter needs to have shape 'typeExpr id'" $ formatNth argNum in
           let error = Serror.fromExpr invalidExpr msg in
           EnvTL.emitError tlenv error;
-          ("_", Ast2.idExpr (typeName $ `ErrorType "")) :: loop previousNames remArgs
+          ("_", Ast2.idExprLoc (Ast2.location invalidExpr) (typeName $ `ErrorType "")) :: loop previousNames remArgs
     in
 
     loop StringSet.empty args, !varargs
@@ -2444,8 +2447,8 @@ let translateTypedef tlenv expr : unit =
             raiseIllegalExpressions typeExpr errors
       in
       function
-        | { id = typeName; args = [{ id = componentName; args = []}] } ->
-          translate componentName (Ast2.idExpr typeName)
+        | { id = typeName; args = [{ id = componentName; args = []}] } as expr ->
+          translate componentName (Ast2.idExprLoc (Ast2.location expr) typeName)
         | { id = seq; args = [typeExpr; { id = componentName; args = [] }] }
             when seq = macroSequence || seq = macroJuxOp ->
           translate componentName typeExpr

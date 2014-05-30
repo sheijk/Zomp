@@ -22,17 +22,17 @@ let newUniqueName() =
 
 (** will turn #foo into (astFromInt foo) if foo evaluates to `Int etc. *)
 let insertAstConstructors bindings =
-  fun id args ->
-    let default = Ast2.expr id args in
+  fun loc id args ->
+    let default = Ast2.exprLoc loc id args in
     match args with
       | [] ->
         begin match lookup bindings id with
           | VarSymbol { typ = `Int32 } ->
-            Ast2.expr "ast:fromInt" [idExpr id]
+            Ast2.exprLoc loc "ast:fromInt" [idExprLoc loc id]
           | VarSymbol { typ = `Float } ->
-            Ast2.expr "ast:fromFloat" [idExpr id]
+            Ast2.exprLoc loc "ast:fromFloat" [idExprLoc loc id]
           | VarSymbol { typ = `Pointer `Char } ->
-            Ast2.expr "ast:fromString" [idExpr id]
+            Ast2.exprLoc loc "ast:fromString" [idExprLoc loc id]
           | _ ->
             default
         end
@@ -42,13 +42,13 @@ let sexpr2codeNoAntiquotes recursion expr =
   let astFromString id locationOpt =
     match locationOpt with
       | Some loc ->
-        simpleExpr "ast:fromStringLoc"
+        simpleExprLoc loc "ast:fromStringLoc"
           [id;
            "\"" ^ loc.Basics.fileName ^ "\"";
            sprintf "%d" loc.Basics.line;
            sprintf "%d" (someOrDefault loc.Basics.column 0)]
       | None ->
-        simpleExpr "ast:fromString" [id]
+        simpleExprLoc Basics.fakeLocation "ast:fromString" [id]
   in
   match expr with
     | { id = id; args = [] } ->
@@ -60,32 +60,33 @@ let sexpr2codeNoAntiquotes recursion expr =
       astFromString fixedId expr.location
     | sexprWithArgs ->
       let tempVarName = newUniqueName() in
+      let loc = Ast2.location expr in
       let defVarExpr =
         Ast2.exprLoc
-          (Ast2.location expr)
+          loc
           "var"
-          [simpleExpr "ptr" ["ast"];
-            idExpr tempVarName;
+          [simpleExprLoc loc "ptr" ["ast"];
+            idExprLoc loc tempVarName;
             astFromString ("\"" ^ sexprWithArgs.id ^ "\"") expr.location]
       in
-      let returnExpr = idExpr tempVarName in
+      let returnExpr = idExprLoc loc tempVarName in
       let addChildExpr childExpr =
         Ast2.exprLoc
           Basics.fakeLocation
           "ast:addChild"
-          [idExpr tempVarName;
+          [idExprLoc loc tempVarName;
            childExpr;]
       in
       let argExprs = List.map recursion sexprWithArgs.args in
       let argAddExprs = List.map addChildExpr argExprs in
-      seqExpr( [defVarExpr] @ argAddExprs @ [returnExpr] )
+      seqExprLoc loc ([defVarExpr] @ argAddExprs @ [returnExpr])
 
 let rec sexpr2codeasis expr = sexpr2codeNoAntiquotes sexpr2codeasis expr
 
-let rec sexpr2code ?(antiquoteF = Ast2.expr) = function
-  | { id = "antiquote"; args = [{ id = id; args = args}] } ->
+let rec sexpr2code ?(antiquoteF = Ast2.exprLoc) = function
+  | { id = "antiquote"; args = [{ id = id; args = args} as expr] } ->
     begin
-      antiquoteF id args
+      antiquoteF (Ast2.location expr) id args
     end
   | expr ->
     sexpr2codeNoAntiquotes (sexpr2code ~antiquoteF) expr
@@ -100,29 +101,31 @@ let builtinMacros =
       macro "quote"
         "ast..."
         (fun bindings expr ->
+          let loc = Ast2.location expr in
           match expr.args with
             | [quotedExpr] -> sexpr2code ~antiquoteF:(insertAstConstructors bindings) quotedExpr
-            | [] -> simpleExpr "ast:fromString" ["seq"]
-            | args -> Ast2.expr "quote" args
-        )
+            | [] -> simpleExprLoc loc "ast:fromString" ["seq"]
+            | args -> Ast2.exprLoc loc "quote" args)
     in
     let quoteasisMacro =
       macro "quoteasis" "ast..."
         (fun bindings expr ->
+          let loc = Ast2.location expr in
           match expr.args with
             | [quotedExpr] -> sexpr2codeasis quotedExpr
-            | [] -> simpleExpr "ast:fromString" ["seq"]
-            | args -> Ast2.expr "quote" args
+            | [] -> simpleExprLoc loc "ast:fromString" ["seq"]
+            | args -> Ast2.exprLoc loc "quote" args
         )
     in
     let bindingsIsNameUsed =
       macro "std:bindings:isNameUsed" "name"
         (fun bindings expr ->
+          let loc = Ast2.location expr in
           match expr.args with
             | [{ id = name; args = []}] ->
               begin match Bindings.lookup bindings name with
-                | Bindings.UndefinedSymbol -> idExpr "false"
-                | _ -> idExpr "true"
+                | Bindings.UndefinedSymbol -> idExprLoc loc "false"
+                | _ -> idExprLoc loc "true"
               end
             | _ ->
               raiseCodeGenError ~msg:("std:bindings:isNameUsed expects exactly one argument")
@@ -132,21 +135,21 @@ let builtinMacros =
       let syntax = "name ('hasType' typeVar code ...) ('notFound' code ...)" in
       macro "std:bindings:matchVar" syntax
         (fun bindings expr ->
+          let loc = Ast2.location expr in
           match expr.args with
             | [ {id = name; args = []};
                 {id = "hasType"; args = {id = typeVar; args = []} :: onFound};
                 {id = "notFound"; args = onNotFound}] ->
               begin match lookup bindings name with
                 | VarSymbol var ->
-                  replaceParams [typeVar] [idExpr (typeName var.typ)]
-                    (seqExpr onFound)
+                  replaceParams [typeVar] [idExprLoc loc (typeName var.typ)]
+                    (seqExprLoc loc onFound)
                 | _ ->
-                  seqExpr onNotFound
+                  seqExprLoc loc onNotFound
               end
             | _ ->
               raiseCodeGenError ~msg:(
-                sprintf "std:bindings:matchVar expects syntax %s" syntax)
-        )
+                sprintf "std:bindings:matchVar expects syntax %s" syntax))
     in
     let testMacro =
       let calls1i functionName arg =
@@ -161,14 +164,15 @@ let builtinMacros =
       in
       macro "std:test" "()"
         (fun bindings args ->
+          let loc = Ast2.location args in
           let sexprAddress = Machine.zompSimpleAst "foobar" in
           if Machine.zompAstIsNull sexprAddress then begin
             Machine.zompAddChild sexprAddress (Machine.zompSimpleAst "child");
             let name = calls1i "macroAstId" sexprAddress in
             let childCount = calli1i "macroAstChildCount" sexprAddress in
-            Ast2.simpleExpr "was" [name; string_of_int childCount]
+            Ast2.simpleExprLoc loc "was" [name; string_of_int childCount]
           end else begin
-            Ast2.simpleExpr "returned NULL pointer" []
+            Ast2.simpleExprLoc loc "returned NULL pointer" []
           end)
     in
 
@@ -182,36 +186,38 @@ let builtinMacros =
     in
     let opseqMacro =
       macro "opseq" "opseq args..."
-        (fun bindings expr -> Ast2.seqExpr expr.args)
+        (fun bindings expr -> Ast2.seqExprLoc (Ast2.location expr) expr.args)
     in
 
     let isInteractiveMacro =
       macro "std:vm:isInteractive" "bool()"
         (fun bindings expr ->
-          Ast2.idExpr (if Zompvm.isInteractive() then "true" else "false"))
+          Ast2.idExprLoc (Ast2.location expr) (if Zompvm.isInteractive() then "true" else "false"))
     in
 
     let setTraceMacroExpansionMacro =
       macro "std:compiler:setTraceMacroExpansion" "bool"
         (fun bindings expr ->
+          let loc = Ast2.location expr in
           match expr.args with
             | [{ Ast2.id = "true" | "false" as newState; args = [] }] ->
               Zompvm.traceMacroExpansionOn := (newState = "true");
               printf "%s\n" (Basics.formatInfo (Ast2.locationOr expr Basics.fakeLocation)
                                (sprintf "set trace macro expansion to %s" newState));
               flush stdout;
-              Ast2.emptyExpr
+              Ast2.emptyExprLoc loc
             | _ ->
-              Ast2.idExpr "error")
+              Ast2.idExprLoc loc "error")
     in
     let getTraceMacroExpansionMacro =
       macro "std:compiler:getTraceMacroExpansion" "bool"
         (fun bindings expr ->
+          let loc = Ast2.location expr in
           match expr.args with
             | [] ->
-              Ast2.idExpr (if !(Zompvm.traceMacroExpansionOn) then "true" else "false")
+              Ast2.idExprLoc loc (if !(Zompvm.traceMacroExpansionOn) then "true" else "false")
             | _ ->
-              Ast2.idExpr "error")
+              Ast2.idExprLoc loc "error")
     in
 
     [

@@ -49,8 +49,7 @@
 
   let idExprLoc id loc =
     let l = getLocation loc in
-    let e = idExpr id in
-    Ast2.withLoc l e
+    Ast2.idExprLoc l id
 
   let quoteId = function
     | "`" -> "quote"
@@ -89,7 +88,7 @@
                (Common.combine " " terminators)
                (toString expr) )
     in
-    checkAll (idExpr expr.id :: expr.args, terminators)
+    checkAll (Ast2.idExprLoc Basics.fakeLocation expr.id :: expr.args, terminators)
 
   let expectNoTerminators = function
     | [] -> ()
@@ -123,7 +122,7 @@
   let rec extractKeywordsAndExprsAndCheckTerminators = function
     | [] -> []
     | [(keyword, (expr, terminators))] ->
-        checkTerminators (idExpr keyword) terminators;
+        checkTerminators (Ast2.idExprLoc fakeLocation keyword) terminators;
         [(keyword, expr)]
     | (keyword, (expr, [])) :: rem ->
         (keyword, expr) :: extractKeywordsAndExprsAndCheckTerminators rem
@@ -132,7 +131,7 @@
                            (Common.combine ", " terminators)
                            (toString expr))
 
-  let keywordAndExprToList (keyword, expr) = [idExpr keyword; expr]
+  let keywordAndExprToList (keyword, expr) = [Ast2.idExprLoc fakeLocation keyword; expr]
 %}
 
 %token <string> IDENTIFIER

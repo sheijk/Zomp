@@ -57,7 +57,7 @@ struct
   let rec extractSExprFromNativeAst astAddress =
     incr totalOCamlAstsConverted;
     if zompAstIsNull astAddress then
-      Ast2.idExpr "error, macro returned NULL"
+      Ast2.idExprLoc Basics.fakeLocation "error, macro returned NULL"
     else
       let name =
         let extracted = Machine.zompAstId astAddress in
@@ -81,11 +81,10 @@ struct
         (zompAstLine astAddress)
         (Some (zompAstColumn astAddress))
       in
-      let exprNoLoc = Ast2.expr name childs in
       if Basics.locationValid location then
-          Ast2.withLoc location exprNoLoc
+        Ast2.exprLoc location name childs
       else
-          exprNoLoc
+        Ast2.exprNoLoc name childs
 
   let extractSExprFromNativeAst astAddress =
     addTiming ocamlAstsConvertedSeconds (fun () -> extractSExprFromNativeAst astAddress)
