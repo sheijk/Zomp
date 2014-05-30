@@ -272,13 +272,21 @@ end
 std:base:func void ast:print((ptr ast) a, int indent):
   printIndent indent
   printString (load (fieldptr a id))
+
+  printString " @"
+  printString ast:file(a)
+  printString ":"
+  printInt ast:line(a)
+
   var int childCount (getField a childCount)
   var bool hasChilds (u32:sgreater childCount 0)
   branch hasChilds hasChildsYes hasChildsNo
+
   label hasChildsYes
   printString " ["
   printInt childCount
   printString " childs]"
+
   label hasChildsNo
   printNewline()
 
