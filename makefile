@@ -57,6 +57,7 @@ BUILD_DIR_BASE = build
 BUILD_DIR = $(BUILD_DIR_BASE)/$(BUILD_VARIANT)
 DEPLOY_DIR = $(BUILD_DIR)/deploy
 OUT_DIR = $(BUILD_DIR)/intermediate
+CAML_DOC_DIR = $(BUILD_DIR)/doc
 TESTSUITE_OUT_DIR = $(BUILD_DIR)/testsuite
 
 ZOMP_DLL_FILE = $(DEPLOY_DIR)/dllzompvm.so
@@ -72,6 +73,7 @@ $(BUILD_DIR)/.exists:
 	mkdir -p $(DEPLOY_DIR)
 	mkdir -p $(OUT_DIR)
 	mkdir -p $(TESTSUITE_OUT_DIR)
+	mkdir -p $(CAML_DOC_DIR)
 	touch $@
 
 include source/build/flymake.mk
@@ -281,6 +283,8 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "Report generated at `date \"+%Y-%m-%d %H:%M:%S\"`<br />" >> $@
 	-echo "Version $(MAKE_VERSION_STRING) <br />" >> $@
 	echo "Build variant = $(BUILD_VARIANT) <br />" >> $@
+	echo "<br />" >> $@
+	echo "Documentation: <a href=\"intermediate/caml-modules.svg\">OCaml modules deps</a>, <a href=\"intermediate/caml-types.svg\">types</a>, <a href=\"doc/index.html\">documentation</a><br />" >> $@
 	$(MAKE_REPORT) "Unit tests" $(filter-out testsuite/check_test_verify/%, $(sort $(TESTSUITE_CASES:.testreport=))) >> $@
 	./libs/make_libs_result_files.sh $(ZOMP_LIBS_SRC)
 	$(MAKE_REPORT) "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
@@ -685,6 +689,16 @@ TAGS:
 	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
 
 ################################################################################
+# Documentation
+################################################################################
+
+ALL_TARGETS += doc
+.PHONY: doc
+doc:
+	mkdir -p $(CAML_DOC_DIR)
+	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -html -d $(CAML_DOC_DIR) $(CAMLDEP_INPUT)
+
+################################################################################
 # Visualize OCaml module dependencies
 ################################################################################
 
@@ -799,6 +813,9 @@ clean_tags:
 	$(DELETE_FILE) testsuite/*.annot
 	$(DELETE_FILE) TAGS
 	$(DELETE_FILE) $(FLYMAKE_LOG)
+
+clean_doc:
+	rm -rf $(CAML_DOC_DIR)
 
 clean_all: clean clean_tags
 
