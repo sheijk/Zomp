@@ -5,30 +5,33 @@
 FLYMAKE_LOG=$(BUILD_DIR_BASE)/flymake-log.txt
 FLYMAKE_BUILD=$(BUILD_DIR_BASE)/flymake-last-build.txt
 
-flymake.ml:
+flymake.ml.check:
 	@echo Checking OCaml files $(CHK_SOURCES)
 	@rm -f $(FLYMAKE_BUILD)
 	@($(OCAMLC) $(CAML_FLAGS) -c $(CHK_SOURCES) -o /tmp/flymake_temp.cmo 2>&1) | tee $(FLYMAKE_BUILD)
 	@perl -pe "s/_flymake//g" < $(CHK_SOURCES:.ml=.annot) > $(CHK_SOURCES:_flymake.ml=.annot)
 	@cat $(FLYMAKE_BUILD)
 
-flymake.mli: flymake.ml
+flymake.mli.check: flymake.ml.check
+
+flymake.mly.check:
+	$(MENHIR) $(MENHIR_FLAGS) --ocamlc "$(OCAMLC) $(CAML_FLAGS)" --infer $(CHK_SOURCES)
 
 LLVM_CXXFLAGS = -I/Users/sheijk/Documents/Development/dword/trunk/Stuff/ocaml/lang/git/tools/llvm/Release/include  -D_DEBUG  -D_GNU_SOURCE -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -O3   -Woverloaded-virtual
 LLVM_CFLAGS = -I/Users/sheijk/Documents/Development/dword/trunk/Stuff/ocaml/lang/git/tools/llvm/Release/include  -D_DEBUG  -D_GNU_SOURCE -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -O3  
 
-flymake.cpp:
+flymake.cpp.check:
 	@$(CLANGXX) -c $(CHK_SOURCES) $(CXXFLAGS) -Wall $(LLVM_CXXFLAGS) -fsyntax-only
 
-flymake.c:
+flymake.c.check:
 	@$(CLANG) -c $(CHK_SOURCES) $(CCFLAGS) -Wall $(LLVM_CFLAGS) -fsyntax-only
 
-flymake.zomp:
+flymake.zomp.check:
 	echo "Running '$(ZOMPC) --zomp-include-dir .. -c $(CHK_SOURCES) $(ZOMPCFLAGS)'" > $(FLYMAKE_BUILD)
 	$(ZOMPC) -c $(CHK_SOURCES) $(ZOMPCFLAGS) >> $(FLYMAKE_BUILD)
 	cat $(FLYMAKE_BUILD)
 
-check-source: flymake$(suffix $(CHK_SOURCES))
+check-source: flymake$(suffix $(CHK_SOURCES)).check
 	@cat $(FLYMAKE_BUILD) || exit 0
 
 ifndef FLYMAKE_LOG
