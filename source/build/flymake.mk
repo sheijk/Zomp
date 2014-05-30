@@ -21,7 +21,12 @@ cpp_check:
 c_check:
 	@$(CLANG) -c $(CHK_SOURCES) $(CCFLAGS) -Wall $(LLVM_CFLAGS) -fsyntax-only
 
-check-source: $(patsubst %.c,c_check, $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES))))
+zomp_check:
+	echo "Running '$(ZOMPC) --zomp-include-dir .. -c $(CHK_SOURCES) $(ZOMPCFLAGS)'" > $(FLYMAKE_BUILD)
+	$(ZOMPC) -c $(CHK_SOURCES) $(ZOMPCFLAGS) >> $(FLYMAKE_BUILD)
+	cat $(FLYMAKE_BUILD)
+
+check-source: $(patsubst %.zomp,zomp_check, $(patsubst %.c,c_check, $(patsubst %.ml,ml_check, $(patsubst %.cpp,cpp_check,$(CHK_SOURCES)))))
 	@cat $(FLYMAKE_BUILD) || exit 0
 
 ifndef FLYMAKE_LOG
@@ -31,7 +36,7 @@ FLYMAKE_TARGET=flymake_dispatch
 endif
 
 flymake_log:
-	@echo `date "+%Y-%m-%d %H:%M:%S"` checking $(CHK_SOURCES) >> $(FLYMAKE_LOG)
+	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') checking $(CHK_SOURCES)" >> $(FLYMAKE_LOG)
 
 flymake_dispatch: flymake_log check-source
 	@rm -f *_flymake.cpp

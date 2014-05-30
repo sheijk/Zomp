@@ -1213,6 +1213,10 @@ known to the Zomp shell."
     (document . zomp-ac-help))
   "`auto-complete' source for Zomp.")
 
+(add-to-list
+ 'flymake-allowed-file-name-masks
+ '("\\.zomp\\'" flymake-simple-make-init flymake-simple-cleanup))
+
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
   css section. To get it copy the css annotations from the
