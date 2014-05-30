@@ -483,7 +483,7 @@ struct
    * after transferring from native code *)
   let rec withDefaultSourceLocation location expr =
     let fixedArgs = List.map (withDefaultSourceLocation location) expr.args in
-    match expr.location with
+    match Basics.filterValidLocation expr.location with
       | Some _ ->
         expr >>= Ast2.withArgs fixedArgs
       | None ->
@@ -491,7 +491,27 @@ struct
           Ast2.withLoc location >>=
           Ast2.withArgs fixedArgs
 
-  (* todo: use env *)
+  let rec propagateLocationUp expr =
+    let fixedArgs = List.map propagateLocationUp expr.args in
+    match Basics.locationValid (someOrDefault expr.location Basics.fakeLocation), fixedArgs with
+      | true, _
+      | false, []
+      | false, { location = None } :: _ ->
+        expr >>= Ast2.withArgs fixedArgs
+      | false, { location = Some loc } :: _ ->
+        expr >>=
+          Ast2.withArgs fixedArgs >>=
+          Ast2.withLoc loc
+
+  let expandMacroAndFixLocations bindings func expr =
+    let withBrokenLocations = func bindings expr in
+    let locationPropagatedUp = propagateLocationUp withBrokenLocations in
+    match Basics.filterValidLocation expr.location with
+      | Some location ->
+        withDefaultSourceLocation location locationPropagatedUp
+      | None ->
+        locationPropagatedUp
+
   let translateMacroCall (env :nestedEnv) expr =
     match expr with
       | { id = macroName; args = args; } ->
@@ -499,14 +519,7 @@ struct
           | MacroSymbol macro ->
             begin
               try
-                let transformedExpr =
-                  let withBrokenLocations = macro.mtransformFunc env.bindings expr in
-                  match expr.location with
-                    | Some location ->
-                      withDefaultSourceLocation location withBrokenLocations
-                    | None ->
-                      withBrokenLocations
-                in
+                let transformedExpr = expandMacroAndFixLocations env.bindings macro.mtransformFunc expr in
                 Some (env.translateF env.bindings transformedExpr)
               with
                 | Failure msg ->
@@ -2059,8 +2072,7 @@ end = struct
 
     match Bindings.lookup (bindings tlenv) expr.id with
       | MacroSymbol macro ->
-        let newAst = macro.mtransformFunc (bindings tlenv) expr in
-          (* TODO: fix locations, see Old_macro_support.translateMacroCall *)
+        let newAst = Old_macro_support.expandMacroAndFixLocations (bindings tlenv) macro.mtransformFunc expr in
         emitExprUnsafe tlenv newAst
       | VarSymbol _ | FuncSymbol _ | TypedefSymbol _ | LabelSymbol _ as sym ->
         emitError tlenv (Serror.fromExpr expr $ sprintf "%s at toplevel not allowed" (kindToString sym))

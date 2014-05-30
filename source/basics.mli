@@ -15,6 +15,7 @@ val locationOptToString : location option -> string
 
 val locationEqual : location -> location -> bool
 val locationValid : location -> bool
+val filterValidLocation : location option -> location option
 
 module DiagnosticKind :
 sig

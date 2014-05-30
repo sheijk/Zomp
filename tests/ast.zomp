@@ -1,4 +1,48 @@
 
+func bool ast:locationValid(ast* code):
+  if (u32:equal (cast int (getField code file)) 0):
+    std:base:ret false
+  end
+
+  if (getField code file ==_str "???.zomp"):
+    std:base:ret false
+  end
+
+  std:base:ret true
+end
+
+/// Will propagate location of ASTs upwards to their parents if the parent does
+/// not have a valid location.
+func void ast:propagateLocationUpwards(ast* code):
+  forEachAstChild child code:
+    ast:propagateLocationUpwards(child)
+  end
+
+  if bool:not(ast:locationValid(code)):
+    printString "invalid location, looking for valid one in childs\n"
+    forEachAstChild child2 code:
+      if ast:locationValid(child2):
+        printString "updated location\n"
+        ast:setLocation(code, getField child2 file, getField child2 line, getField child2 column)
+        std:base:ret
+      end
+    end
+  end
+end
+
+/// Will propagate location of ASTs to their childs if childs do not have valid
+/// locations.
+func void ast:propagateLocationDownwards(ast* code, ast* parent):
+  if u32:notEqual(cast int parent, 0):
+    if (bool:not ast:locationValid(code) && ast:locationValid(parent)):
+      ast:setLocation(code, ast:file(parent), ast:line(parent), ast:column(parent))
+    end
+  end
+
+  forEachAstChild child2 code:
+    ast:propagateLocationDownwards(child2, code)
+  end
+end
 
 (func void quoteTest () (
   (printlnString "Printing quoted ast:")

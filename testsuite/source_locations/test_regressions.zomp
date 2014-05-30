@@ -4,8 +4,8 @@
 
 requireLibs libcee unittest
 
-func void invalidReturnType():
-  return 10 //// error type void int
+func void invalidReturnType(): //// error type void u32
+  std:base:ret 10
 end
 
 func int main():

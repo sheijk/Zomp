@@ -40,8 +40,14 @@ let locationEqual lhs rhs =
 let locationValid = function
   | { fileName = ""; line = 0; column = (Some 0 | None) } ->
     false
+  | { fileName = "???.zomp" } ->
+    false
   | _ ->
     true
+
+let filterValidLocation = function
+  | Some loc -> if locationValid loc then Some loc else None
+  | None -> None
 
 module DiagnosticKind =
 struct
