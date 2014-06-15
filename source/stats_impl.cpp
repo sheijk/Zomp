@@ -64,6 +64,8 @@ protected:
     }
 
 public:
+    virtual ~Counter() {}
+
     Counter* next()
     {
         return next_;
@@ -313,7 +315,7 @@ void statsCreateCamlIntCounter(const char* sectionName, const char* name, int fr
 
     if(section != NULL)
     {
-        statsCreateIntCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValue);
+        statsCreateIntCounter(section, name, fractionalDigits, (void*)(ptrdiff_t)id, ReturnCamlCounterValue);
     }
 }
 
@@ -332,7 +334,7 @@ void statsCreateCamlFloatCounter(const char* sectionName, const char* name, int 
 
     if(section != NULL)
     {
-        statsCreateFloatCounter(section, name, fractionalDigits, (void*)id, ReturnCamlCounterValueFloat);
+        statsCreateFloatCounter(section, name, fractionalDigits, (void*)(ptrdiff_t)id, ReturnCamlCounterValueFloat);
     }
 }
 

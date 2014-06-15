@@ -2,6 +2,7 @@
 #define ZOMPUTILS_H_2009_09_27_INCLUDED
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _MSC_VER
 #define ZOMP_WINDOWS

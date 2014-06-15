@@ -1,6 +1,7 @@
 
 #include <map>
 #include <string>
+#include <stdlib.h>
 
 // A simple C interface to std::map
 extern "C"

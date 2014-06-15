@@ -13,6 +13,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <map>
+#include <unistd.h>
 
 #include <curl/curl.h>
 
