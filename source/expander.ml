@@ -2669,7 +2669,7 @@ end = struct
             match Common.findFileIn fileName !dllPath with
               | Some absoluteFileName ->
                 let handle = Zompvm.loadLib absoluteFileName in
-                if Zompvm.isNullPtr handle then
+                if Zompvm.isNullPtr (Zompvm.DllHandle.addr handle) then
                   EnvTL.emitError env $ Serror.fromMsg (Some location)
                     (sprintf "could not load C library '%s'\n" absoluteFileName)
                 else

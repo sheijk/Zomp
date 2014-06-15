@@ -1,6 +1,6 @@
 (** Interface to the virtual machine (LLVM). **)
 
-type cptr = Machine.cptr
+type cptr
 val isNullPtr : cptr -> bool
 
 val init : unit -> bool
@@ -21,14 +21,18 @@ val printModuleCode : unit -> unit
 
 (** Convert between OCaml and native representation of ASTs. *)
 module NativeAst : sig
-  val isValidId : string -> bool
-  val extractSExprFromNativeAst : cptr -> Ast2.sexpr
-  val applyLocation : cptr -> Ast2.sexpr -> cptr
-  val buildNativeAst : Ast2.sexpr -> cptr
+  type t
 
-  val simple : string -> cptr
-  val isNull : cptr -> bool
-  val addChild : cptr -> cptr -> unit
+  val addr : t -> cptr
+
+  val isValidId : string -> bool
+  val extractSExprFromNativeAst : t -> Ast2.sexpr
+  val applyLocation : t -> Ast2.sexpr -> t
+  val buildNativeAst : Ast2.sexpr -> t
+
+  val simple : string -> t
+  val isNull : t -> bool
+  val addChild : t -> t -> unit
 end
 
 module Call : sig
@@ -44,11 +48,13 @@ module Call : sig
 end
 
 module Macros : sig
-  val resetArgs : unit -> unit
-  val addArg : cptr -> unit
-  val call : cptr -> cptr
+  type func
 
-  val addressOfMacroFunction : name:string -> cptr
+  val resetArgs : unit -> unit
+  val addArg : NativeAst.t -> unit
+  val call : func -> NativeAst.t
+
+  val addressOfMacroFunction : name:string -> func
 end
 
 module Remote : sig
@@ -70,8 +76,15 @@ val evalLLVMCode : Lang.toplevelExpr list -> string -> unit
     it. Does not throw but prints errors to stderr. *)
 val loadLLVMFile : string -> unit
 
+
+(** Handle for a loaded DLL *)
+module DllHandle : sig
+  type t
+  val addr : t -> cptr
+end
+
 (** Loads a dynamic library. *)
-val loadLib : string -> cptr
+val loadLib : string -> DllHandle.t
 
 (** Hack to work around lack of passing environment to macros. *)
 val currentBindings : Bindings.t ref

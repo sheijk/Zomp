@@ -46,6 +46,10 @@ let zompvmSection = Statistics.createSection "zompvm"
 (** Utilities to convert between Ast2.sexpr and Zomp native AST *)
 module NativeAst =
 struct
+  type t = cptr
+
+  let addr ast = ast
+
   let totalNativeAstsConverted = ref 0
   let nativeAstsConvertedSeconds = ref 0.0
   let totalOCamlAstsConverted = ref 0
@@ -143,6 +147,8 @@ end
 
 module Macros =
 struct
+  type func = cptr
+
   let resetArgs() = Machine.zompResetMacroArgs()
   let addArg ast = Machine.zompAddMacroArg ast
   let call f = Machine.zompCallMacro f
@@ -202,6 +208,12 @@ let loadLLVMFile filename =
   with
       Sys_error message ->
         eprintf "could not load file %s: %s\n" filename message
+
+module DllHandle =
+struct
+  type t = cptr
+  let addr handle = handle
+end
 
 let loadLib name = Machine.zompLoadLib name
 

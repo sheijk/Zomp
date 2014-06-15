@@ -152,19 +152,19 @@ let builtinMacros =
                 sprintf "std:bindings:matchVar expects syntax %s" syntax))
     in
     let testMacro =
-      let calls1i functionName arg =
+      let module NAst = Zompvm.NativeAst in
+      let calls1i functionName ast =
         Zompvm.Call.reset();
-        Zompvm.Call.addPointerArg arg;
+        Zompvm.Call.addPointerArg (NAst.addr ast);
         Zompvm.Call.string functionName
       in
-      let calli1i functionName arg =
+      let calli1i functionName ast =
         Zompvm.Call.reset();
-        Zompvm.Call.addPointerArg arg;
+        Zompvm.Call.addPointerArg (NAst.addr ast);
         Zompvm.Call.int functionName
       in
       macro "std:test" "()"
         (fun bindings args ->
-          let module NAst = Zompvm.NativeAst in
           let loc = Ast2.location args in
           let sexprAddress = NAst.simple "foobar" in
           if NAst.isNull sexprAddress then begin
