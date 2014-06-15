@@ -3,20 +3,33 @@
 type cptr
 val isNullPtr : cptr -> bool
 
+(** Create and initialize the VM *)
 val init : unit -> bool
+(** Shutdown the VM. De-allocates all resources. Using any function in this
+module after calling this is illegal. *)
 val shutdown : unit -> unit
 
+(** Will verify generated LLVM code if this is true. *)
 val setVerifyCode : bool -> unit
 val verifyCode : unit -> bool
+(** Will run a set of standard optimizations on every function before generating
+native code. *)
 val autoOptimizeFunctions : unit -> bool
 val setAutoOptimizeFunctions : bool -> unit
 
+(** Will run a set of standard optimizations on all functions and re-generate
+native code. *)
 val optimizeCode : unit -> unit
 
+(** Humand readable description of build variant, target, etc. *)
 val buildInfo : unit -> string
+(** Whether this build has debug info. *)
 val isDebugBuild : unit -> bool
+(** Will print some timing statistics to stdout. *)
 val printTimingStats : unit -> unit
+(** Will write all generated LLVM code to the given file (for debugging). *)
 val writeLLVMCodeToFile : string -> unit
+(** Will dump the LLVM module. *)
 val printModuleCode : unit -> unit
 
 (** Convert between OCaml and native representation of ASTs. *)
@@ -35,6 +48,7 @@ module NativeAst : sig
   val addChild : t -> t -> unit
 end
 
+(** Call LLVM functions. *)
 module Call : sig
   val reset : unit -> unit
   val addPointerArg : cptr -> unit
@@ -47,6 +61,7 @@ module Call : sig
   val bool : name:string -> bool
 end
 
+(** Call LLVM macro functions. *)
 module Macros : sig
   type func
 
@@ -57,6 +72,7 @@ module Macros : sig
   val addressOfMacroFunction : name:string -> func
 end
 
+(** Interact with remote VM. *)
 module Remote : sig
   val connect : uri:string -> bool
   val disconnect : unit -> unit
