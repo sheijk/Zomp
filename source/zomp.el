@@ -1285,6 +1285,25 @@ known to the Zomp shell."
           (next-line)
           )))))
 
+(when (ignore-errors (require 'dash))
+  (define-generic-mode zomp-skel-mode
+    (list "#")
+    (list "include" "const")
+    (list
+     (list (format "\\b\\(%s\\)\\b"
+                   (apply 'concat
+                          (-interpose
+                           "\\|"
+                           (list "GLenum" "GLbitfield" "GLchar"
+                                 "GLbyte" "GLubyte" "GLshort" "GLushort"
+                                 "GLfloat" "GLdouble" "GLclampf" "GLclampd"
+                                 "GLint" "GLuint" "GLboolean" "GLsizei"
+                                 "float" "double" "int" "bool" "void"))))
+           0 font-lock-type-face))
+    (list "\\.skel")
+    nil
+    "A simple mode for for skel files containing a GLEW style API definition."))
+
 (provide 'zomp)
 
 ;;; zomp.el ends here
