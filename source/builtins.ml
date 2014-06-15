@@ -153,21 +153,22 @@ let builtinMacros =
     in
     let testMacro =
       let calls1i functionName arg =
-        Machine.zompResetArgs();
-        Machine.zompAddPointerArg arg;
-        Machine.zompRunFunctionStringWithArgs functionName
+        Zompvm.Call.reset();
+        Zompvm.Call.addPointerArg arg;
+        Zompvm.Call.string functionName
       in
       let calli1i functionName arg =
-        Machine.zompResetArgs();
-        Machine.zompAddPointerArg arg;
-        Machine.zompRunFunctionIntWithArgs functionName
+        Zompvm.Call.reset();
+        Zompvm.Call.addPointerArg arg;
+        Zompvm.Call.int functionName
       in
       macro "std:test" "()"
         (fun bindings args ->
+          let module NAst = Zompvm.NativeAst in
           let loc = Ast2.location args in
-          let sexprAddress = Machine.zompSimpleAst "foobar" in
-          if Machine.zompAstIsNull sexprAddress then begin
-            Machine.zompAddChild sexprAddress (Machine.zompSimpleAst "child");
+          let sexprAddress = NAst.simple "foobar" in
+          if NAst.isNull sexprAddress then begin
+            NAst.addChild sexprAddress (NAst.simple "child");
             let name = calls1i "macroAstId" sexprAddress in
             let childCount = calli1i "macroAstChildCount" sexprAddress in
             Ast2.simpleExprLoc loc "was" [name; string_of_int childCount]

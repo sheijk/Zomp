@@ -44,17 +44,18 @@ let runFunction bindings funcname =
   match Bindings.lookup bindings funcname with
     | FuncSymbol func ->
       begin
+        Zompvm.Call.reset();
         match func.rettype with
           | `Void ->
-            Machine.zompRunFunction funcname;
+            Zompvm.Call.void funcname;
           | `Int32 ->
-            let retval = Machine.zompRunFunctionInt funcname in
+            let retval = Zompvm.Call.int funcname in
             printf " => %d\n" retval
           | `Bool ->
-            let retval = Machine.zompRunFunctionBool funcname in
+            let retval = Zompvm.Call.bool funcname in
             printf " => %b\n" retval
           | `Pointer `Char ->
-            let retval = Machine.zompRunFunctionString funcname in
+            let retval = Zompvm.Call.string funcname in
             printf " => %s\n" retval
           | otherRetType ->
             printf "cannot call a function which returns %s\n" (Types.typeName otherRetType)
@@ -266,13 +267,13 @@ end = struct
   let toggleVerifyCommand =
     makeToggleCommandFromGetSet
       "Verifying LLVM code"
-      Machine.zompDoesVerifyCode
-      (fun b -> Machine.zompVerifyCode b)
+      Zompvm.verifyCode
+      (fun b -> Zompvm.setVerifyCode b)
   let toggleOptimizeFunctionCommand =
     makeToggleCommandFromGetSet
       "Optimize LLVM code"
-      Machine.zompOptimizeFunction
-      (fun b -> Machine.zompSetOptimizeFunction b)
+      Zompvm.autoOptimizeFunctions
+      (fun b -> Zompvm.setAutoOptimizeFunctions b)
 
   let setNotifyTimeThresholdCommand = makeSingleArgCommand
     (fun timeStr _ ->
@@ -354,16 +355,16 @@ end = struct
 
   let connectToRemoteVMCommand = makeSingleArgCommand
     (fun uri (_:bindings) ->
-      if Machine.zompConnectToRemoteVM uri then
+      if Zompvm.Remote.connect uri then
         printf "Connected to remote VM at %s" uri
       else
         eprintf "error: failed to connect to remote VM at %s" uri)
 
   let disconnectRemoteVMCommand = makeNoArgCommand
-    (fun (_:bindings) -> Machine.zompDisconnectRemoteVM())
+    (fun (_:bindings) -> Zompvm.Remote.disconnect())
 
   let requestUriFromRemoteVMCommand = makeSingleArgCommand
-    (fun uri (_:bindings) -> Machine.zompSendToRemoteVM uri)
+    (fun uri (_:bindings) -> Zompvm.Remote.send uri)
 
 
   let listCommands commands = makeNoArgCommand
@@ -389,13 +390,13 @@ end = struct
 
   let optimizeCommand = makeNoArgCommand
     (fun _ ->
-      Machine.zompOptimizeFunctions();
+      Zompvm.optimizeCode();
       printf "Ran optimizations on all functions\n";
       flush stdout)
 
   let writeLLVMCodeToFileCommand = makeSingleArgCommand
     (fun fileName _ ->
-      Machine.zompWriteLLVMCodeToFile fileName;
+      Zompvm.writeLLVMCodeToFile fileName;
       printf "Wrote LLVM code to file %s\n" fileName;
       flush stdout)
 
@@ -406,7 +407,7 @@ end = struct
 
   let printVersionInfoCommand = makeNoArgCommand
     (fun _ ->
-      printf "Version %s, build %s\n" version (Machine.zompBuildInfo());
+      printf "Version %s, build %s\n" version (Zompvm.buildInfo());
       flush stdout)
 
   let commands =
@@ -422,7 +423,7 @@ end = struct
       "printAst", [], toggleAstCommand, "Toggle printing of parsed s-expressions";
       "printBaseLang", [], togglePrintFormsCommand, "Toggle printing translated base lang forms";
       "printDecl", [], togglePrintDeclarationsCommand, "Toggle printing declarations";
-      "printllvm", ["pl"], (fun _ _ -> Machine.zompPrintModuleCode()), "Print LLVM code in module";
+      "printllvm", ["pl"], (fun _ _ -> Zompvm.printModuleCode()), "Print LLVM code in module";
       "printStats", [], printStatsCommand, "Print statistics";
       "printSourceFiles", [], printSourceFilesCommand, "Print all source files of symbols";
       "prompt", [], changePromptCommand, "Set prompt";
@@ -660,11 +661,11 @@ let rec step env parseState =
 let init() =
   Zompvm.setIsInteractive true;
   Callback.register "parse" parseNativeAst;
-  if not (Machine.zompInit()) then begin
+  if not (Zompvm.init()) then begin
     eprintf "Could not initialize ZompVM\n";
     exit(-1);
   end;
-  at_exit Machine.zompShutdown
+  at_exit Zompvm.shutdown
 
 let loadPrelude env () =
   let defaultMainSrc =
@@ -701,7 +702,7 @@ let () =
     if !showTimingStatsAtExit then begin
       Profiling.printTimings();
       flush stdout;
-      Machine.zompPrintTimingStats();
+      Zompvm.printTimingStats();
     end;
 
     if !showStatsAtExit then
@@ -713,12 +714,12 @@ let () =
         if Stats.statsPrintReportToFile (Common.absolutePath file) 0 = false then
           reportError $ sprintf "could not write stats to file '%s'" file);
 
-  Machine.zompVerifyCode false;
+  Zompvm.setVerifyCode false;
 
   message (sprintf "Welcome to Zomp shell, version %s, %d-bit, %s"
              version
              Sys.word_size
-             (if Machine.zompIsDebugBuild() then ", Debug build" else ""));
+             (if Zompvm.isDebugBuild() then ", Debug build" else ""));
 
   init();
 

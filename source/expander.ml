@@ -579,7 +579,7 @@ end = struct
     tlforms, macroFunc
 
   let translateMacroCall macroName (`MacroFuncName macroFuncName) paramCount isVariadic =
-    let nativeFuncAddr = Machine.zompAddressOfMacroFunction ~name:macroFuncName in
+    let nativeFuncAddr = Zompvm.Macros.addressOfMacroFunction ~name:macroFuncName in
     (fun bindings expr ->
        let loc = Ast2.location expr in
        let result =
@@ -587,9 +587,9 @@ end = struct
          begin
            let invokeMacro args =
              let nativeArgs = List.map Zompvm.NativeAst.buildNativeAst args in
-             Machine.zompResetMacroArgs();
-             List.iter (fun ptr -> Machine.zompAddMacroArg ~ptr) nativeArgs;
-             let nativeResultAst = Machine.zompCallMacro nativeFuncAddr in
+             Zompvm.Macros.resetArgs();
+             List.iter (fun ptr -> Zompvm.Macros.addArg ptr) nativeArgs;
+             let nativeResultAst = Zompvm.Macros.call nativeFuncAddr in
              let resultAst = Zompvm.NativeAst.extractSExprFromNativeAst nativeResultAst in
              resultAst
            in
@@ -2668,7 +2668,7 @@ end = struct
           else
             match Common.findFileIn fileName !dllPath with
               | Some absoluteFileName ->
-                let handle = Machine.zompLoadLib absoluteFileName in
+                let handle = Zompvm.loadLib absoluteFileName in
                 if Zompvm.isNullPtr handle then
                   EnvTL.emitError env $ Serror.fromMsg (Some location)
                     (sprintf "could not load C library '%s'\n" absoluteFileName)

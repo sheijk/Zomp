@@ -5,6 +5,22 @@ open Lang
 
 include Machine
 
+let init() = Machine.zompInit()
+let shutdown() = Machine.zompShutdown()
+
+let setVerifyCode on = Machine.zompVerifyCode on
+let verifyCode() = Machine.zompDoesVerifyCode()
+let autoOptimizeFunctions() = Machine.zompOptimizeFunction()
+let setAutoOptimizeFunctions on = Machine.zompSetOptimizeFunction on
+
+let optimizeCode() = Machine.zompOptimizeFunctions()
+
+let buildInfo() = Machine.zompBuildInfo()
+let isDebugBuild() = Machine.zompIsDebugBuild()
+let printTimingStats() = Machine.zompPrintTimingStats()
+let writeLLVMCodeToFile name = Machine.zompWriteLLVMCodeToFile name
+let printModuleCode() = Machine.zompPrintModuleCode()
+
 let flushStreams() =
   flush stdout;
   flush stderr;
@@ -106,6 +122,40 @@ struct
 
   let buildNativeAst ast =
     addTiming nativeAstsConvertedSeconds (fun () -> buildNativeAst ast)
+
+  let simple name = Machine.zompSimpleAst name
+  let isNull ast = Machine.zompAstIsNull ast
+  let addChild ast child = Machine.zompAddChild ast child
+end
+
+module Call =
+struct
+  let reset() = Machine.zompResetArgs()
+  let addPointerArg ptr = Machine.zompAddPointerArg ~ptr
+  let addIntArg arg = Machine.zompAddIntArg ~arg
+
+  let void ~name = Machine.zompRunFunction ~name
+  let string ~name = Machine.zompRunFunctionStringWithArgs ~name
+  let int ~name = Machine.zompRunFunctionIntWithArgs ~name
+  let pointer ~name = Machine.zompRunFunctionPointerWithArgs ~name
+  let bool ~name = Machine.zompRunFunctionBool ~name
+end
+
+module Macros =
+struct
+  let resetArgs() = Machine.zompResetMacroArgs()
+  let addArg ast = Machine.zompAddMacroArg ast
+  let call f = Machine.zompCallMacro f
+
+  let addressOfMacroFunction ~name = Machine.zompAddressOfMacroFunction ~name
+end
+
+module Remote =
+struct
+  let connect ~uri = Machine.zompConnectToRemoteVM uri
+  let disconnect() = Machine.zompDisconnectRemoteVM()
+
+  let send ~uri = Machine.zompSendToRemoteVM uri
 end
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
@@ -152,6 +202,8 @@ let loadLLVMFile filename =
   with
       Sys_error message ->
         eprintf "could not load file %s: %s\n" filename message
+
+let loadLib name = Machine.zompLoadLib name
 
 let currentBindings :Bindings.t ref = ref Bindings.defaultBindings
 
