@@ -714,14 +714,17 @@ end = struct
 
             let llvmCodeFragments = List.map (Genllvm.gencodeTL env.backend) tlexprs in
 
-            Zompvm.evalLLVMCodeB
+            let changedFunctions =
               (if listContains macroFuncName !macroFuncs then
                   [macroFuncName]
                else begin
                  macroFuncs := macroFuncName :: !macroFuncs;
                  []
                end)
-              (Common.combine "\n" llvmCodeFragments);
+            in
+            Zompvm.removeFunctionBodies changedFunctions;
+            Zompvm.evalCode (Zompvm.codeFromLlvm $ Common.combine "\n" llvmCodeFragments);
+            Zompvm.relinkFunctions changedFunctions;
 
             flush stdout;
 
@@ -2812,7 +2815,10 @@ let emitBackendCodeForForm backend form =
   end;
   let llvmCode = Genllvm.gencodeTL backend form in
   emitBackendCode llvmCode;
-  Zompvm.evalLLVMCode [form] llvmCode
+  let functionNames = Semantic.collectFunctionDefinitions [form] in
+  Zompvm.removeFunctionBodies functionNames;
+  Zompvm.evalCode (Zompvm.codeFromLlvm llvmCode);
+  Zompvm.relinkFunctions functionNames;
 
 type tlenv = EnvTL.t
 let createEnv bindings =

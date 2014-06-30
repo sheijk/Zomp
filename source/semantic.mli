@@ -18,6 +18,8 @@ val typeCheck : Bindings.bindings -> Lang.form -> typecheckResult
 
 val moveLocalVarsToEntryBlock : Lang.form -> Lang.form list
 
+val collectFunctionDefinitions : Lang.toplevelExpr list -> string list
+
 val typeCheckTL :
   Bindings.bindings ->
   [< `DefineFunc of Lang.func | `GlobalVar of Lang.typ Lang.variable ] ->

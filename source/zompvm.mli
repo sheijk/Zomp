@@ -80,13 +80,13 @@ module Remote : sig
   val send : uri:string -> unit
 end
 
-(** Remove bodies of functions, evaluate given LLVM code and then recompile and
-    relink the functions. First parameter are the names of the functions, second 
-    is the LLVM code. *)
-val evalLLVMCodeB : string list -> string -> unit
-(** Will identify all function definitions in the toplevel expressions and call
-    evalLLVMCodeB with it's names. *)
-val evalLLVMCode : Lang.toplevelExpr list -> string -> unit
+val removeFunctionBodies : string list -> unit
+val relinkFunctions : string list -> unit
+
+type code
+val codeFromLlvm : string -> code
+
+val evalCode : code -> unit
 
 (** Load file containing textual representation of LLVM byte code and evaluate
     it. Does not throw but prints errors to stderr. *)

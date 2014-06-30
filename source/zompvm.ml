@@ -166,39 +166,33 @@ end
 
 let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
 
-let evalLLVMCodeB redefinedFunctions llvmCode :unit =
+(** Llvm textual IR. *)
+type code = string
+let codeFromLlvm llvmCode = llvmCode
+
+let removeFunctionBodies redefinedFunctions =
+  let removeFunctionBody name = ignore (Machine.zompRemoveFunctionBody name) in
+  List.iter removeFunctionBody redefinedFunctions
+
+let relinkFunctions redefinedFunctions =
   let tryApplyToAll ~onError f list =
     List.iter
       (fun obj -> if not( f obj ) then onError obj)
       list
   in
-  let removeFunctionBody name = ignore (Machine.zompRemoveFunctionBody name) in
   let recompileAndRelinkFunction name = Machine.zompRecompileAndRelinkFunction name in
-  List.iter removeFunctionBody redefinedFunctions;
-  collectTimingInfo "send code"
-    (fun () ->
-       if not (Machine.zompSendCode llvmCode "") then
-         raiseFailedToEvaluateLLVMCode llvmCode "could not evaluate");
   collectTimingInfo "recompile and relink functions"
     (fun () ->
-       tryApplyToAll
-         recompileAndRelinkFunction
-         redefinedFunctions
-         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode llvmCode ("could not recompile and relink function: " ^ msg)))
+      tryApplyToAll
+        recompileAndRelinkFunction
+        redefinedFunctions
+        ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode "" ("could not recompile and relink function: " ^ msg)))
 
-let evalLLVMCode simpleforms llvmCode :unit =
-  flushStreams();
-  let isDefinedFunction func =
-    match func.impl with
-      | None -> false
-      | Some _ ->
-        Machine.zompRemoveFunctionBody func.fname
-  in
-  let redefinedFunctions = Common.mapFilter (function
-    | `DefineFunc func when isDefinedFunction func -> Some func.fname
-    | _ -> None) simpleforms
-  in
-  evalLLVMCodeB redefinedFunctions llvmCode
+let evalCode llvmCode =
+  collectTimingInfo "send code"
+    (fun () ->
+      if not (Machine.zompSendCode llvmCode "") then
+        raiseFailedToEvaluateLLVMCode llvmCode "could not evaluate")
 
 let loadLLVMFile filename =
   try
