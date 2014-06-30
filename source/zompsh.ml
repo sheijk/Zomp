@@ -586,7 +586,8 @@ let onToplevelForm form =
   end;
   flush stdout
 
-let onLlvmCode llvmCode =
+let onLlvmCode code =
+  let llvmCode = Zompvm.codeToString code in
   if !printLLVMCode then begin
     printf "LLVM code:\n%s\n" llvmCode;
     flush stdout;

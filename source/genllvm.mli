@@ -11,5 +11,5 @@ val create : unit -> t
 val defaultBindings : Bindings.bindings
 
 (** Generate code for the given expressions. *)
-val gencodeTL : t -> Lang.toplevelExpr -> string
+val gencodeTL : t -> Lang.toplevelExpr -> Zompvm.code
 

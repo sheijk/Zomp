@@ -233,11 +233,12 @@ let () =
   in
 
   let handleLLVMCode code =
+    let ir = Zompvm.codeToString code in
     if options.traceLlvmCode then begin
-      printf "llvm code:\n%s\n---\n" code;
+      printf "llvm code:\n%s\n---\n" ir;
       flush stdout;
     end;
-    output_string outStream code
+    output_string outStream ir
   in
   Expander.setEmitbackendCode handleLLVMCode;
 

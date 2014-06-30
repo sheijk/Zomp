@@ -1127,8 +1127,11 @@ let gencodeTypedef (_:t) name = function
       sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
 let gencodeTL backend form =
-  match form with
-    | `GlobalVar var -> gencodeGlobalVar backend var
-    | `DefineFunc func -> gencodeDefineFunc backend func
-    | `Typedef (name, typ) -> gencodeTypedef backend name typ
+  let llvmIr =
+    match form with
+      | `GlobalVar var -> gencodeGlobalVar backend var
+      | `DefineFunc func -> gencodeDefineFunc backend func
+      | `Typedef (name, typ) -> gencodeTypedef backend name typ
+  in
+  Zompvm.codeFromLlvm llvmIr
 

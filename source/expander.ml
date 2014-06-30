@@ -723,7 +723,7 @@ end = struct
                end)
             in
             Zompvm.removeFunctionBodies changedFunctions;
-            Zompvm.evalCode (Zompvm.codeFromLlvm $ Common.combine "\n" llvmCodeFragments);
+            List.iter Zompvm.evalCode llvmCodeFragments;
             Zompvm.relinkFunctions changedFunctions;
 
             flush stdout;
@@ -2799,7 +2799,7 @@ let addIncludePath = Include.addIncludePath
 let recommendedIncludePath =
   [Sys.getcwd(); Filename.dirname $ Sys.argv.(0)]
 
-let emitBackendCodeFunc = ref (None : (string -> unit) option)
+let emitBackendCodeFunc = ref (None : (Zompvm.code -> unit) option)
 let setEmitbackendCode f = emitBackendCodeFunc := Some f
 let emitBackendCode code =
   match !emitBackendCodeFunc with
@@ -2817,7 +2817,7 @@ let emitBackendCodeForForm backend form =
   emitBackendCode llvmCode;
   let functionNames = Semantic.collectFunctionDefinitions [form] in
   Zompvm.removeFunctionBodies functionNames;
-  Zompvm.evalCode (Zompvm.codeFromLlvm llvmCode);
+  Zompvm.evalCode llvmCode;
   Zompvm.relinkFunctions functionNames;
 
 type tlenv = EnvTL.t

@@ -85,6 +85,7 @@ val relinkFunctions : string list -> unit
 
 type code
 val codeFromLlvm : string -> code
+val codeToString : code -> string
 
 val evalCode : code -> unit
 

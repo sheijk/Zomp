@@ -169,6 +169,7 @@ let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluat
 (** Llvm textual IR. *)
 type code = string
 let codeFromLlvm llvmCode = llvmCode
+let codeToString llvmCode = llvmCode
 
 let removeFunctionBodies redefinedFunctions =
   let removeFunctionBody name = ignore (Machine.zompRemoveFunctionBody name) in

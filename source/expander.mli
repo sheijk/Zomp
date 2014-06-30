@@ -22,7 +22,7 @@ val recommendedIncludePath : string list
 
 val addTranslateFunction : string -> doc:string -> (tlenv -> Ast2.sexpr -> unit) -> unit
 
-val setEmitbackendCode : (string -> unit) -> unit
+val setEmitbackendCode : (Zompvm.code -> unit) -> unit
 val setTraceToplevelForm : (Lang.toplevelExpr -> unit) option -> unit
 val setTraceMacroExpansion : (string -> Ast2.sexpr -> unit) option -> unit
 
