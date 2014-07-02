@@ -1126,12 +1126,16 @@ let gencodeTypedef (_:t) name = function
   | typ ->
       sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
-let gencodeTL backend form =
+let gencodeTL backend phase form =
   let llvmIr =
     match form with
       | `GlobalVar var -> gencodeGlobalVar backend var
       | `DefineFunc func -> gencodeDefineFunc backend func
       | `Typedef (name, typ) -> gencodeTypedef backend name typ
   in
-  Zompvm.codeFromLlvm llvmIr
+  let code = Zompvm.codeFromLlvm llvmIr in
+  let functionNames = Semantic.collectFunctionDefinitions [form] in
+  Zompvm.removeFunctionBodies functionNames;
+  Zompvm.evalCode phase code;
+  Zompvm.relinkFunctions functionNames
 

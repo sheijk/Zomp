@@ -475,8 +475,6 @@ let astType = `Record {
   ] }
 let astPtrType = `Pointer astType
 
-let macroFuncs = ref []
-
 module Old_macro_support =
 struct
   (** TODO: this can result in quadratic run time, fix source locations directly
@@ -712,21 +710,7 @@ end = struct
               buildNativeMacroFunc env (`MacroFuncName macroFuncName) paramNames implExprs isVariadic
             in
 
-            let llvmCodeFragments = List.map (Genllvm.gencodeTL env.backend) tlexprs in
-
-            let changedFunctions =
-              (if listContains macroFuncName !macroFuncs then
-                  [macroFuncName]
-               else begin
-                 macroFuncs := macroFuncName :: !macroFuncs;
-                 []
-               end)
-            in
-            Zompvm.removeFunctionBodies changedFunctions;
-            List.iter Zompvm.evalCode llvmCodeFragments;
-            Zompvm.relinkFunctions changedFunctions;
-
-            flush stdout;
+            List.iter (Genllvm.gencodeTL env.backend Zompvm.CompilationPhase) tlexprs;
 
             let docstring =
               Common.combine " " paramNames ^
@@ -2799,26 +2783,12 @@ let addIncludePath = Include.addIncludePath
 let recommendedIncludePath =
   [Sys.getcwd(); Filename.dirname $ Sys.argv.(0)]
 
-let emitBackendCodeFunc = ref (None : (Zompvm.code -> unit) option)
-let setEmitbackendCode f = emitBackendCodeFunc := Some f
-let emitBackendCode code =
-  match !emitBackendCodeFunc with
-    | Some f ->
-      f code
-    | None ->
-      failwith "did not call Expander.setEmitbackendCode"
-
 let emitBackendCodeForForm backend form =
   Zompvm.flushStreams();
   begin match !traceToplevelFrom with
     | Some f -> f form | None -> ();
   end;
-  let llvmCode = Genllvm.gencodeTL backend form in
-  emitBackendCode llvmCode;
-  let functionNames = Semantic.collectFunctionDefinitions [form] in
-  Zompvm.removeFunctionBodies functionNames;
-  Zompvm.evalCode llvmCode;
-  Zompvm.relinkFunctions functionNames;
+  Genllvm.gencodeTL backend Zompvm.CompilationAndRuntimePhase form
 
 type tlenv = EnvTL.t
 let createEnv bindings =

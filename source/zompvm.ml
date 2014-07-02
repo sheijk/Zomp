@@ -189,7 +189,20 @@ let relinkFunctions redefinedFunctions =
         redefinedFunctions
         ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode "" ("could not recompile and relink function: " ^ msg)))
 
-let evalCode llvmCode =
+let codeHandlers : (code -> unit) list ref = ref []
+
+let registerCodeHandler handler =
+  if not (List.mem handler !codeHandlers) then
+    codeHandlers := handler :: !codeHandlers
+
+let unregisterCodeHandler handler =
+  codeHandlers := List.filter (fun h -> not (h = handler)) !codeHandlers
+
+type phase = CompilationPhase | CompilationAndRuntimePhase
+
+let evalCode phase llvmCode =
+  if phase = CompilationAndRuntimePhase then
+    List.iter (fun handler -> handler llvmCode) !codeHandlers;
   collectTimingInfo "send code"
     (fun () ->
       if not (Machine.zompSendCode llvmCode "") then

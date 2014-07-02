@@ -240,7 +240,8 @@ let () =
     end;
     output_string outStream ir
   in
-  Expander.setEmitbackendCode handleLLVMCode;
+  (* TODO: emit Llvm Ir from Zompvm after compilation instead of dumping text here! *)
+  Zompvm.registerCodeHandler handleLLVMCode;
 
   let initEnv env =
     let addDllPath where dir = Expander.addDllPath env dir where in

@@ -724,7 +724,7 @@ let () =
 
   init();
 
-  Expander.setEmitbackendCode onLlvmCode;
+  Zompvm.registerCodeHandler onLlvmCode;
   Expander.setTraceToplevelForm (Some onToplevelForm);
 
   let env = Expander.createEnv Genllvm.defaultBindings in

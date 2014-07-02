@@ -87,7 +87,10 @@ type code
 val codeFromLlvm : string -> code
 val codeToString : code -> string
 
-val evalCode : code -> unit
+type phase = CompilationPhase | CompilationAndRuntimePhase
+val evalCode : phase -> code -> unit
+val registerCodeHandler : (code -> unit) -> unit
+val unregisterCodeHandler : (code -> unit) -> unit
 
 (** Load file containing textual representation of LLVM byte code and evaluate
     it. Does not throw but prints errors to stderr. *)

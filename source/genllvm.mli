@@ -10,6 +10,7 @@ val create : unit -> t
 (** The default symbols. *)
 val defaultBindings : Bindings.bindings
 
-(** Generate code for the given expressions. *)
-val gencodeTL : t -> Lang.toplevelExpr -> Zompvm.code
+(** Generate code for the given expressions. The code will directly be sent for
+    evaluation to the VM. *)
+val gencodeTL : t -> Zompvm.phase -> Lang.toplevelExpr -> unit
 
