@@ -148,3 +148,6 @@
 /examples/fourk/fourk.o
 /examples/fourk/fourk.s
 /tests/llvmtest/build/buildlog.txt
+/GPATH
+/GRTAGS
+/GTAGS
