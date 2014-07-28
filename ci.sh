@@ -1,12 +1,13 @@
 #!/usr/bin/env sh
 # A simplified CI script that will just pull updates, run a build and archive
 # everything. Run this in a loop using 'source/build/watch.sh ./ci.sh'
+#
+# Set ZOMP_CI_BRANCH to control which branch to run on. Will default to the one
+# currently checked out.
 
 ERROR_COMMAND_FAILED=1
 ERROR_INVALID_ARGS=2
 ERROR_ZOMP_WORKING_DIR_BROKEN=3
-
-TESTED_BRANCH=master
 
 FLAGS="$@"
 START_TIME=`date '+%Y/%m/%d/%H_%M_%S'`
@@ -19,6 +20,10 @@ fi
 if [ ! -e tools ]; then
     echo "Couldn't find tools directory. Please create a link to a Zomp tools dir."
     exit ${ERROR_ZOMP_WORKING_DIR_BROKEN}
+fi
+
+if [ -z ${ZOMP_CI_BRANCH} ]; then
+    ZOMP_CI_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 fi
 
 # abort_on_error(action, command...)
@@ -42,13 +47,16 @@ function run_action {
     echo "${ACTION_NAME} exited with code ${EXITSTATUS}" >> ${LOGFILE}
 
     if [ "$EXITSTATUS" -ne "0" ]; then
+        ACTION_RESULT="failed (${EXITSTATUS})"
         echo "  failed with ${EXITSTATUS}" | tee -a ${MAIN_LOG}
+    else
+        ACTION_RESULT="ok"
     fi
 }
 
 function git_fetch_and_reset {
     git fetch
-    git reset --hard origin/${TESTED_BRANCH}
+    git reset --hard origin/${ZOMP_CI_BRANCH}
 }
 
 function copy_to_archive {
@@ -83,7 +91,7 @@ LAST_RUN_FILE=ci_archive/last_run.txt
 
 OLD_REV=`git rev-parse --verify HEAD || echo old_invalid`
 run_action "git_get_remote_changes" git_fetch_and_reset
-run_action "git_checkout" git checkout master
+run_action "git_checkout" git checkout ${ZOMP_CI_BRANCH}
 NEW_REV=`git rev-parse --verify HEAD || echo new_invalid`
 
 # Short circuit if no changes where found and ci has been run before
@@ -102,10 +110,17 @@ fi
 git rev-parse HEAD > build/ci_git_revision.txt
 run_action "initial-clean" ./build.sh ${FLAGS} clean_all
 run_action "make" build
+BUILD_RESULT=${ACTION_RESULT}
 run_action "testsuite" ./build.sh -j8 ${FLAGS} test
+TESTSUITE_RESULT=${ACTION_RESULT}
 run_action "stats" ./build.sh ${FLAGS} print_ci_stats
 run_action "archive" copy_to_archive
 
 rm -f ${LAST_RUN_FILE}
-echo "Last run finished at `date '+%Y-%m-%d %H:%M:%S'`" > ${LAST_RUN_FILE}
+echo "Last run:"
+(echo "  finished at\t`date '+%Y-%m-%d %H:%M:%S'`";
+ echo "  branch\t${ZOMP_CI_BRANCH}";
+ echo "  flags\t${FLAGS}"
+ echo "  build\t${BUILD_RESULT}";
+ echo "  testsuite\t${TESTSUITE_RESULT}") | column -t -s $'\t' > ${LAST_RUN_FILE}
 
