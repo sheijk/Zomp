@@ -120,8 +120,11 @@ OCAMLDEP_FLAGS = $(OCAMLDOC_FLAGS) -dot-include-all -dot-reduce
 
 ifeq "$(DEBUG)" "1"
   OCAMLC += -g
+  CAML_FLAGS += -g
+  CAML_NATIVE_FLAGS += -g -ccopt -g
   CXXFLAGS += -pg -g -DDEBUG
   CCFLAGS += -pg -g -DDEBUG
+  LDFLAGS += -g
 else
   ifeq "$(DEBUG)" "0"
     CXXFLAGS += -O3
