@@ -1,0 +1,12 @@
+Query_source_locations
+# Query information about source locations in the OCaml part of the compiler
+    struct SourceLocation
+        const char* file
+        int line
+        int column
+    end
+
+    const char* fileName(SourceLocation*)
+    int line(SourceLocation*)
+    int column(SourceLocation*)
+    

@@ -1,0 +1,6 @@
+Query_lang
+    type Function
+    type Variable
+
+    Type* functionType(Function*)
+

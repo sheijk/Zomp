@@ -1,0 +1,37 @@
+Query_types
+# Functions to query information types in the OCaml part of the compiler from C code.
+http://sheijk.dword.org/zomp
+    variant Value
+        Void
+        Int8
+        Int16
+        Int32
+        Int64
+        ...
+        Nullpointer
+        StringLiteral
+    end
+
+    variant Type
+        Bool
+        Char
+        Float
+        Double
+        Int8
+        Int16
+        Int32
+        Int64
+        Void
+        Array
+        Typeref
+        Function
+        Pointer
+        Record
+        ParametricType
+        TypeParam
+        ErrorType
+    end
+
+    const char* TypeName(Type*)
+    int bitcount(TypeInt)
+

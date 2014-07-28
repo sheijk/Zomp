@@ -1,0 +1,26 @@
+Query_values
+    # Get information about values
+    type Value
+    type ArrayValue
+    type PointerValue
+    type RecordValue
+
+    type Type
+
+    Type* type(Value* value)
+
+    int8_t asInt8(Value* value)
+    int16_t asInt16(Value* value)
+    int32_t asInt32(Value* value)
+    int64_t asInt64(Value* value)
+    float asFloat(Value* value)
+    double asDouble(Value* value)
+    ArrayValue* asArray(Value* value)
+    PointerValue* asPointer(Value* value)
+    RecordValue* asRecord(Value* value)
+    ...
+
+    int ArraySize(Value* value)
+    Type* ArrayBaseType(Value* value)
+    ...
+
