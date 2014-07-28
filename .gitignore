@@ -7,6 +7,8 @@
 *.compile_stats
 *.testreport
 *.annot
+*.cmt
+*.cmti
 .DS_Store
 /TAGS
 /bindgen/*.o

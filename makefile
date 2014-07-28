@@ -808,9 +808,9 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_DIR) -rdf $(OUT_DIR) $(DEPLOY_DIR) $(TESTSUITE_OUT_DIR)
 
 clean_tags:
-	$(DELETE_FILE) source/*.annot
+	$(DELETE_FILE) source/*.annot source/*.cmt source/*.cmti
 	$(DELETE_FILE) source/*.conflicts
-	$(DELETE_FILE) testsuite/*.annot
+	$(DELETE_FILE) testsuite/*.annot testsuite/*.cmt testsuite/*.cmti
 	$(DELETE_FILE) TAGS
 	$(DELETE_FILE) $(FLYMAKE_LOG)
 
