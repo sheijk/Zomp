@@ -277,6 +277,26 @@ struct
       let dotsLength = String.length dots in
       String.blit dots 0 shortenedStr (maxChars - dotsLength) dotsLength;
       shortenedStr
+
+  let escapeHtmlText str =
+    let replaceChar chr =
+      let between min max = (chr >= min) && (chr <= max) in
+      let isin chars = try ignore (String.index chars chr); true with Not_found -> false in
+      let unescapedChars = ".,_-$~()/!?" in
+      if between 'a' 'z' || between 'A' 'Z' || between '0' '9' || isin unescapedChars then
+        String.make 1 chr
+      else if chr = ' ' then
+        "&nbsp;"
+      else if chr = '<' then
+        "&lt;"
+      else if chr = '>' then
+        "&gt;"
+      else
+        let ascii = int_of_char chr in
+        sprintf "&#%d;" ascii
+    in
+    String.concat "" (List.map replaceChar (stringToCharList str))
+
 end
 include CommonString
 

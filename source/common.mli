@@ -60,6 +60,7 @@ module CommonString :
     val stringToRevCharList : string -> char list
     val stringToCharList : string -> char list
     val restrictLength : int -> string -> string
+    val escapeHtmlText : string -> string
   end
 val combine : string -> string list -> string
 val commentOut : string -> ?stopDelim:string -> string -> string
@@ -88,6 +89,7 @@ val foldString : string -> ('a -> char -> 'a) -> 'a -> 'a
 val stringToRevCharList : string -> char list
 val stringToCharList : string -> char list
 val restrictLength : int -> string -> string
+val escapeHtmlText : string -> string
 module CommonFile :
   sig
     val readLinesRev : in_channel -> string list

@@ -324,3 +324,59 @@ let parseCommentsAndStrings
   assert (!totalWrittenChars = sourceLength);
   startNewFragment Source
 
+let makeHtmlSourceWriter() =
+  let addToList item list = Common.addToList list item `Front in
+
+  let reversedSegments = ref [] in
+
+  let collectHtml typ source =
+    reversedSegments := (typ, source) :: !reversedSegments
+  in
+
+  let getLines() =
+    (* each line is a list of fragments *)
+    let segmentsByLines =
+      let linesRev = ref ([] : ('a * string) list list) in
+      let currentLineRev = ref ([] : ('a * string) list) in
+      let addSegmentToLine (typ, source) =
+        addToList (typ, source) currentLineRev
+      in
+      let finishLine() =
+        addToList (List.rev !currentLineRev) linesRev;
+        currentLineRev := []
+      in
+
+      let addSegment (typ, source) =
+        match Str.split_delim (Str.regexp (Str.quote "\n")) source with
+          | [] -> ()
+          | [single] ->
+             addSegmentToLine (typ, single)
+          | firstLine :: remainingLines ->
+             addSegmentToLine (typ, firstLine);
+             List.iter (fun source ->
+                        finishLine();
+                        addSegmentToLine (typ, source))
+                       remainingLines
+      in
+      List.iter addSegment (List.rev !reversedSegments);
+      finishLine();
+      List.rev (!linesRev)
+    in
+    let segmentsToHtml segments =
+      let escapeSegment (typ, source) =
+        let cssClass = match typ with
+            | Source -> "source"
+            | Comment -> "source-comment"
+            | String -> "source-string"
+        in
+        let escapedSource = escapeHtmlText source in
+        sprintf "<span class=\"%s\">%s</span>" cssClass escapedSource
+      in
+      let escaped = List.map escapeSegment segments in
+      String.concat "" escaped
+    in
+    List.map segmentsToHtml segmentsByLines
+  in
+
+  collectHtml, getLines
+

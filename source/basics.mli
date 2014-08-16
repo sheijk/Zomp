@@ -52,3 +52,15 @@ val raiseCommentError :
 
 val parseCommentsAndStrings :
   (fragmentType -> string -> unit) -> string -> string -> unit
+
+(**
+   Will return two closures, write and getLines. Use write to add preprocessed
+   source code which consists of segments of either comments, string literals,
+   or raw source code.
+   getLines() will return a list of strings. Each string corresponds to one line
+   of code that is valid and escaped HTML. It's source/string/comment segments
+   are wrapped inside <span class="source/source-comment/source-string>". All
+   span tags are closed at the end of each line.
+ *)
+val makeHtmlSourceWriter : unit -> (fragmentType -> string -> unit) * (unit -> string list)
+

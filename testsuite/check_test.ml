@@ -126,25 +126,6 @@ struct
       (time.Unix.tm_year + 1900) (time.Unix.tm_mon + 1) time.Unix.tm_mday
       time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec
 
-  let escapeHtmlText str =
-    let replaceChar chr =
-      let between min max = (chr >= min) && (chr <= max) in
-      let isin chars = try ignore (String.index chars chr); true with Not_found -> false in
-      let unescapedChars = ".,_-$~()/!?" in
-      if between 'a' 'z' || between 'A' 'Z' || between '0' '9' || isin unescapedChars then
-        String.make 1 chr
-      else if chr = ' ' then
-        "&nbsp;"
-      else if chr = '<' then
-        "&lt;"
-      else if chr = '>' then
-        "&gt;"
-      else
-        let ascii = int_of_char chr in
-        sprintf "&#%d;" ascii
-    in
-    String.concat "" (List.map replaceChar (stringToList str))
-
   let withoutSuffix line suffix =
     let lineLength = String.length line in
     if (lineLength > 0) && (line.[lineLength-1] = suffix ) then
@@ -160,6 +141,8 @@ struct
         iterWithIndex (index+1) tl
     in
     iterWithIndex start list
+
+  let escapeHtmlText = Common.escapeHtmlText
 end
 
 open Utils
@@ -341,69 +324,6 @@ let writeHtmlHeader outFile zompFileName =
   fprintf outFile "  </head>\n";
   fprintf outFile "  <body>\n";
   ()
-
-(**
-   Will return two closures, write and getLines. Use write to add preprocessed
-   source code which consists of segments of either comments, string literals,
-   or raw source code.
-   getLines() will return a list of strings. Each string corresponds to one line
-   of code that is valid and escaped HTML. It's source/string/comment segments
-   are wrapped inside <span class="source/source-comment/source-string>". All
-   span tags are closed at the end of each line.
-*)
-let makeHtmlSourceWriter() =
-  let reversedSegments = ref [] in
-
-  let collectHtml typ source =
-    reversedSegments := (typ, source) :: !reversedSegments
-  in
-
-  let getLines() =
-    (* each line is a list of fragments *)
-    let segmentsByLines =
-      let linesRev = ref ([] : ('a * string) list list) in
-      let currentLineRev = ref ([] : ('a * string) list) in
-      let addSegmentToLine (typ, source) =
-        addToList (typ, source) currentLineRev
-      in
-      let finishLine() =
-        addToList (List.rev !currentLineRev) linesRev;
-        currentLineRev := []
-      in
-
-      let addSegment (typ, source) =
-        match Str.split_delim (Str.regexp (Str.quote "\n")) source with
-          | [] -> ()
-          | [single] ->
-            addSegmentToLine (typ, single)
-          | firstLine :: remainingLines ->
-            addSegmentToLine (typ, firstLine);
-            List.iter (fun source ->
-              finishLine();
-              addSegmentToLine (typ, source))
-              remainingLines
-      in
-      List.iter addSegment (List.rev !reversedSegments);
-      finishLine();
-      List.rev (!linesRev)
-    in
-    let segmentsToHtml segments =
-      let escapeSegment (typ, source) =
-        let cssClass = match typ with
-          | Source -> "source"
-          | Comment -> "source-comment"
-          | String -> "source-string"
-        in
-        let escapedSource = escapeHtmlText source in
-        sprintf "<span class=\"%s\">%s</span>" cssClass escapedSource
-      in
-      let escaped = List.map escapeSegment segments in
-      String.concat "" escaped
-    in
-    List.map segmentsToHtml segmentsByLines
-  in
-
-  collectHtml, getLines
 
 let inElements outFile elements ?cssClass f =
   let first = List.hd elements
@@ -796,7 +716,7 @@ let () =
     inElements ["div"; "ol"] ~cssClass:"source" (fun () ->
       let source = readFile zompFileName in
       try
-        let write, getLines = makeHtmlSourceWriter() in
+        let write, getLines = Basics.makeHtmlSourceWriter() in
         parseCommentsAndStrings write zompFileName source;
         listIteri printLineAndDiagnostics 1 (getLines());
       with Basics.CommentError (location, msg) ->

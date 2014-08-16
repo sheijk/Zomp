@@ -13,6 +13,10 @@ FILES_TO_DELETE_ON_CLEAN += testsuite/check_test{.cmi,.cmo,.cmx,.o,}
 $(CHECK_TEST): CAML_OBJS += source/common source/basics
 $(CHECK_TEST): CAML_LIBS += str unix bigarray
 
+ALL_TARGETS += testsuite/zomp_source_to_html
+testsuite/zomp_source_to_html: CAML_OBJS += source/common source/basics
+testsuite/zomp_source_to_html: CAML_LIBS += str unix bigarray
+
 ################################################################################
 # Targets
 #
