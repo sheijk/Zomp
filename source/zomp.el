@@ -1290,6 +1290,7 @@ known to the Zomp shell."
     (list "#")
     (list "include" "const")
     (list
+     (list "^[\t ]*\\(//+ .*\\)$" 1 font-lock-doc-face)
      (list (format "\\b\\(%s\\)\\b"
                    (apply 'concat
                           (-interpose

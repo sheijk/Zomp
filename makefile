@@ -389,7 +389,7 @@ test: all $(TEST_SUB_TARGETS)
 	@$(ECHO) "Generating lexer $@ from $< ..."
 	$(OCAMLLEX) $<
 
-source/%_stubs.c source/%.ml: source/%.skel source/gen_c_bindings
+source/%_stubs.c source/%.ml source/%.mli: source/%.skel source/gen_c_bindings
 	@$(ECHO) "Making OCaml bindings for $(<:.skel=) ..."
 	./source/gen_c_bindings $(<:.skel=)
 

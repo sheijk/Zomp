@@ -1,5 +1,6 @@
 Stats
 http://sheijk.dword.org/zomp
+    // Bindings to native statistics collection module.
     include "zomputils.h"
     include <caml/mlvalues.h>
     include <caml/alloc.h>

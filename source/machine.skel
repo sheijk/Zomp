@@ -1,5 +1,6 @@
 Machine
 http://sheijk.dword.org/zomp
+    // Bindings to C++ part of virtual machine.
     include "zompvm_impl.h"
     include <caml/mlvalues.h>
     include <caml/alloc.h>

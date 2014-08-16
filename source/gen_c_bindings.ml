@@ -1,3 +1,8 @@
+(**
+Tool that will generate FFI code for the given API description file. When called
+with argument 'foo' it will produce native code bindings in foo.ml, foo.mli,
+and foo_stubs.c.
+ *)
 open Str
 open Printf
 
@@ -104,6 +109,7 @@ struct
     in
     worker [] list
 
+    let escape_caml_comment doc : string = doc
 end
 
 open Utils
@@ -138,6 +144,7 @@ struct
     | LinkLib of string
     | Constant of constant
     | Function of func
+    | Documentation of string
     | Unknown of string
 
   type expr = int * exprCase
@@ -176,6 +183,7 @@ struct
     and functionRE = Str.regexp "[\t ]*\\([a-zA-Z0-9_ ]+\\*?\\) \\([a-zA-Z0-9_]+\\) (\\([^)]*\\))"
     and includeRE = Str.regexp "[\t ]*include \\([\"<][a-zA-Z0-9_\\./]*[\">]\\)"
     and linklibRE = Str.regexp "[\t ]*lib +\\([^ \t]+\\) *$"
+    and documentationRE = Str.regexp "[\t ]*//+ \\(.*\\)"
     in
     let lineMatches re = Str.string_match re line 0 in
     let exprCase =
@@ -184,6 +192,8 @@ struct
         Include filename
       else if lineMatches linklibRE then
         LinkLib (Str.matched_group 1 line)
+      else if lineMatches documentationRE then
+        Documentation (Str.matched_group 1 line)
       else if lineMatches constantRE then
         Constant {
           name = (Str.matched_group 1 line);
@@ -261,6 +271,7 @@ struct
     | LinkLib libname -> "lib \"" ^ libname ^ "\""
     | Constant c -> constant2string c
     | Function f -> func2string f
+    | Documentation d -> "// " ^ d
     | Unknown str -> "Unknown: " ^ str
 end
 
@@ -411,14 +422,17 @@ struct
     StdLabels.List.iter content
       ~f:(function
             | lineNum, BindingExpressions.Unknown text ->
-                let matches str re = Str.string_match (Str.regexp re) str 0 in
-                let legal_lines = [
-                  "^[ \t]*$";         (* whitspace lines *)
-                  "^ *#";             (* empty lines *)
-                  "^[A-Za-z0-9_]+$";  (* section start *)
-                  "^http://";         (* url of specification *)
-                ] in
-                if not( List.exists (matches text) legal_lines ) then
+                let isLegalCommentLine line =
+                  let matches str re = Str.string_match (Str.regexp re) str 0 in
+                  let legal_lines = [
+                    "^[ \t]*$";         (* whitspace lines *)
+                    "^ *#";             (* empty lines *)
+                    "^[A-Za-z0-9_]+$";  (* section start *)
+                    "^http://";         (* url of specification *)
+                  ] in
+                  List.exists (matches line) legal_lines
+                in
+                if not (isLegalCommentLine text) then
                   eprintf "%s:%d: warning: suspicious line: %s\n" filename lineNum text
             | _ -> ())
 
@@ -484,6 +498,9 @@ struct
     ^ (if paramCount > 5 then "\"" ^ (cstub_name_byte func) ^ "\" " else "")
     ^ "\"" ^ (cstub_name func) ^ "\""
 
+  let gencaml_documentation doc =
+    sprintf "(** %s *)" (Utils.escape_caml_comment doc)
+
   let gencaml_unknown str = "(* " ^ str ^ " *)"
 
   let gen_caml_code (expressions :BindingExpressions.expr list) =
@@ -497,6 +514,7 @@ struct
       | _, LinkLib libname -> "(* lib " ^ libname ^ " *)"
       | _, Constant c -> gencaml_constant c
       | _, Function f -> gencaml_function f
+      | _, Documentation d -> gencaml_documentation d
       | _, Unknown u -> gencaml_unknown u
     in
     let stringList =
@@ -701,27 +719,35 @@ struct
     wrapperFunction ^ "\n\n" ^ bytecodeWrapperFunction
 
   let gen_c_code (expressions : BindingExpressions.expr list) =
-    let expr2decl = function
-      | _, Function f ->
-          sprintf "%s %s(%s);"
-            f.retval
-            f.fname
-            (concat (List.map (fun p -> p.ptype) f.params) ", ")
-      | _ -> ""
-    in
-    let decls = List.map expr2decl expressions in
-    let includes, glueFuncs =
-      List.fold_right (fun expr (includes, glueFuncs) ->
-                         match expr with
-                           | _, Function f ->
-                               (includes, genc_function f :: glueFuncs)
-                           | _, Include filename ->
-                               (("#include " ^ filename) :: includes, glueFuncs)
-                           | _ -> includes, glueFuncs)
-        expressions
-        ([], [])
-    in
-    (concat (includes @ decls @ glueFuncs) "\n")
+    let addToList list item = list := item :: !list in
+    let declsRev = ref [] in
+    let includesRev = ref [] in
+    let glueFuncsRev = ref [] in
+
+    List.iter
+      (fun (_, expr) ->
+       match expr with
+         | Function f ->
+            let decl =
+              sprintf "%s %s(%s);"
+                      f.retval
+                      f.fname
+                      (concat (List.map (fun p -> p.ptype) f.params) ", ")
+            in
+            addToList declsRev decl;
+            addToList glueFuncsRev (genc_function f)
+
+         | Include filename ->
+            addToList includesRev ("#include " ^ filename)
+
+         | Documentation doc ->
+            addToList declsRev ("/// " ^ doc)
+
+         | Constant _ | LinkLib _ | Unknown _ ->
+            ())
+      expressions;
+
+    concat (!includesRev @ [""] @ List.rev !declsRev @ [""] @ List.rev !glueFuncsRev) "\n"
 
   let generate_c_code = gen_c_code
 
@@ -774,6 +800,7 @@ sig
   val printConstant : name:string -> typ:string -> default:string -> string
   val printFunction : name:string -> rettype:string ->
     params:([`Name of string] * [`Type of string]) list -> hasVarargs:bool -> string
+  val printDocumentation : text:string -> string
   val printUnknown : text:string -> string
   val printTypedef : name:string -> typ:string -> string
 end
@@ -806,6 +833,8 @@ struct
     sprintf "(func %s %s (%s))"
       rettype name (Utils.concat paramStrings " ")
 
+  let printDocumentation ~text = sprintf "/// %s" text
+
   let printTypedef ~name ~typ = sprintf "(type %s %s)" name typ
 
 end
@@ -828,6 +857,9 @@ struct
         ", "
     in
     sprintf "func %s %s(%s)" rettype name paramStrings
+
+  let printDocumentation ~text =
+    sprintf "/// %s" text
 
   let printUnknown ~text =
     if String.length text > 0 then
@@ -950,6 +982,8 @@ struct
             | Some errorMessage ->
                 CodePrinter.printError ~decl:declaration ~msg:errorMessage
         end
+    | _, Documentation doc ->
+       CodePrinter.printDocumentation doc
     | _, Unknown text ->
         CodePrinter.printUnknown ~text
 
