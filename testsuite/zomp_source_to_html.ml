@@ -1,5 +1,5 @@
 (**
-  This program will take a Zomp source file and produce an HTML snippet with
+  Tool that will take a Zomp source file and produce an HTML snippet with
   lexical highlighting. The result will be printed to stdout.
  *)
 open Printf

@@ -1,3 +1,6 @@
+(**
+Tool that produces an overview of the build and test results.
+*)
 open Printf
 
 let linkIfExists filesAndTitles =

@@ -1,4 +1,5 @@
 GLUT
+	// Bindings to GLUT.
 	lib libglut.dylib
 
 	void glutcInit ()

@@ -1,3 +1,4 @@
+(** Unit tests for OCaml modules.*)
 
 let newlineRE = Str.regexp_string "\n"
 let failedRE = Str.regexp_string "failed"

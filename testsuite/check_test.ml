@@ -1,10 +1,10 @@
 (**
-   This program is used to run the testsuite integration tests. Call it using
-   'check_test foo.testresult make-command' to run the tests in foo.zomp.
-   make-command is a command used to invoke make, it should be "$(MAKE)" if you
-   call this from a makefile. The tool will call '$make-command foo.exe' to
-   build the executable and '$make-command foo.test_output' to run the test.
- *)
+Tool that is used to run the testsuite integration tests. Call it using
+'check_test foo.testresult make-command' to run the tests in foo.zomp.
+make-command is a command used to invoke make, it should be "$(MAKE)" if you
+call this from a makefile. The tool will call '$make-command foo.exe' to
+build the executable and '$make-command foo.test_output' to run the test.
+*)
 
 open Printf
 open Basics

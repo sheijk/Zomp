@@ -1,4 +1,5 @@
 GLFW_2_5
+	// Bindings to library GLFW 2.5.
 	lib libglfw.dylib
 
 	GLFW_VERSION_MAJOR 2

@@ -10,7 +10,7 @@ It is heavy work-in-progress but already usable to write small
 applications. Currently there is not a lot of documentation. You can browse the
 testsuite and the examples to get an idea what you can do.
 
-Zomp's website is located at http://zompc.net.
+Zomp's website is at http://zompc.net.
 
 = History, Goals
 

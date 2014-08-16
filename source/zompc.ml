@@ -1,3 +1,4 @@
+(** The zomp compiler. Produces a textual LLVM bitcode file. *)
 open Ast2
 open Printf
 open Expander

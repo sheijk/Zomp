@@ -1,4 +1,5 @@
-
+(** The interactive Zomp shell. Can be used to interactively write code and run
+it. Also used as source for IDE completion, navigation, etc. *)
 open Ast2
 open Printf
 open Lang

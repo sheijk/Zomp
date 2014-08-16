@@ -1,4 +1,5 @@
 QUICKTEXT_1_0
+	// Bindings for quicktext library.
 	lib libquicktext.dylib
 
 	void glqtStringBox (float* box, float scale, char* format, ...)

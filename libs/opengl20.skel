@@ -1,4 +1,5 @@
 GL_VERSION_1_1
+	// Bindings to 'curated' subset of OpenGL. Sem-random mix of extensions that where used for examples.
 	lib libGLEW.dylib
 
 	GL_ACCUM 0x0100

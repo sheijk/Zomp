@@ -1,4 +1,4 @@
-(** Basic AST type **)
+(** Basic AST type. *)
 
 type sexpr = private {
   id : string;

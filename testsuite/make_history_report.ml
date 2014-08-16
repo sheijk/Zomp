@@ -1,5 +1,5 @@
 (**
-   Will generate a summary HTML report of all previous test runs.
+   Generate a summary HTML report of all previous test runs.
 *)
 open Printf
 
