@@ -1786,8 +1786,10 @@ end
 ** TODO [#A] investigate relationship of literal syntax and good DSLs
    are s-expressions good for macros because they make literals and code the same?
 ** TODO [#A] link to docs in report.html
+** TODO [#A] ocamlc -keep-locs to keep locations in cmi files
+** TODO [#A] ocamlopt -opaque
 * Mile stones
-** 0.1 - error handling and source locations
+** error handling and source locations
 
 Make error handling and tracking of source locations robust enough that Zomp
 could be tried by external users. Also fix all known bugs in the test suite.
@@ -1823,7 +1825,13 @@ Minor tasks:
   - errors must be ignored explicitly
   - allow it to automate reaction to errors and cleanup
 
-** 0.2 - proper language
+** usability
+
+- can use zomp from outside of compiler directory
+- installation step
+- some documentation to get started
+
+** proper language
 
 - function overloading
 - generics
