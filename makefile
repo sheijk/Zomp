@@ -107,7 +107,7 @@ include examples/smallpt/smallpt.mk
 include bindgen/bindgen.mk
 include source/build/tools.mk
 
-export PATH := $(LLVM_BIN_DIR):./tools/arch-$(ARCH)/bin:$(OCAMLPATH):$(PATH)
+export PATH := $(LLVM_BIN_DIR):$(ZOMP_TOOL_PATH_RELATIVE)/bin:$(OCAMLPATH):$(PATH)
 # If this line is removed the PATH above won't be in effect.
 SHELL = sh
 
@@ -389,7 +389,7 @@ test: all $(TEST_SUB_TARGETS)
 	@$(ECHO) "Generating lexer $@ from $< ..."
 	$(OCAMLLEX) $<
 
-source/%_stubs.c source/%.ml source/%.mli: source/%.skel source/gen_c_bindings
+source/%_stubs.c source/%.ml: source/%.skel source/gen_c_bindings
 	@$(ECHO) "Making OCaml bindings for $(<:.skel=) ..."
 	./source/gen_c_bindings $(<:.skel=)
 
