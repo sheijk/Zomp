@@ -857,18 +857,20 @@ macro struct name members:
 
   decl := ast:fromString "type"
   ast:addChild decl name
+  fields := ast:fromString "opseq"
 
   forEachAstChild memberList members:
     if ast:matchesShape(memberList, ${__ _...}):
       memberType := ast:child memberList 0
       for memberNum 1 memberList.childCount:
         memberName := ast:child memberList memberNum
-        ast:addChild decl ${#memberType #memberName}
+        ast:addChild fields ${#memberType #memberName}
       end
     else:
       ret ${error "Expected 'typeExpr id..." #memberList}
     end
   end
+  ast:addChild decl fields
 
   ret decl
 end
