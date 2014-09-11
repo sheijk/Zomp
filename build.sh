@@ -43,6 +43,9 @@ echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = 
 # other tools) shows correct source locations even when compilation command has
 # not been triggered from this directory.
 
+# Get rid of build report file in case clean command fails
+${MAKE} --print-directory -s "${OPTIONS[@]}" clean_report
+
 if [ "${CLEAN_TARGET}" != "0" ]
 then
     echo "Cleaning ${CLEAN_TARGET} before build ..."

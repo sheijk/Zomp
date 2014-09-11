@@ -268,6 +268,10 @@ source/vm_protocol.o: source/vm_protocol.h
 
 .PHONY: report
 report: $(BUILD_DIR)/report.html $(BUILD_DIR)/testsuite/summary.txt
+CLEAN_SUB_TARGETS += clean_report
+clean_report:
+	@$(ECHO) "Cleaing build report $(BUILD_DIR)/report.html ..."
+	rm -f $(BUILD_DIR)/report.html
 
 EXPECTED_BUILD_PRODUCTS = $(DEPLOY_DIR)/zompc $(DEPLOY_DIR)/zompsh $(DEPLOY_DIR)/vm_http_server \
     $(MLTEST) $(MAKE_REPORT) $(MAKE_HISTORY_REPORT) $(CHECK_TEST)
@@ -281,7 +285,7 @@ MAKE_VERSION_STRING="git-`git rev-parse --short HEAD``if ! git diff-index --quie
 
 .PHONY: $(BUILD_DIR)/report.html
 $(BUILD_DIR)/report.html: $(MAKE_REPORT)
-	@$(ECHO) Creating test report ...
+	@$(ECHO) "Creating test report ..."
 	cat testsuite/report_head.html > $@
 	echo "Report generated at `date \"+%Y-%m-%d %H:%M:%S\"`<br />" >> $@
 	-echo "Version $(MAKE_VERSION_STRING) <br />" >> $@
