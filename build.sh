@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # A simple build front end. Use this to run make -s and still get a list of all
 # commands in buildlog.txt for inspection on errors. Just run it with the same
@@ -38,6 +38,8 @@ cd `dirname $0`
 rm -f ${BUILDLOG}
 LOGSHELL=`pwd`/source/build/logshell.sh
 echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = ${OPTIONS}" > ${BUILDLOG}
+
+export PATH=$(${MAKE} --print-directory -s "${OPTIONS[@]}" print_extended_path|grep PATH|sed 's/PATH=//')
 
 # Add --print-directory even though we're not using recursive make so Emacs (and
 # other tools) shows correct source locations even when compilation command has

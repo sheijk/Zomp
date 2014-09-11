@@ -107,9 +107,8 @@ include examples/smallpt/smallpt.mk
 include bindgen/bindgen.mk
 include source/build/tools.mk
 
-export PATH := $(LLVM_BIN_DIR):$(ZOMP_TOOL_PATH_RELATIVE)/bin:$(OCAMLPATH):$(PATH)
-# If this line is removed the PATH above won't be in effect.
-SHELL = sh
+print_extended_path:
+	echo "PATH=$(LLVM_BIN_DIR):$(ZOMP_TOOL_PATH_RELATIVE)/bin:$(OCAMLPATH):$(PATH)"
 
 CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
