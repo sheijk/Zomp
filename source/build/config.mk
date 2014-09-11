@@ -23,7 +23,8 @@ ifeq "$(LLVM_ARCH)" ""
 $(error "LLVM_ARCH must be set")
 endif
 
-ZOMP_TOOL_PATH_RELATIVE = ./tools/arch-$(ARCH)
+TOOL_SUFFIX=
+ZOMP_TOOL_PATH_RELATIVE = ./tools/arch-$(ARCH)$(TOOL_SUFFIX)
 ZOMP_TOOL_PATH=$(ZOMP_DIR)/$(ZOMP_TOOL_PATH_RELATIVE)
 LLVM_VERSION=2.9
 
@@ -170,8 +171,15 @@ CAML_LIBS =
 CAML_OBJS =
 CAML_DEPENDENCIES = $(foreach obj, $(CAML_OBJS), $(obj).$(CAML_OBJ_EXT))
 CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), $(lib).$(CAML_LIB_EXT)) $(CAML_DEPENDENCIES)
-CAML_FLAGS = -annot -bin-annot -warn-error A $(CAML_INCLUDE) $(CAML_PP)
-CAML_NATIVE_FLAGS = -annot -bin-annot -warn-error A $(CAML_INCLUDE) $(CAML_PP)
+CAML_FLAGS = -annot -warn-error A $(CAML_INCLUDE) $(CAML_PP)
+CAML_NATIVE_FLAGS = -annot -warn-error A $(CAML_INCLUDE) $(CAML_PP)
+
+OCAML_3_DOT_X := $(shell $(OCAMLOPT) -version | grep ^3)
+ifeq "$(OCAML_3_DOT_X)" ""
+CAML_FLAGS += -bin-annot
+CAML_NATIVE_FLAGS += -bin-annot
+else
+endif
 
 LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
 
