@@ -656,6 +656,9 @@ source/stats.cmx: $(ZOMP_DLL_FILE)
 source/zompvm.cmi: source/machine.cmi
 source/zompvm.cmo: source/machine.cmo
 source/zompvm.cmx: source/machine.cmx
+source/semantic.cmi: source/machine.cmi
+source/semantic.cmo: source/machine.cmo
+source/semantic.cmx: source/machine.cmx
 
 source/ast2.cmo: source/basics.cmo source/common.cmo
 source/ast2.cmx: source/basics.cmx source/common.cmx
