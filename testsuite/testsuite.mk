@@ -14,6 +14,7 @@ $(CHECK_TEST): CAML_OBJS += source/common source/basics
 $(CHECK_TEST): CAML_LIBS += str unix bigarray
 
 ALL_TARGETS += testsuite/zomp_source_to_html
+FILES_TO_DELETE_ON_CLEAN += testsuite/zomp_source_to_html{.cmx,.cmi,.cmo,.o,}
 testsuite/zomp_source_to_html: CAML_OBJS += source/common source/basics
 testsuite/zomp_source_to_html: CAML_LIBS += str unix bigarray
 
