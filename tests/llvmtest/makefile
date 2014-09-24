@@ -42,6 +42,9 @@ q%.clang.exe: %.c makefile
 	$(CLANG) -emit-llvm -O0 -g -c $< -o ${@:.ll=.bc}
 	$(LLVM_DIS) -f ${@:.ll=.bc}
 
+%.api.cpp: %.bc
+	$(LLC) $< -o $@ -march=cpp
+
 # misc.ll: misc.bc
 # 	$(LLVM_DIS) -f -o $@ < $f
 
