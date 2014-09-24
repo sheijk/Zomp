@@ -76,6 +76,7 @@
 /source/zompvm_impl.o
 /tests/*.exe
 /tests/*.ll
+/tests/llvmtest/*.api.cpp
 /tests/buildlog.txt
 /tests/clang_api/lookup_symbol.dylib
 /tests/compileperf.zomp
@@ -152,3 +153,5 @@
 /GRTAGS
 /GTAGS
 /testsuite/zomp_source_to_html
+/tests/llvmtest/llvm-parse
+/tests/llvmtest/llvm-parse.o
