@@ -1,8 +1,5 @@
 open Printf
 
-(* moved here from Zompvm because exception was not caught properly (compiler bug?) *)
-exception FailedToEvaluateLLVMCode of string * string
-
 module CommonCombinators =
 struct
   let map2nd f (fst, snd) = (fst, f snd)

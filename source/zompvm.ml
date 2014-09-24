@@ -5,6 +5,8 @@ open Lang
 
 include Machine
 
+exception FailedToEvaluateLLVMCode of Basics.location * string * string
+
 let init() = Machine.zompInit()
 let shutdown() = Machine.zompShutdown()
 
@@ -164,7 +166,8 @@ struct
   let send ~uri = Machine.zompSendToRemoteVM uri
 end
 
-let raiseFailedToEvaluateLLVMCode llvmCode errorMessage = raise (FailedToEvaluateLLVMCode (llvmCode, errorMessage))
+let raiseFailedToEvaluateLLVMCode loc llvmCode errorMessage =
+  raise (FailedToEvaluateLLVMCode (loc, llvmCode, errorMessage))
 
 (** Llvm textual IR. *)
 type code = string
@@ -187,7 +190,11 @@ let relinkFunctions redefinedFunctions =
       tryApplyToAll
         recompileAndRelinkFunction
         redefinedFunctions
-        ~onError:(fun msg -> raiseFailedToEvaluateLLVMCode "" ("could not recompile and relink function: " ^ msg)))
+        ~onError:(fun msg ->
+                  raiseFailedToEvaluateLLVMCode
+                    Basics.fakeLocation
+                    ""
+                    ("could not recompile and relink function: " ^ msg)))
 
 let codeHandlers : (code -> unit) list ref = ref []
 
@@ -205,17 +212,20 @@ let evalCode phase llvmCode =
     List.iter (fun handler -> handler llvmCode) !codeHandlers;
   collectTimingInfo "send code"
     (fun () ->
-      if not (Machine.zompSendCode llvmCode "") then
-        raiseFailedToEvaluateLLVMCode llvmCode "could not evaluate")
+      if not (Machine.zompSendCode llvmCode "") then begin
+          raiseFailedToEvaluateLLVMCode Basics.fakeLocation llvmCode "could not evaluate"
+        end)
 
 let loadLLVMFile filename =
   try
     let content = readFile filename in
-    if not( Machine.zompSendCode content "" ) then
-      eprintf "could not eval llvm code from file %s\n" filename
-  with
-      Sys_error message ->
-        eprintf "could not load file %s: %s\n" filename message
+    if not( Machine.zompSendCode content "" ) then begin
+      let error = Serror.fromMsg (Some (Basics.location filename 0 None)) "failed to evaluate LLVM code" in
+      eprintf "%s\n" @@ Serror.toString error;
+    end
+  with Sys_error message ->
+    let error = Serror.fromMsg (Some (Basics.location filename 0 None)) "could not load file" in
+    eprintf "%s\n" @@ Serror.toString error
 
 module DllHandle =
 struct

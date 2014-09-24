@@ -1902,8 +1902,12 @@ let catchingErrorsDo f ~onErrors =
         onErrorMsg $ sprintf "unknown type: %s\n" descr
       | Genllvm.CodeGenError msg ->
         onErrorMsg $ sprintf "codegen failed: %s\n" msg
-      | FailedToEvaluateLLVMCode (llvmCode, errorMsg) ->
-        onErrorMsg $ sprintf "could not evaluate LLVM code: %s\n%s\n" errorMsg llvmCode
+      | Zompvm.FailedToEvaluateLLVMCode (loc, llvmCode, errorMsg) ->
+         eprintf "caught FailedToEvaluateLLVMCode\n";
+        onErrors
+          [Serror.fromMsg
+             (Some loc)
+             (sprintf "could not evaluate LLVM code: %s\n" errorMsg)]
       | Failure msg ->
         onErrorMsg $ sprintf "internal error: exception Failure(%s)\n" msg
   end

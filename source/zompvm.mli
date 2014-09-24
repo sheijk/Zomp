@@ -1,5 +1,7 @@
 (** Interface to the virtual machine (LLVM). **)
 
+exception FailedToEvaluateLLVMCode of Basics.location * string * string
+
 type cptr
 val isNullPtr : cptr -> bool
 

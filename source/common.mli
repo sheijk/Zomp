@@ -1,4 +1,3 @@
-exception FailedToEvaluateLLVMCode of string * string
 module CommonCombinators :
   sig
     val map2nd : ('a -> 'b) -> 'c * 'a -> 'c * 'b
