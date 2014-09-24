@@ -171,8 +171,8 @@ CAML_LIBS =
 CAML_OBJS =
 CAML_DEPENDENCIES = $(foreach obj, $(CAML_OBJS), $(obj).$(CAML_OBJ_EXT))
 CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), $(lib).$(CAML_LIB_EXT)) $(CAML_DEPENDENCIES)
-CAML_FLAGS = -annot -warn-error A $(CAML_INCLUDE) $(CAML_PP)
-CAML_NATIVE_FLAGS = -annot -warn-error A $(CAML_INCLUDE) $(CAML_PP)
+CAML_FLAGS = -annot -warn-error A-3 $(CAML_INCLUDE) $(CAML_PP)
+CAML_NATIVE_FLAGS = -annot -warn-error A-3 $(CAML_INCLUDE) $(CAML_PP)
 
 OCAML_3_DOT_X := $(shell $(OCAMLOPT) -version | grep ^3)
 ifeq "$(OCAML_3_DOT_X)" ""
