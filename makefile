@@ -454,12 +454,12 @@ endif
 
 .PRECIOUS: %.ll
 %.ll %.compile_output: %.zomp $(ZOMPC_FILE) source/prelude.zomp $(OUT_DIR)/has_llvm
-	@$(ECHO) Compiling $(<) to .ll...
+	@$(ECHO) Compiling $(<) to .ll ...
 	$(RUN_AND_LOG) $(<:.zomp=.compile_output) $(ZOMPC) -c $< $(ZOMPCFLAGS) --stats $(@:.ll=.compile_stats)
 
 .PRECIOUS: %.bc
 %.bc: %.ll $(OUT_DIR)/has_llvm
-	@$(ECHO) Compiling $< to $@
+	@$(ECHO) Compiling $< to $@ ...
 	$(LLVM_AS) -f $< -o $@
 
 .PRECIOUS: %.opt-bc
@@ -701,9 +701,10 @@ TAGS:
 # Documentation
 ################################################################################
 
-ALL_TARGETS += doc
 .PHONY: doc
-doc:
+doc: $(CAML_DOC_DIR)/index.html
+
+$(CAML_DOC_DIR)/index.html: $(CAMLDEP_INPUT)
 	mkdir -p $(CAML_DOC_DIR)
 	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -html -d $(CAML_DOC_DIR) $(CAMLDEP_INPUT)
 
@@ -714,7 +715,7 @@ doc:
 DOC_TARGETS += $(OUT_DIR)/caml-modules.svg
 
 $(OUT_DIR)/caml-modules.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
-	@$(ECHO) Generating dependency graph for graphviz ...
+	@$(ECHO) Generating module graph for graphviz ...
 	$(OCAMLDOC) $(OCAMLDEP_FLAGS) -o $@ -dot $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
 	cat $@ | sed 's/rotate=90;/rotate=0;/' > $@.tmp
 	mv $@.tmp $@
@@ -722,7 +723,7 @@ $(OUT_DIR)/caml-modules.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.m
 DOC_TARGETS += $(OUT_DIR)/caml-types.svg
 
 $(OUT_DIR)/caml-types.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
-	@$(ECHO) Generating dependency graph for graphviz ...
+	@$(ECHO) Generating type graph for graphviz ...
 	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -o $@ -dot -dot-types -dot-include-all -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
 	cat $@ | sed 's/rotate=90;/rotate=0;/' | sed 's/rankdir = TB ;/rankdir=LR;/' > $@.tmp
 	mv $@.tmp $@
@@ -845,6 +846,7 @@ $(OUT_DIR)/env.sh: makefile
 	echo "PATH=$(PATH)" >> $@
 
 ALL_TARGETS += doc
+.PHONY: doc
 doc: $(DOC_TARGETS)
 
 .PHONY: all
