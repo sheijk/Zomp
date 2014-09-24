@@ -55,21 +55,22 @@ testsuite/quick: testsuite/fundamental/simple-func.testreport testsuite/libs/lib
 CLEAN_SUB_TARGETS += testsuite/clean
 .PHONY: testsuite/clean
 testsuite/clean:
-	rm -f $(TESTSUITE_CASES)
-	rm -f $(TESTSUITE_CASES:.testreport=.result)
-	rm -f $(TESTSUITE_CASES:.testreport=.last_result)
-	rm -f $(TESTSUITE_CASES:.testreport=.test_output)
-	rm -f $(TESTSUITE_CASES:.testreport=.compile_output)
-	rm -f $(TESTSUITE_CASES:.testreport=.compile_stats)
-	rm -f $(TESTSUITE_CASES:.testreport=.ll)
-	rm -f $(TESTSUITE_CASES:.testreport=.bc)
-	rm -f $(TESTSUITE_CASES:.testreport=.opt-bc)
-	rm -f $(TESTSUITE_CASES:.testreport=.s)
-	rm -f $(TESTSUITE_CASES:.testreport=.o)
-	rm -f $(TESTSUITE_CASES:.testreport=.exe)
-	rm -f testsuite/prelude_is_valid
-	rm -f testsuite/zompsh/no_zompsh_test_*.zomp
-	rm -f testsuite/check_test_verify/test_check_test_error_report.testreport.tmp
+	@$(ECHO) "Cleaning testsuite ..."
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.result)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.last_result)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.test_output)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.compile_output)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.compile_stats)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.ll)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.bc)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.opt-bc)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.s)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.o)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.exe)
+	@$(DELETE_FILE) -f testsuite/prelude_is_valid
+	@$(DELETE_FILE) -f testsuite/zompsh/no_zompsh_test_*.zomp
+	@$(DELETE_FILE) -f testsuite/check_test_verify/test_check_test_error_report.testreport.tmp
 
 ################################################################################
 # Additional flags

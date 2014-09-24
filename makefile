@@ -801,9 +801,9 @@ source/clean:
 clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
-	$(DELETE_FILE) $(FILES_TO_DELETE_ON_CLEAN)
-	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
-	$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
+	@$(DELETE_FILE) $(FILES_TO_DELETE_ON_CLEAN)
+	@$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.cm?})
+	@$(DELETE_FILE) $(foreach f,$(LANG_CMOS),${f:.cmo=.o})
 	$(DELETE_FILE) expander_tests.cm?
 	$(DELETE_FILE) *_flymake.*
 	$(DELETE_FILE) $(AUTO_DEPENDENCY_FILE)

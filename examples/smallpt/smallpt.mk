@@ -17,6 +17,7 @@ examples/smallpt/%.png: examples/smallpt/%.ppm
 
 CLEAN_SUB_TARGETS += examples/smallpt/clean
 examples/smallpt/clean:
-	$(RM) -f examples/smallpt/smallpt-cpp
-	$(RM) -f examples/smallpt/image.png examples/smallpt/image.ppm
+	@$(ECHO) "Cleaning examples/smallpt ..."
+	$(DELETE_FILE) examples/smallpt/smallpt-cpp
+	$(DELETE_FILE) examples/smallpt/image.png examples/smallpt/image.ppm
 
