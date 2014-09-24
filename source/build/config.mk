@@ -59,7 +59,11 @@ MENHIR = $(OCAMLPATH)menhir
 OCAML = $(OCAMLPATH)ocaml
 OCAMLRUN = $(OCAMLPATH)ocamlrun
 OCAMLC = $(OCAMLPATH)ocamlc$(OCAML_BIN_POSTFIX)
-OCAMLOPT = $(OCAMLPATH)ocamlopt$(OCAML_BIN_POSTFIX)
+# Evil hack. LLVM 2.9 cannot assemble output of OCaml 4.02 anymore. ocamlopt
+# insists on using clang for assembling so we remove LLVM 2.9 from the path to
+# make it use the system default clang.
+NO_LLVM_PATH = $(shell echo ${PATH} | tr ':' '\n' |grep -v './tools/arch-' | tr '\n' ':')
+OCAMLOPT = PATH=$(NO_LLVM_PATH) $(OCAMLPATH)ocamlopt$(OCAML_BIN_POSTFIX)
 OCAMLMKLIB = $(OCAMLPATH)ocamlmklib
 OCAMLDEP = $(OCAMLPATH)ocamldep$(OCAML_BIN_POSTFIX)
 OCAMLDOC = $(OCAMLPATH)ocamldoc$(OCAML_BIN_POSTFIX)
