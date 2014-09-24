@@ -689,15 +689,6 @@ source/vm_server.o: source/vm_protocol.h
 libs/quicktext.ll: libs/libquicktext.dylib
 
 ################################################################################
-# Tags
-################################################################################
-
-ALL_TARGETS += TAGS
-TAGS:
-	@$(ECHO) Generating tags ...
-	otags 2> /dev/null || $(ECHO) "otags not found, no tags generated"
-
-################################################################################
 # Documentation
 ################################################################################
 
@@ -821,7 +812,6 @@ clean_tags:
 	$(DELETE_FILE) source/*.annot source/*.cmt source/*.cmti
 	$(DELETE_FILE) source/*.conflicts
 	$(DELETE_FILE) testsuite/*.annot testsuite/*.cmt testsuite/*.cmti
-	$(DELETE_FILE) TAGS
 	$(DELETE_FILE) $(FLYMAKE_LOG)
 
 clean_doc:
