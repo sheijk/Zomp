@@ -155,3 +155,4 @@
 /testsuite/zomp_source_to_html
 /tests/llvmtest/llvm-parse
 /tests/llvmtest/llvm-parse.o
+*.dylib.dSYM/

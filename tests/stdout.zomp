@@ -1,0 +1,11 @@
+/// 
+/// Experimenting with closed stdout
+///
+
+requireLibs libcee stdio
+
+func int main():
+  fclose(stdout)
+  ret 0
+end
+

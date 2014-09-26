@@ -1,0 +1,80 @@
+///
+/// A simple vtable implementation.
+///
+
+requireLibs libcee
+
+struct Variable:
+  cstring name
+  cstring typeName
+end
+
+struct FunctionSignature:
+  cstring name
+  cstring returnTypeName
+  int parameterCount
+  Variable* parameters
+end
+
+func FunctionSignature* parseFunctionDeclaration(ast* decl):
+  println "parseFunctionDeclaration"
+
+  template fail reason:
+    println "parseFunctionDeclaration failed: " #reason.id
+    return nullptr(FunctionSignature)
+  end
+
+  if !ast:matchesShape(decl, func _ __):
+    fail("not a function declaration")
+  end
+
+  returnTypeName := ast:child(decl, 1)
+  nameAndArgs := ast:child(decl, 2)
+
+  if !ast:matchesShape(nameAndArgs, ${_(__...)}):
+    fail "expected 'opcall name parameters...'"
+  end
+
+  name := ast:child(nameAndArgs, 0)
+  parameterCount := nameAndArgs.childCount - 1
+
+  return nullptr(FunctionSignature)
+end
+
+macro interface name body:
+  println "creating interface"
+
+  methodFields := ${}
+  
+  forEachAstChild method body:
+    // TODO check nameAndFields, factor out parsing into method
+    if ast:matchesShape(method, ${func _ __}):
+      ast:addChild methodFields method
+    else:
+      ret ${error #method "expected 'func type name(args)'"}
+    end
+  end
+
+  vtableName := name.id ++ "_vtable"
+  mret ${type #vtableName #methodFields}
+end
+
+interface IntInputIterator:
+  func bool hasNext()
+  func int next()
+end
+
+// =>
+// struct IntInputIterator_vtable:
+//   bool()* hasNext
+//   int()* next
+// end
+
+// class ConstantIntIterator implements IntInputIterator:
+// end
+
+func int main():
+  println "lalala"
+  ret 0
+end
+
