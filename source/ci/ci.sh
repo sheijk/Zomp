@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # A simplified CI script that will just pull updates, run a build and archive
-# everything. Run this in a loop using 'source/build/watch.sh ./ci.sh'
+# everything. Run this in a loop using 'source/ci/watch.sh ./ci.sh'
 #
 # Set ZOMP_CI_BRANCH to control which branch to run on. Will default to the one
 # currently checked out.
