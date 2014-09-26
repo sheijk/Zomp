@@ -118,9 +118,11 @@ run_action "archive" copy_to_archive
 
 rm -f ${LAST_RUN_FILE}
 echo "Last run:"
-(echo "  finished at\t`date '+%Y-%m-%d %H:%M:%S'`";
- echo "  branch\t${ZOMP_CI_BRANCH}";
+(echo "  finished at\t`date '+%Y-%m-%d %H:%M:%S'`"
+ echo "  branch\t${ZOMP_CI_BRANCH}"
+ echo "  revision\t$(git rev-parse HEAD)"
  echo "  flags\t${FLAGS}"
- echo "  build\t${BUILD_RESULT}";
+ echo "  build\t${BUILD_RESULT}"
  echo "  testsuite\t${TESTSUITE_RESULT}") | column -t -s $'\t' > ${LAST_RUN_FILE}
+cat ${LAST_RUN_FILE}
 
