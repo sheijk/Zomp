@@ -7,6 +7,7 @@ struct
   let (<<=) f g = f g
   let (>>=) x f = f x
   let ($) f x = f x
+  let (@@) f x = f x
   let (++) f g x = f (g x)
   let ($) f x = f x
   let (|>) x f = f x

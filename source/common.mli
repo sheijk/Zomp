@@ -6,6 +6,7 @@ module CommonCombinators :
     val ( >>= ) : 'a -> ('a -> 'b) -> 'b
     val ( ++ ) : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
     val ( $ ) : ('a -> 'b) -> 'a -> 'b
+    val ( @@ ) : ('a -> 'b) -> 'a -> 'b
     val ( |> ) : 'a -> ('a -> 'b) -> 'b
     val ( =~ ) : string -> string -> bool
     val makeGuardedFunction :
@@ -18,6 +19,7 @@ val ( <<= ) : ('a -> 'b) -> 'a -> 'b
 val ( >>= ) : 'a -> ('a -> 'b) -> 'b
 val ( ++ ) : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 val ( $ ) : ('a -> 'b) -> 'a -> 'b
+val ( @@ ) : ('a -> 'b) -> 'a -> 'b
 val ( |> ) : 'a -> ('a -> 'b) -> 'b
 val ( =~ ) : string -> string -> bool
 val makeGuardedFunction : ('a -> 'b) -> ('b -> 'c) -> 'a -> ('b -> 'd) -> 'd

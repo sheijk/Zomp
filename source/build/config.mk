@@ -62,15 +62,11 @@ OCAMLC = $(OCAMLPATH)ocamlc$(OCAML_BIN_POSTFIX)
 # Evil hack. LLVM 2.9 cannot assemble output of OCaml 4.02 anymore. ocamlopt
 # insists on using clang for assembling so we remove LLVM 2.9 from the path to
 # make it use the system default clang.
-NO_LLVM_PATH = $(shell echo ${PATH} | tr ':' '\n' |grep -v './tools/arch-' | tr '\n' ':')
+NO_LLVM_PATH = $(shell echo ${PATH} | tr ':' '\n' | grep -v '.*/tools/arch-.*/sources/llvm-2.9' | tr '\n' ':')
 OCAMLOPT = PATH=$(NO_LLVM_PATH) $(OCAMLPATH)ocamlopt$(OCAML_BIN_POSTFIX)
 OCAMLMKLIB = $(OCAMLPATH)ocamlmklib
 OCAMLDEP = $(OCAMLPATH)ocamldep$(OCAML_BIN_POSTFIX)
 OCAMLDOC = $(OCAMLPATH)ocamldoc$(OCAML_BIN_POSTFIX)
-
-# OCaml tags program (currently only works with OCaml 3.9 and thus is probably
-# not present anymore)
-OTAGS = otags
 
 ifeq "$(CAML_BYTE_CODE)" "0"
 CAML_OBJ_EXT=cmx
@@ -182,7 +178,6 @@ OCAML_3_DOT_X := $(shell $(OCAMLOPT) -version | grep ^3)
 ifeq "$(OCAML_3_DOT_X)" ""
 CAML_FLAGS += -bin-annot
 CAML_NATIVE_FLAGS += -bin-annot
-else
 endif
 
 LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
