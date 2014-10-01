@@ -303,7 +303,7 @@ test: all $(TEST_SUB_TARGETS)
 .PHONY: doc
 doc: $(CAML_DOC_DIR)/index.html
 
-$(CAML_DOC_DIR)/index.html: $(CAMLDEP_INPUT)
+$(CAML_DOC_DIR)/index.html: $(CAMLDEP_INPUT:.mli=.cmi)
 	mkdir -p $(CAML_DOC_DIR)
 	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -html -d $(CAML_DOC_DIR) $(CAMLDEP_INPUT)
 
