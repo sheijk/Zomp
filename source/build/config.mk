@@ -215,6 +215,28 @@ ZOMPCFLAGS += --dll-dir /usr/local/lib
 ZOMPCFLAGS += --dll-dir ./libs
 LDFLAGS += -Llibs
 
+CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
+CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
+LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)
+
+OCAMLDOC_FLAGS = -I source/ -I testsuite/
+OCAMLDEP_FLAGS = $(OCAMLDOC_FLAGS) -dot-include-all -dot-reduce
+
+ifeq "$(DEBUG)" "1"
+  OCAMLC += -g
+  CAML_FLAGS += -g
+  CAML_NATIVE_FLAGS += -g -ccopt -g
+  CXXFLAGS += -pg -g -DDEBUG
+  CCFLAGS += -pg -g -DDEBUG
+  LDFLAGS += -g
+else
+  ifeq "$(DEBUG)" "0"
+    CXXFLAGS += -O3
+  else
+    $(error DEBUG flag has to either 0 or 1)
+  endif
+endif
+
 ################################################################################
 # Libraries
 ################################################################################

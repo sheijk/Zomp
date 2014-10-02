@@ -85,3 +85,7 @@ source/vm_server.o: source/vm_protocol.h
 
 libs/quicktext.ll: libs/libquicktext.dylib
 
+source/vm_client.o: source/vm_protocol.h
+source/vm_server.o: source/vm_protocol.h
+source/vm_protocol.o: source/vm_protocol.h
+
