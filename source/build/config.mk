@@ -164,20 +164,23 @@ ZOMPSH = $(ZOMPSH_FILE)
 # Build flags
 ################################################################################
 
-CAML_INCLUDE = -I source/ -I testsuite/
-CAML_PP =
-
+# Can be overridden for individual targets.
 CAML_LIBS =
 CAML_OBJS =
 CAML_DEPENDENCIES = $(foreach obj, $(CAML_OBJS), $(obj).$(CAML_OBJ_EXT))
 CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), $(lib).$(CAML_LIB_EXT)) $(CAML_DEPENDENCIES)
-CAML_FLAGS = -annot -warn-error A-3 -w -3 $(CAML_INCLUDE) $(CAML_PP)
-CAML_NATIVE_FLAGS = -annot -warn-error A-3 -w -3 $(CAML_INCLUDE) $(CAML_PP)
+
+CAML_INCLUDE = -I source/ -I testsuite/
+CAML_COMMON = $(CAML_INCLUDE) -warn-error A-3 -w -3
+CAMLC_FLAGS = -annot $(CAML_COMMON)
+CAMLOPT_FLAGS = -annot $(CAML_COMMON)
+CAMLDOC_FLAGS = $(CAML_INCLUDE)
+CAMLDEP_FLAGS = $(CAML_INCLUDE) -dot-include-all -dot-reduce
 
 OCAML_3_DOT_X := $(shell $(OCAMLOPT) -version | grep ^3)
 ifeq "$(OCAML_3_DOT_X)" ""
-CAML_FLAGS += -bin-annot
-CAML_NATIVE_FLAGS += -bin-annot
+CAMLC_FLAGS += -bin-annot
+CAMLOPT_FLAGS += -bin-annot
 endif
 
 LLVM_EXTRA_OPTIONS = "$(ARCHFLAG)"
@@ -187,7 +190,7 @@ BUILD_PLATFORM := $(shell 'uname')
 ifeq "$(BUILD_PLATFORM)" "Linux"
 DLL_FLAG = -shared
 LLVM_EXTRA_OPTIONS += -fPIC -DPIC
-CAML_NATIVE_FLAGS += -fPIC
+CAMLOPT_FLAGS += -fPIC
 else # os x
 DLL_FLAG = -dynamiclib
 endif
@@ -219,13 +222,10 @@ CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(A
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)
 
-OCAMLDOC_FLAGS = -I source/ -I testsuite/
-OCAMLDEP_FLAGS = $(OCAMLDOC_FLAGS) -dot-include-all -dot-reduce
-
 ifeq "$(DEBUG)" "1"
   OCAMLC += -g
-  CAML_FLAGS += -g
-  CAML_NATIVE_FLAGS += -g -ccopt -g
+  CAMLC_FLAGS += -g
+  CAMLOPT_FLAGS += -g -ccopt -g
   CXXFLAGS += -pg -g -DDEBUG
   CCFLAGS += -pg -g -DDEBUG
   LDFLAGS += -g

@@ -25,21 +25,21 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAML_NATIVE_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_COMPILER_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
+	$(OCAMLOPT) $(CAMLOPT_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_COMPILER_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
 $(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) -o $@ $(CAML_NATIVE_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
+	$(OCAMLOPT) -o $@ $(CAMLOPT_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
 else
 
 $(ZOMPC_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
+	$(OCAMLC) $(CAMLC_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
 
 $(ZOMPSH_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAML_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) source/zompsh.cmo
+	$(OCAMLC) $(CAMLC_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) source/zompsh.cmo
 
 endif
 
@@ -121,5 +121,5 @@ doc: $(CAML_DOC_DIR)/index.html
 
 $(CAML_DOC_DIR)/index.html: $(CAMLDEP_INPUT:.mli=.cmi)
 	mkdir -p $(CAML_DOC_DIR)
-	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -html -d $(CAML_DOC_DIR) $(CAMLDEP_INPUT)
+	$(OCAMLDOC) $(CAMLDOC_FLAGS) -html -d $(CAML_DOC_DIR) $(CAMLDEP_INPUT)
 

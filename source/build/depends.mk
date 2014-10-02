@@ -14,7 +14,7 @@ DOC_TARGETS += $(OUT_DIR)/caml-modules.svg
 
 $(OUT_DIR)/caml-modules.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
 	@$(ECHO) Generating module graph for graphviz ...
-	$(OCAMLDOC) $(OCAMLDEP_FLAGS) -o $@ -dot $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
+	$(OCAMLDOC) $(CAMLDEP_FLAGS) -o $@ -dot $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
 	cat $@ | sed 's/rotate=90;/rotate=0;/' > $@.tmp
 	mv $@.tmp $@
 
@@ -22,7 +22,7 @@ DOC_TARGETS += $(OUT_DIR)/caml-types.svg
 
 $(OUT_DIR)/caml-types.dot: makefile $(AUTO_DEPENDENCY_FILE) $(CAMLDEP_INPUT:.mli=.cmi) source/newparser.mli
 	@$(ECHO) Generating type graph for graphviz ...
-	$(OCAMLDOC) $(OCAMLDOC_FLAGS) -o $@ -dot -dot-types -dot-include-all -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
+	$(OCAMLDOC) $(CAMLDOC_FLAGS) -o $@ -dot -dot-types -dot-include-all -dot-reduce $(CAMLDEP_INPUT) source/newparser.ml source/newparser.mli
 	cat $@ | sed 's/rotate=90;/rotate=0;/' | sed 's/rankdir = TB ;/rankdir=LR;/' > $@.tmp
 	mv $@.tmp $@
 
