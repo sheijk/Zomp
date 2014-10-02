@@ -29,9 +29,9 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 	echo "<br />" >> $@
 	echo "Documentation: <a href=\"intermediate/caml-modules.svg\">OCaml modules deps</a>, <a href=\"intermediate/caml-types.svg\">types</a>, <a href=\"doc/index.html\">documentation</a><br />" >> $@
 	$(MAKE_REPORT) "Unit tests" $(filter-out testsuite/check_test_verify/%, $(sort $(TESTSUITE_CASES:.testreport=))) >> $@
-	./libs/make_libs_result_files.sh $(ZOMP_LIBS_SRC)
+	./source/build/make_libs_result_files.sh $(ZOMP_LIBS_SRC)
 	$(MAKE_REPORT) "Libraries" $(sort $(ZOMP_LIBS_SRC:.zomp=)) >> $@
-	./examples/make_examples_result_files.sh $(EXAMPLES_SOURCES)
+	./source/build/make_examples_result_files.sh $(EXAMPLES_SOURCES)
 	$(MAKE_REPORT) "Examples" $(sort $(EXAMPLES_SOURCES:.zomp=)) >> $@
 	echo "<h2>OCaml unit tests</h2>" >> $@
 	echo "<a href=\"../../$(MLTEST_OUTPUT_FILE)\">Output</a>\n" >> $@

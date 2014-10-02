@@ -20,12 +20,8 @@ CLEAN_SUB_TARGETS += libs/clean
 # not using ZOMP_LIBS_SRC w/ repl. to avoid accidental deletion of source files if it fails
 libs/clean:
 	@$(ECHO) "Cleaning libs ..."
-	@$(DELETE_FILE) $(GENERATED_LIBRARY_SOURCES)
-	@$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.ll)
-	@$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.bc)
-	@$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.opt-bc)
-	@$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.compile_output)
-	@$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.result)
+	$(DELETE_FILE) $(GENERATED_LIBRARY_SOURCES)
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.{ll,bc,opt-bc,compile_output,compile_stats,result})
 
 ################################################################################
 # Dependencies

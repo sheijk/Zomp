@@ -7,6 +7,7 @@
 ################################################################################
 
 DEBUG=0
+# ARCH default set in source/build/config.mk
 CAML_BYTE_CODE=0
 
 .DEFAULT_GOAL: all
