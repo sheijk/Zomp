@@ -6,23 +6,9 @@
 # Config
 ################################################################################
 
-# guard for makefiles in sub directories
-ZOMP_MAIN_MAKEFILE=1
-
-ifndef DEBUG
 DEBUG=0
-endif
-
-ifndef CAML_BYTE_CODE
 CAML_BYTE_CODE=0
-endif
 
-ifndef PWD
-PWD=`pwd`
-endif
-
-
-ZOMP_DIR = $(PWD)
 .DEFAULT_GOAL: all
 include source/build/help.mk
 include source/build/config.mk

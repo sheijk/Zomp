@@ -2,9 +2,8 @@
 # Cleaning
 #
 
-.PHONY: clean clean_tags clean_all
-
 CLEAN_SUB_TARGETS += source/clean
+.PHONY: source/clean
 source/clean:
 	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
 	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
@@ -21,6 +20,7 @@ source/clean:
 	$(DELETE_FILE) source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
 	$(DELETE_FILE) source/dllzompvm.so
 
+.PHONY: clean
 clean: $(CLEAN_SUB_TARGETS)
 	@$(ECHO) "Cleaning ..."
 	cd tests && make clean_tests
@@ -39,14 +39,17 @@ clean: $(CLEAN_SUB_TARGETS)
 	$(DELETE_FILE) $(BUILD_DIR)/.exists
 	$(DELETE_DIR) -rdf $(OUT_DIR) $(DEPLOY_DIR) $(TESTSUITE_OUT_DIR)
 
+CLEAN_SUB_TARGETS += clean_doc
+.PHONY: clean_doc
+clean_doc:
+	rm -rf $(CAML_DOC_DIR)
+
+.PHONY: clean_tags
 clean_tags:
 	$(DELETE_FILE) source/*.annot source/*.cmt source/*.cmti
 	$(DELETE_FILE) source/*.conflicts
 	$(DELETE_FILE) testsuite/*.annot testsuite/*.cmt testsuite/*.cmti
 	$(DELETE_FILE) $(FLYMAKE_LOG)
-
-clean_doc:
-	rm -rf $(CAML_DOC_DIR)
 
 clean_all: clean clean_tags
 
