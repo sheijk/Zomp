@@ -32,8 +32,8 @@ the Zomp repository and provide a few required tools and libraries.
 External dependencies (list might be incomplete and out of date):
 - OS X 10.9 (older versions might work)
 - OCaml 4.02. Install using opam and make sure ocamlfind is present
-- Menhir parser generator, version 20070520
 - LLVM and clang 2.9 (see source/build/tools.mk)
+- Menhir parser generator
 
 To build just call make all from the root directory. To compile zomp files use
 "zompc -c foo.zomp", to use the zomp shell call zompsh. The accompanying

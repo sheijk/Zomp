@@ -39,10 +39,6 @@ rm -f ${BUILDLOG}
 LOGSHELL=`pwd`/source/build/logshell.sh
 echo "Starting build at `date '+%Y-%m-%d %H:%M:%S'` with params '$@', options = ${OPTIONS}" > ${BUILDLOG}
 
-ENV_SCRIPT=$(${MAKE} -s "${OPTIONS[@]}" setenv | grep "setenv = " | sed 's/^setenv = //')
-echo "Using env script ${ENV_SCRIPT} ..."
-source ${ENV_SCRIPT}
-
 # Add --print-directory even though we're not using recursive make so Emacs (and
 # other tools) shows correct source locations even when compilation command has
 # not been triggered from this directory.
