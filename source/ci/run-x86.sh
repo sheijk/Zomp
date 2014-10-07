@@ -11,5 +11,7 @@ then
     exit 1
 fi
 
+eval $(opam config env --switch 4.02.0-Darwin-i386)
+
 ../Zomp/source/ci/watch.sh ../Zomp/source/ci/ci.sh -ks -j8 ARCH=i386
 

@@ -8,6 +8,7 @@ help:
 
 debug:
 	@$(ECHO) "BUILD_VARIANT = " $(BUILD_VARIANT)
+	@$(ECHO) "BUILD_DIR = " $(BUILD_DIR)
 	@$(ECHO) "PATH = "
 	@$(ECHO) "$(PATH)" | $(TR) : \\n
 	@$(ECHO) "SHELL = " $(SHELL)
@@ -27,16 +28,17 @@ else
 	@$(ECHO) "Use PRINT_VAR=foo to print foo"
 endif
 
-
 # This will create a script to setup the environment as it is used for this build.
 # Use this for debugging or if you want to make sure you're using the same tools
 # as the make process when looking up help, etc.
+.PHONY: setenv
 setenv: $(OUT_DIR)/env.sh
+	@echo "setenv = $<"
 
 ALL_TARGETS += $(OUT_DIR)/env.sh
-$(OUT_DIR)/env.sh: makefile
+$(OUT_DIR)/env.sh: $(ZOMP_MAKEFILES)
 	@$(ECHO) "Creating $@ ..."
 	echo '#!/usr/bin/env sh' > $@
-	echo "# source this script to setup the environment for this build"
+	echo "# source this script to setup the environment for this build" >> $@
 	echo "PATH=$(PATH)" >> $@
 

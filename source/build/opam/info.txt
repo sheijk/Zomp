@@ -1,0 +1,10 @@
+Custom opam repository adding a 32-bit OCaml compiler for OS X. This can be used
+to build 32-bit version of Zomp on OS X and is used by the continuous
+integration scripts.
+
+You will only need this to build a 32-bit build of Zomp on 64-bit systems. To
+use it run the following after installing opam:
+
+  opam repo add zomp Zomp/source/build/opam
+  opam update zomp
+  opam switch --no-switch 4.02.0-Darwin-i386

@@ -50,23 +50,19 @@ RUN_AND_LOG = ./source/build/run_and_log.sh
 # OCaml binaries
 ################################################################################
 
-OCAML_BIN_POSTFIX = .opt
-
-OCAMLPATH =
-OCAMLLEX = $(OCAMLPATH)ocamllex$(OCAML_BIN_POSTFIX)
-OCAMLYACC = $(OCAMLPATH)ocamlyacc
-MENHIR = $(OCAMLPATH)menhir
-OCAML = $(OCAMLPATH)ocaml
-OCAMLRUN = $(OCAMLPATH)ocamlrun
-OCAMLC = $(OCAMLPATH)ocamlc$(OCAML_BIN_POSTFIX)
+OCAMLFIND = ocamlfind
+MENHIR = menhir
+OCAML = ocaml
+OCAMLRUN = ocamlrun
+OCAMLC = $(OCAMLFIND) ocamlc
 # Evil hack. LLVM 2.9 cannot assemble output of OCaml 4.02 anymore. ocamlopt
 # insists on using clang for assembling so we remove LLVM 2.9 from the path to
 # make it use the system default clang.
 NO_LLVM_PATH = $(shell echo ${PATH} | tr ':' '\n' | grep -v '.*/tools/arch-.*/sources/llvm-2.9' | tr '\n' ':')
-OCAMLOPT = PATH=$(NO_LLVM_PATH) $(OCAMLPATH)ocamlopt$(OCAML_BIN_POSTFIX)
-OCAMLMKLIB = $(OCAMLPATH)ocamlmklib
-OCAMLDEP = $(OCAMLPATH)ocamldep$(OCAML_BIN_POSTFIX)
-OCAMLDOC = $(OCAMLPATH)ocamldoc$(OCAML_BIN_POSTFIX)
+OCAMLOPT = PATH=$(NO_LLVM_PATH) $(OCAMLFIND) ocamlopt
+OCAMLMKLIB = $(OCAMLFIND) ocamlmklib
+OCAMLDEP = $(OCAMLFIND) ocamldep
+OCAMLDOC = $(OCAMLFIND) ocamldoc
 
 ifeq "$(CAML_BYTE_CODE)" "0"
 CAML_OBJ_EXT=cmx

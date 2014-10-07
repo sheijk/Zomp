@@ -11,7 +11,6 @@ DEBUG=0
 CAML_BYTE_CODE=0
 
 .DEFAULT_GOAL: all
-include source/build/help.mk
 include source/build/config.mk
 
 ifneq "$(SILENT)" "1"
@@ -61,25 +60,28 @@ LANG_CMXS= common.cmx basics.cmx ast2.cmx types.cmx lang.cmx bindings.cmx serror
      -cclib -lstdc++-static $(LLVM_LIBS_CAML) source/libzompvm.a indentlexer.cmx \
     newparser.cmx parseutils.cmx expander.cmx testing.cmx compileutils.cmx
 
-include source/build/depends.mk
-include testsuite/testsuite.mk
-include libs/libs.mk
-include examples/examples.mk
-include examples/smallpt/smallpt.mk
-include bindgen/bindgen.mk
-include source/build/tools.mk
-include source/build/external_libs.mk
-include source/build/reports.mk
-include source/build/checks.mk
-include source/build/stats.mk
-include source/build/rules.mk
-include source/build/clean.mk
-include source/build/testing.mk
-include source/build/flymake.mk
-include source/build/main_targets.mk
+ZOMP_MAKE_INCLUDES = \
+  source/build/help.mk \
+  source/build/depends.mk \
+  testsuite/testsuite.mk \
+  libs/libs.mk \
+  examples/examples.mk \
+  examples/smallpt/smallpt.mk \
+  bindgen/bindgen.mk \
+  source/build/tools.mk \
+  source/build/external_libs.mk \
+  source/build/reports.mk \
+  source/build/checks.mk \
+  source/build/stats.mk \
+  source/build/rules.mk \
+  source/build/clean.mk \
+  source/build/testing.mk \
+  source/build/flymake.mk \
+  source/build/main_targets.mk
 
-print_extended_path:
-	echo "PATH=$(LLVM_BIN_DIR):$(ZOMP_TOOL_PATH_RELATIVE)/bin:$(OCAMLPATH):$(PATH)"
+ZOMP_MAKEFILES = makefile source/build/config.mk $(ZOMP_MAKE_INCLUDES)
+
+include $(ZOMP_MAKE_INCLUDES)
 
 ################################################################################
 # Main targets
