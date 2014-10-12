@@ -19,27 +19,29 @@ else # OS X
 	cp source/dllzompvm.so $(ZOMP_DLL_FILE)
 endif
 
+$(ZOMPC_FILE): CAML_LIBS = str bigarray
+$(ZOMPSH_FILE): CAML_LIBS = str bigarray
 FILES_TO_DELETE_ON_CLEAN += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
 FILES_TO_DELETE_ON_CLEAN += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
 ifeq "$(CAML_BYTE_CODE)" "0"
 
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) $(CAMLOPT_FLAGS)  -o $@ -I $(LLVM_LIB_DIR) $(CAML_COMPILER_LIBS:.cma=.cmxa) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
+	$(OCAMLOPT) -linkpkg $(CAMLOPT_FLAGS) $(CAML_LINK_FLAGS) -o $@ -I $(LLVM_LIB_DIR) $(LANG_CMXS) source/zompc.cmx -cclib -lcurl
 
 $(ZOMPSH_FILE): source/zompsh.cmx $(LANG_CMOS:.cmo=.cmx) $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLOPT) -o $@ $(CAMLOPT_FLAGS) -I $(LLVM_LIB_DIR) str.cmxa bigarray.cmxa $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
+	$(OCAMLOPT) -linkpkg -o $@ $(CAMLOPT_FLAGS) $(CAML_LINK_FLAGS) -I $(LLVM_LIB_DIR) $(LANG_CMXS) source/zompsh.cmx -cclib -lcurl
 
 else
 
 $(ZOMPC_FILE): $(LANG_CMOS) source/zompc.cmo $(ZOMP_DLL_FILE)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAMLC_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) $(ZOMP_DLL_FILE)
+	$(OCAMLC) -linkpkg $(CAMLC_FLAGS) $(CAML_LINK_FLAGS) -o $@ $(LANG_CMOS) $(ZOMP_DLL_FILE)
 
 $(ZOMPSH_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 	@$(ECHO) Building $@ ...
-	$(OCAMLC) $(CAMLC_FLAGS) -o $@ $(CAML_COMPILER_LIBS) $(LANG_CMOS) source/zompsh.cmo
+	$(OCAMLC) -linkpkg $(CAMLC_FLAGS) $(CAML_LINK_FLAGS) -o $@ $(LANG_CMOS) source/zompsh.cmo
 
 endif
 

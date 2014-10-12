@@ -45,7 +45,6 @@ CAMLDEP_INPUT = $(foreach file, ast2.ml bindings.ml common.ml serror.ml \
     zompc.ml zompvm.ml basics.ml mltest.ml, source/$(file) source/$(file:.ml=.mli)) \
     $(foreach file, make_history_report.ml make_report.ml check_test.ml zomp_source_to_html.ml, testsuite/$(file) testsuite/$(file:.ml=.mli))
 
-CAML_COMPILER_LIBS = str.cma bigarray.cma
 # When this is changed, CAMLDEP_INPUT and LANG_CMXS will need to be changed, too
 LANG_CMOS = source/common.cmo source/basics.cmo source/testing.cmo \
   source/types.cmo source/ast2.cmo source/lang.cmo source/bindings.cmo source/serror.cmo source/result.cmo \

@@ -62,10 +62,8 @@ OCAMLDOC = $(OCAMLFIND) ocamldoc
 
 ifeq "$(CAML_BYTE_CODE)" "0"
 CAML_OBJ_EXT=cmx
-CAML_LIB_EXT=cmxa
 else
 CAML_OBJ_EXT=cmo
-CAML_LIB_EXT=cma
 endif
 
 ################################################################################
@@ -160,7 +158,7 @@ ZOMPSH = $(ZOMPSH_FILE)
 CAML_LIBS =
 CAML_OBJS =
 CAML_DEPENDENCIES = $(foreach obj, $(CAML_OBJS), $(obj).$(CAML_OBJ_EXT))
-CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), $(lib).$(CAML_LIB_EXT)) $(CAML_DEPENDENCIES)
+CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), -package $(lib)) $(CAML_DEPENDENCIES)
 
 CAML_INCLUDE = -I source/ -I testsuite/
 CAML_COMMON = $(CAML_INCLUDE) -warn-error A-3 -w -3

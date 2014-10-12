@@ -9,7 +9,7 @@
 
 %.mli: %.ml %.mly
 	@$(ECHO) "Generating $@ ..."
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) -i $< > $@
+	$(OCAMLOPT) -i $(CAMLOPT_FLAGS) $< > $@
 
 %.ml: %.mll $(OUT_DIR)/has_ocaml $(OUT_DIR)/has_menhir
 	@$(ECHO) "Generating lexer $@ from $< ..."
@@ -23,47 +23,47 @@ ifeq "$(CAML_BYTE_CODE)" "0"
 
 %.cmi: %.mli
 	@$(ECHO) "Compiling $@ ..."
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) -c $<
+	$(OCAMLOPT) -c $(CAMLOPT_FLAGS) $<
 
 %.cmx: %.ml %.cmi
 	@$(ECHO) "Compiling $@ ..."
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) -c $<
+	$(OCAMLOPT) -c $(CAMLOPT_FLAGS) $<
 
 source/%.mli: source/%.ml source/%.skel
 	@$(ECHO) "Generating $@ from $< ..."
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) -i $< > $@
+	$(OCAMLOPT) -i $(CAMLOPT_FLAGS) $< > $@
 
 %: %.cmx $(CAML_DEPENDENCIES)
 	$(ECHO) "Building native ml program $@ ..."
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+	$(OCAMLOPT) -linkpkg $(CAMLOPT_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 $(OUT_DIR)/%: %.cmx $(CAML_DEPENDENCIES)
 	$(ECHO) "Building native ml program $@ ..."
 	mkdir -p `dirname $@`
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+	$(OCAMLOPT) -linkpkg $(CAMLOPT_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 else
 
 %.cmi: %.mli
 	@$(ECHO) "Compiling $@ ..."
-	$(OCAMLC) $(CAMLC_FLAGS) -c $<
+	$(OCAMLC) -c $(CAMLC_FLAGS) $<
 
 %.cmo: %.ml %.cmi
 	@$(ECHO) "Compiling $@ ..."
-	$(OCAMLC) $(CAMLC_FLAGS) -c $<
+	$(OCAMLC) -c $(CAMLC_FLAGS) $<
 
 source/%.mli: source/%.ml source/%.skel
 	@$(ECHO) "Generating $@ from $< ..."
-	$(OCAMLC) $(CAMLC_FLAGS) -i $< > $@
+	$(OCAMLC) -i $(CAMLC_FLAGS) $< > $@
 
 %: %.cmo $(CAML_DEPENDENCIES)
-	$(ECHO) "Building ml program $@ ..."
-	$(OCAMLC) $(CAMLC_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+	$(ECHO) "Building byte code ml program $@ ..."
+	$(OCAMLC) -linkpkg $(CAMLC_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
-$(OUT_DIR)/%: %.cmo
-	$(ECHO) "Building ml program $@ ..."
+$(OUT_DIR)/%: %.cmo $(CAML_DEPENDENCIES)
+	$(ECHO) "Building byte code ml program $@ ..."
 	mkdir -p `dirname $@`
-	$(OCAMLC) $(CAMLC_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
+	$(OCAMLC) -linkpkg $(CAMLC_FLAGS) $(CAML_LINK_FLAGS) -o $@ $<
 
 endif
 
@@ -119,6 +119,6 @@ ifeq "$(REGEN_MLI)" "1"
 gen-%.mli: %.ml
 	@$(ECHO) "Auto generating interface $(<)i from $< ..."
 	if [ -e "$(<)i" ]; then echo "$<i: 0: error: file exists. delete it first!"; exit 1; fi
-	$(OCAMLOPT) $(CAMLOPT_FLAGS) -i $< > $(<:.ml=.mli)
+	$(OCAMLOPT) -i $(CAMLOPT_FLAGS) $< > $(<:.ml=.mli)
 endif
 
