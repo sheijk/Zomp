@@ -55,11 +55,7 @@ MENHIR = menhir
 OCAML = ocaml
 OCAMLRUN = ocamlrun
 OCAMLC = $(OCAMLFIND) ocamlc
-# Evil hack. LLVM 2.9 cannot assemble output of OCaml 4.02 anymore. ocamlopt
-# insists on using clang for assembling so we remove LLVM 2.9 from the path to
-# make it use the system default clang.
-NO_LLVM_PATH = $(shell echo ${PATH} | tr ':' '\n' | grep -v '.*/tools/arch-.*/sources/llvm-2.9' | tr '\n' ':')
-OCAMLOPT = PATH=$(NO_LLVM_PATH) $(OCAMLFIND) ocamlopt
+OCAMLOPT = $(OCAMLFIND) ocamlopt
 OCAMLMKLIB = $(OCAMLFIND) ocamlmklib
 OCAMLDEP = $(OCAMLFIND) ocamldep
 OCAMLDOC = $(OCAMLFIND) ocamldoc
