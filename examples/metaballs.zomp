@@ -7,85 +7,6 @@ requireLibs opengl20 glfw glut glutils
 requireLibs quicktext spaceballcam array
 
 //------------------------------------------------------------------------------
-// Improved unit tests
-
-///
-/// An assertion macro which detects certain kinds of expressions and inserts
-/// code printing the arguments for better error messages
-///
-/// Example:
-/// x := 20.0
-/// unittest:assert (sin 10.0 ==_f 20.0)
-///
-/// Will result in:
-///
-/// Assertion failed
-/// left = -0.544021
-/// right = 20.000000
-/// op==_f [2 childs]
-///   opjux [2 childs]
-///     sinf [0 childs]
-///     10.0 [0 childs]
-///   x [0 childs]
-///
-macro unittest:assert testCode:
-  isCompare := false
-  printF := ast:fromString "internalErrorIn unittest:assert"
-  compareF := ast:fromString "internalErrorIn unittest:assert"
-
-  if ast:matchesShape(testCode, ${__ ==_f __}):
-    isCompare = true
-    printF = ast:fromString "print"
-    compareF = ast:fromString "op==_f"
-  elseif ast:matchesShape(testCode, ${__ == __}):
-    isCompare = true
-    printF = ast:fromString "print"
-    compareF = ast:fromString "op=="
-  end
-
-  if isCompare:
-    uniqueId lvar "lvar"
-    uniqueId rvar "rvar"
-    l := ast:child(testCode, 0)
-    r := ast:child(testCode, 1)
-    ret $:
-      #lvar := #l
-      #rvar := #r
-      unless (#compareF #lvar #rvar):
-        printHLine '-' 40
-        printlnString "Assertion failed"
-        printString "left = "
-        #printF #lvar
-        println()
-        printString "right = "
-        #printF #rvar
-        println()
-        ast:print ${#testCode} 0
-      end
-    end
-  else:
-    ret $:
-      unless #testCode:
-        printHLine '-' 40
-        printlnString "Assertion failed"
-        ast:print ${#testCode} 0
-      end
-    end
-  end
-
-  ret ${}
-end
-
-/// redefine to work with indent based syntax expressions
-macro unittest:assertAll checks:
-  var ast* code ${}
-  forEachAstChild check checks:
-    ast:addChild code ${unittest:assert #check}
-  end
-  ret code
-end
-
-//------------------------------------------------------------------------------
 // misc
 
 macro assert code:
@@ -93,17 +14,6 @@ macro assert code:
     printlnString "error: Assertion failed"
     ast:print ${#code} 0
   end}
-end
-
-//------------------------------------------------------------------------------
-// pointer utils
-
-macro ptrvars type names...:
-  decls := ${}
-  forEachAstChild name names:
-    ast:addChild decls ${var #type #name nullptr(#type)}
-  end
-  ret decls
 end
 
 //------------------------------------------------------------------------------
