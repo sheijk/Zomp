@@ -275,9 +275,18 @@ let info : form -> formInfo = function
   | `PtrAddIntrinsic (info, _, _)
   | `PtrDiffIntrinsic (info, _, _)
   | `StoreIntrinsic (info, _, _)
+  | `AssignVar (info, _, _)
+  | `Branch (info, _)
+  | `Constant (info, _)
+  | `DefineVariable (info, _, _)
+  | `EmbeddedComment (info, _)
+  | `FuncCall (info, _)
+  | `Jump (info, _)
+  | `Label (info, _)
+  | `Return (info, _)
+  | `Sequence (info, _)
+  | `Variable (info, _)
     -> info
-  | _ ->
-    { formLoc = Basics.fakeLocation }
 
 let formInfo formLoc = { formLoc }
 let formInfoFromExpr expr = formInfo $ Ast2.location expr
