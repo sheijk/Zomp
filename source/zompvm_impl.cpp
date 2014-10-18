@@ -204,6 +204,7 @@ namespace
 
   namespace vmoptions {
     static bool verifyCode = true;
+    static bool printInvalidLlvmCode = false;
     static bool optimizeFunctions = false;
   }
 
@@ -353,6 +354,14 @@ extern "C" {
 
   void zompSetOptimizeFunction (bool optimize) {
     vmoptions::optimizeFunctions = optimize;
+  }
+
+  bool zompPrintInvalidLlvmCode() {
+    return vmoptions::printInvalidLlvmCode;
+  }
+
+  void zompSetPrintInvalidLlvmCode(bool print) {
+    vmoptions::printInvalidLlvmCode = print;
   }
 
   const char* float2string(double d) {
@@ -754,6 +763,10 @@ extern "C" {
     }
 
     if( errorsOccurred ) {
+      if( vmoptions::printInvalidLlvmCode ) {
+        printf("--- broken LLVM code:\n%s\n---", code);
+      }
+
       zompFlushStreams();
     }
 

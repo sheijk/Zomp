@@ -228,7 +228,13 @@ end = struct
       exit (if !hadErrors then 1 else 0))
 
   let toggleAstCommand = makeToggleCommandForRef printAst "Printing s-expressions"
-  let toggleLLVMCommand = makeToggleCommandForRef printLLVMCode "Printing LLVM code"
+  let toggleLLVMCommand =
+    makeToggleCommandFromGetSet
+      "Printing LLVM code"
+      (fun () -> !printLLVMCode)
+      (fun on ->
+       printLLVMCode := on;
+       Zompvm.setPrintInvalidLlvmCode on)
   let togglePrintDeclarationsCommand =
     makeToggleCommandForRef printDeclarations "Printing declarations"
   let togglePrintFormsCommand =

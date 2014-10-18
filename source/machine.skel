@@ -18,6 +18,9 @@ http://sheijk.dword.org/zomp
     bool zompOptimizeFunction ()
     void zompSetOptimizeFunction (bool optimize)
 
+    bool zompPrintInvalidLlvmCode ()
+    void zompSetPrintInvalidLlvmCode (bool print)
+
     bool zompConnectToRemoteVM (const char* uri)
     void zompDisconnectRemoteVM ()
     void zompSendToRemoteVM (const char* uri)

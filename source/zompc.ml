@@ -218,6 +218,9 @@ let () =
     in
     Expander.setTraceToplevelForm (Some trace);
   end;
+  (** If we trace llvm code we also want to print invalid llvm code because
+      the code for macros will not get traced. *)
+  Zompvm.setPrintInvalidLlvmCode options.traceLlvmCode;
 
   let baseName = match getBasename options.fileName with
     | Some baseName ->

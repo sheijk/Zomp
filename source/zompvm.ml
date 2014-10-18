@@ -14,6 +14,8 @@ let setVerifyCode on = Machine.zompVerifyCode on
 let verifyCode() = Machine.zompDoesVerifyCode()
 let autoOptimizeFunctions() = Machine.zompOptimizeFunction()
 let setAutoOptimizeFunctions on = Machine.zompSetOptimizeFunction on
+let printInvalidLlvmCode() = Machine.zompPrintInvalidLlvmCode()
+let setPrintInvalidLlvmCode on = Machine.zompSetPrintInvalidLlvmCode on
 
 let optimizeCode() = Machine.zompOptimizeFunctions()
 

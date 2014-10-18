@@ -19,6 +19,12 @@ native code. *)
 val autoOptimizeFunctions : unit -> bool
 val setAutoOptimizeFunctions : bool -> unit
 
+(** Will print Llvm code that failed to compile. TODO: instead return the code
+ and error messages as part of the exception and use them for conditional
+ printing. *)
+val printInvalidLlvmCode : unit -> bool
+val setPrintInvalidLlvmCode : bool -> unit
+
 (** Will run a set of standard optimizations on all functions and re-generate
 native code. *)
 val optimizeCode : unit -> unit
