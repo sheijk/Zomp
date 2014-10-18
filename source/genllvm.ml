@@ -21,6 +21,23 @@ let typeOfForm = Semantic.typeOfForm
                                    (Semantic.typeRequirementToString expected)
                                    (Types.typeName found) ) )
 
+let locationComment loc =
+  sprintf ";; %s\n" @@ Basics.locationToString loc
+
+let locationCommentOpt locOpt =
+  sprintf ";; %s\n" @@ Basics.locationOptToString locOpt
+
+let countChar str c =
+  let count = ref 0 in
+  for i = 0 to String.length str - 1 do
+    if str.[i] = c then incr count
+  done;
+  !count
+
+let llvmStringLength str =
+  let length = String.length str in
+  length - 2 * countChar str '\\'
+
 let escapeName name = "\"" ^ name ^ "\""
 
 let llvmName name =
@@ -952,17 +969,6 @@ let rec gencode : Lang.form -> gencodeResult = function
   | #genericIntrinsic as intr -> gencodeGenericIntr gencode intr
   | `EmbeddedComment (_, comments) -> gencodeEmbeddedComment comments
 
-let countChar str c =
-  let count = ref 0 in
-  for i = 0 to String.length str - 1 do
-    if str.[i] = c then incr count
-  done;
-  !count
-
-let llvmStringLength str =
-  let length = String.length str in
-  length - 2 * countChar str '\\'
-
 let gencodeGlobalVar (_ :t) gvar =
   let var = gvar.gvVar
   and initialValue = gvar.gvInitialValue
@@ -1133,7 +1139,13 @@ let gencodeTL backend phase form =
       | `DefineFunc func -> gencodeDefineFunc backend func
       | `Typedef (name, typ) -> gencodeTypedef backend name typ
   in
-  let code = Zompvm.codeFromLlvm llvmIr in
+  let llvmIrWithLoc =
+    if String.length llvmIr = 0 then
+      ""
+    else
+      locationComment (Lang.toplevelFormLocation form) ^ llvmIr
+  in
+  let code = Zompvm.codeFromLlvm llvmIrWithLoc in
   let functionNames = Semantic.collectFunctionDefinitions [form] in
   Zompvm.removeFunctionBodies functionNames;
   Zompvm.evalCode phase code;
