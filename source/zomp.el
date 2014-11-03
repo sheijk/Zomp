@@ -227,7 +227,7 @@ use global one"
 (defvar zomp-shell-buffer-name (format "*%s*" zomp-shell-buffer-name-base)
   "The name of the buffer in which the zomp shell runs")
 
-(defvar zomp-build-architecture "i386"
+(defvar zomp-build-architecture "x86_64"
   "The name of the architecture to be used")
 
 (defvar zomp-build-variant "release"
@@ -273,7 +273,7 @@ and the architecture like this: \"variant-architecture\"."
 
 (defun zomp-start-shell ()
   "Will create a comint buffer in which zompsh will be started. Uses
-`zomps-zompsh-command' to determine executable and options."
+`zomp-zompsh-command' to determine executable and options."
   (interactive)
   (let ((zomp-new-shell-buffer-name zomp-shell-buffer-name)
         (default-directory zomp-basedir))
