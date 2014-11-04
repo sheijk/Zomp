@@ -72,6 +72,11 @@ indent the next line when they occur at the beginning of a line"
   :group 'zomp
   :type '(repeat string))
 
+(defcustom zomp-lib-path (list "../libs")
+  "List of directories where to search for Zomp libraries."
+  :group 'zomp
+  :type '(repeat directory))
+
 (defface zomp-highlight-after-eval-face
   '((t (:inherit highlight)))
   "A face used to highlight expression for a brief time after they have been
@@ -183,7 +188,12 @@ invoked. Used by zomp-ff-extract-lib.")
 
 TODO: check if this will work with source files that are not inside the compiler
 source repository."
-  (format "../libs/%s.zomp" zomp-symbol-at-point-before-ff))
+  (file-relative-name
+   (ffap-locate-file zomp-symbol-at-point-before-ff (list ".zomp") zomp-lib-path)))
+
+(defun zomp-ffap (name)
+  "Function called by `ffap' in Zomp mode if word at point is not a file."
+  (ffap-locate-file name (list ".zomp") zomp-lib-path))
 
 (defcustom zomp-ff-special-constructs
   '(("^requireLibs? " . zomp-ff-extract-lib))
@@ -195,7 +205,8 @@ use global one"
   "Initialize support for `find-file-at-point' support."
   (add-hook 'ff-pre-find-hook 'zomp-ff-pre-find-hook)
   (make-variable-buffer-local 'ff-special-constructs)
-  (setq ff-special-constructs zomp-ff-special-constructs))
+  (setq ff-special-constructs zomp-ff-special-constructs)
+  (add-to-list 'ffap-alist '(zomp-mode . zomp-ffap)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; editing
