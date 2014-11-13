@@ -161,7 +161,7 @@ CAML_DEPENDENCIES = $(foreach obj, $(CAML_OBJS), $(obj).$(CAML_OBJ_EXT))
 CAML_LINK_FLAGS = $(foreach lib, $(CAML_LIBS), -package $(lib)) $(CAML_DEPENDENCIES)
 
 CAML_INCLUDE = -I source/ -I testsuite/
-CAML_COMMON = $(CAML_INCLUDE) -warn-error A-3 -w -3
+CAML_COMMON = $(CAML_INCLUDE) -warn-error A-3
 CAMLC_FLAGS = -annot $(CAML_COMMON)
 CAMLOPT_FLAGS = -annot $(CAML_COMMON)
 CAMLDOC_FLAGS = $(CAML_INCLUDE)

@@ -134,15 +134,12 @@ struct
     combine "\n" indentedLines
 
   let removeQuotes str =
-    let length = String.length str in
-    if length > 1 && str.[0] = '"' && str.[length-1] = '"' then begin
-      let substring str ~first ~len =
-        let newstr = String.create len in
-        String.blit str first newstr 0 len;
-        newstr
-      in
-      substring str 1 (String.length str - 2)
-    end else
+    let strLength = String.length str in
+    if strLength >= 2
+       && String.get str 0 = '"'
+       && String.get str (strLength - 1) = '"' then
+      String.sub str 1 (strLength - 2)
+    else
       str
 
   let dequoteString quoteChar str =
@@ -167,12 +164,12 @@ struct
     String.sub frontTrimmed 0 (frontTrimmedLength - backSpaces)
 
   let mapString f str =
-    let newString = String.copy str in
+    let newString = Bytes.of_string str in
     let strLength = String.length str in
     for charNum = 0 to strLength-1 do
-      newString.[charNum] <- f str.[charNum]
+      Bytes.set newString charNum @@ f @@ Bytes.get str charNum
     done;
-    newString
+    Bytes.to_string newString
 
   type sequenceAnchor = FromFront of int | FromBack of int
 

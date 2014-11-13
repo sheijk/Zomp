@@ -60,9 +60,7 @@ struct
     else String.get str ((String.length str) - 1) = chr
 
   let substring str ~first ~len =
-    let newstr = String.create len in
-    String.blit str first newstr 0 len;
-    newstr
+    String.sub str first len
 
   let lastChar string =
     string.[String.length string - 1]

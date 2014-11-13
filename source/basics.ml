@@ -155,7 +155,7 @@ let parseCommentsAndStrings
     getReadPos, readTwoChars, readOneChar, moveBackReadPos, getLine, getColumn
   in
 
-  let buffer = String.make (sourceLength) ' ' in
+  let buffer = Bytes.make (sourceLength) ' ' in
   let writePos = ref 0 in
   let totalWrittenChars = ref 0 in
   let fragmentType = ref Source in
@@ -167,7 +167,7 @@ let parseCommentsAndStrings
     fragmentType := nextFragmentType;
   in
   let writeChar chr =
-    buffer.[!writePos] <- chr;
+    Bytes.set buffer !writePos chr;
     incr writePos;
     incr totalWrittenChars;
   in

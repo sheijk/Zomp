@@ -212,7 +212,7 @@ let llvmEscapedString str =
   let stringFromList chars =
     let len = List.length chars in
     let str = String.make len 'x' in
-    listIteri (fun pos chr -> str.[len - pos - 1] <- chr) chars;
+    listIteri (fun pos chr -> Bytes.set str (len - pos - 1) chr) chars;
     str
   in
   stringFromList chars

@@ -83,7 +83,7 @@ open Util
 
 let stripComments fileName source =
   let sourceLength = String.length source in
-  let strippedSource = String.make (sourceLength) ' ' in
+  let strippedSource = Bytes.make (sourceLength) ' ' in
   let writePos = ref 0 in
 
   let write typ str =
@@ -92,7 +92,7 @@ let stripComments fileName source =
       | Comment ->
         for i = 0 to strLength - 1 do
           if str.[i] = '\n' then
-            strippedSource.[!writePos + i] <- '\n'
+            Bytes.set strippedSource (!writePos + i) '\n'
         done
       | Source | String ->
         String.blit str 0 strippedSource !writePos strLength;
@@ -117,11 +117,11 @@ let markIndentBlocks source =
   begin try
     while !pos < sourceLength do
       pos := Str.search_forward indentBlockRE source !pos;
-      source.[!pos] <- ' ';
+      Bytes.set source !pos ' ';
       while not (isNewline source.[!pos]) do
         incr pos
       done;
-      source.[!pos] <- beginIndentBlockChar;
+      Bytes.set source !pos beginIndentBlockChar;
     done
   with Not_found -> () end
 
