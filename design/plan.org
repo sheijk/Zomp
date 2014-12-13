@@ -1788,6 +1788,11 @@ end
 ** TODO [#A] link to docs in report.html
 ** TODO [#A] ocamlc -keep-locs to keep locations in cmi files
 ** TODO [#A] ocamlopt -opaque
+** TODO [#A] better error message
+   onReturn: foobar
+   parser errors is very poor
+
+   /Users/jr/Documents/Development/Zomp/examples/circles.zomp:28:0: error: unknown identifier shaderBG 
 * Mile stones
 ** error handling and source locations
 
