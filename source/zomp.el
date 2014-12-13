@@ -857,6 +857,32 @@ indentation is the same or less than the line where we started."
   (interactive "P")
   (zomp-move-until-same-or-less-indent 'previous-line))
 
+(defun zomp-forward-sexp (times)
+  "`forward-sexp' for Zomp."
+  (interactive "p")
+  (dotimes (_ times)
+    (if (looking-at ": *$")
+        (progn
+          (back-to-indentation)
+          ;; TODO: do not depend on this function!
+          (shk-change-line (list 4) t)
+          (forward-word 1))
+      (forward-sexp 1))))
+
+(defun zomp-backward-sexp (times)
+  "`backward-sexp' for Zomp."
+  (interactive "p")
+  (dotimes (_ times)
+    (if (looking-back "^ *end *")
+        (progn
+          (back-to-indentation)
+          (shk-change-line (list 4) nil)
+          (end-of-line 1)
+          (when (looking-at ": *")
+            (while (not (looking-at ":"))
+              (backward-char 1)))))
+    (backward-sexp 1)))
+
 (defun zomp-setup ()
   "Setup function for `zomp-mode'."
   (setq comment-start "//")
@@ -891,6 +917,8 @@ indentation is the same or less than the line where we started."
   (local-set-key [(control c)(control u)] 'zomp-move-up)
   (local-set-key [(control c)(control n)] 'zomp-next-block)
   (local-set-key [(control c)(control p)] 'zomp-prev-block)
+  (local-set-key [remap forward-sexp] 'zomp-forward-sexp)
+  (local-set-key [remap backward-sexp] 'zomp-backward-sexp)
 
   ;; extra comfort (insert ///, * in matching places, * / => */ etc.)
   (local-set-key "\r" 'zomp-newline)
@@ -972,6 +1000,9 @@ indentation is the same or less than the line where we started."
   ;; (local-set-key [(control c)(-)] 'outline-cycle)
   ;; (local-set-key [(control c)(=)] 'show-entry)
   ;; (local-set-key [(control c)(+)] 'show-all)
+
+  (add-to-list 'hs-special-modes-alist
+               (list 'zomp-mode "\\(: *$\\|[({]\\)" "\\(end\\|[})]\\)" "/[*/]" 'zomp-forward-sexp nil))
 
   (zomp-ffap-init)
 
@@ -1227,6 +1258,9 @@ known to the Zomp shell."
 (add-to-list
  'flymake-allowed-file-name-masks
  '("\\.zomp\\'" flymake-simple-make-init flymake-simple-cleanup))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; misc
 
 (defun zomp-region-to-html (regbegin regend)
   "Will replace the current region with html. Requires a matching
