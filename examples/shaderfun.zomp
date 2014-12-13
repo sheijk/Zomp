@@ -87,11 +87,10 @@ end
 var float angle 0.0
 
 func int main():
-  if isNull(app):
+  init app:
     app = new AppInfo
     app*.fsaaSamples = 4
   end
-  init(app)
 
   glowShader := createShader /*varying*/"
   #version 120

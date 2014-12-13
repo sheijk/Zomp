@@ -813,7 +813,7 @@ func void AppInfo:init(AppInfo* info):
   info*.initCalled = false
 end
 
-func void init(AppInfo* info):
+func void AppInfo:initOrShowWindow(AppInfo* info):
   firstInitCall := !info*.initCalled
 
   if firstInitCall:
@@ -857,6 +857,15 @@ func void init(AppInfo* info):
 
   if (firstInitCall && isNotNull info*.customInit):
     info*.customInit()
+  end
+end
+
+macro init app args...:
+  ret $:
+    if isNull(#app):
+      #args
+    end
+    AppInfo:initOrShowWindow(#app)
   end
 end
 

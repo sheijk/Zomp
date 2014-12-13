@@ -3212,7 +3212,7 @@ macro lfunc retType nameAndArgs body:
 end
 
 func int main():
-  if isNull(app):
+  init app:
     app = new AppInfo
     app*.windowWidth = 400
     app*.windowHeight = 300
@@ -3220,7 +3220,6 @@ func int main():
     app*.vsync = true
     app*.customInit = &myInit
   end
-  init(app)
 
   println "triggering event startup..."
   triggerEvent startup

@@ -120,13 +120,12 @@ macro measureAndReport actionDescr code:
 end
 
 func int main():
-  if isNull(app):
+  init app:
     app = new AppInfo
     app*.windowWidth = 400
     app*.windowHeight = 300
     app*.fsaaSamples = 4
   end
-  init(app)
 
   angle := 0.0
 
@@ -198,6 +197,7 @@ func int main():
     glClearColor 0. 0. 0. 0.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
+    autoSetupViewport()
     glMatrixMode GL_PROJECTION
     glLoadIdentity()
     aspect := int:toDouble windowWidth /_d int:toDouble windowHeight

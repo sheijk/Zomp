@@ -958,10 +958,9 @@ end
 var float angle 0.0
 
 func int main():
-  if isNull(app):
+  init app:
     app = new AppInfo
   end
-  init(app)
 
   rendererInfo := new RendererInfo
   RendererInfo:print rendererInfo

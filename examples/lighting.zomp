@@ -515,7 +515,7 @@ end
 
 
 func int main():
-  if isNull(app):
+  init app:
     app = new AppInfo
     app*.fsaaSamples = 4
     app*.windowWidth = 400
@@ -523,8 +523,6 @@ func int main():
     app*.windowTitle = "super duper lighting"
     app*.customInit = &myInit
   end
-
-  init(app)
 
   // glfwRestoreWindow()
   // array:setAll lightPositions (structlit v3f x 0. y 12. z 0.)

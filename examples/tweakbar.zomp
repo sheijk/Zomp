@@ -41,12 +41,11 @@ func void customInit():
 end
 
 func int main():
-  if isNull(app):
+  init app:
     app = new AppInfo
     app*.fsaaSamples = 4
     app*.customInit = &customInit
   end
-  init(app)
 
   angle := 0.0
   speed := 128.0
