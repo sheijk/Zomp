@@ -620,17 +620,20 @@ struct
   type stats = {
     ruleCount :int;
     foundTokens :int ref;
+    lexingTime :float ref;
   }
 
   let stats = {
     ruleCount = List.length Rules.rules;
     foundTokens = ref 0;
+    lexingTime = ref 0.;
   }
 
   let () =
     let section = Statistics.createSection "lexer" in
     Statistics.createIntCounter section "rules" 0 (fun () -> stats.ruleCount);
     Statistics.createIntCounter section "parsed tokens" 0 (Ref.getter stats.foundTokens);
+    Statistics.createFloatCounter section "seconds" 6 (Ref.getter stats.lexingTime);
     ()
 end
 open Stats
@@ -827,6 +830,8 @@ let token (lexbuf : token lexerstate) : token =
       lexbuf.state <- EndOfInput;
       EOF
     end
+
+let token lexbuf = addTiming stats.lexingTime (fun () -> token lexbuf)
 
 let makeLexbuf fileName source =
   if not (endsWithNewline source) then begin
