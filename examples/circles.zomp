@@ -1,0 +1,88 @@
+///
+/// Bubbly circles all around!
+///
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
+
+var AppInfo* app nullptr(AppInfo)
+
+func GLenum shaderBg():
+  return createShader(
+      "",
+      "void main(void) { gl_Position = ftransform(); }",
+      "void main(void) {
+        vec3 colorTop = vec3(0.94, 0.85, 0.72);
+        vec3 colorBottom = vec3(0.4, 0.3, 0.2);
+        float yu = gl_FragCoord.y / 400.0;
+        gl_FragColor = vec4(mix(colorTop, colorBottom, yu), 1.);
+      }")
+end
+
+func GLenum shaderCircle():
+  return createShader(
+      "varying vec2 tc;",
+      "void main(void) {
+        gl_Position = ftransform();
+        tc = gl_MultiTexCoord0.xy * 2. - vec2(1.);
+      }",
+      "void main(void) {
+        float circleness = 1. - smoothstep(1.0 - fwidth(tc.x)*2., 1., length(tc));
+        gl_FragColor = vec4(vec3(0.3, 0.6, 0.45) * circleness, circleness);
+      }")
+end
+
+func int main():
+  init app:
+    app = new AppInfo
+    app.windowWidth = 800
+    app.windowHeight = 600
+    app.fsaaSamples = 4
+    app.windowTitle = "Bubbling circles"
+  end
+
+  shaderBg := shaderBg()
+  shaderCircle := shaderCircle()
+  onReturn:
+    glDeleteProgram(shaderBg)
+    glDeleteProgram(shaderCircle)
+  end
+
+  angle := 0.0
+
+  glEnable GL_BLEND
+  glBlendFunc GL_ONE GL_ONE_MINUS_SRC_ALPHA
+
+  // glEnable GL_DEPTH_TEST
+  // glDepthFunc GL_LEQUAL
+  
+  mainloop:
+    autoSetupViewport()
+    angle = angle + 128.0 * frameDuration
+    
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(app.windowWidth) / toDouble(app.windowHeight)
+    gluPerspective( 45.0d, aspect, 1.0d, 200.0d )
+
+    withShader shaderBg drawFullscreenQuad()
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+
+    glTranslatef 0. -4. -40.0
+    withShader shaderCircle renderQuad(8.)
+    glRotatef angle 0. 1. 0.
+    // drawOrientationGrid()
+  end
+  
+  drawPausedOverlay()
+  glfwSwapBuffers()
+  
+  return 0
+end
+
