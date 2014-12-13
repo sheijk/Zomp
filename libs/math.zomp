@@ -158,6 +158,25 @@ func v3f v3f:lerp(float t, v3f a, v3f b):
   ret ((1. - t) * a + t * b)
 end
 
+/// After calling this n, t1, t2 will be orthonormal
+/// See "Building an Orthonormal Basis from a 3D Unit Vector Without Normalization"
+/// by Jeppe Revall Frisvad
+/// http://orbit.dtu.dk/fedora/objects/orbit:113874/datastreams/file_75b66578-222e-4c7d-abdf-f7e255100209/content
+func void v3f:makeTangents(v3f n, v3f* t1, v3f* t2):
+  assert isNotNull(t1)
+  assert isNotNull(t2)
+
+  if (n.z < -0.9999999f):
+    t1* = mv3f(0., -1., 0.)
+    t2* = mv3f(-1., 0., 0.)
+  else:
+    a := 1.0 / (1.0 + n.z)
+    b := -n.x * n.y * a
+    t1* = mv3f(1.0 - n.x * n.x * a, b, -n.x)
+    t2* = mv3f(b, 1.0 - n.y * n.y * a, -n.y)
+  end
+end
+
 /// rotate two dense matrices of size (resultRows,size), (size, resultColumns) and stores result in
 /// matrix of size (resultRows, resultColumns)
 func void matrixMult(float* result, int resultRows, int resultColumns, int side, float* lhs, float* rhs):
