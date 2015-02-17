@@ -147,6 +147,7 @@ func int main():
   glDepthFunc GL_LEQUAL
 
   mainloop:
+    autoSetupViewport()
     angle = angle + 32.0 * frameDuration
 
     glClearColor 0. 0.125 0.25 0.0
