@@ -193,6 +193,11 @@ CCFLAGS += -fPIC
 CXXFLAGS += -fPIC
 endif
 
+# Fix to use clang 2.9 on OS X 10.10
+CXXFLAGS += -mmacosx-version-min=10.5
+CCFLAGS += -mmacosx-version-min=10.5
+LDFLAGS += -mmacosx-version-min=10.5
+
 CXXFLAGS += -I /usr/local/lib/ocaml/
 # OCaml deploys headers into lib dir
 CXXFLAGS += -I $(ZOMP_TOOL_PATH)/lib/ocaml/

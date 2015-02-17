@@ -51,9 +51,9 @@ source/gen_c_bindings: CAML_LIBS += str
 ALL_TARGETS += source/runtime.bc source/runtime.ll
 source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
-	$(CLANG) -std=c89 -emit-llvm -c $< -o source/runtime.bc
+	$(CLANG) $(CCFLAGS) -std=c89 -emit-llvm -c $< -o source/runtime.bc
 	$(LLVM_DIS) < source/runtime.bc > source/runtime.orig.ll
-	($(SED) 's/nounwind//' | $(SED) 's/readonly//' | $(SED) 's/ssp//') < source/runtime.orig.ll > source/runtime.ll
+	($(SED) 's/nounwind//' | $(SED) 's/readonly//' | $(SED) 's/ssp//' | $(SED) 's/%struct.__sFILE = type .*/%struct.__sFILE = type {}/') < source/runtime.orig.ll > source/runtime.ll
 	$(RM) -f source/runtime.bc source/runtime.orig.ll
 	$(LLVM_AS) < source/runtime.ll > source/runtime.bc
 
