@@ -398,19 +398,6 @@ let moveLocalVarsToEntryBlock implForm =
   in
   varDefs @ forms
 
-let collectFunctionDefinitions simpleforms =
-  let isDefinedFunction func =
-    match func.impl with
-      | None -> false
-      | Some _ ->
-        Machine.zompRemoveFunctionBody func.fname
-  in
-  let redefinedFunctions = Common.mapFilter (function
-    | `DefineFunc func when isDefinedFunction func -> Some func.fname
-    | _ -> None) simpleforms
-  in
-  redefinedFunctions
-
 let test_moveLocalVarsToEntryBlock () =
   let fakeInfo = Lang.formInfo Basics.fakeLocation in
   let identityTestCases : form list = [

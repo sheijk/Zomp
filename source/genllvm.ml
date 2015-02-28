@@ -1132,6 +1132,19 @@ let gencodeTypedef (_:t) name = function
   | typ ->
       sprintf "%%\"%s\" = type %s\n\n" name (llvmTypeNameLong typ)
 
+let deleteBodiesAndCollectNames simpleforms =
+  let isDefinedFunction func =
+    match func.impl with
+      | None -> false
+      | Some _ ->
+         Machine.zompRemoveFunctionBody func.fname
+  in
+  let redefinedFunctions = Common.mapFilter (function
+    | `DefineFunc func when isDefinedFunction func -> Some func.fname
+    | _ -> None) simpleforms
+  in
+  redefinedFunctions
+
 let gencodeTL backend phase form =
   let llvmIr =
     match form with
@@ -1146,7 +1159,7 @@ let gencodeTL backend phase form =
       locationComment (Lang.toplevelFormLocation form) ^ llvmIr
   in
   let code = Zompvm.codeFromLlvm llvmIrWithLoc in
-  let functionNames = Semantic.collectFunctionDefinitions [form] in
+  let functionNames = deleteBodiesAndCollectNames [form] in
   Zompvm.removeFunctionBodies functionNames;
   Zompvm.evalCode phase code;
   Zompvm.relinkFunctions functionNames
