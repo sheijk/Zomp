@@ -929,6 +929,7 @@ indentation is the same or less than the line where we started."
   (local-set-key [(?:)] 'zomp-electric-colon)
 
   (local-set-key [(meta ?.)] 'zomp-goto-definition)
+  (local-set-key [(meta ??)] 'zomp-show-doc-for-current-symbol)
 
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
@@ -1194,6 +1195,46 @@ by the Zomp shell."
                 (plist-get info :name)
                 (plist-get info :short-doc))))))
 
+;; TODO: make this work for built-ins
+;; TODO: base this on compiler output
+;; TODO: make this work if file is already open
+(defun zomp-fetch-doc-string (symbol-name)
+  "Will locate the given symbol and return it's documentation if present."
+  (let (file line start end)
+    (save-window-excursion
+      (zomp-build-symbol-buffer)
+      (setq info (zomp-symbol-info symbol-name))
+      (unless info
+        (error "Symbol \"%s\" is not defined anywhere" symbol-name))
+      (setq file (plist-get info :file))
+      (setq line (plist-get info :line))
+      (find-file-existing file)
+      (save-excursion
+        (goto-line line)
+        (previous-line)
+        (end-of-line)
+        (setq end (point))
+        (beginning-of-line)
+        (unless (looking-at "///")
+          (error (format "No doc string given for \"%s\"" symbol-name)))
+        (while (and (looking-at "///") (> (point) (point-min)))
+          (previous-line)
+          (beginning-of-line))
+        (unless (looking-at "///")
+          (next-line))
+        (setq start (point))
+        (buffer-substring start end)))))
+
+(defun zomp-show-doc-for-current-symbol (&optional symbol-name)
+  "Will display the documentation for the current symbol. The current symbol
+is the one eldoc will display a hint for."
+  (interactive)
+  (setq symbol-name (or symbol-name (zomp-function-before-point)))
+  (unless symbol-name
+    (error "No function here"))
+  (let ((doc (zomp-fetch-doc-string symbol-name)))
+    (message "%s" doc)))
+
 (defvar zomp-ac-testsuite-directives-source-on nil
   "Flag whether testsuite directives should be offered.")
 
@@ -1243,9 +1284,13 @@ known to the Zomp shell."
   (ignore-errors
     (let ((info (zomp-symbol-info symbol)))
       (if info
-          (format "%s\n%s\n\n%s:%s"
+          (format "%s - %s\n\n%s\n\n%s:%s"
                   (plist-get info :name)
                   (plist-get info :short-doc)
+                  (or
+                   (ignore-errors
+                     (zomp-fetch-doc-string symbol))
+                   "Not documented")
                   (or (plist-get info :file) "unknown")
                   (or (plist-get info :line) 0))
         (format "no help for %s" symbol)))))
