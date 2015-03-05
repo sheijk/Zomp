@@ -1793,6 +1793,9 @@ end
    parser errors is very poor
 
    /Users/jr/Documents/Development/Zomp/examples/circles.zomp:28:0: error: unknown identifier shaderBG 
+** TODO [#A] -fsyntax-only
+   w/o llvm codegen
+   how to treat macros? add code cache?
 * Mile stones
 ** error handling and source locations
 
