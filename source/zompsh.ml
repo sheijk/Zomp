@@ -407,6 +407,13 @@ end = struct
       printf "Wrote LLVM code to file %s\n" fileName;
       flush stdout)
 
+  let printLlvmFunction = makeSingleArgCommand
+    (fun name _ ->
+     Zompvm.printFunctionCode name)
+  let printLlvmGlobalVar = makeSingleArgCommand
+    (fun name _ ->
+     Zompvm.printGlobalVarCode name)
+
   let echoCommand args (_:bindings) =
     List.iter (printf "%s ") args;
     print_newline();
@@ -431,6 +438,8 @@ end = struct
       "printBaseLang", [], togglePrintFormsCommand, "Toggle printing translated base lang forms";
       "printDecl", [], togglePrintDeclarationsCommand, "Toggle printing declarations";
       "printllvm", ["pl"], (fun _ _ -> Zompvm.printModuleCode()), "Print LLVM code in module";
+      "printllvmcode", [], printLlvmFunction, "Print LLVM code of function";
+      "printllvmvar", [], printLlvmGlobalVar, "Print LLVM code of global variable";
       "printStats", [], printStatsCommand, "Print statistics";
       "printSourceFiles", [], printSourceFilesCommand, "Print all source files of symbols";
       "prompt", [], changePromptCommand, "Set prompt";

@@ -24,6 +24,8 @@ let isDebugBuild() = Machine.zompIsDebugBuild()
 let printTimingStats() = Machine.zompPrintTimingStats()
 let writeLLVMCodeToFile name = Machine.zompWriteLLVMCodeToFile name
 let printModuleCode() = Machine.zompPrintModuleCode()
+let printFunctionCode name = Machine.zompPrintFunctionCode name
+let printGlobalVarCode name = Machine.zompPrintGlobalVarCode name
 
 let flushStreams() =
   flush stdout;

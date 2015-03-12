@@ -39,6 +39,10 @@ val printTimingStats : unit -> unit
 val writeLLVMCodeToFile : string -> unit
 (** Will dump the LLVM module. *)
 val printModuleCode : unit -> unit
+(** Will dump the LLVM function with the given name if found. *)
+val printFunctionCode : string -> unit
+(** Will dump the LLVM global variable with the given name if found. *)
+val printGlobalVarCode : string -> unit
 
 (** Convert between OCaml and native representation of ASTs. *)
 module NativeAst : sig

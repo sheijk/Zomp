@@ -898,6 +898,32 @@ extern "C" {
     std::cout << "--------------------------------------------\n\n" << std::flush;
   }
 
+  void zompPrintFunctionCode(const char* name)
+  {
+    Function* func = llvmModule->getFunction(name);
+    if(func)
+    {
+      func->dump();
+    }
+    else
+    {
+      outs() << "Function " << name << " not found\n";
+    }
+  }
+
+  void zompPrintGlobalVarCode(const char* name)
+  {
+    GlobalVariable* value = llvmModule->getGlobalVariable(name, true);
+    if(value)
+    {
+      value->dump();
+    }
+    else
+    {
+      outs() << "Global variable " << name << " not found\n";
+    }
+  }
+
   void zompWriteLLVMCodeToFile(const char* fileName) {
     std::string errorInfo;
     raw_fd_ostream file(fileName, errorInfo);

@@ -23,6 +23,8 @@ bool zompSendCode(ZMP_CONST char* code, ZMP_CONST char* module);
 bool zompLoadFile(ZMP_CONST char* filename);
 void zompRunFunction(ZMP_CONST char* name);
 void zompPrintModuleCode();
+void zompPrintFunctionCode(const char* name);
+void zompPrintGlobalVarCode(const char* name);
 void zompVerifyCode(bool on);
 bool zompDoesVerifyCode();
 bool zompRemoveFunctionBody(ZMP_CONST char* functionName);

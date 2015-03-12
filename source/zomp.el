@@ -553,6 +553,29 @@ shell. If `confirm-msg' is t the function will ask for confirmation."
 (zomp-dofun zomp-shell-toggle-trace-macros "!traceMacros")
 (zomp-dofun zomp-shell-toggle-verify "!verify")
 
+(defun zomp-shell-print-llvm-module ()
+  "Will print all LLVM code."
+  (interactive)
+  (zomp-shell-do "!printllvm"))
+
+(defun zomp-shell-write-llvm-module (file)
+  "Will write LLVM code to a file."
+  (interactive "FTarget file ")
+  (when (or (not (file-exists-p file))
+            (yes-or-no-p "Overwrite existing file? "))
+    (zomp-shell-do (format "!writellvm %s" file))))
+
+(defun zomp-shell-print-llvm-function (name)
+  "Will print the LLVM code of the given function."
+  (interactive "MFunction name ")
+  (zomp-shell-do (format "!printllvmcode %s" name)))
+
+(defun zomp-shell-print-llvm-global-var (name)
+  "Will print the LLVM code of the given global variable."
+  (interactive "MGlobal variable name ")
+  (zomp-shell-do (format "!printllvmvar %s" name)))
+
+
 (defun zomp-shell-sexpr-syntax ()
   "Use indentation based syntax"
   (interactive)
@@ -962,6 +985,10 @@ indentation is the same or less than the line where we started."
   (zomp-add-action zomp-test-current-file [(control c)(control c)] "Test current file")
   (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
   (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
+  (zomp-add-action zomp-shell-print-llvm-global-var [(control c)(control o)(control v)] "Print LLVM global var...")
+  (zomp-add-action zomp-shell-print-llvm-function [(control c)(control o)(control f)] "Print LLVM function...")
+  (zomp-add-action zomp-shell-print-llvm-module [(control c)(control o)(control m)] "Print LLVM module")
+  (zomp-add-action zomp-shell-write-llvm-module [(control c)(control o)(control w)] "Write LLVM module to file...")
   (zomp-add-action zomp-shell-help [(control c)(control ??)] "Show Zomp shell help")
 
   (zomp-add-seperator)
