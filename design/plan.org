@@ -1796,6 +1796,24 @@ end
 ** TODO [#A] -fsyntax-only
    w/o llvm codegen
    how to treat macros? add code cache?
+** TODO [#A] causing llvm eval error
+  using the commented out lines instead of the one after them works
+
+  pts := seq:
+    var int tmp3 0
+    // tmp2 := nullptr(int)
+    // tmp2 = &tmp3
+    tmp2 := &tmp3
+    tmp2
+  end
+** TODO not generating errors on invalid array size                        :bug:
+
+#+BEGIN_SRC zomp
+func void testArray():
+  // template ropeLen 10
+  var v3f[ropeLenWurst] rope
+end
+#+END_SRC
 * Mile stones
 ** error handling and source locations
 
