@@ -2,10 +2,12 @@
 
 cd $(dirname $0)
 
-open ../../../zomp_ci/build/release-i386/report.html
-open ../../../zomp_ci_64/build/release-x86_64/report.html
+open ../../../zompci/i386/build/release-i386/report.html
+open ../../../zompci/x86_64/build/release-x86_64/report.html
+
+# Fails with Chrome if we do not do this
+sleep 0.1
 
 open ../../build/release-i386/report.html
 open ../../build/release-x86_64/report.html
-open ../../build/release-x86_64/intermediate/caml-modules.svg
 
