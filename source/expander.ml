@@ -205,126 +205,6 @@ let errorFromTypeError bindings expr (fe,m,f,e) =
 
 exception MayfailError of Serror.t list
 
-let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
-  let error msg = Mayfail.errorFromExpr typeExpr msg in
-  let instantiateType parametricType argumentType =
-    let rec inst = function
-      | `TypeParam ->
-        argumentType
-      | `TypeRef _
-      | #integralType as t ->
-        t
-      | `Record rt ->
-        `Record { rt with fields = List.map (map2nd inst) rt.fields }
-      | `Pointer t ->
-        `Pointer (inst t)
-        (* | `ParametricType t -> *)
-        (*     `ParametricType (inst t) *)
-      | `Array (memberType, size) ->
-        `Array (inst memberType, size)
-      | `Function ft ->
-        `Function { returnType = inst ft.returnType;
-                    argTypes = List.map inst ft.argTypes }
-      | `ParametricType `Record rt ->
-        `Record { rt with fields = List.map (map2nd inst) rt.fields }
-      | `ParametricType `Pointer t ->
-        `Pointer (inst t)
-      | `ErrorType _ as t ->
-        t
-    in
-    inst parametricType
-  in
-
-  let translatePtr targetTypeExpr =
-    match translateType bindings emitWarning targetTypeExpr with
-      | Result t -> Result (`Pointer t)
-      | error -> error
-  in
-  let translateArray memberTypeExpr sizeExpr =
-    let potentialSize =
-      match sizeExpr with
-        | { id = number; args = [] } ->
-          begin try
-              Some(int_of_string number)
-            with Failure _ ->
-              None
-          end
-        | _ -> None
-    in
-    match translateType bindings emitWarning memberTypeExpr, potentialSize with
-      | Result t, Some size -> Result (`Array(t, size))
-      | Result _, None -> Error [Serror.fromExpr sizeExpr "expected int literal for array size"]
-      | Error errors, _ -> Error errors
-  in
-  let translateFunction returnTypeExpr argTypeExprs =
-    try
-      let translate typ =
-        match translateType bindings emitWarning typ with
-          | Result t -> t
-          | Error errors ->
-            raise (MayfailError errors)
-      in
-      begin
-        Result (`Function {
-          returnType = translate returnTypeExpr;
-          argTypes = List.map translate argTypeExprs;
-        })
-      end
-    with MayfailError errors ->
-      Error errors
-  in
-  match typeExpr with
-    (** function pointers *)
-    | { id = "opcall"; args = returnTypeExpr :: argTypeExprs } ->
-      translateFunction returnTypeExpr argTypeExprs
-    | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
-      begin match translateFunction returnTypeExpr argTypeExprs with
-        | Result typ ->
-          let () = (* fix return type *)
-            emitWarning (Serror.fromExpr typeExpr
-                           (sprintf "fptr is deprecated. Use %s instead"
-                              (Types.typeName typ)))
-          in
-          Result (`Pointer typ)
-        | Error _ as errors ->
-          errors
-      end
-
-    | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
-      translateType bindings emitWarning (shiftId args)
-
-    | { id = "op!"; args =
-        [{ id = paramTypeName; args = [] };
-         argumentTypeExpr ] } ->
-      begin
-        match lookup bindings paramTypeName, translateType bindings emitWarning argumentTypeExpr with
-          | TypedefSymbol ((`ParametricType _) as t), Result `TypeParam ->
-            Result t
-          | TypedefSymbol (`ParametricType t), Result argumentType ->
-            Result (instantiateType (t :> typ) argumentType)
-          | paramTypeResult, argumentResult ->
-            let otherErrors = extractErrors argumentResult in
-            let error = Serror.fromExpr typeExpr "could not translate type" in
-            Error (error :: otherErrors)
-      end
-
-    | { id = "postop*"; args = [targetTypeExpr] }
-    | { id = "ptr"; args = [targetTypeExpr]; } ->
-      translatePtr targetTypeExpr
-
-    | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
-    | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
-      translateArray memberTypeExpr sizeExpr
-
-    | { id = name; args = [] } ->
-      begin
-        match lookupType bindings name with
-          | Some t -> Result t
-          | None -> error (sprintf "could not look up type %s" name)
-      end
-    | _ ->
-      errorFromExpr typeExpr "don't know how to interpret as type"
-
 (**
    This should actually return unit mayfail and only pass warnings/info to
    emitDiagnostics.
@@ -734,6 +614,126 @@ end = struct
       | Result newBindings -> Result (newBindings, [])
       | Error (_ as errors) -> Error errors
 end
+
+let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
+  let error msg = Mayfail.errorFromExpr typeExpr msg in
+  let instantiateType parametricType argumentType =
+    let rec inst = function
+      | `TypeParam ->
+        argumentType
+      | `TypeRef _
+      | #integralType as t ->
+        t
+      | `Record rt ->
+        `Record { rt with fields = List.map (map2nd inst) rt.fields }
+      | `Pointer t ->
+        `Pointer (inst t)
+        (* | `ParametricType t -> *)
+        (*     `ParametricType (inst t) *)
+      | `Array (memberType, size) ->
+        `Array (inst memberType, size)
+      | `Function ft ->
+        `Function { returnType = inst ft.returnType;
+                    argTypes = List.map inst ft.argTypes }
+      | `ParametricType `Record rt ->
+        `Record { rt with fields = List.map (map2nd inst) rt.fields }
+      | `ParametricType `Pointer t ->
+        `Pointer (inst t)
+      | `ErrorType _ as t ->
+        t
+    in
+    inst parametricType
+  in
+
+  let translatePtr targetTypeExpr =
+    match translateType bindings emitWarning targetTypeExpr with
+      | Result t -> Result (`Pointer t)
+      | error -> error
+  in
+  let translateArray memberTypeExpr sizeExpr =
+    let potentialSize =
+      match sizeExpr with
+        | { id = number; args = [] } ->
+          begin try
+              Some(int_of_string number)
+            with Failure _ ->
+              None
+          end
+        | _ -> None
+    in
+    match translateType bindings emitWarning memberTypeExpr, potentialSize with
+      | Result t, Some size -> Result (`Array(t, size))
+      | Result _, None -> Error [Serror.fromExpr sizeExpr "expected int literal for array size"]
+      | Error errors, _ -> Error errors
+  in
+  let translateFunction returnTypeExpr argTypeExprs =
+    try
+      let translate typ =
+        match translateType bindings emitWarning typ with
+          | Result t -> t
+          | Error errors ->
+            raise (MayfailError errors)
+      in
+      begin
+        Result (`Function {
+          returnType = translate returnTypeExpr;
+          argTypes = List.map translate argTypeExprs;
+        })
+      end
+    with MayfailError errors ->
+      Error errors
+  in
+  match typeExpr with
+    (** function pointers *)
+    | { id = "opcall"; args = returnTypeExpr :: argTypeExprs } ->
+      translateFunction returnTypeExpr argTypeExprs
+    | { id = "opjux"; args = {id = "fptr"; args = []} :: returnTypeExpr :: argTypeExprs } ->
+      begin match translateFunction returnTypeExpr argTypeExprs with
+        | Result typ ->
+          let () = (* fix return type *)
+            emitWarning (Serror.fromExpr typeExpr
+                           (sprintf "fptr is deprecated. Use %s instead"
+                              (Types.typeName typ)))
+          in
+          Result (`Pointer typ)
+        | Error _ as errors ->
+          errors
+      end
+
+    | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
+      translateType bindings emitWarning (shiftId args)
+
+    | { id = "op!"; args =
+        [{ id = paramTypeName; args = [] };
+         argumentTypeExpr ] } ->
+      begin
+        match lookup bindings paramTypeName, translateType bindings emitWarning argumentTypeExpr with
+          | TypedefSymbol ((`ParametricType _) as t), Result `TypeParam ->
+            Result t
+          | TypedefSymbol (`ParametricType t), Result argumentType ->
+            Result (instantiateType (t :> typ) argumentType)
+          | paramTypeResult, argumentResult ->
+            let otherErrors = extractErrors argumentResult in
+            let error = Serror.fromExpr typeExpr "could not translate type" in
+            Error (error :: otherErrors)
+      end
+
+    | { id = "postop*"; args = [targetTypeExpr] }
+    | { id = "ptr"; args = [targetTypeExpr]; } ->
+      translatePtr targetTypeExpr
+
+    | { id = "postop[]"; args = [memberTypeExpr; sizeExpr] }
+    | { id = "array"; args = [memberTypeExpr; sizeExpr] } ->
+      translateArray memberTypeExpr sizeExpr
+
+    | { id = name; args = [] } ->
+      begin
+        match lookupType bindings name with
+          | Some t -> Result t
+          | None -> error (sprintf "could not look up type %s" name)
+      end
+    | _ ->
+      errorFromExpr typeExpr "don't know how to interpret as type"
 
 (** A module defining various zomp transformations *)
 module type Zomp_transformer =
