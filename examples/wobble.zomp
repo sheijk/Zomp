@@ -128,6 +128,12 @@ var AppInfo* app nullptr(AppInfo)
 
 // TODO: use imgui library
 
+func v3f force(v3f a, v3f b, float length):
+  vec := a - b
+  dist := v3f:length(vec)
+  return (vec / dist * (length - dist))
+end
+
 func int main():
   init app:
     app = new AppInfo
@@ -137,36 +143,48 @@ func int main():
     app.windowTitle = "wobble"
   end
 
-  var v3f[100] ropeStore
+  var v3f[50] ropeStore
   template ropeLen zmp:array:size(ropeStore)
   rope := zmp:array:addr &ropeStore
-  var v3f[100] newRopeStore
+  var v3f[50] newRopeStore
   newRope := zmp:array:addr &newRopeStore
+  maxDist := 20. / toFloat ropeLen
+  mass := 50.0 / toFloat ropeLen
   for i 0 ropeLen:
-    rope[i] = mv3f (toFloat i * 10. / toFloat ropeLen) 5. 1.
+    rope[i] = mv3f (-10. + toFloat i * maxDist * 0.9) 12. 1.
   end
-  maxDist := 1. / toFloat ropeLen
 
   angle := -20.0
-  physScale := 10.0
+  ropeForce := 30.0
   gravity := mv3f(0., -1., 0.)
-  moveSpeed := 12.0
+  keyMoveSpeed := 12.0
+  simSteps := 4
 
-  points := local Batch GL_LINES (ropeLen * 2)
-  onReturn Batch:delete(points)
+  lines := local Batch GL_LINES (ropeLen * 2)
+  onReturn Batch:delete(lines)
+
+  points := local Batch GL_POINTS ropeLen
+  onReturn Batch:delete(lines)
 
   mainloop:
-    // angle = angle + 32.0 * frameDuration
+    // angle = angle + 4.0 * frameDuration
 
-    factor := physScale * frameDuration
+    moveSpeed := keyMoveSpeed
 
+    if (keyDown GLFW_KEY_LSHIFT || keyDown GLFW_KEY_RSHIFT):
+      moveSpeed *= 4.
+    end
+    
     if keyDown(GLFW_KEY_LEFT):
       rope[0].x -= moveSpeed * frameDuration
-    elseif keyDown(GLFW_KEY_RIGHT):
+    end
+    if keyDown(GLFW_KEY_RIGHT):
       rope[0].x += moveSpeed * frameDuration
-    elseif keyDown(GLFW_KEY_UP):
+    end
+    if keyDown(GLFW_KEY_UP):
       rope[0].y += moveSpeed * frameDuration
-    elseif keyDown(GLFW_KEY_DOWN):
+    end
+    if keyDown(GLFW_KEY_DOWN):
       rope[0].y -= moveSpeed * frameDuration
     end
 
@@ -188,29 +206,28 @@ func int main():
 
     glColor3f 1. 1. 1.
     saveAttribs:
-      rendergl GL_LINES:
+      for step 0 simSteps:
         for i3 1 (ropeLen-1):
-          dp := rope[i3] - rope[i3-1]
-          magp := v3f:length(dp)
-          dn := rope[i3] - rope[i3+1]
-          magn := v3f:length(dn)
-          newRope[i3] =
-              rope[i3] -
-              (v3f:normalized(dp) * float:max(0., magp - 1. + maxDist) * factor) -
-              (v3f:normalized(dn) * float:max(0., magn - 1. + maxDist) * factor) +
-              gravity * frameDuration
+          newRope[i3] = rope[i3]
+          newRope[i3] += force(rope[i3], rope[i3-1], maxDist) * ropeForce * frameDuration
+          newRope[i3] += force(rope[i3], rope[i3+1], maxDist) * ropeForce * frameDuration
+          newRope[i3] += gravity * mass * frameDuration
         end
         newRope[0] = rope[0]
         newRope[ropeLen-1] = rope[ropeLen-1]
+
+        for i4 0 ropeLen:
+          rope[i4] = newRope[i4]
+        end
       end
 
-      for i4 0 ropeLen:
-        rope[i4] = newRope[i4]
-      end
-
+      glPointSize 2.
       for i2 0 (ropeLen-1):
-        Batch:line(points, rope[i2], rope[i2+1])
+        Batch:line(lines, rope[i2], rope[i2+1])
+        Batch:point(points, rope[i2])
       end
+      Batch:point(points, rope[ropeLen-1])
+      Batch:send(lines)
       Batch:send(points)
     end
   end
