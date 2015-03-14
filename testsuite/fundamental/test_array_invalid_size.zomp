@@ -1,0 +1,9 @@
+///
+/// Validate that invalid array sizes cause an error.
+///
+
+std:base:func void main():
+  var int[foo] ints //// error size
+  std:base:ret 0
+end
+

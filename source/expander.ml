@@ -245,7 +245,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
       match sizeExpr with
         | { id = number; args = [] } ->
           begin try
-                  Some(int_of_string number)
+              Some(int_of_string number)
             with Failure _ ->
               None
           end
@@ -253,7 +253,8 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
     in
     match translateType bindings emitWarning memberTypeExpr, potentialSize with
       | Result t, Some size -> Result (`Array(t, size))
-      | errorM, _ -> errorM
+      | Result _, None -> Error [Serror.fromExpr sizeExpr "expected int literal for array size"]
+      | Error errors, _ -> Error errors
   in
   let translateFunction returnTypeExpr argTypeExprs =
     try
@@ -1214,7 +1215,8 @@ struct
           begin
             match translateType env.bindings e with
               | Result t -> Some t
-              | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
+              | Error errors ->
+                 raiseIllegalExpressions e errors
           end
         | None ->
           None
