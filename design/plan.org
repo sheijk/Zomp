@@ -1814,6 +1814,11 @@ func void testArray():
   var v3f[ropeLenWurst] rope
 end
 #+END_SRC
+** TODO [#A] nonnull/nullable pointer + checks
+   track ifs
+   what about assignment? check if its "mode" would change
+** TODO [#A] array:length
+** TODO [#A] redefinition of var should show old pos
 * Mile stones
 ** error handling and source locations
 

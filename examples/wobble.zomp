@@ -1,0 +1,228 @@
+///
+/// A wobbly thing
+///
+
+linkclib "libglfw.dylib" "libGLEW.dylib"
+
+requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
+
+//------------------------------------------------------------------------------
+
+func int primitiveCount(GLenum primType):
+  switch primType:
+    assert false
+  case GL_TRIANGLES:
+    ret 3
+  
+  case GL_LINES:
+    ret 2
+  case GL_POINTS:
+    ret 1
+  end
+
+  assert false
+  ret 0
+end
+
+struct Batch:
+  GLenum primType
+  // in floats
+  int capacity
+  int used
+  float* data
+end
+
+func void Batch:init(Batch* this, GLenum primType, int primCount):
+  count := primitiveCount(primType) * primCount * 3
+  this*.primType = primType
+  this*.data = malloc float (primitiveCount primType * count)
+  this*.capacity = count
+  this*.used = 0
+end
+
+func void Batch:delete(Batch* this):
+  free(cast void* this*.data)
+  this*.data = nullptr(float)
+end
+
+// macro Batch:onStack primType count:
+//   uniqueId batch ""
+// 
+//   mret $:
+//     #batch := nullptr(Batch)
+//     #batch = local Batch #primType #count
+//     onReturn Batch:delete(#batch)
+//     #batch
+//   end
+// end
+
+func void Batch:send(Batch* this):
+  rendergl this*.primType:
+    pos := this*.data
+
+    while (pos < (this*.data + this*.used)):
+      glVertex3f(pos*, (pos+1)*, (pos+2)*)
+      pos += 3
+    end
+  end
+  this*.used = 0
+end
+
+func float* Batch:placeElements(Batch* this, int count):
+  if (this*.used + count > this*.capacity):
+    Batch:send(this)
+  end
+
+  ptr := this*.data + this*.used
+  this*.used += count
+
+  return ptr
+end
+
+// func void Batch:triangle(Batch* this, float x, float y, float z):
+//   pos := Batch:placeElements(this, primitiveCount this*.primType)
+//   (pos+0)* = x
+//   (pos+1)* = y
+//   (pos+2)* = z
+// end
+
+func void Batch:addVertex(Batch* this, v3f v):
+  pos := Batch:placeElements(this, 3)
+  (pos+0)* = v.x
+  (pos+1)* = v.y
+  (pos+2)* = v.z
+end
+
+func void Batch:line(Batch* this, v3f start, v3f end):
+  Batch:addVertex this start
+  Batch:addVertex this end
+end
+
+func void Batch:point(Batch* this, v3f p):
+  Batch:addVertex(this, p)
+end
+
+
+//------------------------------------------------------------------------------
+
+/// This will guard the wrapped clean-up code to only get run when not inside
+/// zompsh. Put stuff like window closing, etc. in main inside this macro to
+/// make sure the main function is re-entrant.
+macro cleanup code:
+  if std:vm:isInteractive():
+    ret ${}
+  else:
+    ret code
+  end
+end
+
+func bool keyDown(GLint key):
+  ret(glfwGetKey key == GLFW_PRESS)
+end
+
+func bool mouseButtonDown(int button):
+  glfwGetMouseButton button == GLFW_PRESS
+end
+
+var AppInfo* app nullptr(AppInfo)
+
+// TODO: use imgui library
+
+func int main():
+  init app:
+    app = new AppInfo
+    app.windowWidth = 400
+    app.windowHeight = 300
+    app.fsaaSamples = 4
+    app.windowTitle = "wobble"
+  end
+
+  var v3f[100] ropeStore
+  template ropeLen zmp:array:size(ropeStore)
+  rope := zmp:array:addr &ropeStore
+  var v3f[100] newRopeStore
+  newRope := zmp:array:addr &newRopeStore
+  for i 0 ropeLen:
+    rope[i] = mv3f (toFloat i * 10. / toFloat ropeLen) 5. 1.
+  end
+  maxDist := 1. / toFloat ropeLen
+
+  angle := -20.0
+  physScale := 10.0
+  gravity := mv3f(0., -1., 0.)
+  moveSpeed := 12.0
+
+  points := local Batch GL_LINES (ropeLen * 2)
+  onReturn Batch:delete(points)
+
+  mainloop:
+    // angle = angle + 32.0 * frameDuration
+
+    factor := physScale * frameDuration
+
+    if keyDown(GLFW_KEY_LEFT):
+      rope[0].x -= moveSpeed * frameDuration
+    elseif keyDown(GLFW_KEY_RIGHT):
+      rope[0].x += moveSpeed * frameDuration
+    elseif keyDown(GLFW_KEY_UP):
+      rope[0].y += moveSpeed * frameDuration
+    elseif keyDown(GLFW_KEY_DOWN):
+      rope[0].y -= moveSpeed * frameDuration
+    end
+
+    autoSetupViewport()
+    glClearColor 0. 0. 0. 0.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glMatrixMode GL_PROJECTION
+    glLoadIdentity()
+    aspect := toDouble(app*.windowWidth) / toDouble(app*.windowHeight)
+    gluPerspective( 60.0d, aspect, 1.0d, 200.0d )
+
+    glMatrixMode GL_MODELVIEW
+    glLoadIdentity()
+    glTranslatef 0. -4. -30.0
+    glRotatef angle 0. 1. 0.
+
+    drawOrientationGrid2(0.4, 1.0)
+
+    glColor3f 1. 1. 1.
+    saveAttribs:
+      rendergl GL_LINES:
+        for i3 1 (ropeLen-1):
+          dp := rope[i3] - rope[i3-1]
+          magp := v3f:length(dp)
+          dn := rope[i3] - rope[i3+1]
+          magn := v3f:length(dn)
+          newRope[i3] =
+              rope[i3] -
+              (v3f:normalized(dp) * float:max(0., magp - 1. + maxDist) * factor) -
+              (v3f:normalized(dn) * float:max(0., magn - 1. + maxDist) * factor) +
+              gravity * frameDuration
+        end
+        newRope[0] = rope[0]
+        newRope[ropeLen-1] = rope[ropeLen-1]
+      end
+
+      for i4 0 ropeLen:
+        rope[i4] = newRope[i4]
+      end
+
+      for i2 0 (ropeLen-1):
+        Batch:line(points, rope[i2], rope[i2+1])
+      end
+      Batch:send(points)
+    end
+  end
+
+  drawPausedOverlay()
+  glfwSwapBuffers()
+
+  cleanup:
+    glfwCloseWindow()
+    glfwTerminate()
+  end
+  
+  return 0
+end
+
