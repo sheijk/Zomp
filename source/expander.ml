@@ -615,7 +615,7 @@ end = struct
       | Error (_ as errors) -> Error errors
 end
 
-let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
+let rec translateType env emitWarning typeExpr : Lang.typ mayfail =
   let error msg = Mayfail.errorFromExpr typeExpr msg in
   let instantiateType parametricType argumentType =
     let rec inst = function
@@ -646,30 +646,37 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
   in
 
   let translatePtr targetTypeExpr =
-    match translateType bindings emitWarning targetTypeExpr with
+    match translateType env emitWarning targetTypeExpr with
       | Result t -> Result (`Pointer t)
       | error -> error
   in
   let translateArray memberTypeExpr sizeExpr =
     let potentialSize =
-      match sizeExpr with
-        | { id = number; args = [] } ->
-          begin try
-              Some(int_of_string number)
-            with Failure _ ->
-              None
-          end
-        | _ -> None
+      let checked size64 =
+        if size64 >= Int64.of_int min_int && size64 <= Int64.of_int max_int then
+          Result (Int64.to_int size64)
+        else
+          Error [Serror.fromExpr sizeExpr @@ sprintf "unsupported array size, must be in [%d, %d]" min_int max_int]
+      in
+      match env.translateExpr env sizeExpr with
+          | Result (_, [`Constant (_, (Int32Val size32 | Int16Val size32 | Int8Val size32))]) ->
+             checked (Int64.of_int32 size32)
+          | Result (_, [`Constant (_, Int64Val size64)]) ->
+             checked size64
+          | Result (_, forms) ->
+             let formsStr = Common.combine "\n    " @@ List.map formWithTLsEmbeddedToString forms in
+             Error [Serror.fromExpr sizeExpr @@ sprintf "expected array size to be int literal\n%s" formsStr]
+          | Error errors ->
+             Error errors
     in
-    match translateType bindings emitWarning memberTypeExpr, potentialSize with
-      | Result t, Some size -> Result (`Array(t, size))
-      | Result _, None -> Error [Serror.fromExpr sizeExpr "expected int literal for array size"]
-      | Error errors, _ -> Error errors
+    match translateType env emitWarning memberTypeExpr, potentialSize with
+      | Result t, Result size -> Result (`Array(t, size))
+      | t, s -> Error (Mayfail.extractErrors t @ Mayfail.extractErrors s)
   in
   let translateFunction returnTypeExpr argTypeExprs =
     try
       let translate typ =
-        match translateType bindings emitWarning typ with
+        match translateType env emitWarning typ with
           | Result t -> t
           | Error errors ->
             raise (MayfailError errors)
@@ -701,13 +708,13 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
       end
 
     | { id = "opjux"; args = args } (* when jux = macroJuxOp *) ->
-      translateType bindings emitWarning (shiftId args)
+      translateType env emitWarning (shiftId args)
 
     | { id = "op!"; args =
         [{ id = paramTypeName; args = [] };
          argumentTypeExpr ] } ->
       begin
-        match lookup bindings paramTypeName, translateType bindings emitWarning argumentTypeExpr with
+        match lookup env.bindings paramTypeName, translateType env emitWarning argumentTypeExpr with
           | TypedefSymbol ((`ParametricType _) as t), Result `TypeParam ->
             Result t
           | TypedefSymbol (`ParametricType t), Result argumentType ->
@@ -728,7 +735,7 @@ let rec translateType bindings emitWarning typeExpr : Lang.typ mayfail =
 
     | { id = name; args = [] } ->
       begin
-        match lookupType bindings name with
+        match lookupType env.bindings name with
           | Some t -> Result t
           | None -> error (sprintf "could not look up type %s" name)
       end
@@ -827,7 +834,7 @@ struct
       let declaredType = match typeExpr with
         | Some e ->
             begin
-              match translateType env.bindings e with
+              match translateType env e with
                 | Result t -> Some t
                 | Error _ -> raise (CouldNotParseType (Ast2.expression2string e))
             end
@@ -1043,7 +1050,7 @@ struct
 
   let translateMalloc (env :nestedEnv) expr :translationResult =
     let buildMallocInstruction typeExpr countExpr =
-      match translateType env.bindings typeExpr with
+      match translateType env typeExpr with
         | Error _ as err ->
           err
         | Result typ ->
@@ -1070,7 +1077,7 @@ struct
     let info = formInfoFromExpr expr in
     match expr.args with
       | [typeExpr] ->
-          begin match translateType env.bindings typeExpr with
+          begin match translateType env typeExpr with
             | Result typ -> Result (env.bindings, [`Constant (info, NullpointerVal typ)] )
             | Error msgs -> Error msgs
           end
@@ -1187,7 +1194,7 @@ struct
     match expr.args with
       | [targetTypeExpr; valueExpr] ->
         begin
-          match translateType env.bindings targetTypeExpr with
+          match translateType env targetTypeExpr with
             | Result targetType ->
               begin
                 let _, valueForm, toplevelForms = translateToForms env.translateF env.bindings valueExpr in
@@ -1213,7 +1220,7 @@ struct
       let declaredType = match typeExpr with
         | Some e ->
           begin
-            match translateType env.bindings e with
+            match translateType env e with
               | Result t -> Some t
               | Error errors ->
                  raiseIllegalExpressions e errors
@@ -1508,7 +1515,7 @@ struct
       | TypedefSymbol (`Record recordType) ->
         translate recordType
       | UndefinedSymbol when typeExpr.id = "op!" ->
-        begin match translateType env.bindings typeExpr with
+        begin match translateType env typeExpr with
           | Result (`Record recordType) ->
             translate recordType
           | _ ->
@@ -1560,7 +1567,7 @@ struct
               let r = env.translateF env.bindings (Ast2.seqExprLoc loc [tempVar; callExpr]) in
               Result r
         in
-        begin match translateType env.bindings firstArg with
+        begin match translateType env firstArg with
           | Result `Record _ when allAreFieldAssignments remArgs ->
             translateRecordF env firstArg remArgs
 
@@ -2251,8 +2258,8 @@ let checkRedefinitionErrors tlenv newDefinitionType scope name expr bindings =
   in
   hasRedefinitionErrors newDefinitionType scope name expr bindings reportDiagnostics
 
-let translateTypeImp tlenv expr =
-  match translateType (EnvTL.bindings tlenv) reportWarning expr with
+let translateTypeImp tlenv env expr =
+  match translateType env reportWarning expr with
     | Result typ ->
       typ
     | Error errors ->
@@ -2273,8 +2280,10 @@ let rec translateFunc tlenv expr : unit =
   let buildFunction bindings typ uncheckedName paramExprs hasvarargs implExprOption location =
     let name = removeQuotes uncheckedName in
 
+    let outerNestedEnv = makeEnv (EnvTL.backend tlenv) bindings in
+
     let translateParam (varName, typeExpr) =
-      match translateType bindings typeExpr with
+      match translateType outerNestedEnv typeExpr with
         | Result typ ->
           varName, typ
         | Error errors ->
@@ -2337,7 +2346,8 @@ let rec translateFunc tlenv expr : unit =
             bindings
             parametricTypes
         in
-        match translateType bindings typeExpr with
+        let env = makeEnv (EnvTL.backend tlenv) bindings in
+        match translateType env typeExpr with
           | Result typ -> begin
             let isRedefinitionError =
               checkRedefinitionErrors tlenv `NewFuncDef `Global name expr bindings
@@ -2367,7 +2377,7 @@ let rec translateFunc tlenv expr : unit =
         let isRedefinitionError =
           checkRedefinitionErrors tlenv `NewFuncDecl `Global name expr bindings
         in
-        let returnType = translateTypeImp tlenv typeExpr in
+        let returnType = translateTypeImp tlenv (makeEnv (EnvTL.backend tlenv) bindings) typeExpr in
         let newBindings, funcDecl = buildFunction bindings returnType name paramExprs hasvarargs None location in
         if (not isRedefinitionError) then begin
           EnvTL.setBindings tlenv newBindings;
@@ -2391,7 +2401,7 @@ let translateGlobalVar (env :EnvTL.t) expr : unit =
           checkRedefinitionErrors env `NewVar `Global name expr (EnvTL.bindings env)
         in
         let typ =
-          match translateTypeImp env typeExpr with
+          match translateTypeImp env (makeEnv (EnvTL.backend env) (EnvTL.bindings env)) typeExpr with
             | #integralType
             | `Pointer _
             | `Array (_, _)
@@ -2487,7 +2497,7 @@ let translateTypedef tlenv expr : unit =
     let tempBindings = Bindings.addTypedef bindings typeName (`TypeRef typeName) location in
     let expr2component =
       let translate name typeExpr =
-        match translateType tempBindings typeExpr with
+        match translateType (makeEnv (EnvTL.backend tlenv) tempBindings) typeExpr with
           | Result typ ->
             name, typ
           | Error errors ->
@@ -2562,7 +2572,7 @@ let translateTypedef tlenv expr : unit =
           hasRedefinitionErrors `NewType `Global newTypeName expr bindings reportDiagnostics
         in
 
-        match translateType bindings targetTypeExpr, isRedefinitionError with
+        match translateType (makeEnv (EnvTL.backend tlenv) bindings) targetTypeExpr, isRedefinitionError with
           | Error _, _ ->
             raiseInvalidType targetTypeExpr
           | Result t, false ->

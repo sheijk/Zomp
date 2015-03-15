@@ -3,7 +3,7 @@
 ///
 
 std:base:func void main():
-  var int[foo] ints //// error size
+  var int[foo] ints //// error foo
   std:base:ret 0
 end
 

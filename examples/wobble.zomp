@@ -143,10 +143,10 @@ func int main():
     app.windowTitle = "wobble"
   end
 
-  var v3f[50] ropeStore
-  template ropeLen zmp:array:size(ropeStore)
+  template ropeLen 50
+  var v3f[ropeLen] ropeStore
   rope := zmp:array:addr &ropeStore
-  var v3f[50] newRopeStore
+  var v3f[ropeLen] newRopeStore
   newRope := zmp:array:addr &newRopeStore
   maxDist := 20. / toFloat ropeLen
   mass := 50.0 / toFloat ropeLen
