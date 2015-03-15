@@ -1658,9 +1658,11 @@ struct
         in
         begin match typeCheck env.bindings rightHandForm with
           | TypeOf `Array(_, size) ->
-            Result (env.bindings,
-                    toplevelForms @ [(rightHandForm :> formWithTLsEmbedded);
-                                     `Constant (info, Int32Val (Int32.of_int size))])
+             if Semantic.sideEffectFree rightHandForm then
+               Result (env.bindings,
+                       toplevelForms @ [`Constant (info, Int32Val (Int32.of_int size))])
+             else
+               Error [Serror.fromExpr expr "argument must not have side effects"]
           | TypeOf invalidType ->
             errorFromTypeError env.bindings arrayExpr
               (Semantic.Ast expr,

@@ -29,6 +29,7 @@ end
 func void testArrays():
   var (array int 10) numbers
   var int[5] numbers2
+  var int[zmp:array:size numbers] numbersCopy
 
   zmp:array:set numbers2 3 7
 
@@ -39,6 +40,7 @@ func void testArrays():
   unittest:assertAll:
     zmp:array:size numbers == 10
     zmp:array:size numbers2 == 5
+    zmp:array:size numbersCopy == 10
 
     zmp:array:get numbers2 3 == 7
 

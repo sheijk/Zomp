@@ -31,3 +31,5 @@ val typeOfForm :
 
 val functionIsValid : Lang.func -> [ `Errors of string list | `Ok ]
 
+val sideEffectFree : Lang.form -> bool
+

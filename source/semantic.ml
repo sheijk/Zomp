@@ -519,3 +519,33 @@ let functionIsValid func =
     | None ->
         `Ok
 
+let rec sideEffectFree = function
+  | `Variable _
+  | `Constant _
+  | `EmbeddedComment _
+  | `GetAddrIntrinsic (_, { vname = _ })
+    -> true
+
+  | `Sequence (_, forms)
+    -> List.for_all sideEffectFree forms
+
+  | `CastIntrinsic (_, _, arg)
+  | `GetFieldPointerIntrinsic (_, arg, _)
+  | `LoadIntrinsic (_, arg)
+    -> sideEffectFree arg
+
+  | `PtrAddIntrinsic (_, arg1, arg2)
+  | `PtrDiffIntrinsic (_, arg1, arg2)
+    -> sideEffectFree arg1 && sideEffectFree arg2
+
+  | `StoreIntrinsic _
+  | `MallocIntrinsic _
+  | `AssignVar _
+  | `Branch _
+  | `DefineVariable _
+  | `FuncCall _
+  | `Jump _
+  | `Label _
+  | `Return _
+    -> false
+
