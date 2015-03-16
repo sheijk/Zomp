@@ -146,25 +146,29 @@ func int main():
   template ropeLen 50
   var v3f[ropeLen] ropeStore
   rope := zmp:array:addr &ropeStore
-  var v3f[ropeLen] newRopeStore
-  newRope := zmp:array:addr &newRopeStore
+  var v3f[ropeLen] ropeVelStore
+  ropeVel := zmp:array:addr &ropeVelStore
+
   maxDist := 20. / toFloat ropeLen
   mass := 50.0 / toFloat ropeLen
   for i 0 ropeLen:
     rope[i] = mv3f (-10. + toFloat i * maxDist * 0.9) 12. 1.
+    ropeVel[i] = mv3f 0. 0. 0.
   end
 
   angle := -20.0
   ropeForce := 30.0
-  gravity := mv3f(0., -1., 0.)
+  gravity := mv3f(0., -0.4, 0.)
   keyMoveSpeed := 12.0
   simSteps := 4
+
+  animRightEnd := true
 
   lines := local Batch GL_LINES (ropeLen * 2)
   onReturn Batch:delete(lines)
 
   points := local Batch GL_POINTS ropeLen
-  onReturn Batch:delete(lines)
+  onReturn Batch:delete(points)
 
   mainloop:
     // angle = angle + 4.0 * frameDuration
@@ -204,20 +208,23 @@ func int main():
 
     drawOrientationGrid2(0.4, 1.0)
 
+    if animRightEnd:
+      rope[ropeLen-1].z = 1. + sinf (time * 2.) * 5.
+      rope[ropeLen-1].x = 9. + cosf (time * 2.) * 1.
+    end
+
     glColor3f 1. 1. 1.
     saveAttribs:
       for step 0 simSteps:
         for i3 1 (ropeLen-1):
-          newRope[i3] = rope[i3]
-          newRope[i3] += force(rope[i3], rope[i3-1], maxDist) * ropeForce * frameDuration
-          newRope[i3] += force(rope[i3], rope[i3+1], maxDist) * ropeForce * frameDuration
-          newRope[i3] += gravity * mass * frameDuration
+          ropeVel[i3] += force(rope[i3], rope[i3-1], maxDist) * ropeForce * frameDuration
+          ropeVel[i3] += force(rope[i3], rope[i3+1], maxDist) * ropeForce * frameDuration
+          ropeVel[i3] += gravity * mass * frameDuration
+          ropeVel[i3] *= 0.95
         end
-        newRope[0] = rope[0]
-        newRope[ropeLen-1] = rope[ropeLen-1]
 
         for i4 0 ropeLen:
-          rope[i4] = newRope[i4]
+          rope[i4] = rope[i4] + ropeVel[i4]
         end
       end
 
