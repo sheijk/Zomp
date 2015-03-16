@@ -135,8 +135,18 @@ The word \"error\" will be highlighted in this face.")
 
 (defconst zomp-identifier-chars "a-zA-Z0-9:*_"
   "Valid characters in Zomp identifiers.")
+
 (defconst zomp-identifier-regexp "[a-zA-Z][a-zA-Z0-9:*_]*"
   "Regular expression to match a valid Zomp identifier.")
+
+(defconst zomp-operator-chars "-+/*&.><=!|:;,%^{}~"
+  "Valid characters in Zomp operators.
+
+The * must be after the / or in 'a +| b' the op+ will not get identified by
+`zomp-function-before-point' when | is the point.
+
+Keep this in sync with opSymbols in indentlexer.ml! This one should additionally
+contain '[' and ']' but this currently breaks `looking-back'.")
 
 (defun zomp-id (str)
   "Helper function to produce imenu expressions. In the given string ID will be
@@ -1114,7 +1124,27 @@ load it into buffer `zomp-symbol-buffer'."
   "Returns the function of the current expression. When curser is at '|'
 f(10, |20) will return f, print 10| will return print, etc."
   (interactive)
-  (let ((linestart 0) (parenopen 0) exprstart funcend linesym funcsym)
+  (let ((linestart 0) (parenopen 0) exprstart funcend linesym funcsym oprsym)
+    (setq oprsym
+          (save-excursion
+            (let (start orig end)
+              (when (looking-back "_[a-z]*")
+                (re-search-backward "_[a-z]*"))
+              (setq orig (point))
+              (while (looking-at (format "[%s]" zomp-operator-chars))
+                (forward-char 1))
+              (when (looking-at "_")
+                (forward-char 1)
+                (while (looking-at "[a-z]")
+                  (forward-char 1)))
+              (setq end (point))
+              (goto-char orig)
+              (while (looking-back (format "[%s]" zomp-operator-chars))
+                (backward-char 1))
+              (setq start (point))
+              (unless (equal start end)
+                (format "op%s"
+                        (buffer-substring start end))))))
     (setq linesym
           (save-excursion
             (back-to-indentation)
@@ -1149,7 +1179,7 @@ f(10, |20) will return f, print 10| will return print, etc."
                 (buffer-substring (point) funcend)))))
     (when (and (> linestart parenopen) linesym funcsym)
       (setq funcsym nil))
-    (replace-regexp-in-string ":$" "" (or exprsym funcsym linesym "nothing found"))))
+    (replace-regexp-in-string ":$" "" (or oprsym exprsym funcsym linesym "nothing found"))))
 
 (defun zomp-symbol-at-point ()
   "Return the Zomp identifier at point."
@@ -1190,7 +1220,7 @@ by the Zomp shell."
          (save-excursion
            (set-buffer (get-buffer-create zomp-symbol-buffer))
            (goto-char (point-max))
-           (search-backward-regexp (format "^%s =" symbol))
+           (search-backward-regexp (format "^%s =" (regexp-quote symbol)))
            (buffer-substring
             (point)
             (save-excursion
@@ -1201,7 +1231,7 @@ by the Zomp shell."
   "Extracts fields with information about a symbol from a line produced by
 `zomp-get-doc-line-for-symbol'."
   (when (and docline
-             (string-match "\\([a-zA-Z0-9_:]+\\) =\\([^@\n]+\\)\\(?: @\\([^:]*\\):\\([0-9]+\\)\\(:[0-9]+\\)?\\)?$" docline))
+             (string-match "\\([^ ]+\\) =\\([^@\n]+\\)\\(?: @\\([^:]*\\):\\([0-9]+\\)\\(:[0-9]+\\)?\\)?$" docline))
     (list :name (match-string 1 docline)
           :short-doc (match-string 2 docline)
           :file (ignore-errors (match-string 3 docline))
@@ -1218,7 +1248,7 @@ by the Zomp shell."
     (zomp-build-symbol-buffer)
     (let ((info (zomp-symbol-info (zomp-function-before-point))))
       (when info
-        (format "%s: %s"
+        (format "%s - %s"
                 (plist-get info :name)
                 (plist-get info :short-doc))))))
 

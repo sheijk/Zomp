@@ -241,6 +241,7 @@ end = struct
 
   type rule = (charre * Str.regexp * string)
 
+  (** Keep this in sync with zomp-operator-symbols in zomp.el! *)
   let opSymbols = "-+\\*/&.><=!|:;,%^{}~"
 
   let rec charreMatch cre token =
