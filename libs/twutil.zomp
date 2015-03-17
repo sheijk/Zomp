@@ -1,0 +1,51 @@
+///
+/// AntTweakbar utilities.
+///
+
+requireLibs libcee anttweakbar glfw
+
+func void twMoveBar(cstring barName, int left, int top, int right, int bottom):
+  leftStr := int2cstring left
+  topStr := int2cstring top
+  widthStr := int2cstring(right - left)
+  heightStr := int2cstring(bottom - top)
+
+  options := barName ++ " position='" ++ leftStr ++ " " ++ topStr ++
+      "' size='" ++ widthStr ++ " " ++ heightStr ++ "'"
+  TwDefine options
+  // TODO clean up memory
+  ret
+end
+
+func void twutil:setupGlfwEvents():
+  glfwSetMousePosCallback (cast void* &TwEventMousePosGLFW)
+  glfwSetMouseWheelCallback (cast void* &TwEventMouseWheelGLFW)
+  glfwSetKeyCallback (cast void* &TwEventKeyGLFW)
+  glfwSetMouseButtonCallback (cast void* &TwEventMouseButtonGLFW)
+  glfwSetCharCallback (cast void* &TwEventCharGLFW)
+end
+
+macro twgroup bar optionString settings:
+  code := ${}
+  forEachAstChild s settings:
+    if ast:matchesShape(s, ${rw _ _ __}):
+      typeId := ast:child s 1
+      name := ast:child s 2
+      vr := ast:child s 3
+      ast:addChild code ${TwAddVarRW #bar #name #typeId (cast void* &#vr) #optionString}
+    elseif ast:matchesShape(s, ${separator}):
+      ast:addChild code ${TwAddSeparator #bar nullptr(char) #optionString}
+    elseif ast:matchesShape(s, ${button _ __ __}):
+      buttonName := ast:child s 1
+      buttonCallback := ast:child s 2
+      buttonClientData := ast:child s 3
+      ast:addChild code ${TwAddButton #bar #buttonName #buttonCallback #buttonClientData #optionString}
+    else:
+      ret ${error "Expected rw TYPE NAME VAR" #s}
+    end
+  end
+
+  ret code
+end
+
+

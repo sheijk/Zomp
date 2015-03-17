@@ -1,10 +1,10 @@
 ///
-/// A wobbly thing
+/// A wobbly thing. Not a physics simulation.
 ///
 
 linkclib "libglfw.dylib" "libGLEW.dylib"
 
-requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext
+requireLibs opengl20 glfw glutils mathvis libcee anttweakbar array quicktext anttweakbar twutil
 
 //------------------------------------------------------------------------------
 
@@ -105,15 +105,22 @@ end
 
 //------------------------------------------------------------------------------
 
+var AppInfo* app nullptr(AppInfo)
+
 func bool keyDown(GLint key):
   ret(glfwGetKey key == GLFW_PRESS)
 end
 
-func bool mouseButtonDown(int button):
-  glfwGetMouseButton button == GLFW_PRESS
-end
+func void onWindowResize(int newWidth, int newHeight):
+  app*.windowWidth = newWidth
+  app*.windowHeight = newHeight
+  glfwSetWindowSize app*.windowWidth app*.windowHeight
 
-var AppInfo* app nullptr(AppInfo)
+  guiBottom := newHeight * 17 / 20
+  twMoveBar "Settings" 0 20 200 guiBottom
+  TwWindowSize app*.windowWidth app*.windowHeight
+  return
+end
 
 // TODO: use imgui library
 
@@ -135,10 +142,36 @@ func int main():
     app.windowHeight = 300
     app.fsaaSamples = 4
     app.windowTitle = "wobble"
+
+    if (TwInit(TW_OPENGL, nullptr void) == 0):
+      println "AntTweakBar initialization failed, exiting"
+      glfwTerminate()
+      exit 2
+    end
   cleanup:
     glfwCloseWindow()
     glfwTerminate()
   end
+
+  angle := -20.0
+  
+  /// ui
+
+  mainBar := TwNewBar "Settings"
+  TwDefine " Settings refresh=0.01 color='0 0 0' alpha=102 "
+  onReturn TwDeleteAllBars()
+
+  twgroup mainBar "group=options precision=2":
+    rw TW_TYPE_FLOAT "view angle" angle
+    rw TW_TYPE_BOOL32 "anim rope" animRightEnd
+    rw TW_TYPE_FLOAT "ropeForce" ropeForce
+    rw TW_TYPE_DIR3F "gravity" gravity
+  end
+
+  glfwSetWindowSizeCallback (cast void* &onWindowResize)
+  twutil:setupGlfwEvents()
+
+  /// physics
 
   template ropeLen 50
   var v3f[ropeLen] ropeStore
@@ -153,13 +186,16 @@ func int main():
     ropeVel[i] = mv3f 0. 0. 0.
   end
 
+  /// rendering
+
   lines := local Batch GL_LINES (ropeLen * 2)
   onReturn Batch:delete(lines)
 
   points := local Batch GL_POINTS ropeLen
   onReturn Batch:delete(points)
 
-  angle := -20.0
+  /// main loop
+
   physicTime := 0.
 
   mainloop:
@@ -205,7 +241,7 @@ func int main():
     drawOrientationGrid2(0.4, 1.0)
 
     if animRightEnd:
-      radius := (1. + sinf(time / math:pi * 2.)) * 0.5
+      radius := (1. + sinf(time / math:pi * 2.)) * 0.5 + 0.5
       rope[ropeLen-1].z = 1. + sinf (time * 2.) * 5. * radius
       rope[ropeLen-1].x = 9. + cosf (time * 2.) * 1. * radius
     end
@@ -240,6 +276,7 @@ func int main():
       Batch:send(lines)
       Batch:send(points)
     end
+    TwDraw()
   end
 
   drawPausedOverlay()
