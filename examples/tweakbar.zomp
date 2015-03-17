@@ -42,7 +42,6 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app*.fsaaSamples = 4
     app*.customInit = &customInit
   end
@@ -87,6 +86,6 @@ func int main():
   drawPausedOverlay()
   glfwSwapBuffers()
 
-  ret 0
+  return 0
 end
 

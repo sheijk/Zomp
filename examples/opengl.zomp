@@ -9,9 +9,7 @@ var AppInfo* app nullptr(AppInfo)
 var float angle 0.0
 
 func int main():
-  init app:
-    app = new AppInfo
-  end
+  init app
 
   glMatrixMode GL_PROJECTION
   glLoadIdentity()
@@ -37,5 +35,5 @@ func int main():
 
   printlnString "cu"
 
-  ret 0
+  return 0
 end

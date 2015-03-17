@@ -788,7 +788,7 @@ macro triggerEvent id:
       List:foreach #varname i icode:
         ast:addChild code icode
       end
-      ret code
+      return code
     end
     mtmp
   end
@@ -1013,7 +1013,7 @@ var bool showMeshPointers false
 template abortIf cond onFail:
   if #cond:
     #onFail
-    ret 0
+    return 0
   end
 end
 
@@ -3213,7 +3213,6 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app*.windowWidth = 400
     app*.windowHeight = 300
     app*.fsaaSamples = 2

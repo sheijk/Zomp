@@ -105,17 +105,6 @@ end
 
 //------------------------------------------------------------------------------
 
-/// This will guard the wrapped clean-up code to only get run when not inside
-/// zompsh. Put stuff like window closing, etc. in main inside this macro to
-/// make sure the main function is re-entrant.
-macro cleanup code:
-  if std:vm:isInteractive():
-    ret ${}
-  else:
-    ret code
-  end
-end
-
 func bool keyDown(GLint key):
   ret(glfwGetKey key == GLFW_PRESS)
 end
@@ -136,11 +125,13 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app.windowWidth = 400
     app.windowHeight = 300
     app.fsaaSamples = 4
     app.windowTitle = "wobble"
+  cleanup:
+    glfwCloseWindow()
+    glfwTerminate()
   end
 
   template ropeLen 50
@@ -242,11 +233,6 @@ func int main():
   drawPausedOverlay()
   glfwSwapBuffers()
 
-  cleanup:
-    glfwCloseWindow()
-    glfwTerminate()
-  end
-  
   return 0
 end
 

@@ -860,12 +860,36 @@ func void AppInfo:initOrShowWindow(AppInfo* info):
   end
 end
 
+/// Init and cleanup code. Will create `app` and call the init block on it if
+/// it is null. Optional cleanup block will get run when the function returns.
+/// 
+/// This will guard the wrapped clean-up code to only get run when not inside
+/// zompsh. Put stuff like window closing, etc. in main inside this macro to
+/// make sure the main function is re-entrant.
 macro init app args...:
+  initCode := args
+  cleanupCode := ${}
+
+  if (args.childCount == 0 || args.childCount == 1):
+    // nothing to do
+  elseif (args.childCount == 3 && getField ast:child(args, 1) id ==_str "cleanup"):
+    initCode = ast:child(args, 0)
+    if !std:vm:isInteractive():
+      cleanupCode = ast:child(args, 2)
+    end
+  else:
+    ret ${error "expected init app (codeBlock (cleanup codeBlock)?)?" #args}
+  end
+
   ret $:
     if isNull(#app):
-      #args
+      app = new AppInfo
+      #initCode
     end
     AppInfo:initOrShowWindow(#app)
+    onReturn:
+      #cleanupCode
+    end
   end
 end
 

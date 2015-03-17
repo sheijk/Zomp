@@ -241,7 +241,6 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app*.fsaaSamples = 4
   end
 

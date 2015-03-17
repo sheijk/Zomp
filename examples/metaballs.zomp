@@ -958,9 +958,7 @@ end
 var float angle 0.0
 
 func int main():
-  init app:
-    app = new AppInfo
-  end
+  init app
 
   rendererInfo := new RendererInfo
   RendererInfo:print rendererInfo
@@ -1205,6 +1203,6 @@ func int main():
     deleteRenderTargets
   end
 
-  ret 0
+  return 0
 end
 

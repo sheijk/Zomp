@@ -35,7 +35,6 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app.windowWidth = 800
     app.windowHeight = 600
     app.fsaaSamples = 4

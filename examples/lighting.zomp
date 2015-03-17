@@ -516,7 +516,6 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app*.fsaaSamples = 4
     app*.windowWidth = 400
     app*.windowHeight = 300
@@ -545,7 +544,7 @@ func int main():
     if #cond:
       print #message
       #onFail
-      ret 0
+      return 0
     end
   end
 
@@ -620,11 +619,11 @@ func int main():
         variable := ast:child s 3
         ast:addChild code ${TwAddVarRW bar #name #typeId (cast void* &#variable) #optionString}
       else:
-        ret ${error "Expected rw TYPE NAME VAR" #s}
+        return ${error "Expected rw TYPE NAME VAR" #s}
       end
     end
 
-    ret code
+    return code
   end
 
   bar := TwNewBar "Settings"
@@ -879,6 +878,6 @@ func int main():
 
   // glfwIconifyWindow()
 
-  ret 0
+  return 0
 end
 

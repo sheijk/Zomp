@@ -186,6 +186,6 @@ func int main():
   drawPausedOverlay()
   glfwSwapBuffers()
 
-  ret 0
+  return 0
 end
 

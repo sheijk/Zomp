@@ -1819,6 +1819,9 @@ end
    what about assignment? check if its "mode" would change
 ** TODO [#A] array:length
 ** TODO [#A] redefinition of var should show old pos
+** TODO [#A] warn about multiple delete calls
+   Batch:delete(lines)
+   Batch:delete(lines)
 * Mile stones
 ** error handling and source locations
 

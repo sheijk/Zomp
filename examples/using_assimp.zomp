@@ -121,7 +121,6 @@ end
 
 func int main():
   init app:
-    app = new AppInfo
     app*.windowWidth = 400
     app*.windowHeight = 300
     app*.fsaaSamples = 4
@@ -141,7 +140,7 @@ func int main():
   if (scene == nullptr(aiScene)):
     printString "Error while loading file: "
     printlnString aiGetErrorString()
-    ret 0
+    return 0
   end
 
   if (scene.mNumMeshes <= 2):
@@ -156,7 +155,7 @@ func int main():
   aiReleaseImport scene
   if isNull(mesh):
     printlnString "Generated mesh is null"
-    ret 0
+    return 0
   end
 
   Mesh:swapComponents mesh 2 1
@@ -221,7 +220,7 @@ func int main():
 
   glDeleteProgram material
 
-  ret 0
+  return 0
 end
 
 
