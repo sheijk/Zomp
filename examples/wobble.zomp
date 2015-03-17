@@ -124,6 +124,12 @@ func v3f force(v3f a, v3f b, float length):
 end
 
 func int main():
+  ropeForce := 30.0
+  gravity := mv3f(0., -0.8, 0.)
+  keyMoveSpeed := 12.0
+  physDur := 1. / 60.
+  animRightEnd := true
+
   init app:
     app.windowWidth = 400
     app.windowHeight = 300
@@ -147,27 +153,26 @@ func int main():
     ropeVel[i] = mv3f 0. 0. 0.
   end
 
-  angle := -20.0
-  ropeForce := 30.0
-  gravity := mv3f(0., -0.4, 0.)
-  keyMoveSpeed := 12.0
-  simSteps := 4
-
-  animRightEnd := true
-
   lines := local Batch GL_LINES (ropeLen * 2)
   onReturn Batch:delete(lines)
 
   points := local Batch GL_POINTS ropeLen
   onReturn Batch:delete(points)
 
+  angle := -20.0
+  physicTime := 0.
+
   mainloop:
+    if (physicTime == 0.):
+      /// let simulation stabilize
+      physicTime = time - 10.
+    end
     // angle = angle + 4.0 * frameDuration
 
     moveSpeed := keyMoveSpeed
 
     if (keyDown GLFW_KEY_LSHIFT || keyDown GLFW_KEY_RSHIFT):
-      moveSpeed *= 4.
+      moveSpeed *= 6.
     end
     
     if keyDown(GLFW_KEY_LEFT):
@@ -200,18 +205,25 @@ func int main():
     drawOrientationGrid2(0.4, 1.0)
 
     if animRightEnd:
-      rope[ropeLen-1].z = 1. + sinf (time * 2.) * 5.
-      rope[ropeLen-1].x = 9. + cosf (time * 2.) * 1.
+      radius := (1. + sinf(time / math:pi * 2.)) * 0.5
+      rope[ropeLen-1].z = 1. + sinf (time * 2.) * 5. * radius
+      rope[ropeLen-1].x = 9. + cosf (time * 2.) * 1. * radius
     end
 
     glColor3f 1. 1. 1.
     saveAttribs:
-      for step 0 simSteps:
+      while (physicTime < time):
+        physicTime += physDur
         for i3 1 (ropeLen-1):
-          ropeVel[i3] += force(rope[i3], rope[i3-1], maxDist) * ropeForce * frameDuration
-          ropeVel[i3] += force(rope[i3], rope[i3+1], maxDist) * ropeForce * frameDuration
-          ropeVel[i3] += gravity * mass * frameDuration
+          ropeVel[i3] += force(rope[i3], rope[i3-1], maxDist) * ropeForce * physDur
+          ropeVel[i3] += force(rope[i3], rope[i3+1], maxDist) * ropeForce * physDur
+          ropeVel[i3] += gravity * mass * physDur
           ropeVel[i3] *= 0.95
+
+          // maxv := 0.1
+          // ropeVel.x = float:clamp(-maxv, maxv, ropeVel.x)
+          // ropeVel.y = float:clamp(-maxv, maxv, ropeVel.y)
+          // ropeVel.z = float:clamp(-maxv, maxv, ropeVel.z)
         end
 
         for i4 0 ropeLen:
