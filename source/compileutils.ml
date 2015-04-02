@@ -34,7 +34,8 @@ let loadPrelude env ?(appendSource = "") dir =
   let source = Common.readFile zompPreludeFile ^ appendSource in
   match collectTimingInfo "parsing" $ fun () -> Parseutils.parseIExprs ~fileName:zompPreludeFile source with
     | Error error ->
-      Result.make Result.Fail ~diagnostics:[error] ~results:[]
+      Expander.emitError env error;
+      Result.fail []
     | Exprs exprs ->
       List.iter Ast2.assertHasLocation exprs;
       let result = compileNew env exprs zompPreludeFile in

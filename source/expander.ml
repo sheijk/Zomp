@@ -2016,6 +2016,7 @@ module EnvTL : sig
     backend:Genllvm.t ->
     emitBackendCodeForForm:(Lang.toplevelExpr -> unit) ->
     lookupTLInstruction:(string -> (t -> Ast2.t -> unit) option) ->
+    onError:(Serror.t -> unit) ->
     Bindings.t -> 
     t
 
@@ -2058,7 +2059,9 @@ end = struct
     env.tlbindings <- bindings
 
   let emitError env error =
+    env.tlHadSilentErrors <- true;
     env.tlEmitError error
+
   let emitForm env form =
     env.tlEmitBackendCode form;
     env.tlEmitForm form
@@ -2105,13 +2108,13 @@ end = struct
     tlenv.tlHadSilentErrors <- false;
     flag, errors, forms
 
-  let create ~backend ~emitBackendCodeForForm ~lookupTLInstruction (initialBindings :bindings) =
+  let create ~backend ~emitBackendCodeForForm ~lookupTLInstruction ~onError (initialBindings :bindings) =
     let rec env = {
       tlbindings = initialBindings;
       tlerrorsRev = [];
       tlexprsRev = [];
       tlHadSilentErrors = false;
-      tlEmitError = (fun error -> env.tlerrorsRev <- error :: env.tlerrorsRev);
+      tlEmitError = onError;
       tlEmitForm = (fun form -> env.tlexprsRev <- form :: env.tlexprsRev);
       tlEmitBackendCode = emitBackendCodeForForm;
       tlLookupInstruction = lookupTLInstruction;
@@ -2809,10 +2812,10 @@ let emitBackendCodeForForm backend form =
   Genllvm.gencodeTL backend Zompvm.CompilationAndRuntimePhase form
 
 type tlenv = EnvTL.t
-let createEnv bindings =
+let createEnv bindings ~onError =
   let backend = Genllvm.create() in
   let emitBackendCodeForForm = emitBackendCodeForForm $ Genllvm.create() in
-  EnvTL.create ~backend ~emitBackendCodeForForm ~lookupTLInstruction bindings
+  EnvTL.create ~backend ~emitBackendCodeForForm ~lookupTLInstruction ~onError bindings
 let bindings = EnvTL.bindings
 let setBindings = EnvTL.setBindings
 let emitError = EnvTL.emitError

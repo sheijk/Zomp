@@ -627,7 +627,8 @@ let translateRun env expr =
         try
           let { Result.flag; diagnostics; results = _ } = Expander.translate env exprInFunc in
           List.iter report diagnostics;
-          runFunction (Expander.bindings env) immediateFuncName;
+          if flag = Result.Success then
+            runFunction (Expander.bindings env) immediateFuncName;
         with
           | Expander.IllegalExpression (_, errors) ->
             List.iter (Expander.emitError env) errors;
@@ -743,7 +744,7 @@ let () =
   Zompvm.registerCodeHandler onLlvmCode;
   Expander.setTraceToplevelForm (Some onToplevelForm);
 
-  let env = Expander.createEnv Genllvm.defaultBindings in
+  let env = Expander.createEnv Genllvm.defaultBindings ~onError:report in
 
   let addDllPath where path = Expander.addDllPath env path where in
   List.iter (addDllPath `Back) Expander.recommendedDllPath;

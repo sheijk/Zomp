@@ -7,8 +7,12 @@
 exception IllegalExpression of Ast2.sexpr * Serror.t list
 
 type tlenv
-val createEnv : Bindings.t -> tlenv
+val createEnv : Bindings.t -> onError:(Serror.t -> unit) -> tlenv
+(** Errors should all get reported by calling the function passed to createEnv.
+This is not working in all cases, yet so be sure to handle both cases *)
 val translate : tlenv -> Ast2.t -> Lang.toplevelExpr Result.t
+(** Errors should all get reported by calling the function passed to createEnv.
+This is not working in all cases, yet so be sure to handle both cases *)
 val translateMulti : tlenv -> Ast2.t list -> Lang.toplevelExpr Result.t
 val bindings : tlenv -> Bindings.t
 val setBindings : tlenv -> Bindings.t -> unit

@@ -142,7 +142,7 @@ let compile initEnv fileName inStream outStream =
     Failed_to_init_vm
   end else begin
     Zompvm.setVerifyCode false;
-    let env = Expander.createEnv Genllvm.defaultBindings in
+    let env = Expander.createEnv Genllvm.defaultBindings ~onError:reportDiagnostics in
     initEnv env;
     let exitCode =
       let preludeResult =
