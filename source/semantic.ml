@@ -195,6 +195,10 @@ let rec typeCheck bindings (form :Lang.form) : typecheckResult =
       | `MallocIntrinsic (_, typ, sizeExpr) ->
         expectType sizeExpr `Int32 >>
           TypeOf (`Pointer typ)
+      | `SizeofIntrinsic (_, typ) ->
+         (match Bindings.lookup bindings "size_t" with
+            | Bindings.TypedefSymbol typ -> TypeOf typ
+            | _ -> failwith "typeCheck")
       | `GetAddrIntrinsic (_, var) as getaddrForm ->
           begin
             match var.vstorage with
@@ -324,6 +328,7 @@ let rec collectVars (form :Lang.form) =
   match form with
     | `Variable _
     | `Constant _
+    | `SizeofIntrinsic _
     | `GetAddrIntrinsic _
     | `Jump _
     | `Label _
@@ -523,6 +528,7 @@ let rec sideEffectFree = function
   | `Variable _
   | `Constant _
   | `EmbeddedComment _
+  | `SizeofIntrinsic _
   | `GetAddrIntrinsic (_, { vname = _ })
     -> true
 

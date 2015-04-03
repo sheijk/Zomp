@@ -1073,6 +1073,22 @@ struct
           errorFromExpr expr "expected 'malloc typeExpr countExpr', countExpr being optional"
   let translateMallocD = "type count?", translateMalloc
 
+  let translateSizeof (env :nestedEnv) expr :translationResult =
+    let buildSizeofInstruction typeExpr =
+      match translateType env typeExpr with
+        | Error _ as err ->
+           err
+        | Result typ ->
+           let info = formInfoFromExpr expr in
+           Result (env.bindings, [`SizeofIntrinsic (info, typ)])
+    in
+    match expr with
+        | { id = id; args = [typeExpr] } when id = macroSizeof ->
+           buildSizeofInstruction typeExpr
+        | _ ->
+           errorFromExpr expr @@ sprintf "expected '%s typeExpr'" macroSizeof
+  let translateSizeofD = sprintf "%s typeExpr" macroSizeof, translateSizeof
+    
   let translateNullptr (env :nestedEnv) expr :translationResult =
     let info = formInfoFromExpr expr in
     match expr.args with
@@ -1596,6 +1612,7 @@ struct
     addF macroLoad translateLoadD;
     addF macroStore translateStoreD;
     addF macroMalloc translateMallocD;
+    addF macroSizeof translateSizeofD;
     addF macroCast translateCastD;
     addF macroFieldptr translateGetfieldptrD;
     addF macroPtradd translatePtraddD;

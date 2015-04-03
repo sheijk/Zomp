@@ -732,6 +732,14 @@ let gencodeGenericIntr (gencode : Lang.form -> gencodeResult) = function
         let code = sprintf "%s = malloc %s, i32 %s" var.rvname (llvmTypeName typ) count.gcrVar.rvname in
         returnVarCode (var, count.gcrCode ^ code)
       end
+  | `SizeofIntrinsic (_, typ) ->
+     begin
+       let addr = newLocalTempVar (`Pointer typ) in
+       let size = newLocalTempVar sizeT in
+       let addrCode = sprintf "%s = getelementptr %s* null, %s 1\n" addr.rvname (llvmTypeName typ) (llvmTypeName sizeT) in
+       let sizeCode = sprintf "%s = ptrtoint %s* %s to %s\n" size.rvname (llvmTypeName typ) addr.rvname (llvmTypeName sizeT) in
+       returnVarCode (size, addrCode ^ sizeCode)
+     end
   | `GetAddrIntrinsic (_, var) ->
       begin
         match var.vstorage with

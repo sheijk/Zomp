@@ -1,0 +1,28 @@
+///
+/// Testing whether std:base:sizeof works
+///
+
+type twoint:
+  int a
+  int b
+end
+
+std:base:func int main():
+  //// print int_4
+  printString "sizeof_int_"
+  printInt (cast u32 (std:base:sizeof int))
+  printNewline()
+  
+  //// print float_4
+  printString "sizeof_float_"
+  printInt (cast u32 (std:base:sizeof float))
+  printNewline()
+  
+  //// print twoint_8
+  printString "sizeof_twoint_"
+  printInt (cast u32 (std:base:sizeof twoint))
+  printNewline()
+
+  std:base:ret 0
+end
+

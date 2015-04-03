@@ -22,6 +22,7 @@ val macroNullptr : string
 val macroPtradd : string
 val macroPtrDiff : string
 val macroMalloc : string
+val macroSizeof : string
 val macroGetaddr : string
 val macroCast : string
 val macroInclude : string
@@ -108,6 +109,7 @@ type 'a genericIntrinsic =
     | `GetFieldPointerIntrinsic of formInfo * 'a * string
     | `LoadIntrinsic of formInfo * 'a
     | `MallocIntrinsic of formInfo * typ * 'a
+    | `SizeofIntrinsic of formInfo * typ
     | `PtrAddIntrinsic of formInfo * 'a * 'a
     | `PtrDiffIntrinsic of formInfo * 'a * 'a
     | `StoreIntrinsic of formInfo * 'a * 'a ]

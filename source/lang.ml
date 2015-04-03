@@ -24,6 +24,7 @@ and macroNullptr = "nullptr"
 and macroPtradd = "ptradd"
 and macroPtrDiff = "ptrdiff"
 and macroMalloc = "malloc"
+and macroSizeof = "std:base:sizeof"
 and macroGetaddr = "ptr"
 and macroCast = "cast"
 and macroInclude = "include"
@@ -222,6 +223,7 @@ type 'a genericIntrinsic =
   | `GetFieldPointerIntrinsic of formInfo * 'a * string
   | `LoadIntrinsic of formInfo * 'a
   | `MallocIntrinsic of formInfo * typ * 'a
+  | `SizeofIntrinsic of formInfo * typ
   | `PtrAddIntrinsic of formInfo * 'a * 'a
   | `PtrDiffIntrinsic of formInfo * 'a * 'a
   | `StoreIntrinsic of formInfo * 'a * 'a ]
@@ -272,6 +274,7 @@ let info : form -> formInfo = function
   | `GetFieldPointerIntrinsic (info, _, _)
   | `LoadIntrinsic (info, _)
   | `MallocIntrinsic (info, _, _)
+  | `SizeofIntrinsic (info, _)
   | `PtrAddIntrinsic (info, _, _)
   | `PtrDiffIntrinsic (info, _, _)
   | `StoreIntrinsic (info, _, _)
@@ -324,6 +327,7 @@ let rec formToString : form -> string = function
   | `Label (_, l) ->
       labelToString l
   | `MallocIntrinsic (_, typ, form) -> sprintf "malloc %s x %s" (typeName typ) (formToString form)
+  | `SizeofIntrinsic (_, typ) -> sprintf "%s %s" macroSizeof (typeName typ)
   | `GetAddrIntrinsic (_, var) -> sprintf "GetAddr (%s)" (varToString var)
   | `StoreIntrinsic (_, ptr, value) -> sprintf "Store (%s, %s)" (formToString ptr) (formToString value)
   | `LoadIntrinsic (_, ptr) -> sprintf "Load (%s)" (formToString ptr)
