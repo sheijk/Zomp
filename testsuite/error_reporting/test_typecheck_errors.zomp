@@ -7,11 +7,11 @@ std:base:func void ptrAddErrors():
 end
 
 std:base:func void mallocErrors1():
-  var void* foo1 malloc(int, 1.0) //// error type float
+  var void* foo1 malloc(int, 1.0) //// error type
 end
 
 std:base:func void mallocErrors2():
-  var void* foo2 malloc(int, true) //// error type bool
+  var void* foo2 malloc(int, true) //// error type
 end
 
 std:base:func void seqErrors():

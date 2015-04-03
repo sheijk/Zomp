@@ -1080,3 +1080,14 @@ end
 
 alias error std:base:error args...
 
+macro malloc type args...:
+  if (u32:equal (getField args childCount) 0):
+    ret ${std:base:malloc1 #type}
+  elseif (u32:equal (getField args childCount) 1):
+    var ast* count ast:child(args, 0)
+    ret ${std:base:mallocN #type (cast size_t #count)}
+  end
+
+  ret ${error "Expected either 0 or 1 arguments"}
+end
+
