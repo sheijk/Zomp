@@ -310,20 +310,24 @@ unittest:testCase PointerArithmetic_char:
   end
 end
 
+template toSize_t value:
+  cast size_t #value
+end
+
 unittest:testCase sizeof:
   unittest:assertAll:
-    sizeof u8 == 1
-    sizeof u16 == 2
-    sizeof u32 == 4
-    sizeof u64 == 8
+    sizeof u8 == toSize_t 1
+    sizeof u16 == toSize_t 2
+    sizeof u32 == toSize_t 4
+    sizeof u64 == toSize_t 8
 
-    sizeof float == 4
-    sizeof double == 8
-    sizeof bool == 1
-    sizeof char == 1
+    sizeof float == toSize_t 4
+    sizeof double == toSize_t 8
+    sizeof bool == toSize_t 1
+    sizeof char == toSize_t 1
 
-    sizeof u8[2] == 2
-    sizeof u32[4] == 4 * 4
+    sizeof u8[2] == toSize_t 2
+    sizeof u32[4] == toSize_t(4 * 4)
   end
 end
 

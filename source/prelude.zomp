@@ -85,6 +85,16 @@ std:base:func double sqrt(double x)
 /// Section: Utility functions
 ///-----------------------------------------------------------------------------
 
+std:base:func u8* zompMalloc(size_t bytes)
+
+macroReplace std:base:malloc1 type:
+  cast type* zompMalloc(std:base:sizeof type)
+end
+
+macroReplace std:base:mallocN type count:
+  cast type* zompMalloc(size_t:mul(std:base:sizeof type, count))
+end
+
 std:base:func bool bool:not(bool b):
   bool:xor true b
 end
@@ -165,7 +175,7 @@ end
 
 std:base:func cstring cstring:quote(cstring unquoted):
   var size_t unquotedLength strlen(unquoted)
-  var cstring quoted (malloc char (cast u32 (size_t:add unquotedLength (cast size_t 3))))
+  var cstring quoted (std:base:mallocN char (size_t:add unquotedLength (cast size_t 3)))
 
   strcpy (ptradd quoted 1) unquoted
   store quoted '"' // "
@@ -233,7 +243,7 @@ std:base:func int ast:column(ast* a):
 end
 
 std:base:func ast* ast:fromString(cstring name):
-  var ast* a (malloc ast)
+  var ast* a std:base:malloc1(ast)
 
   ast:init(a)
   assign ast:totalCreatedAsts (u32:add ast:totalCreatedAsts 1)
@@ -305,7 +315,7 @@ end
 std:base:func void ast:addChild((ptr ast) tree, (ptr ast) child):
   var int oldChildCount (getField tree childCount)
   var int newChildCount (u32:add 1 oldChildCount)
-  var (ptr (ptr ast)) newChilds (malloc (ptr ast) newChildCount)
+  var (ptr (ptr ast)) newChilds (std:base:mallocN (ptr ast) (cast size_t newChildCount))
 
   var int index 0
   label start
@@ -387,7 +397,7 @@ end
 std:base:func cstring cstrings:append(cstring l, cstring r):
   var size_t lLength strlen(l)
   var size_t rLength strlen(r)
-  var cstring appended (malloc char (cast u32 size_t:add(cast size_t 1, size_t:add lLength rLength)))
+  var cstring appended (std:base:mallocN char size_t:add(cast size_t 1, size_t:add lLength rLength))
   strcpy appended l
   strcpy (ptradd appended (cast u32 lLength)) r
   std:base:ret appended
@@ -958,7 +968,7 @@ macro zmpx:lib:requireLib lib:
   var ast* code ${}
 
   unless alreadyLoaded:
-    var LoadedLibList* newlist malloc(LoadedLibList)
+    var LoadedLibList* newlist std:base:malloc1(LoadedLibList)
     setField newlist name libName
     setField newlist next zmpx:lib:includedLibs
     assign zmpx:lib:includedLibs newlist

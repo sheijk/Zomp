@@ -17,6 +17,11 @@
 
 #include "zomputils.h"
 
+int8_t* zompMalloc(size_t bytes)
+{
+  return malloc(bytes);
+}
+
 //------------------------------------------------------------------------------
 //- printing to stdout
 
