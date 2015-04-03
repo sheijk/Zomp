@@ -156,17 +156,18 @@ to also match op_, preop_, and postop_
 TODO: unify this"
   (replace-regexp-in-string "ID" "\\(?:[a-zA-Z0-9:*+-/!=><_|&^]\\|\\[\\|\\]\\)+" str t t))
 
-(defvar zomp-imenu-generic-expression
-  `(("Macros" ,(zomp-id "^(?macro +\\(ID\\)") 1)
-    ("Functions" ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
+(defconst zomp-imenu-generic-expression
+  `(("Functions" ,(zomp-id "^(?func +ID +\\(ID\\)") 1)
     ("Functions" ,(zomp-id "^(?ofunc +ID +\\(ID(ID\\)") 1)
     ("Functions" ,(zomp-id "^(?std:base:func +ID +\\(ID\\)") 1)
     ("Variables" ,(zomp-id "^(?var +ID +\\(ID\\)") 1)
     ("Variables" ,(zomp-id "^(?const +ID +\\(ID\\)") 1)
     ("Types" ,(zomp-id "^(?type +\\(ID\\)") 1)
     ("Types" ,(zomp-id "^(?struct +\\(ID\\):") 1)
+    ("Macros" ,(zomp-id "^(?macro +\\(ID\\)") 1)
     ("Macros" ,(zomp-id "^(?template +\\(ID\\)") 1)
     ("Macros" ,(zomp-id "^(?alias +\\(ID\\)") 1)
+    ("Macros" ,(zomp-id "^(?macroReplace +\\(ID\\)") 1)
     (nil ,(zomp-id "^\\(/// *.* *///\\) *$") 1)
     ("Sections" ,(zomp-id "^\\(/// +Section: +.*\\)") 1)
     ("Test cases" ,(zomp-id "^(?unittest:testCase +\\(ID\\)") 1)
