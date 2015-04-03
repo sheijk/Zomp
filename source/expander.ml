@@ -1048,31 +1048,6 @@ struct
           errorFromExpr expr "expected two arguments: 'store ptrExpr valueExpr'"
   let translateStoreD = "pointer, value", translateStore
 
-  let translateMalloc (env :nestedEnv) expr :translationResult =
-    let buildMallocInstruction typeExpr countExpr =
-      match translateType env typeExpr with
-        | Error _ as err ->
-          err
-        | Result typ ->
-            begin
-              let info = formInfoFromExpr expr in
-              let _, rightHandForm, toplevelForms = translateToForms env.translateF env.bindings countExpr in
-              let mallocForm = `MallocIntrinsic (info, typ, rightHandForm) in
-              match typeCheck env.bindings mallocForm with
-                | TypeOf _ -> Result( env.bindings, toplevelForms @ [mallocForm] )
-                | TypeError (fe,m,f,e) ->
-                    errorFromTypeError env.bindings expr (fe,m,f,e)
-            end
-    in
-    match expr with
-      | { id = id; args = [typeExpr] } when id = macroMalloc ->
-          buildMallocInstruction typeExpr (Ast2.idExprLoc (Ast2.location expr) "1")
-      | { id = id; args = [typeExpr; countExpr] } when id = macroMalloc ->
-          buildMallocInstruction typeExpr countExpr
-      | _ ->
-          errorFromExpr expr "expected 'malloc typeExpr countExpr', countExpr being optional"
-  let translateMallocD = "type count?", translateMalloc
-
   let translateSizeof (env :nestedEnv) expr :translationResult =
     let buildSizeofInstruction typeExpr =
       match translateType env typeExpr with
@@ -1611,7 +1586,6 @@ struct
     addF macroBranch translateBranchD;
     addF macroLoad translateLoadD;
     addF macroStore translateStoreD;
-    addF macroMalloc translateMallocD;
     addF macroSizeof translateSizeofD;
     addF macroCast translateCastD;
     addF macroFieldptr translateGetfieldptrD;

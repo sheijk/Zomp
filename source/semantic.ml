@@ -192,9 +192,6 @@ let rec typeCheck bindings (form :Lang.form) : typecheckResult =
       | `Label _ -> TypeOf `Void
       | `Jump _ -> TypeOf `Void
       | `Branch _ -> TypeOf `Void
-      | `MallocIntrinsic (_, typ, sizeExpr) ->
-        expectType sizeExpr `Int32 >>
-          TypeOf (`Pointer typ)
       | `SizeofIntrinsic (_, typ) ->
          (match Bindings.lookup bindings "size_t" with
             | Bindings.TypedefSymbol typ -> TypeOf typ
@@ -335,9 +332,6 @@ let rec collectVars (form :Lang.form) =
     | `EmbeddedComment _
         as simple ->
         simple, []
-
-    | `MallocIntrinsic (info, typ, countForm) ->
-        returnTransformed countForm (fun f -> `MallocIntrinsic(info, typ, f))
 
     | `StoreIntrinsic (info, ptrForm, valueForm) ->
         returnTransformed2 ptrForm valueForm
