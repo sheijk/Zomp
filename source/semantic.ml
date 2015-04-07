@@ -687,6 +687,7 @@ let splitBasicBlocks sizeT functionLoc returnType (form :Lang.form) : int * ((st
   let startsWithControlFlowInstruction forms =
     match forms with
       | `Return _ :: _
+      | `Jump _ :: _
       | `Branch _ :: _ ->
          true
       | _ -> false
