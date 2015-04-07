@@ -673,8 +673,13 @@ let splitBasicBlocks sizeT functionLoc returnType (form :Lang.form) : int * ((st
          failwith (sprintf "splitBasicBlocks found unsupported instruction\n  %s" (Lang.formToString form))
   in
   ignore (visitForm form);
-  let unterminatedBlocks = basicBlocks() in
-  assert (List.length unterminatedBlocks > 0);
+  let unterminatedBlocks =
+    let unfiltered = List.rev @@ basicBlocks() in
+    List.rev @@ match unfiltered with
+        | [] -> failwith "splitBasicBlocks"
+        | entryBB :: remBBs ->
+           entryBB :: List.filter (fun (name, _) -> String.length name > 0) remBBs
+  in
 
   let lastBlock = List.hd unterminatedBlocks in
   let revBlocksButLast = List.tl unterminatedBlocks in

@@ -174,7 +174,7 @@ let sizeTName = "size_t"
 
 let rec valueString : value -> string =
   function
-    | VoidVal -> raise (Failure "no values of void allowed")
+    | VoidVal -> "void_value"
     | Int8Val i -> Int32.to_string i
     | Int16Val i -> Int32.to_string i
     | Int32Val i -> Int32.to_string i
