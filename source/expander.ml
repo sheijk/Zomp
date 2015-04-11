@@ -946,10 +946,10 @@ struct
         ] ->
           begin
             match lookup env.bindings condVarName with
-              | VarSymbol var when var.typ = `Bool ->
+              | VarSymbol ({ typ = `Bool } as var) ->
                   begin
                     Result( env.bindings, [`Branch (info, Lang.branch
-                                                      (varWithType var `Bool)
+                                                      var
                                                       (Lang.label trueLabelName)
                                                       (Lang.label falseLabelName))])
                   end

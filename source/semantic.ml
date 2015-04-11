@@ -381,8 +381,6 @@ let rec collectVars (form :Lang.form) =
         returnTransformed form (fun f -> `Return (info, f))
 
     | `Branch (info, branch) ->
-        (* when branch.bcondition is changed to a form, this needs to be updated! *)
-        let (_ : [`Bool] variable) = branch.bcondition in
         `Branch (info, branch), []
 
 let moveLocalVarsToEntryBlock implForm =

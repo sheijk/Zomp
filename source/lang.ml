@@ -158,8 +158,6 @@ let variable ~name ~typ ~storage ~global ~location = {
   vlocalIndex = -1;
 }
 
-let varWithType var newType = { var with typ = newType }
-
 let varToStringShort var =
   sprintf "%s : %s" var.vname (typeName var.typ)
 
@@ -201,12 +199,15 @@ let label lname = { lname }
 let labelToString l = l.lname
 
 type branch = {
-  bcondition :[`Bool] variable;
+  bcondition :typ variable;
   trueLabel :label;
   falseLabel :label;
 }
 
-let branch bcondition trueLabel falseLabel = { bcondition; trueLabel; falseLabel; }
+let branch bcondition trueLabel falseLabel =
+  assert (bcondition.typ = `Bool);
+  { bcondition; trueLabel; falseLabel; }
+
 let branchToString b =
   sprintf "%s ? %s : %s" b.bcondition.vname (labelToString b.trueLabel) (labelToString b.falseLabel)
 

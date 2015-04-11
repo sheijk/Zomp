@@ -63,8 +63,6 @@ val variable :
   storage:varStorage ->
   global:bool -> location:Basics.location option -> 'a variable
 
-val varWithType : 'typA variable -> 'typB -> 'typB variable
-
 val varToStringShort : Types.typ variable -> string
 val varToString : Types.typ variable -> string
 
@@ -96,11 +94,11 @@ val label : string -> label
 val labelToString : label -> string
 
 type branch = private {
-  bcondition : [ `Bool ] variable;
+  bcondition : typ variable;
   trueLabel : label;
   falseLabel : label;
 }
-val branch : [`Bool] variable -> label -> label -> branch
+val branch : typ variable -> label -> label -> branch
 val branchToString : branch -> string
 
 type formInfo
