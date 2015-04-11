@@ -221,8 +221,8 @@ ifeq "$(DEBUG)" "1"
   OCAMLC += -g
   CAMLC_FLAGS += -g
   CAMLOPT_FLAGS += -g -ccopt -g
-  CXXFLAGS += -pg -g -DDEBUG
-  CCFLAGS += -pg -g -DDEBUG
+  CXXFLAGS += -g -DDEBUG
+  CCFLAGS += -g -DDEBUG
   LDFLAGS += -g
 else
   ifeq "$(DEBUG)" "0"
