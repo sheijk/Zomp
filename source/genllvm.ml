@@ -286,11 +286,11 @@ let findIntrinsic =
     let f argVarNames =
       sprintf "%s %s %s %s\n" instruction cond (llvmTypeName typ) (combine ", " argVarNames)
     in
-    (name, `Intrinsic f, `Bool, ["l", typ; "r", typ])
+    (name, `Intrinsic f, `Bool, [Lang.funcParam "l" typ; Lang.funcParam "r" typ])
   in
 
   let twoArgIntrinsic name instruction (typ :typ) =
-    name, `Intrinsic (callIntr instruction typ), typ, ["l", typ; "r", typ]
+    name, `Intrinsic (callIntr instruction typ), typ, [Lang.funcParam "l" typ; Lang.funcParam "r" typ]
   in
   let simpleTwoArgIntrinsincs typ namespace names =
     List.map (fun name -> twoArgIntrinsic (sprintf "%s:%s" namespace name) name typ) names
@@ -367,14 +367,14 @@ let findIntrinsic =
       (fun arg ->
         sprintf "%s %s %s to %s" intrName (llvmTypeName fromType) arg (llvmTypeName toType))
     in
-    funcName, `Intrinsic (convertIntrF intrName), toType, ["v", fromType]
+    funcName, `Intrinsic (convertIntrF intrName), toType, [Lang.funcParam "v" fromType]
   in
 
   let truncIntIntr fromType toType =
     let name = sprintf "%s:to%s" (typeName fromType) (String.capitalize (typeName toType)) in
     let func = oneArgFunc name
       (fun arg -> sprintf "trunc %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType)) in
-    name, `Intrinsic func, toType, ["v", fromType]
+    name, `Intrinsic func, toType, [Lang.funcParam "v" fromType]
   in
 
   let zextIntr fromType toType =
@@ -385,7 +385,7 @@ let findIntrinsic =
     let func = oneArgFunc name
       (fun arg -> sprintf "zext %s %s to %s" (llvmTypeName fromType) arg (llvmTypeName toType))
     in
-    name, `Intrinsic func, toType, ["v", fromType]
+    name, `Intrinsic func, toType, [Lang.funcParam "v" fromType]
   in
 
   let intrinsicFuncs =
@@ -446,7 +446,7 @@ let findIntrinsic =
       match lookupIntrinsic func.fname with
         | Some (_, _, returnType, args) ->
           begin
-            let argsEqual  (_, funcType) (_, intrType) =
+            let argsEqual { Lang.typ = funcType } { Lang.typ = intrType } =
               funcType = intrType
             in
             if returnType = func.rettype && List.for_all2 argsEqual func.fargs args then
@@ -1065,13 +1065,13 @@ let gencodeDefineFunc (_ :t) func =
   in
   match func.impl with
     | None ->
-        let paramTypeNames = List.map (fun (_, typ) -> paramTypeName typ) func.fargs in
+        let paramTypeNames = List.map (fun { Lang.typ } -> paramTypeName typ) func.fargs in
         let paramString = combine ", " paramTypeNames in
         let decl = makeSignature "" paramString in
         "declare " ^ decl
     | Some impl ->
         let argumentName name = name ^ "$arg" in
-        let param2string (name, typ) =
+        let param2string { Lang.typ; Lang.vname = name } =
           (paramTypeName typ) ^ " " ^ (llvmName (argumentName name))
         in
         let paramString = combine ", " (List.map param2string func.fargs) in
@@ -1086,7 +1086,7 @@ let gencodeDefineFunc (_ :t) func =
         let initStructCode =
           Common.combine "\n"
             (List.map
-               (fun (name, typ) ->
+               (fun { Lang.typ; Lang.vname = name } ->
                  sprintf "  %%%s = alloca %s\n" name (llvmTypeName typ)
                  ^ sprintf "  store %s \"%s\", %s* \"%s\"\n"
                    (llvmTypeName typ) (argumentName name)

@@ -2230,10 +2230,10 @@ let rec translateFunc tlenv expr : unit =
     let translateParam (varName, typeExpr) =
       match translateType outerNestedEnv typeExpr with
         | Result typ ->
-          varName, typ
+           Lang.funcParam varName typ
         | Error errors ->
           EnvTL.emitErrors tlenv errors;
-          name, `ErrorType "arg"
+          Lang.funcParam name (`ErrorType "arg")
     in
 
     let rec bindingsWithParams bindings params =
