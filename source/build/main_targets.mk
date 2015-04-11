@@ -7,9 +7,12 @@
 ################################################################################
 
 ALL_TARGETS += source/zompvm_dummy.o
+FILES_TO_DELETE_ON_CLEAN += source/zompvm_dummy.o
 
 ZOMP_DLL_OBJS = source/zompvm_impl.o source/zompvm_caml.o source/stats_impl.o source/runtime.o source/machine_stubs.o source/stats_stubs.o
+FILES_TO_DELETE_ON_CLEAN += ${ZOMP_DLL_OBJS}
 
+FILES_TO_DELETE_ON_CLEAN += $(ZOMP_DLL_FILE) source/dllzompvm.so source/libzompvm.a
 $(ZOMP_DLL_FILE): $(ZOMP_DLL_OBJS) source/runtime.ll $(OUT_DIR)/has_clang
 	@$(ECHO) Building $@ ...
 ifeq "$(BUILD_PLATFORM)" "Linux"
@@ -49,6 +52,7 @@ FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
 source/gen_c_bindings: CAML_LIBS += str
 
 ALL_TARGETS += source/runtime.bc source/runtime.ll
+FILES_TO_DELETE_ON_CLEAN += source/runtime.{bc,ll,o}
 source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(CLANG) $(CCFLAGS) -std=c89 -emit-llvm -c $< -o source/runtime.bc
@@ -65,6 +69,7 @@ NEWPARSER_ML_SRC = $(foreach file, common basics ast2 newparser indentlexer, sou
 
 VM_HTTP_SERVER_OBJS = source/mongoose.o source/runtime.o source/zompvm_impl.o \
   source/zompvm_caml_dummy.o source/stats_impl.o source/vm_http_server.o
+FILES_TO_DELETE_ON_CLEAN += ${VM_HTTP_SERVER_OBJS}
 
 source/vm_http_server.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`
 source/zompvm_impl.o: CXXFLAGS += `$(LLVM_CONFIG) --cxxflags`

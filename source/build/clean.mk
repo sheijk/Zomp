@@ -5,20 +5,7 @@
 CLEAN_SUB_TARGETS += source/clean
 .PHONY: source/clean
 source/clean:
-	$(DELETE_FILE) source/zomp_shell.o $(ZOMPSH_FILE)
-	$(DELETE_FILE) source/runtime.bc source/runtime.ll source/runtime.o
-	$(DELETE_FILE) source/machine.{cmi,cmo,cmx,ml,mli} source/machine_stubs.{c,o}
-	$(DELETE_FILE) source/stats.{cmi,cmo,cmx,ml,mli} source/stats_stubs.{c,o} source/stats_impl.o
-	$(DELETE_FILE) $(ZOMP_DLL_FILE) source/libzompvm.a
-	$(DELETE_FILE) source/zompvm_impl.o source/zompvm_dummy.o
-	$(DELETE_FILE) source/zompvm_caml.o source/zompvm_caml_dummy.o
-	$(DELETE_FILE) source/*_flymake.*
-	$(DELETE_FILE) source/indentlexer.{cmi,cmo,cma,cmx,o}
-	$(DELETE_FILE) source/newparser.{cmi,cmo,o,ml,mli,conflicts}
-	$(DELETE_FILE) source/newparser_tests.{cmi,cmo,o} source/newparser_tests
-	$(DELETE_FILE) source/expandertests.cm?
-	$(DELETE_FILE) source/vm_http_server.o source/mongoose.o source/vm_server.o source/vm_protocol.o
-	$(DELETE_FILE) source/dllzompvm.so
+	$(DELETE_FILE) $(foreach src, $(LANG_CMOS:.cmo=), ${src}.{cmo,cmx,cmi,o})
 
 .PHONY: clean
 clean: $(CLEAN_SUB_TARGETS)
@@ -46,7 +33,7 @@ clean_doc:
 
 .PHONY: clean_tags
 clean_tags:
-	$(DELETE_FILE) source/*.annot source/*.cmt source/*.cmti
+	$(DELETE_FILE) $(foreach src, $(LANG_CMOS:.cmo=), ${src}.{cmt,cmti,annot})
 	$(DELETE_FILE) source/*.conflicts
 	$(DELETE_FILE) testsuite/*.annot testsuite/*.cmt testsuite/*.cmti
 	$(DELETE_FILE) $(FLYMAKE_LOG)
