@@ -158,6 +158,8 @@ let variable ~name ~typ ~storage ~global ~location = {
   vlocalIndex = -1;
 }
 
+let varWithType var newType = { var with typ = newType }
+
 let varToStringShort var =
   sprintf "%s : %s" var.vname (typeName var.typ)
 

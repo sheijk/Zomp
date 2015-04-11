@@ -63,6 +63,8 @@ val variable :
   storage:varStorage ->
   global:bool -> location:Basics.location option -> 'a variable
 
+val varWithType : 'typA variable -> 'typB -> 'typB variable
+
 val varToStringShort : Types.typ variable -> string
 val varToString : Types.typ variable -> string
 
