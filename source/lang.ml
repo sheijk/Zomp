@@ -258,7 +258,7 @@ type form =
 and func = {
   fname :string;
   rettype :typ;
-  fargs :(string * typ) list;
+  fargs :typ variable list;
   impl :form option;
   cvarargs :bool;
   flocation :Basics.location option;
@@ -341,7 +341,7 @@ let rec formToString : form -> string = function
       sprintf "Comments ('%s')" (Common.combine "', '" strings)
 
 let funcDeclToString func =
-  let argToString (name, typ) = name ^ " :" ^ typeName typ in
+  let argToString var = var.vname ^ " :" ^ typeName var.typ in
   let argStrings = List.map argToString func.fargs in
   sprintf "%s(%s) :%s"
     func.fname
@@ -384,7 +384,7 @@ let toSingleForm formlist =
     | forms -> sequence forms
 
 let isFuncParametric args =
-  List.exists (isTypeParametric ++ snd) args
+  List.exists (fun var -> isTypeParametric var.typ) args
 
 let func name rettype args impl location = {
   fname = name;
@@ -429,6 +429,14 @@ let funcDef name rettype args impl location = {
   fparametric = isFuncParametric args;
   flocalVariableCount = -1;
 }
+
+let funcParam name typ =
+  variable
+    ~name ~typ
+    (** all parameters are copied into a local var by backend genllvm *)
+    ~storage:MemoryStorage
+    ~global:false
+    ~location:None
 
 let setLocalVariableCount func count =
   func.flocalVariableCount <- count

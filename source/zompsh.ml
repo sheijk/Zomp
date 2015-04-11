@@ -307,7 +307,7 @@ end = struct
             printf "var %s %s\n" (typeName var.typ) var.vname
           | FuncSymbol f ->
             let funcSigString f =
-              let arg2string (name, typ) = typeName typ ^ " " ^ name in
+              let arg2string var = typeName var.typ ^ " " ^ var.vname in
               let args = List.map arg2string f.fargs in
               let argString = combine ", " args in
               let typeParams = if f.fparametric then "!T" else "" in

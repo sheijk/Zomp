@@ -96,7 +96,7 @@ struct
         let name = f.fname in
         let typ = `Function {
           returnType = f.rettype;
-          argTypes = List.map snd f.Lang.fargs;
+          argTypes = List.map (fun var -> var.typ) f.Lang.fargs;
         } in
         let var = variable name (`Pointer typ) RegisterStorage true None in
         Some (`Variable (info, var))
@@ -399,7 +399,7 @@ end = struct
         | None -> raiseIllegalExpression (Ast2.idExprLoc loc "ast") "could not find prelude type 'ast'"
     in
     let macroFunc =
-      let fargs = [argParamName, `Pointer (`Pointer astType)]
+      let fargs = [Lang.funcParam argParamName (`Pointer (`Pointer astType))]
       and impl = Some (toSingleForm implforms) in
       func macroFuncName astPtrType fargs impl Basics.fakeLocation
     in
@@ -1348,7 +1348,7 @@ struct
             | FuncSymbol func ->
               begin
                 buildCall name func.rettype
-                  (List.map snd func.fargs)
+                  (List.map (fun var -> var.typ) func.fargs)
                   `NoFuncPtr
                   func.cvarargs
                   env.bindings
@@ -1712,7 +1712,7 @@ struct
                                              Lang.funcCall
                                               ~name:func.fname
                                               ~rettype:func.rettype
-                                              ~params:(List.map snd func.fargs)
+                                              ~params:(List.map (fun var -> var.typ) func.fargs)
                                               ~args:[castFormL; castFormR]
                                               ~ptr:`NoFuncPtr
                                               ~varargs:false)])
@@ -1756,7 +1756,7 @@ struct
                                          Lang.funcCall
                                           ~name:func.fname
                                           ~rettype:func.rettype
-                                          ~params:(List.map snd func.fargs)
+                                          ~params:(List.map (fun var -> var.typ) func.fargs)
                                           ~args:[argForm]
                                           ~ptr:`NoFuncPtr
                                           ~varargs:false)])
@@ -1770,7 +1770,7 @@ struct
                                              Lang.funcCall
                                               ~name:func.fname
                                               ~rettype:func.rettype
-                                              ~params:(List.map snd func.fargs)
+                                              ~params:(List.map (fun var -> var.typ) func.fargs)
                                               ~args:[`CastIntrinsic (info, `Pointer `Void, argForm)]
                                               ~ptr:`NoFuncPtr
                                               ~varargs:false)])
@@ -2237,16 +2237,7 @@ let rec translateFunc tlenv expr : unit =
     in
 
     let rec bindingsWithParams bindings params =
-      let addParam bindings (name, typ) =
-        let var =
-          variable
-            ~name
-            ~typ
-            (** all parameters are copied into a local var by genllvm *)
-            ~storage:MemoryStorage
-            ~global:false
-            ~location:None
-        in
+      let addParam bindings var =
         addVar bindings var
       in
       List.fold_left addParam bindings params

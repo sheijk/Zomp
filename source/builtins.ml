@@ -248,11 +248,11 @@ let builtinIntrinsics backend : Lang.func list =
   in
 
   let comparison typ name =
-    func name `Bool ["l", typ; "r", typ]
+    func name `Bool [Lang.funcParam "l" typ; Lang.funcParam "r" typ]
   in
 
   let binaryOp name instruction (typ :typ) =
-    func name typ ["l", typ; "r", typ]
+    func name typ [Lang.funcParam "l" typ; Lang.funcParam "r" typ]
   in
 
   let binaryOps typ namespace names =
@@ -319,20 +319,20 @@ let builtinIntrinsics backend : Lang.func list =
       binaryOp "u32:ashr" "ashr" `Int32;
 
       (** deprecated *)
-      func "float:toInt" `Int32 ["v", `Float];
-      func "int:toFloat" `Float ["v", `Int32];
-      func "int:toDouble" `Double ["v", `Int32];
-      func "double:toInt" `Int32 ["v", `Double];
-      func "float:toDouble" `Double ["v", `Float];
-      func "double:toFloat" `Float ["v", `Double];
+      func "float:toInt" `Int32 [Lang.funcParam "v" `Float];
+      func "int:toFloat" `Float [Lang.funcParam "v" `Int32];
+      func "int:toDouble" `Double [Lang.funcParam "v" `Int32];
+      func "double:toInt" `Int32 [Lang.funcParam "v" `Double];
+      func "float:toDouble" `Double [Lang.funcParam "v" `Float];
+      func "double:toFloat" `Float [Lang.funcParam "v" `Double];
 
       (** deprecated *)
-      func "u32:toChar" `Char ["v", `Int32];
-      func "char:zextToU32" `Int32 ["v", `Char];
+      func "u32:toChar" `Char [Lang.funcParam "v" `Int32];
+      func "char:zextToU32" `Int32 [Lang.funcParam "v" `Char];
 
       (** deprecated *)
-      func "u64:toU32" `Int32 ["v", `Int64];
-      func "u32:zextToU64" `Int64 ["v", `Int32];
+      func "u64:toU32" `Int32 [Lang.funcParam "v" `Int64];
+      func "u32:zextToU64" `Int64 [Lang.funcParam "v" `Int32];
     ]
 
     @ intIntrinsics `Int8

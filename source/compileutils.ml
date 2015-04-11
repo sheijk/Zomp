@@ -52,8 +52,8 @@ let writeSymbolsToStream bindings stream =
         | Bindings.VarSymbol var ->
           sprintf "var of type %s" (Types.typeName var.Lang.typ)
         | Bindings.FuncSymbol func ->
-          let argToString (name, typ) =
-            sprintf "%s %s" (Types.typeName typ) name
+          let argToString var =
+            sprintf "%s %s" (Types.typeName var.Lang.typ) var.Lang.vname
           in
           let args = List.map argToString func.Lang.fargs in
           let argString = Common.combine ", " args in

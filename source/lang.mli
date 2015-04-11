@@ -150,7 +150,7 @@ val globalVarDef : var:typ variable -> initial:Types.value -> location:Basics.lo
 type func = private {
   fname : string;
   rettype : typ;
-  fargs : (string * typ) list;
+  fargs : typ variable list;
   impl : form option;
   cvarargs : bool;
   flocation : Basics.location option;
@@ -175,22 +175,31 @@ val toSingleForm : form list -> form
 val func :
   string ->
   typ ->
-  (string * Types.typ) list ->
-  form option -> Basics.location -> func
+  typ variable list ->
+  form option ->
+  Basics.location ->
+  func
 val varargFunc :
   string ->
   typ ->
-  (string * Types.typ) list ->
-  form option -> Basics.location -> func
+  typ variable list ->
+  form option ->
+  Basics.location ->
+  func
 val funcDecl :
   string ->
   typ ->
-  (string * Types.typ) list -> Basics.location -> func
+  typ variable list ->
+  Basics.location ->
+  func
 val funcDef :
   string ->
   typ ->
-  (string * Types.typ) list ->
-  form -> Basics.location option -> func
+  typ variable list ->
+  form ->
+  Basics.location option ->
+  func
+val funcParam : string -> typ -> typ variable
 
 val setLocalVariableCount : func -> int -> unit
 
