@@ -457,6 +457,8 @@ let rec typeCheckTL bindings = function
             match typeCheck bindings impl with
               | TypeOf implType when implType = f.rettype ->
                   TypeOf f.rettype
+              | TypeOf implType when f.rettype = `Void ->
+                 TypeOf `Void
               | TypeOf wrongType ->
                   TypeError (
                     Form impl,
