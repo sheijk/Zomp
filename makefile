@@ -13,8 +13,14 @@ CAML_BYTE_CODE=0
 .DEFAULT_GOAL: all
 include source/build/config.mk
 
+ifneq "${BUILDLOG}" ""
+BUILDLOG_INFO = , build log at ${BUILDLOG}
+else
+BUILDLOG_INFO =
+endif
+
 ifneq "$(SILENT)" "1"
-  $(info Build variant $(BUILD_VARIANT), LLVM variant = $(LLVM_VARIANT))
+  $(info Build variant $(BUILD_VARIANT), LLVM variant = $(LLVM_VARIANT)${BUILDLOG_INFO})
 endif
 
 BUILD_DIR_BASE = build

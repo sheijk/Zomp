@@ -52,7 +52,7 @@ then
     ${MAKE} --print-directory -s ${OPTIONS} ${CLEAN_TARGET} || exit 1
 fi
 
-${MAKE} --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}"
+${MAKE} --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}" BUILDLOG=${BUILDLOG}
 RETVAL=$?
 
 echo "Auto update test report ..." >> ${BUILDLOG}
