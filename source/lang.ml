@@ -113,9 +113,12 @@ type 'typ variable = {
   vstorage :varStorage;
   vmutable :bool;
   vglobal :bool;
-  (** Location of the variable's definition *)
   vlocation :Basics.location option;
+  mutable vlocalIndex :int;
 }
+
+let setLocalIndex var index =
+  var.vlocalIndex <- index
 
 let varLoc var = someOrDefault var.vlocation Basics.fakeLocation
 
@@ -152,6 +155,7 @@ let variable ~name ~typ ~storage ~global ~location = {
   vmutable = false;
   vglobal = global;
   vlocation = location;
+  vlocalIndex = -1;
 }
 
 let varWithType var newType = { var with typ = newType }
@@ -259,6 +263,7 @@ and func = {
   cvarargs :bool;
   flocation :Basics.location option;
   fparametric :bool;
+  mutable flocalVariableCount :int;
 }
 and toplevelExpr = [
 | `GlobalVar of globalVar
@@ -389,6 +394,7 @@ let func name rettype args impl location = {
   flocation = Some location;
   cvarargs = false;
   fparametric = isFuncParametric args;
+  flocalVariableCount = -1;
 }
 
 let varargFunc name rettype args impl location = {
@@ -399,6 +405,7 @@ let varargFunc name rettype args impl location = {
   flocation = Some location;
   cvarargs = true;
   fparametric = isFuncParametric args;
+  flocalVariableCount = -1;
 }
 
 let funcDecl name rettype args location = {
@@ -409,6 +416,7 @@ let funcDecl name rettype args location = {
   flocation = Some location;
   cvarargs = false;
   fparametric = isFuncParametric args;
+  flocalVariableCount = -1;
 }
 
 let funcDef name rettype args impl location = {
@@ -419,7 +427,11 @@ let funcDef name rettype args impl location = {
   flocation = location;
   cvarargs = false;
   fparametric = isFuncParametric args;
+  flocalVariableCount = -1;
 }
+
+let setLocalVariableCount func count =
+  func.flocalVariableCount <- count
 
 type 'bindings macro = {
   mname :string;

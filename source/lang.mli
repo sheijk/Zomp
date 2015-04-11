@@ -48,8 +48,14 @@ type +'typ variable = private {
   vstorage : varStorage;
   vmutable : bool;
   vglobal : bool;
+  (** Location of the variable's definition *)
   vlocation : Basics.location option;
+  (** A local index that's unique in it's function. -1 for globals. Indices for
+   local variables start at 0 and are consecutive in the function. *)
+  mutable vlocalIndex :int;
 }
+
+val setLocalIndex : 'a variable -> int -> unit
 
 val variable :
   name:string ->
@@ -149,6 +155,8 @@ type func = private {
   cvarargs : bool;
   flocation : Basics.location option;
   fparametric : bool;
+  (** 1 + the highest vlocalIndex of all variables defined in this function. *)
+  mutable flocalVariableCount :int;
 }
 and toplevelExpr =
     [ `DefineFunc of func
@@ -183,6 +191,9 @@ val funcDef :
   typ ->
   (string * Types.typ) list ->
   form -> Basics.location option -> func
+
+val setLocalVariableCount : func -> int -> unit
+
 type 'a macro = {
   mname : string;
   mtransformFunc : 'a -> Ast2.sexpr -> Ast2.sexpr;
