@@ -468,11 +468,258 @@ let rec typeCheckTL bindings = function
               | TypeError _ as e ->
                   e
 
-let typeOfForm ~onError bindings form =
-  match typeCheck bindings form with
-    | TypeOf typ -> typ
-    | TypeError (form, msg, found, expected) ->
-        onError ~msg ~found ~expected
+let rec typeOfForm sizeT (form :Lang.form) =
+  match form with
+    | `CastIntrinsic (_, typ, _) -> typ
+    | `GetAddrIntrinsic (_, var) -> `Pointer var.typ
+    | `SizeofIntrinsic (_, typ) ->
+       sizeT
+    | `GetFieldPointerIntrinsic (info, structForm, fieldName) ->
+       begin
+         match typeOfForm sizeT structForm with
+           | `Pointer `Record record ->
+              `Pointer (List.assoc fieldName record.fields)
+           | invalidType ->
+              raiseInvalidAst (Lang.flocation form) @@ sprintf "invalid type %s in fieldptr" (typeName invalidType)
+       end
+    | `LoadIntrinsic (info, ptrForm) ->
+       begin match typeOfForm sizeT ptrForm with
+               | `Pointer typ -> typ
+               | invalidType ->
+                  raiseInvalidAst (Lang.flocation form) @@ sprintf "invalid type %s in load" (typeName invalidType)
+       end
+    | `PtrAddIntrinsic (info, ptrForm, _) -> typeOfForm sizeT ptrForm
+    | `PtrDiffIntrinsic (info, _, _) -> `Int32
+    | `StoreIntrinsic (info, _, valueForm) -> typeOfForm sizeT valueForm
+
+    | `DefineVariable _
+    | `AssignVar _
+    | `EmbeddedComment _
+    | `Branch _
+    | `Jump _
+    | `Label _
+      ->
+       `Void
+
+    | `Constant (_, value) -> Types.typeOf value
+    | `Variable (_, var) -> var.typ
+    | `FuncCall (_, call) -> call.fcrettype
+    | `Return (_, form) -> `Void
+    | `Sequence (_, []) -> `Void
+    | `Sequence (_, args) ->
+       typeOfForm sizeT @@ listLast args
+
+(** Types of forms that are valid as an argument in three address form. *)
+type argumentForm = [
+| `Constant of formInfo * Types.value
+| `Variable of formInfo * (typ variable)
+]
+
+let voidForm info =
+  `Constant (info, VoidVal)
+
+let splitBasicBlocks sizeT functionLoc returnType (form :Lang.form) : int * ((string * Lang.form list) list) =
+  let localVariableCount = ref 0 in
+  let registerVariable var =
+    Lang.setLocalIndex var !localVariableCount;
+    incr localVariableCount;
+  in
+
+  let addInstruction, newBasicBlock, basicBlocks =
+    let revInstructions = ref ([] : Lang.form list) in
+    let blocks = ref [] in
+    let currentName = ref "" in
+
+    let addInstruction form =
+      revInstructions := form :: !revInstructions
+    in
+    let newBasicBlock name =
+      blocks := (!currentName, List.rev !revInstructions) :: !blocks;
+      currentName := name;
+      revInstructions := [];
+    in
+    let basicBlocks () =
+      if !revInstructions <> [] || !blocks = [] || !currentName <> "" then
+        newBasicBlock "unreachable-end-of-function";
+      !blocks
+    in
+    addInstruction, newBasicBlock, basicBlocks
+  in
+
+  let returnResultInVar form =
+    let info = Lang.info form in
+    let typ = typeOfForm sizeT form in
+    let varForm =
+      match typ with
+        | `Void ->
+           addInstruction form;
+           voidForm info
+        | typ ->
+           let var =
+             Lang.variable
+               ~name:"temp"
+               ~typ
+               ~storage:RegisterStorage
+               ~global:false
+               ~location:None
+           in
+           registerVariable var;
+           let defvar = `DefineVariable (info, var, Some form) in
+           addInstruction (defvar :> Lang.form);
+           `Variable (info, var)
+    in
+    varForm
+  in
+
+  let rec visitForm form :argumentForm =
+    match form with
+      | #argumentForm as form ->
+         form
+
+      | `DefineVariable (info, var, initialValue) ->
+         registerVariable var;
+
+         (match initialValue with
+            | Some value ->
+               let value = visitForm value in
+               addInstruction (`DefineVariable (info, var, None));
+               addInstruction (`AssignVar (info, var, (value :> Lang.form)));
+            | None ->
+               addInstruction form);
+         voidForm info
+
+      | `AssignVar (info, var, value) ->
+         let flatValue = (visitForm value :> Lang.form) in
+         addInstruction (`AssignVar (info, var, flatValue));
+         voidForm info
+
+      | `Sequence (info, forms) ->
+         begin
+           match lastElement (List.map visitForm forms) with
+             | Some lastForm -> lastForm
+             | None -> voidForm info
+         end
+
+      | `FuncCall (info, call) ->
+         let flatArgs = List.map visitForm call.fcargs in
+         let flatCall =
+           Lang.funcCall
+             ~name:call.fcname
+             ~rettype:call.fcrettype
+             ~params:call.fcparams
+             ~args:(flatArgs :> Lang.form list)
+             ~ptr:call.fcptr
+             ~varargs:call.fcvarargs
+         in
+         returnResultInVar @@ `FuncCall (info, flatCall)
+
+      | `Return (info, valueForm) ->
+         let value = visitForm valueForm in
+         addInstruction (`Return (info, (value :> Lang.form)));
+         newBasicBlock "";
+         voidForm info
+
+      | `Branch (info, _) as branch ->
+         addInstruction branch;
+         newBasicBlock "";
+         voidForm info
+
+      | `Jump (info, _) as jump ->
+         addInstruction jump;
+         newBasicBlock "";
+         voidForm info
+
+      | `Label (info, label) ->
+         (** labels are not added! *)
+         newBasicBlock label.lname;
+         voidForm info
+
+      | `SizeofIntrinsic (_, _) ->
+         returnResultInVar form
+
+      | `LoadIntrinsic (info, ptrForm) ->
+         let flatPtr = (visitForm ptrForm :> Lang.form) in
+         returnResultInVar @@ `LoadIntrinsic (info, flatPtr)
+
+      | `StoreIntrinsic (info, ptrForm, valueForm) ->
+         let flatPtr = (visitForm ptrForm :> Lang.form) in
+         let flatValue = (visitForm valueForm :> Lang.form) in
+         addInstruction @@ `StoreIntrinsic (info, flatPtr, flatValue);
+         voidForm info
+
+      | `PtrAddIntrinsic (info, ptrLhs, ptrRhs) ->
+         let flatPtrLhs = (visitForm ptrLhs :> Lang.form) in
+         let flatPtrRhs = (visitForm ptrRhs :> Lang.form) in
+         returnResultInVar @@ `PtrAddIntrinsic (info, flatPtrLhs, flatPtrRhs)
+
+      | `PtrDiffIntrinsic (info, ptrLhs, ptrRhs) ->
+         let flatPtrLhs = (visitForm ptrLhs :> Lang.form) in
+         let flatPtrRhs = (visitForm ptrRhs :> Lang.form) in
+         returnResultInVar @@ `PtrDiffIntrinsic (info, flatPtrLhs, flatPtrRhs)
+
+      | `CastIntrinsic (info, typ, value) ->
+         let flatValue = (visitForm value :> Lang.form) in
+         returnResultInVar @@ `CastIntrinsic (info, typ, flatValue)
+
+      | `GetAddrIntrinsic _ ->
+         returnResultInVar form
+
+      | `GetFieldPointerIntrinsic (info, structForm, fieldName) ->
+         let flatStructForm = (visitForm structForm :> Lang.form) in
+         returnResultInVar @@ `GetFieldPointerIntrinsic (info, flatStructForm, fieldName)
+
+      (* todo make sure this function is complete *)
+      | _ ->
+         failwith (sprintf "splitBasicBlocks found unsupported instruction\n  %s" (Lang.formToString form))
+  in
+  ignore (visitForm form);
+  let unterminatedBlocks = basicBlocks() in
+  assert (List.length unterminatedBlocks > 0);
+
+  let lastBlock = List.hd unterminatedBlocks in
+  let revBlocksButLast = List.tl unterminatedBlocks in
+  let nextBlockName = ref (fst lastBlock) in
+  let startsWithControlFlowInstruction forms =
+    match forms with
+      | `Return _ :: _
+      | `Branch _ :: _ ->
+         true
+      | _ -> false
+  in
+  let info = Lang.formInfo Basics.fakeLocation in
+  let fixedLastBlock =
+    let revInstructions = List.rev @@ snd lastBlock in
+    if startsWithControlFlowInstruction revInstructions then
+      lastBlock
+    else begin
+      if (returnType <> `Void) then begin
+        let loc =
+          match revInstructions with
+            | [] -> functionLoc
+            | instr :: _ -> Lang.flocation instr
+        in
+        raiseInvalidAst loc "missing return at end of function";
+      end;
+      let ret = ((`Return (info, `Constant (info, VoidVal))) :> Lang.form) in
+      let name = fst lastBlock in
+      name, List.rev (ret :: revInstructions)
+    end
+  in
+  let terminatedBlocksRev =
+    fixedLastBlock ::
+    List.map (fun (name, (instructions :Lang.form list)) ->
+              let fixedBlock =
+                let revInstructions = List.rev instructions in
+                if startsWithControlFlowInstruction revInstructions then
+                  (name, instructions)
+                else
+                  (name, List.rev (((`Jump (info, Lang.label !nextBlockName)) :> Lang.form) :: revInstructions))
+              in
+              nextBlockName := name;
+              fixedBlock)
+             revBlocksButLast
+  in
+  !localVariableCount, List.rev terminatedBlocksRev
 
 let functionIsValid func =
   match func.impl with

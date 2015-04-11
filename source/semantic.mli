@@ -23,11 +23,18 @@ val typeCheckTL :
   [< `DefineFunc of Lang.func | `GlobalVar of Lang.typ Lang.variable ] ->
   typecheckResult
 
-val typeOfForm :
-  onError:(msg:string ->
-           found:Lang.typ ->
-           expected:typeRequirement -> Lang.typ) ->
-  Bindings.bindings -> Lang.form -> Lang.typ
+(** Can throw Failure if an invalid AST is found. First argument is sizeT *)
+val typeOfForm : Types.typ -> Lang.form -> Lang.typ
+
+(** Produces a list of basic blocks with the following guarantees:
+- all instructions will be in three address form
+  (all arguments will either be `Constant or `Variable)
+- all blocks end with an instruction transfering control flow
+- the first block is the one to be run first
+
+First argument is the backend's sizeT
+ *)
+val splitBasicBlocks : Types.typ -> Basics.location -> Lang.typ -> Lang.form -> int * (string * Lang.form list) list
 
 val functionIsValid : Lang.func -> [ `Errors of string list | `Ok ]
 
