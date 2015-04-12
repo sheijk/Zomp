@@ -444,6 +444,11 @@ struct
     | [last] -> Some last
     | _ :: tail -> lastElement tail
 
+  let rec listLast = function
+    | [] -> failwith "listLast"
+    | [last] -> last
+    | _ :: rem -> listLast rem
+
   let splitAfter firstLength list =
     let rec worker num accum = function
       | [] -> accum, []

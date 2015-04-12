@@ -132,6 +132,7 @@ val id : 'a -> 'a
 module CommonList :
   sig
     val lastElement : 'a list -> 'a option
+    val listLast : 'a list -> 'a
     val splitAfter : int -> 'a list -> 'a list * 'a list
     val partitionList : ('a -> 'b) -> 'a list -> 'a list list
     val listIteri : (int -> 'a -> unit) -> 'a list -> unit
@@ -155,6 +156,7 @@ module CommonList :
       ifAllFailed:(exn list -> 'b) -> 'a Lazy.t list -> 'b
   end
 val lastElement : 'a list -> 'a option
+val listLast : 'a list -> 'a
 val splitAfter : int -> 'a list -> 'a list * 'a list
 val partitionList : ('a -> 'b) -> 'a list -> 'a list list
 val listIteri : (int -> 'a -> unit) -> 'a list -> unit
