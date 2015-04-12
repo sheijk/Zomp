@@ -447,6 +447,8 @@ let typesEquivalent bindings type1 type2 =
   with
     | Failure _ -> false
 
+let raiseInvalidAst (loc :Basics.location) msg = failwith msg
+
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ
   | `DefineFunc f ->

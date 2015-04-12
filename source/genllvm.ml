@@ -14,13 +14,6 @@ let raiseCodeGenError ~msg = raise (CodeGenError msg)
 type t = unit
 let create () = ()
 
-let typeOfForm = Semantic.typeOfForm
-  ~onError:(fun ~msg ~found ~expected ->
-              raiseCodeGenError ~msg:(sprintf "%s: expected %s but found %s"
-                                   msg
-                                   (Semantic.typeRequirementToString expected)
-                                   (Types.typeName found) ) )
-
 let locationComment loc =
   sprintf ";; %s\n" @@ Basics.locationToString loc
 
@@ -270,8 +263,13 @@ let sizeT =
     | wordSize -> failwith (sprintf "invalid word size %d" wordSize)
 
 let backendInfo = { Builtins.sizeT = sizeT }
-
 let defaultBindings = Builtins.defaultBindings backendInfo
+
+let typeOfForm _ form =
+  try
+    Semantic.typeOfForm sizeT form
+  with Failure msg ->
+    raiseCodeGenError ~msg
 
 let findIntrinsic =
   let callIntr intrName typ argVarNames =
