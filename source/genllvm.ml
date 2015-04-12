@@ -264,6 +264,7 @@ let sizeT =
 
 let backendInfo = { Builtins.sizeT = sizeT }
 let defaultBindings = Builtins.defaultBindings backendInfo
+let sizeTType _ = sizeT
 
 let typeOfForm _ form =
   try

@@ -188,7 +188,8 @@ let rec typeCheck bindings (form :Lang.form) : typecheckResult =
                 (v.typ :> typeRequirement))
             | _ as typeError -> typeError
         end
-      | `Return (_, expr) -> typeCheck bindings expr
+      | `Return (_, expr) ->
+         typeCheck bindings expr >> TypeOf `Void
       | `Label _ -> TypeOf `Void
       | `Jump _ -> TypeOf `Void
       | `Branch _ -> TypeOf `Void
@@ -452,23 +453,7 @@ let raiseInvalidAst (loc :Basics.location) msg = failwith msg
 let rec typeCheckTL bindings = function
   | `GlobalVar var -> TypeOf var.typ
   | `DefineFunc f ->
-      match f.impl with
-        | None ->
-            TypeOf f.rettype
-        | Some impl ->
-            match typeCheck bindings impl with
-              | TypeOf implType when implType = f.rettype ->
-                  TypeOf f.rettype
-              | TypeOf implType when f.rettype = `Void ->
-                 TypeOf `Void
-              | TypeOf wrongType ->
-                  TypeError (
-                    Form impl,
-                    "function's return type is not equal to it's implementation",
-                    f.rettype,
-                    (wrongType :> typeRequirement))
-              | TypeError _ as e ->
-                  e
+     TypeOf f.rettype
 
 let rec typeOfForm sizeT (form :Lang.form) =
   match form with
@@ -729,49 +714,51 @@ let splitBasicBlocks sizeT functionLoc returnType (form :Lang.form) : int * ((st
   in
   !localVariableCount, List.rev terminatedBlocksRev
 
-let functionIsValid func =
+let functionIsValid sizeT bindings func =
   match func.impl with
     | Some funcImpl ->
         begin
+          let add place value = place := value :: !place in
+          let errors = ref [] in
+          let labels = ref [] in
+          let targets = ref [] in
+
           let rec collectLabels (form :form) =
             match form with
               | `Sequence (_, forms) ->
-                  let labelsAndTargets = List.map collectLabels forms in
-                  let labels, targets = List.split labelsAndTargets in
-                  List.flatten labels, List.flatten targets
-              | `Label (_, l) -> [l.lname], []
-              | `Jump (_, label) -> [], [label.lname]
-              | `Branch (_, { trueLabel = t; falseLabel = f }) -> [], [t.lname; f.lname]
-              | _ -> [], []
+                 List.iter collectLabels forms
+              | `Label (_, l) ->
+                 add labels (l.lname)
+              | `Jump (_, label) ->
+                 add targets (label.lname, Lang.flocation form)
+              | `Branch (_, { trueLabel = t; falseLabel = f }) ->
+                 let loc = Lang.flocation form in
+                 add targets (t.lname, loc);
+                 add targets (f.lname, loc);
+              | `Return (_, expr) ->
+                 let exprType = typeOfForm sizeT expr in
+                 if not (equalTypes bindings func.rettype exprType) then
+                   add errors @@ Serror.fromMsg (Some (Lang.flocation form))
+                                                (sprintf "function's return type is %s but found %s"
+                                                         (Types.typeName func.rettype)
+                                                         (Types.typeName exprType))
+              | _ ->
+                 ()
           in
-          let labels, targets = collectLabels funcImpl in
-          let checkTarget target =
-            if List.mem target labels then `Ok
-            else `Errors [(sprintf "label %s does not exist" target)]
+          collectLabels funcImpl;
+
+          let checkTarget (target, loc) =
+            if not (List.mem target !labels) then
+              add errors @@ Serror.fromMsg (Some loc) @@ sprintf "label %s does not exist" target
           in
-          let jumpChecks = List.map checkTarget targets in
-          (* let rec lastInstruction = function *)
-          (*   | `Sequence [] as last -> last *)
-          (*   | `Sequence [last] -> last *)
-          (*   | `Sequence (_::tl) -> lastInstruction (`Sequence tl) *)
-          (*   | _ as last -> last *)
-          (* in *)
-          (*           let lastInstrCheck =  *)
-(*             match lastInstruction funcImpl with *)
-(*               | `Jump _ | `Branch _ | `Return _ -> `Ok *)
-(*               | _ -> `Errors ["Last instruction in function must be jumb|branch|ret"] *)
-(*           in *)
-          let lastInstrCheck = `Ok in
-          let collectErrors prevResult nextResult =
-            match prevResult, nextResult with
-              | _, `Ok -> prevResult
-              | `Ok, `Errors _ -> nextResult
-              | `Errors prevErrors, `Errors nextErrors -> `Errors (prevErrors @ nextErrors)
-          in
-          List.fold_left collectErrors lastInstrCheck jumpChecks
+          List.iter checkTarget !targets;
+          
+          match !errors with
+            | [] -> Mayfail.Result ()
+            | errors -> Mayfail.Error errors
         end
     | None ->
-        `Ok
+        Mayfail.Result ()
 
 let rec sideEffectFree = function
   | `Variable _

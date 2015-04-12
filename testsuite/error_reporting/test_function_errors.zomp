@@ -32,8 +32,8 @@ std:base:func
   std:base:ret
 end
 
-std:base:func int returnInvalid(): //// error type u32 float
-  std:base:ret 10.0
+std:base:func int returnInvalid():
+  std:base:ret 10.0 //// error type u32 float
 end
 
 func int main():

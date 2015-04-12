@@ -36,7 +36,7 @@ First argument is the backend's sizeT
  *)
 val splitBasicBlocks : Types.typ -> Basics.location -> Lang.typ -> Lang.form -> int * (string * Lang.form list) list
 
-val functionIsValid : Lang.func -> [ `Errors of string list | `Ok ]
+val functionIsValid : Types.typ -> Bindings.t -> Lang.func -> unit Mayfail.t
 
 val sideEffectFree : Lang.form -> bool
 

@@ -2212,10 +2212,11 @@ let translateTypeImp tlenv env expr =
       `ErrorType "translateTypeImp"
 
 let checkFunctionIsValid tlenv location f =
-  match Semantic.functionIsValid f with
-    | `Ok -> ()
-    | `Errors messages ->
-      List.iter (fun msg -> EnvTL.emitError tlenv $ Serror.fromMsg location msg) messages
+  let sizeT = Genllvm.sizeTType (EnvTL.backend tlenv) in
+  match Semantic.functionIsValid sizeT (EnvTL.bindings tlenv) f with
+    | Mayfail.Result () -> ()
+    | Mayfail.Error errors ->
+      List.iter (EnvTL.emitError tlenv) errors
 
 let rec translateFunc tlenv expr : unit =
   let bindings = EnvTL.bindings tlenv in
