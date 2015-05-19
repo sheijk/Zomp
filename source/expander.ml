@@ -567,31 +567,43 @@ end
 let rec translateType env emitWarning typeExpr : Lang.typ mayfail =
   let error msg = Mayfail.errorFromExpr typeExpr msg in
   let instantiateType parametricType argumentType =
-    let rec inst = function
+    let rec inst usedT = function
       | `TypeParam ->
+        usedT := true;
         argumentType
       | `TypeRef _
       | #integralType as t ->
         t
       | `Record rt ->
-        `Record { rt with fields = List.map (map2nd inst) rt.fields }
+         let usedInFields = ref false in
+         let fields = List.map (map2nd (inst usedInFields)) rt.fields in
+         let rname =
+           if !usedInFields then
+             sprintf "%s!%s" rt.rname @@ typeName argumentType
+           else
+             rt.rname
+         in
+         if !usedInFields then
+           usedT := true;
+         `Record { rname; fields }
       | `Pointer t ->
-        `Pointer (inst t)
+        `Pointer (inst usedT t)
         (* | `ParametricType t -> *)
         (*     `ParametricType (inst t) *)
       | `Array (memberType, size) ->
-        `Array (inst memberType, size)
+        `Array (inst usedT memberType, size)
       | `Function ft ->
-        `Function { returnType = inst ft.returnType;
-                    argTypes = List.map inst ft.argTypes }
+        `Function { returnType = inst usedT ft.returnType;
+                    argTypes = List.map (inst usedT) ft.argTypes }
       | `ParametricType `Record rt ->
-        `Record { rt with fields = List.map (map2nd inst) rt.fields }
+        `Record { fields = List.map (map2nd @@ inst usedT) rt.fields;
+                  rname = sprintf "%s!%s" rt.rname @@ typeName argumentType }
       | `ParametricType `Pointer t ->
-        `Pointer (inst t)
+        `Pointer (inst usedT t)
       | `ErrorType _ as t ->
         t
     in
-    inst parametricType
+    inst (ref false) parametricType
   in
 
   let translatePtr targetTypeExpr =
