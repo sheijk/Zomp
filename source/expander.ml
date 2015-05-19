@@ -2477,7 +2477,7 @@ let translateTypedef tlenv expr : unit =
         EnvTL.setBindings tlenv newBindings;
         EnvTL.emitForm tlenv (`Typedef (name, rt));
       | None ->
-        EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type")
+        EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate record type")
   in
   match expr with
     (** record with only one member *)
@@ -2506,7 +2506,7 @@ let translateTypedef tlenv expr : unit =
             EnvTL.setBindings tlenv $ addTypedef bindings typeName parametricType location;
             EnvTL.emitForm tlenv $ `Typedef (typeName, parametricType);
           | None ->
-            EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type 3")
+            EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate parametric record type")
       end
 
     (** type foo typeExpr *)
@@ -2528,7 +2528,7 @@ let translateTypedef tlenv expr : unit =
             EnvTL.setBindings tlenv (addTypedef bindings newTypeName t location);
             EnvTL.emitForm tlenv (`Typedef (newTypeName, t));
           | _, true ->
-            EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type2")
+            EnvTL.emitError tlenv (Serror.fromMsg (Some location) "failed to translate type")
       end
 
     (** record typedef *)
@@ -2540,7 +2540,7 @@ let translateTypedef tlenv expr : unit =
       let location = someOrDefault expr.location Basics.fakeLocation in
       returnRecordTypedef bindings typeName componentExprs location expr
     | _ ->
-      EnvTL.emitError tlenv (Serror.fromExpr expr "failed to translate type3")
+      EnvTL.emitError tlenv (Serror.fromExpr expr "failed to translate type, ast shape not recognized")
 
 let translateError tlenv expr : unit =
   EnvTL.emitError tlenv $ parseErrorExpr expr
