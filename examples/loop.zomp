@@ -138,7 +138,9 @@ macro loop modsAndBody...:
   end
 end
 
-func int main():
+func void testLoop():
+  println "Testing Algol style loop"
+
   count := 0
   loop var i from 3 to 20 var x if (i > 5) while (x < 19):
     // if (count >= 100) ret(99)
@@ -158,6 +160,38 @@ func int main():
   loop var i2 from 10 while (i2 < 12):
     println "lalal"
   end
+end
+
+/// A C style for loop
+macro cfor initCondStep body:
+  if !ast:matchesShape(initCondStep, ${__; __; __}):
+    ret ${error "Expected (init; condition; step) for first argument" #initCondStep}
+  end
+
+  init := ast:child(ast:child(initCondStep, 0), 0)
+  cond := ast:child(ast:child(initCondStep, 0), 1)
+  step := ast:child(initCondStep, 1)
+
+  ret $:
+    #init
+    while (#cond):
+      #body
+      #step
+    end
+  end
+end
+
+func void testFor():
+  println "Testing cfor loop"
+
+  cfor (i := 0; i < 10; ++i):
+    println "i = " i
+  end
+end
+
+func int main():
+  testLoop()
+  testFor()
 
   ret 0
 end
