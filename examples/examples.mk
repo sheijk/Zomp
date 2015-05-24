@@ -5,8 +5,8 @@
 CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
 	@$(ECHO) "Cleaning examples ..."
-	cd examples && $(DELETE_FILE) *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result
-	cd examples/fourk && $(DELETE_FILE) *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result
+	cd examples && $(DELETE_FILE) *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result *.zomp.expanded
+	cd examples/fourk && $(DELETE_FILE) *.bc *.opt-bc *.ll *.exe *.s *.o *.compile_output *.result *.zomp.expanded
 
 EXAMPLES_SOURCES = $(wildcard examples/*.zomp) examples/fourk/fourk.zomp
 

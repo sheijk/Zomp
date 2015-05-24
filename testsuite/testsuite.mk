@@ -69,6 +69,7 @@ testsuite/clean:
 	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.s)
 	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.o)
 	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.exe)
+	@$(DELETE_FILE) -f $(TESTSUITE_CASES:.testreport=.zomp.expanded)
 	@$(DELETE_FILE) -f testsuite/prelude_is_valid
 	@$(DELETE_FILE) -f testsuite/zompsh/no_zompsh_test_*.zomp
 	@$(DELETE_FILE) -f testsuite/check_test_verify/test_check_test_error_report.testreport.tmp

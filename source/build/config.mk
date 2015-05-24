@@ -213,6 +213,10 @@ ZOMPCFLAGS += --dll-dir /usr/local/lib
 ZOMPCFLAGS += --dll-dir ./libs
 LDFLAGS += -Llibs
 
+ifeq "$(DUMP_EXPANDED)" "1"
+ZOMPCFLAGS += --dump-expanded-ast $(@:.ll=.zomp.expanded)
+endif
+
 CXXFLAGS += -I $(CLANG_INCLUDE_DIR) -I $(LLVM_INCLUDE_DIR) -L$(LLVM_LIB_DIR) $(ARCHFLAG)
 CCFLAGS += -std=c89 -I /usr/local/lib/ocaml/ $(ARCHFLAG)
 LDFLAGS += $(ARCHFLAG) -L $(LLVM_LIB_DIR)

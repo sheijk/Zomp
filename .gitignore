@@ -156,3 +156,4 @@
 /tests/llvmtest/llvm-parse
 /tests/llvmtest/llvm-parse.o
 *.dylib.dSYM/
+*.zomp.expanded

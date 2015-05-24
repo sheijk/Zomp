@@ -21,7 +21,7 @@ CLEAN_SUB_TARGETS += libs/clean
 libs/clean:
 	@$(ECHO) "Cleaning libs ..."
 	$(DELETE_FILE) $(GENERATED_LIBRARY_SOURCES)
-	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.{ll,bc,opt-bc,compile_output,compile_stats,result})
+	$(DELETE_FILE) $(ZOMP_LIBS_SRC:.zomp=.{ll,bc,opt-bc,compile_output,compile_stats,result,zomp.expanded})
 
 ################################################################################
 # Dependencies
