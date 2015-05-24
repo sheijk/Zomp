@@ -1822,6 +1822,8 @@ end
 ** TODO [#A] warn about multiple delete calls
    Batch:delete(lines)
    Batch:delete(lines)
+** TODO [#A] notes in comments
+   http://www.stackbuilders.com/news/the-notes-of-ghc
 * Mile stones
 ** error handling and source locations
 
