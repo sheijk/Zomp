@@ -60,9 +60,11 @@ type stringTree = STLeaf of string | STBranch of stringTree list
 val toStringTree : sexpr -> stringTree
 val stToString : maxLength:int -> ?indent:int -> stringTree -> string
 val expression2string : sexpr -> string
-
+(** Will return a string representation of the AST *)
 val toString : sexpr -> string
+
 val equals : sexpr -> sexpr -> bool
 val replaceParams : string list -> sexpr list -> sexpr -> sexpr
 val shiftId : sexpr list -> sexpr
 val shiftLeft : sexpr list -> sexpr
+

@@ -164,11 +164,13 @@ and toplevelExpr =
     | `Typedef of string * Types.typ ]
 
 val formToString : form -> string
+val formToAst : form -> Ast2.t
 val funcDeclToString : func -> string
 val funcToString : func -> string
 val toplevelFormDeclToString : toplevelExpr -> string
 val toplevelFormToString : toplevelExpr -> string
 val toplevelFormLocation : toplevelExpr -> Basics.location
+val toplevelFormToAst : toplevelExpr -> Ast2.t
 
 val toSingleForm : form list -> form
 
@@ -212,3 +214,8 @@ type 'a macro = {
 val macro :
   string ->
   string -> Basics.location -> ('a -> Ast2.sexpr -> Ast2.sexpr) -> 'a macro
+
+(** Will return a string which can be feed back into the parser to produce the
+same AST (not preserving source locations). *)
+val astToSource : int -> [`WrapNone|`WrapParen] -> Ast2.t -> string
+

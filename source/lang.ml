@@ -343,6 +343,148 @@ let rec formToString : form -> string = function
   | `EmbeddedComment (_, strings) ->
       sprintf "Comments ('%s')" (Common.combine "', '" strings)
 
+let rec formKindToString : form -> string = function
+  | `Variable _ -> "Variable"
+  | `Constant _ -> "Constant"
+  | `Sequence _ -> "Sequence"
+  | `DefineVariable _ -> "DefineVariable"
+  | `FuncCall _ -> "FuncCall"
+  | `AssignVar _ -> "AssignVar"
+  | `Return _ -> "Return"
+  | `Jump _ -> "Jump"
+  | `Branch _ -> "Branch"
+  | `Label _ -> "Jump"
+  | `SizeofIntrinsic _ -> "SizeofIntrinsic"
+  | `GetAddrIntrinsic _ -> "GetAddrIntrinsic"
+  | `StoreIntrinsic _ -> "StoreIntrinsic"
+  | `LoadIntrinsic _ -> "LoadIntrinsic"
+  | `PtrAddIntrinsic _ -> "PtrAddIntrinsic"
+  | `PtrDiffIntrinsic _ -> "PtrDiffIntrinsic"
+  | `GetFieldPointerIntrinsic _ -> "GetFieldPointerIntrinsic"
+  | `CastIntrinsic _ -> "CastIntrinsic"
+  | `EmbeddedComment _ -> "EmbeddedComment"
+
+let rec typeToAst (format : [`Short | `Long]) : Types.typ -> Ast2.t = function
+  | (#integralType | `ErrorType _) as t ->
+     Ast2.exprNoLoc (Types.typeName t) []
+  | `Pointer target ->
+     Ast2.exprNoLoc "postop*" [typeToAst `Short target]
+  | `TypeRef name ->
+     Ast2.exprNoLoc name []
+  | `Record record ->
+     if format = `Long then
+       Ast2.exprNoLoc macroSeqOp @@ List.map (fun (fieldName, fieldType) ->
+                                              Ast2.exprNoLoc macroJuxOp
+                                                             [typeToAst `Short fieldType;
+                                                              Ast2.exprNoLoc fieldName []])
+                                             record.fields
+     else
+       Ast2.exprNoLoc record.rname []
+  | `Array (elementType, size) ->
+     Ast2.exprNoLoc "postop[]" [typeToAst `Short elementType; Ast2.exprNoLoc (sprintf "%d" size) []]
+  | `Function func ->
+     Ast2.exprNoLoc macroCallOp (typeToAst `Short func.returnType :: List.map (typeToAst `Short) func.argTypes)
+  | `ParametricType typ ->
+     Ast2.exprNoLoc macroParamType [typeToAst `Short (typ :> typ); Ast2.exprNoLoc "T" []]
+  | `TypeParam ->
+     Ast2.exprNoLoc "T" []
+
+let rec formToAst form =
+  let loc = flocation form in
+  let fromVar var =
+    Ast2.idExprLoc (someOrDefault var.vlocation loc) var.vname
+  in
+
+  match form with
+    | `Variable (_, var) ->
+       fromVar var
+    (* TODO: add 'std:base:constant type value' *)
+    | `Constant (_, c) ->
+       Ast2.idExprLoc loc @@ valueString c
+    | `Sequence (_, args) ->
+       Ast2.exprLoc loc macroSequence @@ List.map formToAst args
+    | `DefineVariable (_, var, init) ->
+       Ast2.exprLoc loc macroVar @@
+         [Ast2.idExprLoc loc (typeName var.typ);
+          fromVar var]
+         @ (match init with Some initForm -> [formToAst initForm] | _ -> [])
+    | `AssignVar (_, var, value) ->
+       Ast2.exprLoc loc macroAssign [fromVar var; formToAst value]
+    | `Return (_, value) ->
+       Ast2.exprLoc loc macroReturn [formToAst value]
+    | `Jump (_, label) ->
+       Ast2.exprLoc loc macroBranch [Ast2.idExprLoc loc label.lname]
+    | `Branch (_, br) ->
+       Ast2.exprLoc loc macroBranch @@
+         [fromVar br.bcondition;
+          Ast2.idExprLoc loc br.trueLabel.lname;
+          Ast2.idExprLoc loc br.falseLabel.lname]
+    | `Label (_, label) ->
+       Ast2.exprLoc loc macroLabel [Ast2.idExprLoc loc label.lname]
+    | `FuncCall (_, call) ->
+       Ast2.exprLoc loc macroCallOp
+                    (Ast2.idExprLoc loc call.fcname ::
+                       List.map formToAst call.fcargs)
+
+    | `CastIntrinsic (_, targetType, form) ->
+       Ast2.exprLoc loc macroCast [typeToAst `Short targetType; formToAst form]
+    | `GetAddrIntrinsic (_, var) ->
+       Ast2.exprLoc loc macroGetaddr [Ast2.idExprLoc (someOrDefault var.vlocation Basics.fakeLocation) var.vname]
+    | `GetFieldPointerIntrinsic (_, form, fieldName) ->
+       Ast2.exprLoc loc macroFieldptr [formToAst form; Ast2.exprNoLoc fieldName []]
+    | `LoadIntrinsic (_, form) ->
+       Ast2.exprLoc loc macroLoad [formToAst form]
+    | `SizeofIntrinsic (_, typ) ->
+       Ast2.exprLoc loc macroSizeof [typeToAst `Short typ]
+    | `PtrAddIntrinsic (_, lhs, rhs) ->
+       Ast2.exprLoc loc macroPtradd [formToAst lhs; formToAst rhs]
+    | `PtrDiffIntrinsic (_, lhs, rhs) ->
+       Ast2.exprLoc loc macroPtrDiff [formToAst lhs; formToAst rhs]
+    | `StoreIntrinsic (_, ptrForm, valueForm) ->
+       Ast2.exprLoc loc macroStore [formToAst ptrForm; formToAst valueForm]
+
+    | `EmbeddedComment _ ->
+       let error = sprintf "embedded comment at %s" @@ Basics.locationToString loc in
+       failwith error
+
+let toplevelFormToAst form =
+  match form with
+    | `DefineFunc func ->
+       let loc = someOrDefault func.flocation Basics.fakeLocation in
+       let nameAndArgs =
+         let argToAst var =
+           Ast2.exprLoc loc macroJuxOp [typeToAst `Short var.typ; Ast2.idExprLoc loc var.vname]
+         in
+         let nameAst =
+           if func.fparametric then
+             Ast2.exprLoc loc macroParamType [Ast2.idExprLoc loc func.fname; Ast2.idExprLoc loc "T"]
+           else
+             Ast2.idExprLoc loc func.fname
+         in
+         Ast2.exprLoc loc macroCallOp @@ nameAst :: List.map argToAst func.fargs
+       in
+       Ast2.exprLoc loc macroFunc @@
+         [typeToAst `Short func.rettype;
+          nameAndArgs]
+         @ (match func.impl with Some body -> [formToAst body] | _ -> [])
+
+    | `GlobalVar gvar ->
+       let loc = someOrDefault gvar.gvDefinitionLocation Basics.fakeLocation in
+       Ast2.exprLoc loc macroVar @@
+         [typeToAst `Short gvar.gvVar.typ;
+          Ast2.idExprLoc loc gvar.gvVar.vname;
+          Ast2.idExprLoc loc @@ valueString gvar.gvInitialValue]
+
+    | `Typedef (name, `ParametricType (`Record _ as typ)) ->
+       let loc = Basics.fakeLocation in
+       Ast2.exprLoc loc macroTypedef
+                    [Ast2.exprLoc loc macroParamType [Ast2.idExprLoc loc name; Ast2.idExprLoc loc "T"];
+                     typeToAst `Long typ]
+
+    | `Typedef (name, typ) ->
+       let loc = Basics.fakeLocation in
+       Ast2.exprLoc loc macroTypedef [Ast2.idExprLoc loc name; typeToAst `Long typ]
+
 let funcDeclToString func =
   let argToString var = var.vname ^ " :" ^ typeName var.typ in
   let argStrings = List.map argToString func.fargs in
@@ -453,4 +595,49 @@ type 'bindings macro = {
 
 let macro name doc location func =
   { mname = name; mtransformFunc = func; mdocstring = doc; mlocation = Some location }
+
+let rec astToSource indentLevel nested ast =
+  let isSeq id =
+    id = macroSeqOp || id = macroSequence
+  in
+  let combineJux args f =
+    let addSpaceUnlessSeq ast =
+      if isSeq ast.Ast2.id then
+        f ast
+      else
+        " " ^ f ast
+    in
+    match args with
+      | first :: remArgs ->
+         Common.combine "" @@ f first :: List.map addSpaceUnlessSeq remArgs
+      | [] ->
+         ""
+  in
+
+  let needsParens, str =
+    match ast with
+      | { Ast2.id; args = [] } ->
+         `WrapNone, id
+      | { Ast2.id } when id = macroJuxOp ->
+         nested, combineJux ast.Ast2.args (astToSource indentLevel `WrapParen)
+      | { Ast2.id; args = callee :: args } when id = macroCallOp ->
+         `WrapNone, sprintf "%s(%s)"
+                            (astToSource indentLevel `WrapParen callee)
+                            (Common.combine ", " @@ List.map (astToSource indentLevel `WrapNone) args)
+      | { Ast2.id; args = _ :: _ } when isSeq id ->
+         let indentStr = "\n" ^ String.make (2 * indentLevel + 2) ' ' in
+         `WrapNone,
+         (Common.combine indentStr @@ ":" :: List.map (astToSource (indentLevel+1) `WrapNone) ast.Ast2.args)
+         ^ sprintf "\n%send" (String.make (2 * indentLevel) ' ')
+
+      (* This won't match expressions because they are parsed as (opcall postop* arg) *)
+      | { Ast2.id; args = [arg] } when id =~ "postop\\([^a-zA-Z0-9_]*\\)" ->
+         `WrapNone, astToSource indentLevel `WrapParen arg ^ Str.matched_group 1 id
+
+      | _ ->
+         nested, ast.Ast2.id ^ " " ^ combineJux ast.Ast2.args (astToSource indentLevel `WrapParen)
+  in
+  match needsParens with
+    | `WrapNone -> str
+    | `WrapParen -> sprintf "(%s)" str
 

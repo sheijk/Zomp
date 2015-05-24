@@ -15,6 +15,18 @@ module Options = struct
     | file when file.[0] = '-' -> raise (Arg.Bad (sprintf "file name '%s' invalid, must not start with -" file))
     | file -> `ToFile file
 
+  let makeAbsolutePath fileRef =
+    if (String.length !fileRef) > 0 then begin
+      let absolutePath = Common.absolutePath !fileRef in
+      fileRef := absolutePath;
+    end
+
+  let optionFromString stringRef =
+    if String.length !stringRef = 0 then
+      None
+    else
+      Some !stringRef
+
   type options = {
     execNameAndPath :string;
     fileName :string;
@@ -24,6 +36,7 @@ module Options = struct
     traceBaseForms :bool;
     traceLlvmCode :bool;
     symbolTableDumpFile :string option;
+    expandedAstDumpFile :outputTarget;
     zompIncludePaths :string list;
     dllPaths :string list;
   }
@@ -47,6 +60,7 @@ module Options = struct
     let traceBaseForms = ref false in
     let traceLlvmCode = ref false in
     let symbolTableDumpFile = ref "" in
+    let expandedAstDumpFile = ref "" in
     let zompIncludePaths = ref [] in
     let dllPaths = ref [] in
     let onAnonArg str =
@@ -63,6 +77,7 @@ module Options = struct
          "--trace-llvm-code", Arg.Set traceLlvmCode, "Trace emitted LLVM code.";
          "-c", Arg.Set_string fileName, "The file to compile.";
          "--dump-symbols", Arg.Set_string symbolTableDumpFile, "A file to dump symbol table to.";
+         "--dump-expanded-ast", Arg.Set_string expandedAstDumpFile, "A file to dump expanded AST to.";
          "--zomp-include-dir",
          Arg.String (addRelativePath zompIncludePaths "--zomp-include-dir"),
          "A directory to be searched by include and requireLib";
@@ -71,10 +86,9 @@ module Options = struct
          "A directory to be searched for dynamic libraries"]
         onAnonArg
         "zompc -c fileName.zomp\n";
-      if (String.length !symbolTableDumpFile) > 0 then begin
-        let absolutePath = Common.absolutePath !symbolTableDumpFile in
-        symbolTableDumpFile := absolutePath;
-      end;
+
+      makeAbsolutePath symbolTableDumpFile;
+
       Options {
         execNameAndPath = args.(0);
         fileName = !fileName;
@@ -83,7 +97,8 @@ module Options = struct
         traceMacroExpansion = !traceMacroExpansion;
         traceBaseForms = !traceBaseForms;
         traceLlvmCode = !traceLlvmCode;
-        symbolTableDumpFile = if String.length !symbolTableDumpFile = 0 then None else Some !symbolTableDumpFile;
+        symbolTableDumpFile = optionFromString symbolTableDumpFile;
+        expandedAstDumpFile = outputTargetFromString !expandedAstDumpFile;
         zompIncludePaths = !zompIncludePaths;
         dllPaths = !dllPaths;
       }
@@ -209,13 +224,19 @@ let () =
     Expander.setTraceMacroExpansion (Some trace);
     Zompvm.traceMacroExpansionOn := true;
   end;
-  if options.traceBaseForms then begin
+
+  let expandedAsts = ref [] in
+  let trace form =
     let reportInfo diagnostic =
       eprintf "%s\n" (Serror.diagnosticsToString Basics.DiagnosticKind.Info diagnostic)
     in
-    let trace form =
-      reportInfo $ Serror.fromMsg (Some (Lang.toplevelFormLocation form)) (Lang.toplevelFormDeclToString form)
-    in
+    if options.traceBaseForms then
+      reportInfo $ Serror.fromMsg (Some (Lang.toplevelFormLocation form)) (Lang.toplevelFormDeclToString form);
+
+    if options.expandedAstDumpFile <> `DoNotWrite then
+      expandedAsts := Lang.toplevelFormToAst form :: !expandedAsts
+  in
+  if options.traceBaseForms || (options.expandedAstDumpFile <> `DoNotWrite) then begin
     Expander.setTraceToplevelForm (Some trace);
   end;
   (** If we trace llvm code we also want to print invalid llvm code because
@@ -270,6 +291,20 @@ let () =
 
   close_in inStream;
   close_out outStream;
+
+  let writeExpandedAst stream =
+    List.iter (fun ast ->
+               let str = Lang.astToSource 0 `WrapNone ast in
+               Printf.fprintf stream "%s\n" str)
+              (List.rev !expandedAsts)
+  in
+  (match options.expandedAstDumpFile with
+     | `DoNotWrite -> ()
+     | `Stdout ->
+        printf "Expanded ASTs:\n";
+        writeExpandedAst stdout
+     | `ToFile file ->
+        withFileForWriting file writeExpandedAst);
 
   let failWithErrorMessage msg =
     eprintf "%s:0: error: %s\n" inputFileName msg;
