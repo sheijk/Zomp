@@ -3,6 +3,10 @@
 # A simple build front end. Use this to run make -s and still get a list of all
 # commands in buildlog.txt for inspection on errors. Just run it with the same
 # arguments as make. Make will always be invoked from the Zomp root dir
+#
+# Also supports doing multiple make invocations.
+# For example ./build.sh DEBUG=1 -k clean,all,test will invoke
+# make DEBUG=1 -k clean; make DEBUG=1 -k all; make DEBUG=1 -k test
 
 if [[ -z ${MAKE} ]]; then
     MAKE=make
@@ -25,12 +29,21 @@ case "$1" in
 esac
 
 # Find all make options of the form FOO_BAR=... to keep them for multiple make
-# invocations
+# invocations and find multi-targets of the form target_a,target_b
+MULTI_TARGETS=()
+SWITCHES=()
 OPTIONS=()
 for arg in "$@"; do
     echo "${arg}" | grep "^[A-Za-z_][A-Za-z0-9_]*=" > /dev/null
     if [ "$?" -eq "0" ]; then
         OPTIONS+=("${arg}")
+    elif (echo "${arg}" | grep ".*,.*" > /dev/null); then
+        for target in $(echo ${arg} | tr , "\n"); do
+            echo "target = ${target}"
+            MULTI_TARGETS+=(${target})
+        done
+    else
+        SWITCHES+=(${arg})
     fi
 done
 
@@ -52,8 +65,20 @@ then
     ${MAKE} --print-directory -s ${OPTIONS} ${CLEAN_TARGET} || exit 1
 fi
 
-${MAKE} --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}" BUILDLOG=${BUILDLOG}
-RETVAL=$?
+if [ "${MULTI_TARGETS}" = "" ]; then
+    ${MAKE} --print-directory "$@" SHELL="${LOGSHELL} ${BUILDLOG}" BUILDLOG=${BUILDLOG}
+    RETVAL=$?
+else
+    for target in "${MULTI_TARGETS[@]}"; do
+        echo "building ${target}"
+        ${MAKE} --print-directory "${OPTIONS[@]}" "${SWITCHES[@]}" SHELL="${LOGSHELL} ${BUILDLOG}" BUILDLOG=${BUILDLOG} ${target}
+        RETVAL=$?
+        if [ "${RETVAL}" -ne "0" ]; then
+            echo "Building multi-target ${target} failed, aborting remaining targets"
+            break
+        fi
+    done
+fi
 
 echo "Auto update test report ..." >> ${BUILDLOG}
 (${MAKE} SILENT=1 "${OPTIONS[@]}" debug report 2>&1) > ${BUILDLOG_REPORT}
