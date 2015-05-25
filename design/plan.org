@@ -1824,6 +1824,14 @@ end
    Batch:delete(lines)
 ** TODO [#A] notes in comments
    http://www.stackbuilders.com/news/the-notes-of-ghc
+** TODO [#A] check why this does not produce an error                      :bug:
+#+begin_src zomp
+  func void test():
+    (10 + 20):
+      println "foo"
+    end
+  end
+#+end_src
 * Mile stones
 ** error handling and source locations
 
