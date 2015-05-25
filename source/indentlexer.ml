@@ -772,7 +772,8 @@ let token (lexbuf : token lexerstate) : token =
         onLessIndent()
       (** indent is more than one level less than in previous line *)
       end else begin
-        raiseIndentError lexbuf.location
+        let newlineLoc = lexbuf.location in
+        raiseIndentError { newlineLoc with line = newlineLoc.line - 1 }
           (sprintf
              "indentation was reduced by %d spaces but only steps of 2 are legal"
              (prevIndent - indent))

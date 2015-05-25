@@ -2334,9 +2334,9 @@ let rec translateFunc tlenv expr : unit =
         end
       end
     | `NotAFunc ->
-      EnvTL.emitSilentError tlenv
+      EnvTL.emitError tlenv @@ Serror.fromExpr expr "not a valid function"
     | `InvalidFunc msg ->
-      EnvTL.emitError tlenv $ Serror.fromExpr expr msg
+      EnvTL.emitError tlenv @@ Serror.fromExpr expr msg
 
 let translateGlobalVar (env :EnvTL.t) expr : unit =
   match expr with
