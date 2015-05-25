@@ -26,10 +26,6 @@ struct Point:
   int y
 end
 
-ofunc void print(Point pt):
-  print "Point(x = " pt.x ", y = " pt.y ")"
-end
-
 // TODO: check what should happen to this.
 // unittest:testCase SimpleArray:
 //   var int[4] numbers
@@ -201,17 +197,6 @@ end
 struct NestedStruct:
   Point valuePoint
   Point* pointerPoint
-end
-
-ofunc void print(NestedStruct s):
-  print "NestedStruct(valuePoint = " s.valuePoint ", "
-  print "pointerPoint = "
-  if isNull(s.pointerPoint):
-    "nullptr"
-  else:
-    print "&" (s.pointerPoint)*
-  end
-  print ")"
 end
 
 unittest:testCase NestedStruct:

@@ -1,0 +1,48 @@
+///
+/// Testing creating structs and standard methods on them.
+///
+
+requireLibs libcee
+
+struct Point2:
+  int x
+  int y
+end
+
+struct Circle:
+  float x
+  float y
+  int radius
+end
+
+struct MovingCircle:
+  float xdir
+  float ydir
+  Circle circle
+end
+
+struct StructWithArray:
+  int used
+  int[10] numbers
+end
+
+func int main():
+  pt := structlit Point2 x 10 y 20
+  print(pt) //// print Point2 x y 10 20
+  printNewline()
+
+  c := structlit Circle x 10. y 20. radius 3
+  print(c) //// print Circle x y radius 10 20 3
+  printNewline()
+
+  println Point2(x = 101, y = 102) //// print Point x 101 y 102
+  //// print MovingCircle 1. 2. 4. 8. 99
+  println MovingCircle(xdir = 1.0, ydir = 2.0, circle = Circle(x = 4., y = 8., radius = 99))
+
+  //// print StructWithArray used 3 numbers not implemented
+  var int[10] numbers
+  println StructWithArray(used = 3, numbers = numbers)
+
+  ret 0
+end
+

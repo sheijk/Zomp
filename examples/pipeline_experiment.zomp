@@ -1305,21 +1305,9 @@ struct KeyFrameVector:
   v3f value
 end
 
-ofunc void print(KeyFrameVector kfv):
-  print "KeyFrameVector(time=" kfv.time ", value=" kfv.value ")"
-end
-
 struct KeyFrameQuat:
   double time
   quatf value
-end
-
-ofunc void print(quatf q):
-  print "quatf(x=" q.x ", y=" q.y ", z=" q.z ", w=" q.w ")"
-end
-
-ofunc void print(KeyFrameQuat kfq):
-  print "KeyFrameQuat(time=" kfq.time ", value=" kfq.value ")"
 end
 
 func v3f aiVector3D:vec3f(aiVector3D v):
@@ -1328,10 +1316,6 @@ func v3f aiVector3D:vec3f(aiVector3D v):
   r.y = v.y
   r.z = v.z
   ret r
-end
-
-ofunc void print(aiVectorKey vk):
-  aiVectorKey:print &vk
 end
 
 func KeyFrameVector aiVectorKey:toKeyFrameVector(aiVectorKey* this):
@@ -1828,14 +1812,6 @@ func cstring GLSLParameter:valueToString(GLSLParameter* param):
     ret bool2cstring(*(cast bool* param.data))
   end
   ret ""
-end
-
-ofunc void print(GLSLParameter param):
-  print "(GLSLParameter name='" param.name
-  print "', location=" param.location
-  print ", type=" glenum2cstring(param.gltype)
-  print ", data=" GLSLParameter:valueToString(&param)
-  print ")"
 end
 
 func void GLSLParameter:apply(GLSLParameter* param):
@@ -2371,11 +2347,6 @@ func void Material:print(Material* this, int indent):
   iprintArray this.textures "textures" Texture:print xind
 end
 
-ofunc void print(aiString s):
-  s2 := s
-  aiString:print(&s2)
-end
-
 func void reportUnhandledMaterialProperty(aiMaterialProperty* prop, cstring reason):
   println "Did not handle material property '" prop.mKey "' of type '"
       aiPropertyTypeInfo:toCString(prop.mType) "': " reason
@@ -2493,10 +2464,6 @@ end
 
 func void SceneGraphEdge:print(SceneGraphEdge* this):
   println this.parent " -> " this.child
-end
-
-ofunc void print(SceneGraphEdge edge):
-  SceneGraphEdge:print &edge
 end
 
 func void SceneGraphNode:init(SceneGraphNode* this, aiNode* source):

@@ -840,31 +840,6 @@ template isNull ptr:
   #ptr ==_ptr nullptr void
 end
 
-macro struct name members:
-  unless (name.childCount == 0):
-    ret ${error "Expected id (polymorphic types not supported, yet)" #name}
-  end
-
-  decl := ast:fromString "type"
-  ast:addChild decl name
-  fields := ast:fromString "opseq"
-
-  forEachAstChild memberList members:
-    if ast:matchesShape(memberList, ${__ _...}):
-      memberType := ast:child memberList 0
-      for memberNum 1 memberList.childCount:
-        memberName := ast:child memberList memberNum
-        ast:addChild fields ${#memberType #memberName}
-      end
-    else:
-      ret ${error "Expected 'typeExpr id..." #memberList}
-    end
-  end
-  ast:addChild decl fields
-
-  ret decl
-end
-
 func bool isMultipleOf(int x, int m):
   ret (int:mod(x,m) == 0)
 end
@@ -1735,4 +1710,107 @@ macro enum name fields:
   ret code
 end
 
+///-----------------------------------------------------------------------------
+/// Section: Structs
+///-----------------------------------------------------------------------------
+
+macro zmp:cee:internal:struct name members:
+  unless (name.childCount == 0):
+    ret ${error "Expected id (polymorphic types not supported, yet)" #name}
+  end
+
+  decl := ast:fromString "type"
+  ast:addChild decl name
+  fields := ast:fromString "opseq"
+
+  forEachAstChild memberList members:
+    if ast:matchesShape(memberList, ${__ _...}):
+      memberType := ast:child memberList 0
+      for memberNum 1 memberList.childCount:
+        memberName := ast:child memberList memberNum
+        ast:addChild fields ${#memberType #memberName}
+      end
+    else:
+      ret ${error "Expected 'typeExpr id..." #memberList}
+    end
+  end
+  ast:addChild decl fields
+
+  ret decl
+end
+
+template zmp:cee:internal:defineStructField type name:
+  ast:addChild fieldDecls ${#type #name}
+end
+
+macro zmp:cee:internal:makeStructDecl name fields:
+  /// ugly hack because we can't create a quotation for the desired result
+  /// below, yet
+  retexprInner := ${zmp:cee:internal:struct #name}
+  ast:addChild retexprInner $${#fieldDecls}
+  retexprQuoted := ${${#retexprInner}}
+
+  /// macro which will define the struct we want
+  decl := ${macro zmp:cee:internal:makeStructDeclHelper:
+    fieldDecls := ${}
+    #fields zmp:cee:internal:defineStructField
+    ret #retexprQuoted
+  end}
+
+  /// Create a macro which will create the definition and then invoke it. Do
+  /// this indirectly because "#fields zmp:cee:internal:defineStructField" cannot be called
+  /// directly inside the macro
+  ret $:
+    #decl
+    zmp:cee:internal:makeStructDeclHelper
+  end
+end
+
+macro zmp:cee:internal:printField type name:
+  nameS := cstring:quote name.id
+  supported := (ast:matchesShape(type, ${_}) || ast:matchesShape(type, ${__*}))
+
+  if supported:
+    ret ${print #nameS " = " this.#name ", " }
+  else:
+    ret ${print #nameS " = [type not implemented, yet], "}
+  end
+end
+
+macro zmp:cee:internal:makeStructPrinter typeName fields:
+  nameStr := cstring:quote(typeName.id)
+
+  std:base:ret $:
+    ofunc void print(#typeName this):
+      print #nameStr " { "
+      #fields zmp:cee:internal:printField
+      print "}"
+    end
+  end
+end
+
+macro struct name fields:
+  fieldsMacroName := name.id ++ ":forEachField"
+
+  applyFields := ${}
+  forEachAstChild field fields:
+    if (field.childCount < 2):
+      ret ${error "expected 'type fieldName...'" #field}
+    end
+
+    for fieldNum 1 field.childCount:
+      line := ast:fromString("opjux")
+      ast:addChild line $${#apply}
+      ast:addChild line ast:child(field, 0)
+      ast:addChild line ast:child(field, fieldNum)
+      ast:addChild applyFields line
+    end
+  end
+
+  ret $:
+    template #fieldsMacroName apply #applyFields
+    zmp:cee:internal:makeStructDecl #name #fieldsMacroName
+    zmp:cee:internal:makeStructPrinter #name #fieldsMacroName
+  end
+end
 

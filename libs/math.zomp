@@ -92,10 +92,6 @@ func void v3f:print(v3f this):
   print "v3f(x=" this.x ", y=" this.y ", z=" this.z ")"
 end
 
-ofunc void print(v3f this):
-  v3f:print this
-end
-
 func float v3f:length(v3f this):
   ret sqrtf(sqrf this.x + sqrf this.y + sqrf this.z)
 end
@@ -231,10 +227,6 @@ func void RBTransform:print(RBTransform* this, int indent):
   println "  scale  = " this.scale
 end
 
-ofunc void print(RBTransform t):
-  RBTransform:print &t 0
-end
-
 func void makeOrigin(RBTransform* this):
   this.origin = mv3f 0. 0. 0.
   this.xaxis = mv3f 1. 0. 0.
@@ -319,23 +311,12 @@ func v3f AABB:center(AABB* this):
   ret (0.5 * (this*.min + this*.max))
 end
 
-ofunc void print(AABB this):
-  print "AABB(" this.min ", " this.max ")"
-end
-
 ///-----------------------------------------------------------------------------
 /// Section: coordinate systems
 ///-----------------------------------------------------------------------------
 
 struct OrthoBasis3D:
   v3f xaxis yaxis zaxis
-end
-
-ofunc void print(OrthoBasis3D basis):
-  println "OrthoBasis3D"
-  println "  xaxis = " basis.xaxis
-  println "  yaxis = " basis.yaxis
-  println "  zaxis = " basis.zaxis
 end
 
 func OrthoBasis3D makeOrthoBasis(v3f vec):

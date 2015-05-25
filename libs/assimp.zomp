@@ -709,10 +709,6 @@ struct aiCamera:
   float mAspect
 end
 
-ofunc void print(aiVector3D vec):
-  print "aiVector3D(" vec.x ", " vec.y ", " vec.z ")"
-end
-
 func void aiCamera:print(aiCamera* cam, int indent):
   iprint indent "aiCamera "
   aiString:print &(cam.mName)
