@@ -95,9 +95,7 @@ macro new type args...
 
   var ast* initCall ast:fromString(cstring:concat(getField(type, id), ":init"))
   addChild initCall ast:fromString(name)
-  forEachAstChild arg args
-    addChild initCall arg
-  end
+  ast:addAllChilds(initCall, args)
 
   var ast* code ${seq}
   addChild code ${var (ptr #type) #name (malloc #type)}

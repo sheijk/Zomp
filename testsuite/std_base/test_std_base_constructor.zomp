@@ -7,12 +7,7 @@ requireLibs libcee unittest
 macro std:base:constructorCall type args...:
   name := type.id ++ ":constructor"
 
-  code := ${#name()}
-  forEachAstChild child args:
-    ast:addChild code child
-  end
-
-  ret code
+  ret ${#name(#...args)}
 end
 
 std:base:func u32 u32:constructor(float f):

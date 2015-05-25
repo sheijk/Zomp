@@ -475,6 +475,7 @@ end = struct
       quoteRule "$";
       quoteRule "$$";
       quoteRule "#";
+      quoteRule "#...";
       stringRule;
       charRule;
       escapedCharRule;

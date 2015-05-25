@@ -57,6 +57,7 @@
     | "$$" -> "quoteasis"
     | "``" -> "quoteasis"
     | "#" -> "antiquote"
+    | "#..." -> "splicingantiquote"
     | invalidString ->
         raise (ParseError
                  (fakeLocation,

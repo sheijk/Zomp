@@ -1,0 +1,13 @@
+///
+/// Test whether splice as direct arg of causes error.
+///
+
+requireLibs libcee unittest
+
+unittest:testCase InvalidSplice:
+  nested := ${nest}
+  expr := ${#...nested} //// error splicingantiquote
+end
+
+unittest:main
+

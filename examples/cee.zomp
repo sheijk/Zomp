@@ -140,26 +140,18 @@ end
 //   end
 // end
 
-func void ast:addChildsOf(ast* target, ast* parent):
-  forEachAstChild child parent:
-    ast:addChild target child
-  end
-end
-
 /// Support literal values of user defined types like
 /// 'Complex 1.0 0.3'
 macro opjux id args...:
   code := nullptr ast
 
   if (zompLookup id.id == ZOMP_SYMBOL_TYPEDEF):
-    code = ${local}
-    ast:addChild code id
-    ast:addChildsOf(code, args)
+    code = ${local #id #...args}
     ret ${*#code}
   end
 
   code = ${#id}
-  ast:addChildsOf(code, args)
+  ast:addAllChilds(code, args)
   ret code
 end
 

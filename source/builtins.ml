@@ -70,26 +70,45 @@ let sexpr2codeNoAntiquotes recursion expr =
             astFromString ("\"" ^ sexprWithArgs.id ^ "\"") expr.location]
       in
       let returnExpr = idExprLoc loc tempVarName in
-      let addChildExpr childExpr =
-        Ast2.exprLoc
-          Basics.fakeLocation
-          "ast:addChild"
-          [idExprLoc loc tempVarName;
-           childExpr;]
+      let addChildExpr = function
+        | `Insert childExpr ->
+           Ast2.exprLoc
+             Basics.fakeLocation
+             "ast:addChild"
+             [idExprLoc loc tempVarName;
+              childExpr;]
+        | `Splice childExpr ->
+           Ast2.exprLoc
+             Basics.fakeLocation
+             "ast:addAllChilds"
+             [idExprLoc loc tempVarName;
+              childExpr]
       in
       let argExprs = List.map recursion sexprWithArgs.args in
       let argAddExprs = List.map addChildExpr argExprs in
       seqExprLoc loc ([defVarExpr] @ argAddExprs @ [returnExpr])
 
-let rec sexpr2codeasis expr = sexpr2codeNoAntiquotes sexpr2codeasis expr
+let rec sexpr2codeasis expr =
+  sexpr2codeNoAntiquotes (fun e -> `Insert (sexpr2codeasis e)) expr
 
-let rec sexpr2code ?(antiquoteF = Ast2.exprLoc) = function
-  | { id = "antiquote"; args = [{ id = id; args = args} as expr] } ->
-    begin
-      antiquoteF (Ast2.location expr) id args
-    end
-  | expr ->
-    sexpr2codeNoAntiquotes (sexpr2code ~antiquoteF) expr
+let rec sexpr2code ?(antiquoteF = Ast2.exprLoc) expr =
+  let antiQuote expr = antiquoteF (Ast2.location expr) expr.id expr.args in
+  let recurse expr =
+    match expr with
+      | { id = "splicingantiquote"; args = [arg] } ->
+         (`Splice (antiQuote arg))
+      | { id = "splicingantiquote"; } ->
+         failwith "splicingantiquote expects only one argument"
+      | _ ->
+         `Insert (sexpr2code ~antiquoteF expr)
+  in
+  match expr with
+    | { id = "antiquote"; args = [arg] } ->
+       antiQuote arg
+    | { id = "splicingantiquote"; args = [arg] } ->
+       failwith "splicingantiquote not allowed as single argument to quote"
+    | _ ->
+       sexpr2codeNoAntiquotes recurse expr
 
 let builtinMacros =
   let builtinMacros =

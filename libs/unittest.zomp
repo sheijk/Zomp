@@ -217,9 +217,7 @@ macro unittest:testCasesFor name testCases...:
   var cstring testName (cstring:concat "test_" (getField name id) "_" (u32:toCString newUniqueId()))
 
   var astp impl (ast:fromString "unittest:assertAll")
-  forEachAstChild testCase testCases:
-    ast:addChild impl testCase
-  end
+  ast:addAllChilds(impl, testCases)
   var ast* decl ast:fromString("opcall")
   ast:addChild decl ast:fromString(testName)
   var astp funcDecl ${std:base:func void #decl:

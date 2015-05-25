@@ -543,11 +543,15 @@ macro forEachAstChild childVar tree code:
   end
 end
 
+std:base:func void ast:addAllChilds(ast* tree, ast* other):
+  forEachAstChild child other:
+    ast:addChild(tree, child)
+  end
+end
+
 macro ret expr...:
   var2 retcode ${std:base:ret}
-  forEachAstChild e expr:
-    ast:addChild retcode e
-  end
+  ast:addAllChilds(retcode, expr)
   std:base:ret retcode
 end
 
@@ -759,10 +763,7 @@ end
 ///-----------------------------------------------------------------------------
 
 macro deprecatedNoVarArgs name replacementName warningCode args...:
-  var astp code ${macro #name}
-  forEachAstChild arg args:
-    ast:addChild code arg
-  end
+  var astp code ${macro #name #...args}
 
   var astp impl ${}
   ast:addChild code impl
@@ -791,9 +792,7 @@ macro deprecatedVarArgs name replacementName warningCode:
     #warningCode
 
     var astp call (ast:fromString #replName)
-    forEachAstChild child args:
-      ast:addChild call child
-    end
+    ast:addAllChilds(call, args)
 
     ret call
   end
@@ -821,10 +820,7 @@ macro deprecated name replacementName args...:
     code = ${deprecatedVarArgs #name #replacementName #warningCode}
   end
   unless isVarArg:
-    code = ${deprecatedNoVarArgs #name #replacementName #warningCode}
-    forEachAstChild arg args:
-      ast:addChild code arg
-    end
+    code = ${deprecatedNoVarArgs #name #replacementName #warningCode #...args}
   end
 
   ret code
@@ -852,10 +848,7 @@ macro alias name replacementName args...:
     code = ${deprecatedVarArgs #name #replacementName #warningCode}
   end
   unless isVarArg:
-    code = ${deprecatedNoVarArgs #name #replacementName #warningCode}
-    forEachAstChild arg args:
-      ast:addChild code arg
-    end
+    code = ${deprecatedNoVarArgs #name #replacementName #warningCode #...args}
   end
 
   ret code
@@ -1071,10 +1064,7 @@ end
 macro func args...:
   zmp:prelude:logFunctionCompilation args
 
-  var ast* code ${std:base:func}
-  forEachAstChild child args:
-    ast:addChild code child
-  end
+  var ast* code ${std:base:func #...args}
   ret code
 end
 

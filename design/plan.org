@@ -1832,6 +1832,7 @@ end
     end
   end
 #+end_src
+** TODO [#A] unittest:assertAll should abort after first failure
 * Mile stones
 ** error handling and source locations
 

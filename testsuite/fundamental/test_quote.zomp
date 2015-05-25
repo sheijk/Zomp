@@ -1,0 +1,45 @@
+///
+/// Testing quotations.
+///
+
+requireLibs libcee unittest
+
+unittest:testCase SimpleQuote:
+  expr := ${foo bar buzz}
+
+  unittest:assertAll:
+    expr.childCount == 3
+    getField ast:child(expr, 0) id ==_str "foo"
+    getField ast:child(expr, 1) id ==_str "bar"
+    getField ast:child(expr, 2) id ==_str "buzz"
+  end
+end
+
+unittest:testCase AntiQuote:
+  nest := ast:fromString("bar")
+  expr := ${foo #nest buzz}
+
+  unittest:assertAll:
+    expr.childCount == 3
+    getField ast:child(expr, 0) id ==_str "foo"
+    getField ast:child(expr, 1) id ==_str "bar"
+    getField ast:child(expr, 2) id ==_str "buzz"
+  end
+end
+
+unittest:testCase SplicingAntiQuote:
+  nest := ${bar buzz}
+  expr := ${foo #...nest}
+
+  ast:print(expr, 0) 
+
+  unittest:assertAll:
+    expr.childCount == 3
+    getField ast:child(expr, 0) id ==_str "foo"
+    getField ast:child(expr, 1) id ==_str "bar"
+    getField ast:child(expr, 2) id ==_str "buzz"
+  end
+end
+
+unittest:main
+

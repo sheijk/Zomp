@@ -8,11 +8,7 @@ requireLibs libcee unittest
 /// not yet in libcee, as it can be replaced with () anyways so it might be better
 /// to safe this for other things
 macro op{} statements...:
-  code := ${seq}
-  forEachAstChild stmnt statements:
-    ast:addChild code stmnt
-  end
-  ret code
+  ret ${seq #...statements}
 end
 
 func int main():

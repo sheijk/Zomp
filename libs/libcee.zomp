@@ -454,10 +454,7 @@ macro ret expr...:
     std:base:ret ${error "You can only return from functions using onReturn with return, ret is illegal" #expr}
   end
 
-  retcode := ${std:base:ret}
-  forEachAstChild e expr:
-    ast:addChild retcode e
-  end
+  retcode := ${std:base:ret #...expr}
 
   std:base:ret $:
     onFunctionEnd
@@ -512,10 +509,9 @@ macro func args...:
   var ast* funcCode ${std:base:func #rettype #nameAndArgs}
   if (getField args childCount >= 3):
     impl := ast:child args 2
-    newImpl := ${}
-    ast:addChild newImpl ${onFunctionBegin #name}
-    forEachAstChild child impl:
-      ast:addChild newImpl child
+    newImpl := $:
+      onFunctionBegin #name
+      #...impl
     end
     ast:addChild funcCode newImpl
   end
@@ -723,9 +719,7 @@ end
 func ast* cee:internal:makeInitCall(cstring typeName, ast* varPtr, ast* args):
   var ast* initCall ast:fromString(cstring:concat(typeName, ":init"))
   ast:addChild initCall varPtr
-  forEachAstChild arg args:
-    ast:addChild initCall arg
-  end
+  ast:addAllChilds initCall args
 
   ret initCall
 end
