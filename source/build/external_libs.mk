@@ -56,24 +56,10 @@ EXTERNAL_LIB_TARGET_DIRS = examples testsuite/std libs
 EXTERNAL_LIB_LINKS = $(foreach target_dir, $(EXTERNAL_LIB_TARGET_DIRS), \
   $(foreach lib, $(EXTERNAL_LIB_LINK_NAMES), $(target_dir)/lib$(lib).dylib))
 
-libs/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
-	@$(ECHO) "Creating symlink to library $@ ..."
-	rm -f $(@)
-	ln -s $(<) $(@)
-
-examples/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
-	@$(ECHO) "Creating symlink to library $@ ..."
-	rm -f $(@)
-	ln -s $(<) $(@)
-
-testsuite/std/lib%.dylib: $(ZOMP_TOOL_PATH)/lib/lib%.dylib
-	@$(ECHO) "Creating symlink to library $@ ..."
-	rm -f $(@)
-	ln -s $(<) $(@)
-
 .PHONY: external_lib_links
 ALL_TARGETS += external_lib_links
-external_lib_links: $(EXTERNAL_LIB_LINKS)
+external_lib_links:
+	./source/build/make_lib_links.sh $(ZOMP_TOOL_PATH) "$(EXTERNAL_LIB_LINK_NAMES)" "$(EXTERNAL_LIB_TARGET_DIRS)"
 
 CLEAN_SUB_TARGETS += clean_external_lib_links
 .PHONY: clean_external_lib_links
