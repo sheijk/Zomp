@@ -33,6 +33,20 @@ tools/llvm-$(LLVM_VERSION)/TAGS:
 	@$(ECHO) Building tags for LLVM $(LLVM_VERSION)
 	cd tools/llvm-$(LLVM_VERSION)/ && find -E lib include -regex ".*\.(cpp|h)" | xargs etags -o TAGS
 
+tools/clang+llvm-$(LLVM_VERSION)-x86_64-apple-darwin10.tar.gz:
+	mkdir -p tools
+	curl "http://llvm.org/releases/$(LLVM_VERSION)/clang+llvm-$(LLVM_VERSION)-x86_64-apple-darwin10.tar.gz" -o $@
+
+tools/arch-x86_64/sources/llvm-$(LLVM_VERSION)/.exists: tools/clang+llvm-$(LLVM_VERSION)-x86_64-apple-darwin10.tar.gz
+	mkdir -p $(dir $(LLVM_BASE_DIR))
+	cd tools && gunzip --stdout clang+llvm-$(LLVM_VERSION)-x86_64-apple-darwin10.tar.gz | tar -xf - -C $(dir $(LLVM_BASE_DIR))
+	mkdir -p $(dir $(LLVM_BASE_DIR))llvm-$(LLVM_VERSION)
+	mv $(dir $(LLVM_BASE_DIR))clang+llvm-$(LLVM_VERSION)-x86_64-apple-darwin10 $(dir $(LLVM_BASE_DIR))llvm-$(LLVM_VERSION)/Release
+	touch $@
+
+EXTERNAL_TOOLS_BIN_DARWIN += external_bin_llvm_darwin
+external_bin_llvm_darwin: tools/arch-x86_64/sources/llvm-$(LLVM_VERSION)/.exists
+
 ################################################################################
 # Rules
 ################################################################################
@@ -74,4 +88,5 @@ ANTTWEAKBAR_VERSION = AntTweakBar_116
 EXTERNAL_TOOLS += tools/arch-$(ARCH)/sources/$(ANTTWEAKBAR_VERSION)/.built
 
 external_tools: $(EXTERNAL_TOOLS)
+external_tools_bin_darwin: $(EXTERNAL_TOOLS_BIN_DARWIN)
 
