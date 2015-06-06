@@ -205,8 +205,6 @@ CCFLAGS += -I $(ZOMP_TOOL_PATH)/lib/ocaml/
 LDFLAGS += -L$(ZOMP_TOOL_PATH)/lib/
 ZOMPCFLAGS += --dll-dir $(ZOMP_TOOL_PATH)/lib/
 
-MENHIR_FLAGS += --stdlib $(ZOMP_TOOL_PATH)/share/menhir
-
 ZOMPCFLAGS += --dll-dir /usr/lib
 ZOMPCFLAGS += --dll-dir /usr/local/lib
 
