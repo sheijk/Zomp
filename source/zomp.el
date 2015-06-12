@@ -587,17 +587,6 @@ shell. If `confirm-msg' is t the function will ask for confirmation."
   (zomp-shell-do (format "!printllvmvar %s" name)))
 
 
-(defun zomp-shell-sexpr-syntax ()
-  "Use indentation based syntax"
-  (interactive)
-  (zomp-shell-do "!")
-  (zomp-shell-do "!syntax indent"))
-(defun zomp-shell-indent-syntax ()
-  "Use sepxr based syntax (deprecated)"
-  (interactive)
-  (zomp-shell-do "!")
-  (zomp-shell-do "!syntax sexpr"))
-
 (defmacro zomp-add-seperator ()
   "Will add a seperator line to the Zomp mode menu."
   `(local-set-key [menu-bar zomp ,(gensym "zomp-seperator")] '("--")))
@@ -965,6 +954,13 @@ indentation is the same or less than the line where we started."
   (local-set-key [(meta ?.)] 'zomp-goto-definition)
   (local-set-key [(meta ??)] 'zomp-show-doc-for-current-symbol)
 
+  ;; set additional keys on OS X
+  (local-set-key [(alt shift r)]' zomp-shell-run-test)
+  (local-set-key [(alt d)] 'zomp-shell-run-immediate)
+  (local-set-key [(alt shift d)] 'zomp-shell-run-function)
+  (local-set-key [(alt e)] 'zomp-shell-eval-current)
+  (local-set-key [(alt shift e)] 'zomp-shell-eval-current-and-goto-next)
+
   ;; create zomp menu. order of the zomp-add-action commands is reversed order in menu
   (local-set-key [menu-bar zomp] (cons "Zomp" (make-sparse-keymap "Zomp")))
 
@@ -982,57 +978,46 @@ indentation is the same or less than the line where we started."
                    [(control c) (?.) (m)] "Tracing of macro expansion" toggle)
   ;; (zomp-add-action zomp-shell-toggle-verify
   ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
-  (zomp-add-action zomp-select-architecture [(control c) (?.) (?a)] toggle)
-  (zomp-add-action zomp-select-variant [(control c) (?.) (?v)] toggle)
-
-  (local-set-key [(control c) (?.) (?s)] 'zomp-shell-sexpr-syntax)
-  (local-set-key [(control c) (?.) (?i)] 'zomp-shell-indent-syntax)
-
+  (zomp-add-action zomp-select-architecture [(control c) (?.) (?a)] "Select architecture ..." toggle)
+  (zomp-add-action zomp-select-variant [(control c) (?.) (?v)] "Select build variant ..." toggle)
   (local-set-key [(control c) (?.) (?D)] 'zomp-toggle-variant)
-
-  (zomp-add-seperator)
-  (zomp-add-action zomp-shell-run-function [(control c)(control d)] "Run function...")
-  (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
-  (zomp-add-action zomp-test-current-file [(control c)(control c)] "Test current file")
-  (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
-  (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
-  (zomp-add-action zomp-shell-print-llvm-global-var [(control c)(control o)(control v)] "Print LLVM global var...")
-  (zomp-add-action zomp-shell-print-llvm-function [(control c)(control o)(control f)] "Print LLVM function...")
-  (zomp-add-action zomp-shell-print-llvm-module [(control c)(control o)(control m)] "Print LLVM module")
-  (zomp-add-action zomp-shell-write-llvm-module [(control c)(control o)(control w)] "Write LLVM module to file...")
-  (zomp-add-action zomp-shell-help [(control c)(control ??)] "Show Zomp shell help")
 
   (zomp-add-seperator)
   (zomp-add-action zomp-indent-current-or-fill [(meta q)] "Indent current")
   (zomp-add-action zomp-indent-buffer [(shift meta q)] "Indent buffer")
 
   (zomp-add-seperator)
-  (zomp-add-action zomp-shell-discard-input [(control c)(control l)] "Discard entered text")
-  (zomp-add-action zomp-shell-eval-buffer [(control c)(control b)] "Eval buffer")
-  (zomp-add-action zomp-shell-eval-region [(control c)(control r)] "Eval region")
-  (zomp-add-action zomp-shell-eval-current [(control c)(control e)] "Eval function at point")
-  (zomp-add-action zomp-shell-eval-current-and-goto-next
-                   [(control c)(control shift e)]
-                   "Eval function at point and goto next")
-  (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Enter code to run")
+  (zomp-add-action zomp-shell-run-function [(control c)(control d)] "Run function...")
+  (zomp-add-action zomp-shell-run-test [(control c)(control t)] "Run 'void test()'")
+  (zomp-add-action zomp-test-current-file [(control c)(control c)] "Test current file")
 
   (zomp-add-seperator)
-  (zomp-add-action zomp-start-or-show-shell
-                   [(control c)(control s)]
-                   "Start Zomp shell")
+  (local-set-key [menu-bar zomp inspect] (cons "Inspect" (make-sparse-keymap "Zomp/Inspect")))
+  (zomp-add-action zomp-shell-print-llvm-global-var [(control c)(control o)(control v)] "Print LLVM global var..." inspect)
+  (zomp-add-action zomp-shell-print-llvm-function [(control c)(control o)(control f)] "Print LLVM function..." inspect)
+  (zomp-add-action zomp-shell-print-llvm-module [(control c)(control o)(control m)] "Print LLVM module" inspect)
+  (zomp-add-action zomp-shell-write-llvm-module [(control c)(control o)(control w)] "Write LLVM module to file..." inspect)
+
+  (zomp-add-action zomp-shell-list-all-bindings [(control c)(meta f)] "List all bindings")
+  (zomp-add-action zomp-shell-list-bindings [(control c)(control f)] "List bindings...")
+  (zomp-add-action zomp-shell-help [(control c)(control ??)] "Show Zomp shell help")
+
+  (zomp-add-seperator)
+  (zomp-add-action zomp-shell-discard-input [(control c)(control l)] "Discard entered text")
+  (local-set-key [menu-bar zomp eval] (cons "Eval" (make-sparse-keymap "Zomp/Eval")))
+  (zomp-add-action zomp-shell-eval-buffer [(control c)(control b)] "Buffer" eval)
+  (zomp-add-action zomp-shell-eval-region [(control c)(control r)] "Region" eval)
+  (zomp-add-action zomp-shell-eval-current-and-goto-next
+                   [(control c)(control shift e)]
+                   "Function at point and goto next" eval)
+  (zomp-add-action zomp-shell-eval-current [(control c)(control e)] "Function at point" eval)
+  (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Expression ..." eval)
+
+  (zomp-add-seperator)
+  (zomp-add-action zomp-shell-request-execution-abort [(control c)(control k)] "Request app to pause")
   (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
-  (zomp-add-action zomp-shell-request-execution-abort
-                   [(control c)(control k)]
-                   "Request app to pause")
-
-
-  ;; set additional keys on OS X
-  (local-set-key [(alt r)]' zomp-run)
-  (local-set-key [(alt shift r)]' zomp-shell-run-test)
-  (local-set-key [(alt d)] 'zomp-shell-run-immediate)
-  (local-set-key [(alt shift d)] 'zomp-shell-run-function)
-  (local-set-key [(alt e)] 'zomp-shell-eval-current)
-  (local-set-key [(alt shift e)] 'zomp-shell-eval-current-and-goto-next)
+  (zomp-add-action zomp-start-or-show-shell [(control c)(control s)] "Start/show Zomp shell")
+  (zomp-add-action zomp-run [(alt r)] "Start/update")
 
   ;; (outline-minor-mode t)
   ;; (setq outline-regexp "\\([a-df-z]\\| *\\(if\\|else\\|while\\)\\)")

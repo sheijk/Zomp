@@ -53,7 +53,7 @@ this into an executable.
 : zompsh
 Will start the interactive Zomp shell. This is meant to be run from an
 IDE/editor. Load source/zomp.el in Emacs, open a Zomp source file and click
-"Zomp/Update current function and run main" in the menu bar.
+"Zomp / Start/update" in the menu bar.
 
 * History, Goals
 
