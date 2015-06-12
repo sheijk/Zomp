@@ -1,0 +1,94 @@
+* What is it?
+
+Zomp is a small but powerful programming language. It combines C like low level
+access to the machine with a Lisp style macro system. Together this allows
+writing high performance applications and gives library developers a lot of
+power. It features
+
+- Lisp-like macro system to add new language constructs in libraries
+- Full hardware access through, pointers, manual memory management etc.
+- Interactive shell for rapid prototyping (similar to irb, python)
+- Powerful and friendly syntax which allows to express new language constructs
+  without changing the grammar
+
+It is heavy work-in-progress but already usable for writing small
+applications. Currently there is not a lot of documentation. You can browse the
+testsuite and the examples to get an idea what you can do or have a look at
+build/release-x86_64/doc.
+
+Zomp's website is at http://zompc.net.
+
+* Building
+
+Currently only the OS X port is tested and maintained. To get started:
+
+- Get a Mac with OS X 10.10.3 or newer (10.9 might work)
+- Install XCode developer tools
+- Install homebrew (http://brew.sh/)
+- Install OCaml 4.02 and menhir 20140422
+  : brew install opam
+  : opam install menhir
+- Install glfw 2.7.9, glew 1.11.0, anttweakbar 1.16, assimp 3.1.1
+  : brew install glfw2 glew anttweakbar assimp
+- cd into the directory this file is in
+- Install LLVM+clang binaries
+  : ./build.sh external_tools_bin_darwin
+- Build Zomp
+  : ./build.sh -j8 -ks all
+- Optionally run tests
+  : ./build.sh -j8 -ks test
+
+Build products end up in build/release-x86_64/.
+report.html shows build/test results and docs, deploy contains compiler exes.
+
+* Running
+
+: ./examples/wobble.exe
+Run examples. Note that several of the OpenGL based ones currently crash.
+
+: zompc -c foo.zomp
+Will produce foo.ll. Run "make -n examples/mini.exe" to see commands to turn
+this into an executable.
+
+: zompsh
+Will start the interactive Zomp shell. This is meant to be run from an
+IDE/editor. Load source/zomp.el in Emacs, open a Zomp source file and click
+"Zomp/Update current function and run main" in the menu bar.
+
+* History, Goals
+
+The requirement was to have a language that at the same time delivers the same
+performance and low level control as C and allows more productive
+development. This goal is approached by providing a minimal base language
+extendable by macros and an interactive shell which supports modifying the code
+of a running application for fast prototyping. It does not attempt to protect
+against memory errors and other low level conditions.
+
+Zomp's fundamental concept is to create a language which gives much more power
+to library developers than most existing languages do. It is intended to provide
+much of the expressiveness and extensibility of higher level languages like
+Lisp, Haskell, Python or Ruby for those application domains where C and C++
+still dominate like graphics programming and embedded/real-time systems.
+
+Languages like C, Pascal and C++ provide a fixed set of constructs like loops,
+classes etc. from which programs can be composed. Even though these constructs
+are sufficient to write large programs many applications can benefit from the
+possibility to extend the language with custom constructs. There have been
+languages which allow this for a long time, like Lisp, Smalltalk, Ruby, Python
+etc.
+
+The goal of Zomp is to create a programming language in which libraries cannot
+only provide new data types and functions but also new programming language
+constructs and which on the same time allows the user full access to the
+underlying hardware.
+
+It's indented target audience is currently only myself - getting a new
+programming language to be adapted is a task better suited to large companies
+than small developer teams so I will stick to a reasonable objective: building a
+language of my taste to use for my spare time projects.
+
+* How to contribute / license
+
+At this time this is a closed source project but you can send contributions and
+feedback to Jan Rehders at jan@sheijk.net.
+
