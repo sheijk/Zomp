@@ -89,6 +89,6 @@ language of my taste to use for my spare time projects.
 
 * How to contribute / license
 
-At this time this is a closed source project but you can send contributions and
-feedback to Jan Rehders at jan@sheijk.net.
+Zomp has been created by Jan Rehders and is published under MIT license. Use
+github for bug reports, feeedback, and patches: https://github.com/sheijk/Zomp
 
