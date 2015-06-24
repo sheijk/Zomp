@@ -1,10 +1,39 @@
 
 * Zomp by example
 
-** Tracing macro expansion
+** Tracing macro expansion steps
 
+To see all macro expansion steps during compiling call
+: zompc --trace-macros
+
+In zompsh call this to see all macro expansion steps
+: !traceMacros
+and you will see macro expansion steps for 
+
+Inside Zomp code use these macros to query/set printing of macro expansion:
+
+#+begin_src zomp
 std:compiler:setTraceMacroExpansion
 std:compiler:getTraceMacroExpansion
-zompc --trace-macros
-'!traceMacros' in zompsh
+#+end_src
+
+Use 'zompc ... --dump-expanded-ast out.zomp' to write the expanded source code
+to out.zomp. Do this for all zomp sources in the repository by passing the
+command line argument DUMP_EXPANDED=1 to make/build.sh. Output files will end up
+in foo.zomp.expanded.
+
+To trace expansion of individual macros use mret instead of ret/return in the
+body of the macro like this:
+
+#+begin_src zomp
+  macro dummy arg:
+    mret $:
+      print "Running code"
+      ast:print(#arg, 2)
+      println()
+      #arg
+    end
+  end
+#+end_src
+
 
