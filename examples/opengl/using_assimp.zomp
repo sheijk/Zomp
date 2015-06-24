@@ -128,9 +128,7 @@ func int main():
 
   angle := 0.0
 
-  // sceneFilename := "data/assimp/OBJ/rifle.obj"
-  sceneFilename := "data/ModernStructure.3ds"
-  // sceneFilename := "data/MonroeBar_SketchUpScene.obj"
+  sceneFilename := "data/house.obj"
   loadOptions := ((aiProcess_Triangulate | aiProcess_SortByPType) | aiProcess_GenNormals) | aiProcess_PreTransformVertices
 
   measureAndReport "Loading scene":

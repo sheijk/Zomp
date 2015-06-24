@@ -52,7 +52,7 @@ libs/opengl20print.zomp: libs/opengl20.skel source/gen_c_bindings
 # executable using @executable_path so we need to add links to them into all
 # directories that will contain binaries requiring those libs.
 EXTERNAL_LIB_LINK_NAMES = glfw GLEW GLEW.1.9 GLEW.1.9.0
-EXTERNAL_LIB_TARGET_DIRS = examples testsuite/std libs
+EXTERNAL_LIB_TARGET_DIRS = examples/opengl testsuite/std libs
 EXTERNAL_LIB_LINKS = $(foreach target_dir, $(EXTERNAL_LIB_TARGET_DIRS), \
   $(foreach lib, $(EXTERNAL_LIB_LINK_NAMES), $(target_dir)/lib$(lib).dylib))
 

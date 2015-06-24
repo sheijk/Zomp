@@ -1,5 +1,7 @@
 ///
-/// Experiments with pipeline export from XSI
+/// Experiments with pipeline export from XSI/Maya/etc.
+///
+/// Note: this example is broken.
 ///
 
 // static:setRequireLibDebug true
