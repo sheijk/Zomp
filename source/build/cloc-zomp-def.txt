@@ -1,4 +1,6 @@
 Zomp
-    filter remove_matches ^\s*#
-    filter remove_inline #.*$
+    filter remove_matches ^\s*//
+    filter call_regexp_common C
+    filter remove_inline //.*$
+    3rd_gen_scale 1.0
     extension zomp
