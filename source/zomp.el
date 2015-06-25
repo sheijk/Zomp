@@ -969,13 +969,13 @@ indentation is the same or less than the line where we started."
                  (cons "Toggle" (make-sparse-keymap "Zomp/Toggle")))
 
   (zomp-add-action zomp-shell-toggle-llvm-printing
-                   [(control c) (?.) (l)] "Printing of LLVM code" toggle)
+                   [(control c) (?.) (l)] "Printing LLVM code" toggle)
   (zomp-add-action zomp-shell-toggle-decl-printing
-                   [(control c) (?.) (d)] "Printing of declarations" toggle)
+                   [(control c) (?.) (d)] "Printing declarations" toggle)
   (zomp-add-action zomp-shell-toggle-parsed-ast-printing
-                   [(control c) (?.) (p)] "Printing of parsed ASTs" toggle)
+                   [(control c) (?.) (p)] "Printing parsed ASTs" toggle)
   (zomp-add-action zomp-shell-toggle-trace-macros
-                   [(control c) (?.) (m)] "Tracing of macro expansion" toggle)
+                   [(control c) (?.) (m)] "Tracing macro expansion" toggle)
   ;; (zomp-add-action zomp-shell-toggle-verify
   ;;                  [(control c) (?.) (v)] "Verification of LLVM code" toggle)
   (zomp-add-action zomp-select-architecture [(control c) (?.) (?a)] "Select architecture ..." toggle)
@@ -1011,12 +1011,12 @@ indentation is the same or less than the line where we started."
                    [(control c)(control shift e)]
                    "Function at point and goto next" eval)
   (zomp-add-action zomp-shell-eval-current [(control c)(control e)] "Function at point" eval)
-  (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Expression ..." eval)
+  (zomp-add-action zomp-shell-run-immediate [(control c)(control i)] "Expression..." eval)
 
   (zomp-add-seperator)
   (zomp-add-action zomp-shell-request-execution-abort [(control c)(control k)] "Request app to pause")
-  (zomp-add-action zomp-shell-exit [(control c)(control q)] "Exit Zomp shell")
-  (zomp-add-action zomp-start-or-show-shell [(control c)(control s)] "Start/show Zomp shell")
+  (zomp-add-action zomp-shell-exit [(control c)(control q)] "Quit Zomp shell")
+  (zomp-add-action zomp-start-or-show-shell [(control c)(control s)] "Show Zomp shell")
   (zomp-add-action zomp-run [(alt r)] "Start/update")
 
   ;; (outline-minor-mode t)
