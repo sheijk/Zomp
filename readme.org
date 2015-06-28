@@ -22,15 +22,29 @@ Zomp's website is at http://zompc.net.
 
 Currently only the OS X port is tested and maintained. To get started:
 
+** Install dependencies
 - Get a Mac with OS X 10.10.3 or newer (10.9 might work)
+- Make sure XCode3 has been installed
 - Install XCode developer tools
 - Install homebrew (http://brew.sh/)
+  If you already have it installed make sure to update package info:
+  : brew update
+- Install glfw 2.7.9, glew 1.11.0, anttweakbar 1.16, assimp 3.1.1
+  : brew install glew anttweakbar assimp homebrew/versions/glfw2
+- Optionally install graphviz (only need if you want graphs of module
+  dependencies, etc.)
+  : brew install graphviz
 - Install OCaml 4.02 and menhir 20140422
   : brew install opam
+  : opam init
+  Follow the instructions that it prints to finish setup.
   : opam install menhir
-- Install glfw 2.7.9, glew 1.11.0, anttweakbar 1.16, assimp 3.1.1
-  : brew install glfw2 glew anttweakbar assimp
-- cd into the directory this file is in
+
+** Build
+- Clone this repository and cd into it
+  : brew install git
+  : git clone https://github.com/sheijk/Zomp.git
+  : cd Zomp
 - Install LLVM+clang binaries
   : ./build.sh external_tools_bin_darwin
 - Build Zomp
@@ -82,7 +96,7 @@ only provide new data types and functions but also new programming language
 constructs and which on the same time allows the user full access to the
 underlying hardware.
 
-It's indented target audience is currently only myself - getting a new
+It's intended target audience is currently only myself - getting a new
 programming language to be adapted is a task better suited to large companies
 than small developer teams so I will stick to a reasonable objective: building a
 language of my taste to use for my spare time projects.
