@@ -1,0 +1,14 @@
+Bindings generator for C to Zomp.
+
+This will generate Zomp declarations for C types and functions so they can be
+used seamlessly.
+
+To compile code that uses C libraries run zomp_bindgen_plugin.cpp (see make
+files for details) on the C headers. Every type and function will be wrapped in
+nativeTypedef/nativeFn/.. constructs. The library libs/native.zomp provides
+default implementations you can use to expand them into declarations for Zomp
+types and functions. You can also provide your own implementations for debugging
+etc. by defining these macros before including the generated source.
+
+To link just link your code and the object files or libs from the C code.
+

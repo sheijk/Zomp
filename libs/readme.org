@@ -1,0 +1,4 @@
+The Zomp standard library.
+
+The language itself is highly experimental and so are these libraries. Anything
+could change and go away at any time.

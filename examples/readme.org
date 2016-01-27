@@ -1,0 +1,4 @@
+Zomp examples.
+
+Build examples/all and run the generated executables from the Zomp main
+directory or zompsh.

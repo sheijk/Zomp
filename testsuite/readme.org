@@ -1,0 +1,7 @@
+The Zomp test suite.
+
+check_test.ml is the test runner. It's driven from testsuite.mk. Each source
+file contains a bunch of requirements starting with "////" followed by a keyword
+like error/warning/etc. The test runner will compile and run the test and check
+the result against all requirements it found in the source.
+

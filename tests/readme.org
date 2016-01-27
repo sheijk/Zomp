@@ -1,0 +1,5 @@
+Experimental stuff.
+
+The test suite is actually in testsuite. This directory should probably move
+into the design folder once there are no branches in flight, anymore.
+

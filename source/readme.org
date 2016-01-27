@@ -1,0 +1,6 @@
+Source files for the Zomp compiler and interactive shell.
+
+- build contains files used by the build system.
+- ci contains files used by continuous integration.
+- vmserver contains project files for the remote debugging VM.
+
