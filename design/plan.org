@@ -1833,6 +1833,15 @@ end
   end
 #+end_src
 ** TODO [#A] unittest:assertAll should abort after first failure
+** TODO [#A] makefile improvements
+   # do not delete intermediate files
+   .SECONDARY:
+
+   # disable built-in rules
+   .SUFFIXES:
+
+   Also use rm -f -- ... everywhere
+** TODO [#A] https://github.com/dotnet/roslyn/blob/future/docs/features/patterns.md
 * Mile stones
 ** error handling and source locations
 
