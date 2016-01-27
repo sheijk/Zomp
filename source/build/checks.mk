@@ -15,7 +15,7 @@ $(OUT_DIR)/has_clang:
 	($(WHICH) -s $(CLANG)) || (echo $(LLVM_INSTALL_HELP); exit 1)
 	$(TOUCH) $@
 
-LLVM_LIBS=`$(LLVM_CONFIG) --libs all`
+LLVM_LIBS=$(shell $(LLVM_CONFIG) --libs all)
 LLVM_LIBS_CAML=-cclib "$(LLVM_LIBS)"
 
 .PHONY: check_llvm
