@@ -1842,6 +1842,11 @@ end
 
    Also use rm -f -- ... everywhere
 ** TODO [#A] https://github.com/dotnet/roslyn/blob/future/docs/features/patterns.md
+** TODO [#A] remove opjux
+   this might be enough to make zomp's syntax homoiconic, again
+** TODO [#A] ast with keyword and positional params
+   just have a standard field with positional params?
+   would need the same type then
 * Mile stones
 ** error handling and source locations
 
