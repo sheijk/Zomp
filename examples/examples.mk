@@ -26,7 +26,7 @@ EXAMPLES_SOURCES = \
 CLEAN_SUB_TARGETS += examples/clean
 examples/clean:
 	@$(ECHO) "Cleaning examples ..."
-	@$(DELETE_FILE) $(foreach file, $(EXAMPLES_SOURCES:.zomp=), $(file).{bc,opt-bc,ll,exe,s,o,compile_output,compile_stats,result,zomp.expanded})
+	@$(DELETE_FILE) $(foreach file, $(EXAMPLES_SOURCES:.zomp=), $(BUILD_PRODUCTS_ZOMP ${file}))
 
 .PHONY: examples/all
 ALL_TARGETS += examples/all

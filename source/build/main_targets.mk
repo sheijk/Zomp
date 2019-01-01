@@ -24,8 +24,8 @@ endif
 
 $(ZOMPC_FILE): CAML_LIBS = str bigarray
 $(ZOMPSH_FILE): CAML_LIBS = str bigarray
-FILES_TO_DELETE_ON_CLEAN += source/zompc{.cmi,.cmo,.cmx,.o} $(ZOMPC_FILE)
-FILES_TO_DELETE_ON_CLEAN += source/zompsh{.cmi,.cmo,.cmx,.o} $(ZOMPSH_FILE)
+FILES_TO_DELETE_ON_CLEAN += $(call BUILD_PRODUCTS_ML, source/zompc) $(ZOMPC_FILE)
+FILES_TO_DELETE_ON_CLEAN += $(call BUILD_PRODUCTS_ML, source/zompsh) $(ZOMPSH_FILE)
 ifeq "$(CAML_BYTE_CODE)" "0"
 
 $(ZOMPC_FILE): $(LANG_CMOS:.cmo=.cmx) source/zompc.cmx $(ZOMP_DLL_FILE)
@@ -48,11 +48,11 @@ $(ZOMPSH_FILE): source/zompsh.cmo $(LANG_CMOS:.cmo=.cmx)
 
 endif
 
-FILES_TO_DELETE_ON_CLEAN += source/gen_c_bindings{.cmi,.cmo,.cmx,.o,}
+FILES_TO_DELETE_ON_CLEAN += $(call BUILD_PRODUCTS_ML, source/gen_c_bindings)
 source/gen_c_bindings: CAML_LIBS += str
 
 ALL_TARGETS += source/runtime.bc source/runtime.ll
-FILES_TO_DELETE_ON_CLEAN += source/runtime.{bc,ll,o}
+FILES_TO_DELETE_ON_CLEAN += source/runtime.bc source/runtime.ll source/runtime.o
 source/runtim%.bc source/runtim%.ll: source/runtim%.c $(OUT_DIR)/has_llvm $(OUT_DIR)/has_clang
 	@$(ECHO) Building bytecode standard library $@ ...
 	$(CLANG) $(CCFLAGS) -std=c89 -emit-llvm -c $< -o source/runtime.bc

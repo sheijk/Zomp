@@ -123,6 +123,17 @@ PERL = perl
 # image magick
 CONVERT_IMAGE = convert
 
+define BUILD_PRODUCTS_ML
+  $1 $1.cmi $1.cmo $1.cmx $1.o
+endef
+
+define BUILD_PRODUCTS_ZOMP
+  $1 \
+    $1.bc $1.opt-bc $1.ll $1.exe $1.o \
+    $1.compile_output $1.compile_stats $1.result \
+    $1.zomp.expanded
+endef
+
 ################################################################################
 # Native tool chain (C/C++/Assembler/Linker/...) binaries
 ################################################################################

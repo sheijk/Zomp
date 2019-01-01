@@ -33,8 +33,8 @@ clean_doc:
 
 .PHONY: clean_tags
 clean_tags:
-	$(DELETE_FILE) $(foreach src, $(LANG_CMOS:.cmo=), ${src}.{cmt,cmti,annot})
 	$(DELETE_FILE) source/*.conflicts
+	$(DELETE_FILE) source/*.annot source/*.cmt source/*.cmti
 	$(DELETE_FILE) testsuite/*.annot testsuite/*.cmt testsuite/*.cmti
 	$(DELETE_FILE) $(FLYMAKE_LOG)
 

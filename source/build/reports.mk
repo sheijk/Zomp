@@ -14,7 +14,7 @@ EXPECTED_BUILD_PRODUCTS = $(DEPLOY_DIR)/zompc $(DEPLOY_DIR)/zompsh $(DEPLOY_DIR)
 
 MAKE_REPORT = $(OUT_DIR)/testsuite/make_report
 ALL_TARGETS += $(MAKE_REPORT)
-FILES_TO_DELETE_ON_CLEAN += testsuite/make_report{.cmx,.cmi,.cmo,.o,}
+FILES_TO_DELETE_ON_CLEAN += $(call BUILD_PRODUCTS_ML, testsuite/make_report)
 $(MAKE_REPORT): CAML_LIBS += str
 
 MAKE_VERSION_STRING="git-`git rev-parse --short HEAD``if ! git diff-index --quiet HEAD; then echo \\-modified; fi`"
@@ -43,7 +43,7 @@ $(BUILD_DIR)/report.html: $(MAKE_REPORT)
 
 MAKE_HISTORY_REPORT = $(OUT_DIR)/testsuite/make_history_report
 ALL_TARGETS += $(MAKE_HISTORY_REPORT)
-FILES_TO_DELETE_ON_CLEAN += testsuite/make_history_report{.cmx,.cmi,.cmo,.o,}
+FILES_TO_DELETE_ON_CLEAN += $(call BUILD_PRODUCTS_ML, testsuite/make_history_report)
 $(MAKE_HISTORY_REPORT): CAML_OBJS += source/common
 $(MAKE_HISTORY_REPORT): CAML_LIBS += str bigarray
 
