@@ -28,6 +28,7 @@
 ;;
 
 (require 'thingatpt)
+(require 'flymake)
 
 ;;; Code:
 
